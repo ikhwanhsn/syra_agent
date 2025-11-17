@@ -17,7 +17,7 @@ app.use(x402Middleware);
 app.use(express.json());
 app.use("/api/update-signals", updateSignals);
 app.use("/api/corbits-nansen", corbitsNansen);
-app.get("/api/get-crypto-price", getCryptoPrice);
+app.use("/api/get-crypto-price", getCryptoPrice);
 app.use("/btc-price", createCorbitsRoutes);
 
 app.get("/", (_, res) => res.send("Server is running 🚀"));

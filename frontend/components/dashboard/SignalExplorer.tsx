@@ -95,7 +95,7 @@ const SignalExplorer = () => {
   } = useQuery({
     queryKey: ["repoDataSignalCryptoPrice"],
     queryFn: () =>
-      fetch(`https://api.binance.com/api/v3/ticker/price`).then((res) =>
+      fetch(`http://212.85.25.26:3000/api/get-crypto-price`).then((res) =>
         res.json()
       ),
     refetchInterval: 3000,
