@@ -11,7 +11,7 @@ import { x402Middleware } from "./middleware";
 dotenv.config();
 
 const app = express();
-const port: number = parseInt(process.env.PORT || "3000");
+const port: number = parseInt(process.env.PORT || "4000");
 app.use(x402Middleware);
 
 app.use(express.json());
