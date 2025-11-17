@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.get("/", async (req, res) => {
   const pricesFetch = await fetch(
     `https://api.binance.com/api/v3/ticker/price`
   );
