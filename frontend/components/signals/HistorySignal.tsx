@@ -199,7 +199,7 @@ const HistorySignal = () => {
             placeholder="Search signal, data..."
             value={valueSearch}
             onChange={handleInputSearch}
-            className="h-12 w-full sm:w-64 md:w-96 placeholder:text-base !text-lg"
+            className="h-12 w-full sm:w-64 md:w-96 placeholder:text-base text-lg!"
           />
           <AnimateIcon
             animateOnHover
