@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cron from "node-cron";
 import updateSignals from "./routes/updateSignals";
 import corbitsNansen from "./routes/corbitsNansen";
+import getCryptoPrice from "./routes/getCryptoPrice";
 import { runSignalUpdater } from "./jobs/signalUpdater";
 
 dotenv.config();
@@ -13,6 +14,7 @@ const port: number = parseInt(process.env.PORT || "3000");
 app.use(express.json());
 app.use("/api/update-signals", updateSignals);
 app.use("/api/corbits-nansen", corbitsNansen);
+app.use("/api/get-crypto-price", getCryptoPrice);
 
 app.get("/", (_, res) => res.send("Server is running 🚀"));
 
