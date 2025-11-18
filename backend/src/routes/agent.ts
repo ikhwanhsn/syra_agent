@@ -1,30 +1,30 @@
-import express from "express";
-import fetch from "node-fetch";
-import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { createLocalWallet } from "@faremeter/wallet-solana";
-import { lookupKnownSPLToken } from "@faremeter/info/solana";
-import { createPaymentHandler } from "@faremeter/payment-solana/exact";
-import { wrap as wrapFetch } from "@faremeter/fetch";
+// import express from "express";
+// import fetch from "node-fetch";
+// import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+// import { createLocalWallet } from "@faremeter/wallet-solana";
+// import { lookupKnownSPLToken } from "@faremeter/info/solana";
+// import { createPaymentHandler } from "@faremeter/payment-solana/exact";
+// import { wrap as wrapFetch } from "@faremeter/fetch";
 
-const router = express.Router();
+// const router = express.Router();
 
-const { AGENT_KEYPAIR, BASE_URL } = process.env;
+// const { AGENT_KEYPAIR, BASE_URL } = process.env;
 
-if (!AGENT_KEYPAIR) {
-  throw new Error("AGENT_KEYPAIR must be set in your environment");
-}
+// if (!AGENT_KEYPAIR) {
+//   throw new Error("AGENT_KEYPAIR must be set in your environment");
+// }
 
-const agentKeypair = Keypair.fromSecretKey(
-  Uint8Array.from(JSON.parse(AGENT_KEYPAIR))
-);
+// const agentKeypair = Keypair.fromSecretKey(
+//   Uint8Array.from(JSON.parse(AGENT_KEYPAIR))
+// );
 
-const network = "mainnet-beta";
-const splTokenName = "USDC";
+// const network = "mainnet-beta";
+// const splTokenName = "USDC";
 
-const usdcInfo = lookupKnownSPLToken(network, splTokenName);
-if (!usdcInfo) {
-  throw new Error(`couldn't look up SPLToken ${splTokenName} on ${network}!`);
-}
+// const usdcInfo = lookupKnownSPLToken(network, splTokenName);
+// if (!usdcInfo) {
+//   throw new Error(`couldn't look up SPLToken ${splTokenName} on ${network}!`);
+// }
 
 // const createAgentRouter = async () => {
 //   const connection = new Connection(clusterApiUrl(network));
@@ -35,16 +35,24 @@ if (!usdcInfo) {
 //     handlers: [createPaymentHandler(wallet, usdcMint, connection)],
 //   });
 
-//   router.get("/", async (req, res) => {
+//   // Shared handler function
+//   const handleRequest = async (
+//     req: express.Request,
+//     res: express.Response,
+//     method: string
+//   ) => {
 //     try {
-//       console.log("🤖 Agent paying automatically...");
+//       console.log(`🤖 Agent paying automatically (${method})...`);
 
-//       // Agent calls the protected endpoint and pays automatically
 //       const response = await fetchWithPayer(`${BASE_URL}/protected`, {
-//         method: "GET",
+//         method: method,
 //         headers: {
 //           Accept: "application/json",
+//           "Content-Type": "application/json",
 //         },
+//         ...(method === "POST" && req.body
+//           ? { body: JSON.stringify(req.body) }
+//           : {}),
 //       });
 
 //       const txSignature =
@@ -76,12 +84,52 @@ if (!usdcInfo) {
 //       console.error("❌ Error:", error);
 //       res.status(500).json({ error: "Failed to fetch protected resource" });
 //     }
-//   });
+//   };
+
+//   // GET route
+//   router.get("/", (req, res) => handleRequest(req, res, "GET"));
+
+//   // POST route
+//   router.post("/", (req, res) => handleRequest(req, res, "POST"));
 
 //   return router;
 // };
 
-const createAgentRouter = async () => {
+// export default createAgentRouter();
+
+import express from "express";
+import fetch from "node-fetch";
+import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { createLocalWallet } from "@faremeter/wallet-solana";
+import { lookupKnownSPLToken } from "@faremeter/info/solana";
+import { createPaymentHandler } from "@faremeter/payment-solana/exact";
+import { wrap as wrapFetch } from "@faremeter/fetch";
+
+const { AGENT_KEYPAIR, BASE_URL } = process.env;
+
+if (!AGENT_KEYPAIR) {
+  throw new Error("AGENT_KEYPAIR must be set in your environment");
+}
+
+// Convert secret key string to keypair
+const agentKeypair = Keypair.fromSecretKey(
+  Uint8Array.from(JSON.parse(AGENT_KEYPAIR))
+);
+
+const network = "mainnet-beta";
+const splTokenName = "USDC";
+
+const usdcInfo: any = lookupKnownSPLToken(network, splTokenName);
+if (!usdcInfo) {
+  throw new Error(`Couldn't look up SPLToken ${splTokenName} on ${network}!`);
+}
+
+// --------------------------------------------------------
+//  MAIN: Create Router (ASYNC SAFELY)
+// --------------------------------------------------------
+export async function createAgentRouter() {
+  const router = express.Router();
+
   const connection = new Connection(clusterApiUrl(network));
   const usdcMint = new PublicKey(usdcInfo.address);
 
@@ -90,24 +138,22 @@ const createAgentRouter = async () => {
     handlers: [createPaymentHandler(wallet, usdcMint, connection)],
   });
 
-  // Shared handler function
+  // Reusable request handler
   const handleRequest = async (
     req: express.Request,
     res: express.Response,
-    method: string
+    method: "GET" | "POST"
   ) => {
     try {
       console.log(`🤖 Agent paying automatically (${method})...`);
 
       const response = await fetchWithPayer(`${BASE_URL}/protected`, {
-        method: method,
+        method,
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        ...(method === "POST" && req.body
-          ? { body: JSON.stringify(req.body) }
-          : {}),
+        ...(method === "POST" ? { body: JSON.stringify(req.body || {}) } : {}),
       });
 
       const txSignature =
@@ -122,7 +168,6 @@ const createAgentRouter = async () => {
       }
 
       const data = await response.json();
-      console.log("✅ Payment successful, received:", data);
 
       const responseData = {
         ...data,
@@ -135,8 +180,8 @@ const createAgentRouter = async () => {
       };
 
       res.status(200).json(responseData);
-    } catch (error) {
-      console.error("❌ Error:", error);
+    } catch (err) {
+      console.error("❌ Error:", err);
       res.status(500).json({ error: "Failed to fetch protected resource" });
     }
   };
@@ -148,6 +193,4 @@ const createAgentRouter = async () => {
   router.post("/", (req, res) => handleRequest(req, res, "POST"));
 
   return router;
-};
-
-export default createAgentRouter();
+}
