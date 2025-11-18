@@ -1,0 +1,112 @@
+import express from "express";
+import { createMiddleware } from "@faremeter/middleware/express";
+import {
+  lookupKnownSPLToken,
+  x402Exact,
+  xSolanaSettlement,
+} from "@faremeter/info/solana";
+import { Keypair } from "@solana/web3.js";
+
+const router = express.Router();
+
+const { PAYER_KEYPAIR } = process.env;
+
+if (!PAYER_KEYPAIR) {
+  throw new Error("PAYER_KEYPAIR must be set in your environment");
+}
+
+const payToKeypair = Keypair.fromSecretKey(
+  Uint8Array.from(JSON.parse(PAYER_KEYPAIR))
+);
+
+const network = "mainnet-beta";
+const splTokenName = "USDC";
+
+const usdcInfo = lookupKnownSPLToken(network, splTokenName);
+if (!usdcInfo) {
+  throw new Error(`couldn't look up SPLToken ${splTokenName} on ${network}!`);
+}
+
+const payTo = payToKeypair.publicKey.toBase58();
+
+// const createProtectedRouter = async () => {
+//   router.get(
+//     "/",
+//     await createMiddleware({
+//       facilitatorURL:
+//         process.env.FAREMETER_FACILITATOR_URL ||
+//         "https://facilitator.corbits.dev",
+//       accepts: [
+//         xSolanaSettlement({
+//           network,
+//           payTo,
+//           asset: "USDC",
+//           amount: "10000", // 0.01 USDC
+//         }),
+//         xSolanaSettlement({
+//           network,
+//           payTo,
+//           asset: "sol",
+//           amount: "1000000",
+//         }),
+//         x402Exact({
+//           network,
+//           asset: "USDC",
+//           amount: "10000",
+//           payTo,
+//         }),
+//       ],
+//     }),
+//     (_, res) => {
+//       res.json({
+//         msg: "success",
+//       });
+//     }
+//   );
+
+//   return router;
+// };
+
+const createProtectedRouter = async () => {
+  const middleware = await createMiddleware({
+    facilitatorURL: "https://facilitator.corbits.dev",
+    accepts: [
+      xSolanaSettlement({
+        network,
+        payTo,
+        asset: "USDC",
+        amount: "100", // 0.01 USDC
+      }),
+      xSolanaSettlement({
+        network,
+        payTo,
+        asset: "sol",
+        amount: "1000000",
+      }),
+      x402Exact({
+        network,
+        asset: "USDC",
+        amount: "100",
+        payTo,
+      }),
+    ],
+  });
+
+  // GET route
+  router.get("/", middleware, (_, res) => {
+    res.json({
+      msg: "success",
+    });
+  });
+
+  // POST route
+  router.post("/", middleware, (_, res) => {
+    res.json({
+      msg: "success",
+    });
+  });
+
+  return router;
+};
+
+export default createProtectedRouter();
