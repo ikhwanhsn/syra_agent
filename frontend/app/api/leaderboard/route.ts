@@ -35,6 +35,19 @@ export async function GET(req: Request) {
             as: "signals",
           },
         },
+        {
+          $addFields: {
+            signals: {
+              $filter: {
+                input: "$signals",
+                as: "s",
+                cond: {
+                  $in: ["$$s.status", ["Success", "Failed"]],
+                },
+              },
+            },
+          },
+        },
 
         // Add computed metrics
         {
