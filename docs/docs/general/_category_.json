@@ -1,0 +1,8 @@
+{
+  "label": "General",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "General documentation for the Syra Trading Agent Bot."
+  }
+}

@@ -8,6 +8,13 @@
   text-align: center;
   position: relative;
   overflow: hidden;
+
+  background-color: var(--ifm-color-primary);
+  background-image: linear-gradient(
+    90deg,
+    var(--ifm-color-primary) 0%,
+    var(--ifm-color-primary-dark) 100%
+  );
 }
 
 @media screen and (max-width: 996px) {
@@ -20,4 +27,257 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.gap-1 {
+  gap: 1rem;
+}
+
+.heroBanner {
+  position: relative;
+  padding: 8rem 0 5rem;
+  text-align: center;
+  overflow: hidden;
+}
+
+.heroBackgroundGlow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(80, 80, 255, 0.35), transparent 70%);
+  transform: translateX(-50%);
+  filter: blur(60px);
+  z-index: 0;
+  animation: slowPulse 8s infinite ease-in-out;
+}
+
+@keyframes slowPulse {
+  0% {
+    opacity: 0.45;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1.1);
+  }
+  100% {
+    opacity: 0.45;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.gradientTitle {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  background: linear-gradient(90deg, #7c3aed, #4f46e5, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 1rem;
+  z-index: 1;
+  position: relative;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  color: var(--ifm-color-emphasis-700);
+  z-index: 1;
+  position: relative;
+}
+
+.badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.4rem 1rem;
+  border-radius: 0.8rem;
+  font-size: 0.85rem;
+  margin-bottom: 1.2rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  z-index: 1;
+  position: relative;
+}
+
+.buttons {
+  z-index: 2;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.gap-1 {
+  gap: 1rem;
+}
+
+/* === GLOBAL HERO === */
+.heroDark {
+  position: relative;
+  padding: 8rem 0 7rem;
+  text-align: center;
+  background: #0b0c10;
+  color: #fff;
+  overflow: hidden;
+}
+
+.heroGlow {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  width: 900px;
+  height: 900px;
+  background: radial-gradient(circle, rgba(108, 0, 255, 0.4), transparent 70%);
+  transform: translateX(-50%);
+  filter: blur(80px);
+
+  /* FIX BUTTON CLICK BLOCKING */
+  pointer-events: none;
+  z-index: -1;
+}
+
+.heroTitle {
+  font-size: 3.8rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #a855f7, #6366f1, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 1rem 0;
+}
+
+.heroSubtitle {
+  max-width: 750px;
+  margin: 0 auto 2.5rem;
+  color: #d1d5db;
+  font-size: 1.25rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.5rem 1.2rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+/* BUTTON ROW */
+.buttonRow {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* === DARK SECTIONS === */
+.sectionDark {
+  background: #0f1117;
+  padding: 5rem 0;
+  color: #fff;
+}
+
+.sectionDarkAlt {
+  background: #0c0e14;
+  padding: 5rem 0;
+  color: #fff;
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 2.4rem;
+  margin-bottom: 3rem;
+  font-weight: 700;
+}
+
+.sectionSub {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #cbd5e1;
+  margin-bottom: 2rem;
+}
+
+/* FEATURES */
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.featureCard {
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: 0.2s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* SUPERPOWERS LIST */
+.superList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.superList div {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem 1.2rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* LOGO LIST */
+.logoRow {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  font-size: 1.1rem;
+  color: #cbd5e1;
+}
+
+/* CTA SECTION */
+.sectionCTA {
+  background: linear-gradient(90deg, #5510cc, #6242f7, #0ea5e9);
+  padding: 5rem 0;
+  text-align: center;
+  color: white;
+}
+
+.ctaTitle {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.ctaSubtitle {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+/* === FULL SCREEN SECTIONS === */
+
+.fullscreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center; /* vertically center content */
+  justify-content: center; /* horizontally center wrapper */
+  padding: 4rem 0;
+  position: relative;
+}
+
+/* ensure inner container is centered but not too wide */
+.fullscreen .container {
+  margin-top: -2rem; /* visually center better */
 }
