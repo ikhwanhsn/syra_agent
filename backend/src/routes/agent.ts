@@ -68,7 +68,7 @@ export async function createAgentRouter() {
         );
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       const responseData = {
         ...data,

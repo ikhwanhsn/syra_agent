@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 import { ObjectId } from "mongodb";
-import { getDb } from "../db";
+import { getDb } from "../db.js";
 
 export async function runSignalUpdater() {
   try {

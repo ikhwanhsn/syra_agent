@@ -1,7 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
 import { ObjectId } from "mongodb";
-import { getDb } from "../db";
+import { getDb } from "../db.js";
 
 const router = express.Router();
 

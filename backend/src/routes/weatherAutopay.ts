@@ -55,7 +55,7 @@ export async function createWeatherAutopayRouter() {
       }
 
       // Step 2: Extract payment information from 402 response
-      const paymentInfo = await initialResponse.json();
+      const paymentInfo: any = await initialResponse.json();
       console.log("Payment required:", paymentInfo);
 
       // Step 3: Parse x402 format

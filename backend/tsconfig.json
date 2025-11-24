@@ -1,12 +1,23 @@
 {
   "compilerOptions": {
+    // === Module & Target Options ===
     "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "lib": ["ES2020"], // Ensure types for this target are available
+    "types": ["node"], // Include Node.js core types
+
+    // === Output Options ===
     "outDir": "dist",
     "rootDir": "src",
+
+    // === Interoperability & Strictness ===
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true, // Recommended for cross-OS stability
     "strict": true,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "resolveJsonModule": true // Useful if you import JSON files
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
 }
