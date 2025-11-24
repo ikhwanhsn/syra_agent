@@ -1,4 +1,3 @@
-  GNU nano 7.2                                                                                     docker-compose.yml                                                                                              
 services:
   api:
     build: .
