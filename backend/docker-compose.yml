@@ -10,7 +10,7 @@ services:
       - "traefik.http.routers.expressapi.rule=Host(`api.syraa.fun`)"
       - "traefik.http.routers.expressapi.entrypoints=websecure"
       - "traefik.http.routers.expressapi.tls.certresolver=letsencrypt"
-      - "traefik.http.services.expressapi.loadbalancer.server.port=5555"
+      - "traefik.http.services.expressapi.loadbalancer.server.port=5003"
     networks:
       - root_default
 
