@@ -18,4 +18,4 @@ RUN npm run build
 CMD ["node", "dist/index.js"]
 
 # Internal port (CHANGE if your index listens on another port)
-EXPOSE 4000
+EXPOSE 5555
