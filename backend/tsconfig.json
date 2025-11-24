@@ -2,8 +2,8 @@
   "compilerOptions": {
     // === Module & Target Options ===
     "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext", // <-- Changed to ESNext
+    "moduleResolution": "node", // <-- Changed to node
     "lib": ["ES2020"], // Ensure types for this target are available
     "types": ["node"], // Include Node.js core types
 
