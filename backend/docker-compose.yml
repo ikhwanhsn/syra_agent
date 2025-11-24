@@ -1,0 +1,20 @@
+  GNU nano 7.2                                                                                     docker-compose.yml                                                                                              
+services:
+  api:
+    build: .
+    container_name: express-api
+    restart: always
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.expressapi.rule=Host(`api.syraa.fun`)"
+      - "traefik.http.routers.expressapi.entrypoints=websecure"
+      - "traefik.http.routers.expressapi.tls.certresolver=letsencrypt"
+      - "traefik.http.services.expressapi.loadbalancer.server.port=4000"
+    networks:
+      - root_default
+
+networks:
+  root_default:
+    external: true
