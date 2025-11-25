@@ -18,7 +18,24 @@ export async function createWeatherRouter() {
     {
       "GET /": {
         price: "$0.0001",
-        network: "solana", // or "base" for mainnet
+        network: "solana",
+        config: {
+          description: "Weather information service",
+          outputSchema: {
+            type: "object",
+            properties: {
+              report: {
+                type: "object",
+                properties: {
+                  weather: { type: "string" },
+                  temperature: { type: "number" },
+                },
+                required: ["weather", "temperature"],
+              },
+            },
+            required: ["report"],
+          },
+        },
       },
     },
     {
