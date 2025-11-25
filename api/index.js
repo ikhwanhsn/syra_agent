@@ -147,6 +147,11 @@ app.get("/", (req, res) => {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
+  // Get the full domain from the request
+  const protocol = req.protocol; // http or https
+  const host = req.get("host"); // domain + port
+  const ogImageUrl = `${protocol}://${host}/og.png`;
+
   res.setHeader("Content-Type", "text/html");
 
   return res.send(`
@@ -158,8 +163,8 @@ app.get("/", (req, res) => {
 
       <!-- OG Metadata -->
       <meta property="og:title" content="Syra API Gateway" />
-      <meta property="og:description" content="Autonomous AI Trading Agent — Always Online" />
-      <meta property="og:image" content="/og.png" />
+      <meta property="og:description" content="The First x402-Native AI Agent Trading Assistant on Solana" />
+      <meta property="og:image" content="${ogImageUrl}" />
       <meta property="og:type" content="website" />
 
       <!-- Favicon -->
