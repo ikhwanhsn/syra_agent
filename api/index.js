@@ -1,7 +1,20 @@
 import express from "express";
 import rateLimit from "./utils/rateLimit.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Serve static files (OG image, favicon, etc)
+app.use(express.static(path.join(__dirname, "public")));
+
+// Favicon explicit route (important for bots)
+app.get("/favicon.ico", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "favicon.ico"));
+});
 
 app.use(
   rateLimit({
@@ -133,8 +146,48 @@ app.get("/", (req, res) => {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
-  res.setHeader("Content-Type", "text/plain");
-  return res.send(art);
+  res.setHeader("Content-Type", "text/html");
+
+  return res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+      <!-- OG Metadata -->
+      <meta property="og:title" content="Syra API Gateway" />
+      <meta property="og:description" content="Autonomous AI Trading Agent — Always Online" />
+      <meta property="og:image" content="/og.png" />
+      <meta property="og:type" content="website" />
+
+      <!-- Favicon -->
+      <link rel="icon" href="/favicon.ico" />
+
+      <title>Syra API Gateway</title>
+
+      <style>
+        body {
+          background: #000;
+          color: #0f0;
+          font-family: "Courier New", monospace;
+          white-space: pre;
+          padding: 20px;
+          font-size: 12px;
+        }
+        .art {
+          white-space: pre-wrap;
+        }
+      </style>
+
+    </head>
+    <body>
+      <div class="art">${art}</div>
+    </body>
+    </html>
+  `);
 });
 
-app.listen(3000);
+app.listen(3000, () => {
+  console.log("SYRA API running at http://localhost:3000");
+});
