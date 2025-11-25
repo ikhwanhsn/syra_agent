@@ -2,6 +2,7 @@ import express from "express";
 import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createWeatherRouter } from "./routes/weather.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -187,6 +188,8 @@ app.get("/", (req, res) => {
     </html>
   `);
 });
+
+app.use("/weather", await createWeatherRouter());
 
 app.listen(3000, () => {
   console.log("SYRA API running at http://localhost:3000");
