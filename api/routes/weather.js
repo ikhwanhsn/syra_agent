@@ -37,6 +37,29 @@ export async function createWeatherRouter() {
           },
         },
       },
+      "POST /": {
+        // ← ADD THIS for POST support
+        price: "$0.0001",
+        network: "solana",
+        config: {
+          description: "Weather information service",
+          mimeType: "application/json",
+          outputSchema: {
+            type: "object",
+            properties: {
+              report: {
+                type: "object",
+                properties: {
+                  weather: { type: "string" },
+                  temperature: { type: "number" },
+                },
+                required: ["weather", "temperature"],
+              },
+            },
+            required: ["report"],
+          },
+        },
+      },
     },
     {
       url: FACILITATOR_URL_PAYAI,
@@ -44,6 +67,15 @@ export async function createWeatherRouter() {
   );
 
   router.get("/", middleware, (req, res) => {
+    res.json({
+      report: {
+        weather: "sunny",
+        temperature: 70,
+      },
+    });
+  });
+
+  router.post("/", middleware, (req, res) => {
     res.json({
       report: {
         weather: "sunny",
