@@ -7,7 +7,8 @@ export async function createNewsRouter() {
 
   // Create payment middleware with simple configuration
   const middleware = createPaymentMiddleware({
-    route: "/news",
+    mountPath: "/news",
+    routePath: "/",
     price: "$0.1",
     description: "News information service",
     outputSchema: schemas.report({
