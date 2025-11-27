@@ -3,12 +3,31 @@ import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createWeatherRouter } from "./routes/weather.js";
-import { createNewsRouter } from "./routes/news.js";
+// import { createNewsRouter } from "./routes/news.js";
+import { express as faremeter } from "@faremeter/middleware";
+import { solana } from "@faremeter/info";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Create the middleware
+const paywalledMiddleware = await faremeter.createMiddleware({
+  facilitatorURL: "https://facilitator.corbits.dev",
+  accepts: [
+    {
+      ...solana.x402Exact({
+        network: "devnet",
+        asset: "USDC",
+        amount: 10000, // $0.01 in USDC base units
+        payTo: "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+      }),
+      resource: `${process.env.BASE_URL}/api/premium`,
+      description: "Premium API access",
+    },
+  ],
+});
 
 // Serve static files (OG image, favicon, etc)
 app.use(express.json());
@@ -197,7 +216,17 @@ app.get("/", (req, res) => {
 });
 
 app.use("/weather", await createWeatherRouter());
-app.use("/news", await createNewsRouter());
+// app.use("/news", await createNewsRouter());
+
+// Free endpoint
+app.get("/api/free", (req, res) => {
+  res.json({ data: "free content" });
+});
+
+// Premium endpoint with payment required
+app.get("/api/premium", paywalledMiddleware, (req, res) => {
+  res.json({ data: "premium content" });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
