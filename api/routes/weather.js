@@ -19,8 +19,8 @@ export async function createWeatherRouter() {
       "GET /": {
         price: "$0.0001",
         network: "solana",
-        resource: `${process.env.BASE_URL}/weather`,
         config: {
+          resource: `${process.env.BASE_URL}/weather`,
           description: "Weather information service",
           outputSchema: {
             type: "object",
@@ -42,8 +42,8 @@ export async function createWeatherRouter() {
         // ← ADD THIS for POST support
         price: "$0.0001",
         network: "solana",
-        resource: `${process.env.BASE_URL}/weather`,
         config: {
+          resource: `${process.env.BASE_URL}/weather`,
           description: "Weather information service",
           mimeType: "application/json",
           outputSchema: {
