@@ -3,6 +3,7 @@ import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createWeatherRouter } from "./routes/weather.js";
+import { createNewsRouter } from "./routes/news.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -196,6 +197,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/weather", await createWeatherRouter());
+app.use("/news", await createNewsRouter());
 
 // Error handling middleware
 app.use((err, req, res, next) => {
