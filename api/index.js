@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Serve static files (OG image, favicon, etc)
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Favicon explicit route (important for bots)
@@ -196,6 +197,24 @@ app.get("/", (req, res) => {
 
 app.use("/weather", await createWeatherRouter());
 
-app.listen(3000, () => {
-  console.log("SYRA API running at http://localhost:3000");
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Error:", err);
+  res.status(500).json({
+    success: false,
+    error: err.message || "Internal server error",
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Endpoint not found",
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`SYRA API running at http://localhost:${PORT}`);
 });
