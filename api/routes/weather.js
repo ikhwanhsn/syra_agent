@@ -22,20 +22,6 @@ export async function createWeatherRouter() {
         config: {
           resource: `${process.env.BASE_URL}/weather`,
           description: "Weather information service",
-          outputSchema: {
-            type: "object",
-            properties: {
-              report: {
-                type: "object",
-                properties: {
-                  weather: { type: "string" },
-                  temperature: { type: "number" },
-                },
-                required: ["weather", "temperature"],
-              },
-            },
-            required: ["report"],
-          },
         },
       },
       "POST /": {
@@ -45,21 +31,6 @@ export async function createWeatherRouter() {
         config: {
           resource: `${process.env.BASE_URL}/weather`,
           description: "Weather information service",
-          mimeType: "application/json",
-          outputSchema: {
-            type: "object",
-            properties: {
-              report: {
-                type: "object",
-                properties: {
-                  weather: { type: "string" },
-                  temperature: { type: "number" },
-                },
-                required: ["weather", "temperature"],
-              },
-            },
-            required: ["report"],
-          },
         },
       },
     },
