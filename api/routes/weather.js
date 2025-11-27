@@ -16,7 +16,7 @@ export async function createWeatherRouter() {
   const middleware = paymentMiddleware(
     ADDRESS_PAYAI,
     {
-      "GET /": {
+      "GET /weather": {
         price: "$0.0001",
         network: "solana",
         config: {
@@ -37,7 +37,7 @@ export async function createWeatherRouter() {
           },
         },
       },
-      "POST /": {
+      "POST /weather": {
         // ← ADD THIS for POST support
         price: "$0.0001",
         network: "solana",
