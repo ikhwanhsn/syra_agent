@@ -66,7 +66,7 @@ export async function createWeatherRouter() {
     }
   );
 
-  router.get("/", middleware, (req, res) => {
+  router.get("/weather", middleware, (req, res) => {
     res.json({
       report: {
         weather: "sunny",
@@ -75,7 +75,7 @@ export async function createWeatherRouter() {
     });
   });
 
-  router.post("/", middleware, (req, res) => {
+  router.post("/weather", middleware, (req, res) => {
     res.json({
       report: {
         weather: "sunny",
