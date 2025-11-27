@@ -3,16 +3,21 @@ import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createWeatherRouter } from "./routes/weather.js";
-// import { createNewsRouter } from "./routes/news.js";
+import { createNewsRouter } from "./routes/news.js";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
+import { paymentMiddleware } from "x402-express";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Create the middleware
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+
 const paywalledMiddleware = await faremeter.createMiddleware({
   facilitatorURL: "https://facilitator.corbits.dev",
   accepts: [
@@ -20,10 +25,10 @@ const paywalledMiddleware = await faremeter.createMiddleware({
       ...solana.x402Exact({
         network: "devnet",
         asset: "USDC",
-        amount: 10000, // $0.01 in USDC base units
+        amount: 10000,
         payTo: "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
       }),
-      resource: `${process.env.BASE_URL}/api/premium`,
+      resource: `${BASE_URL}/api/premium`, // Now a full URL
       description: "Premium API access",
     },
   ],
@@ -216,7 +221,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/weather", await createWeatherRouter());
-// app.use("/news", await createNewsRouter());
+app.use("/news", await createNewsRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
@@ -226,6 +231,27 @@ app.get("/api/free", (req, res) => {
 // Premium endpoint with payment required
 app.get("/api/premium", paywalledMiddleware, (req, res) => {
   res.json({ data: "premium content" });
+});
+
+app.use(
+  paymentMiddleware(
+    "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+    {
+      "/protected-route": {
+        price: "$0.10",
+        network: "solana",
+        config: {
+          description: "Access to premium content",
+        },
+      },
+    },
+    { url: "https://facilitator.payai.network" }
+  )
+);
+
+// Implement your route
+app.get("/protected-route", (req, res) => {
+  res.json({ message: "This content is behind a paywall" });
 });
 
 // Error handling middleware
