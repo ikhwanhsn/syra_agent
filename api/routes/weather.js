@@ -17,7 +17,7 @@ export async function createWeatherRouter() {
     ADDRESS_PAYAI,
     {
       "GET /": {
-        price: "$0.00001",
+        price: "$0.1",
         network: "solana",
         config: {
           description: "Weather information service",
@@ -39,7 +39,7 @@ export async function createWeatherRouter() {
       },
       "POST /": {
         // ← ADD THIS for POST support
-        price: "$0.00001",
+        price: "$0.1",
         network: "solana",
         config: {
           description: "Weather information service",
