@@ -16,7 +16,7 @@ export async function createWeatherRouter() {
   const middleware = paymentMiddleware(
     ADDRESS_PAYAI,
     {
-      "GET /weather": {
+      "GET /": {
         price: "$0.0001",
         network: "solana",
         config: {
@@ -37,7 +37,7 @@ export async function createWeatherRouter() {
           },
         },
       },
-      "POST /weather": {
+      "POST /": {
         // ← ADD THIS for POST support
         price: "$0.0001",
         network: "solana",
@@ -66,7 +66,7 @@ export async function createWeatherRouter() {
     }
   );
 
-  router.get("/weather", middleware, (req, res) => {
+  router.get("/", middleware, (req, res) => {
     res.json({
       report: {
         weather: "sunny",
@@ -75,7 +75,7 @@ export async function createWeatherRouter() {
     });
   });
 
-  router.post("/weather", middleware, (req, res) => {
+  router.post("/", middleware, (req, res) => {
     res.json({
       report: {
         weather: "sunny",
