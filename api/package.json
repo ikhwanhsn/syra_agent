@@ -17,7 +17,8 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "mongodb": "^7.0.0",
-    "x402-express": "^0.7.3"
+    "x402-express": "^0.7.3",
+    "x402-solana": "^0.1.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
