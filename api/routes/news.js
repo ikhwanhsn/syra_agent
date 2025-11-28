@@ -1,5 +1,6 @@
 // routes/weather.js
 import express from "express";
+import { requirePayment } from "../utils/x402Payment.js";
 
 export async function createNewsRouter() {
   const router = express.Router();
@@ -27,19 +28,33 @@ export async function createNewsRouter() {
   const tickerNews = await fetchPages("alltickers");
 
   // Apply middleware to routes
-  router.get("/", (req, res) => {
-    res.json({
-      generalNews,
-      tickerNews,
-    });
-  });
+  router.get(
+    "/",
+    requirePayment({
+      price: "0.1",
+      description: "News information service - GET",
+    }),
+    (req, res) => {
+      res.json({
+        generalNews,
+        tickerNews,
+      });
+    }
+  );
 
-  router.post("/", (req, res) => {
-    res.json({
-      generalNews,
-      tickerNews,
-    });
-  });
+  router.post(
+    "/",
+    requirePayment({
+      price: "0.1",
+      description: "News information service - POST",
+    }),
+    (req, res) => {
+      res.json({
+        generalNews,
+        tickerNews,
+      });
+    }
+  );
 
   return router;
 }

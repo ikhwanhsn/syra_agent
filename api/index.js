@@ -8,6 +8,7 @@ import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
 import { paymentMiddleware } from "x402-express";
 import dotenv from "dotenv";
+import { createTestRouter } from "./routes/test.js";
 
 dotenv.config();
 
@@ -222,6 +223,7 @@ app.get("/", (req, res) => {
 
 app.use("/weather", await createWeatherRouter());
 app.use("/news", await createNewsRouter());
+app.use("/test", await createTestRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {

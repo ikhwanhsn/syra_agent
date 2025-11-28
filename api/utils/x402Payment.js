@@ -1,139 +1,143 @@
-// utils/x402Payment.js - FIXED VERSION
-import { paymentMiddleware } from "x402-express";
+import { X402PaymentHandler } from "x402-solana/server";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const { FACILITATOR_URL_PAYAI, ADDRESS_PAYAI } = process.env;
+const { FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, BASE_URL } = process.env;
 
-if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI) {
-  throw new Error("FACILITATOR_URL_PAYAI and ADDRESS_PAYAI must be set");
+if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI || !BASE_URL) {
+  throw new Error(
+    "FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, and BASE_URL must be set"
+  );
 }
 
-console.log("=== x402 Configuration ===");
-console.log("Facilitator URL:", FACILITATOR_URL_PAYAI);
-console.log("Receiver Address:", ADDRESS_PAYAI);
-console.log("========================\n");
+// USDC token mint addresses
+const USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
+// Initialize x402 payment handler (singleton)
+const x402 = new X402PaymentHandler({
+  network: "solana",
+  treasuryAddress: ADDRESS_PAYAI,
+  facilitatorUrl: FACILITATOR_URL_PAYAI,
+});
 
 /**
- * Creates a reusable x402 payment middleware
- * This returns the middleware that should be applied at APP level, not router level
+ * Create x402 payment middleware for any route
+ *
+ * @param options - Payment configuration options
+ * @returns Express middleware function
+ *
+ * @example
+ * // Simple usage with just price and description
+ * router.get("/weather",
+ *   requirePayment({ price: "0.0001", description: "Weather API" }),
+ *   (req, res) => res.json({ weather: "sunny" })
+ * );
+ *
+ * @example
+ * // Advanced usage with all options
+ * router.post("/ai-chat",
+ *   requirePayment({
+ *     price: "0.10",
+ *     description: "AI Chat API - GPT-4 powered responses",
+ *     discoverable: true,
+ *     resource: "/api/ai-chat"
+ *   }),
+ *   async (req, res) => {
+ *     const response = await processChat(req.body);
+ *     res.json(response);
+ *   }
+ * );
  */
-export function createPaymentMiddleware(config) {
-  const {
-    mountPath,
-    routePath = "/",
-    price,
-    description,
-    outputSchema,
-    network = "solana",
-    mimeType = "application/json",
-    methods = ["GET", "POST"],
-  } = config;
+export function requirePayment(options) {
+  return async (req, res, next) => {
+    try {
+      // 1. Extract payment header from request
+      const paymentHeader = x402.extractPayment(req.headers);
 
-  // Validation
-  if (!mountPath) {
-    throw new Error(
-      "createPaymentMiddleware: 'mountPath' is required. " +
-        "Example: createPaymentMiddleware({ mountPath: '/weather', ... })"
-    );
-  }
+      // 2. Calculate amount in micro-units
+      const priceUSD = parseFloat(options.price);
+      const microUnits = Math.floor(priceUSD * 1_000_000).toString();
 
-  if (!price) {
-    throw new Error("createPaymentMiddleware: 'price' is required");
-  }
+      // 3. Determine network and token
+      const network = options.network || "solana";
+      const tokenMint =
+        options.tokenMint ||
+        (network === "solana" ? USDC_MAINNET : USDC_DEVNET);
 
-  if (!description) {
-    throw new Error("createPaymentMiddleware: 'description' is required");
-  }
+      // 4. Build resource URL
+      const resourceUrl = options.resource
+        ? `${BASE_URL}${options.resource}`
+        : `${BASE_URL}${req.path}`;
 
-  if (!outputSchema) {
-    throw new Error("createPaymentMiddleware: 'outputSchema' is required");
-  }
+      // 5. Create payment requirements
+      const paymentRequirements = await x402.createPaymentRequirements({
+        price: {
+          amount: microUnits,
+          asset: {
+            address: tokenMint,
+          },
+        },
+        network: network,
+        config: {
+          description: options.description,
+          resource: resourceUrl,
+          discoverable: options.discoverable || false,
+        },
+      });
 
-  // Combine mount path and route path to get full path
-  // Remove trailing slashes from BOTH mountPath and routePath
-  const cleanMountPath = mountPath.replace(/\/$/, "");
-  const cleanRoutePath = routePath.replace(/\/$/, "");
+      // 6. If no payment header, return 402 with payment requirements
+      if (!paymentHeader) {
+        const response = x402.create402Response(paymentRequirements);
+        return res.status(response.status).json(response.body);
+      }
 
-  // Add leading slash to routePath if needed
-  const normalizedRoutePath =
-    cleanRoutePath.startsWith("/") || cleanRoutePath === ""
-      ? cleanRoutePath
-      : `/${cleanRoutePath}`;
+      // 7. Verify the payment
+      const verified = await x402.verifyPayment(
+        paymentHeader,
+        paymentRequirements
+      );
 
-  // Combine paths
-  const fullPath = cleanMountPath + normalizedRoutePath;
+      if (!verified) {
+        return res.status(402).json({
+          error: "Payment verification failed",
+          message: "Invalid or expired payment",
+        });
+      }
 
-  // Build payment requirements for each HTTP method
-  const paymentRequirements = {};
+      // 8. Settle the payment (complete the transaction)
+      await x402.settlePayment(paymentHeader, paymentRequirements);
 
-  methods.forEach((method) => {
-    // THIS IS THE KEY: Use just the path as the key, not "METHOD /path"
-    const routeKey = fullPath;
-
-    paymentRequirements[routeKey] = {
-      price,
-      network,
-      config: {
-        description,
-        mimeType,
-        outputSchema,
-      },
-    };
-  });
-
-  console.log(`\n🔒 [x402] Payment protection configured for:`);
-  Object.keys(paymentRequirements).forEach((key) => {
-    console.log(`   ${methods.join(", ")} ${key} - ${price} USDC`);
-  });
-  console.log("");
-
-  // Return the payment middleware directly
-  // It should be applied at APP level: app.use(createPaymentMiddleware(...))
-  return paymentMiddleware(ADDRESS_PAYAI, paymentRequirements, {
-    url: FACILITATOR_URL_PAYAI,
-  });
+      // 9. Payment successful - continue to route handler
+      next();
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
 }
 
 /**
- * Helper to create common output schemas
+ * Helper function to convert USD to USDC micro-units
  */
-export const schemas = {
-  // Simple object response
-  object: (properties) => ({
-    type: "object",
-    properties,
-    required: Object.keys(properties),
-  }),
+export function usdToMicroUsdc(usd) {
+  return Math.floor(usd * 1_000_000).toString();
+}
 
-  // Nested report structure
-  report: (reportProperties) => ({
-    type: "object",
-    properties: {
-      report: {
-        type: "object",
-        properties: reportProperties,
-        required: Object.keys(reportProperties),
-      },
-    },
-    required: ["report"],
-  }),
+/**
+ * Helper function to convert USDC micro-units to USD
+ */
+export function microUsdcToUsd(microUsdc) {
+  return parseInt(microUsdc) / 1_000_000;
+}
 
-  // Array response
-  array: (itemSchema) => ({
-    type: "array",
-    items: itemSchema,
-  }),
-
-  // Success/error response
-  standardResponse: () => ({
-    type: "object",
-    properties: {
-      success: { type: "boolean" },
-      data: { type: "object" },
-      error: { type: "string" },
-    },
-    required: ["success"],
-  }),
-};
+/**
+ * Get the x402 handler instance (for advanced use cases)
+ */
+export function getX402Handler() {
+  return x402;
+}
