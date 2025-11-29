@@ -225,7 +225,7 @@ app.get("/", (req, res) => {
 
 app.use("/weather", await createWeatherRouter());
 app.use("/news", await createNewsRouter());
-app.use("/test", await createTestRouter());
+// app.use("/test", await createTestRouter());
 app.use("/signal", await createSignalRouter());
 app.use("/x-search", await createXSearchRouter());
 
