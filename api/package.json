@@ -12,8 +12,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@atxp/client": "^0.8.2",
     "@faremeter/info": "^0.14.0",
     "@faremeter/middleware": "^0.14.0",
+    "@solana/pay": "^0.2.6",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "mongodb": "^7.0.0",

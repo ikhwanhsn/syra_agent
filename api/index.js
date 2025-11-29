@@ -10,6 +10,7 @@ import { paymentMiddleware } from "x402-express";
 import dotenv from "dotenv";
 import { createTestRouter } from "./routes/test.js";
 import { createSignalRouter } from "./routes/signal.js";
+import { createXSearchRouter } from "./routes/xSearch.js";
 
 dotenv.config();
 
@@ -226,6 +227,7 @@ app.use("/weather", await createWeatherRouter());
 app.use("/news", await createNewsRouter());
 app.use("/test", await createTestRouter());
 app.use("/signal", await createSignalRouter());
+app.use("/x-search", await createXSearchRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {

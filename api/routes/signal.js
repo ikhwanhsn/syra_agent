@@ -58,7 +58,7 @@ export async function createSignalRouter() {
 
       // Your search logic here
       const signal = await fetch(
-        `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
+        `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token || "bitcoin"}`
       ).then((res) => res.json());
 
       res.json({
