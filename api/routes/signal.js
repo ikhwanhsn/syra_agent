@@ -28,7 +28,7 @@ export async function createSignalRouter() {
         `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
       ).then((res) => res.json());
 
-      if (signal?.signal?.metadata?.instrument === "CRYPTO") {
+      if (signal) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
