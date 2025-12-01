@@ -1,41 +1,41 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
-// import { checkFromBrowserCookie } from "../scripts/checkFromBrowserCookie.js";
-// import { getTokenBalance } from "../scripts/getTokenBalance.js";
+import { checkFromBrowserCookie } from "../scripts/checkFromBrowserCookie.js";
+import { getTokenBalance } from "../scripts/getTokenBalance.js";
 
 export async function createSignalRouter() {
   const router = express.Router();
 
   // Middleware to adjust price based on SYRA token holdings (> 1M tokens)
-  // router.use(async (req, res, next) => {
-  //   try {
-  //     let price = "0.15"; // Default price
+  router.use(async (req, res, next) => {
+    try {
+      let price = "0.15"; // Default price
 
-  //     const walletAddress = await checkFromBrowserCookie(req);
+      const walletAddress = await checkFromBrowserCookie(req);
 
-  //     if (walletAddress) {
-  //       // 1. Get Token Balance
-  //       const syraBalance = await getTokenBalance(
-  //         walletAddress,
-  //         "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
-  //       );
+      if (walletAddress) {
+        // 1. Get Token Balance
+        const syraBalance = await getTokenBalance(
+          walletAddress,
+          "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
+        );
 
-  //       console.log("SYRA Balance:", syraBalance);
+        console.log("SYRA Balance:", syraBalance);
 
-  //       // 2. Check if user holds more than 1 Million tokens
-  //       if (syraBalance > 1000000) {
-  //         price = "0.05"; // Discounted price
-  //       }
-  //     }
+        // 2. Check if user holds more than 1 Million tokens
+        if (syraBalance > 1000000) {
+          price = "0.05"; // Discounted price
+        }
+      }
 
-  //     req.dynamicPrice = price;
-  //     next();
-  //   } catch (error) {
-  //     console.error("Error setting dynamic price:", error);
-  //     req.dynamicPrice = "0.15"; // Fallback to default
-  //     next();
-  //   }
-  // });
+      req.dynamicPrice = price;
+      next();
+    } catch (error) {
+      console.error("Error setting dynamic price:", error);
+      req.dynamicPrice = "0.15"; // Fallback to default
+      next();
+    }
+  });
 
   // GET Route Example
   router.get(
