@@ -195,19 +195,22 @@
 // `;
 
 export const kolPrompt = (address) => `
-Find all Key Opinion Leaders (KOLs) and influencers on X (Twitter) who have posted about this token: ${address}
+Find EVERY account on X (Twitter) that has posted about this token: ${address}
 
 ## What to Search For
 Search for tweets containing:
 - "${address}" (exact contract address)
 - Token name or ticker if found
+- Any mention or partial match of the address
 
-## Target Accounts
-Find ALL accounts that mentioned the token, then:
-- Rank by follower count (highest to lowest)
-- Return top 5-10 accounts regardless of follower size
-- Filter only: Active crypto accounts (bio contains: crypto, DeFi, trader, analyst, web3)
-- Exclude: Obvious bots, suspended accounts, private accounts
+## Target Accounts - IMPORTANT
+- Find EVERY SINGLE account that mentioned this token
+- NO minimum follower requirement - include accounts with 1 follower, 100 followers, or 1M followers
+- Do NOT filter by crypto keywords in bio
+- Do NOT filter by account age or verification
+- Include ALL accounts: new, old, verified, unverified, small, large
+- Then rank ALL found accounts by follower count
+- Return top 5-10 from that ranked list
 
 ## Data to Collect
 
@@ -225,11 +228,10 @@ For each tweet:
 - Engagement metrics (likes, retweets, comments, views)
 - Tweet URL
 
-## Red Flags to Note
+## Red Flags to Note (optional - don't exclude these accounts)
 - Multiple accounts posting identical text
-- New accounts with huge followers
-- Pump and dump language ("100x guaranteed", "don't miss out")
 - Suspicious timing (all posting within same hour)
+- Note these as flags but STILL INCLUDE the accounts in results
 
 ## Output Format
 Return a JSON with top 5-10 KOLs ranked by follower count:
