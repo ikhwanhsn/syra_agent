@@ -1,5 +1,5 @@
 import express from "express";
-import { requirePayment } from "../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 
@@ -49,13 +49,26 @@ export async function createXSearchRouter() {
           xLiveSearchService.getResult(result);
 
         if (status === "success") {
+          // Settle payment ONLY on success
+          await getX402Handler().settlePayment(
+            req.x402Payment.paymentHeader,
+            req.x402Payment.paymentRequirements
+          );
+
           res.json({ query, result: message, citations, toolCalls });
         } else {
           console.error("Search failed:", errorMessage);
+          res.status(500).json({
+            error: "Search failed",
+            message: errorMessage,
+          });
         }
       } catch (error) {
         console.error(`Error with ${xLiveSearchService.description}:`, error);
-        process.exit(1);
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
       }
     }
   );
@@ -104,13 +117,22 @@ export async function createXSearchRouter() {
           xLiveSearchService.getResult(result); // Parse the result
 
         if (status === "success") {
+          // Settle payment ONLY on success
+          await getX402Handler().settlePayment(
+            req.x402Payment.paymentHeader,
+            req.x402Payment.paymentRequirements
+          );
+
           res.json({ query, result: message, citations, toolCalls });
         } else {
           console.error("Search failed:", errorMessage);
         }
       } catch (error) {
         console.error(`Error with ${xLiveSearchService.description}:`, error);
-        process.exit(1);
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
       }
     }
   );

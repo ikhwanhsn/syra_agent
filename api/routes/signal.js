@@ -1,5 +1,5 @@
 import express from "express";
-import { requirePayment } from "../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 
 export async function createSignalRouter() {
   const router = express.Router();
@@ -28,9 +28,21 @@ export async function createSignalRouter() {
         `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
       ).then((res) => res.json());
 
-      res.json({
-        signal,
-      });
+      if (signal.signal.metadata.instrument === "CRYPTO") {
+        // Settle payment ONLY on success
+        await getX402Handler().settlePayment(
+          req.x402Payment.paymentHeader,
+          req.x402Payment.paymentRequirements
+        );
+
+        res.json({
+          signal,
+        });
+      } else {
+        res.status(500).json({
+          error: "Failed to fetch signal",
+        });
+      }
     }
   );
 
@@ -61,9 +73,21 @@ export async function createSignalRouter() {
         `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token || "bitcoin"}`
       ).then((res) => res.json());
 
-      res.json({
-        signal,
-      });
+      if (signal.signal.metadata.instrument === "CRYPTO") {
+        // Settle payment ONLY on success
+        await getX402Handler().settlePayment(
+          req.x402Payment.paymentHeader,
+          req.x402Payment.paymentRequirements
+        );
+
+        res.json({
+          signal,
+        });
+      } else {
+        res.status(500).json({
+          error: "Failed to fetch signal",
+        });
+      }
     }
   );
 

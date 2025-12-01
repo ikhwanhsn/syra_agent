@@ -1,6 +1,6 @@
 // routes/weather.js
 import express from "express";
-import { requirePayment } from "../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 
 export async function createNewsRouter() {
   const router = express.Router();
@@ -34,11 +34,23 @@ export async function createNewsRouter() {
       price: "0.1",
       description: "News information service - GET",
     }),
-    (req, res) => {
-      res.json({
-        generalNews,
-        tickerNews,
-      });
+    async (req, res) => {
+      if (generalNews.length > 0 || tickerNews.length > 0) {
+        // Settle payment ONLY on success
+        await getX402Handler().settlePayment(
+          req.x402Payment.paymentHeader,
+          req.x402Payment.paymentRequirements
+        );
+
+        res.json({
+          generalNews,
+          tickerNews,
+        });
+      } else {
+        res.status(500).json({
+          error: "Failed to fetch news",
+        });
+      }
     }
   );
 
@@ -48,11 +60,23 @@ export async function createNewsRouter() {
       price: "0.1",
       description: "News information service - POST",
     }),
-    (req, res) => {
-      res.json({
-        generalNews,
-        tickerNews,
-      });
+    async (req, res) => {
+      if (generalNews.length > 0 || tickerNews.length > 0) {
+        // Settle payment ONLY on success
+        await getX402Handler().settlePayment(
+          req.x402Payment.paymentHeader,
+          req.x402Payment.paymentRequirements
+        );
+
+        res.json({
+          generalNews,
+          tickerNews,
+        });
+      } else {
+        res.status(500).json({
+          error: "Failed to fetch news",
+        });
+      }
     }
   );
 

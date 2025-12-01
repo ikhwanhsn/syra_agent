@@ -153,7 +153,10 @@ export function requirePayment(options) {
       }
 
       // 10. Settle the payment (complete the transaction)
-      await x402.settlePayment(paymentHeader, paymentRequirements);
+      // await x402.settlePayment(paymentHeader, paymentRequirements);
+
+      // Store payment info for later settlement
+      req.x402Payment = { paymentHeader, paymentRequirements };
 
       // 11. Payment successful - continue to route handler
       next();
