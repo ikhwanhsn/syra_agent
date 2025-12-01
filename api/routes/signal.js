@@ -6,20 +6,25 @@ import { getTokenBalance } from "../scripts/getTokenBalance.js";
 export async function createSignalRouter() {
   const router = express.Router();
 
-  // Middleware to dynamically adjust price based on SYRA token balance
+  // Middleware to adjust price based on SYRA token holdings (> 1M tokens)
   router.use(async (req, res, next) => {
     try {
       let price = "0.15"; // Default price
 
       const walletAddress = await checkFromBrowserCookie(req);
+
       if (walletAddress) {
+        // 1. Get Token Balance
         const syraBalance = await getTokenBalance(
           walletAddress,
           "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
         );
 
-        if (syraBalance > 0) {
-          price = "0.05"; // Discount if user holds SYRA
+        console.log("SYRA Balance:", syraBalance);
+
+        // 2. Check if user holds more than 1 Million tokens
+        if (syraBalance > 1000000) {
+          price = "0.05"; // Discounted price
         }
       }
 
@@ -27,7 +32,7 @@ export async function createSignalRouter() {
       next();
     } catch (error) {
       console.error("Error setting dynamic price:", error);
-      req.dynamicPrice = "0.15"; // fallback
+      req.dynamicPrice = "0.15"; // Fallback to default
       next();
     }
   });
