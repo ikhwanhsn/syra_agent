@@ -1,6 +1,7 @@
+import express from "express";
 import cookieParser from "cookie-parser";
-import { getTokenBalance } from "./tokenService.js";
 
+const app = express();
 app.use(cookieParser());
 
 export async function checkFromBrowserCookie(req) {
