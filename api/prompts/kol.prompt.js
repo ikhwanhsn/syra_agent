@@ -201,7 +201,6 @@ Find all Key Opinion Leaders (KOLs) and influencers on X (Twitter) who have post
 Search for tweets containing:
 - "${address}" (exact contract address)
 - Token name or ticker if found
-- Variations like "CA: ${address.slice(0, 10)}..."
 
 ## Target Accounts
 Find ALL accounts that mentioned the token, then:
