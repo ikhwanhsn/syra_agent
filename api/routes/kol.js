@@ -27,9 +27,9 @@ export async function createXKOLRouter() {
       },
     }),
     async (req, res) => {
-      const { address } = req.query;
-      const query = await kolPrompt(address);
-      const tokenInfo = await getDexscreenerTokenInfo(address);
+      const { query } = req.query;
+      const prompt = await kolPrompt(query);
+      const tokenInfo = await getDexscreenerTokenInfo(query);
 
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
@@ -41,7 +41,7 @@ export async function createXKOLRouter() {
       });
 
       const searchParams = {
-        query,
+        query: prompt,
       };
 
       try {
@@ -97,9 +97,9 @@ export async function createXKOLRouter() {
       },
     }),
     async (req, res) => {
-      const { address } = req.body;
-      const query = await kolPrompt(address);
-      const tokenInfo = await getDexscreenerTokenInfo(address);
+      const { query } = req.body;
+      const prompt = await kolPrompt(query);
+      const tokenInfo = await getDexscreenerTokenInfo(query);
 
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
@@ -111,7 +111,7 @@ export async function createXKOLRouter() {
       });
 
       const searchParams = {
-        query,
+        query: prompt,
       };
 
       try {
