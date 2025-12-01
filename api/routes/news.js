@@ -35,7 +35,7 @@ export async function createNewsRouter() {
       description: "News information service - GET",
     }),
     async (req, res) => {
-      if (generalNews.length > 0 || tickerNews.length > 0) {
+      if (generalNews?.length > 0 || tickerNews?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
@@ -61,7 +61,7 @@ export async function createNewsRouter() {
       description: "News information service - POST",
     }),
     async (req, res) => {
-      if (generalNews.length > 0 || tickerNews.length > 0) {
+      if (generalNews?.length > 0 || tickerNews?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
