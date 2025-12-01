@@ -3,6 +3,7 @@ import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { kolPrompt } from "../prompts/kol.prompt.js";
+import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
 
 export async function createXKOLRouter() {
   const router = express.Router();
@@ -28,6 +29,7 @@ export async function createXKOLRouter() {
     async (req, res) => {
       const { address } = req.query;
       const query = await kolPrompt(address);
+      const tokenInfo = await getDexscreenerTokenInfo(address);
 
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
@@ -57,7 +59,7 @@ export async function createXKOLRouter() {
             req.x402Payment.paymentRequirements
           );
 
-          res.json({ query, result: message, citations, toolCalls });
+          res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {
           console.error("Search failed:", errorMessage);
           res.status(500).json({
@@ -96,7 +98,8 @@ export async function createXKOLRouter() {
     }),
     async (req, res) => {
       const { address } = req.body;
-      const query = kolPrompt(address);
+      const query = await kolPrompt(address);
+      const tokenInfo = await getDexscreenerTokenInfo(address);
 
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
@@ -126,7 +129,7 @@ export async function createXKOLRouter() {
             req.x402Payment.paymentRequirements
           );
 
-          res.json({ query, result: message, citations, toolCalls });
+          res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {
           console.error("Search failed:", errorMessage);
         }
