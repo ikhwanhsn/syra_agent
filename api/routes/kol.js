@@ -18,18 +18,18 @@ export async function createXKOLRouter() {
       discoverable: true, // Make it discoverable on x402scan
       inputSchema: {
         queryParams: {
-          query: {
+          address: {
             type: "string",
             required: false,
-            description: "Topic for the research",
+            description: "Contract address of token",
           },
         },
       },
     }),
     async (req, res) => {
-      const { query } = req.query;
-      const prompt = await kolPrompt(query);
-      const tokenInfo = await getDexscreenerTokenInfo(query);
+      const { address } = req.query;
+      const prompt = await kolPrompt(address);
+      const tokenInfo = await getDexscreenerTokenInfo(address);
 
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
@@ -73,6 +73,7 @@ export async function createXKOLRouter() {
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",
         });
+        process.exit(1);
       }
     }
   );
@@ -88,7 +89,7 @@ export async function createXKOLRouter() {
       inputSchema: {
         bodyType: "json",
         bodyFields: {
-          query: {
+          address: {
             type: "string",
             required: false,
             description: "Topic for the research",
@@ -97,9 +98,9 @@ export async function createXKOLRouter() {
       },
     }),
     async (req, res) => {
-      const { query } = req.body;
-      const prompt = await kolPrompt(query);
-      const tokenInfo = await getDexscreenerTokenInfo(query);
+      const { address } = req.body;
+      const prompt = await kolPrompt(address);
+      const tokenInfo = await getDexscreenerTokenInfo(address);
 
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
@@ -139,6 +140,7 @@ export async function createXKOLRouter() {
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",
         });
+        process.exit(1);
       }
     }
   );
