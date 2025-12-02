@@ -14,6 +14,7 @@ import { createXSearchRouter } from "./routes/xSearch.js";
 import { createXKOLRouter } from "./routes/kol.js";
 import { createBrowseRouter } from "./routes/browse.js";
 import { createResearchRouter } from "./routes/research.js";
+import { createGemsRouter } from "./routes/gems.js";
 
 dotenv.config();
 
@@ -234,6 +235,7 @@ app.use("/x-search", await createXSearchRouter());
 app.use("/x-kol", await createXKOLRouter());
 app.use("/browse", await createBrowseRouter());
 app.use("/research", await createResearchRouter());
+app.use("/gems", await createGemsRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
