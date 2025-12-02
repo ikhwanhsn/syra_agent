@@ -13,6 +13,7 @@ import { createSignalRouter } from "./routes/signal.js";
 import { createXSearchRouter } from "./routes/xSearch.js";
 import { createXKOLRouter } from "./routes/kol.js";
 import { createBrowseRouter } from "./routes/browse.js";
+import { createResearchRouter } from "./routes/research.js";
 
 dotenv.config();
 
@@ -232,6 +233,7 @@ app.use("/signal", await createSignalRouter());
 app.use("/x-search", await createXSearchRouter());
 app.use("/x-kol", await createXKOLRouter());
 app.use("/browse", await createBrowseRouter());
+app.use("/research", await createResearchRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
