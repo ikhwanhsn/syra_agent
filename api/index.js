@@ -15,6 +15,7 @@ import { createXKOLRouter } from "./routes/kol.js";
 import { createBrowseRouter } from "./routes/browse.js";
 import { createResearchRouter } from "./routes/research.js";
 import { createGemsRouter } from "./routes/gems.js";
+import { createCryptoKOLRouter } from "./routes/crypto-kol.js";
 
 dotenv.config();
 
@@ -236,6 +237,7 @@ app.use("/x-kol", await createXKOLRouter());
 app.use("/browse", await createBrowseRouter());
 app.use("/research", await createResearchRouter());
 app.use("/gems", await createGemsRouter());
+app.use("/crypto-kol", await createCryptoKOLRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
