@@ -72,25 +72,12 @@ export async function createCryptoKOLRouter() {
     "/",
     requirePayment({
       price: "0.15",
-      description: "Deep research on X platform for a KOL/Influencer",
+      description:
+        "Get insight from a KOL/Influencer on Crypto, Target Accounts @elonmusk, @VitalikButerin, @cz_binance, @saylor, @justinsuntron, @APompliano, @balajis, @TheCryptoLark, @100trillionUSD, @themooncarl",
       method: "POST",
       discoverable: true,
-      inputSchema: {
-        bodyType: "json",
-        bodyFields: {
-          address: {
-            type: "string",
-            required: false,
-            description: "Topic for the research",
-          },
-        },
-      },
     }),
     async (req, res) => {
-      const { address } = req.body;
-      const prompt = await kolPrompt(address);
-      const tokenInfo = await getDexscreenerTokenInfo(address);
-
       // Read the ATXP account details from environment variables
       const atxpConnectionString = process.env.ATXP_CONNECTION;
 
@@ -101,7 +88,7 @@ export async function createCryptoKOLRouter() {
       });
 
       const searchParams = {
-        query: prompt,
+        query: cryptoKolPrompt,
       };
 
       try {
