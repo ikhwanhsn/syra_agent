@@ -106,7 +106,7 @@ export async function createCryptoKOLRouter() {
             req.x402Payment.paymentRequirements
           );
 
-          res.json({ query, tokenInfo, result: message, citations, toolCalls });
+          res.json({ query, result: message, citations, toolCalls });
         } else {
           console.error("Search failed:", errorMessage);
         }
