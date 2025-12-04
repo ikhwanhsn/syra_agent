@@ -97,10 +97,11 @@ $SYRA has aggressive deflationary mechanisms to create scarcity as usage grows.
 
 **Example Burn Calculation (Q4 2026):**
 
-- Monthly x402 volume: $500,000 (all in USDC/stablecoins)
-- 50% buyback & burn: $250,000 worth of $SYRA purchased & burned
+- Monthly x402 volume: $1,000,000 (all in USDC/stablecoins)
+- 80% x402 volume buyback & burn: $800,000 worth of $SYRA purchased & burned
+- 50% x402 revenue buyback & burn: $100,000 worth of $SYRA purchased & burned
 - Governance fees: ~$10,000 worth of $SYRA burned
-- **Total monthly burn: ~$260,000 worth of $SYRA**
+- **Total monthly burn: ~$910,000 worth of $SYRA**
 
 At this rate, **30-50% of total supply could burn over 3 years.**
 
