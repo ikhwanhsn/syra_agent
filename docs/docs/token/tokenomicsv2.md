@@ -88,11 +88,12 @@ $SYRA has aggressive deflationary mechanisms to create scarcity as usage grows.
 
 ### Burn Mechanisms
 
-| Source                        | Burn Rate                        | Frequency    |
-| ----------------------------- | -------------------------------- | ------------ |
-| **USDC Revenue Buyback**      | 50% of x402 revenue → buy & burn | Monthly      |
-| **Staking Rewards Unclaimed** | Unclaimed rewards burned         | Quarterly    |
-| **Governance Proposals**      | 1,000 $SYRA proposal fee burned  | Per proposal |
+| Source                        | Burn Rate                        | Frequency        |
+| ----------------------------- | -------------------------------- | ---------------- |
+| **USDC x402 Fee**             | 80% of x402 fee → buy & burn     | Each transaction |
+| **USDC Revenue Buyback**      | 50% of x402 revenue → buy & burn | Monthly          |
+| **Staking Rewards Unclaimed** | Unclaimed rewards burned         | Quarterly        |
+| **Governance Proposals**      | 1,000 $SYRA proposal fee burned  | Per proposal     |
 
 **Example Burn Calculation (Q4 2026):**
 
