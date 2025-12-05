@@ -154,7 +154,7 @@ import { payer } from "@faremeter/rides";
 //   }
 // }
 
-async function buybackAndBurnSYRA(revenueAmountUSD) {
+export async function buybackAndBurnSYRA(revenueAmountUSD) {
   try {
     const connection = new Connection(process.env.SOLANA_RPC_URL);
     const agentKeypair = Keypair.fromSecretKey(
