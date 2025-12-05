@@ -15,6 +15,7 @@
     "@atxp/client": "^0.8.2",
     "@faremeter/info": "^0.14.0",
     "@faremeter/middleware": "^0.14.0",
+    "@faremeter/rides": "^0.14.0",
     "@solana/pay": "^0.2.6",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",

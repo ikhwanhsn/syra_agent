@@ -10,10 +10,16 @@ import {
   createBurnInstruction,
 } from "@solana/spl-token";
 import bs58 from "bs58";
+import { payer } from "@faremeter/rides";
 
 // export async function buybackAndBurnSYRA(revenueAmountUSD) {
 //   try {
 //     const connection = new Connection(process.env.SOLANA_RPC_URL);
+//     const { PAYER_KEYPAIR } = process.env;
+//     if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
+
+//     await payer.addLocalWallet(PAYER_KEYPAIR);
+
 //     const agentKeypair = Keypair.fromSecretKey(
 //       bs58.decode(process.env.AGENT_PRIVATE_KEY)
 //     );
@@ -27,8 +33,12 @@ import bs58 from "bs58";
 
 //     console.log(`Buying back $${buybackAmountUSD} worth of SYRA...`);
 
+//     // NEW API ENDPOINTS (as of December 2024)
+//     const JUPITER_QUOTE_API = "https://lite-api.jup.ag/swap/v1/quote";
+//     const JUPITER_SWAP_API = "https://lite-api.jup.ag/swap/v1/swap";
+
 //     // Step 1: Get quote from Jupiter for USDC -> SYRA swap
-//     const quoteResponse = await axios.get("https://quote-api.jup.ag/v6/quote", {
+//     const quoteResponse = await axios.get(JUPITER_QUOTE_API, {
 //       params: {
 //         inputMint: usdcMint.toString(),
 //         outputMint: syraMint.toString(),
@@ -41,12 +51,18 @@ import bs58 from "bs58";
 
 //     // Step 2: Get swap transaction from Jupiter
 //     const swapResponse = await axios.post(
-//       "https://quote-api.jup.ag/v6/swap",
+//       JUPITER_SWAP_API,
 //       {
 //         quoteResponse: quoteResponse.data,
 //         userPublicKey: agentKeypair.publicKey.toString(),
 //         wrapAndUnwrapSol: true,
-//         prioritizationFeeLamports: 50000, // Priority fee
+//         dynamicComputeUnitLimit: true,
+//         prioritizationFeeLamports: {
+//           priorityLevelWithMaxLamports: {
+//             maxLamports: 1000000,
+//             priorityLevel: "veryHigh",
+//           },
+//         },
 //       },
 //       {
 //         headers: {
@@ -61,7 +77,7 @@ import bs58 from "bs58";
 //     const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
 //     let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
 
-//     // Get latest blockhash
+//     // Get latest blockhash BEFORE signing
 //     const bhInfo = await connection.getLatestBlockhash("finalized");
 //     transaction.message.recentBlockhash = bhInfo.blockhash;
 
@@ -113,9 +129,8 @@ import bs58 from "bs58";
 //     // Create and send burn transaction
 //     const { Transaction } = await import("@solana/web3.js");
 //     const burnTx = new Transaction().add(burnIx);
-//     burnTx.recentBlockhash = (
-//       await connection.getLatestBlockhash("finalized")
-//     ).blockhash;
+//     const burnBhInfo = await connection.getLatestBlockhash("finalized");
+//     burnTx.recentBlockhash = burnBhInfo.blockhash;
 //     burnTx.feePayer = agentKeypair.publicKey;
 
 //     const burnSignature = await connection.sendTransaction(burnTx, [
@@ -139,7 +154,7 @@ import bs58 from "bs58";
 //   }
 // }
 
-export async function buybackAndBurnSYRA(revenueAmountUSD) {
+async function buybackAndBurnSYRA(revenueAmountUSD) {
   try {
     const connection = new Connection(process.env.SOLANA_RPC_URL);
     const agentKeypair = Keypair.fromSecretKey(
@@ -155,9 +170,16 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
 
     console.log(`Buying back $${buybackAmountUSD} worth of SYRA...`);
 
-    // NEW API ENDPOINTS (as of December 2024)
-    const JUPITER_QUOTE_API = "https://lite-api.jup.ag/swap/v1/quote";
-    const JUPITER_SWAP_API = "https://lite-api.jup.ag/swap/v1/swap";
+    // NEW API endpoints (migrated from lite-api.jup.ag)
+    const JUPITER_API_BASE = "https://api.jup.ag";
+    const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
+    const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
+
+    // API key from environment
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.JUPITER_API_KEY,
+    };
 
     // Step 1: Get quote from Jupiter for USDC -> SYRA swap
     const quoteResponse = await axios.get(JUPITER_QUOTE_API, {
@@ -167,9 +189,10 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
         amount: buybackAmountLamports,
         slippageBps: 100, // 1% slippage
       },
+      headers,
     });
 
-    console.log("Jupiter quote received:", quoteResponse.data);
+    console.log("Jupiter quote received");
 
     // Step 2: Get swap transaction from Jupiter
     const swapResponse = await axios.post(
@@ -179,6 +202,7 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
         userPublicKey: agentKeypair.publicKey.toString(),
         wrapAndUnwrapSol: true,
         dynamicComputeUnitLimit: true,
+        dynamicSlippage: true,
         prioritizationFeeLamports: {
           priorityLevelWithMaxLamports: {
             maxLamports: 1000000,
@@ -186,27 +210,19 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
           },
         },
       },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      { headers }
     );
 
     const { swapTransaction } = swapResponse.data;
 
-    // Step 3: Deserialize and sign the swap transaction
+    // Step 3: Deserialize the transaction
     const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
     let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
 
-    // Get latest blockhash BEFORE signing
-    const bhInfo = await connection.getLatestBlockhash("finalized");
-    transaction.message.recentBlockhash = bhInfo.blockhash;
-
-    // Sign the transaction
+    // Step 4: Sign the transaction
     transaction.sign([agentKeypair]);
 
-    // Step 4: Send swap transaction
+    // Step 5: Send swap transaction
     const swapSignature = await connection.sendTransaction(transaction, {
       skipPreflight: false,
       preflightCommitment: "confirmed",
@@ -215,18 +231,19 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     console.log(`Swap transaction sent: ${swapSignature}`);
 
     // Wait for confirmation
+    const latestBlockhash = await connection.getLatestBlockhash("confirmed");
     await connection.confirmTransaction(
       {
         signature: swapSignature,
-        blockhash: bhInfo.blockhash,
-        lastValidBlockHeight: bhInfo.lastValidBlockHeight,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
       },
       "confirmed"
     );
 
     console.log(`Swap confirmed: https://solscan.io/tx/${swapSignature}`);
 
-    // Step 5: Get SYRA token account and burn the tokens
+    // Step 6: Get SYRA token account and burn the tokens
     const syraTokenAccount = await getAssociatedTokenAddress(
       syraMint,
       agentKeypair.publicKey
@@ -251,14 +268,21 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     // Create and send burn transaction
     const { Transaction } = await import("@solana/web3.js");
     const burnTx = new Transaction().add(burnIx);
-    const burnBhInfo = await connection.getLatestBlockhash("finalized");
+    const burnBhInfo = await connection.getLatestBlockhash("confirmed");
     burnTx.recentBlockhash = burnBhInfo.blockhash;
     burnTx.feePayer = agentKeypair.publicKey;
 
     const burnSignature = await connection.sendTransaction(burnTx, [
       agentKeypair,
     ]);
-    await connection.confirmTransaction(burnSignature, "confirmed");
+    await connection.confirmTransaction(
+      {
+        signature: burnSignature,
+        blockhash: burnBhInfo.blockhash,
+        lastValidBlockHeight: burnBhInfo.lastValidBlockHeight,
+      },
+      "confirmed"
+    );
 
     console.log(
       `Burned ${burnAmount} SYRA tokens. Signature: ${burnSignature}`
@@ -272,6 +296,9 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     };
   } catch (error) {
     console.error("Error in buyback and burn:", error);
+    if (error.response) {
+      console.error("API Error:", error.response.data);
+    }
     throw error;
   }
 }
