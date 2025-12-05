@@ -139,7 +139,7 @@ import bs58 from "bs58";
 //   }
 // }
 
-async function buybackAndBurnSYRA(revenueAmountUSD) {
+export async function buybackAndBurnSYRA(revenueAmountUSD) {
   try {
     const connection = new Connection(process.env.SOLANA_RPC_URL);
     const agentKeypair = Keypair.fromSecretKey(
