@@ -1,6 +1,7 @@
 // routes/weather.js
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 
 export async function createNewsRouter() {
   const router = express.Router();
@@ -42,9 +43,28 @@ export async function createNewsRouter() {
           req.x402Payment.paymentRequirements
         );
 
+        // Buyback and burn SYRA token (80% of revenue)
+        let burnResult = null;
+        try {
+          burnResult = await buybackAndBurnSYRA(
+            req.x402Payment.paymentRequirements.price
+          );
+          console.log("Buyback and burn completed:", burnResult);
+        } catch (burnError) {
+          console.error("Buyback and burn failed:", burnError);
+          // Continue even if burn fails - payment was successful
+        }
+
         res.json({
           generalNews,
           tickerNews,
+          tokenBuyback: burnResult
+            ? {
+                swapTransaction: burnResult.swapSignature,
+                burnTransaction: burnResult.burnSignature,
+                amountBurned: burnResult.amountBurned,
+              }
+            : null,
         });
       } else {
         res.status(500).json({
@@ -68,9 +88,28 @@ export async function createNewsRouter() {
           req.x402Payment.paymentRequirements
         );
 
+        // Buyback and burn SYRA token (80% of revenue)
+        let burnResult = null;
+        try {
+          burnResult = await buybackAndBurnSYRA(
+            req.x402Payment.paymentRequirements.price
+          );
+          console.log("Buyback and burn completed:", burnResult);
+        } catch (burnError) {
+          console.error("Buyback and burn failed:", burnError);
+          // Continue even if burn fails - payment was successful
+        }
+
         res.json({
           generalNews,
           tickerNews,
+          tokenBuyback: burnResult
+            ? {
+                swapTransaction: burnResult.swapSignature,
+                burnTransaction: burnResult.burnSignature,
+                amountBurned: burnResult.amountBurned,
+              }
+            : null,
         });
       } else {
         res.status(500).json({
