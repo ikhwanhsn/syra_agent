@@ -163,8 +163,18 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     const syraMint = new PublicKey(process.env.SYRA_TOKEN_MINT);
     const usdcMint = new PublicKey(process.env.USDC_MINT);
 
+    // Ensure revenueAmountUSD is a number
+    const revenue =
+      typeof revenueAmountUSD === "string"
+        ? parseFloat(revenueAmountUSD)
+        : revenueAmountUSD;
+
+    if (isNaN(revenue) || revenue <= 0) {
+      throw new Error(`Invalid revenue amount: ${revenueAmountUSD}`);
+    }
+
     // Calculate 80% of revenue for buyback
-    const buybackAmountUSD = parseFloat(revenueAmountUSD) * 0.8;
+    const buybackAmountUSD = revenue * 0.8;
     // Convert to lamports (USDC has 6 decimals) - MUST be an integer
     const buybackAmountLamports = Math.floor(buybackAmountUSD * 1_000_000);
 
@@ -174,7 +184,7 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
       buybackAmountLamports <= 0
     ) {
       throw new Error(
-        `Invalid buyback amount: ${buybackAmountLamports}. Must be a positive integer.`
+        `Invalid buyback amount: ${buybackAmountLamports}. Must be a positive integer. Revenue was: ${revenue} USD`
       );
     }
 
@@ -194,7 +204,6 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     };
 
     // Step 1: Get quote from Jupiter for USDC -> SYRA swap
-    // Build URL with params to ensure proper formatting
     const quoteUrl = new URL(JUPITER_QUOTE_API);
     quoteUrl.searchParams.append("inputMint", usdcMint.toString());
     quoteUrl.searchParams.append("outputMint", syraMint.toString());

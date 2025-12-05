@@ -46,10 +46,22 @@ export async function createNewsRouter() {
         // Buyback and burn SYRA token (80% of revenue)
         let burnResult = null;
         try {
-          burnResult = await buybackAndBurnSYRA(
+          // Parse price properly - it's a string like "0.15"
+          const priceUSD = parseFloat(
             req.x402Payment.paymentRequirements.price
           );
-          console.log("Buyback and burn completed:", burnResult);
+
+          console.log(`Payment price: ${priceUSD} USD`);
+
+          if (isNaN(priceUSD) || priceUSD <= 0) {
+            console.error(
+              "Invalid price for buyback:",
+              req.x402Payment.paymentRequirements.price
+            );
+          } else {
+            burnResult = await buybackAndBurnSYRA(priceUSD);
+            console.log("Buyback and burn completed:", burnResult);
+          }
         } catch (burnError) {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
@@ -91,10 +103,22 @@ export async function createNewsRouter() {
         // Buyback and burn SYRA token (80% of revenue)
         let burnResult = null;
         try {
-          burnResult = await buybackAndBurnSYRA(
+          // Parse price properly - it's a string like "0.15"
+          const priceUSD = parseFloat(
             req.x402Payment.paymentRequirements.price
           );
-          console.log("Buyback and burn completed:", burnResult);
+
+          console.log(`Payment price: ${priceUSD} USD`);
+
+          if (isNaN(priceUSD) || priceUSD <= 0) {
+            console.error(
+              "Invalid price for buyback:",
+              req.x402Payment.paymentRequirements.price
+            );
+          } else {
+            burnResult = await buybackAndBurnSYRA(priceUSD);
+            console.log("Buyback and burn completed:", burnResult);
+          }
         } catch (burnError) {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
