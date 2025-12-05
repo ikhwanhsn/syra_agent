@@ -165,10 +165,22 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
 
     // Calculate 80% of revenue for buyback
     const buybackAmountUSD = parseFloat(revenueAmountUSD) * 0.8;
-    // Convert to lamports (USDC has 6 decimals)
+    // Convert to lamports (USDC has 6 decimals) - MUST be an integer
     const buybackAmountLamports = Math.floor(buybackAmountUSD * 1_000_000);
 
-    console.log(`Buying back $${buybackAmountUSD} worth of SYRA...`);
+    // Validate amount is a positive integer
+    if (
+      !Number.isInteger(buybackAmountLamports) ||
+      buybackAmountLamports <= 0
+    ) {
+      throw new Error(
+        `Invalid buyback amount: ${buybackAmountLamports}. Must be a positive integer.`
+      );
+    }
+
+    console.log(
+      `Buying back $${buybackAmountUSD} worth of SYRA (${buybackAmountLamports} lamports)...`
+    );
 
     // NEW API endpoints (migrated from lite-api.jup.ag)
     const JUPITER_API_BASE = "https://api.jup.ag";
@@ -182,15 +194,16 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     };
 
     // Step 1: Get quote from Jupiter for USDC -> SYRA swap
-    const quoteResponse = await axios.get(JUPITER_QUOTE_API, {
-      params: {
-        inputMint: usdcMint.toString(),
-        outputMint: syraMint.toString(),
-        amount: buybackAmountLamports,
-        slippageBps: 100, // 1% slippage
-      },
-      headers,
-    });
+    // Build URL with params to ensure proper formatting
+    const quoteUrl = new URL(JUPITER_QUOTE_API);
+    quoteUrl.searchParams.append("inputMint", usdcMint.toString());
+    quoteUrl.searchParams.append("outputMint", syraMint.toString());
+    quoteUrl.searchParams.append("amount", buybackAmountLamports.toString());
+    quoteUrl.searchParams.append("slippageBps", "100");
+
+    console.log("Requesting quote:", quoteUrl.toString());
+
+    const quoteResponse = await axios.get(quoteUrl.toString(), { headers });
 
     console.log("Jupiter quote received");
 
