@@ -155,9 +155,9 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
 
     console.log(`Buying back $${buybackAmountUSD} worth of SYRA...`);
 
-    // Use public Jupiter API endpoint
-    const JUPITER_QUOTE_API = "https://public.jupiterapi.com/quote/v6/quote";
-    const JUPITER_SWAP_API = "https://public.jupiterapi.com/quote/v6/swap";
+    // NEW API ENDPOINTS (as of December 2024)
+    const JUPITER_QUOTE_API = "https://lite-api.jup.ag/swap/v1/quote";
+    const JUPITER_SWAP_API = "https://lite-api.jup.ag/swap/v1/swap";
 
     // Step 1: Get quote from Jupiter for USDC -> SYRA swap
     const quoteResponse = await axios.get(JUPITER_QUOTE_API, {
@@ -178,7 +178,13 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
         quoteResponse: quoteResponse.data,
         userPublicKey: agentKeypair.publicKey.toString(),
         wrapAndUnwrapSol: true,
-        prioritizationFeeLamports: 50000,
+        dynamicComputeUnitLimit: true,
+        prioritizationFeeLamports: {
+          priorityLevelWithMaxLamports: {
+            maxLamports: 1000000,
+            priorityLevel: "veryHigh",
+          },
+        },
       },
       {
         headers: {
@@ -193,7 +199,7 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
     let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
 
-    // Get latest blockhash
+    // Get latest blockhash BEFORE signing
     const bhInfo = await connection.getLatestBlockhash("finalized");
     transaction.message.recentBlockhash = bhInfo.blockhash;
 
@@ -245,9 +251,8 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     // Create and send burn transaction
     const { Transaction } = await import("@solana/web3.js");
     const burnTx = new Transaction().add(burnIx);
-    burnTx.recentBlockhash = (
-      await connection.getLatestBlockhash("finalized")
-    ).blockhash;
+    const burnBhInfo = await connection.getLatestBlockhash("finalized");
+    burnTx.recentBlockhash = burnBhInfo.blockhash;
     burnTx.feePayer = agentKeypair.publicKey;
 
     const burnSignature = await connection.sendTransaction(burnTx, [
