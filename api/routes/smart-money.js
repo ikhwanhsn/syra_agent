@@ -7,5 +7,9 @@ export async function createSmartMoneyRouter() {
     res.json({ data: "premium content" });
   });
 
+  router.post("/", (req, res) => {
+    res.json({ data: "premium content" });
+  });
+
   return router;
 }
