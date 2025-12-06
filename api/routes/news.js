@@ -61,13 +61,13 @@ export async function createNewsRouter() {
         res.json({
           generalNews,
           tickerNews,
-          tokenBuyback: burnResult
-            ? {
-                swapTransaction: burnResult.swapSignature,
-                burnTransaction: burnResult.burnSignature,
-                amountBurned: burnResult.amountBurned,
-              }
-            : null,
+          // tokenBuyback: burnResult
+          //   ? {
+          //       swapTransaction: burnResult.swapSignature,
+          //       burnTransaction: burnResult.burnSignature,
+          //       amountBurned: burnResult.amountBurned,
+          //     }
+          //   : null,
         });
       } else {
         res.status(500).json({
@@ -109,13 +109,13 @@ export async function createNewsRouter() {
         res.json({
           generalNews,
           tickerNews,
-          tokenBuyback: burnResult
-            ? {
-                swapTransaction: burnResult.swapSignature,
-                burnTransaction: burnResult.burnSignature,
-                amountBurned: burnResult.amountBurned,
-              }
-            : null,
+          // tokenBuyback: burnResult
+          //   ? {
+          //       swapTransaction: burnResult.swapSignature,
+          //       burnTransaction: burnResult.burnSignature,
+          //       amountBurned: burnResult.amountBurned,
+          //     }
+          //   : null,
         });
       } else {
         res.status(500).json({
