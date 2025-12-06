@@ -251,13 +251,19 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
       {
         quoteResponse: quoteResponse.data,
         userPublicKey: agentKeypair.publicKey.toString(),
-        wrapAndUnwrapSol: true,
+        // wrapAndUnwrapSol: true,
+        wrapAndUnwrapSol: false,
+        computeUnitPriceMicroLamports: "auto",
+        skipPreflight: true,
+        // test
         dynamicComputeUnitLimit: true,
         dynamicSlippage: true,
         prioritizationFeeLamports: {
           priorityLevelWithMaxLamports: {
-            maxLamports: 1000000,
-            priorityLevel: "veryHigh",
+            // maxLamports: 1000000,
+            // priorityLevel: "veryHigh",
+            maxLamports: 100000,
+            priorityLevel: "medium",
           },
         },
       },
