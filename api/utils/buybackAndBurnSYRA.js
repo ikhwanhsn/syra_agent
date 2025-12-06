@@ -253,7 +253,7 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
         userPublicKey: agentKeypair.publicKey.toString(),
         // wrapAndUnwrapSol: true,
         wrapAndUnwrapSol: false,
-        computeUnitPriceMicroLamports: "auto",
+        // computeUnitPriceMicroLamports: "auto",
         skipPreflight: true,
         // test
         dynamicComputeUnitLimit: true,
