@@ -16,6 +16,7 @@ import { createBrowseRouter } from "./routes/browse.js";
 import { createResearchRouter } from "./routes/research.js";
 import { createGemsRouter } from "./routes/gems.js";
 import { createCryptoKOLRouter } from "./routes/crypto-kol.js";
+import { createSmartMoneyRouter } from "./routes/smart-money.js";
 
 dotenv.config();
 
@@ -31,12 +32,12 @@ const paywalledMiddleware = await faremeter.createMiddleware({
   accepts: [
     {
       ...solana.x402Exact({
-        network: "devnet",
+        network: "mainnet-beta",
         asset: "USDC",
         amount: 10000,
         payTo: "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
       }),
-      resource: `${BASE_URL}/api/premium`, // Now a full URL
+      resource: `${BASE_URL}/smart-money`, // Now a full URL
       description: "Premium API access",
     },
   ],
@@ -260,6 +261,13 @@ app.use(
           description: "Access to premium content",
         },
       },
+      "/smart-money": {
+        price: "$0.10",
+        network: "solana",
+        config: {
+          description: "Access to premium content",
+        },
+      },
     },
     { url: "https://facilitator.payai.network" }
   )
@@ -269,6 +277,7 @@ app.use(
 app.get("/protected-route", (req, res) => {
   res.json({ message: "This content is behind a paywall" });
 });
+app.use("/smart-money", await createSmartMoneyRouter());
 
 // Error handling middleware
 app.use((err, req, res, next) => {
