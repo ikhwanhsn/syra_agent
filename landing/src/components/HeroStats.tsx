@@ -2,13 +2,35 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 const stats = [
-  { label: "TPS", value: 12500, suffix: "+", prefix: "", decimals: 0 },
+  { label: "Users", value: 600, suffix: "+", prefix: "", decimals: 0 },
   { label: "Uptime", value: 99.99, suffix: "%", prefix: "", decimals: 2 },
-  { label: "Trades Executed", value: 2.4, suffix: "M+", prefix: "", decimals: 1 },
-  { label: "Volume Processed", value: 8.7, suffix: "B", prefix: "$", decimals: 1 },
+  {
+    label: "Signals",
+    value: 1760,
+    suffix: "+",
+    prefix: "",
+    decimals: 1,
+  },
+  {
+    label: "Tools",
+    value: 10,
+    suffix: "+",
+    prefix: "",
+    decimals: 0,
+  },
 ];
 
-const AnimatedNumber = ({ value, prefix, suffix, decimals }: { value: number; prefix: string; suffix: string; decimals: number }) => {
+const AnimatedNumber = ({
+  value,
+  prefix,
+  suffix,
+  decimals,
+}: {
+  value: number;
+  prefix: string;
+  suffix: string;
+  decimals: number;
+}) => {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -39,7 +61,9 @@ const AnimatedNumber = ({ value, prefix, suffix, decimals }: { value: number; pr
 
   return (
     <span>
-      {prefix}{formatNumber(displayValue)}{suffix}
+      {prefix}
+      {formatNumber(displayValue)}
+      {suffix}
     </span>
   );
 };
@@ -50,9 +74,9 @@ export const HeroStats = () => {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.6 }}
-      className="glass-card p-6 mt-12"
+      className="p-6 mt-12 glass-card"
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -61,10 +85,15 @@ export const HeroStats = () => {
             transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
             className="text-center"
           >
-            <div className="text-2xl md:text-3xl font-bold neon-text mb-1">
-              <AnimatedNumber value={stat.value} prefix={stat.prefix} suffix={stat.suffix} decimals={stat.decimals} />
+            <div className="mb-1 text-2xl font-bold md:text-3xl neon-text">
+              <AnimatedNumber
+                value={stat.value}
+                prefix={stat.prefix}
+                suffix={stat.suffix}
+                decimals={stat.decimals}
+              />
             </div>
-            <div className="text-xs md:text-sm text-muted-foreground uppercase tracking-wider">
+            <div className="text-xs tracking-wider uppercase md:text-sm text-muted-foreground">
               {stat.label}
             </div>
           </motion.div>
