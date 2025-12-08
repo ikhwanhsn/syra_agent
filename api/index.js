@@ -17,6 +17,9 @@ import { createResearchRouter } from "./routes/research.js";
 import { createGemsRouter } from "./routes/gems.js";
 import { createCryptoKOLRouter } from "./routes/crypto-kol.js";
 import { createSmartMoneyRouter } from "./routes/smart-money.js";
+import { createCheckStatusRouter } from "./routes/check-status.js";
+import { createCheckStatusAgentRouter } from "./agents/check-status.js";
+import { createNansenRouter } from "./routes/nansen.js";
 
 dotenv.config();
 
@@ -239,7 +242,10 @@ app.use("/browse", await createBrowseRouter());
 app.use("/research", await createResearchRouter());
 app.use("/gems", await createGemsRouter());
 app.use("/crypto-kol", await createCryptoKOLRouter());
-app.use("/smart-money", await createSmartMoneyRouter());
+// app.use("/smart-money", await createSmartMoneyRouter());
+app.use("/check-status", await createCheckStatusRouter());
+app.use("/check-status-agent", await createCheckStatusAgentRouter());
+app.use("/smart-money", await createNansenRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
