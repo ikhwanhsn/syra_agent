@@ -20,6 +20,8 @@ import { createSmartMoneyRouter } from "./routes/smart-money.js";
 import { createCheckStatusRouter } from "./routes/check-status.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createNansenRouter } from "./routes/nansen.js";
+import { createJatevoRouter } from "./routes/jatevo.js";
+import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
 
 dotenv.config();
 
@@ -246,6 +248,8 @@ app.use("/crypto-kol", await createCryptoKOLRouter());
 app.use("/check-status", await createCheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/smart-money", await createNansenRouter());
+app.use("/jatevo", await createJatevoRouter());
+app.use("/dexscreener", await createDexscreenerRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {

@@ -1,40 +1,25 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
-import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
-import { payer } from "@faremeter/rides";
-import { nansenRequests } from "../request/nansen.request.js";
+import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
+import { dexscreenerRequests } from "../../request/dexscreener.request.js";
 
-export async function createNansenRouter() {
+export async function createDexscreenerRouter() {
   const router = express.Router();
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: "0.5",
+      price: "0.05",
       description:
-        "Smart money all data (net flow, holdings, historical holdings, dcas)",
+        "Dexscreener all data (token profiles, community takeovers, ads, token boosts, token boosts top)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
     }),
     async (req, res) => {
-      const { PAYER_KEYPAIR } = process.env;
-      if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
-
-      await payer.addLocalWallet(PAYER_KEYPAIR);
-
       try {
         const responses = await Promise.all(
-          nansenRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            })
-          )
+          dexscreenerRequests.map(({ url }) => fetch(url))
         );
 
         for (const response of responses) {
@@ -51,11 +36,11 @@ export async function createNansenRouter() {
         );
 
         const data = {
-          "smart-money/netflow": allData[0],
-          "smart-money/holdings": allData[1],
-          "smart-money/historical-holdings": allData[2],
-          "smart-money/dex-trades": allData[3],
-          "smart-money/dcas": allData[4],
+          "dexscreener/token-profiles": allData[0],
+          "dexscreener/community-takeovers": allData[1],
+          "dexscreener/ads": allData[2],
+          "dexscreener/token-boosts": allData[3],
+          "dexscreener/token-boosts-top": allData[4],
         };
 
         // Settle payment ONLY on success
@@ -68,7 +53,7 @@ export async function createNansenRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.5;
+          const priceUSD = 0.05;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -93,30 +78,16 @@ export async function createNansenRouter() {
   router.post(
     "/",
     requirePayment({
-      price: "0.5",
+      price: "0.05",
       description:
-        "Smart money all data (net flow, holdings, historical holdings, dcas)",
+        "Dexscreener all data (token profiles, community takeovers, ads, token boosts, token boosts top)",
       method: "POST",
       discoverable: true,
     }),
     async (req, res) => {
-      const { PAYER_KEYPAIR } = process.env;
-      if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
-
-      await payer.addLocalWallet(PAYER_KEYPAIR);
-
       try {
         const responses = await Promise.all(
-          nansenRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            })
-          )
+          dexscreenerRequests.map(({ url }) => fetch(url))
         );
 
         for (const response of responses) {
@@ -133,11 +104,11 @@ export async function createNansenRouter() {
         );
 
         const data = {
-          "smart-money/netflow": allData[0],
-          "smart-money/holdings": allData[1],
-          "smart-money/historical-holdings": allData[2],
-          "smart-money/dex-trades": allData[3],
-          "smart-money/dcas": allData[4],
+          "dexscreener/token-profiles": allData[0],
+          "dexscreener/community-takeovers": allData[1],
+          "dexscreener/ads": allData[2],
+          "dexscreener/token-boosts": allData[3],
+          "dexscreener/token-boosts-top": allData[4],
         };
 
         // Settle payment ONLY on success
@@ -150,7 +121,7 @@ export async function createNansenRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.5;
+          const priceUSD = 0.05;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
