@@ -1,10 +1,10 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
-import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
-import { nansenRequests } from "../request/nansen.request.js";
+import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
 
-export async function createNansenRouter() {
+export async function createSmartMoneyRouter() {
   const router = express.Router();
 
   // GET endpoint with x402scan compatible schema
@@ -25,7 +25,7 @@ export async function createNansenRouter() {
 
       try {
         const responses = await Promise.all(
-          nansenRequests.map(({ url, payload }) =>
+          smartMoneyRequests.map(({ url, payload }) =>
             payer.fetch(url, {
               method: "POST",
               headers: {

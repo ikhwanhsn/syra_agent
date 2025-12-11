@@ -16,12 +16,12 @@ import { createBrowseRouter } from "./routes/browse.js";
 import { createResearchRouter } from "./routes/research.js";
 import { createGemsRouter } from "./routes/gems.js";
 import { createCryptoKOLRouter } from "./routes/crypto-kol.js";
-import { createSmartMoneyRouter } from "./routes/smart-money.js";
+import { createSmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
 import { createCheckStatusRouter } from "./routes/check-status.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
-import { createNansenRouter } from "./routes/nansen.js";
 import { createJatevoRouter } from "./routes/jatevo.js";
 import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
+import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 
 dotenv.config();
 
@@ -247,9 +247,10 @@ app.use("/crypto-kol", await createCryptoKOLRouter());
 // app.use("/smart-money", await createSmartMoneyRouter());
 app.use("/check-status", await createCheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
-app.use("/smart-money", await createNansenRouter());
+app.use("/smart-money", await createSmartMoneyRouter());
 app.use("/jatevo", await createJatevoRouter());
 app.use("/dexscreener", await createDexscreenerRouter());
+app.use("/token-god-mode", await createTokenGodModeRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
