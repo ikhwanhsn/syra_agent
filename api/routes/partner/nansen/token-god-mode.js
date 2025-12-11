@@ -114,7 +114,7 @@ export async function createTokenGodModeRouter() {
       inputSchema: {
         bodyType: "json",
         bodyFields: {
-          address: {
+          tokenAddress: {
             type: "string",
             required: true,
             description: "Token address for the research",

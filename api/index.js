@@ -22,6 +22,7 @@ import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createJatevoRouter } from "./routes/jatevo.js";
 import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
+import { createInfoRouter } from "./routes/info.js";
 
 dotenv.config();
 
@@ -234,6 +235,7 @@ app.get("/", (req, res) => {
   `);
 });
 
+app.use("/info", await createInfoRouter());
 app.use("/weather", await createWeatherRouter());
 app.use("/news", await createNewsRouter());
 // app.use("/test", await createTestRouter());
