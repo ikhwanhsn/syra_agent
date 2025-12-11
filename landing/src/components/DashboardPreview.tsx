@@ -38,11 +38,11 @@ export const DashboardPreview = () => {
   });
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       {/* Glow effect behind dashboard */}
       <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-3xl" />
 
-      <div className="relative p-6 glass-card rounded-2xl">
+      <div className="relative w-4/5 p-6 mx-auto sm:mx-0 sm:w-full glass-card rounded-2xl">
         {/* Dashboard Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export const DashboardPreview = () => {
                 <a
                   href="https://dexscreener.com/solana/ha56u92pmwnh9ksqf7wwhi2xh9aqdedqsazo6m6jdbqf"
                   target="_blank"
-                  className="relative z-10 text-xs text-muted-foreground"
+                  className="relative z-10 text-xs text-blue-100 text-muted-foreground"
                 >
                   8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump
                 </a>

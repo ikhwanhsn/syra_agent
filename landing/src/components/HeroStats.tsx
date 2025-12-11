@@ -74,7 +74,7 @@ export const HeroStats = () => {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.6 }}
-      className="p-6 mt-12 glass-card"
+      className="w-4/5 p-6 mx-auto mt-12 sm:mx-0 sm:w-full glass-card"
     >
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
         {stats.map((stat, index) => (

@@ -51,7 +51,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="max-w-xl mx-auto mb-8 text-lg text-muted-foreground lg:mx-0"
+              className="w-4/5 mx-auto mb-8 text-lg sm:max-w-xl text-muted-foreground lg:mx-0"
             >
               Institutional-grade intelligence, automated execution, and
               real-time decisions. Track smart money, analyze sentiment, and
