@@ -67,7 +67,7 @@ export const HeroSection = () => {
               <a
                 href={LINK_AGENT}
                 target="_blank"
-                className="flex items-center justify-center gap-2 btn-primary group"
+                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-primary group"
               >
                 Launch Agent
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
@@ -75,7 +75,7 @@ export const HeroSection = () => {
               <a
                 href={LINK_DEMO}
                 target="_blank"
-                className="flex items-center justify-center gap-2 btn-secondary"
+                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-secondary"
               >
                 <Play className="w-4 h-4" />
                 Watch Demo
