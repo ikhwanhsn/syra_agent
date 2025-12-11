@@ -108,7 +108,7 @@ export async function createTokenGodModeRouter() {
     requirePayment({
       price: "0.5",
       description:
-        "Token God Mode - Smart Money All Data (net flow, holdings, historical holdings, dex trades, dcas)",
+        "Token God Mode - All Data (flow intelligence, holders, flow history, bought and sold tokens, dex trades, transfers, jup dcas, pnl leaderboard)",
       method: "POST",
       discoverable: true,
       inputSchema: {
