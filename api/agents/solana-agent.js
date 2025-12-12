@@ -1,7 +1,8 @@
 import express from "express";
-import { requirePayment } from "../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { tokenGodModePerpRequests } from "../request/nansen/token-god-mode-perp.js";
 import { payer } from "@faremeter/rides";
+import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 
 export async function createSolanaAgentRouter() {
   const router = express.Router();
