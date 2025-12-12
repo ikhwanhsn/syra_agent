@@ -23,6 +23,7 @@ import { createJatevoRouter } from "./routes/jatevo.js";
 import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createInfoRouter } from "./routes/info.js";
+import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 
 dotenv.config();
 
@@ -246,13 +247,13 @@ app.use("/browse", await createBrowseRouter());
 app.use("/research", await createResearchRouter());
 app.use("/gems", await createGemsRouter());
 app.use("/crypto-kol", await createCryptoKOLRouter());
-// app.use("/smart-money", await createSmartMoneyRouter());
 app.use("/check-status", await createCheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/smart-money", await createSmartMoneyRouter());
 app.use("/jatevo", await createJatevoRouter());
 app.use("/dexscreener", await createDexscreenerRouter());
 app.use("/token-god-mode", await createTokenGodModeRouter());
+app.use("/solana-agent", await createSolanaAgentRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {

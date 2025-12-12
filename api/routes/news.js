@@ -33,7 +33,7 @@ export async function createNewsRouter() {
     "/",
     requirePayment({
       price: "0.1",
-      description: "News information service - GET",
+      description: "News information service",
     }),
     async (req, res) => {
       if (generalNews?.length > 0 || tickerNews?.length > 0) {
@@ -81,7 +81,7 @@ export async function createNewsRouter() {
     "/",
     requirePayment({
       price: "0.1",
-      description: "News information service - POST",
+      description: "News information service",
     }),
     async (req, res) => {
       if (generalNews?.length > 0 || tickerNews?.length > 0) {
