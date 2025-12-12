@@ -107,7 +107,7 @@ export async function createSmartMoneyRouter() {
 
       try {
         const responses = await Promise.all(
-          nansenRequests.map(({ url, payload }) =>
+          smartMoneyRequests.map(({ url, payload }) =>
             payer.fetch(url, {
               method: "POST",
               headers: {
