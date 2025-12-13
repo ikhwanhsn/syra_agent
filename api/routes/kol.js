@@ -17,6 +17,7 @@ export async function createXKOLRouter() {
       description: "Deep research on X platform for a KOL/Influencer",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/x-kol",
       inputSchema: {
         queryParams: {
           address: {
@@ -101,7 +102,8 @@ export async function createXKOLRouter() {
       price: "0.15",
       description: "Deep research on X platform for a KOL/Influencer",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/x-kol",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

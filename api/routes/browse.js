@@ -15,6 +15,7 @@ export async function createBrowseRouter() {
       description: "Scrape information from websites",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/browse",
       inputSchema: {
         queryParams: {
           query: {
@@ -112,7 +113,8 @@ export async function createBrowseRouter() {
       price: "0.15",
       description: "Scrape information from websites",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/browse",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

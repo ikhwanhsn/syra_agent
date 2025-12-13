@@ -14,6 +14,7 @@ export async function createResearchRouter() {
       description: "Research information from websites",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/research",
       inputSchema: {
         queryParams: {
           query: {
@@ -83,7 +84,8 @@ export async function createResearchRouter() {
       price: "0.75",
       description: "Research information from websites",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/research",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

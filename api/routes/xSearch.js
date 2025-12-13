@@ -15,6 +15,7 @@ export async function createXSearchRouter() {
       description: "Deep research on X platform for a specific topic",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/x-search",
       inputSchema: {
         queryParams: {
           query: {
@@ -96,7 +97,8 @@ export async function createXSearchRouter() {
       price: "0.15",
       description: "Deep research on X platform for a specific topic",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/x-search",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

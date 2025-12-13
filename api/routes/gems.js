@@ -16,6 +16,7 @@ export async function createGemsRouter() {
       description: "Deep research on X platform for a hidden gem project",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/gems",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -87,7 +88,8 @@ export async function createGemsRouter() {
       price: "0.15",
       description: "Deep research on X platform for a hidden gem project",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/gems",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables

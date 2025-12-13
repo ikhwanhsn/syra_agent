@@ -12,6 +12,7 @@ export async function createCheckStatusRouter() {
       description: "Check status server",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/check-status",
     }),
     async (req, res) => {
       res.status(200).json({
@@ -28,7 +29,8 @@ export async function createCheckStatusRouter() {
       price: "0.0001",
       description: "Check status server",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/check-status",
     }),
     async (req, res) => {
       res.status(200).json({

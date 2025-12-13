@@ -15,6 +15,7 @@ export async function createDexscreenerRouter() {
         "Dexscreener all data (token profiles, community takeovers, ads, token boosts, token boosts top)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/dexscreener",
     }),
     async (req, res) => {
       try {
@@ -82,7 +83,8 @@ export async function createDexscreenerRouter() {
       description:
         "Dexscreener all data (token profiles, community takeovers, ads, token boosts, token boosts top)",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/dexscreener",
     }),
     async (req, res) => {
       try {

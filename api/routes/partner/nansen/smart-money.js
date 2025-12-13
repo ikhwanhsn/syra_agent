@@ -16,6 +16,7 @@ export async function createSmartMoneyRouter() {
         "Smart money all data (net flow, holdings, historical holdings, dcas)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/smart-money",
     }),
     async (req, res) => {
       const { PAYER_KEYPAIR } = process.env;
@@ -97,7 +98,8 @@ export async function createSmartMoneyRouter() {
       description:
         "Smart money all data (net flow, holdings, historical holdings, dcas)",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/smart-money",
     }),
     async (req, res) => {
       const { PAYER_KEYPAIR } = process.env;

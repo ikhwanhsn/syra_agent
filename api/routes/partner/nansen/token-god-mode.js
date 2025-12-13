@@ -16,6 +16,7 @@ export async function createTokenGodModeRouter() {
         "Token God Mode - All Data (flow intelligence, holders, flow history, bought and sold tokens, dex trades, transfers, jup dcas, pnl leaderboard)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/token-god-mode",
       inputSchema: {
         queryParams: {
           tokenAddress: {
@@ -110,7 +111,8 @@ export async function createTokenGodModeRouter() {
       description:
         "Token God Mode - All Data (flow intelligence, holders, flow history, bought and sold tokens, dex trades, transfers, jup dcas, pnl leaderboard)",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/token-god-mode",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

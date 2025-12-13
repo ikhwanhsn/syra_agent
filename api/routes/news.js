@@ -34,6 +34,9 @@ export async function createNewsRouter() {
     requirePayment({
       price: "0.1",
       description: "News information service",
+      method: "GET",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/news",
     }),
     async (req, res) => {
       if (generalNews?.length > 0 || tickerNews?.length > 0) {
@@ -82,6 +85,9 @@ export async function createNewsRouter() {
     requirePayment({
       price: "0.1",
       description: "News information service",
+      method: "POST",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/news",
     }),
     async (req, res) => {
       if (generalNews?.length > 0 || tickerNews?.length > 0) {

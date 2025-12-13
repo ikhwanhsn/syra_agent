@@ -16,6 +16,7 @@ export async function createSolanaAgentRouter() {
         "Solana super intelligent agent (macro analysis + onchain analysis)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/solana-agent",
     }),
     async (req, res) => {
       const { PAYER_KEYPAIR } = process.env;
@@ -114,7 +115,8 @@ export async function createSolanaAgentRouter() {
       description:
         "Solana super intelligent agent (macro analysis + onchain analysis)",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/solana-agent",
     }),
     async (req, res) => {
       const { PAYER_KEYPAIR } = process.env;

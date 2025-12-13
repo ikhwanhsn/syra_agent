@@ -19,6 +19,7 @@ export async function createCryptoKOLRouter() {
         "Get insight from a KOL/Influencer on Crypto, Target Accounts @elonmusk, @VitalikButerin, @cz_binance, @saylor, @justinsuntron, @APompliano, @balajis, @TheCryptoLark, @100trillionUSD, @themooncarl",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
+      resource: "/crypto-kol",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -91,7 +92,8 @@ export async function createCryptoKOLRouter() {
       description:
         "Get insight from a KOL/Influencer on Crypto, Target Accounts @elonmusk, @VitalikButerin, @cz_binance, @saylor, @justinsuntron, @APompliano, @balajis, @TheCryptoLark, @100trillionUSD, @themooncarl",
       method: "POST",
-      discoverable: true,
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/crypto-kol",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
