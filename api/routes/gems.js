@@ -7,12 +7,13 @@ import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 
 export async function createGemsRouter() {
   const router = express.Router();
+  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: "0.15",
+      price: PRICE_USD,
       description: "Deep research on X platform for a hidden gem project",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -51,7 +52,7 @@ export async function createGemsRouter() {
           let burnResult = null;
           try {
             // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = 0.15;
+            const priceUSD = PRICE_USD;
 
             console.log(`Payment price: ${priceUSD} USD`);
 
@@ -85,7 +86,7 @@ export async function createGemsRouter() {
   router.post(
     "/",
     requirePayment({
-      price: "0.15",
+      price: PRICE_USD,
       description: "Deep research on X platform for a hidden gem project",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -124,7 +125,7 @@ export async function createGemsRouter() {
           let burnResult = null;
           try {
             // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = 0.15;
+            const priceUSD = PRICE_USD;
 
             console.log(`Payment price: ${priceUSD} USD`);
 

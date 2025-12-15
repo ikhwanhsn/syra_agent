@@ -3,10 +3,10 @@ import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
 
 export async function createInfoRouter() {
   const router = express.Router();
-  const syraPrice = await getDexscreenerTokenInfo(
-    "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
-  );
-  router.get("/", (_, res) => {
+  router.get("/", async (_, res) => {
+    const syraPrice = await getDexscreenerTokenInfo(
+      "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
+    );
     res.status(200).json({
       token: syraPrice.pairs[0],
       website: "https://syraa.fun",

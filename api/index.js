@@ -24,6 +24,8 @@ import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createInfoRouter } from "./routes/info.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
+import { createPumpRouter } from "./routes/partner/workfun/pump.js";
+import { createTrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
 
 dotenv.config();
 
@@ -254,6 +256,8 @@ app.use("/jatevo", await createJatevoRouter());
 app.use("/dexscreener", await createDexscreenerRouter());
 app.use("/token-god-mode", await createTokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
+app.use("/pump", await createPumpRouter());
+app.use("/trending-jupiter", await createTrendingJupiterRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {

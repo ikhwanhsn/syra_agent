@@ -25,9 +25,6 @@ export async function createNewsRouter() {
     return results.flatMap((data) => data.data || []);
   };
 
-  const generalNews = await fetchPages("general");
-  const tickerNews = await fetchPages("alltickers");
-
   // Apply middleware to routes
   router.get(
     "/",
@@ -39,6 +36,8 @@ export async function createNewsRouter() {
       resource: "/news",
     }),
     async (req, res) => {
+      const generalNews = await fetchPages("general");
+      const tickerNews = await fetchPages("alltickers");
       if (generalNews?.length > 0 || tickerNews?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
@@ -90,6 +89,8 @@ export async function createNewsRouter() {
       resource: "/news",
     }),
     async (req, res) => {
+      const generalNews = await fetchPages("general");
+      const tickerNews = await fetchPages("alltickers");
       if (generalNews?.length > 0 || tickerNews?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(

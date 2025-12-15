@@ -4,20 +4,19 @@ import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
 
-export async function createSmartMoneyRouter() {
+export async function createTrendingJupiterRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.5;
+  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
       price: PRICE_USD,
-      description:
-        "Smart money all data (net flow, holdings, historical holdings, dcas)",
+      description: "Trending tokens on Jupiter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/smart-money",
+      resource: "/trending-jupiter",
     }),
     async (req, res) => {
       const { PAYER_KEYPAIR } = process.env;
@@ -26,39 +25,31 @@ export async function createSmartMoneyRouter() {
       await payer.addLocalWallet(PAYER_KEYPAIR);
 
       try {
-        const responses = await Promise.all(
-          smartMoneyRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            })
-          )
-        );
+        const url = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
 
-        for (const response of responses) {
-          if (!response.ok) {
-            const text = await response.text().catch(() => "");
-            throw new Error(
-              `HTTP ${response.status} ${response.statusText} ${text}`
-            );
-          }
+        const response = await payer.fetch(`${url}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(
+            `HTTP ${response.status} ${response.statusText} ${text}`
+          );
         }
 
-        const allData = await Promise.all(
-          responses.map((response) => response.json())
-        );
+        const data = await response.json();
 
-        const data = {
-          "smart-money/netflow": allData[0],
-          "smart-money/holdings": allData[1],
-          "smart-money/historical-holdings": allData[2],
-          "smart-money/dex-trades": allData[3],
-          "smart-money/dcas": allData[4],
-        };
+        // get all contract address
+        const contractAddresses = data?.data?.map((item) => item.mint);
+        const content = data?.data?.map((item) =>
+          item.contents.map((i) => i.content)
+        );
+        const tokenSummary = data?.data?.map((item) => item.tokenSummary);
+        const newsSummary = data?.data?.map((item) => item.newsSummary);
 
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
@@ -81,7 +72,9 @@ export async function createSmartMoneyRouter() {
           // Continue even if burn fails - payment was successful
         }
 
-        res.status(200).json(data);
+        res
+          .status(200)
+          .json({ contractAddresses, content, tokenSummary, newsSummary });
       } catch (error) {
         res.status(500).json({
           error: "Internal server error",
@@ -96,11 +89,10 @@ export async function createSmartMoneyRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description:
-        "Smart money all data (net flow, holdings, historical holdings, dcas)",
+      description: "Trending tokens on Jupiter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/smart-money",
+      resource: "/trending-jupiter",
     }),
     async (req, res) => {
       const { PAYER_KEYPAIR } = process.env;
@@ -109,39 +101,31 @@ export async function createSmartMoneyRouter() {
       await payer.addLocalWallet(PAYER_KEYPAIR);
 
       try {
-        const responses = await Promise.all(
-          smartMoneyRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-            })
-          )
-        );
+        const url = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
 
-        for (const response of responses) {
-          if (!response.ok) {
-            const text = await response.text().catch(() => "");
-            throw new Error(
-              `HTTP ${response.status} ${response.statusText} ${text}`
-            );
-          }
+        const response = await payer.fetch(`${url}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(
+            `HTTP ${response.status} ${response.statusText} ${text}`
+          );
         }
 
-        const allData = await Promise.all(
-          responses.map((response) => response.json())
-        );
+        const data = await response.json();
 
-        const data = {
-          "smart-money/netflow": allData[0],
-          "smart-money/holdings": allData[1],
-          "smart-money/historical-holdings": allData[2],
-          "smart-money/dex-trades": allData[3],
-          "smart-money/dcas": allData[4],
-        };
+        // get all contract address
+        const contractAddresses = data?.data?.map((item) => item.mint);
+        const content = data?.data?.map((item) =>
+          item.contents.map((i) => i.content)
+        );
+        const tokenSummary = data?.data?.map((item) => item.tokenSummary);
+        const newsSummary = data?.data?.map((item) => item.newsSummary);
 
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
@@ -164,7 +148,9 @@ export async function createSmartMoneyRouter() {
           // Continue even if burn fails - payment was successful
         }
 
-        res.status(200).json(data);
+        res
+          .status(200)
+          .json({ contractAddresses, content, tokenSummary, newsSummary });
       } catch (error) {
         res.status(500).json({
           error: "Internal server error",

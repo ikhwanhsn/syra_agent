@@ -5,12 +5,13 @@ import { dexscreenerRequests } from "../../request/dexscreener.request.js";
 
 export async function createDexscreenerRouter() {
   const router = express.Router();
+  const PRICE_USD = 0.05;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: "0.05",
+      price: PRICE_USD,
       description:
         "Dexscreener all data (token profiles, community takeovers, ads, token boosts, token boosts top)",
       method: "GET",
@@ -54,7 +55,7 @@ export async function createDexscreenerRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.05;
+          const priceUSD = PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -79,7 +80,7 @@ export async function createDexscreenerRouter() {
   router.post(
     "/",
     requirePayment({
-      price: "0.05",
+      price: PRICE_USD,
       description:
         "Dexscreener all data (token profiles, community takeovers, ads, token boosts, token boosts top)",
       method: "POST",
@@ -123,7 +124,7 @@ export async function createDexscreenerRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.05;
+          const priceUSD = PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
