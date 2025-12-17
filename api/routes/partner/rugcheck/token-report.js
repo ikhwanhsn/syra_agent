@@ -89,7 +89,8 @@ export async function createTokenReportRouter() {
       discoverable: true, // Make it discoverable on x402scan
       resource: "/token-report",
       inputSchema: {
-        bodyParams: {
+        bodyType: "json",
+        bodyFields: {
           address: {
             type: "string",
             required: true,
