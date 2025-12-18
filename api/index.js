@@ -27,6 +27,7 @@ import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createPumpRouter } from "./routes/partner/workfun/pump.js";
 import { createTrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
 import { createTokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
+import { createTokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
 
 dotenv.config();
 
@@ -260,6 +261,7 @@ app.use("/solana-agent", await createSolanaAgentRouter());
 app.use("/pump", await createPumpRouter());
 app.use("/trending-jupiter", await createTrendingJupiterRouter());
 app.use("/token-report", await createTokenReportRouter());
+app.use("/token-statistic", await createTokenStatisticRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
