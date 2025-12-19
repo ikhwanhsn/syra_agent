@@ -50,9 +50,9 @@ export async function createNewsRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.query.ticker;
+      const ticker = req.query.ticker || "general";
       let result;
-      if (ticker) {
+      if (ticker !== "general") {
         const tickerNews = await fetchTickerNews(ticker);
         const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
         result = tickerNews.concat(tickerNewsAdvance);
@@ -124,9 +124,9 @@ export async function createNewsRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.body.ticker;
+      const ticker = req.body.ticker || "general";
       let result;
-      if (ticker) {
+      if (ticker !== "general") {
         const tickerNews = await fetchTickerNews(ticker);
         const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
         result = tickerNews.concat(tickerNewsAdvance);
