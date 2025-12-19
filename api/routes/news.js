@@ -6,23 +6,28 @@ import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 export async function createNewsRouter() {
   const router = express.Router();
 
-  const MAX_PAGE = 5;
+  const fetchGeneralNews = async () => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1/category?section=general&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+    );
+    const data = await response.json();
+    return data.data || [];
+  };
 
-  const fetchPages = async (section) => {
-    const requests = [];
+  const fetchTickerNews = async (ticker) => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1?tickers=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+    );
+    const data = await response.json();
+    return data.data || [];
+  };
 
-    for (let i = 1; i <= MAX_PAGE; i++) {
-      requests.push(
-        fetch(
-          `https://cryptonews-api.com/api/v1/category?section=${section}&items=100&page=${i}&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-        ).then((res) => res.json())
-      );
-    }
-
-    const results = await Promise.all(requests);
-
-    // merge all pages into a single array (optional)
-    return results.flatMap((data) => data.data || []);
+  const fetchTickerNewsAdvance = async (ticker) => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1?tickers-only=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+    );
+    const data = await response.json();
+    return data.data || [];
   };
 
   // Apply middleware to routes
@@ -34,11 +39,32 @@ export async function createNewsRouter() {
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/news",
+      inputSchema: {
+        queryParams: {
+          ticker: {
+            type: "string",
+            required: false,
+            description: "Ticker name for the news",
+          },
+        },
+      },
     }),
     async (req, res) => {
-      const generalNews = await fetchPages("general");
-      const tickerNews = await fetchPages("alltickers");
-      if (generalNews?.length > 0 || tickerNews?.length > 0) {
+      const ticker = req.query.ticker;
+      let result;
+      if (ticker) {
+        const tickerNews = await fetchTickerNews(ticker);
+        const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
+        result = tickerNews.concat(tickerNewsAdvance);
+      } else {
+        const generalNews = await fetchGeneralNews();
+        result = generalNews;
+      }
+      const news = result;
+      if (!news) {
+        return res.status(404).json({ error: "News not found" });
+      }
+      if (news?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
@@ -61,8 +87,7 @@ export async function createNewsRouter() {
         }
 
         res.json({
-          generalNews,
-          tickerNews,
+          news,
           // tokenBuyback: burnResult
           //   ? {
           //       swapTransaction: burnResult.swapSignature,
@@ -87,11 +112,33 @@ export async function createNewsRouter() {
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/news",
+      inputSchema: {
+        bodyType: "json",
+        bodyFields: {
+          ticker: {
+            type: "string",
+            required: false,
+            description: "Ticker name for the news",
+          },
+        },
+      },
     }),
     async (req, res) => {
-      const generalNews = await fetchPages("general");
-      const tickerNews = await fetchPages("alltickers");
-      if (generalNews?.length > 0 || tickerNews?.length > 0) {
+      const ticker = req.body.ticker;
+      let result;
+      if (ticker) {
+        const tickerNews = await fetchTickerNews(ticker);
+        const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
+        result = tickerNews.concat(tickerNewsAdvance);
+      } else {
+        const generalNews = await fetchGeneralNews();
+        result = generalNews;
+      }
+      const news = result;
+      if (!news) {
+        return res.status(404).json({ error: "News not found" });
+      }
+      if (news?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
@@ -114,8 +161,7 @@ export async function createNewsRouter() {
         }
 
         res.json({
-          generalNews,
-          tickerNews,
+          news,
           // tokenBuyback: burnResult
           //   ? {
           //       swapTransaction: burnResult.swapSignature,
