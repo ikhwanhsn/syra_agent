@@ -3,36 +3,29 @@ import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 
-export async function createNewsRouter() {
+export async function createSentimentRouter() {
   const router = express.Router();
+  const PRICE_USD = 0.15;
 
-  const fetchGeneralNews = async () => {
+  const fetchGeneralSentimentAnalysis = async () => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1/category?section=general&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1/stat?&section=general&date=last30days&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
     );
     const data = await response.json();
     return data.data || [];
   };
 
-  const fetchAllTickerNews = async () => {
+  const fetchAllTickerSentimentAnalysis = async () => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1/category?section=alltickers&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1/stat?&section=alltickers&date=last30days&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
     );
     const data = await response.json();
     return data.data || [];
   };
 
-  const fetchTickerNews = async (ticker) => {
+  const fetchTickerSentimentAnalysis = async (ticker) => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1?tickers=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-    );
-    const data = await response.json();
-    return data.data || [];
-  };
-
-  const fetchTickerNewsAdvance = async (ticker) => {
-    const response = await fetch(
-      `https://cryptonews-api.com/api/v1?tickers-only=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1/stat?tickers=${ticker}&date=last30days&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
     );
     const data = await response.json();
     return data.data || [];
@@ -42,17 +35,17 @@ export async function createNewsRouter() {
   router.get(
     "/",
     requirePayment({
-      price: "0.1",
-      description: "News information service",
+      price: PRICE_USD,
+      description: "Sentiment analysis for crypto markets",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/news",
+      resource: "/sentiment",
       inputSchema: {
         queryParams: {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the news",
+            description: "Ticker name for the sentiment analysis",
           },
         },
       },
@@ -61,19 +54,28 @@ export async function createNewsRouter() {
       const ticker = req.query.ticker || "general";
       let result;
       if (ticker !== "general") {
-        const tickerNews = await fetchTickerNews(ticker);
-        const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
-        result = tickerNews.concat(tickerNewsAdvance);
+        const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(
+          ticker
+        );
+        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
+          date,
+          ticker: tickerSentimentAnalysis[date],
+        }));
       } else {
-        const generalNews = await fetchGeneralNews();
-        const allTickerNews = await fetchAllTickerNews();
-        result = generalNews.concat(allTickerNews);
+        const generalSentimentAnalysis = await fetchGeneralSentimentAnalysis();
+        const allTickerSentimentAnalysis =
+          await fetchAllTickerSentimentAnalysis();
+        result = Object.keys(generalSentimentAnalysis).map((date) => ({
+          date,
+          general: generalSentimentAnalysis[date],
+          allTicker: allTickerSentimentAnalysis[date],
+        }));
       }
-      const news = result;
-      if (!news) {
-        return res.status(404).json({ error: "News not found" });
+      const sentimentAnalysis = result;
+      if (!sentimentAnalysis) {
+        return res.status(404).json({ error: "Sentiment analysis not found" });
       }
-      if (news?.length > 0) {
+      if (sentimentAnalysis?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
@@ -84,7 +86,7 @@ export async function createNewsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.1;
+          const priceUSD = PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -96,18 +98,11 @@ export async function createNewsRouter() {
         }
 
         res.json({
-          news,
-          // tokenBuyback: burnResult
-          //   ? {
-          //       swapTransaction: burnResult.swapSignature,
-          //       burnTransaction: burnResult.burnSignature,
-          //       amountBurned: burnResult.amountBurned,
-          //     }
-          //   : null,
+          sentimentAnalysis,
         });
       } else {
         res.status(500).json({
-          error: "Failed to fetch news",
+          error: "Failed to fetch sentiment analysis",
         });
       }
     }
@@ -116,18 +111,18 @@ export async function createNewsRouter() {
   router.post(
     "/",
     requirePayment({
-      price: "0.1",
-      description: "News information service",
+      price: PRICE_USD,
+      description: "Sentiment analysis for crypto markets",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/news",
+      resource: "/sentiment",
       inputSchema: {
         bodyType: "json",
         bodyFields: {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the news",
+            description: "Ticker name for the sentiment analysis",
           },
         },
       },
@@ -136,19 +131,28 @@ export async function createNewsRouter() {
       const ticker = req.body.ticker || "general";
       let result;
       if (ticker !== "general") {
-        const tickerNews = await fetchTickerNews(ticker);
-        const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
-        result = tickerNews.concat(tickerNewsAdvance);
+        const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(
+          ticker
+        );
+        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
+          date,
+          ticker: tickerSentimentAnalysis[date],
+        }));
       } else {
-        const generalNews = await fetchGeneralNews();
-        const allTickerNews = await fetchAllTickerNews();
-        result = generalNews.concat(allTickerNews);
+        const generalSentimentAnalysis = await fetchGeneralSentimentAnalysis();
+        const allTickerSentimentAnalysis =
+          await fetchAllTickerSentimentAnalysis();
+        result = Object.keys(generalSentimentAnalysis).map((date) => ({
+          date,
+          general: generalSentimentAnalysis[date],
+          allTicker: allTickerSentimentAnalysis[date],
+        }));
       }
-      const news = result;
-      if (!news) {
-        return res.status(404).json({ error: "News not found" });
+      const sentimentAnalysis = result;
+      if (!sentimentAnalysis) {
+        return res.status(404).json({ error: "Sentiment analysis not found" });
       }
-      if (news?.length > 0) {
+      if (sentimentAnalysis?.length > 0) {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
@@ -159,7 +163,7 @@ export async function createNewsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.1;
+          const priceUSD = PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -171,18 +175,11 @@ export async function createNewsRouter() {
         }
 
         res.json({
-          news,
-          // tokenBuyback: burnResult
-          //   ? {
-          //       swapTransaction: burnResult.swapSignature,
-          //       burnTransaction: burnResult.burnSignature,
-          //       amountBurned: burnResult.amountBurned,
-          //     }
-          //   : null,
+          sentimentAnalysis,
         });
       } else {
         res.status(500).json({
-          error: "Failed to fetch news",
+          error: "Failed to fetch sentiment analysis",
         });
       }
     }
