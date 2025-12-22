@@ -267,6 +267,11 @@ app.use("/token-statistic", await createTokenStatisticRouter());
 app.use("/sentiment", await createSentimentRouter());
 app.use("/event", await createEventRouter());
 
+// X402 Jobs verification
+app.get("/.well-known/x402-verification.json", (req, res) => {
+  res.json({ x402: "8ab3d1b3906d" });
+});
+
 // Free endpoint
 app.get("/api/free", (req, res) => {
   res.json({ data: "free content" });
