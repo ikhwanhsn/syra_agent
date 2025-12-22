@@ -29,6 +29,7 @@ import { createTrendingJupiterRouter } from "./routes/partner/jupiter/trending.j
 import { createTokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
 import { createTokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
 import { createSentimentRouter } from "./routes/sentiment.js";
+import { createEventRouter } from "./routes/event.js";
 
 dotenv.config();
 
@@ -264,6 +265,7 @@ app.use("/trending-jupiter", await createTrendingJupiterRouter());
 app.use("/token-report", await createTokenReportRouter());
 app.use("/token-statistic", await createTokenStatisticRouter());
 app.use("/sentiment", await createSentimentRouter());
+app.use("/event", await createEventRouter());
 
 // Free endpoint
 app.get("/api/free", (req, res) => {
