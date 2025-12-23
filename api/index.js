@@ -30,6 +30,7 @@ import { createTokenReportRouter } from "./routes/partner/rugcheck/token-report.
 import { createTokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
 import { createSentimentRouter } from "./routes/sentiment.js";
 import { createEventRouter } from "./routes/event.js";
+import { createTrendingHeadlineRouter } from "./routes/trending-headline.js";
 
 dotenv.config();
 
@@ -266,6 +267,7 @@ app.use("/token-report", await createTokenReportRouter());
 app.use("/token-statistic", await createTokenStatisticRouter());
 app.use("/sentiment", await createSentimentRouter());
 app.use("/event", await createEventRouter());
+app.use("/trending-headline", await createTrendingHeadlineRouter());
 
 // X402 Jobs verification
 app.get("/.well-known/x402-verification.json", (req, res) => {
