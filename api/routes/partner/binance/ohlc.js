@@ -3,6 +3,6 @@ export async function getOhlc(req, res) {
   const response = await fetch(
     `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}`
   );
-  const data = await response.json();
+  const data = await response;
   res.json(data);
 }
