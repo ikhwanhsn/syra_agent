@@ -1,21 +1,13 @@
 import express from "express";
 import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
-import { getOhlc } from "./partner/binance/ohlc.js";
 
 export async function createInfoRouter() {
   const router = express.Router();
   router.get("/", async (_, res) => {
-    const ohlc = await getOhlc({
-      query: {
-        symbol: "BTCUSDT",
-        interval: "1h",
-      },
-    });
     const syraPrice = await getDexscreenerTokenInfo(
       "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
     );
     res.status(200).json({
-      ohlc,
       token: syraPrice.pairs[0],
       website: "https://syraa.fun",
       api: "https://api.syraa.fun",
