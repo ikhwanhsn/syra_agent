@@ -106,7 +106,7 @@ const roadmapData = [
           "x402 payment integration & directory launch",
           "Onboard first 10-20 autonomous agents",
         ],
-        status: "current",
+        status: "completed",
       },
     ],
   },
@@ -122,7 +122,7 @@ const roadmapData = [
           "$SYRA staking for API discounts",
           "Token buyback & burn program launch",
         ],
-        status: "upcoming",
+        status: "current",
       },
       {
         quarter: "Q2",
