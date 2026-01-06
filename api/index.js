@@ -49,6 +49,7 @@ app.use(
       "http://localhost:8080",
       "https://api.syraa.fun",
       "https://syraa.fun",
+      "https://www.syraa.fun",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
