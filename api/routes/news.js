@@ -173,6 +173,7 @@ export async function createNewsRouter() {
 
         res.json({
           news,
+          paymentResult,
           // tokenBuyback: burnResult
           //   ? {
           //       swapTransaction: burnResult.swapSignature,
