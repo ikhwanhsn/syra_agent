@@ -150,10 +150,11 @@ export async function createNewsRouter() {
       }
       if (news?.length > 0) {
         // Settle payment ONLY on success
-        await getX402Handler().settlePayment(
+        const paymentResult = await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements
         );
+        console.log("Payment result:", paymentResult);
 
         // Buyback and burn SYRA token (80% of revenue)
         let burnResult = null;
