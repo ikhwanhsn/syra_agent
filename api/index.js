@@ -1,3 +1,4 @@
+import cors from "cors";
 import express from "express";
 import rateLimit from "./utils/rateLimit.js";
 import path from "path";
@@ -41,6 +42,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:8080",
+      "https://api.syraa.fun",
+      "https://syraa.fun",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 

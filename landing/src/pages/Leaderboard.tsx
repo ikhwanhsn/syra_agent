@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -13,26 +13,37 @@ import {
 } from "lucide-react";
 
 // Mock data - replace with real data
-const generateMockData = () => {
-  const wallets = Array.from(
-    { length: 50 },
-    (_, i) =>
-      `0x${Math.random().toString(16).substr(2, 8)}...${Math.random()
-        .toString(16)
-        .substr(2, 4)}`
-  );
+// const generateMockData = () => {
+//   const wallets = Array.from(
+//     { length: 50 },
+//     (_, i) =>
+//       `0x${Math.random().toString(16).substr(2, 8)}...${Math.random()
+//         .toString(16)
+//         .substr(2, 4)}`
+//   );
 
-  return wallets.map((wallet, i) => ({
-    rank: i + 1,
-    wallet,
-    volume: Math.floor(Math.random() * 500000) + 10000,
-    toolsCalls: Math.floor(Math.random() * 5000) + 100,
-    totalReward: Math.floor(Math.random() * 10000) + 500,
-  }));
-};
+//   return wallets.map((wallet, i) => ({
+//     rank: i + 1,
+//     wallet,
+//     volume: Math.floor(Math.random() * 500000) + 10000,
+//     toolsCalls: Math.floor(Math.random() * 5000) + 100,
+//     totalReward: Math.floor(Math.random() * 10000) + 500,
+//   }));
+// };
 
 export default function Leaderboard() {
-  const [data] = useState(generateMockData());
+  //   const [data] = useState(generateMockData());
+  //   const [searchTerm, setSearchTerm] = useState("");
+  //   const [currentPage, setCurrentPage] = useState(1);
+  //   const [timeFilter, setTimeFilter] = useState("7d");
+  //   const [sortConfig, setSortConfig] = useState({
+  //     key: "rank",
+  //     direction: "asc",
+  //   });
+  //   const itemsPerPage = 10;
+
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [timeFilter, setTimeFilter] = useState("7d");
@@ -41,6 +52,36 @@ export default function Leaderboard() {
     direction: "asc",
   });
   const itemsPerPage = 10;
+
+  // Fetch data from your API/MongoDB
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `https://api.syraa.fun/leaderboard?period=${timeFilter}`
+        );
+        const result = await response.json();
+        console.log("result", result);
+
+        // Add rank based on volume (or your preferred metric)
+        const rankedData = result
+          .sort((a, b) => b.volume - a.volume)
+          .map((item, index) => ({
+            ...item,
+            rank: index + 1,
+          }));
+
+        setData(rankedData);
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [timeFilter]);
 
   const totalWeeklyReward = 50000; // Static for now
 
