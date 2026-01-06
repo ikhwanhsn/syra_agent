@@ -6,6 +6,7 @@ import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createNewsRouter() {
   const router = express.Router();
+  const PRICE_USD = 0.1;
 
   const fetchGeneralNews = async () => {
     const response = await fetch(
@@ -43,7 +44,7 @@ export async function createNewsRouter() {
   router.get(
     "/",
     requirePayment({
-      price: "0.1",
+      price: PRICE_USD,
       description: "News information service",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -85,7 +86,7 @@ export async function createNewsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.1;
+          const priceUSD = PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -95,6 +96,11 @@ export async function createNewsRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
+
+        await saveToLeaderboard({
+          wallet: paymentResult.payer,
+          volume: PRICE_USD,
+        });
 
         res.json({
           news,
@@ -117,7 +123,7 @@ export async function createNewsRouter() {
   router.post(
     "/",
     requirePayment({
-      price: "0.1",
+      price: PRICE_USD,
       description: "News information service",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -161,7 +167,7 @@ export async function createNewsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.1;
+          const priceUSD = PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -174,7 +180,7 @@ export async function createNewsRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: priceUSD,
+          volume: PRICE_USD,
         });
 
         res.json({
