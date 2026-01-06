@@ -1,4 +1,4 @@
-import { getDb } from "../db";
+import { getDb } from "../db.js";
 
 // Save single data to leaderboard_entries collection (data is object)
 export const saveToLeaderboard = async (data) => {
