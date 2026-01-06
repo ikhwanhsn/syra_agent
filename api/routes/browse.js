@@ -88,7 +88,9 @@ export async function createBrowseRouter() {
               // Continue even if burn fails - payment was successful
             }
 
-            res.json({ query, result: taskData });
+            const formatResult = JSON.stringify(taskData);
+
+            res.json({ query, result: formatResult });
             break;
           }
 
@@ -188,7 +190,9 @@ export async function createBrowseRouter() {
               // Continue even if burn fails - payment was successful
             }
 
-            res.json({ query, result: taskData });
+            const formatResult = JSON.stringify(taskData);
+
+            res.json({ query, result: formatResult });
             break;
           }
 
