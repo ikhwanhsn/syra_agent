@@ -83,7 +83,7 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, [timeFilter]);
 
-  const totalWeeklyReward = 50000; // Static for now
+  const totalWeeklyReward = 100; // Static for now
 
   // Sorting function
   const handleSort = (key) => {
