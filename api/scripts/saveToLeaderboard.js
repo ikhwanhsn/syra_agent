@@ -1,21 +1,22 @@
 import { getDb } from "../db.js";
 
-// Save single data to leaderboard_entries collection (data is object)
 export const saveToLeaderboard = async (data) => {
   const {
     wallet,
-    volume,
+    volume = 0,
     toolsCalls = 1,
     totalReward = 0,
     period = "7d",
     rank = 0,
     lastUpdated = new Date(),
   } = data;
+
   const db = await getDb();
-  //   check if address already exists in leaderboard_entries collection
-  const existingEntry = await db.collection("leaderboard_entries").findOne({
-    wallet,
-  });
+
+  const existingEntry = await db
+    .collection("leaderboard_entries")
+    .findOne({ wallet });
+
   if (existingEntry) {
     await db.collection("leaderboard_entries").updateOne(
       { wallet },
@@ -31,7 +32,19 @@ export const saveToLeaderboard = async (data) => {
         },
       }
     );
+
     return;
   }
-  await db.collection("leaderboard_entries").insertMany(data);
+
+  const doc = {
+    wallet,
+    volume,
+    toolsCalls,
+    totalReward,
+    period,
+    rank,
+    lastUpdated,
+  };
+
+  await db.collection("leaderboard_entries").insertOne(doc);
 };
