@@ -2,6 +2,7 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createNewsRouter() {
   const router = express.Router();
@@ -171,9 +172,14 @@ export async function createNewsRouter() {
           // Continue even if burn fails - payment was successful
         }
 
+        await saveToLeaderboard({
+          wallet: paymentResult.payer,
+          volume: priceUSD,
+        });
+
         res.json({
           news,
-          paymentResult,
+          // paymentResult,
           // tokenBuyback: burnResult
           //   ? {
           //       swapTransaction: burnResult.swapSignature,
