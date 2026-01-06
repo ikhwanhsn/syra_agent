@@ -2,6 +2,7 @@ import express from "express";
 import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
 import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
 import { dexscreenerRequests } from "../../request/dexscreener.request.js";
+import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createDexscreenerRouter() {
   const router = express.Router();
@@ -46,7 +47,7 @@ export async function createDexscreenerRouter() {
         };
 
         // Settle payment ONLY on success
-        await getX402Handler().settlePayment(
+        const paymentResult = await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements
         );
@@ -65,6 +66,11 @@ export async function createDexscreenerRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
+
+        await saveToLeaderboard({
+          wallet: paymentResult.payer,
+          volume: PRICE_USD,
+        });
 
         res.status(200).json(data);
       } catch (error) {
@@ -115,7 +121,7 @@ export async function createDexscreenerRouter() {
         };
 
         // Settle payment ONLY on success
-        await getX402Handler().settlePayment(
+        const paymentResult = await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements
         );
@@ -134,6 +140,11 @@ export async function createDexscreenerRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
+
+        await saveToLeaderboard({
+          wallet: paymentResult.payer,
+          volume: PRICE_USD,
+        });
 
         res.status(200).json(data);
       } catch (error) {

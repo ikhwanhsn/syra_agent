@@ -5,6 +5,7 @@ import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { kolPrompt } from "../prompts/kol.prompt.js";
 import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createXKOLRouter() {
   const router = express.Router();
@@ -57,7 +58,7 @@ export async function createXKOLRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
@@ -76,6 +77,12 @@ export async function createXKOLRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {
@@ -144,7 +151,7 @@ export async function createXKOLRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
@@ -163,6 +170,12 @@ export async function createXKOLRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {

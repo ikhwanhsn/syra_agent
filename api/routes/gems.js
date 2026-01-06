@@ -4,6 +4,7 @@ import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { gemsPrompt } from "../prompts/gems.prompt.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createGemsRouter() {
   const router = express.Router();
@@ -43,7 +44,7 @@ export async function createGemsRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
@@ -62,6 +63,12 @@ export async function createGemsRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
@@ -116,7 +123,7 @@ export async function createGemsRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
@@ -135,6 +142,12 @@ export async function createGemsRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {

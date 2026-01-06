@@ -3,6 +3,7 @@ import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { browseService } from "../libs/atxp/browseService.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createBrowseRouter() {
   const router = express.Router();
@@ -68,7 +69,7 @@ export async function createBrowseRouter() {
             );
 
             // Settle payment ONLY on success
-            await getX402Handler().settlePayment(
+            const paymentResult = await getX402Handler().settlePayment(
               req.x402Payment.paymentHeader,
               req.x402Payment.paymentRequirements
             );
@@ -87,6 +88,11 @@ export async function createBrowseRouter() {
               console.error("Buyback and burn failed:", burnError);
               // Continue even if burn fails - payment was successful
             }
+
+            await saveToLeaderboard({
+              wallet: paymentResult.payer,
+              volume: PRICE_USD,
+            });
 
             const formatResult = JSON.stringify(taskData);
 
@@ -170,7 +176,7 @@ export async function createBrowseRouter() {
             );
 
             // Settle payment ONLY on success
-            await getX402Handler().settlePayment(
+            const paymentResult = await getX402Handler().settlePayment(
               req.x402Payment.paymentHeader,
               req.x402Payment.paymentRequirements
             );
@@ -189,6 +195,11 @@ export async function createBrowseRouter() {
               console.error("Buyback and burn failed:", burnError);
               // Continue even if burn fails - payment was successful
             }
+
+            await saveToLeaderboard({
+              wallet: paymentResult.payer,
+              volume: PRICE_USD,
+            });
 
             const formatResult = JSON.stringify(taskData);
 

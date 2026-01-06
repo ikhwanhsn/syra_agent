@@ -2,6 +2,7 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createSentimentRouter() {
   const router = express.Router();
@@ -77,7 +78,7 @@ export async function createSentimentRouter() {
       }
       if (sentimentAnalysis?.length > 0) {
         // Settle payment ONLY on success
-        await getX402Handler().settlePayment(
+        const paymentResult = await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements
         );
@@ -96,6 +97,12 @@ export async function createSentimentRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
+
+        // Save to leaderboard
+        await saveToLeaderboard({
+          wallet: paymentResult.payer,
+          volume: PRICE_USD,
+        });
 
         res.json({
           sentimentAnalysis,
@@ -154,7 +161,7 @@ export async function createSentimentRouter() {
       }
       if (sentimentAnalysis?.length > 0) {
         // Settle payment ONLY on success
-        await getX402Handler().settlePayment(
+        const paymentResult = await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements
         );
@@ -173,6 +180,12 @@ export async function createSentimentRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
+
+        // Save to leaderboard
+        await saveToLeaderboard({
+          wallet: paymentResult.payer,
+          volume: PRICE_USD,
+        });
 
         res.json({
           sentimentAnalysis,

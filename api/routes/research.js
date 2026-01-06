@@ -2,6 +2,7 @@ import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../libs/atxp/researchService.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createResearchRouter() {
   const router = express.Router();
@@ -63,10 +64,16 @@ export async function createResearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ status, content, sources });
         }
@@ -135,10 +142,16 @@ export async function createResearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ status, content, sources });
         }

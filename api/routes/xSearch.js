@@ -3,6 +3,7 @@ import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createXSearchRouter() {
   const router = express.Router();
@@ -53,7 +54,7 @@ export async function createXSearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
@@ -72,6 +73,12 @@ export async function createXSearchRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
@@ -137,7 +144,7 @@ export async function createXSearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
+          const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
             req.x402Payment.paymentRequirements
           );
@@ -156,6 +163,12 @@ export async function createXSearchRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
+
+          // Save to leaderboard
+          await saveToLeaderboard({
+            wallet: paymentResult.payer,
+            volume: PRICE_USD,
+          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
