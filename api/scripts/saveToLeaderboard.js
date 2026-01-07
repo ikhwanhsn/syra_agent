@@ -13,16 +13,16 @@ export const saveToLeaderboard = async (data) => {
   } = data;
 
   // check if wallet hold SYRA token
-  const balance = await getTokenBalance(
-    wallet,
-    "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
-  );
-  if (balance === 0) {
-    console.log(`Wallet ${wallet} does not hold SYRA token`);
-    return;
-  }
+  // const balance = await getTokenBalance(
+  //   wallet,
+  //   "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
+  // );
+  // if (balance === 0) {
+  //   console.log(`Wallet ${wallet} does not hold SYRA token`);
+  //   return;
+  // }
 
-  const bonus = balance > 1000000 ? volume * 0.1 : 0;
+  // const bonus = balance > 1000000 ? volume * 0.1 : 0;
 
   const db = await getDb();
 
@@ -36,7 +36,7 @@ export const saveToLeaderboard = async (data) => {
       {
         $set: {
           wallet,
-          volume: existingEntry.volume + volume + bonus,
+          volume: existingEntry.volume + volume,
           toolsCalls: existingEntry.toolsCalls + toolsCalls,
           totalReward: existingEntry.totalReward + totalReward,
           period,
