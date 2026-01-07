@@ -12,36 +12,7 @@ import {
   Gift,
 } from "lucide-react";
 
-// Mock data - replace with real data
-// const generateMockData = () => {
-//   const wallets = Array.from(
-//     { length: 50 },
-//     (_, i) =>
-//       `0x${Math.random().toString(16).substr(2, 8)}...${Math.random()
-//         .toString(16)
-//         .substr(2, 4)}`
-//   );
-
-//   return wallets.map((wallet, i) => ({
-//     rank: i + 1,
-//     wallet,
-//     volume: Math.floor(Math.random() * 500000) + 10000,
-//     toolsCalls: Math.floor(Math.random() * 5000) + 100,
-//     totalReward: Math.floor(Math.random() * 10000) + 500,
-//   }));
-// };
-
 export default function Leaderboard() {
-  //   const [data] = useState(generateMockData());
-  //   const [searchTerm, setSearchTerm] = useState("");
-  //   const [currentPage, setCurrentPage] = useState(1);
-  //   const [timeFilter, setTimeFilter] = useState("7d");
-  //   const [sortConfig, setSortConfig] = useState({
-  //     key: "rank",
-  //     direction: "asc",
-  //   });
-  //   const itemsPerPage = 10;
-
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -157,7 +128,7 @@ export default function Leaderboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12 text-center"
+          className="mb-6 text-center"
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card">
             <Trophy className="w-4 h-4 text-yellow-400" />
@@ -172,6 +143,27 @@ export default function Leaderboard() {
           <p className="text-lg text-muted-foreground">
             Compete with the best traders and earn rewards
           </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="flex items-center justify-center gap-4 mb-6"
+        >
+          <a
+            href="/"
+            className="px-6 py-3 text-sm font-medium transition-all rounded-lg glass-card hover:bg-primary/10 hover:border-primary/30"
+          >
+            ← Back to Home
+          </a>
+          <a
+            href="https://www.x402scan.com/composer/agent/c543b43e-6f49-492d-9f8a-6b0cc273fb06/chat"
+            target="_blank"
+            className="px-6 py-3 text-sm font-medium transition-all rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Launch Agent →
+          </a>
         </motion.div>
 
         {/* Reward Info Card */}
@@ -261,7 +253,7 @@ export default function Leaderboard() {
           transition={{ delay: 0.3 }}
           className="overflow-hidden glass-card rounded-2xl"
         >
-          <div className="overflow-x-auto">
+          <div className="relative z-10 overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
