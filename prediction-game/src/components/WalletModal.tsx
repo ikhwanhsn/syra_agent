@@ -1,0 +1,173 @@
+import { X, Wallet, Coins, LogOut, Copy, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useWallet } from '@/contexts/WalletContext';
+import { useState } from 'react';
+
+interface WalletModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
+  const { isConnected, walletAddress, syraBalance, solBalance, connect, disconnect } = useWallet();
+  const [copied, setCopied] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleConnect = () => {
+    connect();
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    onClose();
+  };
+
+  const handleCopy = () => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const formatBalance = (balance: number) => {
+    if (balance >= 1_000_000) {
+      return `${(balance / 1_000_000).toFixed(1)}M`;
+    }
+    return balance.toLocaleString();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="relative glass-card w-full max-w-md p-6 animate-scale-in">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <h2 className="text-xl font-bold mb-6 gradient-text">
+          {isConnected ? 'Wallet Connected' : 'Connect Wallet'}
+        </h2>
+
+        {isConnected ? (
+          <div className="space-y-4">
+            {/* Wallet Address */}
+            <div className="bg-secondary/50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Wallet className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Connected</p>
+                    <p className="font-semibold">{walletAddress}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCopy}
+                  className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-status-active" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Balances */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Coins className="h-4 w-4 text-accent" />
+                  <span className="text-sm text-muted-foreground">SOL Balance</span>
+                </div>
+                <p className="text-xl font-bold">{solBalance} SOL</p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-4 h-4 rounded-full bg-primary" />
+                  <span className="text-sm text-muted-foreground">$SYRA</span>
+                </div>
+                <p className="text-xl font-bold">{formatBalance(syraBalance)}</p>
+              </div>
+            </div>
+
+            {/* SYRA Tier */}
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground mb-1">Your Tier</p>
+              <p className="font-semibold text-primary">
+                {syraBalance >= 10_000_000
+                  ? '🔥 Unlimited Events/Day'
+                  : syraBalance >= 1_000_000
+                  ? '⭐ 5 Events/Day'
+                  : '📊 3 Events/Day'}
+              </p>
+            </div>
+
+            {/* Disconnect Button */}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleDisconnect}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Disconnect Wallet
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-muted-foreground text-center mb-6">
+              Connect your Solana wallet to start predicting and winning SOL.
+            </p>
+
+            {/* Wallet Options */}
+            <button
+              onClick={handleConnect}
+              className="w-full flex items-center gap-4 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors border border-border hover:border-primary/40"
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-lg">👻</span>
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Phantom</p>
+                <p className="text-sm text-muted-foreground">Popular Solana wallet</p>
+              </div>
+            </button>
+
+            <button
+              onClick={handleConnect}
+              className="w-full flex items-center gap-4 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors border border-border hover:border-primary/40"
+            >
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                <span className="text-lg">🌊</span>
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Solflare</p>
+                <p className="text-sm text-muted-foreground">Secure Solana wallet</p>
+              </div>
+            </button>
+
+            <p className="text-xs text-center text-muted-foreground mt-4">
+              By connecting, you agree to our Terms of Service
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default WalletModal;
