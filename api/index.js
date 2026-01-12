@@ -35,6 +35,7 @@ import { createTrendingHeadlineRouter } from "./routes/trending-headline.js";
 import { createSundownDigestRouter } from "./routes/sundown-digest.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
+import { createBubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 
 dotenv.config();
 
@@ -287,6 +288,7 @@ app.use("/trending-headline", await createTrendingHeadlineRouter());
 app.use("/sundown-digest", await createSundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
+app.use("/bubblemaps/maps", await createBubblemapsMapsRouter());
 
 // X402 Jobs verification
 app.get("/.well-known/x402-verification.json", (req, res) => {
