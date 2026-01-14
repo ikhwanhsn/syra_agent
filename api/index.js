@@ -37,6 +37,9 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createBubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 import { createFastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fastestHolderGrowthMemecoins.js";
+import { createMemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
+import { createMemecoinsMostMentionedBySmartMoneyXRouter } from "./routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
+import { createMemecoinsStrongNarrativeLowMarketCapRouter } from "./routes/memecoin/memecoinsStrongNarrativeLowMarketCap.js";
 
 dotenv.config();
 
@@ -293,6 +296,18 @@ app.use("/bubblemaps/maps", await createBubblemapsMapsRouter());
 app.use(
   "/memecoin/fastest-holder-growth",
   await createFastestHolderGrowthMemecoinsRouter()
+);
+app.use(
+  "/memecoin/most-mentioned-by-smart-money-x",
+  await createMemecoinsMostMentionedBySmartMoneyXRouter()
+);
+app.use(
+  "/memecoin/accumulating-before-CEX-rumors",
+  await createMemecoinsAccumulatingBeforeCEXRumorsRouter()
+);
+app.use(
+  "/memecoin/strong-narrative-low-market-cap",
+  await createMemecoinsStrongNarrativeLowMarketCapRouter()
 );
 
 // X402 Jobs verification
