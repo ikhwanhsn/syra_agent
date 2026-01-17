@@ -13,7 +13,7 @@ const stats = [
   },
   {
     label: "Tools",
-    value: 10,
+    value: 15,
     suffix: "+",
     prefix: "",
     decimals: 0,

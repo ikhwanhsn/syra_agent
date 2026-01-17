@@ -71,9 +71,12 @@ export const DashboardPreview = () => {
                 <TrendingDown className="w-4 h-4 text-red-400" />
               )}
             </div>
-            <div className="text-xl font-bold text-foreground">{`$${Number(
-              dataCryptoPrice?.find((item) => item.symbol === "BTCUSDT")?.price
-            ).toFixed(2)}`}</div>
+            <div className="text-xl font-bold text-foreground">{`$${
+              Number(
+                dataCryptoPrice?.find((item) => item.symbol === "BTCUSDT")
+                  ?.price
+              ).toFixed(2) || Number(dataCryptoChange?.bitcoin?.usd).toFixed(2)
+            }`}</div>
             <div
               className={`text-xs ${
                 dataCryptoChange?.bitcoin?.usd_24h_change >= 0
@@ -101,9 +104,12 @@ export const DashboardPreview = () => {
                 <TrendingDown className="w-4 h-4 text-red-400" />
               )}
             </div>
-            <div className="text-xl font-bold text-foreground">{`$${Number(
-              dataCryptoPrice?.find((item) => item.symbol === "ETHUSDT")?.price
-            ).toFixed(2)}`}</div>
+            <div className="text-xl font-bold text-foreground">{`$${
+              Number(
+                dataCryptoPrice?.find((item) => item.symbol === "ETHUSDT")
+                  ?.price
+              ).toFixed(2) || Number(dataCryptoChange?.ethereum?.usd).toFixed(2)
+            }`}</div>
             <div
               className={`text-xs ${
                 dataCryptoChange?.ethereum?.usd_24h_change >= 0
