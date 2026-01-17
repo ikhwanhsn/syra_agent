@@ -40,6 +40,11 @@ import { createFastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fast
 import { createMemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
 import { createMemecoinsMostMentionedBySmartMoneyXRouter } from "./routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
 import { createMemecoinsStrongNarrativeLowMarketCapRouter } from "./routes/memecoin/memecoinsStrongNarrativeLowMarketCap.js";
+import { createMemecoinsByExperiencedDevsRouter } from "./routes/memecoin/memecoinsByExperiencedDevs.js";
+import { createMemecoinsUnusualWhaleBehaviorRouter } from "./routes/memecoin/memecoinsUnusualWhaleBehavior.js";
+import { createMemecoinsTrendingOnXNotDEXRouter } from "./routes/memecoin/memecoinsTrendingOnXNotDEX.js";
+import { createMemecoinsOrganicTractionRouter } from "./routes/memecoin/aiMemecoinsOrganicTraction.js";
+import { createMemecoinsSurvivingMarketDumpsRouter } from "./routes/memecoin/memecoinsSurvivingMarketDumps.js";
 
 dotenv.config();
 
@@ -57,7 +62,7 @@ app.use(
       "https://www.syraa.fun",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
-  })
+  }),
 );
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
@@ -91,7 +96,7 @@ app.use(
   rateLimit({
     windowMs: 10 * 1000, // 10 seconds
     max: 50, // max 10 requests in 10 sec
-  })
+  }),
 );
 
 app.get("/", (req, res) => {
@@ -295,19 +300,39 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/bubblemaps/maps", await createBubblemapsMapsRouter());
 app.use(
   "/memecoin/fastest-holder-growth",
-  await createFastestHolderGrowthMemecoinsRouter()
+  await createFastestHolderGrowthMemecoinsRouter(),
 );
 app.use(
   "/memecoin/most-mentioned-by-smart-money-x",
-  await createMemecoinsMostMentionedBySmartMoneyXRouter()
+  await createMemecoinsMostMentionedBySmartMoneyXRouter(),
 );
 app.use(
   "/memecoin/accumulating-before-CEX-rumors",
-  await createMemecoinsAccumulatingBeforeCEXRumorsRouter()
+  await createMemecoinsAccumulatingBeforeCEXRumorsRouter(),
 );
 app.use(
   "/memecoin/strong-narrative-low-market-cap",
-  await createMemecoinsStrongNarrativeLowMarketCapRouter()
+  await createMemecoinsStrongNarrativeLowMarketCapRouter(),
+);
+app.use(
+  "/memecoin/by-experienced-devs",
+  await createMemecoinsByExperiencedDevsRouter(),
+);
+app.use(
+  "/memecoin/unusual-whale-behavior",
+  await createMemecoinsUnusualWhaleBehaviorRouter(),
+);
+app.use(
+  "/memecoin/trending-on-x-not-dex",
+  await createMemecoinsTrendingOnXNotDEXRouter(),
+);
+app.use(
+  "/memecoin/organic-traction",
+  await createMemecoinsOrganicTractionRouter(),
+);
+app.use(
+  "/memecoin/surviving-market-dumps",
+  await createMemecoinsSurvivingMarketDumpsRouter(),
 );
 
 // X402 Jobs verification
@@ -337,8 +362,8 @@ app.use(
         },
       },
     },
-    { url: "https://facilitator.payai.network" }
-  )
+    { url: "https://facilitator.payai.network" },
+  ),
 );
 
 // Implement your route

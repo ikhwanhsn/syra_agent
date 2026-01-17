@@ -4,9 +4,9 @@ import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
-import { fastestHolderGrowthMemecoins } from "../../prompts/memecoin.js";
+import { memecoinsSurvivingMarketDumps } from "../../prompts/memecoin.js";
 
-export async function createFastestHolderGrowthMemecoinsRouter() {
+export async function createMemecoinsSurvivingMarketDumpsRouter() {
   const router = express.Router();
   const PRICE_USD = 0.15;
 
@@ -15,10 +15,10 @@ export async function createFastestHolderGrowthMemecoinsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the fastest growing memecoins by holder growth rate.",
+      description: "Get the memecoins surviving market dumps.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/memecoin/fastest-holder-growth-memecoins",
+      resource: "/memecoin/surviving-market-dumps",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -31,7 +31,7 @@ export async function createFastestHolderGrowthMemecoinsRouter() {
       });
 
       const searchParams = {
-        query: fastestHolderGrowthMemecoins,
+        query: memecoinsSurvivingMarketDumps,
       };
 
       try {
@@ -94,10 +94,10 @@ export async function createFastestHolderGrowthMemecoinsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the fastest growing memecoins by holder growth rate.",
+      description: "Get the memecoins surviving market dumps.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/memecoin/fastest-holder-growth-memecoins",
+      resource: "/memecoin/surviving-market-dumps",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -110,7 +110,7 @@ export async function createFastestHolderGrowthMemecoinsRouter() {
       });
 
       const searchParams = {
-        query: fastestHolderGrowthMemecoins,
+        query: memecoinsSurvivingMarketDumps,
       };
 
       try {

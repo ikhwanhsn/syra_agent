@@ -18,7 +18,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
       description: "Get the memecoins accumulating before CEX rumors.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/accumulating-before-CEX-rumors",
+      resource: "/memecoin/accumulating-before-CEX-rumors",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -46,7 +46,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
           // Settle payment ONLY on success
           const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
+            req.x402Payment.paymentRequirements,
           );
 
           // Buyback and burn SYRA token (80% of revenue)
@@ -86,7 +86,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
         });
         process.exit(1);
       }
-    }
+    },
   );
 
   // POST endpoint for advanced search
@@ -97,7 +97,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
       description: "Get the memecoins accumulating before CEX rumors.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/accumulating-before-CEX-rumors",
+      resource: "/memecoin/accumulating-before-CEX-rumors",
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -125,7 +125,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
           // Settle payment ONLY on success
           const paymentResult = await getX402Handler().settlePayment(
             req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
+            req.x402Payment.paymentRequirements,
           );
 
           // Buyback and burn SYRA token (80% of revenue)
@@ -161,7 +161,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
         });
         process.exit(1);
       }
-    }
+    },
   );
 
   return router;
