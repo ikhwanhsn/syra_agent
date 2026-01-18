@@ -1,6 +1,9 @@
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 
-const connection = new Connection("https://api.mainnet-beta.solana.com");
+const connection = new Connection(
+  process.env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"),
+  "confirmed",
+);
 
 /**
  * Get SPL token balance for a specific mint
@@ -17,7 +20,7 @@ export async function getTokenBalance(walletAddress, mintAddress) {
 
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
       publicKey,
-      { mint }
+      { mint },
     );
 
     if (tokenAccounts.value.length === 0) return 0;

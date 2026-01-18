@@ -1,5 +1,5 @@
 import { getDb } from "../db.js";
-import { getTokenBalance } from "./getTokenBalance.js";
+// import { getTokenBalance } from "./getTokenBalance.js";
 
 export const saveToLeaderboard = async (data) => {
   const {
@@ -43,7 +43,7 @@ export const saveToLeaderboard = async (data) => {
           rank,
           lastUpdated,
         },
-      }
+      },
     );
 
     return;
