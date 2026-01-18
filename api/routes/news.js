@@ -10,7 +10,7 @@ export async function createNewsRouter() {
 
   const fetchGeneralNews = async () => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1/category?section=general&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1/category?section=general&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
     );
     const data = await response.json();
     return data.data || [];
@@ -18,7 +18,7 @@ export async function createNewsRouter() {
 
   const fetchAllTickerNews = async () => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1/category?section=alltickers&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1/category?section=alltickers&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
     );
     const data = await response.json();
     return data.data || [];
@@ -26,7 +26,7 @@ export async function createNewsRouter() {
 
   const fetchTickerNews = async (ticker) => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1?tickers=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1?tickers=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
     );
     const data = await response.json();
     return data.data || [];
@@ -34,7 +34,7 @@ export async function createNewsRouter() {
 
   const fetchTickerNewsAdvance = async (ticker) => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1?tickers-only=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
+      `https://cryptonews-api.com/api/v1?tickers-only=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
     );
     const data = await response.json();
     return data.data || [];
@@ -79,7 +79,7 @@ export async function createNewsRouter() {
         // Settle payment ONLY on success
         await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
+          req.x402Payment.paymentRequirements,
         );
 
         // Buyback and burn SYRA token (80% of revenue)
@@ -117,7 +117,7 @@ export async function createNewsRouter() {
           error: "Failed to fetch news",
         });
       }
-    }
+    },
   );
 
   router.post(
@@ -159,7 +159,7 @@ export async function createNewsRouter() {
         // Settle payment ONLY on success
         const paymentResult = await getX402Handler().settlePayment(
           req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
+          req.x402Payment.paymentRequirements,
         );
         console.log("Payment result:", paymentResult);
 
@@ -199,7 +199,7 @@ export async function createNewsRouter() {
           error: "Failed to fetch news",
         });
       }
-    }
+    },
   );
 
   return router;
