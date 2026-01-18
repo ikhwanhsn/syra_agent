@@ -21,7 +21,7 @@ export const DashboardPreview = () => {
     queryKey: ["cryptoPrice"],
     queryFn: () =>
       fetch(`https://api.binance.com/api/v3/ticker/price`).then((res) =>
-        res.json()
+        res.json(),
       ),
     refetchInterval: 1000,
   });
@@ -33,7 +33,7 @@ export const DashboardPreview = () => {
     queryKey: ["cryptoChange"],
     queryFn: () =>
       fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`
+        `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`,
       ).then((res) => res.json()),
   });
 
@@ -74,8 +74,10 @@ export const DashboardPreview = () => {
             <div className="text-xl font-bold text-foreground">{`$${
               Number(
                 dataCryptoPrice?.find((item) => item.symbol === "BTCUSDT")
-                  ?.price
-              ).toFixed(2) || Number(dataCryptoChange?.bitcoin?.usd).toFixed(2)
+                  ?.price,
+              ).toFixed(2) ||
+              Number(dataCryptoChange?.bitcoin?.usd).toFixed(2) ||
+              0
             }`}</div>
             <div
               className={`text-xs ${
@@ -83,11 +85,9 @@ export const DashboardPreview = () => {
                   ? "text-green-400"
                   : "text-red-400"
               }`}
-            >{`${
-              dataCryptoChange?.bitcoin?.usd_24h_change >= 0 ? "+" : ""
-            }${Number(dataCryptoChange?.bitcoin?.usd_24h_change).toFixed(
-              2
-            )}%`}</div>
+            >{`${dataCryptoChange?.bitcoin?.usd_24h_change >= 0 ? "+" : ""}${
+              Number(dataCryptoChange?.bitcoin?.usd_24h_change).toFixed(2) || 0
+            }%`}</div>
           </motion.div>
 
           <motion.div
@@ -107,8 +107,10 @@ export const DashboardPreview = () => {
             <div className="text-xl font-bold text-foreground">{`$${
               Number(
                 dataCryptoPrice?.find((item) => item.symbol === "ETHUSDT")
-                  ?.price
-              ).toFixed(2) || Number(dataCryptoChange?.ethereum?.usd).toFixed(2)
+                  ?.price,
+              ).toFixed(2) ||
+              Number(dataCryptoChange?.ethereum?.usd).toFixed(2) ||
+              0
             }`}</div>
             <div
               className={`text-xs ${
@@ -116,11 +118,9 @@ export const DashboardPreview = () => {
                   ? "text-green-400"
                   : "text-red-400"
               }`}
-            >{`${
-              dataCryptoChange?.ethereum?.usd_24h_change >= 0 ? "+" : ""
-            }${Number(dataCryptoChange?.ethereum?.usd_24h_change).toFixed(
-              2
-            )}%`}</div>
+            >{`${dataCryptoChange?.ethereum?.usd_24h_change >= 0 ? "+" : ""}${
+              Number(dataCryptoChange?.ethereum?.usd_24h_change).toFixed(2) || 0
+            }%`}</div>
           </motion.div>
         </div>
 
