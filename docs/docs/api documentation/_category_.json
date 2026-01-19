@@ -1,0 +1,8 @@
+{
+  "label": "API Documentation",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Syra API documentation"
+  }
+}
