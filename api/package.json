@@ -25,8 +25,9 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "mongodb": "^7.0.0",
+    "p-limit": "^7.2.0",
     "x402-express": "^0.7.3",
     "x402-solana": "^0.1.4"
   },

@@ -45,6 +45,8 @@ import { createMemecoinsUnusualWhaleBehaviorRouter } from "./routes/memecoin/mem
 import { createMemecoinsTrendingOnXNotDEXRouter } from "./routes/memecoin/memecoinsTrendingOnXNotDEX.js";
 import { createMemecoinsOrganicTractionRouter } from "./routes/memecoin/aiMemecoinsOrganicTraction.js";
 import { createMemecoinsSurvivingMarketDumpsRouter } from "./routes/memecoin/memecoinsSurvivingMarketDumps.js";
+import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
+import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
 
 dotenv.config();
 
@@ -271,6 +273,8 @@ app.get("/", (req, res) => {
 
 app.use("/info", await createInfoRouter());
 app.use("/weather", await createWeatherRouter());
+app.use("/binance/ohlc", await createBinanceOHLCRouter());
+app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
 // app.use("/test", await createTestRouter());
 app.use("/signal", await createSignalRouter());
