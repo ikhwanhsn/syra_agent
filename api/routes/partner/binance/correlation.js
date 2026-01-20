@@ -1,5 +1,8 @@
 import express from "express";
 import fs from "fs";
+import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
+import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
 // ---------- HELPERS ----------
 
@@ -101,46 +104,268 @@ function computeCorrelationFromOHLC(ohlcPayload) {
 
 export async function createBinanceCorrelationRouter() {
   const router = express.Router();
+  const PRICE_USD = 0.15;
   const BASE_URL = process.env.BASE_URL;
   const ticker =
     "BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,DOGEUSDT,DOTUSDT,LINKUSDT,MATICUSDT,OPUSDT,ARBUSDT,NEARUSDT,ATOMUSDT,FTMUSDT,INJUSDT,SUIUSDT,SEIUSDT,APTUSDT,RNDRUSDT,FETUSDT,UNIUSDT,AAVEUSDT,LDOUSDT,PENDLEUSDT,MKRUSDT,SNXUSDT,LTCUSDT,BCHUSDT,ETCUSDT,TRXUSDT,XLMUSDT,SHIBUSDT,PEPEUSDT,TIAUSDT,ORDIUSDT,STXUSDT,FILUSDT,ICPUSDT,HBARUSDT,VETUSDT,GRTUSDT,THETAUSDT,EGLDUSDT,ALGOUSDT,FLOWUSDT,SANDUSDT,MANAUSDT,AXSUSDT";
-  router.get("/correlation-matrix", async (req, res) => {
-    const ohlc = await fetch(
-      `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
-    );
-    const ohlcJson = await ohlc.json();
-    const data = await computeCorrelationFromOHLC(ohlcJson);
-    res.json({
-      interval: ohlcJson.interval,
-      count: ohlcJson.count,
-      tokens: Object.keys(data),
-      data,
-    });
-  });
+  router.get(
+    "/correlation-matrix",
+    requirePayment({
+      price: PRICE_USD,
+      description: "Correlation matrix for all tokens",
+      method: "GET",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/correlation-matrix",
+    }),
+    async (req, res) => {
+      const ohlc = await fetch(
+        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
+      );
+      const ohlcJson = await ohlc.json();
+      const data = await computeCorrelationFromOHLC(ohlcJson);
 
-  router.get("/correlation/:symbol", async (req, res) => {
-    const { symbol } = req.params;
-    const limit = parseInt(req.query.limit || "10");
-    const ohlc = await fetch(
-      `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
-    );
-    const ohlcJson = await ohlc.json();
+      if (!data) {
+        return res.status(404).json({ error: "Correlation matrix not found" });
+      }
 
-    const matrix = computeCorrelationFromOHLC(ohlcJson);
+      // Settle payment ONLY on success
+      const paymentResult = await getX402Handler().settlePayment(
+        req.x402Payment.paymentHeader,
+        req.x402Payment.paymentRequirements,
+      );
 
-    if (!matrix[symbol]) {
-      return res.status(404).json({ error: "Symbol not found" });
-    }
+      // Buyback and burn SYRA token (80% of revenue)
+      let burnResult = null;
+      try {
+        // Use the price directly from requirePayment config (0.15 USD)
+        const priceUSD = PRICE_USD;
 
-    const ranked = Object.entries(matrix[symbol])
-      .filter(([s]) => s !== symbol)
-      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-      .slice(0, limit);
+        console.log(`Payment price: ${priceUSD} USD`);
 
-    res.json({
-      symbol,
-      top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
-    });
-  });
+        burnResult = await buybackAndBurnSYRA(priceUSD);
+        console.log("Buyback and burn completed:", burnResult);
+      } catch (burnError) {
+        console.error("Buyback and burn failed:", burnError);
+        // Continue even if burn fails - payment was successful
+      }
+
+      // Save to leaderboard
+      await saveToLeaderboard({
+        wallet: paymentResult.payer,
+        volume: PRICE_USD,
+      });
+
+      res.json({
+        interval: ohlcJson.interval,
+        count: ohlcJson.count,
+        tokens: Object.keys(data),
+        data,
+      });
+    },
+  );
+
+  router.post(
+    "/correlation-matrix",
+    requirePayment({
+      price: PRICE_USD,
+      description: "Correlation matrix for all tokens",
+      method: "POST",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/correlation-matrix",
+    }),
+    async (req, res) => {
+      const ohlc = await fetch(
+        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
+      );
+      const ohlcJson = await ohlc.json();
+      const data = await computeCorrelationFromOHLC(ohlcJson);
+      if (!data) {
+        return res.status(404).json({ error: "Correlation matrix not found" });
+      }
+      // Settle payment ONLY on success
+      const paymentResult = await getX402Handler().settlePayment(
+        req.x402Payment.paymentHeader,
+        req.x402Payment.paymentRequirements,
+      );
+
+      // Buyback and burn SYRA token (80% of revenue)
+      let burnResult = null;
+      try {
+        // Use the price directly from requirePayment config (0.15 USD)
+        const priceUSD = PRICE_USD;
+
+        console.log(`Payment price: ${priceUSD} USD`);
+
+        burnResult = await buybackAndBurnSYRA(priceUSD);
+        console.log("Buyback and burn completed:", burnResult);
+      } catch (burnError) {
+        console.error("Buyback and burn failed:", burnError);
+        // Continue even if burn fails - payment was successful
+      }
+
+      // Save to leaderboard
+      await saveToLeaderboard({
+        wallet: paymentResult.payer,
+        volume: PRICE_USD,
+      });
+      res.json({
+        interval: ohlcJson.interval,
+        count: ohlcJson.count,
+        tokens: Object.keys(data),
+        data,
+      });
+    },
+  );
+
+  router.get(
+    "/correlation",
+    requirePayment({
+      price: PRICE_USD,
+      description: "Correlation matrix for a symbol",
+      method: "GET",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/correlation",
+      inputSchema: {
+        queryParams: {
+          symbol: {
+            type: "string",
+            required: false,
+            description: "Symbol name for the correlation",
+          },
+        },
+      },
+    }),
+    async (req, res) => {
+      const symbol = req.query.symbol || "BTCUSDT";
+      const limit = parseInt(req.query.limit || "10");
+      const ohlc = await fetch(
+        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
+      );
+      const ohlcJson = await ohlc.json();
+
+      const matrix = computeCorrelationFromOHLC(ohlcJson);
+
+      if (!matrix[symbol]) {
+        return res.status(404).json({ error: "Symbol not found" });
+      }
+
+      const ranked = Object.entries(matrix[symbol])
+        .filter(([s]) => s !== symbol)
+        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+        .slice(0, limit);
+
+      if (ranked.length === 0) {
+        return res.status(404).json({ error: "No correlation found" });
+      }
+
+      // Settle payment ONLY on success
+      const paymentResult = await getX402Handler().settlePayment(
+        req.x402Payment.paymentHeader,
+        req.x402Payment.paymentRequirements,
+      );
+
+      // Buyback and burn SYRA token (80% of revenue)
+      let burnResult = null;
+      try {
+        // Use the price directly from requirePayment config (0.15 USD)
+        const priceUSD = PRICE_USD;
+
+        console.log(`Payment price: ${priceUSD} USD`);
+
+        burnResult = await buybackAndBurnSYRA(priceUSD);
+        console.log("Buyback and burn completed:", burnResult);
+      } catch (burnError) {
+        console.error("Buyback and burn failed:", burnError);
+        // Continue even if burn fails - payment was successful
+      }
+
+      // Save to leaderboard
+      await saveToLeaderboard({
+        wallet: paymentResult.payer,
+        volume: PRICE_USD,
+      });
+
+      res.json({
+        symbol,
+        top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
+      });
+    },
+  );
+
+  router.post(
+    "/correlation",
+    requirePayment({
+      price: PRICE_USD,
+      description: "Correlation matrix for a symbol",
+      method: "POST",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/correlation",
+      inputSchema: {
+        bodyType: "json",
+        bodyFields: {
+          symbol: {
+            type: "string",
+            required: false,
+            description: "Symbol name for the correlation",
+          },
+        },
+      },
+    }),
+    async (req, res) => {
+      const symbol = req.body.symbol || "BTCUSDT";
+      const limit = parseInt(req.query.limit || "10");
+      const ohlc = await fetch(
+        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
+      );
+      const ohlcJson = await ohlc.json();
+
+      const matrix = computeCorrelationFromOHLC(ohlcJson);
+
+      if (!matrix[symbol]) {
+        return res.status(404).json({ error: "Symbol not found" });
+      }
+
+      const ranked = Object.entries(matrix[symbol])
+        .filter(([s]) => s !== symbol)
+        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+        .slice(0, limit);
+
+      if (ranked.length === 0) {
+        return res.status(404).json({ error: "No correlation found" });
+      }
+
+      // Settle payment ONLY on success
+      const paymentResult = await getX402Handler().settlePayment(
+        req.x402Payment.paymentHeader,
+        req.x402Payment.paymentRequirements,
+      );
+
+      // Buyback and burn SYRA token (80% of revenue)
+      let burnResult = null;
+      try {
+        // Use the price directly from requirePayment config (0.15 USD)
+        const priceUSD = PRICE_USD;
+
+        console.log(`Payment price: ${priceUSD} USD`);
+
+        burnResult = await buybackAndBurnSYRA(priceUSD);
+        console.log("Buyback and burn completed:", burnResult);
+      } catch (burnError) {
+        console.error("Buyback and burn failed:", burnError);
+        // Continue even if burn fails - payment was successful
+      }
+
+      // Save to leaderboard
+      await saveToLeaderboard({
+        wallet: paymentResult.payer,
+        volume: PRICE_USD,
+      });
+
+      res.json({
+        symbol,
+        top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
+      });
+    },
+  );
   return router;
 }
