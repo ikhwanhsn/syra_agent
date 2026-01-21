@@ -55,14 +55,21 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:8080",
+//       "https://api.syraa.fun",
+//       "https://syraa.fun",
+//       "https://www.syraa.fun",
+//     ],
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//   }),
+// );
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:8080",
-      "https://api.syraa.fun",
-      "https://syraa.fun",
-      "https://www.syraa.fun",
-    ],
+    origin: "*", // Allows any website to access your API
     methods: ["GET", "POST", "PUT", "DELETE"],
   }),
 );
