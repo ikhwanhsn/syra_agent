@@ -382,7 +382,7 @@ app.get("/.well-known/x402", (req, res) => {
     ownershipProofs: [
       // Generated using your private key
       // "SljGbtrXsBTy1j4md8afmL8CMiBFpaXf2WhQkxhPfud3G/iO/Pw0RKp3kbyneWi+7bsr0Jh/poT8nb0etqHCCA==",
-      "0x4a58c66edad7b014f2d63e2677c69f98bf02322045a5a5dfd9685093184f7ee7771bf88efcfc3444aa7791bca77968beedbb2bd0987fa684fc9dbd1eb6a1c208",
+      "0xe0985219dc79d1dbde08309b92c11152b542b758e3ea0459b1af238a49d644ce8782d5c1591fe55946b8f5ad4ec2bdd3f986339d4cf60369f156cea765aa5f03",
     ],
     instructions:
       "# API Documentation\n\nVisit https://docs.syraa.fun for full documentation.\n\n## Rate Limits\n- 1000 requests/hour",
