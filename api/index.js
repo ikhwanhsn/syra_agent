@@ -351,6 +351,43 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
   res.json({ x402: "8ab3d1b3906d" });
 });
 
+// Serve discovery document at /.well-known/x402
+app.get("/.well-known/x402", (req, res) => {
+  res.json({
+    version: 1,
+    resources: [
+      "https://api.syraa.fun/binance/correlation-matrix",
+      "https://api.syraa.fun/binance/correlation",
+      "https://api.syraa.fun/news",
+      "https://api.syraa.fun/signal",
+      "https://api.syraa.fun/x-search",
+      "https://api.syraa.fun/x-kol",
+      "https://api.syraa.fun/browse",
+      "https://api.syraa.fun/research",
+      "https://api.syraa.fun/gems",
+      "https://api.syraa.fun/crypto-kol",
+      "https://api.syraa.fun/smart-money",
+      "https://api.syraa.fun/dexscreener",
+      "https://api.syraa.fun/token-god-mode",
+      "https://api.syraa.fun/solana-agent",
+      "https://api.syraa.fun/pump",
+      "https://api.syraa.fun/trending-jupiter",
+      "https://api.syraa.fun/token-report",
+      "https://api.syraa.fun/token-statistic",
+      "https://api.syraa.fun/sentiment",
+      "https://api.syraa.fun/event",
+      "https://api.syraa.fun/trending-headline",
+      "https://api.syraa.fun/sundown-digest",
+    ],
+    // ownershipProofs: [
+    //   // Generated using your private key
+    //   "0x8f6d4e3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e1b",
+    // ],
+    // instructions:
+    //   "# API Documentation\n\nVisit https://docs.example.com for full documentation.\n\n## Rate Limits\n- 1000 requests/hour\n\n## Support\nEmail: support@example.com",
+  });
+});
+
 // Free endpoint
 app.get("/api/free", (req, res) => {
   res.json({ data: "free content" });
