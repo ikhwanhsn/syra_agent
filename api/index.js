@@ -379,12 +379,13 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/trending-headline",
       "https://api.syraa.fun/sundown-digest",
     ],
-    // ownershipProofs: [
-    //   // Generated using your private key
-    //   "0x8f6d4e3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e1b",
-    // ],
-    // instructions:
-    //   "# API Documentation\n\nVisit https://docs.example.com for full documentation.\n\n## Rate Limits\n- 1000 requests/hour\n\n## Support\nEmail: support@example.com",
+    ownershipProofs: [
+      // Generated using your private key
+      // "SljGbtrXsBTy1j4md8afmL8CMiBFpaXf2WhQkxhPfud3G/iO/Pw0RKp3kbyneWi+7bsr0Jh/poT8nb0etqHCCA==",
+      "0x4a58c66edad7b014f2d63e2677c69f98bf02322045a5a5dfd9685093184f7ee7771bf88efcfc3444aa7791bca77968beedbb2bd0987fa684fc9dbd1eb6a1c208",
+    ],
+    instructions:
+      "# API Documentation\n\nVisit https://docs.syraa.fun for full documentation.\n\n## Rate Limits\n- 1000 requests/hour",
   });
 });
 
