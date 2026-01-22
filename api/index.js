@@ -370,7 +370,6 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/dexscreener",
       "https://api.syraa.fun/token-god-mode",
       "https://api.syraa.fun/solana-agent",
-      "https://api.syraa.fun/pump",
       "https://api.syraa.fun/trending-jupiter",
       "https://api.syraa.fun/token-report",
       "https://api.syraa.fun/token-statistic",
