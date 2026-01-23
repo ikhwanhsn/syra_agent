@@ -104,7 +104,7 @@ app.get("/favicon.ico", (req, res) => {
 app.use(
   rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 100, // max 50 requests in 1 minute
+    max: 1000, // max 50 requests in 1 minute
   }),
 );
 
