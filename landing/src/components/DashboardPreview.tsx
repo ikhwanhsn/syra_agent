@@ -9,10 +9,12 @@ import {
   ThermometerSnowflakeIcon,
   Gem,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const mockChartData = [40, 55, 35, 70, 45, 80, 65, 90, 75, 95, 85, 100];
 
 export const DashboardPreview = () => {
+  const [counter, setCounter] = useState(0);
   const {
     isPending: isPendingCryptoPrice,
     error: errorCryptoPrice,
@@ -36,17 +38,17 @@ export const DashboardPreview = () => {
         `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`,
       ).then((res) => res.json()),
   });
-  // const {
-  //   isPending: isPendingNews,
-  //   error: errorNews,
-  //   data: dataNews,
-  // } = useQuery({
-  //   queryKey: ["news"],
-  //   queryFn: () =>
-  //     fetch(
-  //       `https://api.syraa.fun/api/v1/regular-news?items=3&page=1&token=${process.env.SYRA_API_KEY}`,
-  //     ).then((res) => res.json()),
-  // });
+  const {
+    isPending: isPendingNews,
+    error: errorNews,
+    data: dataNews,
+  } = useQuery({
+    queryKey: ["news"],
+    queryFn: () =>
+      fetch(
+        `${import.meta.env.VITE_SYRA_API_URL}v1/regular/news?apiKey=${import.meta.env.VITE_SYRA_API_KEY}`,
+      ).then((res) => res.json()),
+  });
   const getSafePrice = (binanceSymbol, coingeckoPrice) => {
     const binancePrice = dataCryptoPrice?.find(
       (item) => item.symbol === binanceSymbol,
@@ -59,6 +61,14 @@ export const DashboardPreview = () => {
     const num = Number(change);
     return isNaN(num) ? "---" : `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
   };
+
+  useEffect(() => {
+    // counter + 1 every 3 second
+    const interval = setInterval(() => {
+      setCounter((prev) => prev + 1);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="relative w-full">
@@ -168,7 +178,7 @@ export const DashboardPreview = () => {
           {[
             {
               icon: Zap,
-              text: "Whale Alert: 500 BTC moved",
+              text: dataNews.news[counter].title,
               color: "text-neon-gold",
             },
             {
