@@ -6,7 +6,7 @@ export async function createRegularNewsRouter() {
 
   const fetchGeneralNews = async () => {
     const response = await fetch(
-      `https://cryptonews-api.com/api/v1/category?section=general&items=25&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
+      `https://cryptonews-api.com/api/v1/category?section=general&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
     );
     const data = await response.json();
     return data.data || [];

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   TrendingUp,
   TrendingDown,
@@ -9,12 +9,19 @@ import {
   ThermometerSnowflakeIcon,
   Gem,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { useEffect, useState } from "react";
-
-const mockChartData = [40, 55, 35, 70, 45, 80, 65, 90, 75, 95, 85, 100];
 
 export const DashboardPreview = () => {
   const [counter, setCounter] = useState(0);
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const {
     isPending: isPendingCryptoPrice,
     error: errorCryptoPrice,
@@ -27,6 +34,7 @@ export const DashboardPreview = () => {
       ),
     refetchInterval: 1000,
   });
+
   const {
     isPending: isPendingCryptoChange,
     error: errorCryptoChange,
@@ -38,6 +46,7 @@ export const DashboardPreview = () => {
         `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`,
       ).then((res) => res.json()),
   });
+
   const {
     isPending: isPendingNews,
     error: errorNews,
@@ -45,10 +54,98 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["news"],
     queryFn: () =>
-      fetch(
-        `${import.meta.env.VITE_SYRA_API_URL}v1/regular/news?apiKey=${import.meta.env.VITE_SYRA_API_KEY}`,
-      ).then((res) => res.json()),
+      fetch(`${import.meta.env.VITE_SYRA_API_URL}v1/regular/news`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          // Replace 'x-api-key' with the specific header name your API expects
+          "api-key": import.meta.env.VITE_SYRA_API_KEY,
+        },
+      }).then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      }),
   });
+
+  const {
+    isPending: isPendingSentiment,
+    error: errorSentiment,
+    data: dataSentiment,
+  } = useQuery({
+    queryKey: ["sentiment"],
+    queryFn: () =>
+      fetch(`${import.meta.env.VITE_SYRA_API_URL}v1/regular/sentiment`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          // Replace 'x-api-key' with the specific header name your API expects
+          "api-key": import.meta.env.VITE_SYRA_API_KEY,
+        },
+      }).then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      }),
+  });
+  const sentimentArray = Object.values(
+    dataSentiment?.sentiment?.data || {},
+  ).map((item: any) => item.sentiment_score);
+  const chartData = sentimentArray.map((value, i) => ({
+    index: i,
+    score: value * 100,
+    positive:
+      dataSentiment?.sentiment?.data?.[
+        Object.keys(dataSentiment.sentiment.data)[i]
+      ]?.Positive || 0,
+    negative:
+      dataSentiment?.sentiment?.data?.[
+        Object.keys(dataSentiment.sentiment.data)[i]
+      ]?.Negative || 0,
+    neutral:
+      dataSentiment?.sentiment?.data?.[
+        Object.keys(dataSentiment.sentiment.data)[i]
+      ]?.Neutral || 0,
+  }));
+
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="px-3 py-2 text-xs text-white border rounded-lg shadow-2xl bg-black/95 border-white/20">
+          <div className="mb-1 font-semibold">
+            Score: {payload[0].value.toFixed(1)}%
+          </div>
+          <div>Positive: {payload[0].payload.positive}</div>
+          <div>Negative: {payload[0].payload.negative}</div>
+          <div>Neutral: {payload[0].payload.neutral}</div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const {
+    isPending: isPendingSignals,
+    error: errorSignals,
+    data: dataSignals,
+  } = useQuery({
+    queryKey: ["signals"],
+    queryFn: () =>
+      fetch(
+        `${import.meta.env.VITE_SYRA_API_URL}v1/regular/signal?token=bitcoin`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            // Replace 'x-api-key' with the specific header name your API expects
+            "api-key": import.meta.env.VITE_SYRA_API_KEY,
+          },
+        },
+      ).then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      }),
+  });
+
   const getSafePrice = (binanceSymbol, coingeckoPrice) => {
     const binancePrice = dataCryptoPrice?.find(
       (item) => item.symbol === binanceSymbol,
@@ -63,10 +160,16 @@ export const DashboardPreview = () => {
   };
 
   useEffect(() => {
-    // counter + 1 every 3 second
     const interval = setInterval(() => {
-      setCounter((prev) => prev + 1);
-    }, 5000);
+      setCounter((prev) => {
+        // If the next value would be 101, reset to 0
+        if (prev >= 99) {
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 5000); // Updated to 3 seconds as per your comment
+
     return () => clearInterval(interval);
   }, []);
 
@@ -155,22 +258,77 @@ export const DashboardPreview = () => {
             <span className="text-xs text-primary">Live</span>
           </div>
 
-          {/* Simplified chart visualization */}
-          <div className="flex items-end justify-between h-32 gap-1">
-            {mockChartData.map((value, i) => (
-              <motion.div
-                key={i}
-                initial={{ height: 0 }}
-                animate={{ height: `${value}%` }}
-                transition={{ delay: 0.8 + i * 0.05, duration: 0.5 }}
-                className="flex-1 rounded-t-sm"
-                style={{
-                  background: `linear-gradient(to top, hsl(190, 100%, 50%), hsl(220, 100%, 60%))`,
-                  opacity: 0.5 + value / 200,
-                }}
-              />
-            ))}
+          {/* Total Sentiment Stats - Add this section */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="p-2 border rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+              <div className="text-[10px] text-green-400/70 mb-0.5">
+                Positive
+              </div>
+              <div className="text-sm font-bold text-green-400">
+                {dataSentiment?.sentiment?.total?.[
+                  "Total Positive"
+                ]?.toLocaleString() || "---"}
+              </div>
+            </div>
+            <div className="p-2 border rounded-lg bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+              <div className="text-[10px] text-red-400/70 mb-0.5">Negative</div>
+              <div className="text-sm font-bold text-red-400">
+                {dataSentiment?.sentiment?.total?.[
+                  "Total Negative"
+                ]?.toLocaleString() || "---"}
+              </div>
+            </div>
+            <div className="p-2 border rounded-lg bg-gradient-to-br from-gray-500/10 to-gray-500/5 border-gray-500/20">
+              <div className="text-[10px] text-gray-400/70 mb-0.5">Neutral</div>
+              <div className="text-sm font-bold text-gray-400">
+                {dataSentiment?.sentiment?.total?.[
+                  "Total Neutral"
+                ]?.toLocaleString() || "---"}
+              </div>
+            </div>
+            <div className="p-2 border rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+              <div className="text-[10px] text-blue-400/70 mb-0.5">Score</div>
+              <div className="text-sm font-bold text-blue-400">
+                {dataSentiment?.sentiment?.total?.["Sentiment Score"]
+                  ? `${(dataSentiment.sentiment.total["Sentiment Score"] * 100).toFixed(1)}%`
+                  : "---"}
+              </div>
+            </div>
           </div>
+
+          {/* Chart */}
+          <ResponsiveContainer width="100%" height={128}>
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="hsl(220, 100%, 60%)"
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="hsl(190, 100%, 50%)"
+                    stopOpacity={0.3}
+                  />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="index" hide />
+              <YAxis hide domain={[0, 100]} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="score"
+                stroke="hsl(200, 100%, 55%)"
+                strokeWidth={2}
+                fill="url(#colorScore)"
+                animationDuration={1000}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </motion.div>
 
         {/* Activity Feed */}
@@ -178,18 +336,32 @@ export const DashboardPreview = () => {
           {[
             {
               icon: Zap,
-              text: dataNews.news[counter].title,
+              text: dataNews?.news[counter]?.title,
               color: "text-neon-gold",
+              isNews: true,
             },
             {
               icon: Activity,
-              text: "AI Signal: Strong Buy detected",
+              text: (() => {
+                const token = dataSignals?.token
+                  ? dataSignals.token.charAt(0).toUpperCase() +
+                    dataSignals.token.slice(1)
+                  : "Crypto";
+                const signal = dataSignals?.signal?.metadata?.TRADING_SIGNAL;
+                const strength = dataSignals?.signal?.metadata?.SIGNAL_STRENGTH;
+
+                return dataSignals?.signal?.metadata
+                  ? `AI Signal: ${token} ${signal} with ${strength} confidence`
+                  : "No signal available";
+              })(),
               color: "text-green-400",
+              isNews: false,
             },
             {
               icon: Gem,
               text: "$SYRA:",
               color: "text-blue-400",
+              isNews: false,
             },
           ].map((item, i) => (
             <motion.div
@@ -200,7 +372,27 @@ export const DashboardPreview = () => {
               className="flex items-center gap-3 p-3 rounded-lg glass-card"
             >
               <item.icon className={`w-4 h-4 ${item.color}`} />
-              <span className="text-xs text-muted-foreground">{item.text}</span>
+
+              {/* Animated text for news only */}
+              {item.isNews ? (
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={counter}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {item.text || "Loading news..."}
+                  </motion.span>
+                </AnimatePresence>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {item.text}
+                </span>
+              )}
+
               {item.text === "$SYRA:" && (
                 <a
                   href="https://dexscreener.com/solana/ha56u92pmwnh9ksqf7wwhi2xh9aqdedqsazo6m6jdbqf"
