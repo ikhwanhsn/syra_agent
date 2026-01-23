@@ -15,7 +15,7 @@ export async function createRegularSentimentRouter() {
   // Apply middleware to routes
   router.get("/", async (req, res) => {
     // check api key
-    const apiKey = req.headers["api-key"];
+    const apiKey = req.query.apiKey || "";
     if (!apiKey || apiKey !== process.env.SYRA_API_KEY) {
       return res.status(403).json({ error: "Forbidden" });
     }

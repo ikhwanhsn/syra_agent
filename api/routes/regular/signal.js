@@ -7,7 +7,7 @@ export async function createRegularSignalRouter() {
   router.get("/", async (req, res) => {
     try {
       // check api key
-      const apiKey = req.headers["api-key"];
+      const apiKey = req.query.apiKey || "";
       if (!apiKey || apiKey !== process.env.SYRA_API_KEY) {
         return res.status(403).json({ error: "Forbidden" });
       }

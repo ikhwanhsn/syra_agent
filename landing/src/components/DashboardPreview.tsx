@@ -36,6 +36,17 @@ export const DashboardPreview = () => {
         `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`,
       ).then((res) => res.json()),
   });
+  // const {
+  //   isPending: isPendingNews,
+  //   error: errorNews,
+  //   data: dataNews,
+  // } = useQuery({
+  //   queryKey: ["news"],
+  //   queryFn: () =>
+  //     fetch(
+  //       `https://api.syraa.fun/api/v1/regular-news?items=3&page=1&token=${process.env.SYRA_API_KEY}`,
+  //     ).then((res) => res.json()),
+  // });
   const getSafePrice = (binanceSymbol, coingeckoPrice) => {
     const binancePrice = dataCryptoPrice?.find(
       (item) => item.symbol === binanceSymbol,
