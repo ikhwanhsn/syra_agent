@@ -8,7 +8,10 @@ import { LINK_AGENT, LINK_DEMO } from "../../config/global";
 
 export const HeroSection = () => {
   return (
-    <section className="relative flex items-center justify-center min-h-screen pt-24 pb-16 overflow-hidden">
+    <section
+      id="home"
+      className="relative flex items-center justify-center min-h-screen pt-24 pb-16 overflow-hidden"
+    >
       {/* Background Elements */}
       <div className="absolute inset-0 opacity-50 grid-pattern" />
       <ParticleField />

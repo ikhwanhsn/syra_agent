@@ -180,7 +180,7 @@ const utilities = [
     title: "Buyback & Burn",
     description:
       "A portion of all x402 transaction fees are used to buy back and burn $SYRA, creating deflationary pressure.",
-    highlight: "80% of all fees + 50% revenue",
+    highlight: "Fees + revenue",
   },
   {
     icon: Vote,

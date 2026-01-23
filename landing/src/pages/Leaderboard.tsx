@@ -30,7 +30,7 @@ export default function Leaderboard() {
       setLoading(true);
       try {
         const response = await fetch(
-          `https://api.syraa.fun/leaderboard?period=${timeFilter}`
+          `https://api.syraa.fun/leaderboard?period=${timeFilter}`,
         );
         const result = await response.json();
         console.log("result", result);
@@ -67,7 +67,7 @@ export default function Leaderboard() {
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     let filtered = data.filter((item) =>
-      item.wallet.toLowerCase().includes(searchTerm.toLowerCase())
+      item?.wallet?.toLowerCase()?.includes(searchTerm?.toLowerCase()),
     );
 
     filtered.sort((a, b) => {
@@ -88,7 +88,7 @@ export default function Leaderboard() {
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const SortIcon = ({ columnKey }) => {
@@ -330,7 +330,7 @@ export default function Leaderboard() {
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(
                 currentPage * itemsPerPage,
-                filteredAndSortedData.length
+                filteredAndSortedData.length,
               )}{" "}
               of {filteredAndSortedData.length} entries
             </div>

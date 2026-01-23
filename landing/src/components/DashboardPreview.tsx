@@ -36,6 +36,18 @@ export const DashboardPreview = () => {
         `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`,
       ).then((res) => res.json()),
   });
+  const getSafePrice = (binanceSymbol, coingeckoPrice) => {
+    const binancePrice = dataCryptoPrice?.find(
+      (item) => item.symbol === binanceSymbol,
+    )?.price;
+    const price = binancePrice || coingeckoPrice;
+    return price ? Number(price).toFixed(2) : "---";
+  };
+  const getSafeChange = (change) => {
+    if (!change && change !== 0) return "---";
+    const num = Number(change);
+    return isNaN(num) ? "---" : `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
+  };
 
   return (
     <div className="relative w-full">
@@ -71,23 +83,16 @@ export const DashboardPreview = () => {
                 <TrendingDown className="w-4 h-4 text-red-400" />
               )}
             </div>
-            <div className="text-xl font-bold text-foreground">{`$${
-              Number(
-                dataCryptoPrice?.find((item) => item.symbol === "BTCUSDT")
-                  ?.price,
-              ).toFixed(2) ||
-              Number(dataCryptoChange?.bitcoin?.usd).toFixed(2) ||
-              0
-            }`}</div>
+            <div className="text-xl font-bold text-foreground">{`$${getSafePrice("BTCUSDT", dataCryptoChange?.bitcoin?.usd)}`}</div>
             <div
               className={`text-xs ${
                 dataCryptoChange?.bitcoin?.usd_24h_change >= 0
                   ? "text-green-400"
                   : "text-red-400"
               }`}
-            >{`${dataCryptoChange?.bitcoin?.usd_24h_change >= 0 ? "+" : ""}${
-              Number(dataCryptoChange?.bitcoin?.usd_24h_change).toFixed(2) || 0
-            }%`}</div>
+            >
+              {getSafeChange(dataCryptoChange?.bitcoin?.usd_24h_change)}
+            </div>
           </motion.div>
 
           <motion.div
@@ -104,23 +109,16 @@ export const DashboardPreview = () => {
                 <TrendingDown className="w-4 h-4 text-red-400" />
               )}
             </div>
-            <div className="text-xl font-bold text-foreground">{`$${
-              Number(
-                dataCryptoPrice?.find((item) => item.symbol === "ETHUSDT")
-                  ?.price,
-              ).toFixed(2) ||
-              Number(dataCryptoChange?.ethereum?.usd).toFixed(2) ||
-              0
-            }`}</div>
+            <div className="text-xl font-bold text-foreground">{`$${getSafePrice("ETHUSDT", dataCryptoChange?.ethereum?.usd)}`}</div>
             <div
               className={`text-xs ${
                 dataCryptoChange?.ethereum?.usd_24h_change >= 0
                   ? "text-green-400"
                   : "text-red-400"
               }`}
-            >{`${dataCryptoChange?.ethereum?.usd_24h_change >= 0 ? "+" : ""}${
-              Number(dataCryptoChange?.ethereum?.usd_24h_change).toFixed(2) || 0
-            }%`}</div>
+            >
+              {getSafeChange(dataCryptoChange?.ethereum?.usd_24h_change)}
+            </div>
           </motion.div>
         </div>
 

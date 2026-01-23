@@ -24,7 +24,12 @@ export const Navbar = () => {
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <nav className="px-6 py-4 mt-4 pointer-events-auto glass-card">
           <div className="flex items-center justify-between">
-            <SyraLogo />
+            <a
+              href="#home"
+              className="relative z-10 text-2xl font-bold cursor-pointer text-foreground"
+            >
+              <SyraLogo />
+            </a>
 
             {/* Desktop Navigation */}
             <div className="items-center hidden gap-8 md:flex">
