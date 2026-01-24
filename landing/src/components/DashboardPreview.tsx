@@ -89,34 +89,58 @@ export const DashboardPreview = () => {
   const sentimentArray = Object.values(
     dataSentiment?.sentiment?.data || {},
   ).map((item: any) => item.sentiment_score);
-  const chartData = sentimentArray.map((value, i) => ({
-    index: i,
-    score: value * 100,
-    positive:
-      dataSentiment?.sentiment?.data?.[
-        Object.keys(dataSentiment.sentiment.data)[i]
-      ]?.Positive || 0,
-    negative:
-      dataSentiment?.sentiment?.data?.[
-        Object.keys(dataSentiment.sentiment.data)[i]
-      ]?.Negative || 0,
-    neutral:
-      dataSentiment?.sentiment?.data?.[
-        Object.keys(dataSentiment.sentiment.data)[i]
-      ]?.Neutral || 0,
-  }));
+  const chartData = sentimentArray
+    .map((value, i) => ({
+      index: i,
+      score: value * 100,
+      positive:
+        dataSentiment?.sentiment?.data?.[
+          Object.keys(dataSentiment.sentiment.data)[i]
+        ]?.Positive || 0,
+      negative:
+        dataSentiment?.sentiment?.data?.[
+          Object.keys(dataSentiment.sentiment.data)[i]
+        ]?.Negative || 0,
+      neutral:
+        dataSentiment?.sentiment?.data?.[
+          Object.keys(dataSentiment.sentiment.data)[i]
+        ]?.Neutral || 0,
+    }))
+    .reverse();
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const dataKey = Object.keys(dataSentiment?.sentiment?.data || {})[
+        payload[0].payload.index
+      ];
+      const date = dataKey
+        ? new Date(dataKey).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "";
+
       return (
         <div className="px-3 py-2 text-xs text-white border rounded-lg shadow-2xl bg-black/95 border-white/20">
+          {date && (
+            <div className="pb-1 mb-2 font-semibold text-blue-400 border-b border-white/10">
+              {date}
+            </div>
+          )}
           <div className="mb-1 font-semibold">
             Score: {payload[0].value.toFixed(1)}%
           </div>
-          <div>Positive: {payload[0].payload.positive}</div>
-          <div>Negative: {payload[0].payload.negative}</div>
-          <div>Neutral: {payload[0].payload.neutral}</div>
+          <div className="text-green-400">
+            Positive: {payload[0].payload.positive}
+          </div>
+          <div className="text-red-400">
+            Negative: {payload[0].payload.negative}
+          </div>
+          <div className="text-gray-400">
+            Neutral: {payload[0].payload.neutral}
+          </div>
         </div>
       );
     }
