@@ -11,34 +11,34 @@ const Admin = () => {
   return (
     <div className="min-h-screen pt-24 pb-12 px-4">
       <div className="container mx-auto max-w-4xl">
-        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground mb-8">Platform fee management & withdrawals</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 gradient-text">Admin Dashboard</h1>
+        <p className="text-muted-foreground mb-10 text-lg">Platform fee management & withdrawals</p>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="glass-card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <div className="glass-card p-6 hover-lift group">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-status-active/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-status-active/20 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(145_70%_50%/0.4)]">
                 <Wallet className="h-6 w-6 text-status-active" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Collected Fees</p>
-                <p className="text-3xl font-bold">{mockAdminData.totalFees.toLocaleString()} SOL</p>
+                <p className="text-sm text-muted-foreground mb-1">Total Collected Fees</p>
+                <p className="text-3xl font-bold gradient-text">{mockAdminData.totalFees.toLocaleString()} SOL</p>
               </div>
             </div>
           </div>
 
-          <div className="glass-card p-6">
+          <div className="glass-card p-6 hover-lift group">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-status-pending/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-status-pending/20 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(45_90%_55%/0.4)]">
                 <ArrowUpFromLine className="h-6 w-6 text-status-pending" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Available for Withdrawal</p>
-                <p className="text-3xl font-bold">{mockAdminData.pendingWithdrawals.toLocaleString()} SOL</p>
+                <p className="text-sm text-muted-foreground mb-1">Available for Withdrawal</p>
+                <p className="text-3xl font-bold gradient-text">{mockAdminData.pendingWithdrawals.toLocaleString()} SOL</p>
               </div>
             </div>
-            <Button variant="gradient" className="w-full" onClick={handleWithdraw}>
+            <Button variant="gradient" size="lg" className="w-full" onClick={handleWithdraw}>
               <ArrowDownToLine className="h-4 w-4 mr-2" />
               Withdraw Funds
             </Button>
@@ -46,9 +46,9 @@ const Admin = () => {
         </div>
 
         {/* Transactions Table */}
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 animate-fade-in-up">
           <div className="flex items-center gap-2 mb-6">
-            <FileText className="h-5 w-5 text-muted-foreground" />
+            <FileText className="h-5 w-5 text-primary" />
             <h2 className="text-xl font-semibold">Transaction History</h2>
           </div>
 

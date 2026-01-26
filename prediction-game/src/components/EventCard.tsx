@@ -41,14 +41,14 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
   const progressPercent = (event.participants / event.maxParticipants) * 100;
 
   return (
-    <div className="event-card">
+    <div className="event-card group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl">
+          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(270_70%_60%/0.3)]">
             {event.tokenIcon}
           </div>
           <div>
-            <h3 className="font-bold text-lg">{event.token}</h3>
+            <h3 className="font-bold text-lg transition-colors duration-300 group-hover:text-primary">{event.token}</h3>
             <p className="text-sm text-muted-foreground">Price Prediction</p>
           </div>
         </div>
@@ -107,9 +107,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
 
         {/* View Button */}
         {showViewButton && (
-          <Link to={`/event/${event.id}`}>
-            <Button variant="secondary" className="w-full mt-2">
-              <Eye className="h-4 w-4 mr-2" />
+          <Link to={`/event/${event.id}`} className="block mt-2">
+            <Button variant="secondary" className="w-full group/btn">
+              <Eye className="h-4 w-4 mr-2 transition-transform duration-300 group-hover/btn:scale-110" />
               View Event Detail
             </Button>
           </Link>

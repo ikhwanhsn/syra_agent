@@ -54,27 +54,27 @@ const CreateEvent = () => {
   return (
     <div className="min-h-screen pt-24 pb-12 px-4">
       <div className="container mx-auto max-w-2xl">
-        <h1 className="text-3xl font-bold mb-2">Create Event</h1>
-        <p className="text-muted-foreground mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 gradient-text">Create Event</h1>
+        <p className="text-muted-foreground mb-10 text-lg">
           Set up a new price prediction competition
         </p>
 
         <div className="space-y-6">
           {/* Token Selection */}
-          <div className="glass-card p-6">
-            <label className="block text-sm font-semibold mb-3">Select Token</label>
+          <div className="glass-card p-6 mb-6">
+            <label className="block text-sm font-semibold mb-4">Select Token</label>
             <div className="grid grid-cols-4 gap-3">
               {tokens.map((token) => (
                 <button
                   key={token.symbol}
                   onClick={() => setSelectedToken(token.symbol)}
-                  className={`p-4 rounded-lg border transition-all ${
+                  className={`p-4 rounded-lg border transition-all duration-300 group ${
                     selectedToken === token.symbol
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-secondary/50 hover:border-primary/40'
+                      ? 'border-primary bg-primary/10 shadow-[0_0_20px_hsl(270_70%_60%/0.3)] scale-105'
+                      : 'border-border bg-secondary/50 hover:border-primary/40 hover:bg-secondary/70 hover:scale-105'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{token.icon}</div>
+                  <div className="text-2xl mb-1 transition-transform duration-300 group-hover:scale-110">{token.icon}</div>
                   <div className="text-sm font-semibold">{token.symbol}</div>
                 </button>
               ))}
@@ -82,8 +82,8 @@ const CreateEvent = () => {
           </div>
 
           {/* Reward Pool */}
-          <div className="glass-card p-6">
-            <label className="block text-sm font-semibold mb-3">Total Reward Pool (SOL)</label>
+          <div className="glass-card p-6 mb-6">
+            <label className="block text-sm font-semibold mb-4">Total Reward Pool (SOL)</label>
             <input
               type="number"
               value={rewardPool}
@@ -93,15 +93,15 @@ const CreateEvent = () => {
               min="1"
               step="0.1"
             />
-            <p className="text-sm text-muted-foreground mt-2">
-              <Info className="inline h-4 w-4 mr-1" />
-              Required participants: {requiredParticipants} users
+            <p className="text-sm text-muted-foreground mt-3 flex items-center gap-1">
+              <Info className="h-4 w-4" />
+              Required participants: <span className="font-semibold text-primary">{requiredParticipants}</span> users
             </p>
           </div>
 
           {/* Fee Breakdown */}
-          <div className="glass-card p-6">
-            <h3 className="font-semibold mb-4">Fee Breakdown</h3>
+          <div className="glass-card p-6 mb-6">
+            <h3 className="font-semibold mb-5 text-lg">Fee Breakdown</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b border-border/50">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -208,7 +208,8 @@ const CreateEvent = () => {
           {/* Create Button */}
           <Button
             variant="hero"
-            className="w-full"
+            size="lg"
+            className="w-full mt-6"
             onClick={handleCreate}
             disabled={!canCreateMore || !selectedToken}
           >

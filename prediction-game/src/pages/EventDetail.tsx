@@ -62,18 +62,18 @@ const EventDetail = () => {
     <div className="min-h-screen pt-24 pb-12 px-4">
       <div className="container mx-auto max-w-3xl">
         {/* Header */}
-        <div className="glass-card p-8 mb-6">
+        <div className="glass-card p-8 mb-6 animate-fade-in-up">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-4xl">
+              <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-4xl transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_hsl(270_70%_60%/0.4)]">
                 {event.tokenIcon}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{event.token} Price Prediction</h1>
-                <p className="text-muted-foreground">Event #{event.id}</p>
+                <h1 className="text-2xl md:text-3xl font-bold gradient-text">{event.token} Price Prediction</h1>
+                <p className="text-muted-foreground mt-1">Event #{event.id}</p>
               </div>
             </div>
-            <div className={`px-4 py-2 rounded-full ${status.bg} ${status.color} text-sm font-semibold`}>
+            <div className={`px-4 py-2 rounded-full ${status.bg} ${status.color} text-sm font-semibold transition-all duration-300 hover:scale-105`}>
               {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
             </div>
           </div>
@@ -85,28 +85,28 @@ const EventDetail = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <div className="bg-secondary/50 rounded-lg p-4 transition-all duration-300 hover:bg-secondary/70 hover:scale-105 hover:shadow-[0_0_15px_hsl(190_90%_50%/0.2)]">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Trophy className="h-4 w-4" />
                 <span className="text-sm">Total Reward</span>
               </div>
               <p className="text-xl font-bold text-accent">{event.rewardPool} SOL</p>
             </div>
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <div className="bg-secondary/50 rounded-lg p-4 transition-all duration-300 hover:bg-secondary/70 hover:scale-105 hover:shadow-[0_0_15px_hsl(270_70%_60%/0.2)]">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Users className="h-4 w-4" />
                 <span className="text-sm">Participants</span>
               </div>
               <p className="text-xl font-bold">{event.participants}/{event.maxParticipants}</p>
             </div>
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <div className="bg-secondary/50 rounded-lg p-4 transition-all duration-300 hover:bg-secondary/70 hover:scale-105 hover:shadow-[0_0_15px_hsl(145_70%_50%/0.2)]">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <span className="text-sm">Creator Reward</span>
               </div>
               <p className="text-xl font-bold text-status-active">1.3 SOL</p>
             </div>
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <div className="bg-secondary/50 rounded-lg p-4 transition-all duration-300 hover:bg-secondary/70 hover:scale-105">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <span className="text-sm">Platform Fee</span>
               </div>
               <p className="text-xl font-bold text-muted-foreground">0.2 SOL</p>
@@ -132,16 +132,16 @@ const EventDetail = () => {
 
         {/* Countdown / Timer */}
         {event.status !== 'completed' && (
-          <div className="glass-card p-6 mb-6 text-center">
-            <p className="text-muted-foreground mb-4">Time Remaining</p>
+          <div className="glass-card p-6 mb-6 text-center animate-fade-in-up">
+            <p className="text-muted-foreground mb-4 text-lg font-medium">Time Remaining</p>
             <CountdownTimer targetDate={event.endDate} size="lg" />
           </div>
         )}
 
         {/* Action Section based on status */}
         {event.status === 'pending' && isConnected && !event.userPrediction && (
-          <div className="glass-card p-6 mb-6">
-            <h3 className="font-semibold mb-4">Submit Your Prediction</h3>
+          <div className="glass-card p-6 mb-6 animate-fade-in-up">
+            <h3 className="font-semibold mb-5 text-lg">Submit Your Prediction</h3>
             <div className="mb-4">
               <label className="block text-sm text-muted-foreground mb-2">
                 Your Price Prediction (USD)
@@ -160,7 +160,7 @@ const EventDetail = () => {
                 Entry fee: <span className="text-foreground font-semibold">0.1 SOL</span>
               </p>
             </div>
-            <Button variant="hero" className="w-full" onClick={handleJoin}>
+            <Button variant="hero" size="lg" className="w-full mt-4" onClick={handleJoin}>
               Join Event (Pay 0.1 SOL)
             </Button>
           </div>
@@ -185,9 +185,9 @@ const EventDetail = () => {
         {event.status === 'completed' && (
           <div className="space-y-6">
             {/* Final Price */}
-            <div className="glass-card p-6 text-center">
-              <p className="text-muted-foreground mb-2">Final Price</p>
-              <p className="text-4xl font-bold gradient-text">
+            <div className="glass-card p-6 text-center animate-fade-in-up">
+              <p className="text-muted-foreground mb-3 text-lg">Final Price</p>
+              <p className="text-4xl md:text-5xl font-bold gradient-text">
                 ${event.finalPrice?.toLocaleString()}
               </p>
             </div>

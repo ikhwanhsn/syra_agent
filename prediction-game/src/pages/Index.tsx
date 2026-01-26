@@ -27,13 +27,17 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             className="absolute rounded-full bottom-1/4 right-1/4 w-80 h-80 bg-accent/20 blur-3xl animate-pulse-glow"
             style={{ animationDelay: "1s" }}
           />
+          <div
+            className="absolute rounded-full top-1/2 left-1/2 w-72 h-72 bg-[hsl(210_100%_60%)]/15 blur-3xl animate-pulse-glow"
+            style={{ animationDelay: "0.5s" }}
+          />
         </div>
 
         <div className="container relative z-10 mx-auto">
           <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 border rounded-full bg-primary/10 border-primary/30 animate-fade-in">
-              <Sparkles className="w-4 h-4 text-primary" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 border rounded-full bg-primary/10 border-primary/30 animate-fade-in hover:border-primary/50 hover:bg-primary/15 transition-all duration-300 hover:scale-105">
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
               <span className="text-sm font-medium">Powered by Solana</span>
             </div>
 
@@ -159,16 +163,16 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             ].map((step, index) => (
               <div
                 key={step.title}
-                className="p-8 text-center glass-card animate-fade-in"
+                className="p-8 text-center glass-card animate-fade-in hover-lift group"
                 style={{ animationDelay: `${0.7 + index * 0.1}s` }}
               >
-                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-2xl gradient-border bg-secondary">
-                  <step.icon className="w-8 h-8 text-primary" />
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-2xl gradient-border bg-secondary transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_30px_hsl(270_70%_60%/0.4)]">
+                  <step.icon className="w-8 h-8 text-primary transition-transform duration-300 group-hover:scale-110" />
                 </div>
                 <div className="mb-2 text-sm font-semibold text-primary">
                   Step {index + 1}
                 </div>
-                <h3 className="mb-3 text-xl font-bold">{step.title}</h3>
+                <h3 className="mb-3 text-xl font-bold transition-colors duration-300 group-hover:text-primary">{step.title}</h3>
                 <p className="text-muted-foreground">{step.description}</p>
               </div>
             ))}
@@ -211,13 +215,13 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
       </section>
 
       {/* Footer */}
-      <footer className="px-4 py-8 border-t border-border/50">
+      <footer className="px-4 py-8 border-t border-border/50 mt-20">
         <div className="container flex flex-col items-center justify-between gap-4 mx-auto md:flex-row">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 transition-all duration-300 hover:scale-105">
             <img
               src="/images/logo-transparent-notext.png"
               alt="SyraPredict Logo"
-              className="rounded-lg w-9 h-9"
+              className="rounded-lg w-9 h-9 transition-transform duration-300 hover:rotate-6"
             />
             <span className="font-semibold">SyraPredict</span>
           </div>

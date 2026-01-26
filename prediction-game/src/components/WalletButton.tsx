@@ -13,10 +13,14 @@ const WalletButton: React.FC<WalletButtonProps> = ({ onOpenModal }) => {
     <Button
       variant="glass"
       onClick={onOpenModal}
-      className="gap-2"
+      className="gap-2 group"
     >
-      <Wallet className="h-4 w-4" />
-      {isConnected ? walletAddress : 'Connect Wallet'}
+      <Wallet className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+      <span className="font-medium">
+        {isConnected 
+          ? `${walletAddress?.slice(0, 4)}...${walletAddress?.slice(-4)}` 
+          : 'Connect Wallet'}
+      </span>
     </Button>
   );
 };
