@@ -1,5 +1,5 @@
-// API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// API Base URL - uses the main SYRA API with /prediction-game prefix
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.syraa.fun/prediction-game';
 
 // Staking tier configuration (mirrored from backend)
 export const STAKING_TIERS = {

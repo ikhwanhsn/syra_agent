@@ -1,5 +1,5 @@
-// API Base URL - change this for production
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// API Base URL - uses the main SYRA API with /prediction-game prefix
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.syraa.fun/prediction-game';
 
 // Types
 export interface Participant {

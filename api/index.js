@@ -51,6 +51,8 @@ import { createBinanceCorrelationRouter } from "./routes/partner/binance/correla
 import { createRegularNewsRouter } from "./routes/regular/news.js";
 import { createRegularSentimentRouter } from "./routes/regular/sentiment.js";
 import { createRegularSignalRouter } from "./routes/regular/signal.js";
+import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
+import connectMongoose from "./config/mongoose.js";
 
 dotenv.config();
 
@@ -404,6 +406,9 @@ app.use(
   await createMemecoinsSurvivingMarketDumpsRouter(),
 );
 
+// Prediction Game API routes
+app.use("/prediction-game", createPredictionGameRouter());
+
 // X402 Jobs verification
 app.get("/.well-known/x402-verification.json", (req, res) => {
   res.json({ x402: "8ab3d1b3906d" });
@@ -523,6 +528,14 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB (Mongoose) for prediction game
+connectMongoose().then(() => {
+  console.log('MongoDB (Mongoose) connected for prediction game');
+}).catch(err => {
+  console.error('Failed to connect MongoDB (Mongoose):', err);
+});
+
 app.listen(PORT, () => {
   console.log(`SYRA API running at http://localhost:${PORT}`);
 });
