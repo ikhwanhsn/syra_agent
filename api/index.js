@@ -11,7 +11,6 @@ import { HTTPFacilitatorClient, x402ResourceServer } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
-import { createTestRouter } from "./routes/test.js";
 import { createSignalRouter } from "./routes/signal.js";
 import { createXSearchRouter } from "./routes/xSearch.js";
 import { createXKOLRouter } from "./routes/kol.js";
