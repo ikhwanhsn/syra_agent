@@ -15,6 +15,10 @@ if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI || !BASE_URL) {
 const USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
+// CAIP-2 Network identifiers
+const SOLANA_MAINNET_CAIP2 = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+const SOLANA_DEVNET_CAIP2 = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+
 // Initialize x402 payment handler (singleton)
 const x402 = new X402PaymentHandler({
   network: "solana",
@@ -90,28 +94,65 @@ export function requirePayment(options) {
       // 5. Determine HTTP method
       const httpMethod = options.method || req.method.toUpperCase();
 
-      // 6. Build outputSchema for x402scan compatibility
-      const outputSchema = {
-        input: {
-          type: "http",
-          method: httpMethod,
-          ...(options.inputSchema?.bodyType && {
-            bodyType: options.inputSchema.bodyType,
-          }),
-          ...(options.inputSchema?.queryParams && {
-            queryParams: options.inputSchema.queryParams,
-          }),
-          ...(options.inputSchema?.bodyFields && {
-            bodyFields: options.inputSchema.bodyFields,
-          }),
-          ...(options.inputSchema?.headerFields && {
-            headerFields: options.inputSchema.headerFields,
-          }),
-        },
-        ...(options.outputSchema && { output: options.outputSchema }),
+      // 6. Build CAIP-2 network identifier for v2
+      const caip2Network =
+        network === "solana" ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
+
+      // 7. Build schema for x402scan (Bazaar extension)
+      const inputSchema = {
+        type: "object",
+        properties: {},
+        required: [],
       };
 
-      // 7. Create payment requirements with x402scan schema
+      // Add query params to schema
+      if (options.inputSchema?.queryParams) {
+        for (const [key, value] of Object.entries(
+          options.inputSchema.queryParams,
+        )) {
+          inputSchema.properties[key] = {
+            type: value.type || "string",
+            description: value.description,
+          };
+          if (value.required === true) {
+            inputSchema.required.push(key);
+          }
+        }
+      }
+
+      // Add body fields to schema
+      if (options.inputSchema?.bodyFields) {
+        for (const [key, value] of Object.entries(
+          options.inputSchema.bodyFields,
+        )) {
+          inputSchema.properties[key] = {
+            type: value.type || "string",
+            description: value.description,
+          };
+          if (value.required === true) {
+            inputSchema.required.push(key);
+          }
+        }
+      }
+
+      // 8. Build example info for Bazaar extension
+      const exampleInput = {};
+      if (options.inputSchema?.queryParams) {
+        for (const [key, value] of Object.entries(
+          options.inputSchema.queryParams,
+        )) {
+          exampleInput[key] = value.example || `example_${key}`;
+        }
+      }
+      if (options.inputSchema?.bodyFields) {
+        for (const [key, value] of Object.entries(
+          options.inputSchema.bodyFields,
+        )) {
+          exampleInput[key] = value.example || `example_${key}`;
+        }
+      }
+
+      // 9. Create payment requirements (internal use for verification)
       const paymentRequirements = await x402.createPaymentRequirements({
         price: {
           amount: microUnits,
@@ -124,20 +165,57 @@ export function requirePayment(options) {
           description: options.description,
           resource: resourceUrl,
           discoverable: options.discoverable || false,
-          outputSchema: outputSchema, // Add the required schema
         },
       });
 
-      // 8. If no payment header, return 402 with x402-compliant response
+      // 10. Build v2 accepts array
+      const v2Accepts = [
+        {
+          scheme: "exact",
+          network: caip2Network,
+          amount: microUnits,
+          payTo: ADDRESS_PAYAI,
+          maxTimeoutSeconds: options.maxTimeoutSeconds || 60,
+          asset: tokenMint,
+          extra: {
+            method: httpMethod,
+            ...(options.inputSchema?.bodyType && {
+              bodyType: options.inputSchema.bodyType,
+            }),
+          },
+        },
+      ];
+
+      // 11. Build v2 resource object
+      const v2Resource = {
+        url: resourceUrl,
+        description: options.description,
+        mimeType: options.mimeType || "application/json",
+      };
+
+      // 12. Build v2 extensions (Bazaar for x402scan UI)
+      const v2Extensions = {
+        bazaar: {
+          info: {
+            input: Object.keys(exampleInput).length > 0 ? exampleInput : null,
+            output: options.outputSchema || null,
+          },
+          schema: inputSchema,
+        },
+      };
+
+      // 13. If no payment header, return 402 with v2-compliant response
       if (!paymentHeader) {
         const x402Response = {
-          x402Version: 1,
-          accepts: [paymentRequirements],
+          x402Version: 2,
+          accepts: v2Accepts,
+          resource: v2Resource,
+          extensions: v2Extensions,
         };
         return res.status(402).json(x402Response);
       }
 
-      // 9. Verify the payment
+      // 14. Verify the payment
       const verified = await x402.verifyPayment(
         paymentHeader,
         paymentRequirements,
@@ -145,8 +223,10 @@ export function requirePayment(options) {
 
       if (!verified) {
         const x402Response = {
-          x402Version: 1,
-          accepts: [paymentRequirements],
+          x402Version: 2,
+          accepts: v2Accepts,
+          resource: v2Resource,
+          extensions: v2Extensions,
           error: "Payment verification failed: Invalid or expired payment",
         };
         return res.status(402).json(x402Response);

@@ -411,7 +411,7 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
 // Serve discovery document at /.well-known/x402
 app.get("/.well-known/x402", (req, res) => {
   res.json({
-    version: 1,
+    version: 2,
     resources: [
       "https://api.syraa.fun/binance/correlation-matrix",
       "https://api.syraa.fun/binance/correlation",

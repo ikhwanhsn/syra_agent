@@ -16,28 +16,81 @@ if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI || !BASE_URL) {
 const USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
+// CAIP-2 Network identifiers
+const SOLANA_MAINNET_CAIP2 = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+
 export async function createWeatherRouter() {
   const router = express.Router();
 
   // Initialize x402 payment handler
   const x402 = new X402PaymentHandler({
-    network: "solana", // Change to 'solana' for mainnet
+    network: "solana",
     treasuryAddress: ADDRESS_PAYAI,
     facilitatorUrl: FACILITATOR_URL_PAYAI,
   });
 
-  // Payment configuration
+  const PRICE_AMOUNT = "100"; // $0.0001 USDC in micro-units
+  const RESOURCE_URL = `${BASE_URL}/weather`;
+
+  // Payment configuration (internal use for verification)
   const createPaymentConfig = (method) => ({
     price: {
-      amount: "100", // $0.0001 USDC in micro-units (0.0001 * 1,000,000 = 100)
+      amount: PRICE_AMOUNT,
       asset: {
-        address: USDC_MAINNET, // Change to USDC_MAINNET for production
+        address: USDC_MAINNET,
       },
     },
-    network: "solana", // Change to 'solana' for mainnet
+    network: "solana",
     config: {
       description: `Weather information service - ${method}`,
-      resource: `${BASE_URL}/weather`,
+      resource: RESOURCE_URL,
+    },
+  });
+
+  // Create v2 402 response
+  const createV2Response = (method) => ({
+    x402Version: 2,
+    accepts: [
+      {
+        scheme: "exact",
+        network: SOLANA_MAINNET_CAIP2,
+        amount: PRICE_AMOUNT,
+        payTo: ADDRESS_PAYAI,
+        maxTimeoutSeconds: 60,
+        asset: USDC_MAINNET,
+        extra: {
+          method: method,
+        },
+      },
+    ],
+    resource: {
+      url: RESOURCE_URL,
+      description: `Weather information service - ${method}`,
+      mimeType: "application/json",
+    },
+    extensions: {
+      bazaar: {
+        info: {
+          input: { location: "New York" },
+          output: {
+            report: {
+              weather: "sunny",
+              temperature: 70,
+              humidity: 65,
+              location: "New York",
+            },
+          },
+        },
+        schema: {
+          type: "object",
+          properties: {
+            location: {
+              type: "string",
+              description: "Location for weather data",
+            },
+          },
+        },
+      },
     },
   });
 
@@ -47,15 +100,14 @@ export async function createWeatherRouter() {
       // 1. Extract payment header from request
       const paymentHeader = x402.extractPayment(req.headers);
 
-      // 2. Create payment requirements
+      // 2. Create payment requirements (for internal verification)
       const paymentRequirements = await x402.createPaymentRequirements(
         createPaymentConfig("GET")
       );
 
-      // 3. If no payment header, return 402 with payment requirements
+      // 3. If no payment header, return 402 with v2 response
       if (!paymentHeader) {
-        const response = x402.create402Response(paymentRequirements);
-        return res.status(response.status).json(response.body);
+        return res.status(402).json(createV2Response("GET"));
       }
 
       // 4. Verify the payment
@@ -66,8 +118,8 @@ export async function createWeatherRouter() {
 
       if (!verified) {
         return res.status(402).json({
-          error: "Payment verification failed",
-          message: "Invalid or expired payment",
+          ...createV2Response("GET"),
+          error: "Payment verification failed: Invalid or expired payment",
         });
       }
 
@@ -101,15 +153,14 @@ export async function createWeatherRouter() {
       // 1. Extract payment header from request
       const paymentHeader = x402.extractPayment(req.headers);
 
-      // 2. Create payment requirements
+      // 2. Create payment requirements (for internal verification)
       const paymentRequirements = await x402.createPaymentRequirements(
         createPaymentConfig("POST")
       );
 
-      // 3. If no payment header, return 402 with payment requirements
+      // 3. If no payment header, return 402 with v2 response
       if (!paymentHeader) {
-        const response = x402.create402Response(paymentRequirements);
-        return res.status(response.status).json(response.body);
+        return res.status(402).json(createV2Response("POST"));
       }
 
       // 4. Verify the payment
@@ -120,8 +171,8 @@ export async function createWeatherRouter() {
 
       if (!verified) {
         return res.status(402).json({
-          error: "Payment verification failed",
-          message: "Invalid or expired payment",
+          ...createV2Response("POST"),
+          error: "Payment verification failed: Invalid or expired payment",
         });
       }
 
