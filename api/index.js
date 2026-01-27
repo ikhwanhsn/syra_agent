@@ -443,6 +443,7 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/token-report",
       "https://api.syraa.fun/token-statistic",
       "https://api.syraa.fun/bubblemaps/maps",
+      // NOTE: /pump removed - GET endpoint has requirePayment commented out
       // Memecoin endpoints (with requirePayment)
       "https://api.syraa.fun/memecoin/fastest-holder-growth",
       "https://api.syraa.fun/memecoin/most-mentioned-by-smart-money-x",
@@ -454,11 +455,11 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/memecoin/organic-traction",
       "https://api.syraa.fun/memecoin/surviving-market-dumps",
     ],
-    ownershipProofs: [
-      // Generated using your private key
-      // "SljGbtrXsBTy1j4md8afmL8CMiBFpaXf2WhQkxhPfud3G/iO/Pw0RKp3kbyneWi+7bsr0Jh/poT8nb0etqHCCA==",
-      "0xe0985219dc79d1dbde08309b92c11152b542b758e3ea0459b1af238a49d644ce8782d5c1591fe55946b8f5ad4ec2bdd3f986339d4cf60369f156cea765aa5f03",
-    ],
+    // IMPORTANT: Generate ownership proof by running: node scripts/generateOwnershipProof.js
+    // Sign "https://api.syraa.fun" with your ADDRESS_PAYAI private key
+    ownershipProofs: process.env.X402_OWNERSHIP_PROOF
+      ? [process.env.X402_OWNERSHIP_PROOF]
+      : [],
     instructions:
       "# API Documentation\n\nVisit https://docs.syraa.fun for full documentation.\n\n## Rate Limits\n- 1000 requests/hour",
   });

@@ -31,6 +31,7 @@
     "express": "^5.2.1",
     "mongodb": "^7.0.0",
     "p-limit": "^7.2.0",
+    "tweetnacl": "^1.0.3",
     "x402-express": "^0.7.3",
     "x402-solana": "^0.1.4"
   },
