@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const { FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, BASE_URL } = process.env;
+const { FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, BASE_URL, EVM_ADDRESS, SVM_ADDRESS } = process.env;
 
 if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI || !BASE_URL) {
   throw new Error(
@@ -19,12 +19,192 @@ const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const SOLANA_MAINNET_CAIP2 = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 const SOLANA_DEVNET_CAIP2 = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 
+// EVM Network identifiers
+const BASE_SEPOLIA_CAIP2 = "eip155:84532";
+
 // Initialize x402 payment handler (singleton)
 const x402 = new X402PaymentHandler({
   network: "solana",
   treasuryAddress: ADDRESS_PAYAI,
   facilitatorUrl: FACILITATOR_URL_PAYAI,
 });
+
+/**
+ * Create a centralized x402 payment middleware for multiple routes
+ * Similar to @x402/express paymentMiddleware but using x402-solana
+ * 
+ * @param {Object} routeConfig - Object mapping "METHOD /path" to payment config
+ * @returns Express middleware function
+ * 
+ * @example
+ * app.use(createX402PaymentMiddleware({
+ *   "GET /weather-paid": {
+ *     price: "$0.001",
+ *     description: "Weather data",
+ *     mimeType: "application/json",
+ *   },
+ *   "GET /news": {
+ *     price: "$0.1",
+ *     description: "News API",
+ *   },
+ *   "POST /signal": {
+ *     price: "$0.15",
+ *     description: "Signal API",
+ *   },
+ * }));
+ */
+export function createX402PaymentMiddleware(routeConfig) {
+  return async (req, res, next) => {
+    // Build route key from method and path
+    const method = req.method.toUpperCase();
+    const path = req.path;
+    const routeKey = `${method} ${path}`;
+
+    // Check if this route requires payment
+    const config = routeConfig[routeKey];
+    if (!config) {
+      // Route not in config, pass through
+      return next();
+    }
+
+    try {
+      // 1. Extract payment header from request
+      const paymentHeader = x402.extractPayment(req.headers);
+
+      // 2. Parse price from config (supports "$0.001" format)
+      const priceStr = config.price.toString().replace("$", "");
+      const priceUSD = parseFloat(priceStr);
+      const microUnits = Math.floor(priceUSD * 1_000_000).toString();
+
+      // 3. Build resource URL
+      const resourceUrl = `${BASE_URL}${path}`;
+
+      // 4. Build accepts array with multi-chain support (EVM + SVM)
+      const accepts = [];
+
+      // Add EVM support (Base Sepolia) if EVM_ADDRESS is configured
+      if (EVM_ADDRESS) {
+        accepts.push({
+          scheme: "exact",
+          network: BASE_SEPOLIA_CAIP2,
+          amount: microUnits,
+          payTo: EVM_ADDRESS,
+          maxTimeoutSeconds: config.maxTimeoutSeconds || 60,
+          asset: "USDC",
+          extra: {
+            method: method,
+          },
+        });
+      }
+
+      // Add SVM support (Solana) if SVM_ADDRESS is configured
+      if (SVM_ADDRESS) {
+        accepts.push({
+          scheme: "exact",
+          network: SOLANA_DEVNET_CAIP2,
+          amount: microUnits,
+          payTo: SVM_ADDRESS,
+          maxTimeoutSeconds: config.maxTimeoutSeconds || 60,
+          asset: USDC_DEVNET,
+          extra: {
+            method: method,
+          },
+        });
+      }
+
+      // Also add Solana Mainnet support
+      accepts.push({
+        scheme: "exact",
+        network: SOLANA_MAINNET_CAIP2,
+        amount: microUnits,
+        payTo: ADDRESS_PAYAI,
+        maxTimeoutSeconds: config.maxTimeoutSeconds || 60,
+        asset: USDC_MAINNET,
+        extra: {
+          method: method,
+        },
+      });
+
+      // 5. Build v2 resource object
+      const v2Resource = {
+        url: resourceUrl,
+        description: config.description || "API endpoint",
+        mimeType: config.mimeType || "application/json",
+      };
+
+      // 6. Build v2 extensions (Bazaar for x402scan UI)
+      const v2Extensions = {
+        bazaar: {
+          info: {
+            input: config.inputSchema || null,
+            output: config.outputSchema || null,
+          },
+          schema: config.schema || {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        },
+      };
+
+      // 7. Create payment requirements for verification
+      const paymentRequirements = await x402.createPaymentRequirements({
+        price: {
+          amount: microUnits,
+          asset: {
+            address: USDC_MAINNET,
+          },
+        },
+        network: "solana",
+        config: {
+          description: config.description || "API endpoint",
+          resource: resourceUrl,
+          discoverable: true,
+        },
+      });
+
+      // 8. If no payment header, return 402 with v2-compliant response
+      if (!paymentHeader) {
+        const x402Response = {
+          x402Version: 2,
+          accepts: accepts,
+          resource: v2Resource,
+          extensions: v2Extensions,
+        };
+        return res.status(402).json(x402Response);
+      }
+
+      // 9. Verify the payment
+      const verified = await x402.verifyPayment(
+        paymentHeader,
+        paymentRequirements,
+      );
+
+      if (!verified) {
+        const x402Response = {
+          x402Version: 2,
+          accepts: accepts,
+          resource: v2Resource,
+          extensions: v2Extensions,
+          error: "Payment verification failed: Invalid or expired payment",
+        };
+        return res.status(402).json(x402Response);
+      }
+
+      // 10. Store payment info for later settlement
+      req.x402Payment = { paymentHeader, paymentRequirements };
+
+      // 11. Payment successful - continue to route handler
+      next();
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+}
 
 /**
  * Create x402 payment middleware for any route
