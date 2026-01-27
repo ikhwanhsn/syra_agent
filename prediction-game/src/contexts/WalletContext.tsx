@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useWallet as useSolanaWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 
-// Type-safe interfaces
-interface PublicKey {
-  toBase58: () => string;
-}
+// SYRA Token Mint Address
+const SYRA_TOKEN_MINT = '8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump';
 
 interface WalletContextType {
   isConnected: boolean;
@@ -15,123 +16,197 @@ interface WalletContextType {
   connect: () => void;
   disconnect: () => void;
   refreshBalances: () => Promise<void>;
+  sendSol: (amount: number, recipient?: string) => Promise<string | null>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-// Check if Solana packages are available
-let useSolanaWallet: any;
-let useConnection: any;
-let LAMPORTS_PER_SOL: number = 1000000000;
-let hasSolanaPackages = false;
-
-try {
-  const walletAdapter = require('@solana/wallet-adapter-react');
-  const web3 = require('@solana/web3.js');
-  useSolanaWallet = walletAdapter.useWallet;
-  useConnection = walletAdapter.useConnection;
-  LAMPORTS_PER_SOL = web3.LAMPORTS_PER_SOL;
-  hasSolanaPackages = true;
-} catch (error) {
-  console.warn('Solana wallet adapter packages not installed. Using mock wallet.');
-  // Mock implementations
-  useSolanaWallet = () => ({
-    publicKey: null,
-    connected: false,
-    connecting: false,
-    disconnect: () => {},
-    wallet: null,
-    select: () => {},
-  });
-  useConnection = () => ({ connection: null });
-}
-
 export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
-  const [syraBalance, setSyraBalance] = useState<number>(5_500_000); // Mock SYRA balance
-  const [connecting, setConnecting] = useState(false);
+  const [syraBalance, setSyraBalance] = useState<number>(0);
+  
+  // Get wallet state from Solana wallet adapter
+  const { 
+    publicKey, 
+    connected, 
+    connecting,
+    disconnect: disconnectWallet,
+    sendTransaction,
+    signTransaction,
+  } = useSolanaWallet();
+  
+  const { connection } = useConnection();
+  const { setVisible } = useWalletModal();
 
-  let solanaWallet: any = { publicKey: null, connected: false, connecting: false, disconnect: () => {}, wallet: null };
-  let solanaConnection: any = { connection: null };
-
-  if (hasSolanaPackages) {
-    solanaWallet = useSolanaWallet();
-    solanaConnection = useConnection();
-  }
-
-  const { publicKey, connected, disconnect: disconnectWallet, wallet } = solanaWallet;
-  const { connection } = solanaConnection;
-
-  // Fetch SOL balance when wallet connects
-  const refreshBalances = async () => {
-    if (hasSolanaPackages && publicKey && connection) {
+  // Fetch SOL and SYRA balance when wallet connects
+  const refreshBalances = useCallback(async () => {
+    if (publicKey && connection) {
       try {
+        // Fetch SOL balance
         const balance = await connection.getBalance(publicKey);
         setSolBalance(balance / LAMPORTS_PER_SOL);
         
-        // TODO: Add logic to fetch SYRA token balance
-        // You'll need to fetch the SPL token account for your SYRA token
-        // const syraTokenAccount = await connection.getTokenAccountBalance(syraTokenAddress);
-        // setSyraBalance(syraTokenAccount.value.uiAmount || 0);
+        // Fetch SYRA token balance
+        try {
+          const syraTokenMint = new PublicKey(SYRA_TOKEN_MINT);
+          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+            publicKey, 
+            { mint: syraTokenMint }
+          );
+          
+          if (tokenAccounts.value.length > 0) {
+            const tokenBalance = tokenAccounts.value[0].account.data.parsed.info.tokenAmount.uiAmount;
+            setSyraBalance(tokenBalance || 0);
+          } else {
+            // No SYRA token account found - user has 0 SYRA
+            setSyraBalance(0);
+          }
+        } catch (tokenError) {
+          console.warn('Error fetching SYRA token balance:', tokenError);
+          setSyraBalance(0);
+        }
       } catch (error) {
         console.error('Error fetching balances:', error);
       }
-    }
-  };
-
-  useEffect(() => {
-    if (hasSolanaPackages) {
-      setIsConnected(connected);
-      setWalletAddress(publicKey ? publicKey.toBase58() : null);
-      
-      if (connected && publicKey) {
-        refreshBalances();
-      } else {
-        setSolBalance(0);
-      }
-    }
-  }, [connected, publicKey, connection]);
-
-  const connect = () => {
-    if (!hasSolanaPackages) {
-      // Mock connection for development without packages
-      setIsConnected(true);
-      setWalletAddress('7xKX...9dFe');
-      setSolBalance(12.5);
-      return;
-    }
-    
-    // If no wallet is selected, the WalletModal will handle wallet selection
-    if (!wallet) {
-      return;
-    }
-  };
-
-  const disconnect = () => {
-    if (!hasSolanaPackages) {
-      setIsConnected(false);
-      setWalletAddress(null);
+    } else {
       setSolBalance(0);
-      return;
+      setSyraBalance(0);
     }
-    
+  }, [publicKey, connection]);
+
+  // Refresh balances when wallet connects or changes
+  useEffect(() => {
+    if (connected && publicKey) {
+      refreshBalances();
+    } else {
+      setSolBalance(0);
+      setSyraBalance(0);
+    }
+  }, [connected, publicKey, refreshBalances]);
+
+  // Subscribe to SOL balance changes for real-time updates
+  useEffect(() => {
+    if (!publicKey || !connection) return;
+
+    const subscriptionId = connection.onAccountChange(
+      publicKey,
+      (accountInfo) => {
+        setSolBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+      },
+      'confirmed'
+    );
+
+    return () => {
+      connection.removeAccountChangeListener(subscriptionId);
+    };
+  }, [publicKey, connection]);
+
+  // Subscribe to SYRA token account changes
+  useEffect(() => {
+    if (!publicKey || !connection) return;
+
+    const subscribeToTokenAccount = async () => {
+      try {
+        const syraTokenMint = new PublicKey(SYRA_TOKEN_MINT);
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+          publicKey, 
+          { mint: syraTokenMint }
+        );
+        
+        if (tokenAccounts.value.length > 0) {
+          const tokenAccountPubkey = tokenAccounts.value[0].pubkey;
+          
+          const subscriptionId = connection.onAccountChange(
+            tokenAccountPubkey,
+            async () => {
+              // Refresh SYRA balance when token account changes
+              const updatedAccounts = await connection.getParsedTokenAccountsByOwner(
+                publicKey, 
+                { mint: syraTokenMint }
+              );
+              if (updatedAccounts.value.length > 0) {
+                const balance = updatedAccounts.value[0].account.data.parsed.info.tokenAmount.uiAmount;
+                setSyraBalance(balance || 0);
+              }
+            },
+            'confirmed'
+          );
+          
+          return () => {
+            connection.removeAccountChangeListener(subscriptionId);
+          };
+        }
+      } catch (error) {
+        console.warn('Error subscribing to SYRA token account:', error);
+      }
+    };
+
+    subscribeToTokenAccount();
+  }, [publicKey, connection]);
+
+  const connect = useCallback(() => {
+    // Open the wallet modal to let user select a wallet
+    setVisible(true);
+  }, [setVisible]);
+
+  const disconnect = useCallback(() => {
     disconnectWallet();
-  };
+    setSolBalance(0);
+    setSyraBalance(0);
+  }, [disconnectWallet]);
+
+  // Send SOL to a recipient (or treasury for event creation)
+  const sendSol = useCallback(async (amount: number, recipient?: string): Promise<string | null> => {
+    if (!publicKey || !connection || !sendTransaction) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      // Default recipient is a treasury/escrow address - you should set this to your actual treasury
+      const recipientPubkey = recipient 
+        ? new PublicKey(recipient) 
+        : publicKey; // For now, sends to self as placeholder
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: recipientPubkey,
+          lamports: Math.floor(amount * LAMPORTS_PER_SOL),
+        })
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+
+      const signature = await sendTransaction(transaction, connection);
+      
+      // Wait for confirmation
+      await connection.confirmTransaction(signature, 'confirmed');
+      
+      // Refresh balances after transaction
+      await refreshBalances();
+      
+      return signature;
+    } catch (error) {
+      console.error('Error sending SOL:', error);
+      throw error;
+    }
+  }, [publicKey, connection, sendTransaction, refreshBalances]);
 
   return (
     <WalletContext.Provider
       value={{
-        isConnected,
-        walletAddress,
+        isConnected: connected,
+        walletAddress: publicKey ? publicKey.toBase58() : null,
         publicKey,
         syraBalance,
         solBalance,
-        connecting: hasSolanaPackages ? solanaWallet.connecting : connecting,
+        connecting,
         connect,
         disconnect,
         refreshBalances,
+        sendSol,
       }}
     >
       {children}

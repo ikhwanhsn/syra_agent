@@ -25,6 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenWalletModal }) => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Dashboard", path: "/dashboard" },
+    { name: "Staking", path: "/staking" },
     { name: "Create Event", path: "/create" },
     { name: "Admin", path: "/admin" },
   ];
