@@ -80,13 +80,13 @@ const createAccepts = (price) => [
   {
     scheme: "exact",
     price: price, // @x402/express uses "price" format like "$0.001"
-    network: "eip155:84532", // Base Sepolia
+    network: "eip155:8453", // Base Mainnet
     payTo: evmAddress,
   },
   {
     scheme: "exact",
     price: price, // @x402/express uses "price" format like "$0.001"
-    network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", // Solana Devnet
+    network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", // Solana Mainnet
     payTo: svmAddress,
   },
 ];
@@ -470,8 +470,8 @@ app.use(
       },
     },
     new x402ResourceServer(facilitatorClient)
-      .register("eip155:84532", new ExactEvmScheme())
-      .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme()),
+      .register("eip155:8453", new ExactEvmScheme())
+      .register("solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", new ExactSvmScheme()),
   ),
 );
 
