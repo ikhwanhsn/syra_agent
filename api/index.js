@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { createNewsRouter } from "./routes/news.js";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
-import { paymentMiddleware } from "x402-express";
-import { HTTPFacilitatorClient, x402ResourceServer } from "@x402/core/server";
+import { paymentMiddleware, x402ResourceServer } from "@x402/express";
+import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
@@ -480,26 +480,6 @@ app.get("/api/premium", paywalledMiddleware, (req, res) => {
   res.json({ data: "premium content" });
 });
 
-app.use(
-  paymentMiddleware(
-    "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
-    {
-      "/protected-route": {
-        price: "$0.10",
-        network: "solana",
-        config: {
-          description: "Access to premium content",
-        },
-      },
-    },
-    { url: "https://facilitator.payai.network" },
-  ),
-);
-
-// Implement your route
-app.get("/protected-route", (req, res) => {
-  res.json({ message: "This content is behind a paywall" });
-});
 
 app.get("/weather-paid", (req, res) => {
   res.send({
