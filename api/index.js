@@ -3,7 +3,6 @@ import express from "express";
 import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createWeatherRouter } from "./routes/weather.js";
 import { createNewsRouter } from "./routes/news.js";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
@@ -336,7 +335,6 @@ app.use("/v1/regular/signal", await createRegularSignalRouter());
 
 // x402 routes
 app.use("/info", await createInfoRouter());
-app.use("/weather", await createWeatherRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
@@ -413,16 +411,27 @@ app.get("/.well-known/x402", (req, res) => {
   res.json({
     version: 1,
     resources: [
-      "https://api.syraa.fun/binance/correlation-matrix",
-      "https://api.syraa.fun/binance/correlation",
+      // Core endpoints
       "https://api.syraa.fun/news",
       "https://api.syraa.fun/signal",
+      "https://api.syraa.fun/sentiment",
+      "https://api.syraa.fun/event",
+      "https://api.syraa.fun/trending-headline",
+      "https://api.syraa.fun/sundown-digest",
+      "https://api.syraa.fun/leaderboard",
+      // Binance endpoints
+      "https://api.syraa.fun/binance/ohlc",
+      "https://api.syraa.fun/binance/correlation-matrix",
+      "https://api.syraa.fun/binance/correlation",
+      // X/Twitter endpoints
       "https://api.syraa.fun/x-search",
       "https://api.syraa.fun/x-kol",
+      "https://api.syraa.fun/crypto-kol",
+      // Research & Analysis endpoints
       "https://api.syraa.fun/browse",
       "https://api.syraa.fun/research",
       "https://api.syraa.fun/gems",
-      "https://api.syraa.fun/crypto-kol",
+      // Partner endpoints
       "https://api.syraa.fun/smart-money",
       "https://api.syraa.fun/dexscreener",
       "https://api.syraa.fun/token-god-mode",
@@ -430,10 +439,17 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/trending-jupiter",
       "https://api.syraa.fun/token-report",
       "https://api.syraa.fun/token-statistic",
-      "https://api.syraa.fun/sentiment",
-      "https://api.syraa.fun/event",
-      "https://api.syraa.fun/trending-headline",
-      "https://api.syraa.fun/sundown-digest",
+      "https://api.syraa.fun/bubblemaps/maps",
+      // Memecoin endpoints
+      "https://api.syraa.fun/memecoin/fastest-holder-growth",
+      "https://api.syraa.fun/memecoin/most-mentioned-by-smart-money-x",
+      "https://api.syraa.fun/memecoin/accumulating-before-CEX-rumors",
+      "https://api.syraa.fun/memecoin/strong-narrative-low-market-cap",
+      "https://api.syraa.fun/memecoin/by-experienced-devs",
+      "https://api.syraa.fun/memecoin/unusual-whale-behavior",
+      "https://api.syraa.fun/memecoin/trending-on-x-not-dex",
+      "https://api.syraa.fun/memecoin/organic-traction",
+      "https://api.syraa.fun/memecoin/surviving-market-dumps",
     ],
     ownershipProofs: [
       // Generated using your private key
