@@ -2,11 +2,17 @@
 const rateLimit = (options) => {
   const windowMs = options.windowMs || 60000; // default 1 min
   const max = options.max || 60; // default 60 req per window
+  const skip = options.skip || (() => false); // optional skip function
 
   // Store counters in memory
   const hits = new Map();
 
   return (req, res, next) => {
+    // Skip rate limiting if skip function returns true
+    if (skip(req)) {
+      return next();
+    }
+
     const ip = req.ip;
 
     const now = Date.now();

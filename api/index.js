@@ -153,7 +153,11 @@ app.get("/favicon.ico", (req, res) => {
 app.use(
   rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 100, // max 50 requests in 1 minute
+    max: 100, // max 100 requests in 1 minute
+    skip: (req) => {
+      // Skip rate limiting for .well-known routes (x402scan verification)
+      return req.path.startsWith("/.well-known");
+    },
   }),
 );
 
@@ -406,31 +410,31 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
 });
 
 // Serve discovery document at /.well-known/x402
+// NOTE: Only list endpoints that use requirePayment middleware (return 402 without payment)
 app.get("/.well-known/x402", (req, res) => {
   res.json({
     version: 1,
     resources: [
-      // Core endpoints
+      // Core endpoints (with requirePayment)
       "https://api.syraa.fun/news",
       "https://api.syraa.fun/signal",
       "https://api.syraa.fun/sentiment",
       "https://api.syraa.fun/event",
       "https://api.syraa.fun/trending-headline",
       "https://api.syraa.fun/sundown-digest",
-      "https://api.syraa.fun/leaderboard",
-      // Binance endpoints
-      "https://api.syraa.fun/binance/ohlc",
+      "https://api.syraa.fun/check-status",
+      // Binance endpoints (with requirePayment)
       "https://api.syraa.fun/binance/correlation-matrix",
       "https://api.syraa.fun/binance/correlation",
-      // X/Twitter endpoints
+      // X/Twitter endpoints (with requirePayment)
       "https://api.syraa.fun/x-search",
       "https://api.syraa.fun/x-kol",
       "https://api.syraa.fun/crypto-kol",
-      // Research & Analysis endpoints
+      // Research & Analysis endpoints (with requirePayment)
       "https://api.syraa.fun/browse",
       "https://api.syraa.fun/research",
       "https://api.syraa.fun/gems",
-      // Partner endpoints
+      // Partner endpoints (with requirePayment)
       "https://api.syraa.fun/smart-money",
       "https://api.syraa.fun/dexscreener",
       "https://api.syraa.fun/token-god-mode",
@@ -439,7 +443,7 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/token-report",
       "https://api.syraa.fun/token-statistic",
       "https://api.syraa.fun/bubblemaps/maps",
-      // Memecoin endpoints
+      // Memecoin endpoints (with requirePayment)
       "https://api.syraa.fun/memecoin/fastest-holder-growth",
       "https://api.syraa.fun/memecoin/most-mentioned-by-smart-money-x",
       "https://api.syraa.fun/memecoin/accumulating-before-CEX-rumors",
