@@ -6,7 +6,10 @@ import { fileURLToPath } from "url";
 import { createNewsRouter } from "./routes/news.js";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
-import { createX402PaymentMiddleware } from "./utils/x402Payment.js";
+import { paymentMiddleware, x402ResourceServer } from "@x402/express";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
 import { createSignalRouter } from "./routes/signal.js";
 import { createXSearchRouter } from "./routes/xSearch.js";
@@ -56,384 +59,420 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// x402 Payment Configuration
+const evmAddress = process.env.EVM_ADDRESS;
+const svmAddress = process.env.SVM_ADDRESS;
+if (!evmAddress || !svmAddress) {
+  console.error("Missing required environment variables: EVM_ADDRESS, SVM_ADDRESS");
+  process.exit(1);
+}
+
+const facilitatorUrl = process.env.FACILITATOR_URL_PAYAI;
+if (!facilitatorUrl) {
+  console.error("❌ FACILITATOR_URL_PAYAI environment variable is required");
+  process.exit(1);
+}
+const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
+
+// Helper function to create accepts array for both EVM and SVM networks
+// Using @x402/express format with "price" (library handles conversion internally)
+const createAccepts = (price) => [
+  {
+    scheme: "exact",
+    price: price, // @x402/express uses "price" format like "$0.001"
+    network: "eip155:84532", // Base Sepolia
+    payTo: evmAddress,
+  },
+  {
+    scheme: "exact",
+    price: price, // @x402/express uses "price" format like "$0.001"
+    network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", // Solana Devnet
+    payTo: svmAddress,
+  },
+];
+
 const app = express();
 
-// Centralized x402 payment middleware for all paid API routes
-// Price format: "$0.001" for 0.001 USD, "$0.1" for 0.1 USD, etc.
+// Centralized x402 payment middleware for all paid API routes using @x402/express
 app.use(
-  createX402PaymentMiddleware({
-    // Weather API (example endpoint)
-    "GET /weather-paid": {
-      price: "$0.001",
-      description: "Weather data",
-      mimeType: "application/json",
-    },
-    // News API
-    "GET /news": {
-      price: "$0.1",
-      description: "News information service",
-      mimeType: "application/json",
-    },
-    "POST /news": {
-      price: "$0.1",
-      description: "News information service",
-      mimeType: "application/json",
-    },
-    // Signal API
-    "GET /signal": {
-      price: "$0.15",
-      description: "Trading signal service",
-      mimeType: "application/json",
-    },
-    "POST /signal": {
-      price: "$0.15",
-      description: "Trading signal service",
-      mimeType: "application/json",
-    },
-    // X Search API
-    "GET /x-search": {
-      price: "$0.1",
-      description: "X/Twitter search service",
-      mimeType: "application/json",
-    },
-    "POST /x-search": {
-      price: "$0.1",
-      description: "X/Twitter search service",
-      mimeType: "application/json",
-    },
-    // X KOL API
-    "GET /x-kol": {
-      price: "$0.1",
-      description: "X/Twitter KOL service",
-      mimeType: "application/json",
-    },
-    "POST /x-kol": {
-      price: "$0.1",
-      description: "X/Twitter KOL service",
-      mimeType: "application/json",
-    },
-    // Browse API
-    "GET /browse": {
-      price: "$0.1",
-      description: "Web browsing service",
-      mimeType: "application/json",
-    },
-    "POST /browse": {
-      price: "$0.1",
-      description: "Web browsing service",
-      mimeType: "application/json",
-    },
-    // Research API
-    "GET /research": {
-      price: "$0.15",
-      description: "Research service",
-      mimeType: "application/json",
-    },
-    "POST /research": {
-      price: "$0.15",
-      description: "Research service",
-      mimeType: "application/json",
-    },
-    // Gems API
-    "GET /gems": {
-      price: "$0.1",
-      description: "Gems discovery service",
-      mimeType: "application/json",
-    },
-    "POST /gems": {
-      price: "$0.1",
-      description: "Gems discovery service",
-      mimeType: "application/json",
-    },
-    // Crypto KOL API
-    "GET /crypto-kol": {
-      price: "$0.1",
-      description: "Crypto KOL service",
-      mimeType: "application/json",
-    },
-    "POST /crypto-kol": {
-      price: "$0.1",
-      description: "Crypto KOL service",
-      mimeType: "application/json",
-    },
-    // Check Status API
-    "GET /check-status": {
-      price: "$0.05",
-      description: "Transaction status check",
-      mimeType: "application/json",
-    },
-    "POST /check-status": {
-      price: "$0.05",
-      description: "Transaction status check",
-      mimeType: "application/json",
-    },
-    // Smart Money API
-    "GET /smart-money": {
-      price: "$0.15",
-      description: "Smart money tracking service",
-      mimeType: "application/json",
-    },
-    "POST /smart-money": {
-      price: "$0.15",
-      description: "Smart money tracking service",
-      mimeType: "application/json",
-    },
-    // Dexscreener API
-    "GET /dexscreener": {
-      price: "$0.1",
-      description: "Dexscreener data service",
-      mimeType: "application/json",
-    },
-    "POST /dexscreener": {
-      price: "$0.1",
-      description: "Dexscreener data service",
-      mimeType: "application/json",
-    },
-    // Token God Mode API
-    "GET /token-god-mode": {
-      price: "$0.15",
-      description: "Token analysis service",
-      mimeType: "application/json",
-    },
-    "POST /token-god-mode": {
-      price: "$0.15",
-      description: "Token analysis service",
-      mimeType: "application/json",
-    },
-    // Solana Agent API
-    "GET /solana-agent": {
-      price: "$0.1",
-      description: "Solana agent service",
-      mimeType: "application/json",
-    },
-    "POST /solana-agent": {
-      price: "$0.1",
-      description: "Solana agent service",
-      mimeType: "application/json",
-    },
-    // Pump API
-    "GET /pump": {
-      price: "$0.1",
-      description: "Pump.fun data service",
-      mimeType: "application/json",
-    },
-    "POST /pump": {
-      price: "$0.1",
-      description: "Pump.fun data service",
-      mimeType: "application/json",
-    },
-    // Trending Jupiter API
-    "GET /trending-jupiter": {
-      price: "$0.1",
-      description: "Jupiter trending tokens",
-      mimeType: "application/json",
-    },
-    "POST /trending-jupiter": {
-      price: "$0.1",
-      description: "Jupiter trending tokens",
-      mimeType: "application/json",
-    },
-    // Token Report API
-    "GET /token-report": {
-      price: "$0.1",
-      description: "Token report service",
-      mimeType: "application/json",
-    },
-    "POST /token-report": {
-      price: "$0.1",
-      description: "Token report service",
-      mimeType: "application/json",
-    },
-    // Token Statistic API
-    "GET /token-statistic": {
-      price: "$0.1",
-      description: "Token statistics service",
-      mimeType: "application/json",
-    },
-    "POST /token-statistic": {
-      price: "$0.1",
-      description: "Token statistics service",
-      mimeType: "application/json",
-    },
-    // Sentiment API
-    "GET /sentiment": {
-      price: "$0.1",
-      description: "Market sentiment analysis",
-      mimeType: "application/json",
-    },
-    "POST /sentiment": {
-      price: "$0.1",
-      description: "Market sentiment analysis",
-      mimeType: "application/json",
-    },
-    // Event API
-    "GET /event": {
-      price: "$0.1",
-      description: "Crypto events service",
-      mimeType: "application/json",
-    },
-    "POST /event": {
-      price: "$0.1",
-      description: "Crypto events service",
-      mimeType: "application/json",
-    },
-    // Trending Headline API
-    "GET /trending-headline": {
-      price: "$0.1",
-      description: "Trending headlines service",
-      mimeType: "application/json",
-    },
-    "POST /trending-headline": {
-      price: "$0.1",
-      description: "Trending headlines service",
-      mimeType: "application/json",
-    },
-    // Sundown Digest API
-    "GET /sundown-digest": {
-      price: "$0.1",
-      description: "Sundown digest service",
-      mimeType: "application/json",
-    },
-    "POST /sundown-digest": {
-      price: "$0.1",
-      description: "Sundown digest service",
-      mimeType: "application/json",
-    },
-    // Create Signal API
-    "GET /create-signal": {
-      price: "$0.15",
-      description: "Create trading signal",
-      mimeType: "application/json",
-    },
-    "POST /create-signal": {
-      price: "$0.15",
-      description: "Create trading signal",
-      mimeType: "application/json",
-    },
-    // Bubblemaps API
-    "GET /bubblemaps/maps": {
-      price: "$0.1",
-      description: "Bubblemaps visualization",
-      mimeType: "application/json",
-    },
-    "POST /bubblemaps/maps": {
-      price: "$0.1",
-      description: "Bubblemaps visualization",
-      mimeType: "application/json",
-    },
-    // Binance Correlation API
-    "GET /binance/correlation-matrix": {
-      price: "$0.1",
-      description: "Correlation matrix data",
-      mimeType: "application/json",
-    },
-    "POST /binance/correlation-matrix": {
-      price: "$0.1",
-      description: "Correlation matrix data",
-      mimeType: "application/json",
-    },
-    "GET /binance/correlation": {
-      price: "$0.1",
-      description: "Correlation data",
-      mimeType: "application/json",
-    },
-    "POST /binance/correlation": {
-      price: "$0.1",
-      description: "Correlation data",
-      mimeType: "application/json",
-    },
-    // Memecoin APIs
-    "GET /memecoin/fastest-holder-growth": {
-      price: "$0.1",
-      description: "Fastest holder growth memecoins",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/fastest-holder-growth": {
-      price: "$0.1",
-      description: "Fastest holder growth memecoins",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/most-mentioned-by-smart-money-x": {
-      price: "$0.1",
-      description: "Memecoins mentioned by smart money on X",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/most-mentioned-by-smart-money-x": {
-      price: "$0.1",
-      description: "Memecoins mentioned by smart money on X",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/accumulating-before-CEX-rumors": {
-      price: "$0.1",
-      description: "Memecoins accumulating before CEX rumors",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/accumulating-before-CEX-rumors": {
-      price: "$0.1",
-      description: "Memecoins accumulating before CEX rumors",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/strong-narrative-low-market-cap": {
-      price: "$0.1",
-      description: "Strong narrative low market cap memecoins",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/strong-narrative-low-market-cap": {
-      price: "$0.1",
-      description: "Strong narrative low market cap memecoins",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/by-experienced-devs": {
-      price: "$0.1",
-      description: "Memecoins by experienced developers",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/by-experienced-devs": {
-      price: "$0.1",
-      description: "Memecoins by experienced developers",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/unusual-whale-behavior": {
-      price: "$0.1",
-      description: "Memecoins with unusual whale behavior",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/unusual-whale-behavior": {
-      price: "$0.1",
-      description: "Memecoins with unusual whale behavior",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/trending-on-x-not-dex": {
-      price: "$0.1",
-      description: "Memecoins trending on X but not DEX",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/trending-on-x-not-dex": {
-      price: "$0.1",
-      description: "Memecoins trending on X but not DEX",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/organic-traction": {
-      price: "$0.1",
-      description: "AI memecoins with organic traction",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/organic-traction": {
-      price: "$0.1",
-      description: "AI memecoins with organic traction",
-      mimeType: "application/json",
-    },
-    "GET /memecoin/surviving-market-dumps": {
-      price: "$0.1",
-      description: "Memecoins surviving market dumps",
-      mimeType: "application/json",
-    },
-    "POST /memecoin/surviving-market-dumps": {
-      price: "$0.1",
-      description: "Memecoins surviving market dumps",
-      mimeType: "application/json",
-    },
-  }),
+  paymentMiddleware(
+    {
+      // Weather API (example endpoint)
+      "GET /weather-paid": {
+        accepts: createAccepts("$0.001"),
+        description: "Weather data",
+        mimeType: "application/json",
+      },
+      // News API
+      "GET /news": {
+        accepts: createAccepts("$0.1"),
+        description: "News information service",
+        mimeType: "application/json",
+      },
+      "POST /news": {
+        accepts: createAccepts("$0.1"),
+        description: "News information service",
+        mimeType: "application/json",
+      },
+      // Signal API
+      "GET /signal": {
+        accepts: createAccepts("$0.15"),
+        description: "Trading signal service",
+        mimeType: "application/json",
+      },
+      "POST /signal": {
+        accepts: createAccepts("$0.15"),
+        description: "Trading signal service",
+        mimeType: "application/json",
+      },
+      // X Search API
+      "GET /x-search": {
+        accepts: createAccepts("$0.1"),
+        description: "X/Twitter search service",
+        mimeType: "application/json",
+      },
+      "POST /x-search": {
+        accepts: createAccepts("$0.1"),
+        description: "X/Twitter search service",
+        mimeType: "application/json",
+      },
+      // X KOL API
+      "GET /x-kol": {
+        accepts: createAccepts("$0.1"),
+        description: "X/Twitter KOL service",
+        mimeType: "application/json",
+      },
+      "POST /x-kol": {
+        accepts: createAccepts("$0.1"),
+        description: "X/Twitter KOL service",
+        mimeType: "application/json",
+      },
+      // Browse API
+      "GET /browse": {
+        accepts: createAccepts("$0.1"),
+        description: "Web browsing service",
+        mimeType: "application/json",
+      },
+      "POST /browse": {
+        accepts: createAccepts("$0.1"),
+        description: "Web browsing service",
+        mimeType: "application/json",
+      },
+      // Research API
+      "GET /research": {
+        accepts: createAccepts("$0.15"),
+        description: "Research service",
+        mimeType: "application/json",
+      },
+      "POST /research": {
+        accepts: createAccepts("$0.15"),
+        description: "Research service",
+        mimeType: "application/json",
+      },
+      // Gems API
+      "GET /gems": {
+        accepts: createAccepts("$0.1"),
+        description: "Gems discovery service",
+        mimeType: "application/json",
+      },
+      "POST /gems": {
+        accepts: createAccepts("$0.1"),
+        description: "Gems discovery service",
+        mimeType: "application/json",
+      },
+      // Crypto KOL API
+      "GET /crypto-kol": {
+        accepts: createAccepts("$0.1"),
+        description: "Crypto KOL service",
+        mimeType: "application/json",
+      },
+      "POST /crypto-kol": {
+        accepts: createAccepts("$0.1"),
+        description: "Crypto KOL service",
+        mimeType: "application/json",
+      },
+      // Check Status API
+      "GET /check-status": {
+        accepts: createAccepts("$0.05"),
+        description: "Transaction status check",
+        mimeType: "application/json",
+      },
+      "POST /check-status": {
+        accepts: createAccepts("$0.05"),
+        description: "Transaction status check",
+        mimeType: "application/json",
+      },
+      // Smart Money API
+      "GET /smart-money": {
+        accepts: createAccepts("$0.15"),
+        description: "Smart money tracking service",
+        mimeType: "application/json",
+      },
+      "POST /smart-money": {
+        accepts: createAccepts("$0.15"),
+        description: "Smart money tracking service",
+        mimeType: "application/json",
+      },
+      // Dexscreener API
+      "GET /dexscreener": {
+        accepts: createAccepts("$0.1"),
+        description: "Dexscreener data service",
+        mimeType: "application/json",
+      },
+      "POST /dexscreener": {
+        accepts: createAccepts("$0.1"),
+        description: "Dexscreener data service",
+        mimeType: "application/json",
+      },
+      // Token God Mode API
+      "GET /token-god-mode": {
+        accepts: createAccepts("$0.15"),
+        description: "Token analysis service",
+        mimeType: "application/json",
+      },
+      "POST /token-god-mode": {
+        accepts: createAccepts("$0.15"),
+        description: "Token analysis service",
+        mimeType: "application/json",
+      },
+      // Solana Agent API
+      "GET /solana-agent": {
+        accepts: createAccepts("$0.1"),
+        description: "Solana agent service",
+        mimeType: "application/json",
+      },
+      "POST /solana-agent": {
+        accepts: createAccepts("$0.1"),
+        description: "Solana agent service",
+        mimeType: "application/json",
+      },
+      // Pump API
+      "GET /pump": {
+        accepts: createAccepts("$0.1"),
+        description: "Pump.fun data service",
+        mimeType: "application/json",
+      },
+      "POST /pump": {
+        accepts: createAccepts("$0.1"),
+        description: "Pump.fun data service",
+        mimeType: "application/json",
+      },
+      // Trending Jupiter API
+      "GET /trending-jupiter": {
+        accepts: createAccepts("$0.1"),
+        description: "Jupiter trending tokens",
+        mimeType: "application/json",
+      },
+      "POST /trending-jupiter": {
+        accepts: createAccepts("$0.1"),
+        description: "Jupiter trending tokens",
+        mimeType: "application/json",
+      },
+      // Token Report API
+      "GET /token-report": {
+        accepts: createAccepts("$0.1"),
+        description: "Token report service",
+        mimeType: "application/json",
+      },
+      "POST /token-report": {
+        accepts: createAccepts("$0.1"),
+        description: "Token report service",
+        mimeType: "application/json",
+      },
+      // Token Statistic API
+      "GET /token-statistic": {
+        accepts: createAccepts("$0.1"),
+        description: "Token statistics service",
+        mimeType: "application/json",
+      },
+      "POST /token-statistic": {
+        accepts: createAccepts("$0.1"),
+        description: "Token statistics service",
+        mimeType: "application/json",
+      },
+      // Sentiment API
+      "GET /sentiment": {
+        accepts: createAccepts("$0.1"),
+        description: "Market sentiment analysis",
+        mimeType: "application/json",
+      },
+      "POST /sentiment": {
+        accepts: createAccepts("$0.1"),
+        description: "Market sentiment analysis",
+        mimeType: "application/json",
+      },
+      // Event API
+      "GET /event": {
+        accepts: createAccepts("$0.1"),
+        description: "Crypto events service",
+        mimeType: "application/json",
+      },
+      "POST /event": {
+        accepts: createAccepts("$0.1"),
+        description: "Crypto events service",
+        mimeType: "application/json",
+      },
+      // Trending Headline API
+      "GET /trending-headline": {
+        accepts: createAccepts("$0.1"),
+        description: "Trending headlines service",
+        mimeType: "application/json",
+      },
+      "POST /trending-headline": {
+        accepts: createAccepts("$0.1"),
+        description: "Trending headlines service",
+        mimeType: "application/json",
+      },
+      // Sundown Digest API
+      "GET /sundown-digest": {
+        accepts: createAccepts("$0.1"),
+        description: "Sundown digest service",
+        mimeType: "application/json",
+      },
+      "POST /sundown-digest": {
+        accepts: createAccepts("$0.1"),
+        description: "Sundown digest service",
+        mimeType: "application/json",
+      },
+      // Create Signal API
+      "GET /create-signal": {
+        accepts: createAccepts("$0.15"),
+        description: "Create trading signal",
+        mimeType: "application/json",
+      },
+      "POST /create-signal": {
+        accepts: createAccepts("$0.15"),
+        description: "Create trading signal",
+        mimeType: "application/json",
+      },
+      // Bubblemaps API
+      "GET /bubblemaps/maps": {
+        accepts: createAccepts("$0.1"),
+        description: "Bubblemaps visualization",
+        mimeType: "application/json",
+      },
+      "POST /bubblemaps/maps": {
+        accepts: createAccepts("$0.1"),
+        description: "Bubblemaps visualization",
+        mimeType: "application/json",
+      },
+      // Binance Correlation API
+      "GET /binance/correlation-matrix": {
+        accepts: createAccepts("$0.1"),
+        description: "Correlation matrix data",
+        mimeType: "application/json",
+      },
+      "POST /binance/correlation-matrix": {
+        accepts: createAccepts("$0.1"),
+        description: "Correlation matrix data",
+        mimeType: "application/json",
+      },
+      "GET /binance/correlation": {
+        accepts: createAccepts("$0.1"),
+        description: "Correlation data",
+        mimeType: "application/json",
+      },
+      "POST /binance/correlation": {
+        accepts: createAccepts("$0.1"),
+        description: "Correlation data",
+        mimeType: "application/json",
+      },
+      // Memecoin APIs
+      "GET /memecoin/fastest-holder-growth": {
+        accepts: createAccepts("$0.1"),
+        description: "Fastest holder growth memecoins",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/fastest-holder-growth": {
+        accepts: createAccepts("$0.1"),
+        description: "Fastest holder growth memecoins",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/most-mentioned-by-smart-money-x": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins mentioned by smart money on X",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/most-mentioned-by-smart-money-x": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins mentioned by smart money on X",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/accumulating-before-CEX-rumors": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins accumulating before CEX rumors",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/accumulating-before-CEX-rumors": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins accumulating before CEX rumors",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/strong-narrative-low-market-cap": {
+        accepts: createAccepts("$0.1"),
+        description: "Strong narrative low market cap memecoins",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/strong-narrative-low-market-cap": {
+        accepts: createAccepts("$0.1"),
+        description: "Strong narrative low market cap memecoins",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/by-experienced-devs": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins by experienced developers",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/by-experienced-devs": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins by experienced developers",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/unusual-whale-behavior": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins with unusual whale behavior",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/unusual-whale-behavior": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins with unusual whale behavior",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/trending-on-x-not-dex": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins trending on X but not DEX",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/trending-on-x-not-dex": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins trending on X but not DEX",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/organic-traction": {
+        accepts: createAccepts("$0.1"),
+        description: "AI memecoins with organic traction",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/organic-traction": {
+        accepts: createAccepts("$0.1"),
+        description: "AI memecoins with organic traction",
+        mimeType: "application/json",
+      },
+      "GET /memecoin/surviving-market-dumps": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins surviving market dumps",
+        mimeType: "application/json",
+      },
+      "POST /memecoin/surviving-market-dumps": {
+        accepts: createAccepts("$0.1"),
+        description: "Memecoins surviving market dumps",
+        mimeType: "application/json",
+      },
+    },
+    new x402ResourceServer(facilitatorClient)
+      .register("eip155:84532", new ExactEvmScheme())
+      .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme()),
+  ),
 );
 
 // app.use(
