@@ -1,3 +1,15 @@
+/**
+ * x402 V1 Payment Utilities (x402scan compatible)
+ * 
+ * This utility provides x402 V1 compliant responses that work with x402scan.
+ * 
+ * x402 V1 Format:
+ * - Uses "X-PAYMENT" header for payment signatures
+ * - Network is simple string (e.g., "solana")
+ * - Uses "maxAmountRequired" for price in micro-units
+ * - outputSchema contains input/output schema definitions
+ * - extra.feePayer for fee payer address
+ */
 import { X402PaymentHandler } from "x402-solana/server";
 import dotenv from "dotenv";
 
@@ -15,9 +27,8 @@ if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI || !BASE_URL) {
 const USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
-// CAIP-2 Network identifiers
-const SOLANA_MAINNET_CAIP2 = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
-const SOLANA_DEVNET_CAIP2 = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+// Fee payer address (same as treasury for now)
+const FEE_PAYER = process.env.FEE_PAYER_ADDRESS || ADDRESS_PAYAI;
 
 // Initialize x402 payment handler (singleton)
 const x402 = new X402PaymentHandler({
@@ -27,7 +38,7 @@ const x402 = new X402PaymentHandler({
 });
 
 /**
- * Create x402 payment middleware for any route
+ * Create x402 V1 payment middleware for any route (x402scan compatible)
  *
  * @param options - Payment configuration options
  * @returns Express middleware function
@@ -39,8 +50,13 @@ const x402 = new X402PaymentHandler({
  *     price: "0.0001",
  *     description: "Weather API",
  *     method: "GET",
- *     queryParams: {
- *       location: { type: "string", required: true, description: "City name" }
+ *     inputSchema: {
+ *       queryParams: {
+ *         location: { type: "string", required: true, description: "City name" }
+ *       }
+ *     },
+ *     outputSchema: {
+ *       weather: { type: "string", description: "Weather condition" }
  *     }
  *   }),
  *   (req, res) => res.json({ weather: "sunny" })
@@ -60,8 +76,8 @@ const x402 = new X402PaymentHandler({
  *       }
  *     },
  *     outputSchema: {
- *       response: { type: "string" },
- *       model: { type: "string" }
+ *       response: { type: "string", description: "AI response" },
+ *       model: { type: "string", description: "Model used" }
  *     }
  *   }),
  *   async (req, res) => {
@@ -73,20 +89,18 @@ const x402 = new X402PaymentHandler({
 export function requirePayment(options) {
   return async (req, res, next) => {
     try {
-      // 1. Extract payment header from request
-      const paymentHeader = x402.extractPayment(req.headers);
+      // 1. Extract payment header from request (V1 uses X-PAYMENT)
+      const paymentHeader = req.headers["x-payment"] || x402.extractPayment(req.headers);
 
-      // 2. Calculate amount in micro-units
+      // 2. Calculate amount in micro-units (USDC has 6 decimals)
       const priceUSD = parseFloat(options.price);
       const microUnits = Math.floor(priceUSD * 1_000_000).toString();
 
-      // 3. Determine network and token
+      // 3. Determine network and token (V1 uses simple network name)
       const network = options.network || "solana";
-      const tokenMint =
-        options.tokenMint ||
-        (network === "solana" ? USDC_MAINNET : USDC_DEVNET);
+      const tokenMint = options.tokenMint || USDC_MAINNET;
 
-      // 4. Build resource URL
+      // 4. Build resource URL (full URL for V1)
       const resourceUrl = options.resource
         ? `${BASE_URL}${options.resource}`
         : `${BASE_URL}${req.path}`;
@@ -94,65 +108,40 @@ export function requirePayment(options) {
       // 5. Determine HTTP method
       const httpMethod = options.method || req.method.toUpperCase();
 
-      // 6. Build CAIP-2 network identifier for v2
-      const caip2Network =
-        network === "solana" ? SOLANA_MAINNET_CAIP2 : SOLANA_DEVNET_CAIP2;
-
-      // 7. Build schema for x402scan (Bazaar extension)
-      const inputSchema = {
-        type: "object",
-        properties: {},
-        required: [],
+      // 6. Build V1 outputSchema with input and output structure
+      const v1OutputSchema = {
+        input: {
+          type: "http",
+          method: httpMethod,
+        },
+        output: options.outputSchema || {},
       };
 
-      // Add query params to schema
+      // Add query params to input schema
       if (options.inputSchema?.queryParams) {
-        for (const [key, value] of Object.entries(
-          options.inputSchema.queryParams,
-        )) {
-          inputSchema.properties[key] = {
+        v1OutputSchema.input.queryParams = {};
+        for (const [key, value] of Object.entries(options.inputSchema.queryParams)) {
+          v1OutputSchema.input.queryParams[key] = {
             type: value.type || "string",
-            description: value.description,
+            required: value.required || false,
+            description: value.description || "",
           };
-          if (value.required === true) {
-            inputSchema.required.push(key);
-          }
         }
       }
 
-      // Add body fields to schema
+      // Add body fields to input schema (for POST requests)
       if (options.inputSchema?.bodyFields) {
-        for (const [key, value] of Object.entries(
-          options.inputSchema.bodyFields,
-        )) {
-          inputSchema.properties[key] = {
+        v1OutputSchema.input.bodyFields = {};
+        for (const [key, value] of Object.entries(options.inputSchema.bodyFields)) {
+          v1OutputSchema.input.bodyFields[key] = {
             type: value.type || "string",
-            description: value.description,
+            required: value.required || false,
+            description: value.description || "",
           };
-          if (value.required === true) {
-            inputSchema.required.push(key);
-          }
         }
       }
 
-      // 8. Build example info for Bazaar extension
-      const exampleInput = {};
-      if (options.inputSchema?.queryParams) {
-        for (const [key, value] of Object.entries(
-          options.inputSchema.queryParams,
-        )) {
-          exampleInput[key] = value.example || `example_${key}`;
-        }
-      }
-      if (options.inputSchema?.bodyFields) {
-        for (const [key, value] of Object.entries(
-          options.inputSchema.bodyFields,
-        )) {
-          exampleInput[key] = value.example || `example_${key}`;
-        }
-      }
-
-      // 9. Create payment requirements (internal use for verification)
+      // 7. Create payment requirements (internal use for verification)
       const paymentRequirements = await x402.createPaymentRequirements({
         price: {
           amount: microUnits,
@@ -168,54 +157,37 @@ export function requirePayment(options) {
         },
       });
 
-      // 10. Build v2 accepts array
-      const v2Accepts = [
+      // 8. Build V1 accepts array (x402scan compatible format)
+      const v1Accepts = [
         {
           scheme: "exact",
-          network: caip2Network,
-          amount: microUnits,
+          network: network, // Simple network name for V1 (e.g., "solana")
+          maxAmountRequired: microUnits, // V1 uses maxAmountRequired
+          resource: resourceUrl, // Full URL in accepts for V1
+          description: options.description,
+          mimeType: options.mimeType || "",
           payTo: ADDRESS_PAYAI,
           maxTimeoutSeconds: options.maxTimeoutSeconds || 60,
           asset: tokenMint,
+          outputSchema: v1OutputSchema, // V1 schema format with input/output
           extra: {
-            method: httpMethod,
-            ...(options.inputSchema?.bodyType && {
-              bodyType: options.inputSchema.bodyType,
-            }),
+            feePayer: FEE_PAYER, // Required for V1
           },
         },
       ];
 
-      // 11. Build v2 resource object
-      const v2Resource = {
-        url: resourceUrl,
-        description: options.description,
-        mimeType: options.mimeType || "application/json",
-      };
-
-      // 12. Build v2 extensions (Bazaar for x402scan UI)
-      const v2Extensions = {
-        bazaar: {
-          info: {
-            input: Object.keys(exampleInput).length > 0 ? exampleInput : null,
-            output: options.outputSchema || null,
-          },
-          schema: inputSchema,
-        },
-      };
-
-      // 13. If no payment header, return 402 with v2-compliant response
+      // 9. If no payment header, return 402 with V1-compliant response
       if (!paymentHeader) {
         const x402Response = {
-          x402Version: 2,
-          accepts: v2Accepts,
-          resource: v2Resource,
-          extensions: v2Extensions,
+          x402Version: 1,
+          error: "X-PAYMENT header is required",
+          accepts: v1Accepts,
         };
+        
         return res.status(402).json(x402Response);
       }
 
-      // 14. Verify the payment
+      // 10. Verify the payment
       const verified = await x402.verifyPayment(
         paymentHeader,
         paymentRequirements,
@@ -223,22 +195,23 @@ export function requirePayment(options) {
 
       if (!verified) {
         const x402Response = {
-          x402Version: 2,
-          accepts: v2Accepts,
-          resource: v2Resource,
-          extensions: v2Extensions,
+          x402Version: 1,
           error: "Payment verification failed: Invalid or expired payment",
+          accepts: v1Accepts,
         };
+        
         return res.status(402).json(x402Response);
       }
 
-      // 10. Settle the payment (complete the transaction)
-      // await x402.settlePayment(paymentHeader, paymentRequirements);
+      // 11. Store payment info for later settlement
+      req.x402Payment = { 
+        paymentHeader, 
+        paymentRequirements,
+        network: network,
+        amount: microUnits,
+      };
 
-      // Store payment info for later settlement
-      req.x402Payment = { paymentHeader, paymentRequirements };
-
-      // 11. Payment successful - continue to route handler
+      // 12. Payment successful - continue to route handler
       next();
     } catch (error) {
       console.error("Payment processing error:", error);

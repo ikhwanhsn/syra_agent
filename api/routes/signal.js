@@ -15,7 +15,7 @@ export async function createSignalRouter() {
     (req, res, next) =>
       requirePayment({
         price: FIXED_PRICE,
-        description: "Get signal information for a specific token",
+        description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "GET",
         discoverable: true, // Make it discoverable on x402scan
         resource: "/signal",
@@ -24,8 +24,14 @@ export async function createSignalRouter() {
             token: {
               type: "string",
               required: false,
-              description: "Token name for the signal",
+              description: "Token name for the signal (e.g., solana, bitcoin)",
             },
+          },
+        },
+        outputSchema: {
+          signal: {
+            type: "object",
+            description: "Trading signal with recommendation, entry price, targets, and analysis",
           },
         },
       })(req, res, next),
@@ -81,7 +87,7 @@ export async function createSignalRouter() {
     (req, res, next) =>
       requirePayment({
         price: FIXED_PRICE,
-        description: "Get signal information for a specific token",
+        description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "POST",
         discoverable: true, // Make it discoverable on x402scan
         resource: "/signal",
@@ -91,8 +97,14 @@ export async function createSignalRouter() {
             token: {
               type: "string",
               required: false,
-              description: "Token name for the signal",
+              description: "Token name for the signal (e.g., solana, bitcoin)",
             },
+          },
+        },
+        outputSchema: {
+          signal: {
+            type: "object",
+            description: "Trading signal with recommendation, entry price, targets, and analysis",
           },
         },
       })(req, res, next),

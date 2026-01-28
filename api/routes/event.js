@@ -29,7 +29,7 @@ export async function createEventRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the latest event in crypto market",
+      description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/event",
@@ -38,8 +38,14 @@ export async function createEventRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the event",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all events",
           },
+        },
+      },
+      outputSchema: {
+        event: {
+          type: "array",
+          description: "Array of crypto events with date, title, description, and related tokens",
         },
       },
     }),
@@ -106,7 +112,7 @@ export async function createEventRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the latest event in crypto market",
+      description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/event",
@@ -116,8 +122,14 @@ export async function createEventRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the event",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all events",
           },
+        },
+      },
+      outputSchema: {
+        event: {
+          type: "array",
+          description: "Array of crypto events with date, title, description, and related tokens",
         },
       },
     }),

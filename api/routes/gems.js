@@ -15,10 +15,28 @@ export async function createGemsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X platform for a hidden gem project",
+      description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/gems",
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The search query used",
+        },
+        result: {
+          type: "string",
+          description: "AI-analyzed hidden gem projects with potential and risks",
+        },
+        citations: {
+          type: "array",
+          description: "Source tweets and references",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Research tool calls made",
+        },
+      },
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -94,10 +112,28 @@ export async function createGemsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X platform for a hidden gem project",
+      description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/gems",
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The search query used",
+        },
+        result: {
+          type: "string",
+          description: "AI-analyzed hidden gem projects with potential and risks",
+        },
+        citations: {
+          type: "array",
+          description: "Source tweets and references",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Research tool calls made",
+        },
+      },
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables

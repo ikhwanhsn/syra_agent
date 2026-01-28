@@ -226,3 +226,210 @@
     border-color: hsl(var(--glass-border));
   }
 }
+
+/* Additional animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+/* Focus styles for better accessibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+}
+
+/* Better text selection */
+::selection {
+  background-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* Smooth transitions globally */
+* {
+  @apply transition-colors duration-150;
+}
+
+/* Payment card specific styles */
+.payment-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.payment-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--warning) / 0.1),
+    transparent
+  );
+  animation: payment-shimmer 2s infinite;
+}
+
+@keyframes payment-shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Method button active state */
+.method-button-active {
+  position: relative;
+}
+
+.method-button-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+/* Improved scrollbar for webkit browsers */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+}
+
+/* Status indicator pulse */
+.status-pulse {
+  position: relative;
+}
+
+.status-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  animation: status-ring-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes status-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 0.6;
+  }
+  50% {
+    box-shadow: 0 0 0 4px currentColor;
+    opacity: 0;
+  }
+}
+
+/* Solana Wallet Adapter Modal Styling */
+.wallet-adapter-modal-wrapper {
+  background: hsl(var(--background) / 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.wallet-adapter-modal {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.wallet-adapter-modal-title {
+  color: hsl(var(--foreground)) !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+.wallet-adapter-modal-list {
+  margin: 0 !important;
+}
+
+.wallet-adapter-modal-list li {
+  margin-bottom: 0.5rem !important;
+}
+
+.wallet-adapter-button {
+  background: hsl(var(--secondary)) !important;
+  border-radius: 0.75rem !important;
+  color: hsl(var(--foreground)) !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  transition: all 0.2s ease !important;
+}
+
+.wallet-adapter-button:hover {
+  background: hsl(var(--primary) / 0.2) !important;
+  border-color: hsl(var(--primary) / 0.3) !important;
+}
+
+.wallet-adapter-button-trigger {
+  background: linear-gradient(135deg, hsl(var(--neon-purple)) 0%, hsl(var(--neon-blue)) 100%) !important;
+}
+
+.wallet-adapter-modal-list-more {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.wallet-adapter-modal-list-more svg {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+.wallet-adapter-collapse {
+  background: hsl(var(--secondary) / 0.5) !important;
+  border-radius: 0.75rem !important;
+  margin-top: 0.5rem !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: hsl(var(--muted)) !important;
+}
+
+.wallet-adapter-modal-button-close:hover {
+  background: hsl(var(--destructive) / 0.2) !important;
+}
+
+.wallet-adapter-modal-button-close svg {
+  fill: hsl(var(--muted-foreground)) !important;
+}

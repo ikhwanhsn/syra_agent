@@ -14,7 +14,7 @@ export async function createBubblemapsMapsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get map data for a token on BubbleMaps",
+      description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/bubblemaps/maps",
@@ -23,8 +23,14 @@ export async function createBubblemapsMapsRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Token address",
+            description: "Solana token contract address",
           },
+        },
+      },
+      outputSchema: {
+        data: {
+          type: "object",
+          description: "BubbleMaps data with holder clusters, decentralization score, and distribution visualization",
         },
       },
     }),
@@ -92,7 +98,7 @@ export async function createBubblemapsMapsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get map data for a token on BubbleMaps",
+      description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/bubblemaps/maps",
@@ -102,8 +108,14 @@ export async function createBubblemapsMapsRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Token address",
+            description: "Solana token contract address",
           },
+        },
+      },
+      outputSchema: {
+        data: {
+          type: "object",
+          description: "BubbleMaps data with holder clusters, decentralization score, and distribution visualization",
         },
       },
     }),

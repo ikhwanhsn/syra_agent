@@ -14,7 +14,7 @@ export async function createBrowseRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Scrape information from websites",
+      description: "AI-powered web browsing and information extraction from websites",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/browse",
@@ -22,9 +22,19 @@ export async function createBrowseRouter() {
         queryParams: {
           query: {
             type: "string",
-            required: false,
-            description: "Query for the research",
+            required: true,
+            description: "Search query or URL to browse and extract information from",
           },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The original search query",
+        },
+        result: {
+          type: "string",
+          description: "Extracted and summarized information from the browsed content",
         },
       },
     }),
@@ -120,7 +130,7 @@ export async function createBrowseRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Scrape information from websites",
+      description: "AI-powered web browsing and information extraction from websites",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/browse",
@@ -129,9 +139,19 @@ export async function createBrowseRouter() {
         bodyFields: {
           query: {
             type: "string",
-            required: false,
-            description: "Query for the research",
+            required: true,
+            description: "Search query or URL to browse and extract information from",
           },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The original search query",
+        },
+        result: {
+          type: "string",
+          description: "Extracted and summarized information from the browsed content",
         },
       },
     }),

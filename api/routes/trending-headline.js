@@ -29,7 +29,7 @@ export async function createTrendingHeadlineRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the latest trending headline in crypto market",
+      description: "Get trending headlines and top stories in the crypto market",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/trending-headline",
@@ -38,8 +38,14 @@ export async function createTrendingHeadlineRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the event",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all trending headlines",
           },
+        },
+      },
+      outputSchema: {
+        trendingHeadline: {
+          type: "array",
+          description: "Array of trending headlines with title, source, date, and sentiment",
         },
       },
     }),
@@ -102,7 +108,7 @@ export async function createTrendingHeadlineRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the latest trending headline in crypto market",
+      description: "Get trending headlines and top stories in the crypto market",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/trending-headline",
@@ -112,8 +118,14 @@ export async function createTrendingHeadlineRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the trending headline",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all trending headlines",
           },
+        },
+      },
+      outputSchema: {
+        trendingHeadline: {
+          type: "array",
+          description: "Array of trending headlines with title, source, date, and sentiment",
         },
       },
     }),

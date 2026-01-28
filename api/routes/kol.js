@@ -16,7 +16,7 @@ export async function createXKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X platform for a KOL/Influencer",
+      description: "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-kol",
@@ -24,9 +24,31 @@ export async function createXKOLRouter() {
         queryParams: {
           address: {
             type: "string",
-            required: false,
-            description: "Contract address of token",
+            required: true,
+            description: "Solana token contract address to analyze KOL mentions for",
           },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The analysis query used",
+        },
+        tokenInfo: {
+          type: "object",
+          description: "Token information from DEXScreener",
+        },
+        result: {
+          type: "string",
+          description: "KOL/Influencer analysis and sentiment summary",
+        },
+        citations: {
+          type: "array",
+          description: "Source tweets from KOLs",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Research tool calls made",
         },
       },
     }),
@@ -108,7 +130,7 @@ export async function createXKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X platform for a KOL/Influencer",
+      description: "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-kol",
@@ -117,9 +139,31 @@ export async function createXKOLRouter() {
         bodyFields: {
           address: {
             type: "string",
-            required: false,
-            description: "Topic for the research",
+            required: true,
+            description: "Solana token contract address to analyze KOL mentions for",
           },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The analysis query used",
+        },
+        tokenInfo: {
+          type: "object",
+          description: "Token information from DEXScreener",
+        },
+        result: {
+          type: "string",
+          description: "KOL/Influencer analysis and sentiment summary",
+        },
+        citations: {
+          type: "array",
+          description: "Source tweets from KOLs",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Research tool calls made",
         },
       },
     }),

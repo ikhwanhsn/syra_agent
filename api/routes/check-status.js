@@ -10,10 +10,20 @@ export async function createCheckStatusRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Check status server",
+      description: "Health check endpoint to verify API server status and connectivity",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/check-status",
+      outputSchema: {
+        status: {
+          type: "string",
+          description: "Server status (ok or error)",
+        },
+        message: {
+          type: "string",
+          description: "Status message",
+        },
+      },
     }),
     async (req, res) => {
       res.status(200).json({
@@ -28,10 +38,20 @@ export async function createCheckStatusRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Check status server",
+      description: "Health check endpoint to verify API server status and connectivity",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/check-status",
+      outputSchema: {
+        status: {
+          type: "string",
+          description: "Server status (ok or error)",
+        },
+        message: {
+          type: "string",
+          description: "Status message",
+        },
+      },
     }),
     async (req, res) => {
       res.status(200).json({

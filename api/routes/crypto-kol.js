@@ -17,11 +17,28 @@ export async function createCryptoKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description:
-        "Get insight from a KOL/Influencer on Crypto, Target Accounts @elonmusk, @VitalikButerin, @cz_binance, @saylor, @justinsuntron, @APompliano, @balajis, @TheCryptoLark, @100trillionUSD, @themooncarl",
+      description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/crypto-kol",
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The analysis query used",
+        },
+        result: {
+          type: "string",
+          description: "Summarized insights from top crypto KOLs and influencers",
+        },
+        citations: {
+          type: "array",
+          description: "Source tweets and posts from KOLs",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Research tool calls made",
+        },
+      },
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables
@@ -97,11 +114,28 @@ export async function createCryptoKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description:
-        "Get insight from a KOL/Influencer on Crypto, Target Accounts @elonmusk, @VitalikButerin, @cz_binance, @saylor, @justinsuntron, @APompliano, @balajis, @TheCryptoLark, @100trillionUSD, @themooncarl",
+      description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.)",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/crypto-kol",
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The analysis query used",
+        },
+        result: {
+          type: "string",
+          description: "Summarized insights from top crypto KOLs and influencers",
+        },
+        citations: {
+          type: "array",
+          description: "Source tweets and posts from KOLs",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Research tool calls made",
+        },
+      },
     }),
     async (req, res) => {
       // Read the ATXP account details from environment variables

@@ -1,8 +1,18 @@
-// Script to generate x402 ownership proof for discovery document
-// Usage: node scripts/generateOwnershipProof.js
-//
-// First install tweetnacl: npm install tweetnacl
-// Or run: npm install && node scripts/generateOwnershipProof.js
+/**
+ * Script to generate x402 ownership proofs for discovery document
+ * 
+ * This generates ownership proofs for BOTH EVM (Base) and Solana addresses
+ * to enable verification on x402scan for all supported networks.
+ * 
+ * Usage: node scripts/generateOwnershipProof.js
+ * 
+ * Prerequisites:
+ *   npm install tweetnacl ethers
+ * 
+ * x402 V2 supports multiple payment networks, so we generate proofs for:
+ * - EVM (Base Mainnet): eip155:8453
+ * - Solana Mainnet: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp
+ */
 
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -13,43 +23,15 @@ dotenv.config();
 // The origin URL to sign (NO trailing slash)
 const ORIGIN = "https://api.syraa.fun";
 
-// ed25519 signing using Keypair's secretKey
-// The secretKey contains both private key (32 bytes) + public key (32 bytes)
-function signMessage(message, secretKey) {
-  // Import nacl dynamically to handle if not installed
-  return import("tweetnacl")
-    .then((nacl) => {
-      return nacl.default.sign.detached(message, secretKey);
-    })
-    .catch(() => {
-      // Fallback: use the sign from @solana/web3.js internal
-      // This is a simplified ed25519 signature
-      console.log("Note: tweetnacl not found, attempting alternative signing...");
-      const { sign } = require("@noble/ed25519");
-      const privateKey = secretKey.slice(0, 32);
-      return sign(message, privateKey);
-    });
-}
-
-async function generateOwnershipProof() {
-  // Get the private key from environment variable
-  // This should be the private key corresponding to your ADDRESS_PAYAI (payTo address)
-  const privateKey = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
+/**
+ * Generate Solana (SVM) ownership proof
+ */
+async function generateSolanaOwnershipProof() {
+  const privateKey = process.env.SVM_PRIVATE_KEY || process.env.ADDRESS_PAYAI_PRIVATE_KEY;
 
   if (!privateKey) {
-    console.error("❌ ADDRESS_PAYAI_PRIVATE_KEY environment variable not set");
-    console.log("\nTo generate the ownership proof, you need to:");
-    console.log(
-      "1. Add ADDRESS_PAYAI_PRIVATE_KEY to your .env file (base58 format)",
-    );
-    console.log(
-      "2. This is the private key for your payTo address:",
-      process.env.ADDRESS_PAYAI,
-    );
-    console.log("3. Run this script again\n");
-    console.log("\nExample .env entry:");
-    console.log("ADDRESS_PAYAI_PRIVATE_KEY=your_base58_encoded_private_key_here\n");
-    process.exit(1);
+    console.log("⏭️  Skipping Solana proof: SVM_PRIVATE_KEY not set");
+    return null;
   }
 
   try {
@@ -57,45 +39,130 @@ async function generateOwnershipProof() {
     const secretKey = bs58.decode(privateKey);
     const keypair = Keypair.fromSecretKey(secretKey);
 
-    console.log("🔑 Signing origin URL:", ORIGIN);
-    console.log("📍 Using payTo address:", keypair.publicKey.toBase58());
+    console.log("🔑 [Solana] Signing origin URL:", ORIGIN);
+    console.log("📍 [Solana] PayTo address:", keypair.publicKey.toBase58());
 
     // Sign the origin URL
     const message = new TextEncoder().encode(ORIGIN);
 
     let signature;
     try {
-      // Try to import tweetnacl
       const nacl = await import("tweetnacl");
       signature = nacl.default.sign.detached(message, keypair.secretKey);
     } catch (e) {
-      console.error(
-        "\n❌ tweetnacl not installed. Please install it first:\n",
-      );
-      console.log("   npm install tweetnacl\n");
-      console.log("Then run this script again.");
-      process.exit(1);
+      console.error("\n❌ tweetnacl not installed. Please run: npm install tweetnacl\n");
+      return null;
     }
 
     // Convert to hex format with 0x prefix
     const signatureHex = "0x" + Buffer.from(signature).toString("hex");
 
-    console.log("\n✅ Ownership proof generated successfully!\n");
-    console.log("=".repeat(60));
-    console.log("Add this to your .env file:\n");
-    console.log(`X402_OWNERSHIP_PROOF=${signatureHex}`);
-    console.log("\n" + "=".repeat(60));
-    console.log("\nThe signature will be automatically used in /.well-known/x402");
-    console.log("\nVerification details:");
-    console.log(`  Origin signed: ${ORIGIN}`);
-    console.log(`  PayTo address: ${keypair.publicKey.toBase58()}`);
-    console.log(`  Signature length: ${signatureHex.length} chars`);
-
-    return signatureHex;
+    console.log("✅ [Solana] Ownership proof generated successfully!");
+    return {
+      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+      address: keypair.publicKey.toBase58(),
+      signature: signatureHex,
+    };
   } catch (error) {
-    console.error("❌ Error generating ownership proof:", error.message);
-    process.exit(1);
+    console.error("❌ [Solana] Error generating ownership proof:", error.message);
+    return null;
   }
 }
 
-generateOwnershipProof();
+/**
+ * Generate EVM (Base) ownership proof
+ */
+async function generateEvmOwnershipProof() {
+  const privateKey = process.env.EVM_PRIVATE_KEY;
+
+  if (!privateKey) {
+    console.log("⏭️  Skipping EVM proof: EVM_PRIVATE_KEY not set");
+    return null;
+  }
+
+  try {
+    // Dynamically import ethers
+    const { Wallet } = await import("ethers");
+
+    // Create wallet from private key
+    const wallet = new Wallet(privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`);
+
+    console.log("🔑 [EVM] Signing origin URL:", ORIGIN);
+    console.log("📍 [EVM] PayTo address:", wallet.address);
+
+    // Sign the origin URL
+    const signature = await wallet.signMessage(ORIGIN);
+
+    console.log("✅ [EVM] Ownership proof generated successfully!");
+    return {
+      network: "eip155:8453",
+      address: wallet.address,
+      signature: signature,
+    };
+  } catch (error) {
+    if (error.code === "ERR_MODULE_NOT_FOUND") {
+      console.log("⏭️  Skipping EVM proof: ethers not installed. Run: npm install ethers");
+    } else {
+      console.error("❌ [EVM] Error generating ownership proof:", error.message);
+    }
+    return null;
+  }
+}
+
+async function generateOwnershipProofs() {
+  console.log("\n" + "=".repeat(60));
+  console.log("x402 Ownership Proof Generator (V2)");
+  console.log("=".repeat(60) + "\n");
+
+  const proofs = [];
+
+  // Generate Solana proof
+  const solanaProof = await generateSolanaOwnershipProof();
+  if (solanaProof) proofs.push(solanaProof);
+
+  console.log(""); // Spacing
+
+  // Generate EVM proof
+  const evmProof = await generateEvmOwnershipProof();
+  if (evmProof) proofs.push(evmProof);
+
+  if (proofs.length === 0) {
+    console.error("\n❌ No ownership proofs could be generated!");
+    console.log("\nTo generate ownership proofs, add these to your .env file:");
+    console.log("  SVM_PRIVATE_KEY=your_solana_private_key_base58");
+    console.log("  EVM_PRIVATE_KEY=your_evm_private_key_hex");
+    console.log("\nThese should be the private keys for your payTo addresses:");
+    console.log(`  SVM_ADDRESS=${process.env.SVM_ADDRESS || "(not set)"}`);
+    console.log(`  EVM_ADDRESS=${process.env.EVM_ADDRESS || "(not set)"}`);
+    process.exit(1);
+  }
+
+  console.log("\n" + "=".repeat(60));
+  console.log("Add these to your .env file:");
+  console.log("=".repeat(60) + "\n");
+
+  for (const proof of proofs) {
+    if (proof.network.startsWith("solana")) {
+      console.log(`X402_OWNERSHIP_PROOF_SVM=${proof.signature}`);
+    } else if (proof.network.startsWith("eip155")) {
+      console.log(`X402_OWNERSHIP_PROOF_EVM=${proof.signature}`);
+    }
+  }
+
+  console.log("\n" + "=".repeat(60));
+  console.log("Verification details:");
+  console.log("=".repeat(60) + "\n");
+
+  console.log(`Origin signed: ${ORIGIN}\n`);
+  for (const proof of proofs) {
+    console.log(`Network: ${proof.network}`);
+    console.log(`Address: ${proof.address}`);
+    console.log(`Signature length: ${proof.signature.length} chars\n`);
+  }
+
+  console.log("The signatures will be automatically used in /.well-known/x402\n");
+
+  return proofs;
+}
+
+generateOwnershipProofs();

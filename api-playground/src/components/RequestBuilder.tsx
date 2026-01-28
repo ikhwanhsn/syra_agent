@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Send, Loader2, Play, Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +9,11 @@ import { JsonEditor } from '@/components/JsonEditor';
 import { HttpMethod, RequestHeader, RequestParam, WalletState } from '@/types/api';
 import { cn } from '@/lib/utils';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface RequestBuilderProps {
   method: HttpMethod;
@@ -33,14 +32,20 @@ interface RequestBuilderProps {
   onTryDemo: () => void;
 }
 
-const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+// x402 API only supports GET and POST
+const methods: HttpMethod[] = ['GET', 'POST'];
 
-const methodColors: Record<HttpMethod, string> = {
-  GET: 'text-success',
-  POST: 'text-warning',
-  PUT: 'text-accent',
-  PATCH: 'text-primary',
-  DELETE: 'text-destructive',
+const methodConfig: Record<'GET' | 'POST', { color: string; bg: string; description: string }> = {
+  GET: { 
+    color: 'text-success', 
+    bg: 'bg-success/10 hover:bg-success/20 border-success/30',
+    description: 'Retrieve data from the API'
+  },
+  POST: { 
+    color: 'text-warning', 
+    bg: 'bg-warning/10 hover:bg-warning/20 border-warning/30',
+    description: 'Send data to the API'
+  },
 };
 
 export function RequestBuilder({
@@ -60,6 +65,14 @@ export function RequestBuilder({
   onTryDemo,
 }: RequestBuilderProps) {
   const [activeTab, setActiveTab] = useState('body');
+  const isGetMethod = method === 'GET';
+
+  // Auto-switch tab when method changes
+  useEffect(() => {
+    if (isGetMethod && activeTab === 'body') {
+      setActiveTab('params');
+    }
+  }, [method, isGetMethod, activeTab]);
 
   const addHeader = () => {
     onHeadersChange([...headers, { key: '', value: '', enabled: true }]);
@@ -89,192 +102,326 @@ export function RequestBuilder({
     onParamsChange(params.filter((_, i) => i !== index));
   };
 
+  const currentMethod = method as 'GET' | 'POST';
+  const config = methodConfig[currentMethod] || methodConfig.GET;
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with Try Demo and Wallet Status */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          Request
-        </h2>
-        <div className="flex items-center gap-2">
-          {wallet.connected && (
-            <Badge variant="success" className="text-xs gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-success" />
-              Wallet Ready
-            </Badge>
-          )}
-          <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-1.5">
-            <Play className="h-3.5 w-3.5" />
-            Try Demo
-          </Button>
-        </div>
-      </div>
-
-      {/* URL Input Row */}
-      <div className="flex gap-2 mb-4">
-        <Select value={method} onValueChange={(v) => onMethodChange(v as HttpMethod)}>
-          <SelectTrigger className="w-28 bg-secondary border-border">
-            <SelectValue>
-              <span className={cn("font-semibold", methodColors[method])}>
-                {method}
-              </span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-popover border-border">
-            {methods.map((m) => (
-              <SelectItem key={m} value={m}>
-                <span className={cn("font-semibold", methodColors[m])}>{m}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Input
-          value={url}
-          onChange={(e) => onUrlChange(e.target.value)}
-          placeholder="Enter API URL..."
-          className="flex-1 font-mono text-sm bg-secondary border-border"
-        />
-
-        <Button
-          variant="neon"
-          onClick={onSend}
-          disabled={isLoading || !url.trim()}
-          className="min-w-24"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Sending
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4" />
-              Send
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="bg-secondary/50 w-fit">
-          <TabsTrigger value="body" className="data-[state=active]:bg-primary/20">
-            Body
-          </TabsTrigger>
-          <TabsTrigger value="headers" className="data-[state=active]:bg-primary/20">
-            Headers
-            {headers.filter(h => h.enabled && h.key).length > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                {headers.filter(h => h.enabled && h.key).length}
+    <TooltipProvider>
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Request Builder</h2>
+              <p className="text-[11px] text-muted-foreground">Configure your x402 API request</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {wallet.connected && (
+              <Badge variant="success" className="text-xs gap-1.5 px-2.5 py-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                Ready to Pay
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="params" className="data-[state=active]:bg-primary/20">
-            Params
-            {params.filter(p => p.enabled && p.key).length > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                {params.filter(p => p.enabled && p.key).length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <div className="flex-1 mt-3 overflow-hidden">
-          <TabsContent value="body" className="m-0 h-full">
-            <JsonEditor
-              value={body}
-              onChange={onBodyChange}
-              placeholder='{\n  "key": "value"\n}'
-              minHeight="calc(100% - 1rem)"
-            />
-          </TabsContent>
-
-          <TabsContent value="headers" className="m-0 h-full overflow-auto custom-scrollbar">
-            <div className="space-y-2">
-              {headers.map((header, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Switch
-                    checked={header.enabled}
-                    onCheckedChange={(checked) => updateHeader(index, 'enabled', checked)}
-                  />
-                  <Input
-                    value={header.key}
-                    onChange={(e) => updateHeader(index, 'key', e.target.value)}
-                    placeholder="Header name"
-                    className="flex-1 h-9 bg-secondary border-border font-mono text-sm"
-                  />
-                  <Input
-                    value={header.value}
-                    onChange={(e) => updateHeader(index, 'value', e.target.value)}
-                    placeholder="Value"
-                    className="flex-1 h-9 bg-secondary border-border font-mono text-sm"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => removeHeader(index)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addHeader}
-                className="gap-1.5 mt-2"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Header
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="params" className="m-0 h-full overflow-auto custom-scrollbar">
-            <div className="space-y-2">
-              {params.map((param, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Switch
-                    checked={param.enabled}
-                    onCheckedChange={(checked) => updateParam(index, 'enabled', checked)}
-                  />
-                  <Input
-                    value={param.key}
-                    onChange={(e) => updateParam(index, 'key', e.target.value)}
-                    placeholder="Parameter name"
-                    className="flex-1 h-9 bg-secondary border-border font-mono text-sm"
-                  />
-                  <Input
-                    value={param.value}
-                    onChange={(e) => updateParam(index, 'value', e.target.value)}
-                    placeholder="Value"
-                    className="flex-1 h-9 bg-secondary border-border font-mono text-sm"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => removeParam(index)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addParam}
-                className="gap-1.5 mt-2"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Parameter
-              </Button>
-            </div>
-          </TabsContent>
+            <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              Try Demo
+            </Button>
+          </div>
         </div>
-      </Tabs>
-    </div>
+
+        {/* Method Selector - Prominent toggle for GET/POST */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Method</span>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-3.5 w-3.5 text-muted-foreground/50" />
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[200px]">
+                <p className="text-xs">x402 API supports GET for fetching data and POST for sending data</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="flex gap-2">
+            {methods.map((m) => {
+              const methodKey = m as 'GET' | 'POST';
+              const mConfig = methodConfig[methodKey];
+              const isSelected = method === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => onMethodChange(m)}
+                  className={cn(
+                    "flex-1 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
+                    "flex items-center justify-center gap-2",
+                    isSelected 
+                      ? cn(mConfig.bg, mConfig.color, "border-current") 
+                      : "bg-secondary/50 border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  {m === 'GET' ? <Globe className="h-4 w-4" /> : <FileJson className="h-4 w-4" />}
+                  {m}
+                  {isSelected && (
+                    <span className="text-[10px] font-normal opacity-70 hidden sm:inline">
+                      · {mConfig.description}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* URL Input */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoint URL</span>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Input
+                value={url}
+                onChange={(e) => onUrlChange(e.target.value)}
+                placeholder="https://api.example.com/v1/resource"
+                className="font-mono text-sm bg-secondary/50 border-border h-11 pr-4 pl-4"
+              />
+              {url && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                    {url.includes('x402') || url.includes('demo') ? 'x402' : 'API'}
+                  </Badge>
+                </div>
+              )}
+            </div>
+            <Button
+              variant="neon"
+              onClick={onSend}
+              disabled={isLoading || !url.trim()}
+              className="min-w-28 h-11 gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Sending</span>
+                </>
+              ) : (
+                <>
+                  <span>Send</span>
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Tabs - Contextual based on method */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="bg-secondary/30 w-fit p-1 gap-1">
+            {!isGetMethod && (
+              <TabsTrigger 
+                value="body" 
+                className="data-[state=active]:bg-primary/20 gap-1.5 px-3"
+              >
+                <FileJson className="h-3.5 w-3.5" />
+                Body
+              </TabsTrigger>
+            )}
+            <TabsTrigger 
+              value="params" 
+              className="data-[state=active]:bg-primary/20 gap-1.5 px-3"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Params
+              {params.filter(p => p.enabled && p.key).length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                  {params.filter(p => p.enabled && p.key).length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="headers" 
+              className="data-[state=active]:bg-primary/20 gap-1.5 px-3"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Headers
+              {headers.filter(h => h.enabled && h.key).length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                  {headers.filter(h => h.enabled && h.key).length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 mt-3 overflow-hidden min-h-0">
+            {!isGetMethod && (
+              <TabsContent value="body" className="m-0 h-full">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">JSON request body</span>
+                    <Badge variant="secondary" className="text-[10px]">application/json</Badge>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <JsonEditor
+                      value={body}
+                      onChange={onBodyChange}
+                      placeholder='{\n  "message": "Hello, x402!",\n  "data": {}\n}'
+                      minHeight="100%"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            )}
+
+            <TabsContent value="params" className="m-0 h-full overflow-auto custom-scrollbar">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Query parameters will be appended to the URL</span>
+                </div>
+                {params.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                      <Globe className="h-5 w-5 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">No query parameters added</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addParam}
+                      className="gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Parameter
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {params.map((param, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                        <Switch
+                          checked={param.enabled}
+                          onCheckedChange={(checked) => updateParam(index, 'enabled', checked)}
+                        />
+                        <Input
+                          value={param.key}
+                          onChange={(e) => updateParam(index, 'key', e.target.value)}
+                          placeholder="key"
+                          className={cn(
+                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            !param.enabled && "opacity-50"
+                          )}
+                        />
+                        <span className="text-muted-foreground">=</span>
+                        <Input
+                          value={param.value}
+                          onChange={(e) => updateParam(index, 'value', e.target.value)}
+                          placeholder="value"
+                          className={cn(
+                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            !param.enabled && "opacity-50"
+                          )}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeParam(index)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addParam}
+                      className="gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Parameter
+                    </Button>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="headers" className="m-0 h-full overflow-auto custom-scrollbar">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Custom HTTP headers for your request</span>
+                </div>
+                {headers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                      <Settings2 className="h-5 w-5 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">No custom headers added</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addHeader}
+                      className="gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Header
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {headers.map((header, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                        <Switch
+                          checked={header.enabled}
+                          onCheckedChange={(checked) => updateHeader(index, 'enabled', checked)}
+                        />
+                        <Input
+                          value={header.key}
+                          onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                          placeholder="Header-Name"
+                          className={cn(
+                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            !header.enabled && "opacity-50"
+                          )}
+                        />
+                        <span className="text-muted-foreground">:</span>
+                        <Input
+                          value={header.value}
+                          onChange={(e) => updateHeader(index, 'value', e.target.value)}
+                          placeholder="value"
+                          className={cn(
+                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            !header.enabled && "opacity-50"
+                          )}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeHeader(index)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addHeader}
+                      className="gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Header
+                    </Button>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </TooltipProvider>
   );
 }

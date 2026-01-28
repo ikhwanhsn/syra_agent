@@ -1,7 +1,22 @@
-import { Wallet, Zap, Menu } from 'lucide-react';
+import { Wallet, Zap, Menu, Coins, ExternalLink, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WalletState } from '@/types/api';
+import { useWalletContext } from '@/contexts/WalletContext';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TopBarProps {
   wallet: WalletState;
@@ -11,68 +26,144 @@ interface TopBarProps {
 }
 
 export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen }: TopBarProps) {
+  const walletContext = useWalletContext();
+  
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-      <div className="flex items-center justify-between h-full px-4 lg:px-6">
-        {/* Left: Logo and menu */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onToggleSidebar}
-            className="lg:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
+    <TooltipProvider>
+      <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center justify-between h-full px-4 lg:px-6">
+          {/* Left: Logo and menu */}
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-neon-purple to-neon-blue flex items-center justify-center neon-glow-purple">
-                <Zap className="h-5 w-5 text-white" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onToggleSidebar}
+              className="lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            
+            <div className="flex items-center gap-3">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-purple to-neon-blue rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-neon-purple to-neon-blue flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                  <span className="gradient-text">x402</span>
+                  <span className="text-foreground">Playground</span>
+                </h1>
+                <p className="text-[10px] text-muted-foreground -mt-0.5">HTTP 402 Payment Protocol</p>
               </div>
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold tracking-tight">
-                <span className="gradient-text">x402</span>
-                <span className="text-foreground ml-1">API Playground</span>
-              </h1>
+          </div>
+
+          {/* Center: Flow indicator */}
+          <div className="hidden lg:flex items-center gap-2">
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
+              <span className="text-xs font-medium text-muted-foreground">1. Send Request</span>
+              <span className="text-muted-foreground/50 mx-1">→</span>
+              <span className="text-xs font-medium text-warning">2. Pay (402)</span>
+              <span className="text-muted-foreground/50 mx-1">→</span>
+              <span className="text-xs font-medium text-success">3. Get Data</span>
             </div>
           </div>
-        </div>
 
-        {/* Center: Tagline */}
-        <div className="hidden md:flex items-center">
-          <p className="text-sm text-muted-foreground font-medium tracking-wide">
-            Send. <span className="text-primary">Pay.</span> Retry. <span className="text-accent">Get Results.</span>
-          </p>
-        </div>
+          {/* Right: Wallet connection */}
+          <div className="flex items-center gap-2">
+            {/* Learn more link */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a 
+                  href="https://www.x402.org" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                >
+                  <span>Learn x402</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Learn about the x402 payment protocol</p>
+              </TooltipContent>
+            </Tooltip>
 
-        {/* Right: Wallet connection */}
-        <div className="flex items-center gap-3">
-          {wallet.connected ? (
-            <div className="flex items-center gap-2">
-              <Badge variant="success" className="hidden sm:flex gap-1.5 px-3 py-1">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                Connected
-              </Badge>
-              <Button variant="glass" size="sm" className="font-mono text-xs">
-                {wallet.address?.slice(0, 4)}...{wallet.address?.slice(-4)}
-              </Button>
-            </div>
-          ) : (
-            <Button 
-              variant="neon" 
-              size="sm" 
-              onClick={onConnectWallet}
-              className="gap-2"
-            >
-              <Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Connect Wallet</span>
-              <span className="sm:hidden">Connect</span>
-            </Button>
-          )}
+            {wallet.connected ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-success/10 border border-success/20">
+                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                  <span className="text-xs font-medium text-success">Connected</span>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="glass" size="sm" className="font-mono text-xs gap-2">
+                      <Coins className="h-3.5 w-3.5 text-accent" />
+                      <span>{wallet.balance || '0 USDC'}</span>
+                      <span className="text-muted-foreground">|</span>
+                      <span>{walletContext.shortAddress}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">Wallet Connected</p>
+                        <p className="text-xs font-mono text-muted-foreground truncate">
+                          {walletContext.address}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="justify-between">
+                      <span className="text-muted-foreground">SOL Balance</span>
+                      <span className="font-mono">{walletContext.solBalance?.toFixed(4) || '0'} SOL</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="justify-between">
+                      <span className="text-muted-foreground">USDC Balance</span>
+                      <span className="font-mono">{walletContext.usdcBalance?.toFixed(2) || '0'} USDC</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => walletContext.disconnect()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Disconnect
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="neon" 
+                    size="sm" 
+                    onClick={onConnectWallet}
+                    disabled={walletContext.connecting}
+                    className="gap-2"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    {walletContext.connecting ? (
+                      <span>Connecting...</span>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">Connect Wallet</span>
+                        <span className="sm:hidden">Connect</span>
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Connect your Solana wallet to enable payments</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </TooltipProvider>
   );
 }

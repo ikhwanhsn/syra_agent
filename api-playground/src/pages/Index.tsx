@@ -4,6 +4,15 @@ import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { PaymentModal } from '@/components/PaymentModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
+import { PaymentDetails } from '@/types/api';
+
+// Default payment details when we can't parse x402 response
+const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
+  amount: '0',
+  token: 'USDC',
+  recipient: 'Unknown',
+  network: 'Solana',
+};
 
 const Index = () => {
   const {
@@ -37,6 +46,9 @@ const Index = () => {
     setIsPaymentModalOpen,
   } = useApiPlayground();
 
+  // Use actual payment details or default for 402 responses
+  const effectivePaymentDetails = paymentDetails || (status === 'payment_required' ? DEFAULT_PAYMENT_DETAILS : undefined);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Bar */}
@@ -62,8 +74,8 @@ const Index = () => {
         {/* Main Panels */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Request Builder */}
-          <div className="flex-1 min-w-0 p-4 lg:p-6 overflow-hidden border-b lg:border-b-0 lg:border-r border-border">
-            <div className="glass-panel h-full p-4 lg:p-6 overflow-hidden flex flex-col">
+          <div className="flex-1 min-w-0 p-3 lg:p-5 overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50">
+            <div className="glass-panel h-full p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
               <RequestBuilder
                 method={method}
                 url={url}
@@ -84,12 +96,12 @@ const Index = () => {
           </div>
 
           {/* Response Viewer */}
-          <div className="flex-1 min-w-0 p-4 lg:p-6 overflow-hidden">
-            <div className="glass-panel h-full p-4 lg:p-6 overflow-hidden flex flex-col">
+          <div className="flex-1 min-w-0 p-3 lg:p-5 overflow-hidden">
+            <div className="glass-panel h-full p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
               <ResponseViewer
                 response={response}
                 status={status}
-                paymentDetails={paymentDetails}
+                paymentDetails={effectivePaymentDetails}
                 onPayAndRetry={() => setIsPaymentModalOpen(true)}
               />
             </div>
@@ -97,12 +109,12 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
-      {paymentDetails && (
+      {/* Payment Modal - Show for any 402 response */}
+      {effectivePaymentDetails && (
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
-          paymentDetails={paymentDetails}
+          paymentDetails={effectivePaymentDetails}
           wallet={wallet}
           transactionStatus={transactionStatus}
           onConnectWallet={connectWallet}

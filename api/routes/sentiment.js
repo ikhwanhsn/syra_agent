@@ -37,7 +37,7 @@ export async function createSentimentRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Sentiment analysis for crypto markets",
+      description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/sentiment",
@@ -46,8 +46,14 @@ export async function createSentimentRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the sentiment analysis",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for market-wide sentiment",
           },
+        },
+      },
+      outputSchema: {
+        sentimentAnalysis: {
+          type: "array",
+          description: "Array of daily sentiment scores with positive, negative, and neutral percentages",
         },
       },
     }),
@@ -119,7 +125,7 @@ export async function createSentimentRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Sentiment analysis for crypto markets",
+      description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/sentiment",
@@ -129,8 +135,14 @@ export async function createSentimentRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the sentiment analysis",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for market-wide sentiment",
           },
+        },
+      },
+      outputSchema: {
+        sentimentAnalysis: {
+          type: "array",
+          description: "Array of daily sentiment scores with positive, negative, and neutral percentages",
         },
       },
     }),

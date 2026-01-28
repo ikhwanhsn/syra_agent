@@ -13,7 +13,7 @@ export async function createResearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Research information from websites",
+      description: "AI-powered deep research on any crypto topic with cited sources",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/research",
@@ -21,15 +21,28 @@ export async function createResearchRouter() {
         queryParams: {
           query: {
             type: "string",
-            required: false,
-            description: "Query for the research",
+            required: true,
+            description: "Research query (e.g., token analysis, market trends, protocol deep-dive)",
           },
           type: {
-            type: "enum",
+            type: "string",
             required: false,
-            description: "Type of research",
-            enum: ["quick", "deep"],
+            description: "Research depth: 'quick' for fast results, 'deep' for comprehensive analysis",
           },
+        },
+      },
+      outputSchema: {
+        status: {
+          type: "string",
+          description: "Research status (success or error)",
+        },
+        content: {
+          type: "string",
+          description: "Comprehensive research findings and analysis",
+        },
+        sources: {
+          type: "array",
+          description: "Array of cited sources and references",
         },
       },
     }),
@@ -90,7 +103,7 @@ export async function createResearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Research information from websites",
+      description: "AI-powered deep research on any crypto topic with cited sources",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/research",
@@ -99,15 +112,28 @@ export async function createResearchRouter() {
         bodyFields: {
           query: {
             type: "string",
-            required: false,
-            description: "Query for the research",
+            required: true,
+            description: "Research query (e.g., token analysis, market trends, protocol deep-dive)",
           },
           type: {
-            type: "enum",
+            type: "string",
             required: false,
-            description: "Type of research",
-            enum: ["quick", "deep"],
+            description: "Research depth: 'quick' for fast results, 'deep' for comprehensive analysis",
           },
+        },
+      },
+      outputSchema: {
+        status: {
+          type: "string",
+          description: "Research status (success or error)",
+        },
+        content: {
+          type: "string",
+          description: "Comprehensive research findings and analysis",
+        },
+        sources: {
+          type: "array",
+          description: "Array of cited sources and references",
         },
       },
     }),

@@ -14,7 +14,7 @@ export async function createXSearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X platform for a specific topic",
+      description: "Deep research on X/Twitter platform for crypto trends and discussions",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-search",
@@ -22,9 +22,27 @@ export async function createXSearchRouter() {
         queryParams: {
           query: {
             type: "string",
-            required: false,
-            description: "Topic for the research",
+            required: true,
+            description: "Search query for X/Twitter research (e.g., token name, topic)",
           },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The original search query",
+        },
+        result: {
+          type: "string",
+          description: "AI-summarized findings from X/Twitter discussions",
+        },
+        citations: {
+          type: "array",
+          description: "Array of source tweets and references",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Array of tool calls made during research",
         },
       },
     }),
@@ -103,7 +121,7 @@ export async function createXSearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X platform for a specific topic",
+      description: "Deep research on X/Twitter platform for crypto trends and discussions",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-search",
@@ -112,9 +130,27 @@ export async function createXSearchRouter() {
         bodyFields: {
           query: {
             type: "string",
-            required: false,
-            description: "Topic for the research",
+            required: true,
+            description: "Search query for X/Twitter research (e.g., token name, topic)",
           },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The original search query",
+        },
+        result: {
+          type: "string",
+          description: "AI-summarized findings from X/Twitter discussions",
+        },
+        citations: {
+          type: "array",
+          description: "Array of source tweets and references",
+        },
+        toolCalls: {
+          type: "array",
+          description: "Array of tool calls made during research",
         },
       },
     }),

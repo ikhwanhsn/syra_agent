@@ -6,10 +6,11 @@ import { fileURLToPath } from "url";
 import { createNewsRouter } from "./routes/news.js";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
-import { paymentMiddleware, x402ResourceServer } from "@x402/express";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { ExactSvmScheme } from "@x402/svm/exact/server";
+// NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
+// import { paymentMiddleware, x402ResourceServer } from "@x402/express";
+// import { HTTPFacilitatorClient } from "@x402/core/server";
+// import { ExactEvmScheme } from "@x402/evm/exact/server";
+// import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
 import { createSignalRouter } from "./routes/signal.js";
 import { createXSearchRouter } from "./routes/xSearch.js";
@@ -60,420 +61,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // x402 Payment Configuration
-const evmAddress = process.env.EVM_ADDRESS;
-const svmAddress = process.env.SVM_ADDRESS;
-if (!evmAddress || !svmAddress) {
-  console.error("Missing required environment variables: EVM_ADDRESS, SVM_ADDRESS");
-  process.exit(1);
-}
-
-const facilitatorUrl = process.env.FACILITATOR_URL_PAYAI;
-if (!facilitatorUrl) {
-  console.error("❌ FACILITATOR_URL_PAYAI environment variable is required");
-  process.exit(1);
-}
-const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
-
-// Helper function to create accepts array for both EVM and SVM networks
-// Using @x402/express format with "price" (library handles conversion internally)
-const createAccepts = (price) => [
-  {
-    scheme: "exact",
-    price: price, // @x402/express uses "price" format like "$0.001"
-    network: "eip155:8453", // Base Mainnet
-    payTo: evmAddress,
-  },
-  {
-    scheme: "exact",
-    price: price, // @x402/express uses "price" format like "$0.001"
-    network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", // Solana Mainnet
-    payTo: svmAddress,
-  },
-];
+// NOTE: Individual routes use requirePayment() from utils/x402Payment.js
+// which handles V1-compatible payment verification and 402 responses.
+// See utils/x402Payment.js for configuration details.
 
 const app = express();
 
-// Centralized x402 payment middleware for all paid API routes using @x402/express
-app.use(
-  paymentMiddleware(
-    {
-      // Weather API (example endpoint)
-      "GET /weather-paid": {
-        accepts: createAccepts("$0.001"),
-        description: "Weather data",
-        mimeType: "application/json",
-      },
-      // News API
-      "GET /news": {
-        accepts: createAccepts("$0.1"),
-        description: "News information service",
-        mimeType: "application/json",
-      },
-      "POST /news": {
-        accepts: createAccepts("$0.1"),
-        description: "News information service",
-        mimeType: "application/json",
-      },
-      // Signal API
-      "GET /signal": {
-        accepts: createAccepts("$0.15"),
-        description: "Trading signal service",
-        mimeType: "application/json",
-      },
-      "POST /signal": {
-        accepts: createAccepts("$0.15"),
-        description: "Trading signal service",
-        mimeType: "application/json",
-      },
-      // X Search API
-      "GET /x-search": {
-        accepts: createAccepts("$0.1"),
-        description: "X/Twitter search service",
-        mimeType: "application/json",
-      },
-      "POST /x-search": {
-        accepts: createAccepts("$0.1"),
-        description: "X/Twitter search service",
-        mimeType: "application/json",
-      },
-      // X KOL API
-      "GET /x-kol": {
-        accepts: createAccepts("$0.1"),
-        description: "X/Twitter KOL service",
-        mimeType: "application/json",
-      },
-      "POST /x-kol": {
-        accepts: createAccepts("$0.1"),
-        description: "X/Twitter KOL service",
-        mimeType: "application/json",
-      },
-      // Browse API
-      "GET /browse": {
-        accepts: createAccepts("$0.1"),
-        description: "Web browsing service",
-        mimeType: "application/json",
-      },
-      "POST /browse": {
-        accepts: createAccepts("$0.1"),
-        description: "Web browsing service",
-        mimeType: "application/json",
-      },
-      // Research API
-      "GET /research": {
-        accepts: createAccepts("$0.15"),
-        description: "Research service",
-        mimeType: "application/json",
-      },
-      "POST /research": {
-        accepts: createAccepts("$0.15"),
-        description: "Research service",
-        mimeType: "application/json",
-      },
-      // Gems API
-      "GET /gems": {
-        accepts: createAccepts("$0.1"),
-        description: "Gems discovery service",
-        mimeType: "application/json",
-      },
-      "POST /gems": {
-        accepts: createAccepts("$0.1"),
-        description: "Gems discovery service",
-        mimeType: "application/json",
-      },
-      // Crypto KOL API
-      "GET /crypto-kol": {
-        accepts: createAccepts("$0.1"),
-        description: "Crypto KOL service",
-        mimeType: "application/json",
-      },
-      "POST /crypto-kol": {
-        accepts: createAccepts("$0.1"),
-        description: "Crypto KOL service",
-        mimeType: "application/json",
-      },
-      // Check Status API
-      "GET /check-status": {
-        accepts: createAccepts("$0.05"),
-        description: "Transaction status check",
-        mimeType: "application/json",
-      },
-      "POST /check-status": {
-        accepts: createAccepts("$0.05"),
-        description: "Transaction status check",
-        mimeType: "application/json",
-      },
-      // Smart Money API
-      "GET /smart-money": {
-        accepts: createAccepts("$0.15"),
-        description: "Smart money tracking service",
-        mimeType: "application/json",
-      },
-      "POST /smart-money": {
-        accepts: createAccepts("$0.15"),
-        description: "Smart money tracking service",
-        mimeType: "application/json",
-      },
-      // Dexscreener API
-      "GET /dexscreener": {
-        accepts: createAccepts("$0.1"),
-        description: "Dexscreener data service",
-        mimeType: "application/json",
-      },
-      "POST /dexscreener": {
-        accepts: createAccepts("$0.1"),
-        description: "Dexscreener data service",
-        mimeType: "application/json",
-      },
-      // Token God Mode API
-      "GET /token-god-mode": {
-        accepts: createAccepts("$0.15"),
-        description: "Token analysis service",
-        mimeType: "application/json",
-      },
-      "POST /token-god-mode": {
-        accepts: createAccepts("$0.15"),
-        description: "Token analysis service",
-        mimeType: "application/json",
-      },
-      // Solana Agent API
-      "GET /solana-agent": {
-        accepts: createAccepts("$0.1"),
-        description: "Solana agent service",
-        mimeType: "application/json",
-      },
-      "POST /solana-agent": {
-        accepts: createAccepts("$0.1"),
-        description: "Solana agent service",
-        mimeType: "application/json",
-      },
-      // Pump API
-      "GET /pump": {
-        accepts: createAccepts("$0.1"),
-        description: "Pump.fun data service",
-        mimeType: "application/json",
-      },
-      "POST /pump": {
-        accepts: createAccepts("$0.1"),
-        description: "Pump.fun data service",
-        mimeType: "application/json",
-      },
-      // Trending Jupiter API
-      "GET /trending-jupiter": {
-        accepts: createAccepts("$0.1"),
-        description: "Jupiter trending tokens",
-        mimeType: "application/json",
-      },
-      "POST /trending-jupiter": {
-        accepts: createAccepts("$0.1"),
-        description: "Jupiter trending tokens",
-        mimeType: "application/json",
-      },
-      // Token Report API
-      "GET /token-report": {
-        accepts: createAccepts("$0.1"),
-        description: "Token report service",
-        mimeType: "application/json",
-      },
-      "POST /token-report": {
-        accepts: createAccepts("$0.1"),
-        description: "Token report service",
-        mimeType: "application/json",
-      },
-      // Token Statistic API
-      "GET /token-statistic": {
-        accepts: createAccepts("$0.1"),
-        description: "Token statistics service",
-        mimeType: "application/json",
-      },
-      "POST /token-statistic": {
-        accepts: createAccepts("$0.1"),
-        description: "Token statistics service",
-        mimeType: "application/json",
-      },
-      // Sentiment API
-      "GET /sentiment": {
-        accepts: createAccepts("$0.1"),
-        description: "Market sentiment analysis",
-        mimeType: "application/json",
-      },
-      "POST /sentiment": {
-        accepts: createAccepts("$0.1"),
-        description: "Market sentiment analysis",
-        mimeType: "application/json",
-      },
-      // Event API
-      "GET /event": {
-        accepts: createAccepts("$0.1"),
-        description: "Crypto events service",
-        mimeType: "application/json",
-      },
-      "POST /event": {
-        accepts: createAccepts("$0.1"),
-        description: "Crypto events service",
-        mimeType: "application/json",
-      },
-      // Trending Headline API
-      "GET /trending-headline": {
-        accepts: createAccepts("$0.1"),
-        description: "Trending headlines service",
-        mimeType: "application/json",
-      },
-      "POST /trending-headline": {
-        accepts: createAccepts("$0.1"),
-        description: "Trending headlines service",
-        mimeType: "application/json",
-      },
-      // Sundown Digest API
-      "GET /sundown-digest": {
-        accepts: createAccepts("$0.1"),
-        description: "Sundown digest service",
-        mimeType: "application/json",
-      },
-      "POST /sundown-digest": {
-        accepts: createAccepts("$0.1"),
-        description: "Sundown digest service",
-        mimeType: "application/json",
-      },
-      // Create Signal API
-      "GET /create-signal": {
-        accepts: createAccepts("$0.15"),
-        description: "Create trading signal",
-        mimeType: "application/json",
-      },
-      "POST /create-signal": {
-        accepts: createAccepts("$0.15"),
-        description: "Create trading signal",
-        mimeType: "application/json",
-      },
-      // Bubblemaps API
-      "GET /bubblemaps/maps": {
-        accepts: createAccepts("$0.1"),
-        description: "Bubblemaps visualization",
-        mimeType: "application/json",
-      },
-      "POST /bubblemaps/maps": {
-        accepts: createAccepts("$0.1"),
-        description: "Bubblemaps visualization",
-        mimeType: "application/json",
-      },
-      // Binance Correlation API
-      "GET /binance/correlation-matrix": {
-        accepts: createAccepts("$0.1"),
-        description: "Correlation matrix data",
-        mimeType: "application/json",
-      },
-      "POST /binance/correlation-matrix": {
-        accepts: createAccepts("$0.1"),
-        description: "Correlation matrix data",
-        mimeType: "application/json",
-      },
-      "GET /binance/correlation": {
-        accepts: createAccepts("$0.1"),
-        description: "Correlation data",
-        mimeType: "application/json",
-      },
-      "POST /binance/correlation": {
-        accepts: createAccepts("$0.1"),
-        description: "Correlation data",
-        mimeType: "application/json",
-      },
-      // Memecoin APIs
-      "GET /memecoin/fastest-holder-growth": {
-        accepts: createAccepts("$0.1"),
-        description: "Fastest holder growth memecoins",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/fastest-holder-growth": {
-        accepts: createAccepts("$0.1"),
-        description: "Fastest holder growth memecoins",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/most-mentioned-by-smart-money-x": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins mentioned by smart money on X",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/most-mentioned-by-smart-money-x": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins mentioned by smart money on X",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/accumulating-before-CEX-rumors": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins accumulating before CEX rumors",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/accumulating-before-CEX-rumors": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins accumulating before CEX rumors",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/strong-narrative-low-market-cap": {
-        accepts: createAccepts("$0.1"),
-        description: "Strong narrative low market cap memecoins",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/strong-narrative-low-market-cap": {
-        accepts: createAccepts("$0.1"),
-        description: "Strong narrative low market cap memecoins",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/by-experienced-devs": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins by experienced developers",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/by-experienced-devs": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins by experienced developers",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/unusual-whale-behavior": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins with unusual whale behavior",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/unusual-whale-behavior": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins with unusual whale behavior",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/trending-on-x-not-dex": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins trending on X but not DEX",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/trending-on-x-not-dex": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins trending on X but not DEX",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/organic-traction": {
-        accepts: createAccepts("$0.1"),
-        description: "AI memecoins with organic traction",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/organic-traction": {
-        accepts: createAccepts("$0.1"),
-        description: "AI memecoins with organic traction",
-        mimeType: "application/json",
-      },
-      "GET /memecoin/surviving-market-dumps": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins surviving market dumps",
-        mimeType: "application/json",
-      },
-      "POST /memecoin/surviving-market-dumps": {
-        accepts: createAccepts("$0.1"),
-        description: "Memecoins surviving market dumps",
-        mimeType: "application/json",
-      },
-    },
-    new x402ResourceServer(facilitatorClient)
-      .register("eip155:8453", new ExactEvmScheme())
-      .register("solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", new ExactSvmScheme()),
-  ),
-);
+// NOTE: @x402/express paymentMiddleware DISABLED
+// We use custom V1-compatible requirePayment middleware in each route file instead.
+// This ensures x402scan compatibility with x402Version: 1 format.
+// 
+// The individual routes (news.js, signal.js, etc.) use requirePayment() from
+// utils/x402Payment.js which returns the correct V1 format with:
+// - x402Version: 1
+// - X-PAYMENT header requirement
+// - Simple network name (e.g., "solana")
+// - maxAmountRequired field
+// - outputSchema with input/output structure
+// - extra.feePayer field
 
 // app.use(
 //   cors({
@@ -783,13 +388,27 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
   res.json({ x402: "8ab3d1b3906d" });
 });
 
-// Serve discovery document at /.well-known/x402
-// NOTE: Only list endpoints that use requirePayment middleware (return 402 without payment)
+// Serve discovery document at /.well-known/x402 (x402scan compatible)
+// NOTE: Only list endpoints that use paymentMiddleware (return 402 without payment)
+// Discovery document version is 1, but 402 responses use x402Version: 2
 app.get("/.well-known/x402", (req, res) => {
+  // Collect ownership proofs for both EVM and Solana addresses
+  const ownershipProofs = [];
+  if (process.env.X402_OWNERSHIP_PROOF_EVM) {
+    ownershipProofs.push(process.env.X402_OWNERSHIP_PROOF_EVM);
+  }
+  if (process.env.X402_OWNERSHIP_PROOF_SVM) {
+    ownershipProofs.push(process.env.X402_OWNERSHIP_PROOF_SVM);
+  }
+  // Fallback to legacy single proof env var
+  if (ownershipProofs.length === 0 && process.env.X402_OWNERSHIP_PROOF) {
+    ownershipProofs.push(process.env.X402_OWNERSHIP_PROOF);
+  }
+
   res.json({
-    version: 1,
+    version: 1, // Discovery document version (not x402 protocol version)
     resources: [
-      // Core endpoints (with requirePayment)
+      // Core endpoints (with paymentMiddleware)
       "https://api.syraa.fun/news",
       "https://api.syraa.fun/signal",
       "https://api.syraa.fun/sentiment",
@@ -797,28 +416,29 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/trending-headline",
       "https://api.syraa.fun/sundown-digest",
       "https://api.syraa.fun/check-status",
-      // Binance endpoints (with requirePayment)
+      "https://api.syraa.fun/create-signal",
+      // Binance endpoints (with paymentMiddleware)
       "https://api.syraa.fun/binance/correlation-matrix",
       "https://api.syraa.fun/binance/correlation",
-      // X/Twitter endpoints (with requirePayment)
+      // X/Twitter endpoints (with paymentMiddleware)
       "https://api.syraa.fun/x-search",
       "https://api.syraa.fun/x-kol",
       "https://api.syraa.fun/crypto-kol",
-      // Research & Analysis endpoints (with requirePayment)
+      // Research & Analysis endpoints (with paymentMiddleware)
       "https://api.syraa.fun/browse",
       "https://api.syraa.fun/research",
       "https://api.syraa.fun/gems",
-      // Partner endpoints (with requirePayment)
+      // Partner endpoints (with paymentMiddleware)
       "https://api.syraa.fun/smart-money",
       "https://api.syraa.fun/dexscreener",
       "https://api.syraa.fun/token-god-mode",
       "https://api.syraa.fun/solana-agent",
+      "https://api.syraa.fun/pump",
       "https://api.syraa.fun/trending-jupiter",
       "https://api.syraa.fun/token-report",
       "https://api.syraa.fun/token-statistic",
       "https://api.syraa.fun/bubblemaps/maps",
-      // NOTE: /pump removed - GET endpoint has requirePayment commented out
-      // Memecoin endpoints (with requirePayment)
+      // Memecoin endpoints (with paymentMiddleware)
       "https://api.syraa.fun/memecoin/fastest-holder-growth",
       "https://api.syraa.fun/memecoin/most-mentioned-by-smart-money-x",
       "https://api.syraa.fun/memecoin/accumulating-before-CEX-rumors",
@@ -829,13 +449,32 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/memecoin/organic-traction",
       "https://api.syraa.fun/memecoin/surviving-market-dumps",
     ],
-    // IMPORTANT: Generate ownership proof by running: node scripts/generateOwnershipProof.js
-    // Sign "https://api.syraa.fun" with your ADDRESS_PAYAI private key
-    ownershipProofs: process.env.X402_OWNERSHIP_PROOF
-      ? [process.env.X402_OWNERSHIP_PROOF]
-      : [],
-    instructions:
-      "# API Documentation\n\nVisit https://docs.syraa.fun for full documentation.\n\n## Rate Limits\n- 1000 requests/hour",
+    // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
+    // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY
+    // Set X402_OWNERSHIP_PROOF_EVM and X402_OWNERSHIP_PROOF_SVM environment variables
+    ownershipProofs: ownershipProofs,
+    instructions: `# SYRA API Documentation
+
+Visit https://docs.syraa.fun for full documentation.
+
+## Supported Payment Networks
+
+- **Base Mainnet (EVM)**: \`eip155:8453\` - USDC payments
+- **Solana Mainnet (SVM)**: \`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp\` - USDC payments
+
+## Rate Limits
+
+- 1000 requests/hour per IP
+- Rate limits apply across all endpoints
+
+## Authentication
+
+No API key required. All endpoints use x402 protocol (HTTP 402) for payment.
+
+## Support
+
+- Documentation: https://docs.syraa.fun
+- Twitter: @syraa_ai`,
   });
 });
 

@@ -21,10 +21,16 @@ export async function createSundownDigestRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the latest sundown digest in crypto market",
+      description: "Daily end-of-day summary of key crypto market events and movements",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/sundown-digest",
+      outputSchema: {
+        sundownDigest: {
+          type: "array",
+          description: "Array of daily digest items with summary, key events, and market highlights",
+        },
+      },
     }),
     async (req, res) => {
       const result = await fetchSundownDigest();
@@ -75,10 +81,16 @@ export async function createSundownDigestRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the latest sundown digest in crypto market",
+      description: "Daily end-of-day summary of key crypto market events and movements",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/sundown-digest",
+      outputSchema: {
+        sundownDigest: {
+          type: "array",
+          description: "Array of daily digest items with summary, key events, and market highlights",
+        },
+      },
     }),
     async (req, res) => {
       const result = await fetchSundownDigest();

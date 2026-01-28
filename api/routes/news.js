@@ -45,7 +45,7 @@ export async function createNewsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "News information service",
+      description: "Get latest crypto news and market updates",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/news",
@@ -54,8 +54,14 @@ export async function createNewsRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the news",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all news",
           },
+        },
+      },
+      outputSchema: {
+        news: {
+          type: "array",
+          description: "Array of news articles with title, source, date, and content",
         },
       },
     }),
@@ -124,7 +130,7 @@ export async function createNewsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "News information service",
+      description: "Get latest crypto news and market updates",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/news",
@@ -134,8 +140,14 @@ export async function createNewsRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker name for the news",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all news",
           },
+        },
+      },
+      outputSchema: {
+        news: {
+          type: "array",
+          description: "Array of news articles with title, source, date, and content",
         },
       },
     }),
