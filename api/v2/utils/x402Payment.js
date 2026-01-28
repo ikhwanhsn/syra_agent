@@ -101,41 +101,49 @@ export function requirePayment(options) {
       };
 
       // Add query params to schema
-      if (options.inputSchema?.queryParams) {
+      if (options.inputSchema && options.inputSchema.queryParams) {
         for (const [key, value] of Object.entries(options.inputSchema.queryParams)) {
-          inputSchema.properties[key] = {
-            type: value.type || "string",
-            description: value.description,
-          };
-          if (value.required === true) {
-            inputSchema.required.push(key);
+          if (value && typeof value === 'object') {
+            inputSchema.properties[key] = {
+              type: value.type || "string",
+              description: value.description || "",
+            };
+            if (value.required === true) {
+              inputSchema.required.push(key);
+            }
           }
         }
       }
 
       // Add body fields to schema
-      if (options.inputSchema?.bodyFields) {
+      if (options.inputSchema && options.inputSchema.bodyFields) {
         for (const [key, value] of Object.entries(options.inputSchema.bodyFields)) {
-          inputSchema.properties[key] = {
-            type: value.type || "string",
-            description: value.description,
-          };
-          if (value.required === true) {
-            inputSchema.required.push(key);
+          if (value && typeof value === 'object') {
+            inputSchema.properties[key] = {
+              type: value.type || "string",
+              description: value.description || "",
+            };
+            if (value.required === true) {
+              inputSchema.required.push(key);
+            }
           }
         }
       }
 
       // 8. Build example info for Bazaar extension
       const exampleInput = {};
-      if (options.inputSchema?.queryParams) {
+      if (options.inputSchema && options.inputSchema.queryParams) {
         for (const [key, value] of Object.entries(options.inputSchema.queryParams)) {
-          exampleInput[key] = value.example || `example_${key}`;
+          if (value && typeof value === 'object') {
+            exampleInput[key] = value.example || `example_${key}`;
+          }
         }
       }
-      if (options.inputSchema?.bodyFields) {
+      if (options.inputSchema && options.inputSchema.bodyFields) {
         for (const [key, value] of Object.entries(options.inputSchema.bodyFields)) {
-          exampleInput[key] = value.example || `example_${key}`;
+          if (value && typeof value === 'object') {
+            exampleInput[key] = value.example || `example_${key}`;
+          }
         }
       }
 
