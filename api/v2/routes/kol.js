@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { kolPrompt } from "../../prompts/kol.prompt.js";
@@ -15,7 +15,7 @@ export async function createXKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter (V2 API)",
+      description: "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-kol",
@@ -24,30 +24,30 @@ export async function createXKOLRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Solana token contract address to analyze KOL mentions for (V2 API)",
+            description: "Solana token contract address to analyze KOL mentions for",
           },
         },
       },
       outputSchema: {
         query: {
           type: "string",
-          description: "The analysis query used (V2 API)",
+          description: "The analysis query used",
         },
         tokenInfo: {
           type: "object",
-          description: "Token information from DEXScreener (V2 API)",
+          description: "Token information from DEXScreener",
         },
         result: {
           type: "string",
-          description: "KOL/Influencer analysis and sentiment summary (V2 API)",
+          description: "KOL/Influencer analysis and sentiment summary",
         },
         citations: {
           type: "array",
-          description: "Source tweets from KOLs (V2 API)",
+          description: "Source tweets from KOLs",
         },
         toolCalls: {
           type: "array",
-          description: "Research tool calls made (V2 API)",
+          description: "Research tool calls made",
         },
       },
     }),
@@ -114,7 +114,7 @@ export async function createXKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter (V2 API)",
+      description: "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-kol",
@@ -124,30 +124,30 @@ export async function createXKOLRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Solana token contract address to analyze KOL mentions for (V2 API)",
+            description: "Solana token contract address to analyze KOL mentions for",
           },
         },
       },
       outputSchema: {
         query: {
           type: "string",
-          description: "The analysis query used (V2 API)",
+          description: "The analysis query used",
         },
         tokenInfo: {
           type: "object",
-          description: "Token information from DEXScreener (V2 API)",
+          description: "Token information from DEXScreener",
         },
         result: {
           type: "string",
-          description: "KOL/Influencer analysis and sentiment summary (V2 API)",
+          description: "KOL/Influencer analysis and sentiment summary",
         },
         citations: {
           type: "array",
-          description: "Source tweets from KOLs (V2 API)",
+          description: "Source tweets from KOLs",
         },
         toolCalls: {
           type: "array",
-          description: "Research tool calls made (V2 API)",
+          description: "Research tool calls made",
         },
       },
     }),

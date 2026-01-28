@@ -1,6 +1,6 @@
 // routes/weather.js
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createSundownDigestRouter() {
@@ -20,14 +20,14 @@ export async function createSundownDigestRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Daily end-of-day summary of key crypto market events and movements (V2 API)",
+      description: "Daily end-of-day summary of key crypto market events and movements",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/sundown-digest",
       outputSchema: {
         sundownDigest: {
           type: "array",
-          description: "Array of daily digest items with summary, key events, and market highlights (V2 API)",
+          description: "Array of daily digest items with summary, key events, and market highlights",
         },
       },
     }),
@@ -65,14 +65,14 @@ export async function createSundownDigestRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Daily end-of-day summary of key crypto market events and movements (V2 API)",
+      description: "Daily end-of-day summary of key crypto market events and movements",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/sundown-digest",
       outputSchema: {
         sundownDigest: {
           type: "array",
-          description: "Array of daily digest items with summary, key events, and market highlights (V2 API)",
+          description: "Array of daily digest items with summary, key events, and market highlights",
         },
       },
     }),

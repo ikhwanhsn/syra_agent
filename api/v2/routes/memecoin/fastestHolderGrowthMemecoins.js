@@ -14,7 +14,7 @@ export async function createFastestHolderGrowthMemecoinsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the fastest growing memecoins by holder growth rate. (V2 API)",
+      description: "Get the fastest growing memecoins by holder growth rate.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/fastest-holder-growth-memecoins",
@@ -78,7 +78,7 @@ export async function createFastestHolderGrowthMemecoinsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the fastest growing memecoins by holder growth rate. (V2 API)",
+      description: "Get the fastest growing memecoins by holder growth rate.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/fastest-holder-growth-memecoins",

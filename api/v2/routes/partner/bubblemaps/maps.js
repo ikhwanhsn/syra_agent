@@ -13,7 +13,7 @@ export async function createBubblemapsMapsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Token holder distribution visualization and decentralization score from BubbleMaps (V2 API)",
+      description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/bubblemaps/maps",
@@ -22,14 +22,14 @@ export async function createBubblemapsMapsRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Solana token contract address (V2 API)",
+            description: "Solana token contract address",
           },
         },
       },
       outputSchema: {
         data: {
           type: "object",
-          description: "BubbleMaps data with holder clusters, decentralization score, and distribution visualization (V2 API)",
+          description: "BubbleMaps data with holder clusters, decentralization score, and distribution visualization",
         },
       },
     }),
@@ -82,7 +82,7 @@ export async function createBubblemapsMapsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Token holder distribution visualization and decentralization score from BubbleMaps (V2 API)",
+      description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/bubblemaps/maps",
@@ -92,14 +92,14 @@ export async function createBubblemapsMapsRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Solana token contract address (V2 API)",
+            description: "Solana token contract address",
           },
         },
       },
       outputSchema: {
         data: {
           type: "object",
-          description: "BubbleMaps data with holder clusters, decentralization score, and distribution visualization (V2 API)",
+          description: "BubbleMaps data with holder clusters, decentralization score, and distribution visualization",
         },
       },
     }),

@@ -14,7 +14,7 @@ export async function createMemecoinsUnusualWhaleBehaviorRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins with unusual whale behavior. (V2 API)",
+      description: "Get the memecoins with unusual whale behavior.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/unusual-whale-behavior",
@@ -78,7 +78,7 @@ export async function createMemecoinsUnusualWhaleBehaviorRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins with unusual whale behavior. (V2 API)",
+      description: "Get the memecoins with unusual whale behavior.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/unusual-whale-behavior",

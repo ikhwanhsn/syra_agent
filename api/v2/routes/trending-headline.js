@@ -1,6 +1,6 @@
 // routes/weather.js
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createTrendingHeadlineRouter() {
@@ -28,7 +28,7 @@ export async function createTrendingHeadlineRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get trending headlines and top stories in the crypto market (V2 API)",
+      description: "Get trending headlines and top stories in the crypto market",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/trending-headline",
@@ -37,14 +37,14 @@ export async function createTrendingHeadlineRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all trending headlines (V2 API)",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all trending headlines",
           },
         },
       },
       outputSchema: {
         trendingHeadline: {
           type: "array",
-          description: "Array of trending headlines with title, source, date, and sentiment (V2 API)",
+          description: "Array of trending headlines with title, source, date, and sentiment",
         },
       },
     }),
@@ -92,7 +92,7 @@ export async function createTrendingHeadlineRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get trending headlines and top stories in the crypto market (V2 API)",
+      description: "Get trending headlines and top stories in the crypto market",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/trending-headline",
@@ -102,14 +102,14 @@ export async function createTrendingHeadlineRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all trending headlines (V2 API)",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for all trending headlines",
           },
         },
       },
       outputSchema: {
         trendingHeadline: {
           type: "array",
-          description: "Array of trending headlines with title, source, date, and sentiment (V2 API)",
+          description: "Array of trending headlines with title, source, date, and sentiment",
         },
       },
     }),

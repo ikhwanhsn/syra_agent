@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { kolPrompt } from "../../prompts/kol.prompt.js";
@@ -16,26 +16,26 @@ export async function createCryptoKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.) (V2 API)",
+      description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/crypto-kol",
       outputSchema: {
         query: {
           type: "string",
-          description: "The analysis query used (V2 API)",
+          description: "The analysis query used",
         },
         result: {
           type: "string",
-          description: "Summarized insights from top crypto KOLs and influencers (V2 API)",
+          description: "Summarized insights from top crypto KOLs and influencers",
         },
         citations: {
           type: "array",
-          description: "Source tweets and posts from KOLs (V2 API)",
+          description: "Source tweets and posts from KOLs",
         },
         toolCalls: {
           type: "array",
-          description: "Research tool calls made (V2 API)",
+          description: "Research tool calls made",
         },
       },
     }),
@@ -98,26 +98,26 @@ export async function createCryptoKOLRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.) (V2 API)",
+      description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.)",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/crypto-kol",
       outputSchema: {
         query: {
           type: "string",
-          description: "The analysis query used (V2 API)",
+          description: "The analysis query used",
         },
         result: {
           type: "string",
-          description: "Summarized insights from top crypto KOLs and influencers (V2 API)",
+          description: "Summarized insights from top crypto KOLs and influencers",
         },
         citations: {
           type: "array",
-          description: "Source tweets and posts from KOLs (V2 API)",
+          description: "Source tweets and posts from KOLs",
         },
         toolCalls: {
           type: "array",
-          description: "Research tool calls made (V2 API)",
+          description: "Research tool calls made",
         },
       },
     }),

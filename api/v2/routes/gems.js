@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { gemsPrompt } from "../../prompts/gems.prompt.js";
@@ -14,26 +14,26 @@ export async function createGemsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Discover hidden gem crypto projects trending on X/Twitter (V2 API)",
+      description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/gems",
       outputSchema: {
         query: {
           type: "string",
-          description: "The search query used (V2 API)",
+          description: "The search query used",
         },
         result: {
           type: "string",
-          description: "AI-analyzed hidden gem projects with potential and risks (V2 API)",
+          description: "AI-analyzed hidden gem projects with potential and risks",
         },
         citations: {
           type: "array",
-          description: "Source tweets and references (V2 API)",
+          description: "Source tweets and references",
         },
         toolCalls: {
           type: "array",
-          description: "Research tool calls made (V2 API)",
+          description: "Research tool calls made",
         },
       },
     }),
@@ -96,26 +96,26 @@ export async function createGemsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Discover hidden gem crypto projects trending on X/Twitter (V2 API)",
+      description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/gems",
       outputSchema: {
         query: {
           type: "string",
-          description: "The search query used (V2 API)",
+          description: "The search query used",
         },
         result: {
           type: "string",
-          description: "AI-analyzed hidden gem projects with potential and risks (V2 API)",
+          description: "AI-analyzed hidden gem projects with potential and risks",
         },
         citations: {
           type: "array",
-          description: "Source tweets and references (V2 API)",
+          description: "Source tweets and references",
         },
         toolCalls: {
           type: "array",
-          description: "Research tool calls made (V2 API)",
+          description: "Research tool calls made",
         },
       },
     }),

@@ -14,7 +14,7 @@ export async function createMemecoinsByExperiencedDevsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins most mentioned by experienced devs. (V2 API)",
+      description: "Get the memecoins most mentioned by experienced devs.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/by-experienced-devs",
@@ -78,7 +78,7 @@ export async function createMemecoinsByExperiencedDevsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins most mentioned by experienced devs. (V2 API)",
+      description: "Get the memecoins most mentioned by experienced devs.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/by-experienced-devs",

@@ -14,7 +14,7 @@ export async function createPumpRouter() {
     "/",
     // requirePayment({
     //   price: PRICE_USD,
-    //   description: "Pump your token in just seconds (V2 API)",
+    //   description: "Pump your token in just seconds",
     //   method: "GET",
     //   discoverable: true, // Make it discoverable on x402scan
     //   resource: "/pump",
@@ -23,7 +23,7 @@ export async function createPumpRouter() {
     //       tokenAddress: {
     //         type: "string",
     //         required: false,
-    //         description: "Token address to pump (V2 API)",
+    //         description: "Token address to pump",
     //       },
     //     },
     //   },
@@ -75,7 +75,7 @@ export async function createPumpRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Research information from websites (V2 API)",
+      description: "Research information from websites",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/research",
@@ -85,12 +85,12 @@ export async function createPumpRouter() {
           query: {
             type: "string",
             required: false,
-            description: "Query for the research (V2 API)",
+            description: "Query for the research",
           },
           type: {
             type: "enum",
             required: false,
-            description: "Type of research (V2 API)",
+            description: "Type of research",
             enum: ["quick", "deep"],
           },
         },

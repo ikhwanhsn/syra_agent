@@ -13,30 +13,30 @@ export async function createSmartMoneyRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Smart money tracking: net flow, holdings, historical holdings, DEX trades, and DCA patterns (V2 API)",
+      description: "Smart money tracking: net flow, holdings, historical holdings, DEX trades, and DCA patterns",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/smart-money",
       outputSchema: {
         "smart-money/netflow": {
           type: "object",
-          description: "Smart money net flow data (V2 API)",
+          description: "Smart money net flow data",
         },
         "smart-money/holdings": {
           type: "object",
-          description: "Current smart money holdings (V2 API)",
+          description: "Current smart money holdings",
         },
         "smart-money/historical-holdings": {
           type: "object",
-          description: "Historical holdings data (V2 API)",
+          description: "Historical holdings data",
         },
         "smart-money/dex-trades": {
           type: "object",
-          description: "Recent DEX trades by smart money (V2 API)",
+          description: "Recent DEX trades by smart money",
         },
         "smart-money/dcas": {
           type: "object",
-          description: "Dollar cost averaging patterns (V2 API)",
+          description: "Dollar cost averaging patterns",
         },
       },
     }),
@@ -107,30 +107,30 @@ export async function createSmartMoneyRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Smart money tracking: net flow, holdings, historical holdings, DEX trades, and DCA patterns (V2 API)",
+      description: "Smart money tracking: net flow, holdings, historical holdings, DEX trades, and DCA patterns",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/smart-money",
       outputSchema: {
         "smart-money/netflow": {
           type: "object",
-          description: "Smart money net flow data (V2 API)",
+          description: "Smart money net flow data",
         },
         "smart-money/holdings": {
           type: "object",
-          description: "Current smart money holdings (V2 API)",
+          description: "Current smart money holdings",
         },
         "smart-money/historical-holdings": {
           type: "object",
-          description: "Historical holdings data (V2 API)",
+          description: "Historical holdings data",
         },
         "smart-money/dex-trades": {
           type: "object",
-          description: "Recent DEX trades by smart money (V2 API)",
+          description: "Recent DEX trades by smart money",
         },
         "smart-money/dcas": {
           type: "object",
-          description: "Dollar cost averaging patterns (V2 API)",
+          description: "Dollar cost averaging patterns",
         },
       },
     }),

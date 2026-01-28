@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../../libs/atxp/researchService.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
@@ -13,7 +13,7 @@ export async function createResearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "AI-powered deep research on any crypto topic with cited sources (V2 API)",
+      description: "AI-powered deep research on any crypto topic with cited sources",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/research",
@@ -22,27 +22,27 @@ export async function createResearchRouter() {
           query: {
             type: "string",
             required: true,
-            description: "Research query (e.g., token analysis, market trends, protocol deep-dive) (V2 API)",
+            description: "Research query (e.g., token analysis, market trends, protocol deep-dive)",
           },
           type: {
             type: "string",
             required: false,
-            description: "Research depth: 'quick' for fast results, 'deep' for comprehensive analysis (V2 API)",
+            description: "Research depth: 'quick' for fast results, 'deep' for comprehensive analysis",
           },
         },
       },
       outputSchema: {
         status: {
           type: "string",
-          description: "Research status (success or error) (V2 API)",
+          description: "Research status (success or error)",
         },
         content: {
           type: "string",
-          description: "Comprehensive research findings and analysis (V2 API)",
+          description: "Comprehensive research findings and analysis",
         },
         sources: {
           type: "array",
-          description: "Array of cited sources and references (V2 API)",
+          description: "Array of cited sources and references",
         },
       },
     }),
@@ -103,7 +103,7 @@ export async function createResearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "AI-powered deep research on any crypto topic with cited sources (V2 API)",
+      description: "AI-powered deep research on any crypto topic with cited sources",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/research",
@@ -113,27 +113,27 @@ export async function createResearchRouter() {
           query: {
             type: "string",
             required: true,
-            description: "Research query (e.g., token analysis, market trends, protocol deep-dive) (V2 API)",
+            description: "Research query (e.g., token analysis, market trends, protocol deep-dive)",
           },
           type: {
             type: "string",
             required: false,
-            description: "Research depth: 'quick' for fast results, 'deep' for comprehensive analysis (V2 API)",
+            description: "Research depth: 'quick' for fast results, 'deep' for comprehensive analysis",
           },
         },
       },
       outputSchema: {
         status: {
           type: "string",
-          description: "Research status (success or error) (V2 API)",
+          description: "Research status (success or error)",
         },
         content: {
           type: "string",
-          description: "Comprehensive research findings and analysis (V2 API)",
+          description: "Comprehensive research findings and analysis",
         },
         sources: {
           type: "array",
-          description: "Array of cited sources and references (V2 API)",
+          description: "Array of cited sources and references",
         },
       },
     }),

@@ -12,7 +12,7 @@ export async function createTokenReportRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Token report on Rugcheck (V2 API)",
+      description: "Token report on Rugcheck",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/token-report",
@@ -21,7 +21,7 @@ export async function createTokenReportRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Token address (V2 API)",
+            description: "Token address",
           },
         },
       },
@@ -74,7 +74,7 @@ export async function createTokenReportRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Token report on Rugcheck (V2 API)",
+      description: "Token report on Rugcheck",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/token-report",
@@ -84,7 +84,7 @@ export async function createTokenReportRouter() {
           address: {
             type: "string",
             required: true,
-            description: "Token address (V2 API)",
+            description: "Token address",
           },
         },
       },

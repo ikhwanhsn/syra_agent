@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
@@ -13,7 +13,7 @@ export async function createXSearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X/Twitter platform for crypto trends and discussions (V2 API)",
+      description: "Deep research on X/Twitter platform for crypto trends and discussions",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-search",
@@ -22,26 +22,26 @@ export async function createXSearchRouter() {
           query: {
             type: "string",
             required: true,
-            description: "Search query for X/Twitter research (e.g., token name, topic) (V2 API)",
+            description: "Search query for X/Twitter research (e.g., token name, topic)",
           },
         },
       },
       outputSchema: {
         query: {
           type: "string",
-          description: "The original search query (V2 API)",
+          description: "The original search query",
         },
         result: {
           type: "string",
-          description: "AI-summarized findings from X/Twitter discussions (V2 API)",
+          description: "AI-summarized findings from X/Twitter discussions",
         },
         citations: {
           type: "array",
-          description: "Array of source tweets and references (V2 API)",
+          description: "Array of source tweets and references",
         },
         toolCalls: {
           type: "array",
-          description: "Array of tool calls made during research (V2 API)",
+          description: "Array of tool calls made during research",
         },
       },
     }),
@@ -105,7 +105,7 @@ export async function createXSearchRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Deep research on X/Twitter platform for crypto trends and discussions (V2 API)",
+      description: "Deep research on X/Twitter platform for crypto trends and discussions",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/x-search",
@@ -115,26 +115,26 @@ export async function createXSearchRouter() {
           query: {
             type: "string",
             required: true,
-            description: "Search query for X/Twitter research (e.g., token name, topic) (V2 API)",
+            description: "Search query for X/Twitter research (e.g., token name, topic)",
           },
         },
       },
       outputSchema: {
         query: {
           type: "string",
-          description: "The original search query (V2 API)",
+          description: "The original search query",
         },
         result: {
           type: "string",
-          description: "AI-summarized findings from X/Twitter discussions (V2 API)",
+          description: "AI-summarized findings from X/Twitter discussions",
         },
         citations: {
           type: "array",
-          description: "Array of source tweets and references (V2 API)",
+          description: "Array of source tweets and references",
         },
         toolCalls: {
           type: "array",
-          description: "Array of tool calls made during research (V2 API)",
+          description: "Array of tool calls made during research",
         },
       },
     }),

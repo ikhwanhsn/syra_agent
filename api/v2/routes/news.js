@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createNewsRouter() {
@@ -43,7 +43,7 @@ export async function createNewsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get latest crypto news and market updates (V2 API)",
+      description: "Get latest crypto news and market updates",
       method: "GET",
       discoverable: true,
       resource: "/v2/news",
@@ -107,7 +107,7 @@ export async function createNewsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get latest crypto news and market updates (V2 API)",
+      description: "Get latest crypto news and market updates",
       method: "POST",
       discoverable: true,
       resource: "/v2/news",

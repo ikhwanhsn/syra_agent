@@ -14,7 +14,7 @@ export async function createMemecoinsSurvivingMarketDumpsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins surviving market dumps. (V2 API)",
+      description: "Get the memecoins surviving market dumps.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/surviving-market-dumps",
@@ -78,7 +78,7 @@ export async function createMemecoinsSurvivingMarketDumpsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins surviving market dumps. (V2 API)",
+      description: "Get the memecoins surviving market dumps.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/surviving-market-dumps",

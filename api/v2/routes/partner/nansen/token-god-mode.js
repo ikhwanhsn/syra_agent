@@ -23,7 +23,7 @@ export async function createTokenGodModeRouter() {
           tokenAddress: {
             type: "string",
             required: true,
-            description: "Token address for the research (V2 API)",
+            description: "Token address for the research",
           },
         },
       },
@@ -110,7 +110,7 @@ export async function createTokenGodModeRouter() {
           tokenAddress: {
             type: "string",
             required: true,
-            description: "Token address for the research (V2 API)",
+            description: "Token address for the research",
           },
         },
       },

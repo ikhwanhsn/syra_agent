@@ -14,7 +14,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins accumulating before CEX rumors. (V2 API)",
+      description: "Get the memecoins accumulating before CEX rumors.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/accumulating-before-CEX-rumors",
@@ -78,7 +78,7 @@ export async function createMemecoinsAccumulatingBeforeCEXRumorsRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins accumulating before CEX rumors. (V2 API)",
+      description: "Get the memecoins accumulating before CEX rumors.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/accumulating-before-CEX-rumors",

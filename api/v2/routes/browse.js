@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { browseService } from "../../libs/atxp/browseService.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
@@ -13,7 +13,7 @@ export async function createBrowseRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "AI-powered web browsing and information extraction from websites (V2 API)",
+      description: "AI-powered web browsing and information extraction from websites",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/browse",
@@ -22,18 +22,18 @@ export async function createBrowseRouter() {
           query: {
             type: "string",
             required: true,
-            description: "Search query or URL to browse and extract information from (V2 API)",
+            description: "Search query or URL to browse and extract information from",
           },
         },
       },
       outputSchema: {
         query: {
           type: "string",
-          description: "The original search query (V2 API)",
+          description: "The original search query",
         },
         result: {
           type: "string",
-          description: "Extracted and summarized information from the browsed content (V2 API)",
+          description: "Extracted and summarized information from the browsed content",
         },
       },
     }),
@@ -114,7 +114,7 @@ export async function createBrowseRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "AI-powered web browsing and information extraction from websites (V2 API)",
+      description: "AI-powered web browsing and information extraction from websites",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/browse",
@@ -124,18 +124,18 @@ export async function createBrowseRouter() {
           query: {
             type: "string",
             required: true,
-            description: "Search query or URL to browse and extract information from (V2 API)",
+            description: "Search query or URL to browse and extract information from",
           },
         },
       },
       outputSchema: {
         query: {
           type: "string",
-          description: "The original search query (V2 API)",
+          description: "The original search query",
         },
         result: {
           type: "string",
-          description: "Extracted and summarized information from the browsed content (V2 API)",
+          description: "Extracted and summarized information from the browsed content",
         },
       },
     }),

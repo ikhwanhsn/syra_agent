@@ -13,7 +13,7 @@ export async function createTrendingJupiterRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Trending tokens on Jupiter (V2 API)",
+      description: "Trending tokens on Jupiter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/trending-jupiter",
@@ -79,7 +79,7 @@ export async function createTrendingJupiterRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Trending tokens on Jupiter (V2 API)",
+      description: "Trending tokens on Jupiter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/trending-jupiter",

@@ -111,7 +111,7 @@ export async function createBinanceCorrelationRouter() {
     "/correlation-matrix",
     requirePayment({
       price: PRICE_USD,
-      description: "Correlation matrix for all tokens (V2 API)",
+      description: "Correlation matrix for all tokens",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/correlation-matrix",
@@ -152,7 +152,7 @@ export async function createBinanceCorrelationRouter() {
     "/correlation-matrix",
     requirePayment({
       price: PRICE_USD,
-      description: "Correlation matrix for all tokens (V2 API)",
+      description: "Correlation matrix for all tokens",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/correlation-matrix",
@@ -190,7 +190,7 @@ export async function createBinanceCorrelationRouter() {
     "/correlation",
     requirePayment({
       price: PRICE_USD,
-      description: "Correlation matrix for a symbol (V2 API)",
+      description: "Correlation matrix for a symbol",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/correlation",
@@ -199,7 +199,7 @@ export async function createBinanceCorrelationRouter() {
           symbol: {
             type: "string",
             required: false,
-            description: "Symbol name for the correlation (V2 API)",
+            description: "Symbol name for the correlation",
           },
         },
       },
@@ -250,7 +250,7 @@ export async function createBinanceCorrelationRouter() {
     "/correlation",
     requirePayment({
       price: PRICE_USD,
-      description: "Correlation matrix for a symbol (V2 API)",
+      description: "Correlation matrix for a symbol",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/correlation",
@@ -260,7 +260,7 @@ export async function createBinanceCorrelationRouter() {
           symbol: {
             type: "string",
             required: false,
-            description: "Symbol name for the correlation (V2 API)",
+            description: "Symbol name for the correlation",
           },
         },
       },

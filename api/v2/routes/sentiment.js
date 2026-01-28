@@ -1,6 +1,6 @@
 // routes/weather.js
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createSentimentRouter() {
@@ -36,7 +36,7 @@ export async function createSentimentRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get market sentiment analysis for crypto assets over last 30 days (V2 API)",
+      description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/sentiment",
@@ -45,14 +45,14 @@ export async function createSentimentRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for market-wide sentiment (V2 API)",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for market-wide sentiment",
           },
         },
       },
       outputSchema: {
         sentimentAnalysis: {
           type: "array",
-          description: "Array of daily sentiment scores with positive, negative, and neutral percentages (V2 API)",
+          description: "Array of daily sentiment scores with positive, negative, and neutral percentages",
         },
       },
     }),
@@ -109,7 +109,7 @@ export async function createSentimentRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get market sentiment analysis for crypto assets over last 30 days (V2 API)",
+      description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/v2/sentiment",
@@ -119,14 +119,14 @@ export async function createSentimentRouter() {
           ticker: {
             type: "string",
             required: false,
-            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for market-wide sentiment (V2 API)",
+            description: "Ticker symbol (e.g., BTC, ETH) or 'general' for market-wide sentiment",
           },
         },
       },
       outputSchema: {
         sentimentAnalysis: {
           type: "array",
-          description: "Array of daily sentiment scores with positive, negative, and neutral percentages (V2 API)",
+          description: "Array of daily sentiment scores with positive, negative, and neutral percentages",
         },
       },
     }),

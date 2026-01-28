@@ -14,7 +14,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins most mentioned by smart money X. (V2 API)",
+      description: "Get the memecoins most mentioned by smart money X.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/most-mentioned-by-smart-money-x",
@@ -78,7 +78,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins most mentioned by smart money X. (V2 API)",
+      description: "Get the memecoins most mentioned by smart money X.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/most-mentioned-by-smart-money-x",

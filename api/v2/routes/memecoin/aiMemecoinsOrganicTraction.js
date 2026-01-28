@@ -14,7 +14,7 @@ export async function createMemecoinsOrganicTractionRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins organic traction. (V2 API)",
+      description: "Get the memecoins organic traction.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/organic-traction",
@@ -78,7 +78,7 @@ export async function createMemecoinsOrganicTractionRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins organic traction. (V2 API)",
+      description: "Get the memecoins organic traction.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/organic-traction",

@@ -12,30 +12,30 @@ export async function createDexscreenerRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "DEXScreener aggregated data: token profiles, community takeovers, ads, and boosted tokens (V2 API)",
+      description: "DEXScreener aggregated data: token profiles, community takeovers, ads, and boosted tokens",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/dexscreener",
       outputSchema: {
         "dexscreener/token-profiles": {
           type: "array",
-          description: "Latest token profiles on DEXScreener (V2 API)",
+          description: "Latest token profiles on DEXScreener",
         },
         "dexscreener/community-takeovers": {
           type: "array",
-          description: "Community takeover listings (V2 API)",
+          description: "Community takeover listings",
         },
         "dexscreener/ads": {
           type: "array",
-          description: "Current advertisement listings (V2 API)",
+          description: "Current advertisement listings",
         },
         "dexscreener/token-boosts": {
           type: "array",
-          description: "Boosted token listings (V2 API)",
+          description: "Boosted token listings",
         },
         "dexscreener/token-boosts-top": {
           type: "array",
-          description: "Top boosted tokens (V2 API)",
+          description: "Top boosted tokens",
         },
       },
     }),
@@ -92,30 +92,30 @@ export async function createDexscreenerRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "DEXScreener aggregated data: token profiles, community takeovers, ads, and boosted tokens (V2 API)",
+      description: "DEXScreener aggregated data: token profiles, community takeovers, ads, and boosted tokens",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/dexscreener",
       outputSchema: {
         "dexscreener/token-profiles": {
           type: "array",
-          description: "Latest token profiles on DEXScreener (V2 API)",
+          description: "Latest token profiles on DEXScreener",
         },
         "dexscreener/community-takeovers": {
           type: "array",
-          description: "Community takeover listings (V2 API)",
+          description: "Community takeover listings",
         },
         "dexscreener/ads": {
           type: "array",
-          description: "Current advertisement listings (V2 API)",
+          description: "Current advertisement listings",
         },
         "dexscreener/token-boosts": {
           type: "array",
-          description: "Boosted token listings (V2 API)",
+          description: "Boosted token listings",
         },
         "dexscreener/token-boosts-top": {
           type: "array",
-          description: "Top boosted tokens (V2 API)",
+          description: "Top boosted tokens",
         },
       },
     }),

@@ -14,7 +14,7 @@ export async function createMemecoinsTrendingOnXNotDEXRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins trending on X not on DEX. (V2 API)",
+      description: "Get the memecoins trending on X not on DEX.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/trending-on-x-not-dex",
@@ -78,7 +78,7 @@ export async function createMemecoinsTrendingOnXNotDEXRouter() {
     "/",
     requirePayment({
       price: PRICE_USD,
-      description: "Get the memecoins trending on X not on DEX. (V2 API)",
+      description: "Get the memecoins trending on X not on DEX.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
       resource: "/memecoin/trending-on-x-not-dex",
