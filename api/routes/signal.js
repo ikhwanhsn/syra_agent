@@ -65,10 +65,10 @@ export async function createSignalRouter() {
           }
 
           // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: priceUSD,
-          });
+          // await saveToLeaderboard({
+          //   wallet: paymentResult.payer,
+          //   volume: priceUSD,
+          // });
 
           res.json({ signal });
         } else {
@@ -138,10 +138,10 @@ export async function createSignalRouter() {
           }
 
           // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: priceUSD,
-          });
+          // await saveToLeaderboard({
+          //   wallet: paymentResult.payer,
+          //   volume: priceUSD,
+          // });
 
           res.json({ signal });
         } else {
