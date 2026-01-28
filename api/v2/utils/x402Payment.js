@@ -148,6 +148,7 @@ export function requirePayment(options) {
       }
 
       // 9. Create payment requirements (internal use for verification)
+      // For SVM (Solana) transactions, feePayer is required in extra
       const paymentRequirements = await x402.createPaymentRequirements({
         price: {
           amount: microUnits,
@@ -161,6 +162,9 @@ export function requirePayment(options) {
           resource: resourceUrl,
           discoverable: options.discoverable || false,
         },
+        extra: network === "solana" ? {
+          feePayer: ADDRESS_PAYAI,
+        } : undefined,
       });
 
       // 10. Build v2 accepts array
@@ -173,6 +177,7 @@ export function requirePayment(options) {
           maxTimeoutSeconds: options.maxTimeoutSeconds || 60,
           asset: tokenMint,
           extra: {
+            feePayer: ADDRESS_PAYAI, // Required for SVM transactions
             method: httpMethod,
             ...(options.inputSchema?.bodyType && {
               bodyType: options.inputSchema.bodyType,
