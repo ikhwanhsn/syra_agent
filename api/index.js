@@ -4,6 +4,7 @@ import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createNewsRouter } from "./routes/news.js";
+import { createNewsRouter as createV2NewsRouter } from "./v2/routes/news.js";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
 // NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
@@ -312,11 +313,14 @@ app.use("/v1/regular/news", await createRegularNewsRouter());
 app.use("/v1/regular/sentiment", await createRegularSentimentRouter());
 app.use("/v1/regular/signal", await createRegularSignalRouter());
 
-// x402 routes
+// x402 routes (V1 format - x402scan compatible)
 app.use("/info", await createInfoRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
+
+// x402 V2 routes (V2 format - CAIP-2, PAYMENT-SIGNATURE header)
+app.use("/v2/news", await createV2NewsRouter());
 // app.use("/test", await createTestRouter());
 app.use("/signal", await createSignalRouter());
 app.use("/x-search", await createXSearchRouter());
