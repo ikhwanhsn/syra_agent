@@ -1,0 +1,215 @@
+import express from "express";
+import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { atxpClient, ATXPAccount } from "@atxp/client";
+import { browseService } from "../../libs/atxp/browseService.js";
+import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
+
+export async function createBrowseRouter() {
+  const router = express.Router();
+  const PRICE_USD = 0.15;
+
+  // GET endpoint with x402scan compatible schema
+  router.get(
+    "/",
+    requirePayment({
+      price: PRICE_USD,
+      description: "AI-powered web browsing and information extraction from websites (V2 API)",
+      method: "GET",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/v2/browse",
+      inputSchema: {
+        queryParams: {
+          query: {
+            type: "string",
+            required: true,
+            description: "Search query or URL to browse and extract information from (V2 API)",
+          },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The original search query (V2 API)",
+        },
+        result: {
+          type: "string",
+          description: "Extracted and summarized information from the browsed content (V2 API)",
+        },
+      },
+    }),
+    async (req, res) => {
+      const { query } = req.query;
+
+      // Read the ATXP account details from environment variables
+      const atxpConnectionString = process.env.ATXP_CONNECTION;
+
+      // Create a client using the `atxpClient` function
+      const client = await atxpClient({
+        mcpServer: browseService.mcpServer,
+        account: new ATXPAccount(atxpConnectionString),
+      });
+
+      try {
+        const result = await client.callTool({
+          name: browseService.runTaskToolName,
+          arguments: browseService.getArguments(query),
+        });
+        console.log(`${browseService.description} runTask result successful!`);
+        const taskId = browseService.getRunTaskResult(result);
+
+        const pollInterval = 5000; // 5 seconds
+
+        while (true) {
+          const taskResult = await client.callTool({
+            name: browseService.getTaskToolName,
+            arguments: { taskId },
+          });
+
+          const taskData = browseService.getGetTaskResult(taskResult);
+          console.log(
+            `${browseService.description} runTask result successful!`
+          );
+
+          // Check if task is complete
+          if (["finished", "stopped", "failed"].includes(taskData.status)) {
+            console.log(`${browseService.description} result successful!`);
+            console.log(
+              `Task completed with data: ${JSON.stringify(taskData)}`
+            );
+
+            // Settle payment ONLY on success
+            const paymentResult = await getX402Handler().settlePayment(
+              req.x402Payment.paymentHeader,
+              req.x402Payment.paymentRequirements
+            );
+
+            await saveToLeaderboard({
+              wallet: paymentResult.payer,
+              volume: PRICE_USD,
+            });
+
+            const formatResult = JSON.stringify(taskData);
+
+            res.json({ query, result: formatResult });
+            break;
+          }
+
+          // Wait before next poll
+          console.log(`${browseService.description} result pending.`);
+          await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        }
+      } catch (error) {
+        console.error(`Error with ${browseService.description}:`, error);
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+        process.exit(1);
+      }
+    }
+  );
+
+  // POST endpoint for advanced search
+  router.post(
+    "/",
+    requirePayment({
+      price: PRICE_USD,
+      description: "AI-powered web browsing and information extraction from websites (V2 API)",
+      method: "POST",
+      discoverable: true, // Make it discoverable on x402scan
+      resource: "/v2/browse",
+      inputSchema: {
+        bodyType: "json",
+        bodyFields: {
+          query: {
+            type: "string",
+            required: true,
+            description: "Search query or URL to browse and extract information from (V2 API)",
+          },
+        },
+      },
+      outputSchema: {
+        query: {
+          type: "string",
+          description: "The original search query (V2 API)",
+        },
+        result: {
+          type: "string",
+          description: "Extracted and summarized information from the browsed content (V2 API)",
+        },
+      },
+    }),
+    async (req, res) => {
+      const { query } = req.body;
+
+      // Read the ATXP account details from environment variables
+      const atxpConnectionString = process.env.ATXP_CONNECTION;
+
+      // Create a client using the `atxpClient` function
+      const client = await atxpClient({
+        mcpServer: browseService.mcpServer,
+        account: new ATXPAccount(atxpConnectionString),
+      });
+
+      try {
+        const result = await client.callTool({
+          name: browseService.runTaskToolName,
+          arguments: browseService.getArguments(query),
+        });
+        console.log(`${browseService.description} runTask result successful!`);
+        const taskId = browseService.getRunTaskResult(result);
+
+        const pollInterval = 5000; // 5 seconds
+
+        while (true) {
+          const taskResult = await client.callTool({
+            name: browseService.getTaskToolName,
+            arguments: { taskId },
+          });
+
+          const taskData = browseService.getGetTaskResult(taskResult);
+          console.log(
+            `${browseService.description} runTask result successful!`
+          );
+
+          // Check if task is complete
+          if (["finished", "stopped", "failed"].includes(taskData.status)) {
+            console.log(`${browseService.description} result successful!`);
+            console.log(
+              `Task completed with data: ${JSON.stringify(taskData)}`
+            );
+
+            // Settle payment ONLY on success
+            const paymentResult = await getX402Handler().settlePayment(
+              req.x402Payment.paymentHeader,
+              req.x402Payment.paymentRequirements
+            );
+
+            await saveToLeaderboard({
+              wallet: paymentResult.payer,
+              volume: PRICE_USD,
+            });
+
+            const formatResult = JSON.stringify(taskData);
+
+            res.json({ query, result: formatResult });
+            break;
+          }
+
+          // Wait before next poll
+          console.log(`${browseService.description} result pending.`);
+          await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        }
+      } catch (error) {
+        console.error(`Error with ${browseService.description}:`, error);
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+        process.exit(1);
+      }
+    }
+  );
+
+  return router;
+}

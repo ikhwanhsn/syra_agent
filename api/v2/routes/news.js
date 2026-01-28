@@ -1,6 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
-import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
+import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createNewsRouter() {
@@ -87,17 +86,6 @@ export async function createNewsRouter() {
           req.x402Payment.paymentRequirements,
         );
 
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          const priceUSD = PRICE_USD;
-          console.log(`Payment price: ${priceUSD} USD`);
-          burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
-        } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
-        }
-
         await saveToLeaderboard({
           wallet: paymentResult.payer,
           volume: PRICE_USD,
@@ -162,17 +150,6 @@ export async function createNewsRouter() {
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements,
         );
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          const priceUSD = PRICE_USD;
-          console.log(`Payment price: ${priceUSD} USD`);
-          burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
-        } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
-        }
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
