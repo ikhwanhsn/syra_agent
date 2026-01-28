@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 95%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 263 70% 66%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 0 0% 85%;
+
+    --muted: 240 10% 15%;
+    --muted-foreground: 240 5% 55%;
+
+    --accent: 187 80% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 240 10% 15%;
+    --input: 240 10% 12%;
+    --ring: 263 70% 66%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --neon-purple: 263 70% 66%;
+    --neon-purple-glow: 263 70% 75%;
+    --neon-blue: 187 80% 45%;
+    --neon-blue-glow: 187 80% 55%;
+    
+    --glass-bg: 240 10% 8%;
+    --glass-border: 240 10% 18%;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    
+    --gradient-purple-blue: linear-gradient(135deg, hsl(263 70% 66%) 0%, hsl(187 80% 45%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(240 10% 6%) 0%, hsl(240 10% 4%) 100%);
+
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 263 70% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 10% 10%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 240 10% 12%;
+    --sidebar-ring: 263 70% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+}
+
+@layer components {
+  /* Glassmorphism panels */
+  .glass-panel {
+    @apply bg-card/80 backdrop-blur-xl border border-glass-border rounded-xl;
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-panel-subtle {
+    @apply bg-card/40 backdrop-blur-md border border-glass-border/50 rounded-lg;
+  }
+
+  /* Neon glow effects */
+  .neon-glow-purple {
+    box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.3),
+                0 0 40px hsl(var(--neon-purple) / 0.1);
+  }
+
+  .neon-glow-blue {
+    box-shadow: 0 0 20px hsl(var(--neon-blue) / 0.3),
+                0 0 40px hsl(var(--neon-blue) / 0.1);
+  }
+
+  .neon-text-purple {
+    text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.5),
+                 0 0 20px hsl(var(--neon-purple) / 0.3);
+  }
+
+  .neon-text-blue {
+    text-shadow: 0 0 10px hsl(var(--neon-blue) / 0.5),
+                 0 0 20px hsl(var(--neon-blue) / 0.3);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-purple-blue);
+  }
+
+  /* Code editor styles */
+  .code-editor {
+    @apply font-mono text-sm bg-secondary/50 rounded-lg border border-border;
+  }
+
+  .code-editor textarea {
+    @apply bg-transparent w-full h-full p-4 text-foreground focus:outline-none resize-none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Method badges */
+  .method-badge {
+    @apply px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide;
+  }
+
+  .method-get {
+    @apply bg-success/20 text-success;
+  }
+
+  .method-post {
+    @apply bg-warning/20 text-warning;
+  }
+
+  .method-put {
+    @apply bg-accent/20 text-accent;
+  }
+
+  .method-delete {
+    @apply bg-destructive/20 text-destructive;
+  }
+
+  .method-patch {
+    @apply bg-primary/20 text-primary;
+  }
+
+  /* Status badges */
+  .status-success {
+    @apply bg-success/20 text-success border-success/30;
+  }
+
+  .status-error {
+    @apply bg-destructive/20 text-destructive border-destructive/30;
+  }
+
+  .status-payment {
+    @apply bg-warning/20 text-warning border-warning/30;
+  }
+
+  .status-pending {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  /* Scrollbar styling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  /* Animation utilities */
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--neon-purple) / 0.5),
+                  0 0 60px hsl(var(--neon-purple) / 0.2);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+@layer utilities {
+  .border-glass-border {
+    border-color: hsl(var(--glass-border));
+  }
+}
