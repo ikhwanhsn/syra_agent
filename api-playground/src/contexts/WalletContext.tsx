@@ -21,7 +21,14 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
 // Custom RPC endpoint (can be configured via env)
-const MAINNET_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+// Default to Ankr public endpoint which supports browser requests
+// You can override this with VITE_SOLANA_RPC_URL in .env file
+// Other browser-friendly options:
+// - https://rpc.ankr.com/solana (free, supports browser)
+// - https://solana-api.projectserum.com (free, may have CORS)
+// - https://api.mainnet-beta.solana.com (official, but blocks browsers)
+// For production, use a private RPC provider (Helius, QuickNode, Alchemy)
+const MAINNET_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
 
 export interface WalletContextState {
   connected: boolean;
@@ -73,23 +80,81 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
         return;
       }
 
+      // Validate connection is available
+      if (!connection) {
+        console.error('[Wallet] Solana connection not available');
+        return;
+      }
+
+      // Verify connection is working
+      try {
+        const version = await connection.getVersion();
+        console.log('[Wallet] Connected to Solana:', version);
+      } catch (connError: any) {
+        console.error('[Wallet] Connection test failed:', connError);
+        // Check if it's a 403 CORS error
+        if (connError?.message?.includes('403') || connError?.message?.includes('forbidden')) {
+          console.error('[Wallet] RPC endpoint is blocking browser requests (CORS issue)');
+          console.error('[Wallet] Please update VITE_SOLANA_RPC_URL in .env to use a browser-friendly endpoint:');
+          console.error('[Wallet] Options: https://rpc.ankr.com/solana or your own RPC provider');
+        }
+        return;
+      }
+
       try {
         // Fetch SOL balance
-        const balance = await connection.getBalance(publicKey);
-        setSolBalance(balance / LAMPORTS_PER_SOL);
+        console.log('[Wallet] Fetching SOL balance for:', publicKey.toBase58());
+        console.log('[Wallet] RPC endpoint:', MAINNET_RPC);
+        
+        const balance = await connection.getBalance(publicKey, 'confirmed');
+        const solBalanceValue = balance / LAMPORTS_PER_SOL;
+        console.log('[Wallet] SOL balance (lamports):', balance);
+        console.log('[Wallet] SOL balance (SOL):', solBalanceValue);
+        setSolBalance(solBalanceValue);
 
-        // Fetch USDC balance
+        // Fetch USDC balance using getParsedTokenAccountsByOwner
+        // This finds USDC in ANY token account owned by the wallet, not just the associated one
         try {
-          const { getAssociatedTokenAddress } = await import('@solana/spl-token');
-          const usdcAccount = await getAssociatedTokenAddress(USDC_MINT, publicKey);
-          const accountInfo = await connection.getTokenAccountBalance(usdcAccount);
-          setUsdcBalance(Number(accountInfo.value.uiAmount) || 0);
-        } catch {
-          // No USDC account exists
+          console.log('[Wallet] Fetching USDC balance for:', publicKey.toBase58());
+          console.log('[Wallet] USDC mint:', USDC_MINT.toBase58());
+          
+          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+            publicKey,
+            { mint: USDC_MINT }
+          );
+
+          console.log('[Wallet] Found', tokenAccounts.value.length, 'USDC token account(s)');
+
+          if (tokenAccounts.value.length > 0) {
+            // Sum all USDC token accounts (in case user has multiple)
+            const totalBalance = tokenAccounts.value.reduce((sum, account) => {
+              const balance = account.account.data.parsed.info.tokenAmount.uiAmount;
+              const balanceNum = Number(balance) || 0;
+              console.log('[Wallet] USDC account:', account.pubkey.toBase58(), 'balance:', balanceNum);
+              return sum + balanceNum;
+            }, 0);
+            console.log('[Wallet] Total USDC balance:', totalBalance);
+            setUsdcBalance(totalBalance);
+          } else {
+            // No USDC token account found - user has 0 USDC
+            console.log('[Wallet] No USDC token accounts found');
+            setUsdcBalance(0);
+          }
+        } catch (tokenError) {
+          console.error('[Wallet] Error fetching USDC token balance:', tokenError);
+          console.error('[Wallet] Error details:', {
+            message: tokenError instanceof Error ? tokenError.message : String(tokenError),
+            stack: tokenError instanceof Error ? tokenError.stack : undefined
+          });
           setUsdcBalance(0);
         }
       } catch (error) {
-        console.error('Error fetching balances:', error);
+        console.error('[Wallet] Error fetching balances:', error);
+        console.error('[Wallet] Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        // Don't reset balances on error, keep previous values
       }
     }
 
@@ -151,16 +216,23 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Use mainnet for real payments
   const network = WalletAdapterNetwork.Mainnet;
-  const endpoint = useMemo(() => MAINNET_RPC, []);
+  const endpoint = useMemo(() => {
+    const rpcUrl = MAINNET_RPC;
+    console.log('[Wallet] Using RPC endpoint:', rpcUrl);
+    return rpcUrl;
+  }, []);
 
-  // Configure supported wallets
+  // Configure supported wallets with network
   const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new CoinbaseWalletAdapter(),
-    ],
-    []
+    () => {
+      console.log('[Wallet] Initializing wallets for network:', network);
+      return [
+        new PhantomWalletAdapter({ network }),
+        new SolflareWalletAdapter({ network }),
+        new CoinbaseWalletAdapter({ network }),
+      ];
+    },
+    [network]
   );
 
   return (
