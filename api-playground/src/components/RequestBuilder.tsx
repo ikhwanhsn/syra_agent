@@ -110,43 +110,43 @@ export function RequestBuilder({
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+              <Zap className="h-4.5 w-4.5 text-primary" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Request Builder</h2>
-              <p className="text-[11px] text-muted-foreground">Configure your x402 API request</p>
+              <h2 className="text-base font-semibold text-foreground">Request Builder</h2>
+              <p className="text-xs text-muted-foreground">Configure your x402 API request</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {wallet.connected && (
-              <Badge variant="success" className="text-xs gap-1.5 px-2.5 py-1">
+              <Badge variant="success" className="text-xs gap-2 px-3 py-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 Ready to Pay
               </Badge>
             )}
-            <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" />
-              Try Demo
+            <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-2 h-9">
+              <Sparkles className="h-4 w-4" />
+              <span className="text-sm">Try Demo</span>
             </Button>
           </div>
         </div>
 
         {/* Method Selector - Prominent toggle for GET/POST */}
         <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Method</span>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="h-3.5 w-3.5 text-muted-foreground/50" />
+                <Info className="h-4 w-4 text-muted-foreground/50" />
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[200px]">
                 <p className="text-xs">x402 API supports GET for fetching data and POST for sending data</p>
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {methods.map((m) => {
               const methodKey = m as 'GET' | 'POST';
               const mConfig = methodConfig[methodKey];
@@ -156,8 +156,8 @@ export function RequestBuilder({
                   key={m}
                   onClick={() => onMethodChange(m)}
                   className={cn(
-                    "flex-1 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
-                    "flex items-center justify-center gap-2",
+                    "flex-1 py-3 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
+                    "flex items-center justify-center gap-2 h-11",
                     isSelected 
                       ? cn(mConfig.bg, mConfig.color, "border-current") 
                       : "bg-secondary/50 border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -166,7 +166,7 @@ export function RequestBuilder({
                   {m === 'GET' ? <Globe className="h-4 w-4" /> : <FileJson className="h-4 w-4" />}
                   {m}
                   {isSelected && (
-                    <span className="text-[10px] font-normal opacity-70 hidden sm:inline">
+                    <span className="text-xs font-normal opacity-70 hidden sm:inline">
                       · {mConfig.description}
                     </span>
                   )}
@@ -178,10 +178,10 @@ export function RequestBuilder({
 
         {/* URL Input */}
         <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoint URL</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <div className="flex-1 relative">
               <Input
                 value={url}
@@ -191,7 +191,7 @@ export function RequestBuilder({
               />
               {url && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  <Badge variant="secondary" className="text-xs px-2 py-1">
                     {url.includes('x402') || url.includes('demo') ? 'x402' : 'API'}
                   </Badge>
                 </div>
@@ -201,7 +201,7 @@ export function RequestBuilder({
               variant="neon"
               onClick={onSend}
               disabled={isLoading || !url.trim()}
-              className="min-w-28 h-11 gap-2"
+              className="min-w-28 h-11 gap-2 text-sm"
             >
               {isLoading ? (
                 <>
@@ -224,32 +224,32 @@ export function RequestBuilder({
             {!isGetMethod && (
               <TabsTrigger 
                 value="body" 
-                className="data-[state=active]:bg-primary/20 gap-1.5 px-3"
+                className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm"
               >
-                <FileJson className="h-3.5 w-3.5" />
+                <FileJson className="h-4 w-4" />
                 Body
               </TabsTrigger>
             )}
             <TabsTrigger 
               value="params" 
-              className="data-[state=active]:bg-primary/20 gap-1.5 px-3"
+              className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm"
             >
-              <Globe className="h-3.5 w-3.5" />
+              <Globe className="h-4 w-4" />
               Params
               {params.filter(p => p.enabled && p.key).length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                   {params.filter(p => p.enabled && p.key).length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger 
               value="headers" 
-              className="data-[state=active]:bg-primary/20 gap-1.5 px-3"
+              className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm"
             >
-              <Settings2 className="h-3.5 w-3.5" />
+              <Settings2 className="h-4 w-4" />
               Headers
               {headers.filter(h => h.enabled && h.key).length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                   {headers.filter(h => h.enabled && h.key).length}
                 </Badge>
               )}
@@ -260,9 +260,9 @@ export function RequestBuilder({
             {!isGetMethod && (
               <TabsContent value="body" className="m-0 h-full">
                 <div className="h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-xs text-muted-foreground">JSON request body</span>
-                    <Badge variant="secondary" className="text-[10px]">application/json</Badge>
+                    <Badge variant="secondary" className="text-xs px-2 py-1">application/json</Badge>
                   </div>
                   <div className="flex-1 min-h-0">
                     <JsonEditor
@@ -283,24 +283,24 @@ export function RequestBuilder({
                 </div>
                 {params.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                       <Globe className="h-5 w-5 text-muted-foreground/50" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">No query parameters added</p>
+                    <p className="text-sm text-muted-foreground mb-4">No query parameters added</p>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={addParam}
-                      className="gap-1.5"
+                      className="gap-2 h-9"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Parameter
+                      <Plus className="h-4 w-4" />
+                      <span className="text-sm">Add Parameter</span>
                     </Button>
                   </div>
                 ) : (
                   <>
                     {params.map((param, index) => (
-                      <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
                         <Switch
                           checked={param.enabled}
                           onCheckedChange={(checked) => updateParam(index, 'enabled', checked)}
@@ -310,7 +310,7 @@ export function RequestBuilder({
                           onChange={(e) => updateParam(index, 'key', e.target.value)}
                           placeholder="key"
                           className={cn(
-                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
                             !param.enabled && "opacity-50"
                           )}
                         />
@@ -320,7 +320,7 @@ export function RequestBuilder({
                           onChange={(e) => updateParam(index, 'value', e.target.value)}
                           placeholder="value"
                           className={cn(
-                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
                             !param.enabled && "opacity-50"
                           )}
                         />
@@ -328,7 +328,7 @@ export function RequestBuilder({
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => removeParam(index)}
-                          className="text-muted-foreground hover:text-destructive shrink-0"
+                          className="text-muted-foreground hover:text-destructive shrink-0 h-9 w-9"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -338,10 +338,10 @@ export function RequestBuilder({
                       variant="outline"
                       size="sm"
                       onClick={addParam}
-                      className="gap-1.5"
+                      className="gap-2 h-9"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Parameter
+                      <Plus className="h-4 w-4" />
+                      <span className="text-sm">Add Parameter</span>
                     </Button>
                   </>
                 )}
@@ -355,24 +355,24 @@ export function RequestBuilder({
                 </div>
                 {headers.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                       <Settings2 className="h-5 w-5 text-muted-foreground/50" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">No custom headers added</p>
+                    <p className="text-sm text-muted-foreground mb-4">No custom headers added</p>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={addHeader}
-                      className="gap-1.5"
+                      className="gap-2 h-9"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Header
+                      <Plus className="h-4 w-4" />
+                      <span className="text-sm">Add Header</span>
                     </Button>
                   </div>
                 ) : (
                   <>
                     {headers.map((header, index) => (
-                      <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
                         <Switch
                           checked={header.enabled}
                           onCheckedChange={(checked) => updateHeader(index, 'enabled', checked)}
@@ -382,7 +382,7 @@ export function RequestBuilder({
                           onChange={(e) => updateHeader(index, 'key', e.target.value)}
                           placeholder="Header-Name"
                           className={cn(
-                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
                             !header.enabled && "opacity-50"
                           )}
                         />
@@ -392,7 +392,7 @@ export function RequestBuilder({
                           onChange={(e) => updateHeader(index, 'value', e.target.value)}
                           placeholder="value"
                           className={cn(
-                            "flex-1 h-9 bg-secondary/50 border-border font-mono text-sm",
+                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
                             !header.enabled && "opacity-50"
                           )}
                         />
@@ -400,7 +400,7 @@ export function RequestBuilder({
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => removeHeader(index)}
-                          className="text-muted-foreground hover:text-destructive shrink-0"
+                          className="text-muted-foreground hover:text-destructive shrink-0 h-9 w-9"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -410,10 +410,10 @@ export function RequestBuilder({
                       variant="outline"
                       size="sm"
                       onClick={addHeader}
-                      className="gap-1.5"
+                      className="gap-2 h-9"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Header
+                      <Plus className="h-4 w-4" />
+                      <span className="text-sm">Add Header</span>
                     </Button>
                   </>
                 )}

@@ -51,28 +51,28 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                 </div>
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                <h1 className="text-base font-bold tracking-tight flex items-center gap-2">
                   <span className="gradient-text">x402</span>
                   <span className="text-foreground">Playground</span>
                 </h1>
-                <p className="text-[10px] text-muted-foreground -mt-0.5">HTTP 402 Payment Protocol</p>
+                <p className="text-xs text-muted-foreground -mt-0.5">HTTP 402 Payment Protocol</p>
               </div>
             </div>
           </div>
 
           {/* Center: Flow indicator */}
-          <div className="hidden lg:flex items-center gap-2">
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
+          <div className="hidden lg:flex items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
               <span className="text-xs font-medium text-muted-foreground">1. Send Request</span>
-              <span className="text-muted-foreground/50 mx-1">→</span>
+              <span className="text-muted-foreground/50">→</span>
               <span className="text-xs font-medium text-warning">2. Pay (402)</span>
-              <span className="text-muted-foreground/50 mx-1">→</span>
+              <span className="text-muted-foreground/50">→</span>
               <span className="text-xs font-medium text-success">3. Get Data</span>
             </div>
           </div>
 
           {/* Right: Wallet connection */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Learn more link */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -80,10 +80,10 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                   href="https://www.x402.org" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                  className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
                 >
                   <span>Learn x402</span>
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </TooltipTrigger>
               <TooltipContent>
@@ -92,14 +92,14 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
             </Tooltip>
 
             {wallet.connected ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-success/10 border border-success/20">
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
                   <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                   <span className="text-xs font-medium text-success">Connected</span>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="glass" size="sm" className="font-mono text-xs gap-2">
+                    <Button variant="glass" size="sm" className="font-mono text-xs gap-2 h-9">
                       <Coins className="h-3.5 w-3.5 text-accent" />
                       <span>{wallet.balance || '0 USDC'}</span>
                       <span className="text-muted-foreground">|</span>
@@ -143,15 +143,15 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                     size="sm" 
                     onClick={onConnectWallet}
                     disabled={walletContext.connecting}
-                    className="gap-2"
+                    className="gap-2 h-9"
                   >
                     <Wallet className="h-4 w-4" />
                     {walletContext.connecting ? (
-                      <span>Connecting...</span>
+                      <span className="text-sm">Connecting...</span>
                     ) : (
                       <>
-                        <span className="hidden sm:inline">Connect Wallet</span>
-                        <span className="sm:hidden">Connect</span>
+                        <span className="hidden sm:inline text-sm">Connect Wallet</span>
+                        <span className="sm:hidden text-sm">Connect</span>
                       </>
                     )}
                   </Button>

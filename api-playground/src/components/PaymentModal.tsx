@@ -99,11 +99,11 @@ export function PaymentModal({
                   <Zap className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg">x402 Payment</h2>
+                  <h2 className="font-semibold text-base">x402 Payment</h2>
                   <p className="text-xs text-muted-foreground">Secure API access payment</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon-sm" onClick={onClose} className="h-8 w-8">
+              <Button variant="ghost" size="icon-sm" onClick={onClose} className="h-9 w-9">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -132,7 +132,7 @@ export function PaymentModal({
                         )}
                       </div>
                       <span className={cn(
-                        "text-[10px] font-medium mt-1",
+                        "text-xs font-medium mt-1.5",
                         status === 'done' && "text-success",
                         status === 'current' && "text-foreground",
                         status === 'pending' && "text-muted-foreground"
@@ -159,23 +159,23 @@ export function PaymentModal({
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-accent/10 blur-3xl" />
               <div className="relative">
                 <span className="text-xs uppercase tracking-wider text-muted-foreground">Payment Amount</span>
-                <div className="flex items-baseline gap-2 mt-1">
+                <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-4xl font-bold gradient-text">{paymentDetails.amount}</span>
                   <span className="text-lg font-semibold text-foreground">{paymentDetails.token}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <Badge variant="secondary" className="text-xs">{paymentDetails.network}</Badge>
+                <div className="flex items-center gap-3 mt-4">
+                  <Badge variant="secondary" className="text-xs px-3 py-1.5">{paymentDetails.network}</Badge>
                   {paymentDetails.memo && (
-                    <Badge variant="outline" className="text-xs font-mono">{paymentDetails.memo}</Badge>
+                    <Badge variant="outline" className="text-xs font-mono px-3 py-1.5">{paymentDetails.memo}</Badge>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Recipient Info */}
-            <div className="p-3 rounded-lg bg-secondary/30 border border-border/50">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+            <div className="p-4 rounded-lg bg-secondary/30 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Recipient Address</span>
               </div>
               <p className="font-mono text-xs text-foreground break-all leading-relaxed">
@@ -185,11 +185,11 @@ export function PaymentModal({
             
             {/* Warning for incomplete payment details */}
             {!hasValidPaymentDetails && (
-              <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-center gap-3">
+              <div className="p-4 rounded-lg bg-warning/10 border border-warning/30 flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 text-warning shrink-0" />
                 <div>
-                  <p className="text-xs text-warning font-medium">Incomplete Payment Details</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-warning font-medium">Incomplete Payment Details</p>
+                  <p className="text-xs text-muted-foreground mt-1">
                     The API response doesn't contain valid x402 payment information. Check the response body for payment instructions.
                   </p>
                 </div>
@@ -226,7 +226,7 @@ export function PaymentModal({
                     {isConfirmed && 'Payment Successful!'}
                     {isFailed && 'Transaction Failed'}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {isPending && 'Please wait while your payment is being confirmed'}
                     {isConfirmed && 'Fetching API data automatically...'}
                     {isFailed && 'Something went wrong. Please try again.'}
@@ -257,7 +257,7 @@ export function PaymentModal({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Wallet Required</p>
-                  <p className="text-xs text-muted-foreground">Connect your Solana wallet to continue</p>
+                  <p className="text-xs text-muted-foreground mt-1">Connect your Solana wallet to continue</p>
                 </div>
               </div>
             )}
@@ -281,11 +281,11 @@ export function PaymentModal({
                 
                 {/* Insufficient Balance Warning */}
                 {!hasEnoughBalance && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3">
+                  <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
                     <div>
-                      <p className="text-xs text-destructive font-medium">Insufficient Balance</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-destructive font-medium">Insufficient Balance</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         You need at least {paymentDetails.amount} {paymentDetails.token} to complete this payment
                       </p>
                     </div>
@@ -296,27 +296,27 @@ export function PaymentModal({
           </div>
 
           {/* Actions */}
-          <div className="p-5 pt-0 space-y-2">
+          <div className="p-5 pt-0 space-y-3">
             {!wallet.connected ? (
-              <Button variant="neon" className="w-full h-12 gap-2 text-sm font-semibold" onClick={onConnectWallet}>
+              <Button variant="neon" className="w-full h-11 gap-2 text-sm font-semibold" onClick={onConnectWallet}>
                 <Wallet className="h-4 w-4" />
                 Connect Wallet
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : isConfirmed ? (
-              <Button variant="success" className="w-full h-12 gap-2 text-sm font-semibold" disabled>
+              <Button variant="success" className="w-full h-11 gap-2 text-sm font-semibold" disabled>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Fetching API Response...
               </Button>
             ) : isFailed ? (
-              <Button variant="neon" className="w-full h-12 gap-2 text-sm font-semibold" onClick={onPay}>
+              <Button variant="neon" className="w-full h-11 gap-2 text-sm font-semibold" onClick={onPay}>
                 <Zap className="h-4 w-4" />
                 Try Again
               </Button>
             ) : (
               <Button 
                 variant="neon" 
-                className="w-full h-12 gap-2 text-sm font-semibold" 
+                className="w-full h-11 gap-2 text-sm font-semibold" 
                 onClick={onPay}
                 disabled={isPending || !hasEnoughBalance || !hasValidPaymentDetails}
               >
@@ -347,7 +347,7 @@ export function PaymentModal({
             
             <Button 
               variant="ghost" 
-              className="w-full text-muted-foreground hover:text-foreground" 
+              className="w-full h-10 text-sm text-muted-foreground hover:text-foreground" 
               onClick={onClose}
               disabled={isPending}
             >

@@ -69,13 +69,13 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
-              <Code2 className="h-4 w-4 text-accent" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
+              <Code2 className="h-4.5 w-4.5 text-accent" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Response</h2>
-              <p className="text-[11px] text-muted-foreground">Awaiting response...</p>
+              <h2 className="text-base font-semibold text-foreground">Response</h2>
+              <p className="text-xs text-muted-foreground">Awaiting response...</p>
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
                 <Clock className="h-6 w-6 text-primary animate-pulse" />
               </div>
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">Processing Request</p>
+            <p className="text-sm font-medium text-foreground mb-2">Processing Request</p>
             <p className="text-xs text-muted-foreground">Please wait while we fetch the response...</p>
           </div>
         </div>
@@ -100,13 +100,13 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
-              <Code2 className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
+              <Code2 className="h-4.5 w-4.5 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Response</h2>
-              <p className="text-[11px] text-muted-foreground">No response yet</p>
+              <h2 className="text-base font-semibold text-foreground">Response</h2>
+              <p className="text-xs text-muted-foreground">No response yet</p>
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 mx-auto border border-border/50">
               <FileText className="h-7 w-7 text-muted-foreground/50" />
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">Ready to Send</p>
+            <p className="text-sm font-medium text-foreground mb-2">Ready to Send</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Configure your request and click Send to see the API response here
             </p>
@@ -133,42 +133,42 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     <div className="flex flex-col h-full">
       {/* Header with Status */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className={cn(
-            "w-8 h-8 rounded-lg flex items-center justify-center",
+            "w-9 h-9 rounded-lg flex items-center justify-center",
             isPaymentRequired && "bg-warning/20",
             isSuccess && "bg-success/20",
             !isPaymentRequired && !isSuccess && "bg-destructive/20"
           )}>
             <StatusIcon className={cn(
-              "h-4 w-4",
+              "h-4.5 w-4.5",
               isPaymentRequired && "text-warning",
               isSuccess && "text-success",
               !isPaymentRequired && !isSuccess && "text-destructive"
             )} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Response</h2>
-            <p className="text-[11px] text-muted-foreground">{getStatusMessage(response.status)}</p>
+            <h2 className="text-base font-semibold text-foreground">Response</h2>
+            <p className="text-xs text-muted-foreground">{getStatusMessage(response.status)}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant={getStatusVariant(response.status)} className="font-mono text-xs px-2.5 py-1">
+          <Badge variant={getStatusVariant(response.status)} className="font-mono text-xs px-3 py-1.5">
             {response.status} {response.statusText}
           </Badge>
         </div>
       </div>
 
       {/* Response Metrics */}
-      <div className="flex items-center gap-4 mb-4 px-3 py-2 rounded-lg bg-secondary/30">
-        <div className="flex items-center gap-1.5 text-xs">
-          <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="flex items-center gap-4 mb-4 px-4 py-2.5 rounded-lg bg-secondary/30">
+        <div className="flex items-center gap-2 text-xs">
+          <Timer className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">Time:</span>
           <span className="font-mono font-medium text-foreground">{response.time}ms</span>
         </div>
         <div className="w-px h-4 bg-border" />
-        <div className="flex items-center gap-1.5 text-xs">
-          <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="flex items-center gap-2 text-xs">
+          <HardDrive className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">Size:</span>
           <span className="font-mono font-medium text-foreground">{formatBytes(response.size)}</span>
         </div>
@@ -183,7 +183,7 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
               <Zap className="h-5 w-5 text-warning" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-foreground">x402 Payment Required</h3>
+              <h3 className="text-sm font-semibold text-foreground">x402 Payment Required</h3>
               <p className="text-xs text-muted-foreground">This endpoint requires payment to access</p>
             </div>
           </div>
@@ -201,22 +201,22 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
             
             {/* Network & Memo */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-2.5 rounded-lg bg-background/30">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Network</span>
-                <p className="text-sm font-medium text-foreground mt-0.5">{paymentDetails.network}</p>
+              <div className="p-3 rounded-lg bg-background/30">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Network</span>
+                <p className="text-sm font-medium text-foreground mt-1">{paymentDetails.network}</p>
               </div>
               {paymentDetails.memo && (
-                <div className="p-2.5 rounded-lg bg-background/30">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Memo</span>
-                  <p className="text-sm font-mono text-foreground mt-0.5">{paymentDetails.memo}</p>
+                <div className="p-3 rounded-lg bg-background/30">
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">Memo</span>
+                  <p className="text-sm font-mono text-foreground mt-1">{paymentDetails.memo}</p>
                 </div>
               )}
             </div>
             
             {/* Recipient */}
-            <div className="p-2.5 rounded-lg bg-background/30">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Recipient Address</span>
-              <p className="text-xs font-mono text-foreground mt-1 break-all leading-relaxed">{paymentDetails.recipient}</p>
+            <div className="p-3 rounded-lg bg-background/30">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Recipient Address</span>
+              <p className="text-xs font-mono text-foreground mt-1.5 break-all leading-relaxed">{paymentDetails.recipient}</p>
             </div>
             
             {/* CTA Button */}
@@ -237,24 +237,24 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between">
           <TabsList className="bg-secondary/30 w-fit p-1 gap-1">
-            <TabsTrigger value="body" className="data-[state=active]:bg-primary/20 gap-1.5 px-3">
-              <FileText className="h-3.5 w-3.5" />
+            <TabsTrigger value="body" className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm">
+              <FileText className="h-4 w-4" />
               Body
             </TabsTrigger>
-            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/20 gap-1.5 px-3">
+            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm">
               Headers
-              <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {Object.keys(response.headers).length}
               </Badge>
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="flex rounded-lg overflow-hidden border border-border">
               <button
                 onClick={() => setViewMode('pretty')}
                 className={cn(
-                  "px-2.5 py-1 text-xs font-medium transition-colors",
+                  "px-3 py-2 text-xs font-medium transition-colors h-9",
                   viewMode === 'pretty' ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -263,18 +263,18 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
               <button
                 onClick={() => setViewMode('raw')}
                 className={cn(
-                  "px-2.5 py-1 text-xs font-medium transition-colors",
+                  "px-3 py-2 text-xs font-medium transition-colors h-9",
                   viewMode === 'raw' ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                 )}
               >
                 Raw
               </button>
             </div>
-            <Button variant="ghost" size="icon-sm" onClick={handleCopy} className="h-7 w-7">
+            <Button variant="ghost" size="icon-sm" onClick={handleCopy} className="h-9 w-9">
               {copied ? (
-                <Check className="h-3.5 w-3.5 text-success" />
+                <Check className="h-4 w-4 text-success" />
               ) : (
-                <Copy className="h-3.5 w-3.5" />
+                <Copy className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -291,9 +291,9 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
           </TabsContent>
 
           <TabsContent value="headers" className="m-0 h-full overflow-auto custom-scrollbar">
-            <div className="space-y-1.5 p-3 bg-secondary/30 rounded-lg border border-border/50">
+            <div className="space-y-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
               {Object.entries(response.headers).map(([key, value]) => (
-                <div key={key} className="flex gap-2 text-sm font-mono py-1 px-2 rounded hover:bg-secondary/50 transition-colors">
+                <div key={key} className="flex gap-3 text-sm font-mono py-2 px-3 rounded hover:bg-secondary/50 transition-colors">
                   <span className="text-accent shrink-0">{key}:</span>
                   <span className="text-foreground break-all">{value}</span>
                 </div>

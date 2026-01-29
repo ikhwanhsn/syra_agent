@@ -74,8 +74,8 @@ const Index = () => {
         {/* Main Panels */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Request Builder */}
-          <div className="flex-1 min-w-0 p-3 lg:p-5 overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50">
-            <div className="glass-panel h-full p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
+          <div className="flex-1 min-w-0 p-4 lg:p-5 overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50">
+            <div className="glass-panel h-full p-5 overflow-hidden flex flex-col rounded-xl">
               <RequestBuilder
                 method={method}
                 url={url}
@@ -96,8 +96,8 @@ const Index = () => {
           </div>
 
           {/* Response Viewer */}
-          <div className="flex-1 min-w-0 p-3 lg:p-5 overflow-hidden">
-            <div className="glass-panel h-full p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
+          <div className="flex-1 min-w-0 p-4 lg:p-5 overflow-hidden">
+            <div className="glass-panel h-full p-5 overflow-hidden flex flex-col rounded-xl">
               <ResponseViewer
                 response={response}
                 status={status}

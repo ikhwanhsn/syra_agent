@@ -103,32 +103,32 @@ export function HistoryPanel({
       >
         {/* Header */}
         <div className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                <History className="h-4 w-4 text-primary" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <History className="h-4.5 w-4.5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-sm">Request History</h2>
-                <p className="text-[10px] text-muted-foreground">{history.length} requests</p>
+                <h2 className="font-semibold text-base">Request History</h2>
+                <p className="text-xs text-muted-foreground">{history.length} requests</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {history.length > 0 && (
                 <Button 
                   variant="ghost" 
                   size="icon-sm" 
                   onClick={onClear}
-                  className="text-muted-foreground hover:text-destructive h-7 w-7"
+                  className="text-muted-foreground hover:text-destructive h-9 w-9"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={onClose}
-                className="lg:hidden h-7 w-7"
+                className="lg:hidden h-9 w-9"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -137,7 +137,7 @@ export function HistoryPanel({
 
           {/* Filter pills */}
           {history.length > 0 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-1 -mb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1">
               {[
                 { id: 'all', label: 'All', icon: Filter },
                 { id: 'payment', label: '402', icon: Zap },
@@ -148,17 +148,17 @@ export function HistoryPanel({
                   key={id}
                   onClick={() => setFilter(id as FilterType)}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors shrink-0",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 h-8",
                     filter === id 
                       ? "bg-primary/20 text-primary" 
                       : "bg-secondary/50 text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-3.5 w-3.5" />
                   {label}
                   {counts[id as FilterType] > 0 && (
                     <span className={cn(
-                      "ml-0.5 px-1 rounded text-[9px]",
+                      "ml-0.5 px-1.5 py-0.5 rounded text-xs",
                       filter === id ? "bg-primary/30" : "bg-muted"
                     )}>
                       {counts[id as FilterType]}
@@ -174,10 +174,10 @@ export function HistoryPanel({
         <ScrollArea className="flex-1 custom-scrollbar">
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 border border-border/50">
-                <Clock className="h-6 w-6 text-muted-foreground/50" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 border border-border/50">
+                <Clock className="h-7 w-7 text-muted-foreground/50" />
               </div>
-              <p className="text-sm font-medium text-foreground mb-1">No requests yet</p>
+              <p className="text-sm font-medium text-foreground mb-2">No requests yet</p>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px]">
                 Your API requests will appear here. Try the demo to get started!
               </p>
@@ -187,7 +187,7 @@ export function HistoryPanel({
               <p className="text-sm text-muted-foreground">No {filter} requests</p>
             </div>
           ) : (
-            <div className="p-2 space-y-1">
+            <div className="p-3 space-y-2">
               {filteredHistory.map((item) => {
                 const { domain, path } = getPathFromUrl(item.request.url);
                 const isSelected = selectedId === item.id;
@@ -203,17 +203,17 @@ export function HistoryPanel({
                       isSelected && "bg-sidebar-accent border-primary/30 shadow-sm"
                     )}
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-3">
                       {/* Method & Status indicator */}
-                      <div className="flex flex-col items-center gap-1 shrink-0">
+                      <div className="flex flex-col items-center gap-2 shrink-0">
                         <Badge 
                           variant={methodVariants[item.request.method]}
-                          className="text-[10px] px-1.5 py-0.5 font-semibold"
+                          className="text-xs px-2 py-1 font-semibold"
                         >
                           {item.request.method}
                         </Badge>
                         <div className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center",
+                          "w-6 h-6 rounded-full flex items-center justify-center",
                           item.status === 'payment_required' && "bg-warning/20",
                           item.status === 'success' && "bg-success/20",
                           item.status === 'error' && "bg-destructive/20",
@@ -221,7 +221,7 @@ export function HistoryPanel({
                           item.status === 'idle' && "bg-muted"
                         )}>
                           <StatusIcon className={cn(
-                            "h-3 w-3",
+                            "h-3.5 w-3.5",
                             item.status === 'payment_required' && "text-warning",
                             item.status === 'success' && "text-success",
                             item.status === 'error' && "text-destructive",
@@ -235,22 +235,22 @@ export function HistoryPanel({
                         <p className="font-mono text-xs text-foreground truncate leading-tight">
                           {path || '/'}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate mt-1">
                           {domain}
                         </p>
                         
                         <div className="flex items-center gap-2 mt-2">
                           <Badge 
                             variant={statusVariants[item.status]}
-                            className="text-[9px] px-1.5 py-0 font-mono"
+                            className="text-xs px-2 py-0.5 font-mono"
                           >
                             {item.response?.status || (item.status === 'loading' ? '...' : '—')}
                           </Badge>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(item.timestamp, { addSuffix: true })}
                           </span>
                           {item.response?.time && (
-                            <span className="text-[10px] text-muted-foreground/70">
+                            <span className="text-xs text-muted-foreground/70">
                               {item.response.time}ms
                             </span>
                           )}
