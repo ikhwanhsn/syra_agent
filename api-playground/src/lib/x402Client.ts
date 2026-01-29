@@ -52,6 +52,7 @@ export interface PaymentResult {
   signature?: string;
   paymentHeader?: string;
   error?: string;
+  warning?: string; // Optional warning message (e.g., confirmation timeout)
 }
 
 export interface X402ClientConfig {
@@ -309,6 +310,9 @@ export async function executePayment(
   config: X402ClientConfig,
   paymentOption: X402PaymentOption
 ): Promise<PaymentResult> {
+  let signature: string | undefined;
+  let signedTransaction: Transaction | undefined;
+  
   try {
     const { connection, signTransaction } = config;
     
@@ -316,36 +320,125 @@ export async function executePayment(
     const transaction = await createPaymentTransaction(config, paymentOption);
     
     // Sign the transaction
-    const signedTransaction = await signTransaction(transaction);
+    signedTransaction = await signTransaction(transaction);
     
     // Send the transaction
-    const signature = await connection.sendRawTransaction(
+    signature = await connection.sendRawTransaction(
       signedTransaction.serialize(),
       { skipPreflight: false }
     );
     
-    // Wait for confirmation
-    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+    console.log('[x402] Transaction sent with signature:', signature);
     
-    if (confirmation.value.err) {
-      return {
-        success: false,
-        error: `Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
-      };
+    // Wait for confirmation with blockhash-based confirmation (more reliable than timeout-based)
+    // This uses the transaction's blockhash validity window instead of a fixed timeout
+    let confirmationSuccess = false;
+    
+    try {
+      // Use blockhash-based confirmation which is more reliable
+      // It will wait until the blockhash expires (typically ~60 seconds) or transaction confirms
+      const confirmation = await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: transaction.recentBlockhash!,
+          lastValidBlockHeight: transaction.lastValidBlockHeight!,
+        },
+        'confirmed'
+      );
+      
+      if (confirmation.value.err) {
+        return {
+          success: false,
+          error: `Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
+        };
+      }
+      
+      confirmationSuccess = true;
+      console.log('[x402] Transaction confirmed successfully');
+    } catch (confirmationError: any) {
+      // Handle timeout or confirmation errors gracefully
+      const errorMessage = confirmationError?.message || 'Unknown confirmation error';
+      
+      console.warn('[x402] Confirmation timeout or error:', errorMessage);
+      
+      // Check if this is a timeout error (transaction not confirmed in time)
+      if (errorMessage.includes('not confirmed') || errorMessage.includes('timeout') || errorMessage.includes('30')) {
+        // Transaction was sent but not confirmed within the default 30-second timeout
+        // This is common during network congestion
+        // Still proceed because:
+        // 1. The transaction was successfully submitted to the network
+        // 2. The server can verify it using the signature and getSignatureStatus
+        // 3. The payment header contains the signed transaction which proves payment intent
+        console.log('[x402] Confirmation timed out, but transaction was submitted successfully');
+        console.log('[x402] Transaction may confirm later - server can verify using signature:', signature);
+        console.log('[x402] Proceeding with payment header creation');
+      } else {
+        // For other errors, log but still try to proceed
+        // The transaction was sent, so it might still succeed
+        console.warn('[x402] Confirmation error (transaction was sent):', errorMessage);
+        console.log('[x402] Proceeding with payment header - server will verify transaction status');
+      }
+      
+      // Try a quick status check as a fallback
+      try {
+        const status = await connection.getSignatureStatus(signature);
+        if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+          if (status.value.err) {
+            return {
+              success: false,
+              error: `Transaction failed: ${JSON.stringify(status.value.err)}`,
+            };
+          }
+          confirmationSuccess = true;
+          console.log('[x402] Transaction confirmed via status check');
+        } else {
+          console.log('[x402] Transaction status:', status?.value?.confirmationStatus || 'pending');
+        }
+      } catch (statusError) {
+        console.warn('[x402] Could not check transaction status:', statusError);
+      }
     }
     
     // Create the payment header for the retry request
+    // This is safe to do even if confirmation timed out because:
+    // - The transaction was successfully submitted
+    // - The server can verify the transaction using the signature
+    // - The signed transaction in the header proves payment intent
+    if (!signedTransaction) {
+      return {
+        success: false,
+        error: 'Failed to create signed transaction',
+      };
+    }
+    
     const paymentHeader = createPaymentHeader(signedTransaction, paymentOption);
     
+    // If confirmation timed out, include a note in the success response
+    // The transaction was sent and will be verified by the server
     return {
       success: true,
       signature,
       paymentHeader,
+      // Include a warning if confirmation didn't complete (for user info, not an error)
+      ...(confirmationSuccess ? {} : {
+        warning: `Transaction submitted but confirmation timed out. Check status: https://solscan.io/tx/${signature}`,
+      }),
     };
   } catch (error: any) {
+    const errorMessage = error.message || 'Payment execution failed';
+    console.error('[x402] Payment execution error:', errorMessage);
+    
+    // If we have a signature, include it in the error so user can check it
+    if (signature) {
+      return {
+        success: false,
+        error: `${errorMessage}. Transaction signature: ${signature}. Check status on Solana Explorer.`,
+      };
+    }
+    
     return {
       success: false,
-      error: error.message || 'Payment execution failed',
+      error: errorMessage,
     };
   }
 }

@@ -421,6 +421,15 @@ export function useApiPlayground() {
           hash: result.signature,
         });
 
+        // Show warning toast if confirmation timed out (but transaction was submitted)
+        if (result.warning) {
+          toast({
+            title: "Transaction Submitted",
+            description: result.warning,
+            variant: "default",
+          });
+        }
+
         // Store payment header for retry
         localStorage.setItem('x402_payment_header', result.paymentHeader);
         
@@ -430,6 +439,7 @@ export function useApiPlayground() {
           setTransactionStatus({ status: 'idle' });
           
           // Retry the request with payment header
+          // The server will verify the transaction even if confirmation timed out
           await sendRequest(result.paymentHeader);
           
           // Clear stored payment header
