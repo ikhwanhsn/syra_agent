@@ -234,27 +234,29 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
       )}
 
       {/* Tabs - Only show if not payment required or collapsed */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <div className="flex items-center justify-between">
-          <TabsList className="bg-secondary/30 w-fit p-1 gap-1">
-            <TabsTrigger value="body" className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm">
-              <FileText className="h-4 w-4" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Tab Header - Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-3">
+          <TabsList className="bg-secondary/30 w-fit p-1 gap-1 shrink-0">
+            <TabsTrigger value="body" className="data-[state=active]:bg-primary/20 gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Body
             </TabsTrigger>
-            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm">
-              Headers
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/20 gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
+              <span className="hidden sm:inline">Headers</span>
+              <span className="sm:hidden">Hdrs</span>
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs shrink-0">
                 {Object.keys(response.headers).length}
               </Badge>
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="flex rounded-lg overflow-hidden border border-border">
               <button
                 onClick={() => setViewMode('pretty')}
                 className={cn(
-                  "px-3 py-2 text-xs font-medium transition-colors h-9",
+                  "px-2 sm:px-3 py-2 text-xs font-medium transition-colors h-9",
                   viewMode === 'pretty' ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -263,14 +265,14 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
               <button
                 onClick={() => setViewMode('raw')}
                 className={cn(
-                  "px-3 py-2 text-xs font-medium transition-colors h-9",
+                  "px-2 sm:px-3 py-2 text-xs font-medium transition-colors h-9",
                   viewMode === 'raw' ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
                 )}
               >
                 Raw
               </button>
             </div>
-            <Button variant="ghost" size="icon-sm" onClick={handleCopy} className="h-9 w-9">
+            <Button variant="ghost" size="icon-sm" onClick={handleCopy} className="h-9 w-9 shrink-0">
               {copied ? (
                 <Check className="h-4 w-4 text-success" />
               ) : (
@@ -280,8 +282,12 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
           </div>
         </div>
 
-        <div className="flex-1 mt-3 overflow-hidden min-h-0">
-          <TabsContent value="body" className="m-0 h-full">
+        {/* Tab Content Container */}
+        <div className="flex-1 min-h-0 overflow-hidden relative">
+          <TabsContent 
+            value="body" 
+            className="m-0 absolute inset-0 flex flex-col overflow-hidden"
+          >
             <JsonEditor
               value={formatBody(response.body)}
               onChange={() => {}}
@@ -290,14 +296,23 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
             />
           </TabsContent>
 
-          <TabsContent value="headers" className="m-0 h-full overflow-auto custom-scrollbar">
+          <TabsContent 
+            value="headers" 
+            className="m-0 absolute inset-0 overflow-auto custom-scrollbar"
+          >
             <div className="space-y-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
-              {Object.entries(response.headers).map(([key, value]) => (
-                <div key={key} className="flex gap-3 text-sm font-mono py-2 px-3 rounded hover:bg-secondary/50 transition-colors">
-                  <span className="text-accent shrink-0">{key}:</span>
-                  <span className="text-foreground break-all">{value}</span>
+              {Object.entries(response.headers || {}).length > 0 ? (
+                Object.entries(response.headers).map(([key, value]) => (
+                  <div key={key} className="flex flex-col sm:flex-row sm:gap-3 gap-1 text-xs sm:text-sm font-mono py-2 px-3 rounded hover:bg-secondary/50 transition-colors">
+                    <span className="text-accent shrink-0 font-semibold">{key}:</span>
+                    <span className="text-foreground break-all">{value}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No headers available
                 </div>
-              ))}
+              )}
             </div>
           </TabsContent>
         </div>

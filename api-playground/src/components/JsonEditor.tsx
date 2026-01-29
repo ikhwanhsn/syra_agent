@@ -59,7 +59,7 @@ export function JsonEditor({
     .replace(/: (null)/g, ': <span class="text-muted-foreground">$1</span>');
 
   return (
-    <div className="relative group">
+    <div className="relative group h-full flex flex-col min-h-0 overflow-hidden">
       {/* Toolbar */}
       <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {!readOnly && value.trim() && (
@@ -92,7 +92,7 @@ export function JsonEditor({
       {/* Status indicator */}
       {!readOnly && value.trim() && (
         <div className={cn(
-          "absolute bottom-2 right-2 flex items-center gap-1.5 text-xs px-2 py-1 rounded-md",
+          "absolute bottom-2 right-2 flex items-center gap-1.5 text-xs px-2 py-1 rounded-md z-10",
           "bg-secondary/80 backdrop-blur-sm transition-colors",
           isValid ? "text-success" : "text-destructive"
         )}>
@@ -113,15 +113,13 @@ export function JsonEditor({
       {/* Editor */}
       <div 
         className={cn(
-          "code-editor relative overflow-hidden",
+          "code-editor relative flex-1 min-h-0 overflow-auto custom-scrollbar w-full",
           !isValid && !readOnly && "border-destructive/50"
         )}
-        style={{ minHeight }}
       >
         {readOnly ? (
           <pre 
-            className="p-4 text-sm overflow-auto custom-scrollbar h-full"
-            style={{ minHeight }}
+            className="p-4 text-sm w-full min-h-full"
             dangerouslySetInnerHTML={{ __html: highlightedValue || '<span class="text-muted-foreground">No content</span>' }}
           />
         ) : (
@@ -131,11 +129,10 @@ export function JsonEditor({
             placeholder={placeholder}
             spellCheck={false}
             className={cn(
-              "w-full bg-transparent text-sm text-foreground resize-none",
+              "w-full h-full bg-transparent text-sm text-foreground resize-none",
               "p-4 focus:outline-none focus:ring-0",
               "placeholder:text-muted-foreground/50"
             )}
-            style={{ minHeight }}
           />
         )}
       </div>

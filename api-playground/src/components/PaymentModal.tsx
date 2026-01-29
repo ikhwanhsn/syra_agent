@@ -95,7 +95,7 @@ export function PaymentModal({
           <div className="relative px-5 py-4 border-b border-border bg-gradient-to-r from-primary/10 via-accent/5 to-transparent">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-neon-purple to-neon-blue flex items-center justify-center neon-glow-purple">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
                   <Zap className="h-5 w-5 text-white" />
                 </div>
                 <div>

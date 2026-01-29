@@ -9,15 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25",
+        default: "bg-primary text-white hover:bg-primary/90 hover:shadow-lg hover:shadow-black/30 transition-all",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        neon: "bg-gradient-to-r from-neon-purple to-neon-blue text-white font-semibold hover:shadow-lg hover:shadow-neon-purple/30 hover:scale-[1.02] active:scale-[0.98]",
-        "neon-outline": "border border-neon-purple bg-transparent text-neon-purple hover:bg-neon-purple/10 hover:shadow-lg hover:shadow-neon-purple/20",
-        glass: "bg-card/60 backdrop-blur-sm border border-glass-border text-foreground hover:bg-card/80 hover:border-primary/30",
+        neon: "bg-gradient-to-r from-gray-500 to-gray-600 text-white font-semibold hover:from-gray-400 hover:to-gray-500 hover:shadow-lg hover:shadow-black/50 hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/20 shadow-lg shadow-black/30",
+        "neon-outline": "border-2 border-gray-400 bg-transparent text-gray-200 hover:bg-gray-800/50 hover:text-gray-100 hover:border-gray-300 hover:shadow-lg hover:shadow-black/30 transition-all",
+        glass: "bg-card/60 backdrop-blur-sm border border-glass-border text-foreground hover:bg-card/80 hover:border-primary/20 transition-all",
         success: "bg-success text-success-foreground hover:bg-success/90",
         warning: "bg-warning text-warning-foreground hover:bg-warning/90",
       },

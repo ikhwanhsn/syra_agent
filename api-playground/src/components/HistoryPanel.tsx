@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Trash2, Clock, ChevronLeft, History, Zap, CheckCircle, XCircle, Loader2, Filter, Plus, Copy } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Trash2, Clock, ChevronLeft, ChevronRight, History, Zap, CheckCircle, XCircle, Loader2, Filter, Plus, Copy, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,10 @@ interface HistoryPanelProps {
   onClone: (item: HistoryItem) => void;
   isOpen: boolean;
   onClose: () => void;
+  isDesktopSidebarOpen?: boolean;
+  onToggleDesktopSidebar?: () => void;
+  sidebarWidth?: number;
+  onSidebarWidthChange?: (width: number) => void;
 }
 
 type FilterType = 'all' | 'payment' | 'success' | 'error';
@@ -66,9 +70,60 @@ export function HistoryPanel({
   onCreateNew,
   onClone,
   isOpen, 
-  onClose 
+  onClose,
+  isDesktopSidebarOpen = true,
+  onToggleDesktopSidebar,
+  sidebarWidth = 448,
+  onSidebarWidthChange
 }: HistoryPanelProps) {
   const [filter, setFilter] = useState<FilterType>('all');
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef<HTMLDivElement>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+  
+  // Detect desktop viewport
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+  
+  // Handle resize
+  useEffect(() => {
+    if (!isResizing || !onSidebarWidthChange) {
+      document.body.style.cursor = '';
+      return;
+    }
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = e.clientX;
+      // Constrain width between 300px and 600px
+      const constrainedWidth = Math.min(Math.max(300, newWidth), 600);
+      onSidebarWidthChange(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, onSidebarWidthChange]);
 
   // Filter history based on selected filter
   const filteredHistory = history.filter(item => {
@@ -97,16 +152,53 @@ export function HistoryPanel({
         />
       )}
       
+      {/* Desktop toggle button - only visible when sidebar is closed */}
+      {!isDesktopSidebarOpen && onToggleDesktopSidebar && (
+        <button
+          onClick={onToggleDesktopSidebar}
+          className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-8 h-16 bg-sidebar border-r border-sidebar-border rounded-r-lg hover:bg-sidebar-accent transition-colors shadow-lg"
+          title="Show History"
+        >
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Sidebar */}
       <aside
         className={cn(
           "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto",
-          "w-72 lg:w-80 bg-sidebar border-r border-sidebar-border",
-          "flex flex-col transition-transform duration-300 ease-out",
+          "w-96 bg-sidebar border-r border-sidebar-border",
+          "flex flex-col transition-all duration-300 ease-out",
           "lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          !isDesktopSidebarOpen && "lg:-translate-x-full lg:absolute"
         )}
+        style={{
+          ...(isDesktop && {
+            width: isDesktopSidebarOpen ? `${sidebarWidth}px` : '0px',
+          })
+        }}
       >
+        {/* Resize handle - only on desktop when sidebar is open */}
+        {isDesktopSidebarOpen && onSidebarWidthChange && (
+          <div
+            ref={resizeRef}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+            className={cn(
+              "hidden lg:flex absolute top-0 right-0 w-1 h-full cursor-col-resize z-50",
+              "hover:bg-primary/30 transition-colors",
+              "group/resize"
+            )}
+          >
+            <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-6 h-12 rounded-r-md bg-background/80 backdrop-blur-sm border border-border/60 opacity-0 group-hover/resize:opacity-100 transition-opacity flex items-center justify-center">
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between mb-4">
@@ -140,6 +232,18 @@ export function HistoryPanel({
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+              {/* Desktop close button - on the right with different color */}
+              {isDesktopSidebarOpen && onToggleDesktopSidebar && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onToggleDesktopSidebar}
+                  className="hidden lg:flex h-9 w-9 text-muted-foreground hover:text-warning bg-warning/10 hover:bg-warning/20 border border-warning/20 hover:border-warning/30"
+                  title="Hide History"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -166,7 +270,7 @@ export function HistoryPanel({
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 h-8",
                     filter === id 
-                      ? "bg-primary/20 text-primary" 
+                      ? "bg-primary/15 text-primary border border-primary/20" 
                       : "bg-secondary/50 text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -203,7 +307,7 @@ export function HistoryPanel({
               <p className="text-sm text-muted-foreground">No {filter} requests</p>
             </div>
           ) : (
-            <div className="p-3 space-y-2">
+            <div className="p-3 pr-2 space-y-2">
               {filteredHistory.map((item) => {
                 const { domain, path } = getPathFromUrl(item.request.url);
                 const isSelected = selectedId === item.id;
@@ -213,73 +317,13 @@ export function HistoryPanel({
                   <div
                     key={item.id}
                     className={cn(
-                      "relative w-full p-3 rounded-xl transition-all duration-200",
+                      "relative w-full rounded-xl transition-all duration-200 overflow-hidden",
                       "hover:bg-sidebar-accent group border border-transparent",
-                      isSelected && "bg-sidebar-accent border-primary/30 shadow-sm"
+                      isSelected && "bg-sidebar-accent border-primary/20 shadow-sm"
                     )}
                   >
-                    <button
-                      onClick={() => onSelect(item)}
-                      className="w-full text-left"
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* Method & Status indicator */}
-                        <div className="flex flex-col items-center gap-2 shrink-0">
-                          <Badge 
-                            variant={methodVariants[item.request.method]}
-                            className="text-xs px-2 py-1 font-semibold"
-                          >
-                            {item.request.method}
-                          </Badge>
-                          <div className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center",
-                            item.status === 'payment_required' && "bg-warning/20",
-                            item.status === 'success' && "bg-success/20",
-                            item.status === 'error' && "bg-destructive/20",
-                            item.status === 'loading' && "bg-muted",
-                            item.status === 'idle' && "bg-muted"
-                          )}>
-                            <StatusIcon className={cn(
-                              "h-3.5 w-3.5",
-                              item.status === 'payment_required' && "text-warning",
-                              item.status === 'success' && "text-success",
-                              item.status === 'error' && "text-destructive",
-                              item.status === 'loading' && "text-muted-foreground animate-spin",
-                              item.status === 'idle' && "text-muted-foreground"
-                            )} />
-                          </div>
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="font-mono text-xs text-foreground truncate leading-tight">
-                            {path || '/'}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate mt-1">
-                            {domain}
-                          </p>
-                          
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge 
-                              variant={statusVariants[item.status]}
-                              className="text-xs px-2 py-0.5 font-mono"
-                            >
-                              {item.response?.status || (item.status === 'loading' ? '...' : '—')}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(item.timestamp, { addSuffix: true })}
-                            </span>
-                            {item.response?.time && (
-                              <span className="text-xs text-muted-foreground/70">
-                                {item.response.time}ms
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                    
-                    {/* Action buttons - visible on hover */}
-                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Action buttons - absolutely positioned on top right, always visible */}
+                    <div className="absolute top-2 right-2 z-50 flex items-center gap-1.5">
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -287,10 +331,10 @@ export function HistoryPanel({
                           e.stopPropagation();
                           onClone(item);
                         }}
-                        className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary bg-background/95 backdrop-blur-md hover:bg-primary/20 border border-border/60 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl"
                         title="Clone Request"
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -299,11 +343,70 @@ export function HistoryPanel({
                           e.stopPropagation();
                           onRemove(item.id);
                         }}
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive bg-background/95 backdrop-blur-md hover:bg-destructive/20 border border-border/60 hover:border-destructive/40 transition-all shadow-lg hover:shadow-xl"
                         title="Remove Request"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
+                    </div>
+
+                    <div className="flex items-start gap-2 p-3 pr-24 overflow-hidden">
+                      {/* Method & Status indicator */}
+                      <div className="flex flex-col items-center gap-2 shrink-0">
+                        <Badge 
+                          variant={methodVariants[item.request.method]}
+                          className="text-xs px-2 py-1 font-semibold"
+                        >
+                          {item.request.method}
+                        </Badge>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0",
+                          item.status === 'payment_required' && "bg-warning/20",
+                          item.status === 'success' && "bg-success/20",
+                          item.status === 'error' && "bg-destructive/20",
+                          item.status === 'loading' && "bg-muted",
+                          item.status === 'idle' && "bg-muted"
+                        )}>
+                          <StatusIcon className={cn(
+                            "h-3 w-3",
+                            item.status === 'payment_required' && "text-warning",
+                            item.status === 'success' && "text-success",
+                            item.status === 'error' && "text-destructive",
+                            item.status === 'loading' && "text-muted-foreground animate-spin",
+                            item.status === 'idle' && "text-muted-foreground"
+                          )} />
+                        </div>
+                      </div>
+                      
+                      {/* Content area - clickable, wraps when long */}
+                      <button
+                        onClick={() => onSelect(item)}
+                        className="flex-1 min-w-0 text-left overflow-hidden"
+                      >
+                        <p className="font-mono text-xs text-foreground break-words leading-tight">
+                          {path || '/'}
+                        </p>
+                        <p className="text-xs text-muted-foreground break-words mt-1">
+                          {domain}
+                        </p>
+                        
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <Badge 
+                            variant={statusVariants[item.status]}
+                            className="text-xs px-2 py-0.5 font-mono shrink-0"
+                          >
+                            {item.response?.status || (item.status === 'loading' ? '...' : '—')}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+                          </span>
+                          {item.response?.time && (
+                            <span className="text-xs text-muted-foreground/70 shrink-0">
+                              {item.response.time}ms
+                            </span>
+                          )}
+                        </div>
+                      </button>
                     </div>
                   </div>
                 );

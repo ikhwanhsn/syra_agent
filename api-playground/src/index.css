@@ -15,7 +15,7 @@
     --popover: 240 10% 6%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 263 70% 66%;
+    --primary: 0 0% 35%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 10% 12%;
@@ -38,13 +38,13 @@
 
     --border: 240 10% 15%;
     --input: 240 10% 12%;
-    --ring: 263 70% 66%;
+    --ring: 0 0% 35%;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --neon-purple: 263 70% 66%;
-    --neon-purple-glow: 263 70% 75%;
+    --neon-purple: 0 0% 35%;
+    --neon-purple-glow: 0 0% 45%;
     --neon-blue: 187 80% 45%;
     --neon-blue-glow: 187 80% 55%;
     
@@ -52,17 +52,75 @@
     --glass-border: 240 10% 18%;
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     
-    --gradient-purple-blue: linear-gradient(135deg, hsl(263 70% 66%) 0%, hsl(187 80% 45%) 100%);
+    --gradient-purple-blue: linear-gradient(135deg, hsl(0 0% 35%) 0%, hsl(0 0% 50%) 100%);
     --gradient-dark: linear-gradient(180deg, hsl(240 10% 6%) 0%, hsl(240 10% 4%) 100%);
 
     --sidebar-background: 240 10% 5%;
     --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 263 70% 66%;
+    --sidebar-primary: 0 0% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 10% 10%;
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 240 10% 12%;
-    --sidebar-ring: 263 70% 66%;
+    --sidebar-ring: 0 0% 35%;
+  }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+
+    --primary: 0 0% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 10%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 5% 45%;
+
+    --accent: 187 80% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 0 0% 35%;
+
+    /* Custom tokens for light mode */
+    --neon-purple: 0 0% 30%;
+    --neon-purple-glow: 0 0% 40%;
+    --neon-blue: 187 80% 45%;
+    --neon-blue-glow: 187 80% 55%;
+    
+    --glass-bg: 0 0% 98%;
+    --glass-border: 240 6% 90%;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    
+    --gradient-purple-blue: linear-gradient(135deg, hsl(0 0% 30%) 0%, hsl(0 0% 45%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(0 0% 100%) 100%);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 10% 10%;
+    --sidebar-primary: 0 0% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 0 0% 30%;
   }
 }
 
@@ -94,8 +152,8 @@
 
   /* Neon glow effects */
   .neon-glow-purple {
-    box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.3),
-                0 0 40px hsl(var(--neon-purple) / 0.1);
+    box-shadow: 0 0 15px hsl(var(--neon-purple) / 0.15),
+                0 0 30px hsl(var(--neon-purple) / 0.08);
   }
 
   .neon-glow-blue {
@@ -104,8 +162,8 @@
   }
 
   .neon-text-purple {
-    text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.5),
-                 0 0 20px hsl(var(--neon-purple) / 0.3);
+    text-shadow: 0 0 8px hsl(var(--neon-purple) / 0.2),
+                 0 0 15px hsl(var(--neon-purple) / 0.1);
   }
 
   .neon-text-blue {
@@ -196,11 +254,11 @@
 
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.3);
+      box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.5);
     }
     50% {
-      box-shadow: 0 0 30px hsl(var(--neon-purple) / 0.5),
-                  0 0 60px hsl(var(--neon-purple) / 0.2);
+      box-shadow: 0 0 30px hsl(var(--neon-purple) / 0.7),
+                  0 0 60px hsl(var(--neon-purple) / 0.4);
     }
   }
 
@@ -277,12 +335,12 @@
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-background;
 }
 
 /* Better text selection */
 ::selection {
-  background-color: hsl(var(--primary) / 0.3);
+  background-color: hsl(var(--primary) / 0.2);
   color: hsl(var(--foreground));
 }
 
@@ -405,7 +463,7 @@ textarea:focus-visible {
 }
 
 .wallet-adapter-button-trigger {
-  background: linear-gradient(135deg, hsl(var(--neon-purple)) 0%, hsl(var(--neon-blue)) 100%) !important;
+  background: linear-gradient(135deg, hsl(var(--neon-purple)) 0%, hsl(0 0% 40%) 100%) !important;
 }
 
 .wallet-adapter-modal-list-more {

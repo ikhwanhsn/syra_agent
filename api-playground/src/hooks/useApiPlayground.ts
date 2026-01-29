@@ -40,19 +40,46 @@ const getProxiedUrl = (url: string): string => {
   return `${PROXY_BASE_URL}${encodeURIComponent(url)}`;
 };
 
-// Demo endpoints for trying the API
-const DEMO_ENDPOINTS = {
-  GET: `${API_BASE_URL}/trending-headline`,
-  POST: `${API_BASE_URL}/signal`,
-};
-
-const DEMO_BODY = JSON.stringify({
-  token: "SOL",
-  interval: "1h"
-}, null, 2);
+// V2 API endpoints list
+const V2_API_ENDPOINTS = [
+  `${API_BASE_URL}/v2/news`,
+  `${API_BASE_URL}/v2/signal`,
+  `${API_BASE_URL}/v2/sentiment`,
+  `${API_BASE_URL}/v2/event`,
+  `${API_BASE_URL}/v2/trending-headline`,
+  `${API_BASE_URL}/v2/sundown-digest`,
+  `${API_BASE_URL}/v2/check-status`,
+  `${API_BASE_URL}/v2/browse`,
+  `${API_BASE_URL}/v2/research`,
+  `${API_BASE_URL}/v2/gems`,
+  `${API_BASE_URL}/v2/smart-money`,
+  `${API_BASE_URL}/v2/dexscreener`,
+  `${API_BASE_URL}/v2/token-god-mode`,
+  `${API_BASE_URL}/v2/trending-jupiter`,
+  `${API_BASE_URL}/v2/token-report`,
+  `${API_BASE_URL}/v2/token-statistic`,
+  `${API_BASE_URL}/v2/bubblemaps/maps`,
+  `${API_BASE_URL}/v2/binance/correlation`,
+];
 
 // x402 only supports GET and POST methods
 const SUPPORTED_METHODS: HttpMethod[] = ['GET', 'POST'];
+
+// Helper function to check if URL is a Syra API
+function isSyraApi(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    const syraHostname = new URL(API_BASE_URL).hostname.toLowerCase();
+    // Check if hostname matches Syra API hostname or contains 'syra'
+    return hostname === syraHostname || hostname.includes('syra');
+  } catch {
+    // If URL parsing fails (e.g., relative URL), check if it contains 'syra' in the path
+    // Relative URLs starting with /v2/ are assumed to be Syra API endpoints
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.includes('syra') || lowerUrl.startsWith('/v2/');
+  }
+}
 
 // localStorage key for history
 const HISTORY_STORAGE_KEY = 'x402_api_playground_history';
@@ -214,7 +241,7 @@ export function useApiPlayground() {
   const walletContext = useWalletContext();
   
   // Request state
-  const [method, setMethod] = useState<HttpMethod>('POST');
+  const [method, setMethod] = useState<HttpMethod>('GET');
   const [url, setUrl] = useState('');
   const [headers, setHeaders] = useState<RequestHeader[]>([
     { key: 'Content-Type', value: 'application/json', enabled: true },
@@ -248,6 +275,9 @@ export function useApiPlayground() {
   
   // Track new request ID to update it when user makes changes
   const newRequestIdRef = useRef<string | null>(null);
+  
+  // Track the actual request ID being used (for updating existing items)
+  const actualRequestIdRef = useRef<string>('');
 
   // Extract params from 402 response extensions
   const extractParamsFrom402Response = useCallback((x402Resp: X402Response): RequestParam[] => {
@@ -360,6 +390,12 @@ export function useApiPlayground() {
 
       // Get base URL (without query params)
       const baseUrl = getBaseUrl(currentUrl);
+      
+      // Check if URL is a Syra API - skip auto-detection for non-Syra APIs
+      if (!isSyraApi(baseUrl)) {
+        setIsAutoDetecting(false);
+        return;
+      }
       
       // Check if this base URL has already been processed
       if (baseUrl === lastProcessedUrlRef.current) {
@@ -504,9 +540,58 @@ export function useApiPlayground() {
   // UI state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isUnsupportedApiModalOpen, setIsUnsupportedApiModalOpen] = useState(false);
+  
+  // Desktop sidebar state - load from localStorage
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => {
+    const stored = localStorage.getItem('x402_api_playground_desktop_sidebar_open');
+    return stored !== null ? stored === 'true' : true; // Default to open
+  });
+  
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const stored = localStorage.getItem('x402_api_playground_sidebar_width');
+    return stored ? parseInt(stored, 10) : 448; // Default 28rem (448px)
+  });
+  
+  // Save desktop sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('x402_api_playground_desktop_sidebar_open', String(isDesktopSidebarOpen));
+  }, [isDesktopSidebarOpen]);
+  
+  // Save sidebar width to localStorage
+  useEffect(() => {
+    localStorage.setItem('x402_api_playground_sidebar_width', String(sidebarWidth));
+  }, [sidebarWidth]);
+  
+  // Panel split ratio (percentage for request builder, 0-100)
+  const [panelSplitRatio, setPanelSplitRatio] = useState(() => {
+    const stored = localStorage.getItem('x402_api_playground_panel_split_ratio');
+    return stored ? parseFloat(stored) : 50; // Default 50% (equal split)
+  });
+  
+  // Save panel split ratio to localStorage
+  useEffect(() => {
+    localStorage.setItem('x402_api_playground_panel_split_ratio', String(panelSplitRatio));
+  }, [panelSplitRatio]);
 
   // Generate unique ID
   const generateId = () => Math.random().toString(36).substring(2, 9);
+
+  // Helper function to check if two requests are the same (ignoring ID and timestamp)
+  const areRequestsEqual = (req1: Omit<ApiRequest, 'id' | 'timestamp'>, req2: Omit<ApiRequest, 'id' | 'timestamp'>): boolean => {
+    // Compare method
+    if (req1.method !== req2.method) return false;
+    
+    // Compare final URLs (with params already included)
+    if (req1.url !== req2.url) return false;
+    
+    // Compare body (normalize whitespace for comparison)
+    const body1 = (req1.body || '').trim();
+    const body2 = (req2.body || '').trim();
+    if (body1 !== body2) return false;
+    
+    return true;
+  };
 
   // Map wallet context to WalletState interface
   const wallet: WalletState = {
@@ -531,17 +616,22 @@ export function useApiPlayground() {
   const sendRequest = useCallback(async (paymentHeader?: string) => {
     if (!url.trim()) return;
 
-    // Use tracked request ID (cloned or new) if available, otherwise generate new one
-    const requestId = clonedRequestIdRef.current || newRequestIdRef.current || generateId();
+    // Check if URL is a Syra API (before adding params)
+    const baseUrl = url.trim();
+    if (!isSyraApi(baseUrl)) {
+      setIsUnsupportedApiModalOpen(true);
+      return;
+    }
+
     const startTime = Date.now();
 
     // Build URL with params
-    let finalUrl = url;
+    let finalUrl = baseUrl;
     const enabledParams = params.filter(p => p.enabled && p.key);
     if (enabledParams.length > 0) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach(p => searchParams.append(p.key, p.value));
-      finalUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();
+      finalUrl += (baseUrl.includes('?') ? '&' : '?') + searchParams.toString();
     }
 
     // Build headers
@@ -555,25 +645,43 @@ export function useApiPlayground() {
       requestHeaders['X-Payment'] = paymentHeader;
     }
 
-    const request: ApiRequest = {
-      id: requestId,
+    // Build request object for comparison (without ID and timestamp)
+    const requestForComparison: Omit<ApiRequest, 'id' | 'timestamp'> = {
       method,
       url: finalUrl,
       headers,
       body,
       params,
+    };
+
+    // Check if this is a tracked request (cloned or new)
+    const trackedId = clonedRequestIdRef.current || newRequestIdRef.current;
+    let requestId: string;
+
+    if (trackedId) {
+      // Use tracked ID
+      requestId = trackedId;
+      clonedRequestIdRef.current = null;
+      newRequestIdRef.current = null;
+    } else {
+      // Check if there's an existing history item with the same request
+      // We need to check history state, but since we're in a callback, we'll do it in setHistory
+      requestId = generateId(); // Temporary ID, will be replaced if we find existing
+    }
+
+    const request: ApiRequest = {
+      id: requestId,
+      ...requestForComparison,
       timestamp: new Date(),
     };
 
-    // If this is a tracked request (cloned or new), update it instead of creating new
-    const trackedId = clonedRequestIdRef.current || newRequestIdRef.current;
-    if (trackedId && trackedId === requestId) {
-      // Clear tracking after sending
-      clonedRequestIdRef.current = null;
-      newRequestIdRef.current = null;
-      
+    // Update history and track actual request ID
+    if (trackedId) {
+      // Update tracked request
+      actualRequestIdRef.current = requestId;
+      const trackedRequestId = requestId;
       setHistory(prev => prev.map(h => {
-        if (h.id === requestId) {
+        if (h.id === trackedRequestId) {
           return {
             ...h,
             request,
@@ -584,19 +692,56 @@ export function useApiPlayground() {
         return h;
       }));
     } else {
-      // Clear tracking if it was set but we're using a different ID
-      clonedRequestIdRef.current = null;
-      newRequestIdRef.current = null;
-      
-      // Add to history as loading
-      const historyItem: HistoryItem = {
-        id: requestId,
-        request,
-        status: 'loading',
-        timestamp: new Date(),
-      };
-      setHistory(prev => [historyItem, ...prev]);
+      // Check for existing history item with same request
+      setHistory(prev => {
+        const existingIndex = prev.findIndex(h => {
+          // Create comparison request from existing history item (without id and timestamp)
+          const existingRequestForComparison: Omit<ApiRequest, 'id' | 'timestamp'> = {
+            method: h.request.method,
+            url: h.request.url,
+            headers: h.request.headers,
+            body: h.request.body,
+            params: h.request.params,
+          };
+          return areRequestsEqual(existingRequestForComparison, requestForComparison);
+        });
+        
+        if (existingIndex !== -1) {
+          // Update existing history item instead of creating new one
+          const existingItem = prev[existingIndex];
+          const existingId = existingItem.id;
+          actualRequestIdRef.current = existingId; // Track the actual ID being used
+          
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...existingItem,
+            request: {
+              ...request,
+              id: existingId, // Use existing ID
+            },
+            status: 'loading',
+            response: undefined,
+            timestamp: new Date(), // Update timestamp to show it's the latest
+          };
+          // Move updated item to the top
+          const [updatedItem] = updated.splice(existingIndex, 1);
+          return [updatedItem, ...updated];
+        } else {
+          // Create new history item
+          actualRequestIdRef.current = requestId;
+          const historyItem: HistoryItem = {
+            id: requestId,
+            request,
+            status: 'loading',
+            timestamp: new Date(),
+          };
+          return [historyItem, ...prev];
+        }
+      });
     }
+    
+    // Use the actual request ID for response updates
+    const actualRequestId = actualRequestIdRef.current;
     setStatus('loading');
     setResponse(undefined);
     setPaymentDetails(undefined);
@@ -702,7 +847,7 @@ export function useApiPlayground() {
         // Always set status to payment_required for 402
         setStatus('payment_required');
         setHistory(prev => prev.map(h => 
-          h.id === requestId ? { ...h, response: apiResponse, status: 'payment_required' } : h
+          h.id === actualRequestId ? { ...h, response: apiResponse, status: 'payment_required' } : h
         ));
         
         // Try to build payment details from various sources if not already extracted
@@ -776,12 +921,12 @@ export function useApiPlayground() {
       } else if (fetchResponse.ok) {
         setStatus('success');
         setHistory(prev => prev.map(h => 
-          h.id === requestId ? { ...h, response: apiResponse, status: 'success' } : h
+          h.id === actualRequestId ? { ...h, response: apiResponse, status: 'success' } : h
         ));
       } else {
         setStatus('error');
         setHistory(prev => prev.map(h => 
-          h.id === requestId ? { ...h, response: apiResponse, status: 'error' } : h
+          h.id === actualRequestId ? { ...h, response: apiResponse, status: 'error' } : h
         ));
       }
 
@@ -806,20 +951,60 @@ export function useApiPlayground() {
       setResponse(errorResponse);
       setStatus('error');
       setHistory(prev => prev.map(h => 
-        h.id === requestId ? { ...h, response: errorResponse, status: 'error' } : h
+        h.id === actualRequestId ? { ...h, response: errorResponse, status: 'error' } : h
       ));
     }
   }, [method, url, headers, body, params]);
 
-  // Try demo
+  // Try demo - randomly pick a v2 API and always create new history
   const tryDemo = useCallback(() => {
-    setUrl(DEMO_ENDPOINTS.POST);
-    setMethod('POST');
-    setBody(DEMO_BODY);
+    // Randomly select a v2 API endpoint
+    const randomIndex = Math.floor(Math.random() * V2_API_ENDPOINTS.length);
+    const randomEndpoint = V2_API_ENDPOINTS[randomIndex];
+    
+    // Generate new request ID for try demo
+    const newId = generateId();
+    newRequestIdRef.current = newId;
+    
+    // Update form fields
+    setUrl(randomEndpoint);
+    setMethod('GET'); // Most v2 APIs support GET
+    setBody('{\n  \n}'); // Clear body for GET requests
     setHeaders([
       { key: 'Content-Type', value: 'application/json', enabled: true },
     ]);
     setParams([]);
+    
+    // Always create a new history item for try demo
+    const demoRequest: ApiRequest = {
+      id: newId,
+      method: 'GET',
+      url: randomEndpoint,
+      headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
+      body: '{\n  \n}',
+      params: [],
+      timestamp: new Date(),
+    };
+    
+    const demoHistoryItem: HistoryItem = {
+      id: newId,
+      request: demoRequest,
+      status: 'idle',
+      timestamp: new Date(),
+    };
+    
+    // Add to history (always new for try demo)
+    setHistory(prev => [demoHistoryItem, ...prev]);
+    
+    // Select the newly created history item
+    setSelectedHistoryId(newId);
+    
+    // Clear response state
+    setResponse(undefined);
+    setStatus('idle');
+    setPaymentDetails(undefined);
+    setX402Response(undefined);
+    setPaymentOption(undefined);
   }, []);
 
   // Select history item
@@ -848,8 +1033,7 @@ export function useApiPlayground() {
     const newId = generateId();
     newRequestIdRef.current = newId;
     
-    setSelectedHistoryId(undefined);
-    setMethod('POST');
+    setMethod('GET');
     setUrl('');
     const defaultHeaders = [{ key: 'Content-Type', value: 'application/json', enabled: true }];
     setHeaders(defaultHeaders);
@@ -866,7 +1050,7 @@ export function useApiPlayground() {
     // Create a new history item for the new request
     const newRequest: ApiRequest = {
       id: newId,
-      method: 'POST',
+      method: 'GET',
       url: '',
       headers: defaultHeaders,
       body: defaultBody,
@@ -883,6 +1067,9 @@ export function useApiPlayground() {
     
     // Add to history and save to localStorage
     setHistory(prev => [newHistoryItem, ...prev]);
+    
+    // Select the newly created history item to move focus to it
+    setSelectedHistoryId(newId);
   }, []);
 
   // Clone history item
@@ -937,6 +1124,20 @@ export function useApiPlayground() {
     setHistory([]);
     setSelectedHistoryId(undefined);
     localStorage.removeItem(HISTORY_STORAGE_KEY);
+    // Clear request builder form fields
+    setMethod('GET');
+    setUrl('');
+    setHeaders([{ key: 'Content-Type', value: 'application/json', enabled: true }]);
+    setBody('{\n  \n}');
+    setParams([]);
+    setResponse(undefined);
+    setStatus('idle');
+    setPaymentDetails(undefined);
+    setX402Response(undefined);
+    setPaymentOption(undefined);
+    // Clear tracking refs
+    clonedRequestIdRef.current = null;
+    newRequestIdRef.current = null;
   }, []);
 
   // Remove individual history item
@@ -1092,6 +1293,14 @@ export function useApiPlayground() {
     setIsSidebarOpen,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
+    isUnsupportedApiModalOpen,
+    setIsUnsupportedApiModalOpen,
+    isDesktopSidebarOpen,
+    setIsDesktopSidebarOpen,
+    sidebarWidth,
+    setSidebarWidth,
+    panelSplitRatio,
+    setPanelSplitRatio,
     
     // Auto-detection state
     isAutoDetecting,

@@ -1,8 +1,9 @@
-import { Wallet, Zap, Menu, Coins, ExternalLink, LogOut } from 'lucide-react';
+import { Wallet, Zap, Menu, Coins, ExternalLink, LogOut, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WalletState } from '@/types/api';
 import { useWalletContext } from '@/contexts/WalletContext';
+import { useTheme } from 'next-themes';
 import {
   Tooltip,
   TooltipContent,
@@ -27,6 +28,7 @@ interface TopBarProps {
 
 export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen }: TopBarProps) {
   const walletContext = useWalletContext();
+  const { theme, setTheme } = useTheme();
   
   return (
     <TooltipProvider>
@@ -45,8 +47,8 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
             
             <div className="flex items-center gap-3">
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-purple to-neon-blue rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-neon-purple to-neon-blue flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/30 to-black/20 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
+                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
                   <Zap className="h-5 w-5 text-white" />
                 </div>
               </div>
@@ -54,6 +56,9 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                 <h1 className="text-base font-bold tracking-tight flex items-center gap-2">
                   <span className="gradient-text">x402</span>
                   <span className="text-foreground">Playground</span>
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 border-primary/30 text-primary bg-primary/10">
+                    v2
+                  </Badge>
                 </h1>
                 <p className="text-xs text-muted-foreground -mt-0.5">HTTP 402 Payment Protocol</p>
               </div>
@@ -88,6 +93,25 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
               </TooltipTrigger>
               <TooltipContent>
                 <p className="text-xs">Learn about the x402 payment protocol</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Theme toggle button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="h-9 w-9 relative"
+                >
+                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Toggle {theme === 'dark' ? 'light' : 'dark'} mode</p>
               </TooltipContent>
             </Tooltip>
 

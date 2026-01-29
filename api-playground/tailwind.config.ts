@@ -120,10 +120,10 @@ export default {
         },
         "glow-pulse": {
           "0%, 100%": { 
-            boxShadow: "0 0 20px hsl(var(--neon-purple) / 0.3), 0 0 40px hsl(var(--neon-purple) / 0.1)" 
+            boxShadow: "0 0 15px hsl(var(--neon-purple) / 0.12), 0 0 30px hsl(var(--neon-purple) / 0.08)" 
           },
           "50%": { 
-            boxShadow: "0 0 30px hsl(var(--neon-purple) / 0.5), 0 0 60px hsl(var(--neon-purple) / 0.2)" 
+            boxShadow: "0 0 25px hsl(var(--neon-purple) / 0.18), 0 0 50px hsl(var(--neon-purple) / 0.1)" 
           },
         },
       },
