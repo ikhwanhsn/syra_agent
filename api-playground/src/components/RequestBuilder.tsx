@@ -22,6 +22,7 @@ interface RequestBuilderProps {
   body: string;
   params: RequestParam[];
   isLoading: boolean;
+  isAutoDetecting?: boolean;
   wallet: WalletState;
   onMethodChange: (method: HttpMethod) => void;
   onUrlChange: (url: string) => void;
@@ -55,6 +56,7 @@ export function RequestBuilder({
   body,
   params,
   isLoading,
+  isAutoDetecting = false,
   wallet,
   onMethodChange,
   onUrlChange,
@@ -189,13 +191,16 @@ export function RequestBuilder({
                 placeholder="https://api.example.com/v1/resource"
                 className="font-mono text-sm bg-secondary/50 border-border h-11 pr-4 pl-4"
               />
-              {url && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {isAutoDetecting && (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                )}
+                {url && (
                   <Badge variant="secondary" className="text-xs px-2 py-1">
                     {url.includes('x402') || url.includes('demo') ? 'x402' : 'API'}
                   </Badge>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             <Button
               variant="neon"

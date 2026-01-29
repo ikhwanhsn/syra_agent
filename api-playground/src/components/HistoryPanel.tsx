@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Clock, ChevronLeft, History, Zap, CheckCircle, XCircle, Loader2, Filter } from 'lucide-react';
+import { Trash2, Clock, ChevronLeft, History, Zap, CheckCircle, XCircle, Loader2, Filter, Plus, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,6 +12,9 @@ interface HistoryPanelProps {
   selectedId?: string;
   onSelect: (item: HistoryItem) => void;
   onClear: () => void;
+  onRemove: (itemId: string) => void;
+  onCreateNew: () => void;
+  onClone: (item: HistoryItem) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -58,7 +61,10 @@ export function HistoryPanel({
   history, 
   selectedId, 
   onSelect, 
-  onClear, 
+  onClear,
+  onRemove,
+  onCreateNew,
+  onClone,
   isOpen, 
   onClose 
 }: HistoryPanelProps) {
@@ -114,12 +120,22 @@ export function HistoryPanel({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon-sm" 
+                onClick={onCreateNew}
+                className="text-muted-foreground hover:text-primary h-9 w-9"
+                title="Create New Request"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
               {history.length > 0 && (
                 <Button 
                   variant="ghost" 
                   size="icon-sm" 
                   onClick={onClear}
                   className="text-muted-foreground hover:text-destructive h-9 w-9"
+                  title="Clear All History"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -194,70 +210,102 @@ export function HistoryPanel({
                 const StatusIcon = statusIcons[item.status];
                 
                 return (
-                  <button
+                  <div
                     key={item.id}
-                    onClick={() => onSelect(item)}
                     className={cn(
-                      "w-full text-left p-3 rounded-xl transition-all duration-200",
+                      "relative w-full p-3 rounded-xl transition-all duration-200",
                       "hover:bg-sidebar-accent group border border-transparent",
                       isSelected && "bg-sidebar-accent border-primary/30 shadow-sm"
                     )}
                   >
-                    <div className="flex items-start gap-3">
-                      {/* Method & Status indicator */}
-                      <div className="flex flex-col items-center gap-2 shrink-0">
-                        <Badge 
-                          variant={methodVariants[item.request.method]}
-                          className="text-xs px-2 py-1 font-semibold"
-                        >
-                          {item.request.method}
-                        </Badge>
-                        <div className={cn(
-                          "w-6 h-6 rounded-full flex items-center justify-center",
-                          item.status === 'payment_required' && "bg-warning/20",
-                          item.status === 'success' && "bg-success/20",
-                          item.status === 'error' && "bg-destructive/20",
-                          item.status === 'loading' && "bg-muted",
-                          item.status === 'idle' && "bg-muted"
-                        )}>
-                          <StatusIcon className={cn(
-                            "h-3.5 w-3.5",
-                            item.status === 'payment_required' && "text-warning",
-                            item.status === 'success' && "text-success",
-                            item.status === 'error' && "text-destructive",
-                            item.status === 'loading' && "text-muted-foreground animate-spin",
-                            item.status === 'idle' && "text-muted-foreground"
-                          )} />
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <p className="font-mono text-xs text-foreground truncate leading-tight">
-                          {path || '/'}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate mt-1">
-                          {domain}
-                        </p>
-                        
-                        <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={() => onSelect(item)}
+                      className="w-full text-left"
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Method & Status indicator */}
+                        <div className="flex flex-col items-center gap-2 shrink-0">
                           <Badge 
-                            variant={statusVariants[item.status]}
-                            className="text-xs px-2 py-0.5 font-mono"
+                            variant={methodVariants[item.request.method]}
+                            className="text-xs px-2 py-1 font-semibold"
                           >
-                            {item.response?.status || (item.status === 'loading' ? '...' : '—')}
+                            {item.request.method}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(item.timestamp, { addSuffix: true })}
-                          </span>
-                          {item.response?.time && (
-                            <span className="text-xs text-muted-foreground/70">
-                              {item.response.time}ms
+                          <div className={cn(
+                            "w-6 h-6 rounded-full flex items-center justify-center",
+                            item.status === 'payment_required' && "bg-warning/20",
+                            item.status === 'success' && "bg-success/20",
+                            item.status === 'error' && "bg-destructive/20",
+                            item.status === 'loading' && "bg-muted",
+                            item.status === 'idle' && "bg-muted"
+                          )}>
+                            <StatusIcon className={cn(
+                              "h-3.5 w-3.5",
+                              item.status === 'payment_required' && "text-warning",
+                              item.status === 'success' && "text-success",
+                              item.status === 'error' && "text-destructive",
+                              item.status === 'loading' && "text-muted-foreground animate-spin",
+                              item.status === 'idle' && "text-muted-foreground"
+                            )} />
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-xs text-foreground truncate leading-tight">
+                            {path || '/'}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate mt-1">
+                            {domain}
+                          </p>
+                          
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge 
+                              variant={statusVariants[item.status]}
+                              className="text-xs px-2 py-0.5 font-mono"
+                            >
+                              {item.response?.status || (item.status === 'loading' ? '...' : '—')}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(item.timestamp, { addSuffix: true })}
                             </span>
-                          )}
+                            {item.response?.time && (
+                              <span className="text-xs text-muted-foreground/70">
+                                {item.response.time}ms
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    </button>
+                    
+                    {/* Action buttons - visible on hover */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClone(item);
+                        }}
+                        className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        title="Clone Request"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemove(item.id);
+                        }}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Remove Request"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

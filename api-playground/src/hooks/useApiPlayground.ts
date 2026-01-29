@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { toast } from '@/hooks/use-toast';
@@ -54,6 +54,161 @@ const DEMO_BODY = JSON.stringify({
 // x402 only supports GET and POST methods
 const SUPPORTED_METHODS: HttpMethod[] = ['GET', 'POST'];
 
+// localStorage key for history
+const HISTORY_STORAGE_KEY = 'x402_api_playground_history';
+
+// Helper functions for localStorage serialization/deserialization
+function loadHistoryFromStorage(): HistoryItem[] {
+  try {
+    const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    // Convert timestamp strings back to Date objects
+    return parsed.map((item: any) => ({
+      ...item,
+      timestamp: new Date(item.timestamp),
+      request: {
+        ...item.request,
+        timestamp: new Date(item.request.timestamp),
+      },
+    }));
+  } catch (error) {
+    console.error('Failed to load history from localStorage:', error);
+    return [];
+  }
+}
+
+function saveHistoryToStorage(history: HistoryItem[]): void {
+  try {
+    // Limit history to last 100 items to prevent localStorage bloat
+    const limitedHistory = history.slice(0, 100);
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
+  } catch (error) {
+    console.error('Failed to save history to localStorage:', error);
+  }
+}
+
+// Auto-detect query parameters from URL
+function parseUrlParams(url: string): RequestParam[] {
+  try {
+    const urlObj = new URL(url);
+    const params: RequestParam[] = [];
+    
+    urlObj.searchParams.forEach((value, key) => {
+      params.push({
+        key,
+        value,
+        enabled: true,
+      });
+    });
+    
+    return params;
+  } catch {
+    // If URL parsing fails, try manual parsing
+    try {
+      const queryString = url.split('?')[1];
+      if (!queryString) return [];
+      
+      const params: RequestParam[] = [];
+      const pairs = queryString.split('&');
+      
+      pairs.forEach(pair => {
+        const [key, value = ''] = pair.split('=').map(decodeURIComponent);
+        if (key) {
+          params.push({
+            key,
+            value,
+            enabled: true,
+          });
+        }
+      });
+      
+      return params;
+    } catch {
+      return [];
+    }
+  }
+}
+
+// Auto-detect common headers based on URL patterns
+function detectHeadersFromUrl(url: string): RequestHeader[] {
+  const headers: RequestHeader[] = [];
+  
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    
+    // Detect API key patterns in URL
+    const apiKeyPatterns = [
+      /[?&](api[_-]?key|apikey|key|token|access[_-]?token|auth[_-]?token)=([^&]+)/i,
+      /[?&](bearer|token|auth)=([^&]+)/i,
+    ];
+    
+    for (const pattern of apiKeyPatterns) {
+      const match = url.match(pattern);
+      if (match) {
+        const [, keyName, value] = match;
+        // Don't add if it's already in query params (we'll handle it there)
+        // But we can add Authorization header if it looks like a token
+        if (value && value.length > 20 && !keyName.toLowerCase().includes('key')) {
+          headers.push({
+            key: 'Authorization',
+            value: value.startsWith('Bearer ') ? value : `Bearer ${value}`,
+            enabled: true,
+          });
+        }
+      }
+    }
+    
+    // Detect common API endpoints and suggest headers
+    if (hostname.includes('api.') || hostname.includes('api-')) {
+      // Common API headers
+      if (!headers.find(h => h.key.toLowerCase() === 'accept')) {
+        headers.push({
+          key: 'Accept',
+          value: 'application/json',
+          enabled: true,
+        });
+      }
+    }
+    
+    // Detect GitHub API
+    if (hostname.includes('api.github.com')) {
+      headers.push({
+        key: 'Accept',
+        value: 'application/vnd.github.v3+json',
+        enabled: true,
+      });
+    }
+    
+    // Detect Stripe API
+    if (hostname.includes('api.stripe.com')) {
+      headers.push({
+        key: 'Accept',
+        value: 'application/json',
+        enabled: true,
+      });
+    }
+    
+  } catch {
+    // URL parsing failed, skip header detection
+  }
+  
+  return headers;
+}
+
+// Extract base URL without query parameters
+function getBaseUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+  } catch {
+    // Fallback: remove query string manually
+    return url.split('?')[0];
+  }
+}
+
 export function useApiPlayground() {
   const { connection } = useConnection();
   const walletContext = useWalletContext();
@@ -74,9 +229,274 @@ export function useApiPlayground() {
   const [x402Response, setX402Response] = useState<X402Response | undefined>();
   const [paymentOption, setPaymentOption] = useState<X402PaymentOption | undefined>();
 
-  // History state
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  // History state - load from localStorage on mount
+  const [history, setHistory] = useState<HistoryItem[]>(() => loadHistoryFromStorage());
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | undefined>();
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    saveHistoryToStorage(history);
+  }, [history]);
+
+  // Track last processed URL to avoid reprocessing
+  const lastProcessedUrlRef = useRef<string>('');
+  const autoDetectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAutoDetecting, setIsAutoDetecting] = useState(false);
+  
+  // Track cloned request ID to update it when user makes changes
+  const clonedRequestIdRef = useRef<string | null>(null);
+  
+  // Track new request ID to update it when user makes changes
+  const newRequestIdRef = useRef<string | null>(null);
+
+  // Extract params from 402 response extensions
+  const extractParamsFrom402Response = useCallback((x402Resp: X402Response): RequestParam[] => {
+    const params: RequestParam[] = [];
+    
+    try {
+      const schema = x402Resp.extensions?.bazaar?.schema;
+      const exampleInput = x402Resp.extensions?.bazaar?.info?.input;
+      
+      if (schema?.properties) {
+        Object.entries(schema.properties).forEach(([key, prop]) => {
+          // Use example value from info.input if available, otherwise empty string
+          const exampleValue = exampleInput?.[key];
+          const defaultValue = exampleValue !== undefined 
+            ? String(exampleValue) 
+            : '';
+          
+          params.push({
+            key,
+            value: defaultValue,
+            enabled: schema.required?.includes(key) || false, // Enable required params by default
+          });
+        });
+      }
+    } catch (error) {
+      console.debug('Failed to extract params from 402 response:', error);
+    }
+    
+    return params;
+  }, []);
+
+  // Track URL base to detect when it changes significantly
+  const previousBaseUrlRef = useRef<string>('');
+
+  // Auto-detect params and headers from 402 response
+  useEffect(() => {
+    // Clear any existing timeout
+    if (autoDetectTimeoutRef.current) {
+      clearTimeout(autoDetectTimeoutRef.current);
+      setIsAutoDetecting(false);
+    }
+
+    if (!url.trim()) {
+      setIsAutoDetecting(false);
+      return;
+    }
+
+    // Get base URL to detect significant changes
+    const currentBaseUrl = getBaseUrl(url);
+    
+    // If base URL changed significantly, clear previous params/headers
+    if (previousBaseUrlRef.current && currentBaseUrl !== previousBaseUrlRef.current) {
+      console.log('[Auto-detect] URL changed, clearing previous params/headers');
+      // Clear params except those from URL query string
+      setParams(currentParams => {
+        // Keep params that came from URL query string (they have values)
+        return currentParams.filter(p => {
+          // If param has a value and was likely from URL, keep it
+          // Otherwise clear it
+          return false; // Clear all, URL params will be re-extracted if present
+        });
+      });
+      
+      // Reset headers to default (keep Content-Type)
+      setHeaders(currentHeaders => {
+        const contentTypeHeader = currentHeaders.find(h => 
+          h.key.toLowerCase() === 'content-type'
+        );
+        return contentTypeHeader 
+          ? [contentTypeHeader]
+          : [{ key: 'Content-Type', value: 'application/json', enabled: true }];
+      });
+    }
+    
+    previousBaseUrlRef.current = currentBaseUrl;
+
+    // Handle URL query params immediately (before 402 detection)
+    try {
+      const urlHasQueryParams = url.includes('?') && url.split('?')[1].includes('=');
+      
+      if (urlHasQueryParams) {
+        const detectedParams = parseUrlParams(url);
+        
+        if (detectedParams.length > 0) {
+          setParams(currentParams => {
+            // Replace params with URL params
+            const newBaseUrl = getBaseUrl(url);
+            if (newBaseUrl !== url) {
+              lastProcessedUrlRef.current = newBaseUrl;
+              setTimeout(() => setUrl(newBaseUrl), 0);
+            }
+            return detectedParams;
+          });
+        }
+      }
+    } catch (error) {
+      console.debug('URL param extraction failed:', error);
+    }
+
+    // Set loading state
+    setIsAutoDetecting(true);
+
+    // Wait 1 second after user stops typing, then make request to detect 402 response
+    autoDetectTimeoutRef.current = setTimeout(async () => {
+      const currentUrl = url.trim();
+      if (!currentUrl) {
+        setIsAutoDetecting(false);
+        return;
+      }
+
+      // Get base URL (without query params)
+      const baseUrl = getBaseUrl(currentUrl);
+      
+      // Check if this base URL has already been processed
+      if (baseUrl === lastProcessedUrlRef.current) {
+        setIsAutoDetecting(false);
+        return;
+      }
+
+      // Mark as processed to avoid duplicate requests
+      lastProcessedUrlRef.current = baseUrl;
+
+      try {
+        // Make a request to detect 402 response
+        const fetchOptions: RequestInit = {
+          method: method, // Use current method
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+
+        // Use proxy if needed
+        const proxiedUrl = getProxiedUrl(baseUrl);
+        
+        // Set timeout for the request (5 seconds)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const fetchResponse = await fetch(proxiedUrl, {
+          ...fetchOptions,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Handle different response statuses
+        if (fetchResponse.status === 402) {
+          // 402 Payment Required - extract params and headers
+          const responseText = await fetchResponse.text();
+          
+          try {
+            const jsonData = JSON.parse(responseText);
+            const parsed = parseX402Response(jsonData);
+            
+            if (parsed) {
+              console.log('[Auto-detect] Found 402 response, extracting params and headers');
+              
+              // Extract params from schema
+              const detectedParams = extractParamsFrom402Response(parsed);
+              
+              if (detectedParams.length > 0) {
+                setParams(currentParams => {
+                  // Replace params if empty, otherwise merge new ones
+                  if (currentParams.length === 0) {
+                    return detectedParams;
+                  }
+                  // Merge new params that don't exist yet
+                  const existingKeys = new Set(currentParams.map(p => p.key.toLowerCase()));
+                  const newParams = detectedParams.filter(p => !existingKeys.has(p.key.toLowerCase()));
+                  if (newParams.length > 0) {
+                    return [...currentParams, ...newParams];
+                  }
+                  return currentParams;
+                });
+              }
+
+              // Auto-detect headers based on 402 response
+              setHeaders(currentHeaders => {
+                const hasOnlyDefaultHeaders = currentHeaders.length === 1 && 
+                  currentHeaders[0].key === 'Content-Type' && 
+                  currentHeaders[0].value === 'application/json';
+                
+                if (hasOnlyDefaultHeaders) {
+                  const detectedHeaders: RequestHeader[] = [];
+                  
+                  // Add Accept header if resource has mimeType
+                  if (parsed.resource?.mimeType) {
+                    detectedHeaders.push({
+                      key: 'Accept',
+                      value: parsed.resource.mimeType,
+                      enabled: true,
+                    });
+                  }
+                  
+                  // Also detect headers from URL patterns
+                  const urlHeaders = detectHeadersFromUrl(currentUrl);
+                  detectedHeaders.push(...urlHeaders);
+                  
+                  // Merge detected headers (avoid duplicates)
+                  if (detectedHeaders.length > 0) {
+                    const existingKeys = new Set(currentHeaders.map(h => h.key.toLowerCase()));
+                    const newHeaders = detectedHeaders.filter(h => !existingKeys.has(h.key.toLowerCase()));
+                    
+                    if (newHeaders.length > 0) {
+                      return [...currentHeaders, ...newHeaders];
+                    }
+                  }
+                }
+                
+                return currentHeaders;
+              });
+            }
+          } catch (parseError) {
+            console.debug('[Auto-detect] Failed to parse 402 response:', parseError);
+          }
+        } else if (fetchResponse.ok) {
+          // API is available but doesn't require payment (200-299)
+          console.log('[Auto-detect] API is available but does not require payment');
+          // Don't modify params/headers for non-402 APIs
+        } else if (fetchResponse.status >= 400 && fetchResponse.status < 500) {
+          // Client error (400-499) - API exists but request is invalid
+          console.log(`[Auto-detect] API returned ${fetchResponse.status} - API exists but request may be invalid`);
+        } else if (fetchResponse.status >= 500) {
+          // Server error (500+) - API exists but has issues
+          console.log(`[Auto-detect] API returned ${fetchResponse.status} - Server error`);
+        }
+      } catch (error: any) {
+        // Handle different error types
+        if (error.name === 'AbortError') {
+          console.debug('[Auto-detect] Request timeout - API may be slow or unavailable');
+        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          console.debug('[Auto-detect] Network error - API may be unavailable or CORS blocked');
+        } else {
+          console.debug('[Auto-detect] Request failed:', error.message || error);
+        }
+        // Silently fail - don't interrupt user input
+      } finally {
+        setIsAutoDetecting(false);
+      }
+    }, 1000); // 1 second delay
+
+    // Cleanup timeout on unmount or URL change
+    return () => {
+      if (autoDetectTimeoutRef.current) {
+        clearTimeout(autoDetectTimeoutRef.current);
+      }
+      setIsAutoDetecting(false);
+    };
+  }, [url, method, extractParamsFrom402Response]); // Run when URL or method changes
 
   // Transaction state
   const [transactionStatus, setTransactionStatus] = useState<TransactionStatus>({ status: 'idle' });
@@ -111,7 +531,8 @@ export function useApiPlayground() {
   const sendRequest = useCallback(async (paymentHeader?: string) => {
     if (!url.trim()) return;
 
-    const requestId = generateId();
+    // Use tracked request ID (cloned or new) if available, otherwise generate new one
+    const requestId = clonedRequestIdRef.current || newRequestIdRef.current || generateId();
     const startTime = Date.now();
 
     // Build URL with params
@@ -144,14 +565,38 @@ export function useApiPlayground() {
       timestamp: new Date(),
     };
 
-    // Add to history as loading
-    const historyItem: HistoryItem = {
-      id: requestId,
-      request,
-      status: 'loading',
-      timestamp: new Date(),
-    };
-    setHistory(prev => [historyItem, ...prev]);
+    // If this is a tracked request (cloned or new), update it instead of creating new
+    const trackedId = clonedRequestIdRef.current || newRequestIdRef.current;
+    if (trackedId && trackedId === requestId) {
+      // Clear tracking after sending
+      clonedRequestIdRef.current = null;
+      newRequestIdRef.current = null;
+      
+      setHistory(prev => prev.map(h => {
+        if (h.id === requestId) {
+          return {
+            ...h,
+            request,
+            status: 'loading',
+            response: undefined,
+          };
+        }
+        return h;
+      }));
+    } else {
+      // Clear tracking if it was set but we're using a different ID
+      clonedRequestIdRef.current = null;
+      newRequestIdRef.current = null;
+      
+      // Add to history as loading
+      const historyItem: HistoryItem = {
+        id: requestId,
+        request,
+        status: 'loading',
+        timestamp: new Date(),
+      };
+      setHistory(prev => [historyItem, ...prev]);
+    }
     setStatus('loading');
     setResponse(undefined);
     setPaymentDetails(undefined);
@@ -379,6 +824,10 @@ export function useApiPlayground() {
 
   // Select history item
   const selectHistoryItem = useCallback((item: HistoryItem) => {
+    // Clear cloned and new request tracking when selecting an existing item
+    clonedRequestIdRef.current = null;
+    newRequestIdRef.current = null;
+    
     setSelectedHistoryId(item.id);
     setMethod(item.request.method);
     setUrl(item.request.url);
@@ -390,11 +839,117 @@ export function useApiPlayground() {
     setIsSidebarOpen(false);
   }, []);
 
+  // Create new request (reset form)
+  const createNewRequest = useCallback(() => {
+    // Clear cloned request tracking
+    clonedRequestIdRef.current = null;
+    
+    // Generate new request ID for tracking
+    const newId = generateId();
+    newRequestIdRef.current = newId;
+    
+    setSelectedHistoryId(undefined);
+    setMethod('POST');
+    setUrl('');
+    const defaultHeaders = [{ key: 'Content-Type', value: 'application/json', enabled: true }];
+    setHeaders(defaultHeaders);
+    const defaultBody = '{\n  \n}';
+    setBody(defaultBody);
+    setParams([]);
+    setResponse(undefined);
+    setStatus('idle');
+    setPaymentDetails(undefined);
+    setX402Response(undefined);
+    setPaymentOption(undefined);
+    setIsSidebarOpen(false);
+    
+    // Create a new history item for the new request
+    const newRequest: ApiRequest = {
+      id: newId,
+      method: 'POST',
+      url: '',
+      headers: defaultHeaders,
+      body: defaultBody,
+      params: [],
+      timestamp: new Date(),
+    };
+    
+    const newHistoryItem: HistoryItem = {
+      id: newId,
+      request: newRequest,
+      status: 'idle',
+      timestamp: new Date(),
+    };
+    
+    // Add to history and save to localStorage
+    setHistory(prev => [newHistoryItem, ...prev]);
+  }, []);
+
+  // Clone history item
+  const cloneHistoryItem = useCallback((item: HistoryItem) => {
+    // Clear new request tracking
+    newRequestIdRef.current = null;
+    
+    const clonedId = generateId();
+    clonedRequestIdRef.current = clonedId;
+    
+    setSelectedHistoryId(undefined);
+    setMethod(item.request.method);
+    setUrl(item.request.url);
+    // Deep clone headers and params to avoid reference issues
+    const clonedHeaders = item.request.headers.map(h => ({ ...h }));
+    const clonedParams = item.request.params.map(p => ({ ...p }));
+    setHeaders(clonedHeaders);
+    setBody(item.request.body);
+    setParams(clonedParams);
+    // Don't clone response - start fresh
+    setResponse(undefined);
+    setStatus('idle');
+    setPaymentDetails(undefined);
+    setX402Response(undefined);
+    setPaymentOption(undefined);
+    setIsSidebarOpen(false);
+    
+    // Create a new history item for the cloned request
+    const clonedRequest: ApiRequest = {
+      id: clonedId,
+      method: item.request.method,
+      url: item.request.url,
+      headers: clonedHeaders,
+      body: item.request.body,
+      params: clonedParams,
+      timestamp: new Date(),
+    };
+    
+    const clonedHistoryItem: HistoryItem = {
+      id: clonedId,
+      request: clonedRequest,
+      status: 'idle',
+      timestamp: new Date(),
+    };
+    
+    // Add to history and save to localStorage
+    setHistory(prev => [clonedHistoryItem, ...prev]);
+  }, []);
+
   // Clear history
   const clearHistory = useCallback(() => {
     setHistory([]);
     setSelectedHistoryId(undefined);
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
   }, []);
+
+  // Remove individual history item
+  const removeHistoryItem = useCallback((itemId: string) => {
+    setHistory(prev => {
+      const updated = prev.filter(item => item.id !== itemId);
+      // If the removed item was selected, clear selection
+      if (selectedHistoryId === itemId) {
+        setSelectedHistoryId(undefined);
+      }
+      return updated;
+    });
+  }, [selectedHistoryId]);
 
   // Execute payment and auto-retry
   const pay = useCallback(async () => {
@@ -517,6 +1072,9 @@ export function useApiPlayground() {
     selectedHistoryId,
     selectHistoryItem,
     clearHistory,
+    removeHistoryItem,
+    createNewRequest,
+    cloneHistoryItem,
 
     // Wallet
     wallet,
@@ -534,5 +1092,8 @@ export function useApiPlayground() {
     setIsSidebarOpen,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
+    
+    // Auto-detection state
+    isAutoDetecting,
   };
 }

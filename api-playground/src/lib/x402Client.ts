@@ -43,6 +43,23 @@ export interface X402Response {
     mimeType?: string;
   };
   error?: string;
+  extensions?: {
+    bazaar?: {
+      info?: {
+        input?: Record<string, any>;
+        output?: Record<string, any>;
+      };
+      schema?: {
+        type?: string;
+        properties?: Record<string, {
+          type?: string;
+          description?: string;
+          required?: boolean;
+        }>;
+        required?: string[];
+      };
+    };
+  };
   // Flag to indicate if this is a generic 402 (not x402 protocol)
   isGeneric402?: boolean;
 }
@@ -85,6 +102,7 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
       accepts: data.accepts || [],
       resource: data.resource,
       error: data.error,
+      extensions: data.extensions,
     };
   }
   

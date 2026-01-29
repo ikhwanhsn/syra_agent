@@ -33,6 +33,9 @@ const Index = () => {
     selectedHistoryId,
     selectHistoryItem,
     clearHistory,
+    removeHistoryItem,
+    createNewRequest,
+    cloneHistoryItem,
     wallet,
     transactionStatus,
     connectWallet,
@@ -44,6 +47,7 @@ const Index = () => {
     setIsSidebarOpen,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
+    isAutoDetecting,
   } = useApiPlayground();
 
   // Use actual payment details or default for 402 responses
@@ -67,6 +71,9 @@ const Index = () => {
           selectedId={selectedHistoryId}
           onSelect={selectHistoryItem}
           onClear={clearHistory}
+          onRemove={removeHistoryItem}
+          onCreateNew={createNewRequest}
+          onClone={cloneHistoryItem}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
@@ -83,6 +90,7 @@ const Index = () => {
                 body={body}
                 params={params}
                 isLoading={status === 'loading'}
+                isAutoDetecting={isAutoDetecting}
                 wallet={wallet}
                 onMethodChange={setMethod}
                 onUrlChange={setUrl}
