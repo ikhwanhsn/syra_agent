@@ -78,6 +78,24 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
 
           {/* Right: Wallet connection */}
           <div className="flex items-center gap-3">
+            {/* Powered by Syra - link to main website */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="https://syraa.fun"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                >
+                  <span>Powered by Syra</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Visit Syra — syraa.fun</p>
+              </TooltipContent>
+            </Tooltip>
+
             {/* Learn more link */}
             <Tooltip>
               <TooltipTrigger asChild>
