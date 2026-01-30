@@ -110,45 +110,45 @@ export function RequestBuilder({
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+        {/* Header - stacks on mobile */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 shrink-0 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
               <Zap className="h-4.5 w-4.5 text-primary" />
             </div>
-            <div>
-              <h2 className="text-base font-semibold text-foreground">Request Builder</h2>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-foreground truncate">Request Builder</h2>
               <p className="text-xs text-muted-foreground">Configure your x402 API request</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
             {wallet.connected && (
               <Badge variant="success" className="text-xs gap-2 px-3 py-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 Ready to Pay
               </Badge>
             )}
-            <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-2 h-9">
-              <Sparkles className="h-4 w-4" />
+            <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-2 h-9 w-full sm:w-auto">
+              <Sparkles className="h-4 w-4 shrink-0" />
               <span className="text-sm">Try Demo</span>
             </Button>
           </div>
         </div>
 
-        {/* Method Selector - Prominent toggle for GET/POST */}
+        {/* Method Selector - stacks on mobile */}
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Method</span>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="h-4 w-4 text-muted-foreground/50" />
+                <Info className="h-4 w-4 text-muted-foreground/50 shrink-0" />
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[200px]">
                 <p className="text-xs">x402 API supports GET for fetching data and POST for sending data</p>
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
             {methods.map((m) => {
               const methodKey = m as 'GET' | 'POST';
               const mConfig = methodConfig[methodKey];
@@ -158,17 +158,17 @@ export function RequestBuilder({
                   key={m}
                   onClick={() => onMethodChange(m)}
                   className={cn(
-                    "flex-1 py-3 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
+                    "flex-1 min-w-0 py-3 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
                     "flex items-center justify-center gap-2 h-11",
                     isSelected 
                       ? cn(mConfig.bg, mConfig.color, "border-current") 
                       : "bg-secondary/50 border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                 >
-                  {m === 'GET' ? <Globe className="h-4 w-4" /> : <FileJson className="h-4 w-4" />}
-                  {m}
+                  {m === 'GET' ? <Globe className="h-4 w-4 shrink-0" /> : <FileJson className="h-4 w-4 shrink-0" />}
+                  <span className="truncate">{m}</span>
                   {isSelected && (
-                    <span className="text-xs font-normal opacity-70 hidden sm:inline">
+                    <span className="text-xs font-normal opacity-70 hidden sm:inline truncate">
                       · {mConfig.description}
                     </span>
                   )}
@@ -178,20 +178,20 @@ export function RequestBuilder({
           </div>
         </div>
 
-        {/* URL Input */}
+        {/* URL Input - stacks on mobile, full-width Send */}
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoint URL</span>
           </div>
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-3">
+            <div className="flex-1 min-w-0 relative">
               <Input
                 value={url}
                 onChange={(e) => onUrlChange(e.target.value)}
                 placeholder="https://api.example.com/v1/resource"
-                className="font-mono text-sm bg-secondary/50 border-border h-11 pr-4 pl-4"
+                className="font-mono text-sm bg-secondary/50 border-border h-11 pl-4 pr-14 sm:pr-14"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                 {isAutoDetecting && (
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 )}
@@ -206,26 +206,26 @@ export function RequestBuilder({
               variant="neon"
               onClick={onSend}
               disabled={isLoading || !url.trim()}
-              className="min-w-28 h-11 gap-2 text-sm"
+              className="w-full sm:w-auto sm:min-w-28 h-11 gap-2 text-sm shrink-0"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                   <span>Sending</span>
                 </>
               ) : (
                 <>
                   <span>Send</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 shrink-0" />
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        {/* Tabs - Contextual based on method */}
+        {/* Tabs - wrap on mobile */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="bg-secondary/30 w-fit p-1 gap-1">
+          <TabsList className="bg-secondary/30 w-full sm:w-fit p-1 gap-1 flex flex-wrap !h-auto">
             {!isGetMethod && (
               <TabsTrigger 
                 value="body" 
@@ -305,35 +305,40 @@ export function RequestBuilder({
                 ) : (
                   <>
                     {params.map((param, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
-                        <Switch
-                          checked={param.enabled}
-                          onCheckedChange={(checked) => updateParam(index, 'enabled', checked)}
-                        />
-                        <Input
-                          value={param.key}
-                          onChange={(e) => updateParam(index, 'key', e.target.value)}
-                          placeholder="key"
-                          className={cn(
-                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
-                            !param.enabled && "opacity-50"
-                          )}
-                        />
-                        <span className="text-muted-foreground">=</span>
-                        <Input
-                          value={param.value}
-                          onChange={(e) => updateParam(index, 'value', e.target.value)}
-                          placeholder="value"
-                          className={cn(
-                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
-                            !param.enabled && "opacity-50"
-                          )}
-                        />
+                      <div key={index} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
+                        <div className="flex items-center gap-3 sm:shrink-0">
+                          <Switch
+                            checked={param.enabled}
+                            onCheckedChange={(checked) => updateParam(index, 'enabled', checked)}
+                          />
+                          <span className="text-muted-foreground text-sm sm:hidden">=</span>
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                          <Input
+                            value={param.key}
+                            onChange={(e) => updateParam(index, 'key', e.target.value)}
+                            placeholder="key"
+                            className={cn(
+                              "flex-1 min-w-0 h-10 bg-secondary/50 border-border font-mono text-sm",
+                              !param.enabled && "opacity-50"
+                            )}
+                          />
+                          <span className="text-muted-foreground hidden sm:inline">=</span>
+                          <Input
+                            value={param.value}
+                            onChange={(e) => updateParam(index, 'value', e.target.value)}
+                            placeholder="value"
+                            className={cn(
+                              "flex-1 min-w-0 h-10 bg-secondary/50 border-border font-mono text-sm",
+                              !param.enabled && "opacity-50"
+                            )}
+                          />
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => removeParam(index)}
-                          className="text-muted-foreground hover:text-destructive shrink-0 h-9 w-9"
+                          className="text-muted-foreground hover:text-destructive shrink-0 h-9 w-9 self-end sm:self-center"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -377,35 +382,40 @@ export function RequestBuilder({
                 ) : (
                   <>
                     {headers.map((header, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
-                        <Switch
-                          checked={header.enabled}
-                          onCheckedChange={(checked) => updateHeader(index, 'enabled', checked)}
-                        />
-                        <Input
-                          value={header.key}
-                          onChange={(e) => updateHeader(index, 'key', e.target.value)}
-                          placeholder="Header-Name"
-                          className={cn(
-                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
-                            !header.enabled && "opacity-50"
-                          )}
-                        />
-                        <span className="text-muted-foreground">:</span>
-                        <Input
-                          value={header.value}
-                          onChange={(e) => updateHeader(index, 'value', e.target.value)}
-                          placeholder="value"
-                          className={cn(
-                            "flex-1 h-10 bg-secondary/50 border-border font-mono text-sm",
-                            !header.enabled && "opacity-50"
-                          )}
-                        />
+                      <div key={index} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
+                        <div className="flex items-center gap-3 sm:shrink-0">
+                          <Switch
+                            checked={header.enabled}
+                            onCheckedChange={(checked) => updateHeader(index, 'enabled', checked)}
+                          />
+                          <span className="text-muted-foreground text-sm sm:hidden">:</span>
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                          <Input
+                            value={header.key}
+                            onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                            placeholder="Header-Name"
+                            className={cn(
+                              "flex-1 min-w-0 h-10 bg-secondary/50 border-border font-mono text-sm",
+                              !header.enabled && "opacity-50"
+                            )}
+                          />
+                          <span className="text-muted-foreground hidden sm:inline">:</span>
+                          <Input
+                            value={header.value}
+                            onChange={(e) => updateHeader(index, 'value', e.target.value)}
+                            placeholder="value"
+                            className={cn(
+                              "flex-1 min-w-0 h-10 bg-secondary/50 border-border font-mono text-sm",
+                              !header.enabled && "opacity-50"
+                            )}
+                          />
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => removeHeader(index)}
-                          className="text-muted-foreground hover:text-destructive shrink-0 h-9 w-9"
+                          className="text-muted-foreground hover:text-destructive shrink-0 h-9 w-9 self-end sm:self-center"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -165,7 +165,7 @@ const Index = () => {
               })
             }}
           >
-            <div className="glass-panel h-full p-5 overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel h-full p-4 sm:p-5 overflow-hidden flex flex-col rounded-xl">
               <RequestBuilder
                 method={method}
                 url={url}
