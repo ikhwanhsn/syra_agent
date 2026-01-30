@@ -1,15 +1,15 @@
 import express from "express";
 import { requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_CHECK_STATUS_USD } from "../config/x402Pricing.js";
 
 export async function createCheckStatusRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.0001;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_CHECK_STATUS_USD,
       description: "Health check endpoint to verify API server status and connectivity",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -37,7 +37,7 @@ export async function createCheckStatusRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_CHECK_STATUS_USD,
       description: "Health check endpoint to verify API server status and connectivity",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan

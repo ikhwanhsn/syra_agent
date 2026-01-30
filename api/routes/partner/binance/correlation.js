@@ -1,6 +1,7 @@
 import express from "express";
 import fs from "fs";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
@@ -104,14 +105,13 @@ function computeCorrelationFromOHLC(ohlcPayload) {
 
 export async function createBinanceCorrelationRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
   const BASE_URL = process.env.BASE_URL;
   const ticker =
     "BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,DOGEUSDT,DOTUSDT,LINKUSDT,MATICUSDT,OPUSDT,ARBUSDT,NEARUSDT,ATOMUSDT,FTMUSDT,INJUSDT,SUIUSDT,SEIUSDT,APTUSDT,RNDRUSDT,FETUSDT,UNIUSDT,AAVEUSDT,LDOUSDT,PENDLEUSDT,MKRUSDT,SNXUSDT,LTCUSDT,BCHUSDT,ETCUSDT,TRXUSDT,XLMUSDT,SHIBUSDT,PEPEUSDT,TIAUSDT,ORDIUSDT,STXUSDT,FILUSDT,ICPUSDT,HBARUSDT,VETUSDT,GRTUSDT,THETAUSDT,EGLDUSDT,ALGOUSDT,FLOWUSDT,SANDUSDT,MANAUSDT,AXSUSDT";
   router.get(
     "/correlation-matrix",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Correlation matrix for all tokens",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -138,7 +138,7 @@ export async function createBinanceCorrelationRouter() {
       let burnResult = null;
       try {
         // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = PRICE_USD;
+        const priceUSD = X402_API_PRICE_USD;
 
         console.log(`Payment price: ${priceUSD} USD`);
 
@@ -152,7 +152,7 @@ export async function createBinanceCorrelationRouter() {
       // Save to leaderboard
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.json({
@@ -167,7 +167,7 @@ export async function createBinanceCorrelationRouter() {
   router.post(
     "/correlation-matrix",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Correlation matrix for all tokens",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -192,7 +192,7 @@ export async function createBinanceCorrelationRouter() {
       let burnResult = null;
       try {
         // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = PRICE_USD;
+        const priceUSD = X402_API_PRICE_USD;
 
         console.log(`Payment price: ${priceUSD} USD`);
 
@@ -206,7 +206,7 @@ export async function createBinanceCorrelationRouter() {
       // Save to leaderboard
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
       res.json({
         interval: ohlcJson.interval,
@@ -220,7 +220,7 @@ export async function createBinanceCorrelationRouter() {
   router.get(
     "/correlation",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Correlation matrix for a symbol",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -268,7 +268,7 @@ export async function createBinanceCorrelationRouter() {
       let burnResult = null;
       try {
         // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = PRICE_USD;
+        const priceUSD = X402_API_PRICE_USD;
 
         console.log(`Payment price: ${priceUSD} USD`);
 
@@ -282,7 +282,7 @@ export async function createBinanceCorrelationRouter() {
       // Save to leaderboard
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.json({
@@ -295,7 +295,7 @@ export async function createBinanceCorrelationRouter() {
   router.post(
     "/correlation",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Correlation matrix for a symbol",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -344,7 +344,7 @@ export async function createBinanceCorrelationRouter() {
       let burnResult = null;
       try {
         // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = PRICE_USD;
+        const priceUSD = X402_API_PRICE_USD;
 
         console.log(`Payment price: ${priceUSD} USD`);
 
@@ -358,7 +358,7 @@ export async function createBinanceCorrelationRouter() {
       // Save to leaderboard
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.json({

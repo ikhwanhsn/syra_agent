@@ -1,18 +1,18 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_RESEARCH_USD } from "../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../libs/atxp/researchService.js";
 import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createResearchRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.75;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_RESEARCH_USD,
       description: "AI-powered deep research on any crypto topic with cited sources",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -85,7 +85,7 @@ export async function createResearchRouter() {
           // Save to leaderboard
           await saveToLeaderboard({
             wallet: paymentResult.payer,
-            volume: PRICE_USD,
+            volume: X402_API_PRICE_RESEARCH_USD,
           });
 
           res.json({ status, content, sources });
@@ -102,7 +102,7 @@ export async function createResearchRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_RESEARCH_USD,
       description: "AI-powered deep research on any crypto topic with cited sources",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -176,7 +176,7 @@ export async function createResearchRouter() {
           // Save to leaderboard
           await saveToLeaderboard({
             wallet: paymentResult.payer,
-            volume: PRICE_USD,
+            volume: X402_API_PRICE_RESEARCH_USD,
           });
 
           res.json({ status, content, sources });

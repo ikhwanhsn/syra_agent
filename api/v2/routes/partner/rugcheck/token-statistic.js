@@ -1,17 +1,17 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
 import { rugcheckRequests } from "../../../../request/rugcheck.request.js";
 import { saveToLeaderboard } from "../../../../scripts/saveToLeaderboard.js";
 
 export async function createTokenStatisticRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description:
         "Token statistic on Rugcheck (new token, recent, trending, verified)",
       method: "GET",
@@ -51,7 +51,7 @@ export async function createTokenStatisticRouter() {
 
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.status(200).json(data);
@@ -62,7 +62,7 @@ export async function createTokenStatisticRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description:
         "Token statistic on Rugcheck (new token, recent, trending, verified)",
       method: "POST",
@@ -102,7 +102,7 @@ export async function createTokenStatisticRouter() {
 
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.status(200).json(data);

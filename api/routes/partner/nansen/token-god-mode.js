@@ -1,5 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_NANSEN_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
 import { tokenGodModeRequests } from "../../../request/nansen/token-god-mode.js";
@@ -7,13 +8,12 @@ import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
 export async function createTokenGodModeRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.5;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_NANSEN_USD,
       description:
         "Token God Mode - All Data (flow intelligence, holders, flow history, bought and sold tokens, dex trades, transfers, jup dcas, pnl leaderboard)",
       method: "GET",
@@ -84,7 +84,7 @@ export async function createTokenGodModeRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_NANSEN_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -97,7 +97,7 @@ export async function createTokenGodModeRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_NANSEN_USD,
         });
 
         res.status(200).json(data);
@@ -114,7 +114,7 @@ export async function createTokenGodModeRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_NANSEN_USD,
       description:
         "Token God Mode - All Data (flow intelligence, holders, flow history, bought and sold tokens, dex trades, transfers, jup dcas, pnl leaderboard)",
       method: "POST",
@@ -186,7 +186,7 @@ export async function createTokenGodModeRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_NANSEN_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -199,7 +199,7 @@ export async function createTokenGodModeRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_NANSEN_USD,
         });
 
         res.status(200).json(data);

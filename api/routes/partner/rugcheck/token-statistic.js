@@ -1,18 +1,18 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { rugcheckRequests } from "../../../request/rugcheck.request.js";
 import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
 export async function createTokenStatisticRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description:
         "Token statistic on Rugcheck (new token, recent, trending, verified)",
       method: "GET",
@@ -54,7 +54,7 @@ export async function createTokenStatisticRouter() {
       let burnResult = null;
       try {
         // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = PRICE_USD;
+        const priceUSD = X402_API_PRICE_USD;
 
         console.log(`Payment price: ${priceUSD} USD`);
 
@@ -67,7 +67,7 @@ export async function createTokenStatisticRouter() {
 
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.status(200).json(data);
@@ -78,7 +78,7 @@ export async function createTokenStatisticRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description:
         "Token statistic on Rugcheck (new token, recent, trending, verified)",
       method: "POST",
@@ -120,7 +120,7 @@ export async function createTokenStatisticRouter() {
       let burnResult = null;
       try {
         // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = PRICE_USD;
+        const priceUSD = X402_API_PRICE_USD;
 
         console.log(`Payment price: ${priceUSD} USD`);
 
@@ -133,7 +133,7 @@ export async function createTokenStatisticRouter() {
 
       await saveToLeaderboard({
         wallet: paymentResult.payer,
-        volume: PRICE_USD,
+        volume: X402_API_PRICE_USD,
       });
 
       res.status(200).json(data);

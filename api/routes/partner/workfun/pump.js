@@ -1,5 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_PUMP_USD } from "../../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../../../libs/atxp/researchService.js";
 import { payer } from "@faremeter/rides";
@@ -7,13 +8,12 @@ import { xLiveSearchService } from "../../../libs/atxp/xLiveSearchService.js";
 
 export async function createPumpRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.75;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     // requirePayment({
-    //   price: PRICE_USD,
+    //   price: X402_API_PRICE_PUMP_USD,
     //   description: "Pump your token in just seconds",
     //   method: "GET",
     //   discoverable: true, // Make it discoverable on x402scan
@@ -74,7 +74,7 @@ export async function createPumpRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_PUMP_USD,
       description: "Research information from websites",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan

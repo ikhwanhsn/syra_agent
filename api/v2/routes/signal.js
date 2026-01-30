@@ -2,18 +2,17 @@ import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
+import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+
 export async function createSignalRouter() {
   const router = express.Router();
-
-  // Fixed price for all users
-  const FIXED_PRICE = "0.15";
 
   // GET Route Example
   router.get(
     "/",
     (req, res, next) =>
       requirePayment({
-        price: FIXED_PRICE,
+        price: X402_API_PRICE_USD,
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "GET",
         discoverable: true,
@@ -64,7 +63,7 @@ export async function createSignalRouter() {
     "/",
     (req, res, next) =>
       requirePayment({
-        price: FIXED_PRICE,
+        price: X402_API_PRICE_USD,
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "POST",
         discoverable: true,

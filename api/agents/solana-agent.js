@@ -1,5 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_NANSEN_USD } from "../config/x402Pricing.js";
 import { tokenGodModePerpRequests } from "../request/nansen/token-god-mode-perp.js";
 import { payer } from "@faremeter/rides";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
@@ -11,7 +12,7 @@ export async function createSolanaAgentRouter() {
   router.get(
     "/",
     requirePayment({
-      price: "0.5",
+      price: X402_API_PRICE_NANSEN_USD,
       description:
         "Solana super intelligent agent (macro analysis + onchain analysis)",
       method: "GET",
@@ -85,8 +86,8 @@ export async function createSolanaAgentRouter() {
         // Buyback and burn SYRA token (80% of revenue)
         let burnResult = null;
         try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.5;
+          // Use the global x402 API price
+          const priceUSD = X402_API_PRICE_NANSEN_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -111,7 +112,7 @@ export async function createSolanaAgentRouter() {
   router.post(
     "/",
     requirePayment({
-      price: "0.5",
+      price: X402_API_PRICE_NANSEN_USD,
       description:
         "Solana super intelligent agent (macro analysis + onchain analysis)",
       method: "POST",
@@ -185,8 +186,8 @@ export async function createSolanaAgentRouter() {
         // Buyback and burn SYRA token (80% of revenue)
         let burnResult = null;
         try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = 0.5;
+          // Use the global x402 API price
+          const priceUSD = X402_API_PRICE_NANSEN_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 

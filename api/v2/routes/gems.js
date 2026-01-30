@@ -1,5 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { gemsPrompt } from "../../prompts/gems.prompt.js";
@@ -7,13 +8,11 @@ import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createGemsRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -69,7 +68,7 @@ export async function createGemsRouter() {
           // Save to leaderboard
           await saveToLeaderboard({
             wallet: paymentResult.payer,
-            volume: PRICE_USD,
+            volume: X402_API_PRICE_USD,
           });
 
           res.json({ query, result: message, citations, toolCalls });
@@ -95,7 +94,6 @@ export async function createGemsRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -151,7 +149,7 @@ export async function createGemsRouter() {
           // Save to leaderboard
           await saveToLeaderboard({
             wallet: paymentResult.payer,
-            volume: PRICE_USD,
+            volume: X402_API_PRICE_USD,
           });
 
           res.json({ query, result: message, citations, toolCalls });

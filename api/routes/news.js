@@ -1,12 +1,12 @@
 // routes/weather.js
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_NEWS_USD } from "../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createNewsRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.1;
 
   const fetchGeneralNews = async () => {
     const response = await fetch(
@@ -44,7 +44,7 @@ export async function createNewsRouter() {
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_NEWS_USD,
       description: "Get latest crypto news and market updates",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -92,7 +92,7 @@ export async function createNewsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_NEWS_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -105,7 +105,7 @@ export async function createNewsRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_NEWS_USD,
         });
 
         res.json({
@@ -129,7 +129,7 @@ export async function createNewsRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_NEWS_USD,
       description: "Get latest crypto news and market updates",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -179,7 +179,7 @@ export async function createNewsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_NEWS_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -192,7 +192,7 @@ export async function createNewsRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_NEWS_USD,
         });
 
         res.json({

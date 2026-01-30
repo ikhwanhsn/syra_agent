@@ -1,5 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
@@ -8,13 +9,12 @@ import { memecoinsMostMentionedBySmartMoneyX } from "../../prompts/memecoin.js";
 
 export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Get the memecoins most mentioned by smart money X.",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -53,7 +53,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
           let burnResult = null;
           try {
             // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = PRICE_USD;
+            const priceUSD = X402_API_PRICE_USD;
 
             console.log(`Payment price: ${priceUSD} USD`);
 
@@ -67,7 +67,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
           // Save to leaderboard
           await saveToLeaderboard({
             wallet: paymentResult.payer,
-            volume: PRICE_USD,
+            volume: X402_API_PRICE_USD,
           });
 
           res.json({ query, result: message, citations, toolCalls });
@@ -93,7 +93,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Get the memecoins most mentioned by smart money X.",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -132,7 +132,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
           let burnResult = null;
           try {
             // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = PRICE_USD;
+            const priceUSD = X402_API_PRICE_USD;
 
             console.log(`Payment price: ${priceUSD} USD`);
 
@@ -146,7 +146,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
           // Save to leaderboard
           await saveToLeaderboard({
             wallet: paymentResult.payer,
-            volume: PRICE_USD,
+            volume: X402_API_PRICE_USD,
           });
 
           res.json({ query, result: message, citations, toolCalls });

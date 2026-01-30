@@ -1,20 +1,18 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
 
 export async function createSignalRouter() {
   const router = express.Router();
 
-  // Fixed price for all users
-  const FIXED_PRICE = "0.15";
-
   // GET Route Example
   router.get(
     "/",
     (req, res, next) =>
       requirePayment({
-        price: FIXED_PRICE,
+        price: X402_API_PRICE_USD,
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "GET",
         discoverable: true, // Make it discoverable on x402scan
@@ -52,8 +50,8 @@ export async function createSignalRouter() {
           // Buyback and burn SYRA token (80% of revenue)
           let burnResult = null;
           try {
-            // Use the fixed price (0.15 USD)
-            const priceUSD = 0.15;
+            // Use the global x402 API price
+            const priceUSD = X402_API_PRICE_USD;
 
             console.log(`Payment price: ${priceUSD} USD`);
 
@@ -86,7 +84,7 @@ export async function createSignalRouter() {
     "/",
     (req, res, next) =>
       requirePayment({
-        price: FIXED_PRICE,
+        price: X402_API_PRICE_USD,
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "POST",
         discoverable: true, // Make it discoverable on x402scan
@@ -125,8 +123,8 @@ export async function createSignalRouter() {
           // Buyback and burn SYRA token (80% of revenue)
           let burnResult = null;
           try {
-            // Use the fixed price (0.15 USD)
-            const priceUSD = 0.15;
+            // Use the global x402 API price
+            const priceUSD = X402_API_PRICE_USD;
 
             console.log(`Payment price: ${priceUSD} USD`);
 

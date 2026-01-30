@@ -1,5 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_NANSEN_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
@@ -7,13 +8,12 @@ import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
 export async function createSmartMoneyRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.5;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_NANSEN_USD,
       description: "Smart money tracking: net flow, holdings, historical holdings, DEX trades, and DCA patterns",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -92,7 +92,7 @@ export async function createSmartMoneyRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_NANSEN_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -105,7 +105,7 @@ export async function createSmartMoneyRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_NANSEN_USD,
         });
 
         res.status(200).json(data);
@@ -122,7 +122,7 @@ export async function createSmartMoneyRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_NANSEN_USD,
       description: "Smart money tracking: net flow, holdings, historical holdings, DEX trades, and DCA patterns",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -201,7 +201,7 @@ export async function createSmartMoneyRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_NANSEN_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -214,7 +214,7 @@ export async function createSmartMoneyRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_NANSEN_USD,
         });
 
         res.status(200).json(data);

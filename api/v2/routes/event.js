@@ -1,11 +1,11 @@
 // routes/weather.js
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createEventRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   const fetchGeneralEvent = async () => {
     const response = await fetch(
@@ -27,7 +27,6 @@ export async function createEventRouter() {
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -78,7 +77,7 @@ export async function createEventRouter() {
         // Save to leaderboard
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.json({
@@ -95,7 +94,6 @@ export async function createEventRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -147,7 +145,7 @@ export async function createEventRouter() {
         // Save to leaderboard
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.json({

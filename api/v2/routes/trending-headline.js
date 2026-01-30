@@ -1,11 +1,11 @@
 // routes/weather.js
 import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createTrendingHeadlineRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   const fetchGeneralTrendingHeadline = async () => {
     const response = await fetch(
@@ -27,7 +27,6 @@ export async function createTrendingHeadlineRouter() {
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Get trending headlines and top stories in the crypto market",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -74,7 +73,7 @@ export async function createTrendingHeadlineRouter() {
         // Save to leaderboard
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.json({
@@ -91,7 +90,6 @@ export async function createTrendingHeadlineRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Get trending headlines and top stories in the crypto market",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -139,7 +137,7 @@ export async function createTrendingHeadlineRouter() {
         // Save to leaderboard
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.json({

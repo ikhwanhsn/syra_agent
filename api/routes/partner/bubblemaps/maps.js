@@ -1,19 +1,19 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
 import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
 export async function createBubblemapsMapsRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
   const chain = "solana";
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -67,7 +67,7 @@ export async function createBubblemapsMapsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -80,7 +80,7 @@ export async function createBubblemapsMapsRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.status(200).json({ data });
@@ -97,7 +97,7 @@ export async function createBubblemapsMapsRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -151,7 +151,7 @@ export async function createBubblemapsMapsRouter() {
         let burnResult = null;
         try {
           // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = PRICE_USD;
+          const priceUSD = X402_API_PRICE_USD;
 
           console.log(`Payment price: ${priceUSD} USD`);
 
@@ -164,7 +164,7 @@ export async function createBubblemapsMapsRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.status(200).json({ data });

@@ -1,18 +1,17 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
 import { payer } from "@faremeter/rides";
 import { smartMoneyRequests } from "../../../../request/nansen/smart-money.request.js";
 import { saveToLeaderboard } from "../../../../scripts/saveToLeaderboard.js";
 
 export async function createTrendingJupiterRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Trending tokens on Jupiter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -59,7 +58,7 @@ export async function createTrendingJupiterRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res
@@ -78,7 +77,6 @@ export async function createTrendingJupiterRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
       description: "Trending tokens on Jupiter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -125,7 +123,7 @@ export async function createTrendingJupiterRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res

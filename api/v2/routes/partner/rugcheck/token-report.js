@@ -1,17 +1,17 @@
 import express from "express";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
 import { payer } from "@faremeter/rides";
 import { saveToLeaderboard } from "../../../../scripts/saveToLeaderboard.js";
 
 export async function createTokenReportRouter() {
   const router = express.Router();
-  const PRICE_USD = 0.15;
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Token report on Rugcheck",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
@@ -56,7 +56,7 @@ export async function createTokenReportRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.status(200).json({ data });
@@ -73,7 +73,7 @@ export async function createTokenReportRouter() {
   router.post(
     "/",
     requirePayment({
-      price: PRICE_USD,
+      price: X402_API_PRICE_USD,
       description: "Token report on Rugcheck",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
@@ -119,7 +119,7 @@ export async function createTokenReportRouter() {
 
         await saveToLeaderboard({
           wallet: paymentResult.payer,
-          volume: PRICE_USD,
+          volume: X402_API_PRICE_USD,
         });
 
         res.status(200).json({ data });

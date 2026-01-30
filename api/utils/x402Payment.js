@@ -12,6 +12,7 @@
  */
 import { X402PaymentHandler } from "x402-solana/server";
 import dotenv from "dotenv";
+import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 
 dotenv.config();
 
@@ -93,7 +94,7 @@ export function requirePayment(options) {
       const paymentHeader = req.headers["x-payment"] || x402.extractPayment(req.headers);
 
       // 2. Calculate amount in micro-units (USDC has 6 decimals)
-      const priceUSD = parseFloat(options.price);
+      const priceUSD = parseFloat(options.price ?? X402_API_PRICE_USD);
       const microUnits = Math.floor(priceUSD * 1_000_000).toString();
 
       // 3. Determine network and token (V1 uses simple network name)
