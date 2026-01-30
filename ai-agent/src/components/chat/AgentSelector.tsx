@@ -1,0 +1,113 @@
+import { ChevronDown, Bot, Sparkles, Zap, Brain } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  icon: typeof Bot;
+  color: string;
+}
+
+interface AgentSelectorProps {
+  agents: Agent[];
+  selectedAgent: Agent;
+  onSelectAgent: (agent: Agent) => void;
+}
+
+const defaultAgents: Agent[] = [
+  {
+    id: "nexus-pro",
+    name: "NexusAI Pro",
+    description: "Most capable model for complex tasks",
+    icon: Sparkles,
+    color: "from-primary to-[hsl(199,89%,48%)]",
+  },
+  {
+    id: "nexus-fast",
+    name: "NexusAI Fast",
+    description: "Quick responses for simple queries",
+    icon: Zap,
+    color: "from-yellow-500 to-orange-500",
+  },
+  {
+    id: "nexus-code",
+    name: "NexusAI Code",
+    description: "Specialized for programming tasks",
+    icon: Brain,
+    color: "from-violet-500 to-purple-500",
+  },
+];
+
+export function AgentSelector({
+  agents = defaultAgents,
+  selectedAgent,
+  onSelectAgent,
+}: AgentSelectorProps) {
+  const Icon = selectedAgent.icon;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="gap-2 px-3 h-10 hover:bg-secondary/80 border border-transparent hover:border-border"
+        >
+          <div
+            className={cn(
+              "w-6 h-6 rounded-lg flex items-center justify-center bg-gradient-to-br",
+              selectedAgent.color
+            )}
+          >
+            <Icon className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="font-medium">{selectedAgent.name}</span>
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-72">
+        <DropdownMenuLabel className="text-muted-foreground font-normal">
+          Select AI Model
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {agents.map((agent) => {
+          const AgentIcon = agent.icon;
+          return (
+            <DropdownMenuItem
+              key={agent.id}
+              onClick={() => onSelectAgent(agent)}
+              className={cn(
+                "flex items-start gap-3 p-3 cursor-pointer",
+                selectedAgent.id === agent.id && "bg-secondary"
+              )}
+            >
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br shrink-0",
+                  agent.color
+                )}
+              >
+                <AgentIcon className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground">{agent.name}</p>
+                <p className="text-xs text-muted-foreground">{agent.description}</p>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export { defaultAgents, type Agent };
