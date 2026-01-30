@@ -1,3 +1,20 @@
+# frontend
+
+## Purpose of this folder
+
+The **frontend** folder is the **Syra web app (dashboard)**. It is a Next.js application that gives users:
+
+- **Signals** — view and explore AI trading signals (including verified on-chain).
+- **Dashboard** — statistics and overview of Syra activity.
+- **Leaderboard** — rankings and performance.
+- **Insight** — research and market insight views.
+- **Profile** — user profile and stats.
+- **PayAI / test / waitlist** — payment and onboarding flows.
+
+It talks to the **api** backend (and ATXP/corbits/cryptonews where configured) and supports **Solana wallet** (e.g. for x402/PayAI). This is the main **web UI** for Syra, separate from the **landing** (marketing) site.
+
+---
+
 # 🤖 Syra AI Agent
 
 **Syra** is an **AI-powered trading assistant** built on **Solana x402**, designed to simplify crypto trading through smart automation, analytics, and real-time Telegram interaction.

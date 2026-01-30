@@ -1,3 +1,18 @@
+# landing
+
+## Purpose of this folder
+
+The **landing** folder is Syra’s **marketing and landing website**. It is a static/Vite + React site that:
+
+- **Introduces Syra** — hero, “What is Syra”, “Why Syra”, product modules, dashboard preview.
+- **Showcases features** — FAQ, testimonials, roadmap, token section, live dashboard teaser.
+- **Public leaderboard** — leaderboard page for discovery and social proof.
+- **Drives signups** — CTA to Telegram bot, docs, and main app.
+
+It is **not** the logged-in dashboard (that’s **frontend**). It’s the first page visitors see (e.g. syraa.fun). Built with Vite, TypeScript, React, shadcn-ui, and Tailwind.
+
+---
+
 # Welcome to your Lovable project
 
 ## Project info

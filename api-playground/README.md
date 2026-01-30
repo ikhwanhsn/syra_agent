@@ -1,3 +1,17 @@
+# api-playground
+
+## Purpose of this folder
+
+The **api-playground** folder is a **Syra API testing and exploration UI**. It lets developers:
+
+- **Call Syra API endpoints** — build and send requests (e.g. signals, research, news, browse) from the browser.
+- **Handle x402 payments** — connect a Solana wallet and complete pay-per-request flows where endpoints are gated.
+- **Inspect responses** — view JSON and response details (e.g. via response viewer, history).
+
+It uses the same **api** backend as the rest of the monorepo and is useful for integration work, debugging, and demos. Built with Vite, TypeScript, React, shadcn-ui, and Tailwind.
+
+---
+
 # Welcome to your Lovable project
 
 ## Project info

@@ -1,3 +1,18 @@
+# prediction-game
+
+## Purpose of this folder
+
+The **prediction-game** folder is a **prediction/events app** in the Syra ecosystem. It allows users to:
+
+- **Browse and join prediction events** — view event details, countdowns, and participate (e.g. stake or predict).
+- **Stake** — stake on outcomes via the Staking page and context.
+- **Create and manage events (admin)** — create events and manage content (admin + create-event flows).
+- **Connect Solana wallet** — wallet context and UI for on-chain or gated actions.
+
+It has its own **server** (Node/Express) for event/creator/staking APIs and can use the monorepo **api** for shared data (e.g. events, creators, staking). The frontend is Vite + React (TypeScript, shadcn-ui, Tailwind). This app is a **separate product surface** from the main Syra trading dashboard.
+
+---
+
 # Welcome to your Lovable project
 
 ## Project info
