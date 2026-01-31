@@ -2,6 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { WhatIsSyra } from "@/components/WhatIsSyra";
 import { ProductModules } from "@/components/ProductModules";
+import { ApiX402Section } from "@/components/ApiX402Section";
 import { LiveDashboard } from "@/components/LiveDashboard";
 import { WhySyra } from "@/components/WhySyra";
 import { TokenSection } from "@/components/TokenSection";
@@ -18,6 +19,7 @@ const Index = () => {
         <HeroSection />
         <WhatIsSyra />
         <ProductModules />
+        <ApiX402Section />
         <LiveDashboard />
         <WhySyra />
         <TokenSection />

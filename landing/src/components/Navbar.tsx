@@ -1,11 +1,19 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { SyraLogo } from "./SyraLogo";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { LINK_AGENT, LINK_DOCS } from "../../config/global";
 
 const navLinks = [
   { label: "Product", href: "#product" },
+  { label: "API", href: "#api" },
   { label: "Token", href: "#token" },
   { label: "Roadmap", href: "#roadmap" },
   { label: "FAQ", href: "#faq" },
@@ -13,6 +21,7 @@ const navLinks = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   return (
     <motion.header
@@ -44,7 +53,26 @@ export const Navbar = () => {
               ))}
             </div>
 
-            <div className="items-center hidden gap-4 md:flex">
+            <div className="items-center hidden gap-2 md:flex">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="h-9 w-9 shrink-0"
+                  >
+                    <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Toggle theme</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    Switch to {theme === "dark" ? "light" : "dark"} mode
+                  </p>
+                </TooltipContent>
+              </Tooltip>
               <a
                 href={LINK_DOCS}
                 target="_blank"
@@ -90,6 +118,18 @@ export const Navbar = () => {
                   </a>
                 ))}
                 <div className="flex flex-col gap-3 mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-center gap-2"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  >
+                    <span className="relative h-4 w-4 shrink-0">
+                      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                      <Moon className="absolute inset-0 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    </span>
+                    {theme === "dark" ? "Light" : "Dark"} mode
+                  </Button>
                   <a
                     href={LINK_DOCS}
                     target="_blank"

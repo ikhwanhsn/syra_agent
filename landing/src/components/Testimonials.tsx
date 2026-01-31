@@ -34,12 +34,12 @@ const testimonials = [
 ];
 
 const partners = [
-  "Chainlink",
-  "Polygon",
-  "Arbitrum",
-  "Optimism",
-  "Alchemy",
-  "The Graph",
+  "Solana",
+  "Jupiter",
+  "Raydium",
+  "Pyth",
+  "Helius",
+  "Phantom",
 ];
 
 export const Testimonials = () => {
@@ -121,7 +121,7 @@ export const Testimonials = () => {
           className="text-center"
         >
           <p className="mb-8 text-sm tracking-wider uppercase text-muted-foreground">
-            Integrated With Leading Protocols
+            Integrated With Leading Solana Protocols
           </p>
 
           <div className="flex flex-wrap justify-center gap-8 md:gap-12">

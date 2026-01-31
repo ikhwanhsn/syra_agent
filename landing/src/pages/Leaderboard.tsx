@@ -11,14 +11,28 @@ import {
   Medal,
   Gift,
 } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { LINK_AGENT } from "../../config/global";
+
+type SortKey = "rank" | "wallet" | "volume" | "toolsCalls" | "totalReward";
 
 export default function Leaderboard() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<Array<{
+    wallet: string;
+    volume: number;
+    toolsCalls: number;
+    totalReward: number;
+    rank: number;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [timeFilter, setTimeFilter] = useState("7d");
-  const [sortConfig, setSortConfig] = useState({
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortKey;
+    direction: "asc" | "desc";
+  }>({
     key: "rank",
     direction: "asc",
   });
@@ -54,10 +68,10 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, [timeFilter]);
 
-  const totalWeeklyReward = "-"; // Static for now
+  const totalWeeklyReward: string | number = "-"; // Static for now
 
   // Sorting function
-  const handleSort = (key) => {
+  const handleSort = (key: SortKey) => {
     setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
@@ -91,7 +105,7 @@ export default function Leaderboard() {
     currentPage * itemsPerPage,
   );
 
-  const SortIcon = ({ columnKey }) => {
+  const SortIcon = ({ columnKey }: { columnKey: SortKey }) => {
     if (sortConfig.key !== columnKey) {
       return <ArrowUpDown className="w-4 h-4 opacity-30" />;
     }
@@ -102,14 +116,14 @@ export default function Leaderboard() {
     );
   };
 
-  const getRankIcon = (rank) => {
-    if (rank === 1) return <Trophy className="w-5 h-5 text-yellow-400" />;
-    if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />;
-    if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />;
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Trophy className="w-5 h-5 gold-text" />;
+    if (rank === 2) return <Medal className="w-5 h-5 text-muted-foreground" />;
+    if (rank === 3) return <Medal className="w-5 h-5 text-warning" />;
     return <span className="text-muted-foreground">#{rank}</span>;
   };
 
-  const getRewardPercentage = (rank) => {
+  const getRewardPercentage = (rank: number) => {
     if (rank === 1) return "50%";
     if (rank === 2) return "30%";
     if (rank === 3) return "20%";
@@ -117,88 +131,94 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Background Effects */}
-      <div className="fixed inset-0 opacity-30 grid-pattern" />
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      <Navbar />
+
+      {/* Background Effects - same as Index/HeroSection */}
+      <div className="fixed inset-0 opacity-50 grid-pattern pointer-events-none" />
       <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-neon-purple/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="relative z-10 px-4 py-24 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 text-center"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card">
-            <Trophy className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm text-muted-foreground">
-              Powered by x402 Technology
-            </span>
-          </div>
-
-          <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
-            <span className="neon-text">Leaderboard</span>
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Compete with the best traders and earn rewards
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="flex items-center justify-center gap-4 mb-6"
-        >
-          <a
-            href="/"
-            className="px-6 py-3 text-sm font-medium transition-all rounded-lg glass-card hover:bg-primary/10 hover:border-primary/30"
+      <main className="relative z-10 pt-28 pb-16">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 text-center"
           >
-            ← Back to Home
-          </a>
-          <a
-            href="https://www.x402scan.com/composer/agent/c543b43e-6f49-492d-9f8a-6b0cc273fb06/chat"
-            target="_blank"
-            className="px-6 py-3 text-sm font-medium transition-all rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Launch Agent →
-          </a>
-        </motion.div>
-
-        {/* Reward Info Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-6 mb-8 glass-card rounded-2xl"
-        >
-          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="text-center md:text-left">
-              <div className="flex items-center gap-2 mb-2">
-                <Gift className="w-5 h-5 text-primary" />
-                <span className="text-sm text-muted-foreground">
-                  Weekly Reward Pool
-                </span>
-              </div>
-              <div className="text-3xl font-bold text-foreground">
-                ${totalWeeklyReward.toLocaleString()}
-              </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card">
+              <Trophy className="w-4 h-4 gold-text" />
+              <span className="text-sm text-muted-foreground">
+                Powered by x402 Technology
+              </span>
             </div>
+
+            <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
+              <span className="neon-text">Leaderboard</span>
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Compete with the best traders and earn rewards
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="flex flex-wrap items-center justify-center gap-4 mb-8"
+          >
+            <a
+              href="/"
+              className="px-6 py-3 text-sm font-medium transition-all rounded-xl btn-secondary"
+            >
+              ← Back to Home
+            </a>
+            <a
+              href={LINK_AGENT}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 text-sm font-medium btn-primary"
+            >
+              Launch Agent →
+            </a>
+          </motion.div>
+
+          {/* Reward Info Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="p-6 mb-8 glass-card"
+          >
+            <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+              <div className="text-center md:text-left">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="w-5 h-5 text-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    Weekly Reward Pool
+                  </span>
+                </div>
+                <div className="text-3xl font-bold text-foreground">
+                  {typeof totalWeeklyReward === "number"
+                    ? `$${totalWeeklyReward.toLocaleString()}`
+                    : totalWeeklyReward}
+                </div>
+              </div>
 
             <div className="flex gap-4">
               <div className="px-4 py-3 text-center glass-card rounded-xl">
-                <Trophy className="w-6 h-6 mx-auto mb-1 text-yellow-400" />
+                <Trophy className="w-6 h-6 mx-auto mb-1 gold-text" />
                 <div className="text-xs text-muted-foreground">1st Place</div>
                 <div className="font-bold text-primary">50%</div>
               </div>
               <div className="px-4 py-3 text-center glass-card rounded-xl">
-                <Medal className="w-6 h-6 mx-auto mb-1 text-gray-400" />
+                <Medal className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
                 <div className="text-xs text-muted-foreground">2nd Place</div>
                 <div className="font-bold text-primary">30%</div>
               </div>
               <div className="px-4 py-3 text-center glass-card rounded-xl">
-                <Medal className="w-6 h-6 mx-auto mb-1 text-amber-600" />
+                <Medal className="w-6 h-6 mx-auto mb-1 text-warning" />
                 <div className="text-xs text-muted-foreground">3rd Place</div>
                 <div className="font-bold text-primary">20%</div>
               </div>
@@ -206,53 +226,53 @@ export default function Leaderboard() {
           </div>
         </motion.div>
 
-        {/* Controls */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between"
-        >
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute w-5 h-5 transform -translate-y-1/2 left-3 top-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by wallet address..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-3 pl-10 pr-4 transition-colors border-0 glass-card rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
+          {/* Controls */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between"
+          >
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute w-5 h-5 transform -translate-y-1/2 left-3 top-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search by wallet address..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full py-3 pl-10 pr-4 transition-colors border rounded-xl bg-background/80 border-border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              />
+            </div>
 
-          {/* Time Filter */}
-          <div className="flex gap-2">
-            {["7d", "14d", "30d", "all"].map((period) => (
-              <button
-                key={period}
-                onClick={() => setTimeFilter(period)}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                  timeFilter === period
-                    ? "bg-primary text-primary-foreground"
-                    : "glass-card text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {period === "all" ? "All Time" : period.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </motion.div>
+            {/* Time Filter */}
+            <div className="flex gap-2">
+              {["7d", "14d", "30d", "all"].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setTimeFilter(period)}
+                  className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
+                    timeFilter === period
+                      ? "btn-primary"
+                      : "btn-secondary"
+                  }`}
+                >
+                  {period === "all" ? "All Time" : period.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </motion.div>
 
-        {/* Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="overflow-hidden glass-card rounded-2xl"
-        >
+          {/* Table */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="overflow-hidden glass-card"
+          >
           <div className="relative z-10 overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -278,7 +298,20 @@ export default function Leaderboard() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((item, index) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-16 text-center text-muted-foreground">
+                      Loading leaderboard…
+                    </td>
+                  </tr>
+                ) : paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-16 text-center text-muted-foreground">
+                      No entries found.
+                    </td>
+                  </tr>
+                ) : (
+                paginatedData.map((item, index) => (
                   <motion.tr
                     key={item.wallet}
                     initial={{ opacity: 0, x: -20 }}
@@ -319,13 +352,14 @@ export default function Leaderboard() {
                       </div>
                     </td>
                   </motion.tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-t border-border">
             <div className="text-sm text-muted-foreground">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(
@@ -339,13 +373,13 @@ export default function Leaderboard() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="p-2 transition-colors rounded-lg glass-card hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 transition-colors rounded-xl border border-border bg-background/80 hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
+                let pageNum: number;
                 if (totalPages <= 5) {
                   pageNum = i + 1;
                 } else if (currentPage <= 3) {
@@ -360,10 +394,10 @@ export default function Leaderboard() {
                   <button
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
+                    className={`min-w-[2.5rem] px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                       currentPage === pageNum
-                        ? "bg-primary text-primary-foreground"
-                        : "glass-card hover:bg-primary/10"
+                        ? "btn-primary"
+                        : "btn-secondary"
                     }`}
                   >
                     {pageNum}
@@ -376,50 +410,17 @@ export default function Leaderboard() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="p-2 transition-colors rounded-lg glass-card hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 transition-colors rounded-xl border border-border bg-background/80 hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
         </motion.div>
-      </div>
+        </div>
+      </main>
 
-      <style>{`
-        .grid-pattern {
-          background-image: 
-            linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, hsl(var(--primary) / 0.1) 1px, transparent 1px);
-          background-size: 40px 40px;
-        }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .neon-text {
-          background: linear-gradient(135deg, hsl(190, 100%, 50%), hsl(270, 100%, 65%));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        :root {
-          --background: 220 15% 8%;
-          --foreground: 210 20% 98%;
-          --primary: 190 100% 50%;
-          --neon-purple: 270 100% 65%;
-          --muted-foreground: 215 20% 65%;
-          --border: 215 15% 25%;
-        }
-
-        body {
-          background-color: hsl(var(--background));
-          color: hsl(var(--foreground));
-        }
-      `}</style>
+      <Footer />
     </div>
   );
 }
