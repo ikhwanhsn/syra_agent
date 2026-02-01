@@ -1,5 +1,4 @@
-const LINK_AGENT =
-  "https://www.x402scan.com/composer/agent/c543b43e-6f49-492d-9f8a-6b0cc273fb06/chat";
+const LINK_AGENT = "https://agent.syraa.fun";
 const LINK_DOCS = "https://docs.syraa.fun";
 const LINK_PLAYGROUND = "https://playground.syraa.fun";
 const LINK_DEMO = "https://x.com/syra_agent/status/1994813375214489919?s=20";
