@@ -39,21 +39,21 @@ const suggestions: SuggestionCard[] = [
 
 export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-full px-4 py-12 animate-fade-in">
-      <div className="relative mb-8">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow">
-          <Sparkles className="w-10 h-10 text-primary-foreground" />
+    <div className="flex flex-col items-center justify-center min-h-full w-full max-w-full px-3 py-8 sm:px-4 sm:py-12 animate-fade-in overflow-x-hidden">
+      <div className="relative mb-6 sm:mb-8">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow">
+          <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-primary-foreground" />
         </div>
         <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-[hsl(199,89%,48%)]/20 rounded-3xl blur-xl -z-10" />
       </div>
 
-      <h2 className="text-2xl font-semibold text-foreground mb-2">
+      <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-2 text-center px-2">
         How can I help you today?
       </h2>
-      <p className="text-muted-foreground text-center max-w-md mb-3">
+      <p className="text-muted-foreground text-center max-w-md mb-3 px-2 text-sm sm:text-base">
         Chat casually about crypto, web3, and blockchain—no wallet needed. Syra builds trading infrastructure powered by AI. Connect a wallet when you want to use tools and realtime data.
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-sm">
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 text-sm">
         <a
           href={PLAYGROUND_URL}
           target="_blank"
@@ -72,7 +72,7 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full max-w-2xl px-1">
         {suggestions.map((suggestion, index) => {
           const Icon = suggestion.icon;
           return (
@@ -80,18 +80,18 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
               key={index}
               onClick={() => onSelectPrompt(suggestion.prompt)}
               className={cn(
-                "flex items-start gap-3 p-4 rounded-xl text-left",
+                "flex items-start gap-3 p-3 sm:p-4 rounded-xl text-left min-w-0",
                 "bg-card border border-border",
                 "hover:bg-secondary/50 hover:border-primary/20 hover:shadow-soft",
-                "transition-all duration-200 group"
+                "transition-all duration-200 group touch-manipulation"
               )}
             >
-              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
-                <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground mb-1">{suggestion.title}</p>
-                <p className="text-sm text-muted-foreground line-clamp-2">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <p className="font-medium text-foreground mb-0.5 sm:mb-1 text-sm sm:text-base truncate">{suggestion.title}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">
                   {suggestion.prompt}
                 </p>
               </div>

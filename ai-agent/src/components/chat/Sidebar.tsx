@@ -154,14 +154,14 @@ export function Sidebar({
     <aside
       className={cn(
         "flex flex-col h-full bg-card border-r border-border",
-        isOverlay && "fixed left-0 top-0 z-40 w-[280px] transition-transform duration-300 ease-out",
+        isOverlay && "fixed left-0 top-0 z-40 w-[280px] max-w-[85vw] sm:max-w-[90vw] h-screen transition-transform duration-300 ease-out safe-area-top safe-area-bottom",
         isOverlay && (isOpen ? "translate-x-0" : "-translate-x-full"),
         isResizable && "w-full min-w-0"
       )}
     >
-      <div ref={sidebarRef} className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div ref={sidebarRef} className="flex flex-col flex-1 min-w-0 overflow-hidden min-h-0">
       {/* Header */}
-      <div className="flex items-center gap-2 p-4 border-b border-border shrink-0">
+      <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-border shrink-0">
         <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] glow-sm shrink-0">
           <Sparkles className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -184,7 +184,7 @@ export function Sidebar({
 
       {/* New Chat Button – when session ready (chat allowed without wallet) */}
       {sessionReady && (
-        <div className="p-3">
+        <div className="p-2 sm:p-3">
           <Button
             onClick={onNewChat}
             className="w-full justify-start gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/30 transition-all"
@@ -198,7 +198,7 @@ export function Sidebar({
 
       {/* Search – when session ready */}
       {sessionReady && (
-        <div className="px-3 pb-2">
+        <div className="px-2 sm:px-3 pb-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -213,7 +213,7 @@ export function Sidebar({
       )}
 
       {/* Chat List or Connect Wallet (when session not ready) */}
-      <ScrollArea className="flex-1 min-w-0 px-2">
+      <ScrollArea className="flex-1 min-h-0 min-w-0 px-2">
         <div className="space-y-4 py-2 min-w-0">
           {!sessionReady ? (
             <ConnectWalletPrompt
@@ -358,7 +358,7 @@ export function Sidebar({
 
       {/* Footer – when session ready */}
       {sessionReady && (
-        <div className="p-3 border-t border-border space-y-1">
+        <div className="p-2 sm:p-3 border-t border-border space-y-1 shrink-0">
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"

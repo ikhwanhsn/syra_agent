@@ -74,7 +74,7 @@ export function AgentSelector({
           <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72">
+      <DropdownMenuContent align="start" className="w-72 max-w-[calc(100vw-2rem)]">
         <DropdownMenuLabel className="text-muted-foreground font-normal">
           Select AI Model
         </DropdownMenuLabel>

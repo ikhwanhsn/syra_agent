@@ -126,7 +126,7 @@ export function WalletNav() {
             <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 z-[100]">
+        <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-2rem)] z-[100]">
           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Agent wallet (deposit here)
           </DropdownMenuLabel>

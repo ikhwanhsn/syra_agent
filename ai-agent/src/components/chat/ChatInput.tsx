@@ -53,9 +53,9 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
   };
 
   return (
-    <div className="w-full sm:min-w-0 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0)] shrink-0">
-      <div className="w-full sm:min-w-0 max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4">
-        <div className="relative flex items-end gap-1.5 sm:gap-2 p-2 rounded-xl sm:rounded-2xl border border-border bg-card shadow-soft transition-shadow focus-within:shadow-medium focus-within:border-primary/30 min-h-[44px] sm:min-h-0 sm:min-w-0">
+    <div className="w-full min-w-0 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0)] shrink-0 safe-area-bottom">
+      <div className="w-full min-w-0 max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4">
+        <div className="relative flex items-end gap-1.5 sm:gap-2 p-2 rounded-xl sm:rounded-2xl border border-border bg-card shadow-soft transition-shadow focus-within:shadow-medium focus-within:border-primary/30 min-h-[44px] min-w-0">
           {/* Attachment Button */}
           <Button
             variant="ghost"
@@ -76,7 +76,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
             placeholder={placeholder}
             rows={1}
             className={cn(
-              "flex-1 min-w-0 resize-none bg-transparent text-foreground placeholder:text-muted-foreground",
+              "flex-1 min-w-0 min-h-[24px] resize-none bg-transparent text-foreground placeholder:text-muted-foreground",
               "focus:outline-none py-2 sm:py-2.5 text-sm sm:text-base max-h-[120px] sm:max-h-[200px] scrollbar-thin"
             )}
             disabled={isLoading}

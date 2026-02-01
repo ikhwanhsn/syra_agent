@@ -542,7 +542,7 @@ export default function Index() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/20 animate-pulse" />
           <p className="text-sm text-muted-foreground">Loading...</p>
@@ -566,13 +566,13 @@ export default function Index() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
+    <div className="h-screen flex flex-col overflow-hidden bg-background min-h-0">
       {/* API connection error banner */}
       {apiConnectionError && (
         <Alert variant="destructive" className="rounded-none border-x-0 border-t-0 shrink-0">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            <span>{apiConnectionError}</span>
+            <span className="min-w-0 break-words">{apiConnectionError}</span>
             <Button
               variant="outline"
               size="sm"
@@ -586,7 +586,7 @@ export default function Index() {
         </Alert>
       )}
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
       {/* Mobile: overlay when sidebar open */}
       {sidebarOpen && (
         <div
@@ -677,7 +677,7 @@ export default function Index() {
       {/* Mobile: main content */}
       <main
         className={cn(
-          "flex-1 flex flex-col min-w-0 lg:hidden",
+          "flex-1 flex flex-col min-h-0 min-w-0 lg:hidden",
           "transition-all duration-300"
         )}
       >

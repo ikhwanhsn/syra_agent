@@ -69,9 +69,9 @@ export function ChatArea({
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 min-w-0">
       {/* Header */}
-      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] sm:min-h-0">
+      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] sm:min-h-0 shrink-0">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
           <Button
             variant="ghost"
@@ -95,7 +95,7 @@ export function ChatArea({
       </header>
 
       {/* Messages or Connect Wallet (when session not ready) */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
+      <ScrollArea className="flex-1 min-h-0 min-w-0" ref={scrollRef}>
         {!sessionReady ? (
           <ConnectWalletPrompt
             variant="center"
@@ -104,8 +104,8 @@ export function ChatArea({
         ) : messages.length === 0 ? (
           <EmptyState onSelectPrompt={onSendMessage} />
         ) : (
-          <div className="flex flex-col flex-1">
-            <div className="divide-y divide-border/50 flex-1">
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="divide-y divide-border/50 flex-1 min-w-0 overflow-x-hidden">
             {messages.map((message, index) => {
               const isEmptyStreamingAssistant =
                 message.role === "assistant" &&

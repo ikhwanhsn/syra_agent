@@ -106,8 +106,8 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
   const markdownComponents: Components = {
     // Tables: scrollable container and styled cells
     table: ({ children, ...props }) => (
-      <div className="my-4 overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[400px] border-collapse text-sm" {...props}>
+      <div className="my-4 overflow-x-auto rounded-xl border border-border max-w-full scrollbar-thin">
+        <table className="w-full min-w-[280px] sm:min-w-[400px] border-collapse text-sm" {...props}>
           {children}
         </table>
       </div>
@@ -141,21 +141,21 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
       const lang = className?.replace("language-", "") ?? "plaintext";
       if (isBlock) {
         return (
-          <div className="my-3 rounded-xl overflow-hidden border border-border">
-            <div className="flex items-center justify-between px-4 py-2 bg-secondary/50 border-b border-border">
-              <span className="text-xs font-medium text-muted-foreground">{lang}</span>
+          <div className="my-3 rounded-xl overflow-hidden border border-border max-w-full">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-secondary/50 border-b border-border min-w-0">
+              <span className="text-xs font-medium text-muted-foreground truncate">{lang}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1.5 text-xs"
+                className="h-7 gap-1.5 text-xs shrink-0"
                 onClick={() => navigator.clipboard.writeText(code)}
               >
                 <Copy className="w-3 h-3" />
                 Copy
               </Button>
             </div>
-            <pre className="p-4 overflow-x-auto bg-secondary/30">
-              <code className="text-sm font-mono text-foreground">{children}</code>
+            <pre className="p-3 sm:p-4 overflow-x-auto bg-secondary/30 text-xs sm:text-sm">
+              <code className="font-mono text-foreground break-words">{children}</code>
             </pre>
           </div>
         );
@@ -169,13 +169,13 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
     pre: ({ children }) => <>{children}</>,
     // Headings
     h1: ({ children, ...props }) => (
-      <h1 className="mt-6 mb-2 text-xl font-bold text-foreground" {...props}>{children}</h1>
+      <h1 className="mt-6 mb-2 text-lg sm:text-xl font-bold text-foreground break-words" {...props}>{children}</h1>
     ),
     h2: ({ children, ...props }) => (
-      <h2 className="mt-5 mb-2 text-lg font-semibold text-foreground" {...props}>{children}</h2>
+      <h2 className="mt-5 mb-2 text-base sm:text-lg font-semibold text-foreground break-words" {...props}>{children}</h2>
     ),
     h3: ({ children, ...props }) => (
-      <h3 className="mt-4 mb-2 text-base font-semibold text-foreground" {...props}>{children}</h3>
+      <h3 className="mt-4 mb-2 text-sm sm:text-base font-semibold text-foreground break-words" {...props}>{children}</h3>
     ),
     h4: ({ children, ...props }) => (
       <h4 className="mt-3 mb-1.5 text-sm font-semibold text-foreground" {...props}>{children}</h4>
@@ -218,19 +218,19 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
   return (
     <div
       className={cn(
-        "group flex gap-4 px-4 py-6 animate-fade-in",
+        "group flex gap-3 sm:gap-4 px-3 py-4 sm:px-4 sm:py-6 animate-fade-in min-w-0",
         isUser ? "bg-transparent" : "bg-secondary/30"
       )}
     >
       <div className="flex-shrink-0">
         {isUser ? (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
-            <User className="w-4 h-4 text-foreground" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
+            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground" />
           </div>
         ) : (
           <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
-              <Bot className="w-4 h-4 text-primary-foreground" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
+              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
             </div>
             {message.isStreaming && (
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
@@ -280,11 +280,11 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
 
         {/* Actions */}
         {!isUser && !message.isStreaming && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-2">
+          <div className="flex flex-wrap items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-2">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation"
               onClick={copyToClipboard}
             >
               {copied ? (
@@ -297,7 +297,7 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation"
               onClick={() => onRegenerate?.(message.id)}
               disabled={!onRegenerate || isRegenerateDisabled}
             >
@@ -313,9 +313,9 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
 
 export function SkeletonMessage() {
   return (
-    <div className="flex gap-4 px-4 py-6 bg-secondary/30 animate-fade-in">
-      <div className="w-8 h-8 rounded-full skeleton-shimmer" />
-      <div className="flex-1 space-y-3">
+    <div className="flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-secondary/30 animate-fade-in min-w-0">
+      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full skeleton-shimmer shrink-0" />
+      <div className="flex-1 min-w-0 space-y-3">
         <div className="flex gap-2">
           <div className="h-4 w-20 rounded skeleton-shimmer" />
           <div className="h-4 w-12 rounded skeleton-shimmer" />
@@ -377,15 +377,15 @@ export function LoadingStepMessage({
   const label = steps[Math.min(stepIndex, steps.length - 1)];
 
   return (
-    <div className="group flex gap-4 px-4 py-6 bg-secondary/30 animate-fade-in">
+    <div className="group flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-secondary/30 animate-fade-in min-w-0">
       {/* Avatar — matches ChatMessage assistant: Bot icon */}
       <div className="flex-shrink-0">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
-          <Bot className="w-4 h-4 text-primary-foreground" />
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
+          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 space-y-2">
+      <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
         {/* Header — agent name + "Thinking" so it matches real message layout */}
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm text-foreground">{agentName}</span>
