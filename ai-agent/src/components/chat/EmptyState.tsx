@@ -1,5 +1,8 @@
-import { Sparkles, Code, Lightbulb, FileText } from "lucide-react";
+import { Sparkles, Code, Lightbulb, FileText, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const PLAYGROUND_URL = "https://playground.syraa.fun";
+const DOCS_URL = "https://docs.syraa.fun";
 
 interface SuggestionCard {
   icon: typeof Sparkles;
@@ -14,23 +17,23 @@ interface EmptyStateProps {
 const suggestions: SuggestionCard[] = [
   {
     icon: Code,
-    title: "Write code",
-    prompt: "Help me write a React component for a responsive navigation menu",
+    title: "Trading signals",
+    prompt: "What signals or research endpoints does the Syra API expose?",
   },
   {
     icon: Lightbulb,
-    title: "Brainstorm ideas",
-    prompt: "Give me 5 innovative startup ideas in the AI space",
+    title: "Market research",
+    prompt: "Summarize how the research and gems APIs work for market analysis",
   },
   {
     icon: FileText,
-    title: "Analyze content",
-    prompt: "Explain quantum computing in simple terms",
+    title: "Agent capability",
+    prompt: "List the main API capabilities available for the Syra agent",
   },
   {
     icon: Sparkles,
-    title: "Get creative",
-    prompt: "Write a short story about a robot discovering emotions",
+    title: "Trading infra",
+    prompt: "How does Syra’s trading infrastructure and agent work end-to-end?",
   },
 ];
 
@@ -47,9 +50,27 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
       <h2 className="text-2xl font-semibold text-foreground mb-2">
         How can I help you today?
       </h2>
-      <p className="text-muted-foreground text-center max-w-md mb-8">
-        Start a conversation with NexusAI. I can help with coding, writing, analysis, and much more.
+      <p className="text-muted-foreground text-center max-w-md mb-3">
+        Syra builds trading infrastructure powered by AI. Start a conversation here, or try the API playground to explore the full agent capability like signals, research, market data, and more.
       </p>
+      <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-sm">
+        <a
+          href={PLAYGROUND_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-primary hover:underline"
+        >
+          API playground <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+        <a
+          href={DOCS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:underline"
+        >
+          Documentation <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
         {suggestions.map((suggestion, index) => {

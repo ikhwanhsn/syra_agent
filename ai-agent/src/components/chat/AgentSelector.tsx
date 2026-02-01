@@ -26,22 +26,22 @@ interface AgentSelectorProps {
 
 const defaultAgents: Agent[] = [
   {
-    id: "nexus-pro",
-    name: "NexusAI Pro",
+    id: "syra-pro",
+    name: "Syra Agent Pro",
     description: "Most capable model for complex tasks",
     icon: Sparkles,
     color: "from-primary to-[hsl(199,89%,48%)]",
   },
   {
-    id: "nexus-fast",
-    name: "NexusAI Fast",
+    id: "syra-fast",
+    name: "Syra Agent Fast",
     description: "Quick responses for simple queries",
     icon: Zap,
     color: "from-yellow-500 to-orange-500",
   },
   {
-    id: "nexus-code",
-    name: "NexusAI Code",
+    id: "syra-code",
+    name: "Syra Agent Code",
     description: "Specialized for programming tasks",
     icon: Brain,
     color: "from-violet-500 to-purple-500",
@@ -60,18 +60,18 @@ export function AgentSelector({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="gap-2 px-3 h-10 hover:bg-secondary/80 border border-transparent hover:border-border"
+          className="gap-1.5 sm:gap-2 px-2 sm:px-3 h-9 sm:h-10 hover:bg-secondary/80 border border-transparent hover:border-border min-w-0 max-w-full"
         >
           <div
             className={cn(
-              "w-6 h-6 rounded-lg flex items-center justify-center bg-gradient-to-br",
+              "w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center bg-gradient-to-br shrink-0",
               selectedAgent.color
             )}
           >
-            <Icon className="w-3.5 h-3.5 text-white" />
+            <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
           </div>
-          <span className="font-medium">{selectedAgent.name}</span>
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium text-sm sm:text-base truncate">{selectedAgent.name}</span>
+          <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72">

@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
+import { chatApi, getApiBaseUrl } from "@/lib/chatApi";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
+import { useAgentWallet } from "@/contexts/AgentWalletContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 interface Message {
   id: string;
@@ -24,88 +32,177 @@ interface Chat {
   messages: Message[];
 }
 
-// Sample chat data
-const sampleChats: Chat[] = [
-  {
-    id: "1",
-    title: "React Component Help",
-    timestamp: new Date(),
-    preview: "How do I create a custom hook?",
-    messages: [
-      {
-        id: "1-1",
-        role: "user",
-        content: "How do I create a custom React hook for fetching data?",
-        timestamp: new Date(Date.now() - 60000),
-      },
-      {
-        id: "1-2",
-        role: "assistant",
-        content: "Here's how to create a custom React hook for fetching data:\n\n```typescript\nimport { useState, useEffect } from 'react';\n\nfunction useFetch<T>(url: string) {\n  const [data, setData] = useState<T | null>(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState<Error | null>(null);\n\n  useEffect(() => {\n    async function fetchData() {\n      try {\n        const response = await fetch(url);\n        const json = await response.json();\n        setData(json);\n      } catch (err) {\n        setError(err as Error);\n      } finally {\n        setLoading(false);\n      }\n    }\n    fetchData();\n  }, [url]);\n\n  return { data, loading, error };\n}\n```\n\nThis hook handles **loading states**, **error handling**, and **data fetching** automatically!",
-        timestamp: new Date(Date.now() - 30000),
-      },
-    ],
-  },
-  {
-    id: "2",
-    title: "API Integration",
-    timestamp: new Date(Date.now() - 86400000),
-    preview: "Best practices for REST APIs",
-    messages: [],
-  },
-  {
-    id: "3",
-    title: "Database Design",
-    timestamp: new Date(Date.now() - 86400000 * 2),
-    preview: "Schema for user management",
-    messages: [],
-  },
-  {
-    id: "4",
-    title: "Deployment Strategy",
-    timestamp: new Date(Date.now() - 86400000 * 5),
-    preview: "CI/CD pipeline setup",
-    messages: [],
-  },
-];
+function toMessage(m: { id: string; role: string; content: string; timestamp: string | Date; toolUsage?: { name: string; status: string } }): Message {
+  return {
+    id: m.id,
+    role: m.role as "user" | "assistant",
+    content: m.content,
+    timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
+    toolUsage: m.toolUsage as Message["toolUsage"],
+  };
+}
 
 export default function Index() {
+  const { ready, anonymousId, connectedWalletAddress } = useAgentWallet();
+  const walletConnected = !!connectedWalletAddress;
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [chats, setChats] = useState<Chat[]>(sampleChats);
-  const [activeChat, setActiveChat] = useState<string | null>("1");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(defaultAgents[0]);
-  const [systemPrompt, setSystemPrompt] = useState("You are a helpful AI assistant.");
   const [isLoading, setIsLoading] = useState(false);
+  const [chatsLoading, setChatsLoading] = useState(true);
+  const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
+  const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
+
+  // When wallet changes (anonymousId changes), clear chat state so we show the correct wallet's history
+  useEffect(() => {
+    if (!anonymousId) return;
+    setChats([]);
+    setActiveChat(null);
+    setChatMessages({});
+  }, [anonymousId]);
 
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
     }
   }, [isDarkMode]);
 
-  const currentChat = chats.find((c) => c.id === activeChat);
-  const messages = currentChat?.messages || [];
+  const loadChats = useCallback(async () => {
+    if (!anonymousId) return;
+    setChatsLoading(true);
+    setApiConnectionError(null);
+    try {
+      const { chats: list } = await chatApi.list(anonymousId);
+      setChats(
+        list.map((c) => ({
+          id: c.id,
+          title: c.title,
+          preview: c.preview,
+          timestamp: typeof c.timestamp === "string" ? new Date(c.timestamp) : new Date(c.timestamp),
+          messages: [],
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to load chats:", err);
+      const isNetworkError =
+        err instanceof TypeError && (err.message === "Failed to fetch" || err.message.includes("Load failed"));
+      if (isNetworkError) {
+        setApiConnectionError(
+          `Cannot connect to the API at ${getApiBaseUrl()}. Make sure the server is running.`
+        );
+      }
+    } finally {
+      setChatsLoading(false);
+    }
+  }, [anonymousId]);
 
-  const handleNewChat = () => {
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      title: "New Chat",
-      timestamp: new Date(),
-      preview: "",
-      messages: [],
-    };
-    setChats([newChat, ...chats]);
-    setActiveChat(newChat.id);
-    setSidebarOpen(false);
+  // Load chat list on mount and whenever session is ready again (e.g. after wallet change)
+  useEffect(() => {
+    if (ready && anonymousId) {
+      loadChats();
+    }
+  }, [ready, anonymousId, loadChats]);
+
+  const loadChatMessages = useCallback(async (id: string) => {
+    if (!anonymousId) return;
+    try {
+      const chat = await chatApi.get(id, anonymousId);
+      const msgs = (chat.messages || []).map(toMessage);
+      setChatMessages((prev) => ({ ...prev, [id]: msgs }));
+    } catch (err) {
+      console.error("Failed to load chat messages:", err);
+    }
+  }, [anonymousId]);
+
+  useEffect(() => {
+    if (activeChat && chatMessages[activeChat] === undefined) {
+      loadChatMessages(activeChat);
+    }
+  }, [activeChat, chatMessages, loadChatMessages]);
+
+  const currentChat = chats.find((c) => c.id === activeChat);
+  const messages = activeChat ? (chatMessages[activeChat] ?? []) : [];
+
+  const handleNewChat = async () => {
+    if (!anonymousId) return;
+    try {
+      const { chat } = await chatApi.create(anonymousId, { title: "New Chat", preview: "" });
+      const newChat: Chat = {
+        id: chat.id,
+        title: chat.title,
+        timestamp: new Date(chat.timestamp),
+        preview: chat.preview,
+        messages: [],
+      };
+      setChats((prev) => [newChat, ...prev]);
+      setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
+      setActiveChat(chat.id);
+      setSidebarOpen(false);
+    } catch (err) {
+      console.error("Failed to create chat:", err);
+    }
   };
 
+  const handleDeleteChat = useCallback(async (id: string) => {
+    if (!anonymousId) return;
+    try {
+      await chatApi.delete(id, anonymousId);
+      const remaining = chats.filter((c) => c.id !== id);
+      setChats(remaining);
+      setChatMessages((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      if (activeChat === id) {
+        setActiveChat(remaining[0]?.id ?? null);
+      }
+      setSidebarOpen(false);
+    } catch (err) {
+      console.error("Failed to delete chat:", err);
+    }
+  }, [anonymousId, activeChat, chats]);
+
+  const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed || !anonymousId) return;
+    try {
+      await chatApi.update(id, anonymousId, { title: trimmed });
+      setChats((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+      );
+    } catch (err) {
+      console.error("Failed to rename chat:", err);
+    }
+  }, [anonymousId]);
+
   const handleSendMessage = async (content: string) => {
-    if (!activeChat) {
-      handleNewChat();
-      return;
+    if (!anonymousId) return;
+    let chatId = activeChat;
+    if (!chatId) {
+      try {
+        const { chat } = await chatApi.create(anonymousId, { title: "New Chat", preview: "" });
+        chatId = chat.id;
+        const newChat: Chat = {
+          id: chat.id,
+          title: chat.title,
+          timestamp: new Date(chat.timestamp),
+          preview: chat.preview,
+          messages: [],
+        };
+        setChats((prev) => [newChat, ...prev]);
+        setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
+        setActiveChat(chat.id);
+      } catch (err) {
+        console.error("Failed to create chat:", err);
+        return;
+      }
     }
 
     const userMessage: Message = {
@@ -115,101 +212,301 @@ export default function Index() {
       timestamp: new Date(),
     };
 
+    const prevMessages = chatMessages[chatId] ?? [];
+    const nextMessages = [...prevMessages, userMessage];
+    const isFirstMessage = prevMessages.length === 0;
+    const newTitle = isFirstMessage ? content.slice(0, 30) : undefined;
+    const newPreview = content.slice(0, 50);
+
+    setChatMessages((prev) => ({ ...prev, [chatId!]: nextMessages }));
     setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === activeChat
-          ? {
-              ...chat,
-              messages: [...chat.messages, userMessage],
-              preview: content.slice(0, 50),
-              title: chat.messages.length === 0 ? content.slice(0, 30) : chat.title,
-            }
-          : chat
+      prev.map((c) =>
+        c.id === chatId
+          ? { ...c, preview: newPreview, title: newTitle ?? c.title }
+          : c
       )
     );
+
+    // Persist title to DB immediately so it survives refresh (don't wait for stream to finish)
+    if (newTitle && anonymousId) {
+      chatApi
+        .update(chatId!, anonymousId, { title: newTitle, preview: newPreview })
+        .catch((err) => console.error("Failed to save chat title:", err));
+    }
 
     setIsLoading(true);
 
-    // Simulate AI response with streaming
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "",
-        timestamp: new Date(),
-        isStreaming: true,
-      };
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isStreaming: true,
+    };
 
-      setChats((prev) =>
-        prev.map((chat) =>
-          chat.id === activeChat
-            ? { ...chat, messages: [...chat.messages, assistantMessage] }
-            : chat
-        )
-      );
+    setChatMessages((prev) => ({
+      ...prev,
+      [chatId!]: [...nextMessages, assistantMessage],
+    }));
 
-      // Simulate streaming text
-      const responseText = `I understand you're asking about "${content.slice(0, 50)}...". Let me help you with that!\n\nHere's a comprehensive response that addresses your question. I can provide **detailed explanations**, code examples, and best practices.\n\n\`\`\`javascript\n// Example code\nconst solution = {\n  approach: "systematic",\n  quality: "high"\n};\n\`\`\`\n\nIs there anything specific you'd like me to elaborate on?`;
+    const apiMessages = nextMessages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    const requestStart = Date.now();
+    if (import.meta.env?.DEV) {
+      console.log(`[Agent] request start | message="${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`);
+    }
+    try {
+      const { response: responseText } = await chatApi.completion({
+        messages: apiMessages,
+        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        anonymousId: anonymousId ?? undefined,
+      });
+      if (import.meta.env?.DEV) {
+        console.log(`[Agent] response received | ${Date.now() - requestStart}ms total`);
+      }
 
       let charIndex = 0;
+      const chunkSize = 24;
       const streamInterval = setInterval(() => {
-        charIndex += 3;
+        charIndex += chunkSize;
         if (charIndex >= responseText.length) {
           clearInterval(streamInterval);
-          setChats((prev) =>
-            prev.map((chat) =>
-              chat.id === activeChat
-                ? {
-                    ...chat,
-                    messages: chat.messages.map((m) =>
-                      m.id === assistantMessage.id
-                        ? { ...m, content: responseText, isStreaming: false }
-                        : m
-                    ),
-                  }
-                : chat
-            )
-          );
+          const finalMessages: Message[] = [
+            ...nextMessages,
+            { ...assistantMessage, content: responseText, isStreaming: false },
+          ];
+          setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
           setIsLoading(false);
+          if (anonymousId) {
+            chatApi
+              .putMessages(
+                chatId!,
+                anonymousId,
+                finalMessages.map((m) => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: m.timestamp,
+                  toolUsage: m.toolUsage,
+                })),
+                newTitle ? { title: newTitle, preview: newPreview } : undefined
+              )
+              .catch((err) => console.error("Failed to save messages:", err));
+          }
         } else {
-          setChats((prev) =>
-            prev.map((chat) =>
-              chat.id === activeChat
-                ? {
-                    ...chat,
-                    messages: chat.messages.map((m) =>
-                      m.id === assistantMessage.id
-                        ? { ...m, content: responseText.slice(0, charIndex) }
-                        : m
-                    ),
-                  }
-                : chat
-            )
-          );
+          setChatMessages((prev) => ({
+            ...prev,
+            [chatId!]: [
+              ...nextMessages,
+              {
+                ...assistantMessage,
+                content: responseText.slice(0, charIndex),
+              },
+            ],
+          }));
         }
-      }, 20);
-    }, 500);
+      }, 8);
+    } catch (err) {
+      if (import.meta.env?.DEV) {
+        console.error(
+          `[Agent] error after ${Date.now() - requestStart}ms:`,
+          err instanceof Error ? err.message : err
+        );
+      }
+      console.error("Completion error:", err);
+      const errorContent =
+        err instanceof Error ? err.message : "Failed to get response from the agent.";
+      const finalMessages: Message[] = [
+        ...nextMessages,
+        { ...assistantMessage, content: errorContent, isStreaming: false },
+      ];
+      setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
+      setIsLoading(false);
+      if (anonymousId) {
+        chatApi
+          .putMessages(
+            chatId!,
+            anonymousId,
+            finalMessages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              timestamp: m.timestamp,
+              toolUsage: m.toolUsage,
+            })),
+            newTitle ? { title: newTitle, preview: newPreview } : undefined
+          )
+          .catch((e) => console.error("Failed to save messages:", e));
+      }
+    }
   };
 
   const handleStopGeneration = () => {
+    if (!activeChat) return;
     setIsLoading(false);
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === activeChat
-          ? {
-              ...chat,
-              messages: chat.messages.map((m) =>
-                m.isStreaming ? { ...m, isStreaming: false } : m
-              ),
-            }
-          : chat
-      )
+    setChatMessages((prev) => {
+      const msgs = prev[activeChat] ?? [];
+      return {
+        ...prev,
+        [activeChat]: msgs.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+      };
+    });
+  };
+
+  const handleRegenerate = async (assistantMessageId: string) => {
+    if (!anonymousId || !activeChat) return;
+    const msgs = chatMessages[activeChat] ?? [];
+    const idx = msgs.findIndex(
+      (m) => m.id === assistantMessageId && m.role === "assistant"
     );
+    if (idx < 0) return;
+    const previousUser = msgs[idx - 1];
+    if (!previousUser || previousUser.role !== "user") return;
+    const truncated = msgs.slice(0, idx);
+    const chatId = activeChat;
+
+    setChatMessages((prev) => ({ ...prev, [chatId]: truncated }));
+
+    const assistantMessage: Message = {
+      id: `${Date.now()}`,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+
+    setChatMessages((prev) => ({
+      ...prev,
+      [chatId]: [...truncated, assistantMessage],
+    }));
+
+    const apiMessages = truncated.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    setIsLoading(true);
+    try {
+      const { response: responseText } = await chatApi.completion({
+        messages: apiMessages,
+        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        anonymousId: anonymousId ?? undefined,
+      });
+
+      let charIndex = 0;
+      const chunkSize = 24;
+      const streamInterval = setInterval(() => {
+        charIndex += chunkSize;
+        if (charIndex >= responseText.length) {
+          clearInterval(streamInterval);
+          const finalMessages: Message[] = [
+            ...truncated,
+            { ...assistantMessage, content: responseText, isStreaming: false },
+          ];
+          setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
+          setIsLoading(false);
+          chatApi
+            .putMessages(
+              chatId,
+              anonymousId,
+              finalMessages.map((m) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: m.timestamp,
+                toolUsage: m.toolUsage,
+              }))
+            )
+            .catch((err) => console.error("Failed to save messages:", err));
+        } else {
+          setChatMessages((prev) => ({
+            ...prev,
+            [chatId]: [
+              ...truncated,
+              {
+                ...assistantMessage,
+                content: responseText.slice(0, charIndex),
+              },
+            ],
+          }));
+        }
+      }, 8);
+    } catch (err) {
+      console.error("Regenerate completion error:", err);
+      const errorContent =
+        err instanceof Error ? err.message : "Failed to get response from the agent.";
+      const finalMessages: Message[] = [
+        ...truncated,
+        { ...assistantMessage, content: errorContent, isStreaming: false },
+      ];
+      setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
+      setIsLoading(false);
+      chatApi
+        .putMessages(
+          chatId,
+          anonymousId,
+          finalMessages.map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            timestamp: m.timestamp,
+            toolUsage: m.toolUsage,
+          }))
+        )
+        .catch((e) => console.error("Failed to save messages:", e));
+    }
+  };
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSelectChat = (id: string) => {
+    setActiveChat(id);
+    setSidebarOpen(false);
+  };
+
+  const handleToggleSidebar = () => {
+    if (sidebarCollapsed) {
+      sidebarPanelRef.current?.expand();
+    } else {
+      setSidebarOpen(true);
+    }
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background">
-      {/* Overlay for mobile */}
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      {/* API connection error banner */}
+      {apiConnectionError && (
+        <Alert variant="destructive" className="rounded-none border-x-0 border-t-0 shrink-0">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>{apiConnectionError}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-destructive/50 text-destructive hover:bg-destructive/10"
+              onClick={() => loadChats()}
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Mobile: overlay when sidebar open */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -217,26 +514,86 @@ export default function Index() {
         />
       )}
 
-      {/* Sidebar */}
-      <Sidebar
-        chats={chats}
-        activeChat={activeChat}
-        onSelectChat={(id) => {
-          setActiveChat(id);
-          setSidebarOpen(false);
-        }}
-        onNewChat={handleNewChat}
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-      />
+      {/* Mobile: fixed sidebar (overlay) */}
+      <div className="lg:hidden">
+        <Sidebar
+          variant="overlay"
+          chats={chats}
+          activeChat={activeChat}
+          onSelectChat={handleSelectChat}
+          onNewChat={handleNewChat}
+          onDeleteChat={handleDeleteChat}
+          onRenameChat={handleRenameChat}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          chatsLoading={chatsLoading}
+          walletConnected={walletConnected}
+        />
+      </div>
 
-      {/* Main Content */}
+      {/* Desktop: resizable layout (sidebar + handle + main) */}
+      <div className="hidden lg:flex flex-1 min-h-0 min-w-0">
+        <ResizablePanelGroup
+          direction="horizontal"
+          autoSaveId="ai-agent-sidebar"
+          className="h-full w-full"
+        >
+          <ResizablePanel
+            ref={sidebarPanelRef}
+            defaultSize={18}
+            minSize={12}
+            maxSize={45}
+            collapsible
+            collapsedSize={0}
+            onCollapse={() => setSidebarCollapsed(true)}
+            onExpand={() => setSidebarCollapsed(false)}
+            className={cn(sidebarCollapsed && "min-w-0")}
+          >
+            <Sidebar
+              variant="resizable"
+              chats={chats}
+              activeChat={activeChat}
+              onSelectChat={handleSelectChat}
+              onNewChat={handleNewChat}
+              onDeleteChat={handleDeleteChat}
+              onRenameChat={handleRenameChat}
+              isOpen={true}
+              onToggle={() => setSidebarOpen(!sidebarOpen)}
+              onCollapse={() => sidebarPanelRef.current?.collapse()}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+              chatsLoading={chatsLoading}
+              walletConnected={walletConnected}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle className="bg-border" />
+          <ResizablePanel defaultSize={82} minSize={50} className="min-w-0">
+            <main className="h-full flex flex-col min-w-0">
+              <ChatArea
+                messages={messages}
+                isLoading={isLoading}
+                onSendMessage={handleSendMessage}
+                onStopGeneration={handleStopGeneration}
+                onRegenerate={handleRegenerate}
+                selectedAgent={selectedAgent}
+                onSelectAgent={setSelectedAgent}
+                systemPrompt={DEFAULT_SYSTEM_PROMPT}
+                onToggleSidebar={handleToggleSidebar}
+                sidebarCollapsed={sidebarCollapsed}
+                walletConnected={walletConnected}
+              />
+            </main>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+
+      {/* Mobile: main content */}
       <main
         className={cn(
-          "flex-1 flex flex-col min-w-0 transition-all duration-300",
-          "lg:ml-[280px]"
+          "flex-1 flex flex-col min-w-0 lg:hidden",
+          "transition-all duration-300"
         )}
       >
         <ChatArea
@@ -244,13 +601,16 @@ export default function Index() {
           isLoading={isLoading}
           onSendMessage={handleSendMessage}
           onStopGeneration={handleStopGeneration}
+          onRegenerate={handleRegenerate}
           selectedAgent={selectedAgent}
           onSelectAgent={setSelectedAgent}
-          systemPrompt={systemPrompt}
-          onSystemPromptChange={setSystemPrompt}
+          systemPrompt={DEFAULT_SYSTEM_PROMPT}
           onToggleSidebar={() => setSidebarOpen(true)}
+          sidebarCollapsed={false}
+          walletConnected={walletConnected}
         />
       </main>
+      </div>
     </div>
   );
 }

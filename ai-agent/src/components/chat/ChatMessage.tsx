@@ -1,7 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { Components } from "react-markdown";
 import { Bot, User, Copy, Check, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+/** Context-specific step sequences — each tells a short "story" relevant to the user's question. */
+const STEP_SEQUENCES: Record<string, string[]> = {
+  news: [
+    "Understanding your question...",
+    "Finding relevant news and headlines...",
+    "Checking sources and dates...",
+    "Reading and summarizing...",
+    "Preparing your answer...",
+  ],
+  search: [
+    "Understanding what you're looking for...",
+    "Searching across sources...",
+    "Filtering relevant results...",
+    "Organizing findings...",
+    "Preparing your answer...",
+  ],
+  analysis: [
+    "Understanding your question...",
+    "Analyzing market data...",
+    "Checking sentiment and signals...",
+    "Gathering insights...",
+    "Preparing your answer...",
+  ],
+  research: [
+    "Understanding the topic...",
+    "Running deep research...",
+    "Checking reports and data...",
+    "Synthesizing findings...",
+    "Preparing your answer...",
+  ],
+  signals: [
+    "Understanding your question...",
+    "Checking trading signals and data...",
+    "Analyzing price and charts...",
+    "Gathering signal insights...",
+    "Preparing your answer...",
+  ],
+  tokens: [
+    "Understanding your question...",
+    "Fetching token and market data...",
+    "Analyzing metrics...",
+    "Gathering insights...",
+    "Preparing your answer...",
+  ],
+  default: [
+    "Thinking about your question...",
+    "Looking that up...",
+    "Gathering information...",
+    "Preparing your answer...",
+  ],
+};
+
+/** Pick a step sequence that matches the user's message. */
+function getStepsForMessage(userMessage: string | undefined): string[] {
+  if (!userMessage || typeof userMessage !== "string")
+    return STEP_SEQUENCES.default;
+  const t = userMessage.trim().toLowerCase();
+  if (/news|latest|headline|article|what'?s\s+happening/i.test(t)) return STEP_SEQUENCES.news;
+  if (/search|find|x\s*search|twitter|look\s+up/i.test(t)) return STEP_SEQUENCES.search;
+  if (/analyze|analysis|sentiment|market\s+overview/i.test(t)) return STEP_SEQUENCES.analysis;
+  if (/research|deep\s*dive|report|explain\s+in\s+detail/i.test(t)) return STEP_SEQUENCES.research;
+  if (/signal|trade|price|chart|trading/i.test(t)) return STEP_SEQUENCES.signals;
+  if (/token|memecoin|dex|jupiter|pump|rug|bubble/i.test(t)) return STEP_SEQUENCES.tokens;
+  return STEP_SEQUENCES.default;
+}
 
 interface Message {
   id: string;
@@ -19,9 +88,12 @@ interface ChatMessageProps {
   message: Message;
   agentName?: string;
   agentAvatar?: string;
+  onRegenerate?: (messageId: string) => void;
+  /** When true, disable Regenerate (e.g. while another request is in progress) */
+  isRegenerateDisabled?: boolean;
 }
 
-export function ChatMessage({ message, agentName = "NexusAI" }: ChatMessageProps) {
+export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, isRegenerateDisabled }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
 
@@ -31,20 +103,47 @@ export function ChatMessage({ message, agentName = "NexusAI" }: ChatMessageProps
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatContent = (content: string) => {
-    // Simple markdown-like formatting
-    const parts = content.split(/(```[\s\S]*?```)/g);
-    
-    return parts.map((part, index) => {
-      if (part.startsWith("```") && part.endsWith("```")) {
-        const lines = part.slice(3, -3).split("\n");
-        const language = lines[0] || "plaintext";
-        const code = lines.slice(1).join("\n");
-        
+  const markdownComponents: Components = {
+    // Tables: scrollable container and styled cells
+    table: ({ children, ...props }) => (
+      <div className="my-4 overflow-x-auto rounded-xl border border-border">
+        <table className="w-full min-w-[400px] border-collapse text-sm" {...props}>
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children, ...props }) => (
+      <thead className="bg-secondary/60 border-b border-border" {...props}>
+        {children}
+      </thead>
+    ),
+    tbody: ({ children, ...props }) => <tbody className="divide-y divide-border" {...props}>{children}</tbody>,
+    tr: ({ children, ...props }) => (
+      <tr className="hover:bg-secondary/30 transition-colors" {...props}>
+        {children}
+      </tr>
+    ),
+    th: ({ children, ...props }) => (
+      <th className="px-4 py-3 text-left font-semibold text-foreground align-top" {...props}>
+        {children}
+      </th>
+    ),
+    td: ({ children, ...props }) => (
+      <td className="px-4 py-3 text-muted-foreground align-top break-words min-w-0" {...props}>
+        {children}
+      </td>
+    ),
+    // Code: block with Copy button vs inline
+    code: ({ node, className, children, ...props }) => {
+      const code = String(children).replace(/\n$/, "");
+      const hasLanguage = className?.startsWith("language-");
+      const isBlock = hasLanguage || code.includes("\n");
+      const lang = className?.replace("language-", "") ?? "plaintext";
+      if (isBlock) {
         return (
-          <div key={index} className="my-3 rounded-xl overflow-hidden border border-border">
+          <div className="my-3 rounded-xl overflow-hidden border border-border">
             <div className="flex items-center justify-between px-4 py-2 bg-secondary/50 border-b border-border">
-              <span className="text-xs font-medium text-muted-foreground">{language}</span>
+              <span className="text-xs font-medium text-muted-foreground">{lang}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -56,24 +155,64 @@ export function ChatMessage({ message, agentName = "NexusAI" }: ChatMessageProps
               </Button>
             </div>
             <pre className="p-4 overflow-x-auto bg-secondary/30">
-              <code className="text-sm font-mono text-foreground">{code}</code>
+              <code className="text-sm font-mono text-foreground">{children}</code>
             </pre>
           </div>
         );
       }
-      
-      // Format inline elements
       return (
-        <span key={index} className="whitespace-pre-wrap">
-          {part.split(/(\*\*.*?\*\*)/g).map((segment, i) => {
-            if (segment.startsWith("**") && segment.endsWith("**")) {
-              return <strong key={i} className="font-semibold">{segment.slice(2, -2)}</strong>;
-            }
-            return segment;
-          })}
-        </span>
+        <code className="rounded bg-secondary/60 px-1.5 py-0.5 text-sm font-mono text-foreground" {...props}>
+          {children}
+        </code>
       );
-    });
+    },
+    pre: ({ children }) => <>{children}</>,
+    // Headings
+    h1: ({ children, ...props }) => (
+      <h1 className="mt-6 mb-2 text-xl font-bold text-foreground" {...props}>{children}</h1>
+    ),
+    h2: ({ children, ...props }) => (
+      <h2 className="mt-5 mb-2 text-lg font-semibold text-foreground" {...props}>{children}</h2>
+    ),
+    h3: ({ children, ...props }) => (
+      <h3 className="mt-4 mb-2 text-base font-semibold text-foreground" {...props}>{children}</h3>
+    ),
+    h4: ({ children, ...props }) => (
+      <h4 className="mt-3 mb-1.5 text-sm font-semibold text-foreground" {...props}>{children}</h4>
+    ),
+    h5: ({ children, ...props }) => (
+      <h5 className="mt-3 mb-1 text-sm font-medium text-foreground" {...props}>{children}</h5>
+    ),
+    h6: ({ children, ...props }) => (
+      <h6 className="mt-2 mb-1 text-xs font-medium text-muted-foreground" {...props}>{children}</h6>
+    ),
+    // Lists
+    ul: ({ children, ...props }) => (
+      <ul className="my-2 ml-4 list-disc space-y-1 text-foreground" {...props}>{children}</ul>
+    ),
+    ol: ({ children, ...props }) => (
+      <ol className="my-2 ml-4 list-decimal space-y-1 text-foreground" {...props}>{children}</ol>
+    ),
+    li: ({ children, ...props }) => (
+      <li className="pl-1" {...props}>{children}</li>
+    ),
+    // Paragraphs and blockquote
+    p: ({ children, ...props }) => (
+      <p className="my-2 whitespace-pre-wrap text-foreground leading-relaxed" {...props}>{children}</p>
+    ),
+    blockquote: ({ children, ...props }) => (
+      <blockquote className="my-2 border-l-4 border-primary/50 pl-4 italic text-muted-foreground" {...props}>
+        {children}
+      </blockquote>
+    ),
+    strong: ({ children, ...props }) => (
+      <strong className="font-semibold text-foreground" {...props}>{children}</strong>
+    ),
+    a: ({ href, children, ...props }) => (
+      <a href={href} className="text-primary underline hover:opacity-80" target="_blank" rel="noopener noreferrer" {...props}>
+        {children}
+      </a>
+    ),
   };
 
   return (
@@ -125,9 +264,11 @@ export function ChatMessage({ message, agentName = "NexusAI" }: ChatMessageProps
           </div>
         )}
 
-        {/* Message Content */}
+        {/* Message Content - auto-detects markdown (tables, code, headings, lists) and renders rich UI */}
         <div className="text-foreground leading-relaxed">
-          {formatContent(message.content)}
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {message.content}
+          </ReactMarkdown>
           {message.isStreaming && (
             <span className="inline-flex gap-1 ml-1">
               <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
@@ -157,6 +298,8 @@ export function ChatMessage({ message, agentName = "NexusAI" }: ChatMessageProps
               variant="ghost"
               size="sm"
               className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={() => onRegenerate?.(message.id)}
+              disabled={!onRegenerate || isRegenerateDisabled}
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Regenerate
@@ -181,6 +324,82 @@ export function SkeletonMessage() {
           <div className="h-4 w-full rounded skeleton-shimmer" />
           <div className="h-4 w-4/5 rounded skeleton-shimmer" />
           <div className="h-4 w-3/5 rounded skeleton-shimmer" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Base delay per step (ms); fast cycle for snappy UX. */
+const STEP_DURATION_MS = 900;
+const STEP_DURATION_VARIATION_MS = 200;
+const FADE_OUT_MS = 150;
+
+/** Animated loading message: contextual steps, slower cycle, UI aligned with real ChatMessage for best UX. */
+export function LoadingStepMessage({
+  lastUserMessage,
+  agentName = "Syra Agent",
+}: { lastUserMessage?: string; agentName?: string } = {}) {
+  const steps = getStepsForMessage(lastUserMessage);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    let hideTimeout: ReturnType<typeof setTimeout>;
+    let nextTickTimeout: ReturnType<typeof setTimeout>;
+
+    const runStep = () => {
+      setStepIndex((i) => {
+        const next = i + 1 >= steps.length ? i : i + 1;
+        if (next <= i) return i;
+        setIsVisible(false);
+        hideTimeout = setTimeout(() => {
+          setStepIndex(next);
+          setIsVisible(true);
+          const variation = (Math.random() - 0.5) * 2 * STEP_DURATION_VARIATION_MS;
+          const delay = Math.max(STEP_DURATION_MS + variation, STEP_DURATION_MS - STEP_DURATION_VARIATION_MS);
+          nextTickTimeout = setTimeout(runStep, delay);
+        }, FADE_OUT_MS);
+        return i;
+      });
+    };
+
+    const variation = (Math.random() - 0.5) * 2 * STEP_DURATION_VARIATION_MS;
+    const initialDelay = Math.max(STEP_DURATION_MS + variation, STEP_DURATION_MS - STEP_DURATION_VARIATION_MS);
+    nextTickTimeout = setTimeout(runStep, initialDelay);
+
+    return () => {
+      clearTimeout(hideTimeout);
+      clearTimeout(nextTickTimeout);
+    };
+  }, [steps.length]);
+
+  const label = steps[Math.min(stepIndex, steps.length - 1)];
+
+  return (
+    <div className="group flex gap-4 px-4 py-6 bg-secondary/30 animate-fade-in">
+      {/* Avatar — matches ChatMessage assistant: Bot icon */}
+      <div className="flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
+          <Bot className="w-4 h-4 text-primary-foreground" />
+        </div>
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-2">
+        {/* Header — agent name + "Thinking" so it matches real message layout */}
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm text-foreground">{agentName}</span>
+          <span className="text-xs text-muted-foreground">Thinking</span>
+        </div>
+
+        {/* Step text in a pill — dynamic text with blink */}
+        <div
+          className={cn(
+            "inline-flex items-center px-4 py-2.5 rounded-xl loading-step-pill transition-all duration-200",
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
+          )}
+        >
+          <span className="text-sm text-foreground/90 animate-loading-blink">{label}</span>
         </div>
       </div>
     </div>
