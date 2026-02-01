@@ -4,8 +4,6 @@ import { X402_API_PRICE_NANSEN_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
-import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
-
 export async function createSmartMoneyRouter() {
   const router = express.Router();
 
@@ -102,11 +100,6 @@ export async function createSmartMoneyRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_NANSEN_USD,
-        });
 
         res.status(200).json(data);
       } catch (error) {
@@ -211,11 +204,6 @@ export async function createSmartMoneyRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_NANSEN_USD,
-        });
 
         res.status(200).json(data);
       } catch (error) {

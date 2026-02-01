@@ -52,7 +52,8 @@ export const FAQ = () => {
 
   return (
     <section id="faq" className="relative py-24 overflow-hidden">
-      <div className="max-w-4xl px-4 mx-auto sm:px-6 lg:px-8">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="max-w-4xl px-4 mx-auto sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}

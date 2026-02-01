@@ -1,8 +1,25 @@
-// routes/weather.js
+// routes/sundown-digest.js – cache + parallel settle for fast response
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import {
+  requirePayment,
+  getX402ResourceServer,
+  encodePaymentResponseHeader,
+} from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
+
+const CACHE_TTL_MS = 90 * 1000;
+let sundownCache = null;
+let sundownCacheExpires = 0;
+
+function getCached() {
+  if (sundownCache !== null && Date.now() < sundownCacheExpires) return sundownCache;
+  return null;
+}
+
+function setCached(data) {
+  sundownCache = data;
+  sundownCacheExpires = Date.now() + CACHE_TTL_MS;
+}
 
 export async function createSundownDigestRouter() {
   const router = express.Router();
@@ -15,13 +32,26 @@ export async function createSundownDigestRouter() {
     return data.data || [];
   };
 
-  // Apply middleware to routes
+  async function getData() {
+    const cached = getCached();
+    if (cached !== null) return cached;
+    const result = await fetchSundownDigest();
+    if (Array.isArray(result) && result.length > 0) setCached(result);
+    return result;
+  }
+
+  function setPaymentResponseAndSend(res, data, settle) {
+    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+    res.json({ sundownDigest: data });
+  }
+
   router.get(
     "/",
     requirePayment({
       description: "Daily end-of-day summary of key crypto market events and movements",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/sundown-digest",
       outputSchema: {
         sundownDigest: {
@@ -31,32 +61,15 @@ export async function createSundownDigestRouter() {
       },
     }),
     async (req, res) => {
-      const result = await fetchSundownDigest();
-      const sundownDigest = result;
-      if (!sundownDigest) {
-        return res.status(404).json({ error: "Sundown digest not found" });
-      }
-      if (sundownDigest?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          sundownDigest,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch sundown digest",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [sundownDigest, settle] = await Promise.all([
+        getData(),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
+      if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
+      setPaymentResponseAndSend(res, sundownDigest, settle);
     }
   );
 
@@ -65,7 +78,7 @@ export async function createSundownDigestRouter() {
     requirePayment({
       description: "Daily end-of-day summary of key crypto market events and movements",
       method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/sundown-digest",
       outputSchema: {
         sundownDigest: {
@@ -75,32 +88,15 @@ export async function createSundownDigestRouter() {
       },
     }),
     async (req, res) => {
-      const result = await fetchSundownDigest();
-      const sundownDigest = result;
-      if (!sundownDigest) {
-        return res.status(404).json({ error: "Sundown digest not found" });
-      }
-      if (sundownDigest?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          sundownDigest,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch sundown digest",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [sundownDigest, settle] = await Promise.all([
+        getData(),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
+      if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
+      setPaymentResponseAndSend(res, sundownDigest, settle);
     }
   );
 

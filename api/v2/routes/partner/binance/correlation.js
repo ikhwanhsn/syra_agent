@@ -1,8 +1,7 @@
 import express from "express";
 import fs from "fs";
-import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { requirePayment, settlePaymentAndSetResponse } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
-import { saveToLeaderboard } from "../../../../scripts/saveToLeaderboard.js";
 
 // ---------- HELPERS ----------
 
@@ -127,16 +126,7 @@ export async function createBinanceCorrelationRouter() {
       }
 
       // Settle payment ONLY on success
-      const paymentResult = await getX402Handler().settlePayment(
-        req.x402Payment.paymentHeader,
-        req.x402Payment.paymentRequirements,
-      );
-
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
+      await settlePaymentAndSetResponse(res, req);
 
       res.json({
         interval: ohlcJson.interval,
@@ -166,16 +156,7 @@ export async function createBinanceCorrelationRouter() {
         return res.status(404).json({ error: "Correlation matrix not found" });
       }
       // Settle payment ONLY on success
-      const paymentResult = await getX402Handler().settlePayment(
-        req.x402Payment.paymentHeader,
-        req.x402Payment.paymentRequirements,
-      );
-
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
+      await settlePaymentAndSetResponse(res, req);
       res.json({
         interval: ohlcJson.interval,
         count: ohlcJson.count,
@@ -227,16 +208,7 @@ export async function createBinanceCorrelationRouter() {
       }
 
       // Settle payment ONLY on success
-      const paymentResult = await getX402Handler().settlePayment(
-        req.x402Payment.paymentHeader,
-        req.x402Payment.paymentRequirements,
-      );
-
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
+      await settlePaymentAndSetResponse(res, req);
 
       res.json({
         symbol,
@@ -288,16 +260,7 @@ export async function createBinanceCorrelationRouter() {
       }
 
       // Settle payment ONLY on success
-      const paymentResult = await getX402Handler().settlePayment(
-        req.x402Payment.paymentHeader,
-        req.x402Payment.paymentRequirements,
-      );
-
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
+      await settlePaymentAndSetResponse(res, req);
 
       res.json({
         symbol,

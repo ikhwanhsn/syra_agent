@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { WalletNav } from "./WalletNav";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage, LoadingStepMessage } from "./ChatMessage";
-import { ChatInput } from "./ChatInput";
+import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { AgentSelector, Agent, defaultAgents } from "./AgentSelector";
 import { EmptyState } from "./EmptyState";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
-import { SystemPromptModal } from "./SystemPromptModal";
 
 interface Message {
   id: string;
@@ -37,8 +36,12 @@ interface ChatAreaProps {
   onToggleSidebar: () => void;
   /** When true (desktop), show menu button to expand sidebar. When false, only show on small screens. */
   sidebarCollapsed?: boolean;
-  /** When false, show connect-wallet prompt instead of chat; input is hidden */
+  /** When false, show connect-wallet prompt (session not ready). When true, show chat and input. */
+  sessionReady?: boolean;
+  /** When false and sessionReady, show banner: connect wallet to use tools/realtime data */
   walletConnected?: boolean;
+  /** Ref to focus the chat input (e.g. after new chat, after sending) */
+  inputRef?: React.RefObject<ChatInputHandle | null>;
 }
 
 export function ChatArea({
@@ -52,7 +55,9 @@ export function ChatArea({
   systemPrompt,
   onToggleSidebar,
   sidebarCollapsed = false,
+  sessionReady = true,
   walletConnected = true,
+  inputRef,
 }: ChatAreaProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -85,14 +90,13 @@ export function ChatArea({
           />
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
-          <SystemPromptModal systemPrompt={systemPrompt} disabled />
           <WalletNav />
         </div>
       </header>
 
-      {/* Messages or Connect Wallet */}
+      {/* Messages or Connect Wallet (when session not ready) */}
       <ScrollArea className="flex-1" ref={scrollRef}>
-        {!walletConnected ? (
+        {!sessionReady ? (
           <ConnectWalletPrompt
             variant="center"
             onConnectClick={() => setWalletModalVisible(true)}
@@ -100,13 +104,14 @@ export function ChatArea({
         ) : messages.length === 0 ? (
           <EmptyState onSelectPrompt={onSendMessage} />
         ) : (
-          <div className="divide-y divide-border/50">
+          <div className="flex flex-col flex-1">
+            <div className="divide-y divide-border/50 flex-1">
             {messages.map((message, index) => {
               const isEmptyStreamingAssistant =
                 message.role === "assistant" &&
                 message.isStreaming &&
                 !message.content?.trim();
-              if (isEmptyStreamingAssistant) {
+              if (isEmptyStreamingAssistant && walletConnected) {
                 const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
                 return (
                   <LoadingStepMessage
@@ -126,13 +131,15 @@ export function ChatArea({
                 />
               );
             })}
+            </div>
           </div>
         )}
       </ScrollArea>
 
-      {/* Input – only when wallet connected */}
-      {walletConnected && (
+      {/* Input – when session ready (chat allowed with or without wallet) */}
+      {sessionReady && (
         <ChatInput
+          ref={inputRef}
           onSend={onSendMessage}
           isLoading={isLoading}
           onStop={onStopGeneration}

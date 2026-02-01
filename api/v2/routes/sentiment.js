@@ -1,8 +1,32 @@
-// routes/weather.js
+// routes/sentiment.js – cache + parallel settle for fast response
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import {
+  requirePayment,
+  getX402ResourceServer,
+  encodePaymentResponseHeader,
+} from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
+
+const CACHE_TTL_MS = 90 * 1000;
+const sentimentCache = new Map();
+
+function getCacheKey(ticker) {
+  return String(ticker || "general").trim().toLowerCase() || "general";
+}
+
+function getCached(ticker) {
+  const key = getCacheKey(ticker);
+  const entry = sentimentCache.get(key);
+  if (!entry || Date.now() > entry.expires) return null;
+  return entry.data;
+}
+
+function setCached(ticker, data) {
+  sentimentCache.set(getCacheKey(ticker), {
+    data,
+    expires: Date.now() + CACHE_TTL_MS,
+  });
+}
 
 export async function createSentimentRouter() {
   const router = express.Router();
@@ -31,13 +55,43 @@ export async function createSentimentRouter() {
     return data.data || [];
   };
 
-  // Apply middleware to routes
+  async function getDataForTicker(ticker) {
+    let cached = getCached(ticker);
+    if (cached !== null) return cached;
+    let result;
+    if (ticker !== "general") {
+      const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(ticker);
+      result = Object.keys(tickerSentimentAnalysis).map((date) => ({
+        date,
+        ticker: tickerSentimentAnalysis[date],
+      }));
+    } else {
+      const [generalSentimentAnalysis, allTickerSentimentAnalysis] = await Promise.all([
+        fetchGeneralSentimentAnalysis(),
+        fetchAllTickerSentimentAnalysis(),
+      ]);
+      result = Object.keys(generalSentimentAnalysis).map((date) => ({
+        date,
+        general: generalSentimentAnalysis[date],
+        allTicker: allTickerSentimentAnalysis[date],
+      }));
+    }
+    if (Array.isArray(result) && result.length > 0) setCached(ticker, result);
+    return result;
+  }
+
+  function setPaymentResponseAndSend(res, data, settle) {
+    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+    res.json({ sentimentAnalysis: data });
+  }
+
   router.get(
     "/",
     requirePayment({
       description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/sentiment",
       inputSchema: {
         queryParams: {
@@ -57,50 +111,15 @@ export async function createSentimentRouter() {
     }),
     async (req, res) => {
       const ticker = req.query.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(
-          ticker
-        );
-        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
-          date,
-          ticker: tickerSentimentAnalysis[date],
-        }));
-      } else {
-        const generalSentimentAnalysis = await fetchGeneralSentimentAnalysis();
-        const allTickerSentimentAnalysis =
-          await fetchAllTickerSentimentAnalysis();
-        result = Object.keys(generalSentimentAnalysis).map((date) => ({
-          date,
-          general: generalSentimentAnalysis[date],
-          allTicker: allTickerSentimentAnalysis[date],
-        }));
-      }
-      const sentimentAnalysis = result;
-      if (!sentimentAnalysis) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (sentimentAnalysis?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          sentimentAnalysis,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch sentiment analysis",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [sentimentAnalysis, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+      setPaymentResponseAndSend(res, sentimentAnalysis, settle);
     }
   );
 
@@ -109,7 +128,7 @@ export async function createSentimentRouter() {
     requirePayment({
       description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/sentiment",
       inputSchema: {
         bodyType: "json",
@@ -130,50 +149,15 @@ export async function createSentimentRouter() {
     }),
     async (req, res) => {
       const ticker = req.body.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(
-          ticker
-        );
-        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
-          date,
-          ticker: tickerSentimentAnalysis[date],
-        }));
-      } else {
-        const generalSentimentAnalysis = await fetchGeneralSentimentAnalysis();
-        const allTickerSentimentAnalysis =
-          await fetchAllTickerSentimentAnalysis();
-        result = Object.keys(generalSentimentAnalysis).map((date) => ({
-          date,
-          general: generalSentimentAnalysis[date],
-          allTicker: allTickerSentimentAnalysis[date],
-        }));
-      }
-      const sentimentAnalysis = result;
-      if (!sentimentAnalysis) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (sentimentAnalysis?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          sentimentAnalysis,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch sentiment analysis",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [sentimentAnalysis, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+      setPaymentResponseAndSend(res, sentimentAnalysis, settle);
     }
   );
 

@@ -48,7 +48,10 @@ export const Testimonials = () => {
 
   return (
     <section className="relative py-24 overflow-hidden">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/6 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-[300px] h-[300px] bg-accent/6 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-1/3 right-0 w-[300px] h-[300px] bg-neon-gold/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -76,7 +79,7 @@ export const Testimonials = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-              className="flex flex-col p-6 glass-card rounded-2xl"
+              className="flex flex-col p-6 glass-card rounded-2xl hover:border-accent/20 transition-colors"
             >
               <Quote className="w-8 h-8 mb-4 text-primary/30" />
 

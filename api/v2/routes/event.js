@@ -1,8 +1,29 @@
-// routes/weather.js
+// routes/event.js – cache + parallel settle for fast response
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import {
+  requirePayment,
+  getX402ResourceServer,
+  encodePaymentResponseHeader,
+} from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
+
+const CACHE_TTL_MS = 90 * 1000;
+const eventCache = new Map();
+
+function getCacheKey(ticker) {
+  return String(ticker || "general").trim().toLowerCase() || "general";
+}
+
+function getCached(ticker) {
+  const key = getCacheKey(ticker);
+  const entry = eventCache.get(key);
+  if (!entry || Date.now() > entry.expires) return null;
+  return entry.data;
+}
+
+function setCached(ticker, data) {
+  eventCache.set(getCacheKey(ticker), { data, expires: Date.now() + CACHE_TTL_MS });
+}
 
 export async function createEventRouter() {
   const router = express.Router();
@@ -23,13 +44,39 @@ export async function createEventRouter() {
     return data.data || [];
   };
 
-  // Apply middleware to routes
+  async function getDataForTicker(ticker) {
+    let cached = getCached(ticker);
+    if (cached !== null) return cached;
+    let result;
+    if (ticker !== "general") {
+      const tickerEvent = await fetchTickerEvent(ticker);
+      result = Object.keys(tickerEvent).map((date) => ({
+        date,
+        ticker: tickerEvent[date],
+      }));
+    } else {
+      const generalEvent = await fetchGeneralEvent();
+      result = Object.keys(generalEvent).map((date) => ({
+        date,
+        general: generalEvent[date],
+      }));
+    }
+    if (Array.isArray(result) && result.length > 0) setCached(ticker, result);
+    return result;
+  }
+
+  function setPaymentResponseAndSend(res, data, settle) {
+    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+    res.json({ event: data });
+  }
+
   router.get(
     "/",
     requirePayment({
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/event",
       inputSchema: {
         queryParams: {
@@ -49,45 +96,15 @@ export async function createEventRouter() {
     }),
     async (req, res) => {
       const ticker = req.query.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerEvent = await fetchTickerEvent(ticker);
-        result = Object.keys(tickerEvent).map((date) => ({
-          date,
-          ticker: tickerEvent[date],
-        }));
-      } else {
-        const generalEvent = await fetchGeneralEvent();
-        result = Object.keys(generalEvent).map((date) => ({
-          date,
-          general: generalEvent[date],
-        }));
-      }
-      const event = result;
-      if (!event) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (event?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          event,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch event",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [event, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+      setPaymentResponseAndSend(res, event, settle);
     }
   );
 
@@ -96,7 +113,7 @@ export async function createEventRouter() {
     requirePayment({
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/event",
       inputSchema: {
         bodyType: "json",
@@ -117,45 +134,15 @@ export async function createEventRouter() {
     }),
     async (req, res) => {
       const ticker = req.body.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerEvent = await fetchTickerEvent(ticker);
-        result = Object.keys(tickerEvent).map((date) => ({
-          date,
-          ticker: tickerEvent[date],
-        }));
-      } else {
-        const generalEvent = await fetchGeneralEvent();
-        result = Object.keys(generalEvent).map((date) => ({
-          date,
-          general: generalEvent[date],
-        }));
-      }
-      const event = result;
-      if (!event) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (event?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          event,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch event",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [event, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+      setPaymentResponseAndSend(res, event, settle);
     }
   );
 

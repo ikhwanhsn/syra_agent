@@ -6,8 +6,6 @@ import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { kolPrompt } from "../prompts/kol.prompt.js";
 import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
-
 export async function createXKOLRouter() {
   const router = express.Router();
 
@@ -99,12 +97,6 @@ export async function createXKOLRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_USD,
-          });
 
           res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {
@@ -214,12 +206,6 @@ export async function createXKOLRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_USD,
-          });
 
           res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {

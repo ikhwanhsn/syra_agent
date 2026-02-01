@@ -122,7 +122,9 @@ export const WhySyra = () => {
 
   return (
     <section className="relative py-24 overflow-hidden">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-accent/7 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/3 left-0 w-[350px] h-[350px] bg-neon-gold/6 rounded-full blur-[90px] pointer-events-none" />
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -151,10 +153,14 @@ export const WhySyra = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-              className="p-6 text-center transition-all duration-300 glass-card rounded-2xl group hover:border-primary/30"
+              className={`p-6 text-center transition-all duration-300 glass-card rounded-2xl group ${
+                index % 3 === 0 ? "hover:border-accent/25" : index % 3 === 1 ? "hover:border-neon-gold/25" : "hover:border-primary/30"
+              }`}
             >
-              <div className="flex items-center justify-center mx-auto mb-4 transition-transform w-14 h-14 rounded-xl bg-primary/10 group-hover:scale-110">
-                <prop.icon className="w-7 h-7 text-primary" />
+              <div className={`flex items-center justify-center mx-auto mb-4 transition-transform w-14 h-14 rounded-xl group-hover:scale-110 ${
+                index % 3 === 0 ? "bg-accent/10" : index % 3 === 1 ? "bg-neon-gold/10" : "bg-primary/10"
+              }`}>
+                <prop.icon className={`w-7 h-7 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-primary"}`} />
               </div>
               <h3 className="mb-2 text-lg font-semibold">{prop.title}</h3>
               <p className="text-sm text-muted-foreground">

@@ -4,7 +4,6 @@ import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 import { memecoinsStrongNarrativeLowMarketCap } from "../../prompts/memecoin.js";
 
 export async function createMemecoinsStrongNarrativeLowMarketCapRouter() {
@@ -64,12 +63,6 @@ export async function createMemecoinsStrongNarrativeLowMarketCapRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_USD,
-          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
@@ -144,12 +137,6 @@ export async function createMemecoinsStrongNarrativeLowMarketCapRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_USD,
-          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {

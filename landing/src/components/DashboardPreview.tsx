@@ -12,10 +12,12 @@ import {
 import {
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { useEffect, useState } from "react";
 
@@ -89,10 +91,18 @@ export const DashboardPreview = () => {
   const sentimentArray = Object.values(
     dataSentiment?.sentiment?.data || {},
   ).map((item: any) => item.sentiment_score);
+  // Normalize score to 0–100 for display when API uses 0–1; support -1–1 as -100–100 so negative doesn't break the chart
+  const toChartScore = (raw: number | undefined): number => {
+    if (raw == null || Number.isNaN(Number(raw))) return 0;
+    const v = Number(raw);
+    if (v <= 1 && v >= -1) return v * 100; // -1..1 → -100..100
+    if (v <= 100 && v >= 0) return v; // already 0–100
+    return Math.max(-100, Math.min(100, v));
+  };
   const chartData = sentimentArray
     .map((value, i) => ({
       index: i,
-      score: value * 100,
+      score: toChartScore(value),
       positive:
         dataSentiment?.sentiment?.data?.[
           Object.keys(dataSentiment.sentiment.data)[i]
@@ -107,6 +117,9 @@ export const DashboardPreview = () => {
         ]?.Neutral || 0,
     }))
     .reverse();
+
+  // Scale for negative count (so red line shows actual Negative count trend, not flat when score > 0)
+  const maxNegative = Math.max(1, ...chartData.map((d) => d.negative));
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload }: any) => {
@@ -130,7 +143,7 @@ export const DashboardPreview = () => {
             </div>
           )}
           <div className="mb-1 font-semibold">
-            Score: {payload[0].value.toFixed(1)}%
+            Score: {(payload[0].payload.score ?? 0).toFixed(1)}%
           </div>
           <div className="text-green-400">
             Positive: {payload[0].payload.positive}
@@ -320,36 +333,52 @@ export const DashboardPreview = () => {
             </div>
           </div>
 
-          {/* Chart */}
+          {/* Chart: one blue line for score (-100..100); fill only above zero so negative isn’t weird. */}
           <ResponsiveContainer width="100%" height={128}>
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
               <defs>
-                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(220, 100%, 60%)"
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(190, 100%, 50%)"
-                    stopOpacity={0.3}
-                  />
+                <linearGradient id="colorScorePos" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="hsl(190, 100%, 50%)" stopOpacity={0} />
+                  <stop offset="100%" stopColor="hsl(220, 100%, 60%)" stopOpacity={0.4} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="index" hide />
-              <YAxis hide domain={[0, 100]} />
+              <YAxis hide domain={[-100, 100]} allowDataOverflow />
+              <YAxis yAxisId="negativeCount" hide domain={[0, maxNegative]} orientation="right" />
+              <ReferenceLine y={0} stroke="hsl(var(--muted-foreground) / 0.35)" strokeWidth={1} strokeDasharray="6 4" />
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
               />
+              {/* Fill only when score > 0 (no red area below zero) */}
               <Area
+                type="monotone"
+                dataKey={(d) => (d.score > 0 ? d.score : 0)}
+                stroke="none"
+                fill="url(#colorScorePos)"
+                animationDuration={1000}
+                baseValue={0}
+              />
+              {/* Single blue line for full score so negative just dips below zero, no red */}
+              <Line
                 type="monotone"
                 dataKey="score"
                 stroke="hsl(200, 100%, 55%)"
                 strokeWidth={2}
-                fill="url(#colorScore)"
+                dot={false}
                 animationDuration={1000}
+              />
+              {/* Negative count over time (right axis), muted so it doesn’t fight the score line */}
+              <Line
+                type="monotone"
+                dataKey="negative"
+                yAxisId="negativeCount"
+                stroke="hsl(var(--muted-foreground) / 0.6)"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+                dot={false}
+                animationDuration={1000}
+                name="Negative count"
               />
             </AreaChart>
           </ResponsiveContainer>

@@ -53,7 +53,7 @@ export function ConnectWalletPrompt({
           Connect your wallet
         </h2>
         <p className="text-muted-foreground max-w-md">
-          Connect a Solana wallet to start chatting with the Syra agent. Your wallet links your chat history and agent payments.
+          Chat casually about crypto, web3, and blockchain—no wallet needed. Connect a Solana wallet to use tools and realtime data; your wallet links chat history and agent payments.
         </p>
       </div>
 

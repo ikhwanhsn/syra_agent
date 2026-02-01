@@ -3,8 +3,6 @@ import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
-
 export async function createSentimentRouter() {
   const router = express.Router();
 
@@ -104,12 +102,6 @@ export async function createSentimentRouter() {
           // Continue even if burn fails - payment was successful
         }
 
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
         res.json({
           sentimentAnalysis,
         });
@@ -192,12 +184,6 @@ export async function createSentimentRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
 
         res.json({
           sentimentAnalysis,

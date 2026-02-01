@@ -1,9 +1,8 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import { requirePayment, settlePaymentAndSetResponse } from "../utils/x402Payment.js";
 import { X402_API_PRICE_RESEARCH_USD } from "../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../../libs/atxp/researchService.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
 
 export async function createResearchRouter() {
   const router = express.Router();
@@ -77,16 +76,7 @@ export async function createResearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          const paymentResult = await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
-          );
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_RESEARCH_USD,
-          });
+          await settlePaymentAndSetResponse(res, req);
 
           res.json({ status, content, sources });
         }
@@ -168,16 +158,7 @@ export async function createResearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          const paymentResult = await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
-          );
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_RESEARCH_USD,
-          });
+          await settlePaymentAndSetResponse(res, req);
 
           res.json({ status, content, sources });
         }

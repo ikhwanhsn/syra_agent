@@ -100,8 +100,7 @@ function loadHistoryFromStorage(): HistoryItem[] {
         timestamp: new Date(item.request.timestamp),
       },
     }));
-  } catch (error) {
-    console.error('Failed to load history from localStorage:', error);
+  } catch {
     return [];
   }
 }
@@ -111,8 +110,8 @@ function saveHistoryToStorage(history: HistoryItem[]): void {
     // Limit history to last 100 items to prevent localStorage bloat
     const limitedHistory = history.slice(0, 100);
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
-  } catch (error) {
-    console.error('Failed to save history to localStorage:', error);
+  } catch {
+    // Ignore localStorage errors
   }
 }
 
@@ -302,8 +301,8 @@ export function useApiPlayground() {
           });
         });
       }
-    } catch (error) {
-      console.debug('Failed to extract params from 402 response:', error);
+    } catch {
+      // Ignore extraction errors
     }
     
     return params;
@@ -330,7 +329,6 @@ export function useApiPlayground() {
     
     // If base URL changed significantly, clear previous params/headers
     if (previousBaseUrlRef.current && currentBaseUrl !== previousBaseUrlRef.current) {
-      console.log('[Auto-detect] URL changed, clearing previous params/headers');
       // Clear params except those from URL query string
       setParams(currentParams => {
         // Keep params that came from URL query string (they have values)
@@ -373,8 +371,8 @@ export function useApiPlayground() {
           });
         }
       }
-    } catch (error) {
-      console.debug('URL param extraction failed:', error);
+    } catch {
+      // Ignore URL param extraction errors
     }
 
     // Set loading state
@@ -439,8 +437,6 @@ export function useApiPlayground() {
             const parsed = parseX402Response(jsonData);
             
             if (parsed) {
-              console.log('[Auto-detect] Found 402 response, extracting params and headers');
-              
               // Extract params from schema
               const detectedParams = extractParamsFrom402Response(parsed);
               
@@ -496,29 +492,15 @@ export function useApiPlayground() {
                 return currentHeaders;
               });
             }
-          } catch (parseError) {
-            console.debug('[Auto-detect] Failed to parse 402 response:', parseError);
+          } catch {
+            // Ignore parse errors
           }
         } else if (fetchResponse.ok) {
           // API is available but doesn't require payment (200-299)
-          console.log('[Auto-detect] API is available but does not require payment');
           // Don't modify params/headers for non-402 APIs
-        } else if (fetchResponse.status >= 400 && fetchResponse.status < 500) {
-          // Client error (400-499) - API exists but request is invalid
-          console.log(`[Auto-detect] API returned ${fetchResponse.status} - API exists but request may be invalid`);
-        } else if (fetchResponse.status >= 500) {
-          // Server error (500+) - API exists but has issues
-          console.log(`[Auto-detect] API returned ${fetchResponse.status} - Server error`);
         }
-      } catch (error: any) {
-        // Handle different error types
-        if (error.name === 'AbortError') {
-          console.debug('[Auto-detect] Request timeout - API may be slow or unavailable');
-        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-          console.debug('[Auto-detect] Network error - API may be unavailable or CORS blocked');
-        } else {
-          console.debug('[Auto-detect] Request failed:', error.message || error);
-        }
+        // Silently ignore other status codes for auto-detect
+      } catch {
         // Silently fail - don't interrupt user input
       } finally {
         setIsAutoDetecting(false);
@@ -607,8 +589,8 @@ export function useApiPlayground() {
   const connectWallet = useCallback(async () => {
     try {
       await walletContext.connect();
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
+    } catch {
+      // Ignore connect errors (user may have cancelled)
     }
   }, [walletContext]);
 
@@ -795,11 +777,6 @@ export function useApiPlayground() {
 
       // Check if 402 Payment Required
       if (fetchResponse.status === 402) {
-        console.log('='.repeat(60));
-        console.log('[402] Payment Required response received');
-        console.log('[402] Raw response text:', responseText);
-        console.log('='.repeat(60));
-        
         let parsed = null;
         let details = null;
         let jsonData: any = null;
@@ -807,40 +784,23 @@ export function useApiPlayground() {
         // Try to parse response as JSON
         try {
           jsonData = JSON.parse(responseText);
-          console.log('[402] Parsed JSON:', JSON.stringify(jsonData, null, 2));
-          console.log('[402] x402Version:', jsonData.x402Version);
-          console.log('[402] accepts:', jsonData.accepts);
-          if (jsonData.accepts && jsonData.accepts[0]) {
-            console.log('[402] First accept option:');
-            console.log('  - scheme:', jsonData.accepts[0].scheme);
-            console.log('  - network:', jsonData.accepts[0].network);
-            console.log('  - amount:', jsonData.accepts[0].amount);
-            console.log('  - payTo:', jsonData.accepts[0].payTo);
-            console.log('  - asset:', jsonData.accepts[0].asset);
-          }
-        } catch (e) {
-          console.log('[402] Response is not valid JSON:', e);
+        } catch {
+          // Response is not valid JSON
         }
         
         // Try to parse as x402 protocol
         if (jsonData) {
           try {
             parsed = parseX402Response(jsonData, responseHeaders);
-            console.log('[402] parseX402Response result:', parsed);
             
             if (parsed) {
               setX402Response(parsed);
               const option = getBestPaymentOption(parsed);
-              console.log('[402] getBestPaymentOption result:', option);
               setPaymentOption(option || undefined);
-              
               details = extractPaymentDetails(parsed);
-              console.log('[402] extractPaymentDetails result:', details);
-            } else {
-              console.log('[402] parseX402Response returned null!');
             }
-          } catch (e) {
-            console.error('[402] Error in x402 parsing:', e);
+          } catch {
+            // Ignore x402 parsing errors
           }
         }
         
@@ -852,12 +812,9 @@ export function useApiPlayground() {
         
         // Try to build payment details from various sources if not already extracted
         if (!details && jsonData) {
-          console.log('[402] Attempting to build generic payment details...');
-          
           // Check if we have accepts array directly
           if (jsonData.accepts && Array.isArray(jsonData.accepts) && jsonData.accepts.length > 0) {
             const accept = jsonData.accepts[0];
-            console.log('[402] Building from accepts[0]:', accept);
             
             // Format amount (convert from micro-units if needed)
             let formattedAmount = accept.amount || '0';
@@ -879,7 +836,6 @@ export function useApiPlayground() {
               network: accept.network?.includes('devnet') ? 'Solana Devnet' : 'Solana Mainnet',
               memo: accept.extra?.memo,
             };
-            console.log('[402] Built payment details from accepts:', details);
           } else {
             // Fallback to generic field names
             const genericDetails: PaymentDetails = {
@@ -889,7 +845,6 @@ export function useApiPlayground() {
               network: jsonData.network || jsonData.chain || 'Solana',
               memo: jsonData.memo || jsonData.description || jsonData.message,
             };
-            console.log('[402] Built generic payment details:', genericDetails);
             
             if (genericDetails.recipient || genericDetails.amount !== '0') {
               details = genericDetails;
@@ -899,14 +854,12 @@ export function useApiPlayground() {
         
         // Set payment details (or null if none found)
         if (details) {
-          console.log('[402] Setting payment details:', details);
           setPaymentDetails(details);
           toast({
             title: "Payment Required",
             description: `This API requires ${details.amount} ${details.token} to access.`,
           });
         } else {
-          console.log('[402] No payment details could be extracted!');
           toast({
             title: "Payment Required (402)",
             description: "This API requires payment. Check the response body for payment details.",
@@ -915,8 +868,6 @@ export function useApiPlayground() {
         
         // ALWAYS open the payment modal for 402 responses
         setIsPaymentModalOpen(true);
-        console.log('[402] Payment modal opened');
-        console.log('='.repeat(60));
         
       } else if (fetchResponse.ok) {
         setStatus('success');
@@ -1155,7 +1106,6 @@ export function useApiPlayground() {
   // Execute payment and auto-retry
   const pay = useCallback(async () => {
     if (!walletContext.connected || !walletContext.publicKey || !paymentOption) {
-      console.error('Wallet not connected or no payment option');
       return;
     }
 

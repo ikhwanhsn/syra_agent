@@ -1,11 +1,34 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import {
+  requirePayment,
+  getX402ResourceServer,
+  encodePaymentResponseHeader,
+} from "../../utils/x402Payment.js";
 import { X402_API_PRICE_DEXSCREENER_USD } from "../../../config/x402Pricing.js";
 import { dexscreenerRequests } from "../../../request/dexscreener.request.js";
-import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
 
 export async function createDexscreenerRouter() {
   const router = express.Router();
+
+  async function fetchDexscreenerData() {
+    const responses = await Promise.all(
+      dexscreenerRequests.map(({ url }) => fetch(url))
+    );
+    for (const response of responses) {
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`HTTP ${response.status} ${response.statusText} ${text}`);
+      }
+    }
+    const allData = await Promise.all(responses.map((r) => r.json()));
+    return {
+      "dexscreener/token-profiles": allData[0],
+      "dexscreener/community-takeovers": allData[1],
+      "dexscreener/ads": allData[2],
+      "dexscreener/token-boosts": allData[3],
+      "dexscreener/token-boosts-top": allData[4],
+    };
+  }
 
   // GET endpoint with x402scan compatible schema
   router.get(
@@ -41,42 +64,14 @@ export async function createDexscreenerRouter() {
     }),
     async (req, res) => {
       try {
-        const responses = await Promise.all(
-          dexscreenerRequests.map(({ url }) => fetch(url))
-        );
-
-        for (const response of responses) {
-          if (!response.ok) {
-            const text = await response.text().catch(() => "");
-            throw new Error(
-              `HTTP ${response.status} ${response.statusText} ${text}`
-            );
-          }
-        }
-
-        const allData = await Promise.all(
-          responses.map((response) => response.json())
-        );
-
-        const data = {
-          "dexscreener/token-profiles": allData[0],
-          "dexscreener/community-takeovers": allData[1],
-          "dexscreener/ads": allData[2],
-          "dexscreener/token-boosts": allData[3],
-          "dexscreener/token-boosts-top": allData[4],
-        };
-
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_DEXSCREENER_USD,
-        });
-
+        const { resourceServer } = getX402ResourceServer();
+        const { payload, accepted } = req.x402Payment;
+        const [data, settle] = await Promise.all([
+          fetchDexscreenerData(),
+          resourceServer.settlePayment(payload, accepted),
+        ]);
+        if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+        res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({
@@ -87,7 +82,7 @@ export async function createDexscreenerRouter() {
     }
   );
 
-  // POST endpoint for advanced search
+  // POST endpoint
   router.post(
     "/",
     requirePayment({
@@ -121,42 +116,14 @@ export async function createDexscreenerRouter() {
     }),
     async (req, res) => {
       try {
-        const responses = await Promise.all(
-          dexscreenerRequests.map(({ url }) => fetch(url))
-        );
-
-        for (const response of responses) {
-          if (!response.ok) {
-            const text = await response.text().catch(() => "");
-            throw new Error(
-              `HTTP ${response.status} ${response.statusText} ${text}`
-            );
-          }
-        }
-
-        const allData = await Promise.all(
-          responses.map((response) => response.json())
-        );
-
-        const data = {
-          "dexscreener/token-profiles": allData[0],
-          "dexscreener/community-takeovers": allData[1],
-          "dexscreener/ads": allData[2],
-          "dexscreener/token-boosts": allData[3],
-          "dexscreener/token-boosts-top": allData[4],
-        };
-
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_DEXSCREENER_USD,
-        });
-
+        const { resourceServer } = getX402ResourceServer();
+        const { payload, accepted } = req.x402Payment;
+        const [data, settle] = await Promise.all([
+          fetchDexscreenerData(),
+          resourceServer.settlePayment(payload, accepted),
+        ]);
+        if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+        res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({

@@ -17,23 +17,23 @@ interface EmptyStateProps {
 const suggestions: SuggestionCard[] = [
   {
     icon: Code,
-    title: "Trading signals",
-    prompt: "What signals or research endpoints does the Syra API expose?",
+    title: "Solana & DEX",
+    prompt: "Explain how Solana DEXs work and what makes them different from CEXs",
   },
   {
     icon: Lightbulb,
-    title: "Market research",
-    prompt: "Summarize how the research and gems APIs work for market analysis",
+    title: "Market & tokens",
+    prompt: "What should I look for when researching a new token or memecoin?",
   },
   {
     icon: FileText,
-    title: "Agent capability",
-    prompt: "List the main API capabilities available for the Syra agent",
+    title: "Web3 & DeFi",
+    prompt: "Give me a quick overview of DeFi basics and common terms",
   },
   {
     icon: Sparkles,
-    title: "Trading infra",
-    prompt: "How does Syra’s trading infrastructure and agent work end-to-end?",
+    title: "Syra & tools",
+    prompt: "What can the Syra agent do? When do I need to connect a wallet?",
   },
 ];
 
@@ -51,7 +51,7 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
         How can I help you today?
       </h2>
       <p className="text-muted-foreground text-center max-w-md mb-3">
-        Syra builds trading infrastructure powered by AI. Start a conversation here, or try the API playground to explore the full agent capability like signals, research, market data, and more.
+        Chat casually about crypto, web3, and blockchain—no wallet needed. Syra builds trading infrastructure powered by AI. Connect a wallet when you want to use tools and realtime data.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-sm">
         <a

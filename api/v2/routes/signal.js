@@ -1,7 +1,8 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
-
+import {
+  requirePayment,
+  settlePaymentAndSetResponse,
+} from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 
 export async function createSignalRouter() {
@@ -42,11 +43,7 @@ export async function createSignalRouter() {
         ).then((res) => res.json());
 
         if (signal) {
-          const paymentResult = await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
-          );
-
+          await settlePaymentAndSetResponse(res, req);
           res.json({ signal });
         } else {
           res.status(500).json({ error: "Failed to fetch signal" });
@@ -87,22 +84,15 @@ export async function createSignalRouter() {
       })(req, res, next),
     async (req, res) => {
       try {
-        const { token } = req.body;
-
+        const token = req.body?.token || "bitcoin";
         const signal = await fetch(
-          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token || "bitcoin"}`
-        ).then((res) => res.json());
-
-        if (signal) {
-          const paymentResult = await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
-          );
-
-          res.json({ signal });
-        } else {
-          res.status(500).json({ error: "Failed to fetch signal" });
+          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
+        ).then((r) => r.json());
+        if (!signal) {
+          return res.status(500).json({ error: "Failed to fetch signal" });
         }
+        await settlePaymentAndSetResponse(res, req);
+        res.json({ signal });
       } catch (error) {
         console.error("Error POST:", error);
         res.status(500).json({ error: "Server error" });

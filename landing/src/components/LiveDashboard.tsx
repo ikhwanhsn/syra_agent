@@ -25,8 +25,10 @@ export const LiveDashboard = () => {
   return (
     <section className="relative py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+      <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-accent/6 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-neon-gold/5 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}

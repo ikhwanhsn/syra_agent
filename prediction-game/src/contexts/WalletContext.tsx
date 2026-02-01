@@ -1,10 +1,45 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { useWallet as useSolanaWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 
 // SYRA Token Mint Address
 const SYRA_TOKEN_MINT = '8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump';
+
+/** Poll interval for confirmation (ms). Avoids signatureSubscribe which fails on HTTP-only RPCs. */
+const CONFIRM_POLL_MS = 1500;
+const CONFIRM_TIMEOUT_MS = 60_000;
+
+/** Wait for tx confirmation using HTTP-only getSignatureStatuses (no WebSocket). */
+async function confirmTransactionByPolling(
+  connection: import('@solana/web3.js').Connection,
+  signature: string,
+  lastValidBlockHeight: number
+): Promise<{ confirmed: boolean; err?: string }> {
+  const start = Date.now();
+  while (Date.now() - start < CONFIRM_TIMEOUT_MS) {
+    try {
+      const currentHeight = await connection.getBlockHeight('confirmed');
+      if (currentHeight > lastValidBlockHeight) {
+        return { confirmed: false, err: 'Signature expired' };
+      }
+      const { value } = await connection.getSignatureStatuses([signature]);
+      const status = value?.[0];
+      if (status?.err) return { confirmed: false, err: String(status.err) };
+      if (
+        status?.confirmationStatus === 'confirmed' ||
+        status?.confirmationStatus === 'finalized' ||
+        status?.confirmationStatus === 'processed'
+      ) {
+        return { confirmed: true };
+      }
+    } catch {
+      // Transient RPC error; keep polling
+    }
+    await new Promise((r) => setTimeout(r, CONFIRM_POLL_MS));
+  }
+  return { confirmed: false, err: 'Confirmation timeout' };
+}
 
 interface WalletContextType {
   isConnected: boolean;
@@ -84,65 +119,20 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, [connected, publicKey, refreshBalances]);
 
-  // Subscribe to SOL balance changes for real-time updates
+  // Poll balances periodically instead of onAccountChange (avoids WebSocket signatureSubscribe/accountSubscribe on HTTP-only RPCs)
+  const balancePollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (!publicKey || !connection) return;
-
-    const subscriptionId = connection.onAccountChange(
-      publicKey,
-      (accountInfo) => {
-        setSolBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
-      },
-      'confirmed'
-    );
-
+    const poll = () => refreshBalances();
+    poll();
+    balancePollIntervalRef.current = setInterval(poll, 10_000);
     return () => {
-      connection.removeAccountChangeListener(subscriptionId);
-    };
-  }, [publicKey, connection]);
-
-  // Subscribe to SYRA token account changes
-  useEffect(() => {
-    if (!publicKey || !connection) return;
-
-    const subscribeToTokenAccount = async () => {
-      try {
-        const syraTokenMint = new PublicKey(SYRA_TOKEN_MINT);
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-          publicKey, 
-          { mint: syraTokenMint }
-        );
-        
-        if (tokenAccounts.value.length > 0) {
-          const tokenAccountPubkey = tokenAccounts.value[0].pubkey;
-          
-          const subscriptionId = connection.onAccountChange(
-            tokenAccountPubkey,
-            async () => {
-              // Refresh SYRA balance when token account changes
-              const updatedAccounts = await connection.getParsedTokenAccountsByOwner(
-                publicKey, 
-                { mint: syraTokenMint }
-              );
-              if (updatedAccounts.value.length > 0) {
-                const balance = updatedAccounts.value[0].account.data.parsed.info.tokenAmount.uiAmount;
-                setSyraBalance(balance || 0);
-              }
-            },
-            'confirmed'
-          );
-          
-          return () => {
-            connection.removeAccountChangeListener(subscriptionId);
-          };
-        }
-      } catch (error) {
-        console.warn('Error subscribing to SYRA token account:', error);
+      if (balancePollIntervalRef.current) {
+        clearInterval(balancePollIntervalRef.current);
+        balancePollIntervalRef.current = null;
       }
     };
-
-    subscribeToTokenAccount();
-  }, [publicKey, connection]);
+  }, [publicKey, connection, refreshBalances]);
 
   const connect = useCallback(() => {
     // Open the wallet modal to let user select a wallet
@@ -175,16 +165,20 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         })
       );
 
-      const { blockhash } = await connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
-      // Wait for confirmation
-      await connection.confirmTransaction(signature, 'confirmed');
-      
-      // Refresh balances after transaction
+
+      // Wait for confirmation via HTTP polling (avoids signatureSubscribe on HTTP-only RPCs)
+      const { confirmed } = await confirmTransactionByPolling(connection, signature, lastValidBlockHeight);
+      if (!confirmed) {
+        // Tx may still land; refresh and return signature so user can check explorer
+        await refreshBalances();
+        return signature;
+      }
+
       await refreshBalances();
       
       return signature;

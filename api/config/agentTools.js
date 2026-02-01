@@ -1,0 +1,551 @@
+/**
+ * Agent tools registry: x402 API v2 resources the Syra agent can call.
+ * Each tool is paid automatically with the agent wallet; balance is checked first.
+ */
+import {
+  X402_API_PRICE_USD,
+  X402_API_PRICE_CHECK_STATUS_USD,
+  X402_API_PRICE_NEWS_USD,
+  X402_API_PRICE_RESEARCH_USD,
+  X402_API_PRICE_NANSEN_USD,
+  X402_API_PRICE_DEXSCREENER_USD,
+  X402_API_PRICE_PUMP_USD,
+} from './x402Pricing.js';
+
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; name: string; description: string }} AgentTool */
+
+/**
+ * List of agent tools (x402 v2 endpoints). Path is relative to API base (e.g. /v2/news).
+ * @type {AgentTool[]}
+ */
+export const AGENT_TOOLS = [
+  // Core
+  {
+    id: 'check-status',
+    path: '/v2/check-status',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_CHECK_STATUS_USD,
+    name: 'Check API status',
+    description: 'Health check for API server status and connectivity',
+  },
+  {
+    id: 'news',
+    path: '/v2/news',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NEWS_USD,
+    name: 'Crypto news',
+    description: 'Get latest crypto news and market updates (optional ticker: BTC, ETH, or "general")',
+  },
+  {
+    id: 'signal',
+    path: '/v2/signal',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Trading signal',
+    description: 'Trading signal creation / signal data',
+  },
+  {
+    id: 'sentiment',
+    path: '/v2/sentiment',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Sentiment analysis',
+    description: 'Get market sentiment analysis',
+  },
+  {
+    id: 'event',
+    path: '/v2/event',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Event',
+    description: 'Event data and updates',
+  },
+  {
+    id: 'browse',
+    path: '/v2/browse',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Browse',
+    description: 'Browse / discovery data',
+  },
+  {
+    id: 'x-search',
+    path: '/v2/x-search',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'X search',
+    description: 'Search X/Twitter for crypto and market content',
+  },
+  {
+    id: 'research',
+    path: '/v2/research',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_RESEARCH_USD,
+    name: 'Research',
+    description: 'Deep research / analysis',
+  },
+  {
+    id: 'gems',
+    path: '/v2/gems',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Gems',
+    description: 'Gems / curated insights',
+  },
+  {
+    id: 'x-kol',
+    path: '/v2/x-kol',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'X KOL',
+    description: 'X/Twitter KOL (key opinion leader) data',
+  },
+  {
+    id: 'crypto-kol',
+    path: '/v2/crypto-kol',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Crypto KOL',
+    description: 'Crypto KOL data and insights',
+  },
+  {
+    id: 'trending-headline',
+    path: '/v2/trending-headline',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Trending headline',
+    description: 'Trending headlines',
+  },
+  {
+    id: 'sundown-digest',
+    path: '/v2/sundown-digest',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Sundown digest',
+    description: 'Sundown digest / daily summary',
+  },
+  // Partner: Nansen
+  {
+    id: 'smart-money',
+    path: '/v2/smart-money',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    name: 'Smart money (Nansen)',
+    description: 'Smart money data from Nansen',
+  },
+  {
+    id: 'token-god-mode',
+    path: '/v2/token-god-mode',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    name: 'Token god mode (Nansen)',
+    description: 'Token god mode insights from Nansen',
+  },
+  // Partner: DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun
+  {
+    id: 'dexscreener',
+    path: '/v2/dexscreener',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_DEXSCREENER_USD,
+    name: 'DexScreener',
+    description: 'DexScreener data',
+  },
+  {
+    id: 'trending-jupiter',
+    path: '/v2/trending-jupiter',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Trending on Jupiter',
+    description: 'Trending tokens on Jupiter',
+  },
+  {
+    id: 'token-report',
+    path: '/v2/token-report',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Token report (Rugcheck)',
+    description: 'Token report from Rugcheck',
+  },
+  {
+    id: 'token-statistic',
+    path: '/v2/token-statistic',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Token statistic (Rugcheck)',
+    description: 'Token statistics from Rugcheck',
+  },
+  {
+    id: 'bubblemaps-maps',
+    path: '/v2/bubblemaps/maps',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Bubblemaps maps',
+    description: 'Bubblemaps map data',
+  },
+  {
+    id: 'binance-correlation',
+    path: '/v2/binance/correlation',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Binance correlation',
+    description: 'Binance correlation data',
+  },
+  {
+    id: 'pump',
+    path: '/v2/pump',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_PUMP_USD,
+    name: 'Pump (Workfun)',
+    description: 'Pump data from Workfun',
+  },
+  // Memecoin
+  {
+    id: 'memecoin-fastest-holder-growth',
+    path: '/v2/memecoin/fastest-holder-growth',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin fastest holder growth',
+    description: 'Memecoins with fastest holder growth',
+  },
+  {
+    id: 'memecoin-most-mentioned-by-smart-money-x',
+    path: '/v2/memecoin/most-mentioned-by-smart-money-x',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin most mentioned by smart money (X)',
+    description: 'Memecoins most mentioned by smart money on X',
+  },
+  {
+    id: 'memecoin-accumulating-before-cex-rumors',
+    path: '/v2/memecoin/accumulating-before-CEX-rumors',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin accumulating before CEX rumors',
+    description: 'Memecoins accumulating before CEX listing rumors',
+  },
+  {
+    id: 'memecoin-strong-narrative-low-market-cap',
+    path: '/v2/memecoin/strong-narrative-low-market-cap',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin strong narrative low market cap',
+    description: 'Memecoins with strong narrative and low market cap',
+  },
+  {
+    id: 'memecoin-by-experienced-devs',
+    path: '/v2/memecoin/by-experienced-devs',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin by experienced devs',
+    description: 'Memecoins by experienced developers',
+  },
+  {
+    id: 'memecoin-unusual-whale-behavior',
+    path: '/v2/memecoin/unusual-whale-behavior',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin unusual whale behavior',
+    description: 'Memecoins with unusual whale behavior',
+  },
+  {
+    id: 'memecoin-trending-on-x-not-dex',
+    path: '/v2/memecoin/trending-on-x-not-dex',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin trending on X not DEX',
+    description: 'Memecoins trending on X but not yet on DEX',
+  },
+  {
+    id: 'memecoin-organic-traction',
+    path: '/v2/memecoin/organic-traction',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin organic traction',
+    description: 'Memecoins with organic traction (AI)',
+  },
+  {
+    id: 'memecoin-surviving-market-dumps',
+    path: '/v2/memecoin/surviving-market-dumps',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    name: 'Memecoin surviving market dumps',
+    description: 'Memecoins surviving market dumps',
+  },
+];
+
+/**
+ * Get tool by id.
+ * @param {string} toolId
+ * @returns {AgentTool | undefined}
+ */
+export function getAgentTool(toolId) {
+  return AGENT_TOOLS.find((t) => t.id === toolId);
+}
+
+/**
+ * Match user question to a tool (and optional params). Used to choose which x402 tool to call.
+ * Order matters: more specific phrases are checked first.
+ * @param {string} userMessage - Last user message (question)
+ * @returns {{ toolId: string; params?: Record<string, string> } | null}
+ */
+export function matchToolFromUserMessage(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') return null;
+  const text = userMessage.trim().toLowerCase();
+  if (!text) return null;
+
+  // Extract ticker for news: "news about BTC", "BTC news", "latest ETH news", etc.
+  const tickerMatch = text.match(
+    /\b(?:news|latest|get)\s*(?:about|for|on)?\s*([a-z0-9]{2,10})\b|\b([a-z0-9]{2,10})\s*news\b/i
+  );
+  const ticker = tickerMatch
+    ? (tickerMatch[1] || tickerMatch[2] || '').toUpperCase()
+    : 'general';
+
+  // Ordered intent patterns: more specific first. Return first match.
+  const intents = [
+    // Memecoin (specific screens)
+    {
+      toolId: 'memecoin-fastest-holder-growth',
+      test: () =>
+        /fastest\s*holder\s*growth|memecoin\s*holder\s*growth|holder\s*growth\s*memecoin/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'memecoin-most-mentioned-by-smart-money-x',
+      test: () =>
+        /most\s*mentioned\s*by\s*smart\s*money|smart\s*money\s*mentioned|mentioned\s*smart\s*money\s*x/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'memecoin-accumulating-before-cex-rumors',
+      test: () =>
+        /accumulating\s*before\s*cex|cex\s*rumors\s*memecoin|before\s*cex\s*rumors/i.test(text),
+    },
+    {
+      toolId: 'memecoin-strong-narrative-low-market-cap',
+      test: () =>
+        /strong\s*narrative\s*low\s*market\s*cap|low\s*market\s*cap\s*narrative|narrative\s*low\s*cap/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'memecoin-by-experienced-devs',
+      test: () =>
+        /memecoin\s*experienced\s*dev|by\s*experienced\s*devs|experienced\s*developers\s*memecoin/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'memecoin-unusual-whale-behavior',
+      test: () =>
+        /unusual\s*whale\s*behavior|whale\s*behavior\s*memecoin|memecoin\s*whale\s*behavior/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'memecoin-trending-on-x-not-dex',
+      test: () =>
+        /trending\s*on\s*x\s*not\s*dex|trending\s*x\s*not\s*dex|memecoin\s*trending\s*x/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'memecoin-organic-traction',
+      test: () =>
+        /organic\s*traction|memecoin\s*organic|organic\s*memecoin/i.test(text),
+    },
+    {
+      toolId: 'memecoin-surviving-market-dumps',
+      test: () =>
+        /surviving\s*market\s*dumps|memecoin\s*surviving\s*dump|market\s*dump\s*survivors/i.test(
+          text
+        ),
+    },
+    // Partner: Rugcheck, Bubblemaps, Binance
+    {
+      toolId: 'token-report',
+      test: () =>
+        /token\s*report|rugcheck\s*report|token\s*report\s*rugcheck/i.test(text),
+    },
+    {
+      toolId: 'token-statistic',
+      test: () =>
+        /token\s*statistic|rugcheck\s*statistic|token\s*stats\s*rugcheck/i.test(text),
+    },
+    {
+      toolId: 'bubblemaps-maps',
+      test: () =>
+        /bubblemaps|bubble\s*maps|bubblemap/i.test(text),
+    },
+    {
+      toolId: 'binance-correlation',
+      test: () =>
+        /binance\s*correlation|correlation\s*binance|binance\s*correl/i.test(text),
+    },
+    // Partner: Nansen, Jupiter, DexScreener, Pump
+    {
+      toolId: 'token-god-mode',
+      test: () =>
+        /token\s*god\s*mode|token\s*god|god\s*mode\s*token|nansen\s*token\s*god/i.test(text),
+    },
+    {
+      toolId: 'smart-money',
+      test: () =>
+        /smart\s*money|smart\s*money\s*data|nansen\s*smart\s*money|whale\s*movement|whale\s*activity/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'trending-jupiter',
+      test: () =>
+        /trending\s*(on\s*)?jupiter|jupiter\s*trending|trending\s*tokens?\s*(on\s*jupiter)?/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'dexscreener',
+      test: () =>
+        /dexscreener|dex\s*screener|dex\s*data|dex\s*screen/i.test(text),
+    },
+    {
+      toolId: 'pump',
+      test: () =>
+        /pump\.fun|pump\s*fun|pump\s*data|workfun\s*pump/i.test(text),
+    },
+    // Core: signal, event, browse, x-search, gems, KOL, digest, headline
+    {
+      toolId: 'signal',
+      test: () =>
+        /trading\s*signal|create\s*signal|signal\s*data|get\s*signal|give\s*(me\s*)?(a\s*)?(solana|btc|eth|crypto)?\s*signal|(solana|btc|eth|crypto|token)\s*signal|signal\s*(for|on)?\s*(solana|btc|eth|crypto)?/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'event',
+      test: () =>
+        /event\s*data|events\s*(please|now)?|crypto\s*events|get\s*events/i.test(text),
+    },
+    {
+      toolId: 'browse',
+      test: () =>
+        /browse|discovery|browse\s*data/i.test(text),
+    },
+    {
+      toolId: 'x-search',
+      test: () =>
+        /x\s*search|search\s*x|twitter\s*search|search\s*twitter|x\s*twitter\s*search/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'gems',
+      test: () =>
+        /gems|curated\s*insights|gems\s*data/i.test(text),
+    },
+    {
+      toolId: 'x-kol',
+      test: () =>
+        /x\s*kol|kol\s*x|twitter\s*kol|key\s*opinion\s*leader\s*x/i.test(text),
+    },
+    {
+      toolId: 'crypto-kol',
+      test: () =>
+        /crypto\s*kol|kol\s*crypto|key\s*opinion\s*leader\s*crypto/i.test(text),
+    },
+    {
+      toolId: 'trending-headline',
+      test: () =>
+        /trending\s*headline|headlines?\s*trending|trending\s*headlines?/i.test(text),
+    },
+    {
+      toolId: 'sundown-digest',
+      test: () =>
+        /sundown\s*digest|daily\s*digest|sundown\s*daily|digest\s*sundown/i.test(text),
+    },
+    {
+      toolId: 'research',
+      test: () =>
+        /deep\s*research|research\s*(report|analysis)?|run\s*research|do\s*research/i.test(text),
+    },
+    {
+      toolId: 'sentiment',
+      test: () =>
+        /sentiment\s*(analysis)?|market\s*sentiment|sentiment\s*data|feelings?\s*about\s*(market|crypto)/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'news',
+      test: () =>
+        /(latest|recent|crypto|get|fetch|show)\s*news|news\s*(about|for|on)?|what\'?s\s*the\s*news|news\s*(please|now)/i.test(
+          text
+        ),
+      params: () => (ticker && ticker !== 'GENERAL' ? { ticker } : {}),
+    },
+    {
+      toolId: 'check-status',
+      test: () =>
+        /check\s*status|api\s*status|health\s*check|is\s*(the\s*)?(api|server)\s*up|status\s*check/i.test(
+          text
+        ),
+    },
+  ];
+
+  for (const { toolId, test, params } of intents) {
+    if (test()) {
+      const tool = getAgentTool(toolId);
+      if (tool) {
+        return {
+          toolId,
+          params: typeof params === 'function' ? params() : undefined,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Human-readable list of capabilities for agent system prompt. Grouped to match v2 API structure.
+ * Excludes check-status (internal). Used so the agent knows exactly which v2 API tools are available.
+ */
+export function getCapabilitiesList() {
+  const exclude = new Set(['check-status']);
+  const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'token-report', 'token-statistic', 'bubblemaps-maps', 'binance-correlation', 'pump'];
+  const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
+
+  const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
+
+  const fmt = (tools) =>
+    tools
+      .filter((id) => !exclude.has(id))
+      .map((id) => {
+        const t = getAgentTool(id);
+        return t ? `• ${t.name}: ${t.description}` : null;
+      })
+      .filter(Boolean);
+
+  lines.push('Core:', ...fmt(core), '');
+  lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun):', ...fmt(partner), '');
+  lines.push('Memecoin screens:', ...fmt(memecoin));
+
+  return lines;
+}
+
+/**
+ * Tool list for LLM tool selection: id, name, description, and optional params hint.
+ * Used so Jatevo can dynamically pick the right tool from the user question.
+ * @returns {Array<{ id: string; name: string; description: string; paramsHint?: string }>}
+ */
+export function getToolsForLlmSelection() {
+  return AGENT_TOOLS.map((t) => {
+    const out = { id: t.id, name: t.name, description: t.description };
+    if (t.id === 'news') {
+      out.paramsHint = 'Optional params: ticker (BTC, ETH, SOL, or general)';
+    }
+    return out;
+  });
+}

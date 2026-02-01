@@ -42,7 +42,9 @@ export const WhatIsSyra = () => {
 
   return (
     <section id="about" className="relative py-24 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-1/4 left-0 w-[400px] h-[400px] bg-accent/8 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-0 w-[350px] h-[350px] bg-neon-gold/6 rounded-full blur-[90px] pointer-events-none" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className="text-center mb-16">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -82,10 +84,14 @@ export const WhatIsSyra = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-              className="glass-card p-6 rounded-2xl group hover:border-primary/30 transition-all duration-300"
+              className={`glass-card p-6 rounded-2xl group transition-all duration-300 ${
+                index % 3 === 0 ? "hover:border-accent/30" : index % 3 === 1 ? "hover:border-neon-gold/25" : "hover:border-primary/30"
+              }`}
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <feature.icon className="w-6 h-6 text-primary" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${
+                index % 3 === 0 ? "bg-accent/10 group-hover:bg-accent/20" : index % 3 === 1 ? "bg-neon-gold/10 group-hover:bg-neon-gold/20" : "bg-primary/10 group-hover:bg-primary/20"
+              }`}>
+                <feature.icon className={`w-6 h-6 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-primary"}`} />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-foreground">
                 {feature.title}

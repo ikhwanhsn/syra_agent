@@ -24,6 +24,48 @@ const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 // x402 protocol version
 const X402_VERSION = 2;
 
+/** Poll interval for confirmation (ms). */
+const CONFIRM_POLL_MS = 1500;
+/** Max time to wait for confirmation (ms). */
+const CONFIRM_TIMEOUT_MS = 60_000;
+
+/**
+ * Wait for transaction confirmation using HTTP-only RPC (getSignatureStatus).
+ * Does NOT use signatureSubscribe/WebSocket, so it works with RPCs that don't support subscriptions
+ * and avoids "Received JSON-RPC error calling signatureSubscribe" errors.
+ */
+async function confirmTransactionByPolling(
+  connection: Connection,
+  signature: string,
+  lastValidBlockHeight: number
+): Promise<{ confirmed: boolean; err?: any }> {
+  const start = Date.now();
+  while (Date.now() - start < CONFIRM_TIMEOUT_MS) {
+    try {
+      const currentBlockHeight = await connection.getBlockHeight('confirmed');
+      if (currentBlockHeight > lastValidBlockHeight) {
+        return { confirmed: false, err: 'Signature expired: block height exceeded' };
+      }
+      const status = await connection.getSignatureStatus(signature);
+      const value = status?.value;
+      if (value?.err) {
+        return { confirmed: false, err: value.err };
+      }
+      if (
+        value?.confirmationStatus === 'confirmed' ||
+        value?.confirmationStatus === 'finalized' ||
+        value?.confirmationStatus === 'processed'
+      ) {
+        return { confirmed: true };
+      }
+    } catch {
+      // Transient RPC error; keep polling
+    }
+    await new Promise((r) => setTimeout(r, CONFIRM_POLL_MS));
+  }
+  return { confirmed: false, err: 'Confirmation timeout' };
+}
+
 export interface X402PaymentOption {
   scheme: string;
   network: string;
@@ -83,20 +125,8 @@ export interface X402ClientConfig {
  * Handles x402 v2 protocol responses (matching api/utils/x402Payment.js format)
  */
 export function parseX402Response(data: any, responseHeaders?: Record<string, string>): X402Response | null {
-  console.log('[x402] Parsing response:', JSON.stringify(data, null, 2));
-  
   // Check for x402 protocol response (v2 or any version)
   if (data && typeof data.x402Version === 'number') {
-    console.log('[x402] Found x402 version:', data.x402Version);
-    
-    // Validate accepts array exists and has items
-    if (!data.accepts || !Array.isArray(data.accepts) || data.accepts.length === 0) {
-      console.log('[x402] Warning: No accepts array in response');
-    } else {
-      console.log('[x402] Found', data.accepts.length, 'payment option(s)');
-      console.log('[x402] First accept option:', JSON.stringify(data.accepts[0], null, 2));
-    }
-    
     return {
       x402Version: data.x402Version,
       accepts: data.accepts || [],
@@ -108,8 +138,6 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
   
   // Try to extract payment info from generic 402 response (fallback)
   if (data && (data.accepts || data.payment || data.paymentRequired || data.price || data.amount)) {
-    console.log('[x402] Attempting to parse generic 402 response');
-    
     let accepts: X402PaymentOption[] = [];
     
     // If accepts array exists, use it directly
@@ -148,7 +176,6 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
     }
   }
   
-  console.log('[x402] Could not parse response as x402 format');
   return null;
 }
 
@@ -159,10 +186,7 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
 export function getBestPaymentOption(x402Response: X402Response): X402PaymentOption | null {
   const { accepts } = x402Response;
   
-  console.log('[x402] Getting best payment option from', accepts?.length || 0, 'options');
-  
   if (!accepts || accepts.length === 0) {
-    console.log('[x402] No payment options available');
     return null;
   }
   
@@ -173,7 +197,6 @@ export function getBestPaymentOption(x402Response: X402Response): X402PaymentOpt
   );
   
   if (solanaMainnetOption) {
-    console.log('[x402] Found Solana mainnet option:', solanaMainnetOption);
     return solanaMainnetOption;
   }
   
@@ -184,12 +207,10 @@ export function getBestPaymentOption(x402Response: X402Response): X402PaymentOpt
   );
   
   if (solanaOption) {
-    console.log('[x402] Found Solana option:', solanaOption);
     return solanaOption;
   }
   
   // Last fallback: first option
-  console.log('[x402] Using first available option:', accepts[0]);
   return accepts[0];
 }
 
@@ -220,8 +241,6 @@ export async function createPaymentTransaction(
 ): Promise<Transaction> {
   const { connection, publicKey } = config;
   
-  console.log('[x402] Creating payment transaction for option:', paymentOption);
-  
   // Parse recipient address
   const recipientPubkey = new PublicKey(paymentOption.payTo);
   
@@ -245,8 +264,6 @@ export async function createPaymentTransaction(
       ? new PublicKey(USDC_DEVNET_STRING)
       : USDC_MINT;
     
-    console.log('[x402] Using USDC mint:', usdcMint.toBase58());
-    
     // USDC transfer
     const senderTokenAccount = await getAssociatedTokenAddress(
       usdcMint,
@@ -257,9 +274,6 @@ export async function createPaymentTransaction(
       usdcMint,
       recipientPubkey
     );
-    
-    console.log('[x402] Sender token account:', senderTokenAccount.toBase58());
-    console.log('[x402] Recipient token account:', recipientTokenAccount.toBase58());
     
     transaction.add(
       createTransferInstruction(
@@ -346,77 +360,21 @@ export async function executePayment(
       { skipPreflight: false }
     );
     
-    console.log('[x402] Transaction sent with signature:', signature);
+    // Wait for confirmation using HTTP-only polling (no signatureSubscribe/WebSocket).
+    // This avoids "Received JSON-RPC error calling signatureSubscribe" on RPCs that don't support subscriptions.
+    const { confirmed: confirmationSuccess, err: confirmErr } = await confirmTransactionByPolling(
+      connection,
+      signature,
+      transaction.lastValidBlockHeight!
+    );
     
-    // Wait for confirmation with blockhash-based confirmation (more reliable than timeout-based)
-    // This uses the transaction's blockhash validity window instead of a fixed timeout
-    let confirmationSuccess = false;
-    
-    try {
-      // Use blockhash-based confirmation which is more reliable
-      // It will wait until the blockhash expires (typically ~60 seconds) or transaction confirms
-      const confirmation = await connection.confirmTransaction(
-        {
-          signature,
-          blockhash: transaction.recentBlockhash!,
-          lastValidBlockHeight: transaction.lastValidBlockHeight!,
-        },
-        'confirmed'
-      );
-      
-      if (confirmation.value.err) {
-        return {
-          success: false,
-          error: `Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
-        };
-      }
-      
-      confirmationSuccess = true;
-      console.log('[x402] Transaction confirmed successfully');
-    } catch (confirmationError: any) {
-      // Handle timeout or confirmation errors gracefully
-      const errorMessage = confirmationError?.message || 'Unknown confirmation error';
-      
-      console.warn('[x402] Confirmation timeout or error:', errorMessage);
-      
-      // Check if this is a timeout error (transaction not confirmed in time)
-      if (errorMessage.includes('not confirmed') || errorMessage.includes('timeout') || errorMessage.includes('30')) {
-        // Transaction was sent but not confirmed within the default 30-second timeout
-        // This is common during network congestion
-        // Still proceed because:
-        // 1. The transaction was successfully submitted to the network
-        // 2. The server can verify it using the signature and getSignatureStatus
-        // 3. The payment header contains the signed transaction which proves payment intent
-        console.log('[x402] Confirmation timed out, but transaction was submitted successfully');
-        console.log('[x402] Transaction may confirm later - server can verify using signature:', signature);
-        console.log('[x402] Proceeding with payment header creation');
-      } else {
-        // For other errors, log but still try to proceed
-        // The transaction was sent, so it might still succeed
-        console.warn('[x402] Confirmation error (transaction was sent):', errorMessage);
-        console.log('[x402] Proceeding with payment header - server will verify transaction status');
-      }
-      
-      // Try a quick status check as a fallback
-      try {
-        const status = await connection.getSignatureStatus(signature);
-        if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
-          if (status.value.err) {
-            return {
-              success: false,
-              error: `Transaction failed: ${JSON.stringify(status.value.err)}`,
-            };
-          }
-          confirmationSuccess = true;
-          console.log('[x402] Transaction confirmed via status check');
-        } else {
-          console.log('[x402] Transaction status:', status?.value?.confirmationStatus || 'pending');
-        }
-      } catch (statusError) {
-        console.warn('[x402] Could not check transaction status:', statusError);
-      }
+    // Only fail when tx actually failed or blockhash expired; on timeout we still proceed and let server verify
+    if (!confirmationSuccess && confirmErr && confirmErr !== 'Confirmation timeout') {
+      return {
+        success: false,
+        error: `Transaction failed: ${JSON.stringify(confirmErr)}`,
+      };
     }
-    
     // Create the payment header for the retry request
     // This is safe to do even if confirmation timed out because:
     // - The transaction was successfully submitted
@@ -444,7 +402,6 @@ export async function executePayment(
     };
   } catch (error: any) {
     const errorMessage = error.message || 'Payment execution failed';
-    console.error('[x402] Payment execution error:', errorMessage);
     
     // If we have a signature, include it in the error so user can check it
     if (signature) {
@@ -472,25 +429,18 @@ export function extractPaymentDetails(x402Response: X402Response): {
   network: string;
   memo?: string;
 } | null {
-  console.log('[x402] Extracting payment details from response');
-  
   const option = getBestPaymentOption(x402Response);
   
   if (!option) {
-    console.log('[x402] No payment option found');
     return null;
   }
   
-  console.log('[x402] Payment option to extract:', option);
-  
   // Validate required fields
   if (!option.payTo) {
-    console.log('[x402] Missing payTo address');
     return null;
   }
   
   if (!option.amount) {
-    console.log('[x402] Missing amount');
     return null;
   }
   
@@ -535,8 +485,6 @@ export function extractPaymentDetails(x402Response: X402Response): {
     network,
     memo: option.extra?.memo,
   };
-  
-  console.log('[x402] Extracted payment details:', details);
   
   return details;
 }

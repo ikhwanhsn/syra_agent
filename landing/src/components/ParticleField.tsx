@@ -25,12 +25,14 @@ export const ParticleField = () => {
     setParticles(newParticles);
   }, []);
 
+  const colors = ["bg-primary/45", "bg-accent/35", "bg-neon-blue/30", "bg-neon-gold/25"];
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-primary/40"
+          className={`absolute rounded-full ${colors[particle.id % colors.length]}`}
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,

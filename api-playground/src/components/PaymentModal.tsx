@@ -31,10 +31,6 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const walletContext = useWalletContext();
   
-  // Debug logging
-  console.log('[PaymentModal] isOpen:', isOpen);
-  console.log('[PaymentModal] paymentDetails:', paymentDetails);
-  
   if (!isOpen) return null;
 
   const isPending = transactionStatus.status === 'pending';

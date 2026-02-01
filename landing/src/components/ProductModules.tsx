@@ -47,10 +47,12 @@ export const ProductModules = () => {
 
   return (
     <section id="product" className="relative py-24 overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-neon-purple/10 rounded-full blur-[150px] pointer-events-none" />
+      {/* Background gradients - theme colors */}
+      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-neon-purple/12 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/3 right-0 w-[450px] h-[450px] bg-neon-gold/7 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/3 w-[300px] h-[300px] bg-accent/6 rounded-full blur-[80px] pointer-events-none" />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className="text-center mb-16">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -88,7 +90,7 @@ export const ProductModules = () => {
               initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.3 + index * 0.15 }}
-              className={`glass-card p-8 rounded-2xl ${
+              className={`glass-card p-8 rounded-2xl hover:border-accent/20 hover:shadow-[0_0_30px_hsl(var(--accent)/0.06)] ${
                 index % 2 === 0 ? "" : "lg:flex-row-reverse"
               }`}
             >

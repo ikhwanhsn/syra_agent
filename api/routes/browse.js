@@ -4,8 +4,6 @@ import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { browseService } from "../libs/atxp/browseService.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
-
 export async function createBrowseRouter() {
   const router = express.Router();
 
@@ -98,11 +96,6 @@ export async function createBrowseRouter() {
               console.error("Buyback and burn failed:", burnError);
               // Continue even if burn fails - payment was successful
             }
-
-            await saveToLeaderboard({
-              wallet: paymentResult.payer,
-              volume: X402_API_PRICE_USD,
-            });
 
             const formatResult = JSON.stringify(taskData);
 
@@ -215,11 +208,6 @@ export async function createBrowseRouter() {
               console.error("Buyback and burn failed:", burnError);
               // Continue even if burn fails - payment was successful
             }
-
-            await saveToLeaderboard({
-              wallet: paymentResult.payer,
-              volume: X402_API_PRICE_USD,
-            });
 
             const formatResult = JSON.stringify(taskData);
 

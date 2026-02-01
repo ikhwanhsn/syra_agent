@@ -1,7 +1,11 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { Send, Paperclip, Mic, Square, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef, KeyboardEvent } from "react";
+import { Send, Paperclip, Mic, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+export interface ChatInputHandle {
+  focus: () => void;
+}
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -10,14 +14,18 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-export function ChatInput({
-  onSend,
-  isLoading = false,
-  onStop,
-  placeholder = "Message Syra Agent...",
-}: ChatInputProps) {
+export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput(
+  { onSend, isLoading = false, onStop, placeholder = "Message Syra Agent..." },
+  ref
+) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textareaRef.current?.focus();
+    },
+  }), []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -25,6 +33,10 @@ export function ChatInput({
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + "px";
     }
   }, [message]);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   const handleSend = () => {
     if (message.trim() && !isLoading) {
@@ -57,6 +69,7 @@ export function ChatInput({
           {/* Text Input */}
           <textarea
             ref={textareaRef}
+            autoFocus
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -110,4 +123,4 @@ export function ChatInput({
       </div>
     </div>
   );
-}
+});

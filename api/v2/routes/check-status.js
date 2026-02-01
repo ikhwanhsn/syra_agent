@@ -1,5 +1,9 @@
 import express from "express";
-import { requirePayment } from "../utils/x402Payment.js";
+import {
+  requirePayment,
+  getX402ResourceServer,
+  encodePaymentResponseHeader,
+} from "../utils/x402Payment.js";
 import { X402_API_PRICE_CHECK_STATUS_USD } from "../../config/x402Pricing.js";
 
 export async function createCheckStatusRouter() {
@@ -26,6 +30,7 @@ export async function createCheckStatusRouter() {
       },
     }),
     async (req, res) => {
+      await settlePaymentAndSetResponse(res, req);
       res.status(200).json({
         status: "ok",
         message: "Check status server is running",
@@ -54,10 +59,12 @@ export async function createCheckStatusRouter() {
       },
     }),
     async (req, res) => {
-      res.status(200).json({
-        status: "ok",
-        message: "Check status server is running",
-      });
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const settle = await resourceServer.settlePayment(payload, accepted);
+      if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+      res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+      res.status(200).json({ status: "ok", message: "Check status server is running" });
     }
   );
 

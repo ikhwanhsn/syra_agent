@@ -3,8 +3,6 @@ import express from "express";
 import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
-
 export async function createNewsRouter() {
   const router = express.Router();
 
@@ -103,11 +101,6 @@ export async function createNewsRouter() {
           // Continue even if burn fails - payment was successful
         }
 
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_NEWS_USD,
-        });
-
         res.json({
           news,
           // tokenBuyback: burnResult
@@ -189,11 +182,6 @@ export async function createNewsRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_NEWS_USD,
-        });
 
         res.json({
           news,

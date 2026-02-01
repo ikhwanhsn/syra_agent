@@ -1,8 +1,29 @@
-// routes/weather.js
+// routes/trending-headline.js – cache + parallel settle for fast response
 import express from "express";
-import { getX402Handler, requirePayment } from "../utils/x402Payment.js";
+import {
+  requirePayment,
+  getX402ResourceServer,
+  encodePaymentResponseHeader,
+} from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
-import { saveToLeaderboard } from "../../scripts/saveToLeaderboard.js";
+
+const CACHE_TTL_MS = 90 * 1000;
+const trendingCache = new Map();
+
+function getCacheKey(ticker) {
+  return String(ticker || "general").trim().toLowerCase() || "general";
+}
+
+function getCached(ticker) {
+  const key = getCacheKey(ticker);
+  const entry = trendingCache.get(key);
+  if (!entry || Date.now() > entry.expires) return null;
+  return entry.data;
+}
+
+function setCached(ticker, data) {
+  trendingCache.set(getCacheKey(ticker), { data, expires: Date.now() + CACHE_TTL_MS });
+}
 
 export async function createTrendingHeadlineRouter() {
   const router = express.Router();
@@ -23,13 +44,29 @@ export async function createTrendingHeadlineRouter() {
     return data.data || [];
   };
 
-  // Apply middleware to routes
+  async function getDataForTicker(ticker) {
+    let cached = getCached(ticker);
+    if (cached !== null) return cached;
+    const result =
+      ticker !== "general"
+        ? await fetchTickerTrendingHeadline(ticker)
+        : await fetchGeneralTrendingHeadline();
+    if (Array.isArray(result) && result.length > 0) setCached(ticker, result);
+    return result;
+  }
+
+  function setPaymentResponseAndSend(res, data, settle) {
+    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+    res.json({ trendingHeadline: data });
+  }
+
   router.get(
     "/",
     requirePayment({
       description: "Get trending headlines and top stories in the crypto market",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/trending-headline",
       inputSchema: {
         queryParams: {
@@ -49,41 +86,15 @@ export async function createTrendingHeadlineRouter() {
     }),
     async (req, res) => {
       const ticker = req.query.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerTrendingHeadline = await fetchTickerTrendingHeadline(
-          ticker
-        );
-        result = tickerTrendingHeadline;
-      } else {
-        const generalTrendingHeadline = await fetchGeneralTrendingHeadline();
-        result = generalTrendingHeadline;
-      }
-      const trendingHeadline = result;
-      if (!trendingHeadline) {
-        return res.status(404).json({ error: "Trending headline not found" });
-      }
-      if (trendingHeadline?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          trendingHeadline,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch trending headline",
-        });
-      }
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [trendingHeadline, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
+      if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
+      setPaymentResponseAndSend(res, trendingHeadline, settle);
     }
   );
 
@@ -92,7 +103,7 @@ export async function createTrendingHeadlineRouter() {
     requirePayment({
       description: "Get trending headlines and top stories in the crypto market",
       method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
+      discoverable: true,
       resource: "/v2/trending-headline",
       inputSchema: {
         bodyType: "json",
@@ -112,42 +123,16 @@ export async function createTrendingHeadlineRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.query.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerTrendingHeadline = await fetchTickerTrendingHeadline(
-          ticker
-        );
-        result = tickerTrendingHeadline;
-      } else {
-        const generalTrendingHeadline = await fetchGeneralTrendingHeadline();
-        result = generalTrendingHeadline;
-      }
-      const trendingHeadline = result;
-      if (!trendingHeadline) {
-        return res.status(404).json({ error: "Trending headline not found" });
-      }
-      if (trendingHeadline?.length > 0) {
-        // Settle payment ONLY on success
-        const paymentResult = await getX402Handler().settlePayment(
-          req.x402Payment.paymentHeader,
-          req.x402Payment.paymentRequirements
-        );
-
-        // Save to leaderboard
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
-
-        res.json({
-          trendingHeadline,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch trending headline",
-        });
-      }
+      const ticker = req.body.ticker || "general";
+      const { resourceServer } = getX402ResourceServer();
+      const { payload, accepted } = req.x402Payment;
+      const [trendingHeadline, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        resourceServer.settlePayment(payload, accepted),
+      ]);
+      if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
+      if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
+      setPaymentResponseAndSend(res, trendingHeadline, settle);
     }
   );
 

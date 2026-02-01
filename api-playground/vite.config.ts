@@ -30,8 +30,6 @@ function corsProxyPlugin(): Plugin {
 
         try {
           const decodedUrl = decodeURIComponent(targetUrl);
-          console.log('[Proxy] Forwarding request to:', decodedUrl);
-          console.log('[Proxy] Method:', req.method);
           
           // Collect request body
           let body = '';
@@ -58,12 +56,9 @@ function corsProxyPlugin(): Plugin {
 
               if (body && req.method !== 'GET' && req.method !== 'HEAD') {
                 fetchOptions.body = body;
-                console.log('[Proxy] Request body:', body);
               }
 
               const response = await fetch(decodedUrl, fetchOptions);
-              
-              console.log('[Proxy] Response status:', response.status);
               
               // Set CORS headers
               res.setHeader('Access-Control-Allow-Origin', '*');
@@ -81,10 +76,8 @@ function corsProxyPlugin(): Plugin {
               res.statusCode = response.status;
               
               const responseText = await response.text();
-              console.log('[Proxy] Response body:', responseText.substring(0, 500));
               res.end(responseText);
             } catch (fetchError: any) {
-              console.error('[Proxy] Fetch error:', fetchError);
               res.statusCode = 500;
               res.end(JSON.stringify({ 
                 error: 'Proxy fetch failed', 
@@ -93,7 +86,6 @@ function corsProxyPlugin(): Plugin {
             }
           });
         } catch (error: any) {
-          console.error('[Proxy] Error:', error);
           res.statusCode = 500;
           res.end(JSON.stringify({ 
             error: 'Proxy error', 

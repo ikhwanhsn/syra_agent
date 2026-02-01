@@ -128,16 +128,21 @@ export const chatApi = {
     return handleRes(res);
   },
 
+  /** Error message thrown when 402 is received and wallet is not connected (tools/realtime require wallet). Shown as agent's answer. */
+  WALLET_REQUIRED_FOR_TOOLS:
+    "To use tools and realtime data, please connect your wallet first. You can keep chatting about crypto, web3, and blockchain without a wallet—connect when you need live data or tools.",
+
   /**
    * Get LLM completion from Jatevo. Playground-style: if completion returns 402 (tool requires payment),
-   * pay with agent wallet via pay-402 then retry with payment header. Payment is from agent wallet
-   * created when user connects wallet.
+   * pay with agent wallet via pay-402 then retry with payment header when walletConnected; otherwise throw WALLET_REQUIRED_FOR_TOOLS.
    */
   async completion(params: {
     messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     systemPrompt?: string;
     /** Client anonymous id; agent wallet pays x402 (pay-402 then retry) */
     anonymousId?: string | null;
+    /** When false, do not attempt pay-402 on 402; throw WALLET_REQUIRED_FOR_TOOLS instead */
+    walletConnected?: boolean;
     /** Optional: request a paid x402 v2 tool */
     toolRequest?: { toolId: string; params?: Record<string, string> } | null;
     /** Internal: payment header for retry after 402 (set by completion wrapper) */
@@ -163,6 +168,7 @@ export const chatApi = {
         systemPrompt: params.systemPrompt,
         anonymousId: params.anonymousId ?? undefined,
         toolRequest: params.toolRequest ?? undefined,
+        walletConnected: params.walletConnected,
       }),
     });
     const fetchMs = Date.now() - stepStart;
@@ -185,6 +191,13 @@ export const chatApi = {
             ? "Payment verification is temporarily unavailable. Please try again in a moment."
             : rawError || "Payment was submitted but not yet accepted. Please try again in a moment.";
         throw new Error(friendlyMessage);
+      }
+      // Tools/realtime data require payment; if user has not connected wallet, ask them to connect.
+      if (params.walletConnected === false) {
+        if (import.meta.env?.DEV) {
+          console.log(`[Agent] 402 received but wallet not connected – prompting user to connect`);
+        }
+        throw new Error(chatApi.WALLET_REQUIRED_FOR_TOOLS);
       }
       if (
         params.anonymousId &&

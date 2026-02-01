@@ -182,7 +182,9 @@ export const Roadmap = () => {
 
   return (
     <section id="roadmap" className="relative py-24 overflow-hidden">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-accent/6 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-0 w-[350px] h-[350px] bg-neon-gold/5 rounded-full blur-[90px] pointer-events-none" />
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -223,8 +225,12 @@ export const Roadmap = () => {
                 {year.quarters.map((q, qIndex) => (
                   <div
                     key={q.quarter}
-                    className={`glass-card p-6 rounded-xl relative ${
-                      q.status === "current" ? "border-primary/50" : ""
+                    className={`glass-card p-6 rounded-xl relative border-l-4 ${
+                      q.status === "completed"
+                        ? "border-l-success/40"
+                        : q.status === "current"
+                          ? "border-l-accent/50"
+                          : "border-l-primary/20"
                     }`}
                   >
                     {/* Status indicator */}

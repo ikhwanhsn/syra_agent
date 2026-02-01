@@ -15,6 +15,9 @@ import { createSmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
 import { createCheckStatusRouter } from "./routes/check-status.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createJatevoRouter } from "./routes/jatevo.js";
+import { createAgentChatRouter } from "./routes/agent/chat.js";
+import { createAgentWalletRouter } from "./routes/agent/wallet.js";
+import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createInfoRouter } from "./routes/info.js";
@@ -73,8 +76,6 @@ import { createMemecoinsUnusualWhaleBehaviorRouter as createV2MemecoinsUnusualWh
 import { createMemecoinsTrendingOnXNotDEXRouter as createV2MemecoinsTrendingOnXNotDEXRouter } from "./v2/routes/memecoin/memecoinsTrendingOnXNotDEX.js";
 import { createMemecoinsOrganicTractionRouter as createV2MemecoinsOrganicTractionRouter } from "./v2/routes/memecoin/aiMemecoinsOrganicTraction.js";
 import { createMemecoinsSurvivingMarketDumpsRouter as createV2MemecoinsSurvivingMarketDumpsRouter } from "./v2/routes/memecoin/memecoinsSurvivingMarketDumps.js";
-import { express as faremeter } from "@faremeter/middleware";
-import { solana } from "@faremeter/info";
 // NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
 // import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 // import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -112,41 +113,86 @@ const app = express();
 // - outputSchema with input/output structure
 // - extra.feePayer field
 
-// app.use(
-//   cors({
-//     origin: [
-//       "http://localhost:8080",
-//       "https://api.syraa.fun",
-//       "https://syraa.fun",
-//       "https://www.syraa.fun",
-//     ],
-//     methods: ["GET", "POST", "PUT", "DELETE"],
-//   }),
-// );
-
-app.use(
-  cors({
-    origin: "*", // Allows any website to access your API
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  }),
-);
-
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-
-const paywalledMiddleware = await faremeter.createMiddleware({
-  facilitatorURL: "https://facilitator.corbits.dev",
-  accepts: [
-    {
-      ...solana.x402Exact({
-        network: "devnet",
-        asset: "USDC",
-        amount: 10000,
-        payTo: "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
-      }),
-      resource: `${BASE_URL}/api/premium`, // Now a full URL
-      description: "Premium API access",
-    },
+// CORS: restrictive origins only for regular (non-x402) APIs; x402 routes allow any origin
+const CORS_ALLOWED_ORIGINS = [
+  "http://localhost:8080",
+  "https://api.syraa.fun",
+  "https://syraa.fun",
+  "https://www.syraa.fun",
+];
+const CORS_OPTIONS_X402 = {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Payment-Signature",
+    "PAYMENT-SIGNATURE",
+    "Payment-Required",
+    "PAYMENT-REQUIRED",
+    "Payment-Response",
+    "PAYMENT-RESPONSE",
+    "X-Payment",
+    "x-payment",
   ],
+};
+const CORS_OPTIONS_REGULAR = {
+  origin: CORS_ALLOWED_ORIGINS,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Payment-Signature",
+    "PAYMENT-SIGNATURE",
+    "Payment-Required",
+    "PAYMENT-REQUIRED",
+    "Payment-Response",
+    "PAYMENT-RESPONSE",
+    "X-Payment",
+    "x-payment",
+  ],
+};
+
+function isX402Route(p) {
+  if (!p) return false;
+  if (p.startsWith("/.well-known")) return true;
+  if (p.startsWith("/v2/")) return true;
+  if (p.startsWith("/news")) return true;
+  if (p.startsWith("/signal")) return true;
+  if (p.startsWith("/x-search")) return true;
+  if (p.startsWith("/x-kol")) return true;
+  if (p.startsWith("/browse")) return true;
+  if (p.startsWith("/research")) return true;
+  if (p.startsWith("/gems")) return true;
+  if (p.startsWith("/crypto-kol")) return true;
+  if (p.startsWith("/check-status") && !p.startsWith("/check-status-agent")) return true;
+  if (p.startsWith("/smart-money")) return true;
+  if (p.startsWith("/dexscreener")) return true;
+  if (p.startsWith("/token-god-mode")) return true;
+  if (p.startsWith("/solana-agent")) return true;
+  if (p.startsWith("/pump")) return true;
+  if (p.startsWith("/trending-jupiter")) return true;
+  if (p.startsWith("/token-report")) return true;
+  if (p.startsWith("/token-statistic")) return true;
+  if (p.startsWith("/sentiment")) return true;
+  if (p.startsWith("/event")) return true;
+  if (p.startsWith("/trending-headline")) return true;
+  if (p.startsWith("/sundown-digest")) return true;
+  if (p.startsWith("/bubblemaps")) return true;
+  if (p.startsWith("/memecoin/")) return true;
+  if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
+  return false;
+}
+
+/** Agent routes (ai-agent website) need permissive CORS so the frontend can call from any origin (e.g. localhost:5173). */
+function isAgentRoute(p) {
+  return p && (p === "/agent" || p.startsWith("/agent/"));
+}
+
+app.use((req, res, next) => {
+  const options =
+    isX402Route(req.path) || isAgentRoute(req.path)
+      ? CORS_OPTIONS_X402
+      : CORS_OPTIONS_REGULAR;
+  cors(options)(req, res, next);
 });
 
 // Serve static files (OG image, favicon, etc)
@@ -158,14 +204,12 @@ app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "favicon.ico"));
 });
 
+// Rate limit only non-x402 routes (free/regular APIs) to avoid spam; x402 and agent routes skip
 app.use(
   rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 100, // max 100 requests in 1 minute
-    skip: (req) => {
-      // Skip rate limiting for .well-known routes (x402scan verification)
-      return req.path.startsWith("/.well-known");
-    },
+    max: 100, // max 100 requests per minute per IP on free routes
+    skip: (req) => isX402Route(req.path) || isAgentRoute(req.path),
   }),
 );
 
@@ -394,6 +438,9 @@ app.use("/check-status", await createCheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/smart-money", await createSmartMoneyRouter());
 app.use("/jatevo", await createJatevoRouter());
+app.use("/agent/chat", await createAgentChatRouter());
+app.use("/agent/wallet", await createAgentWalletRouter());
+app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/dexscreener", await createDexscreenerRouter());
 app.use("/token-god-mode", await createTokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
@@ -539,26 +586,6 @@ No API key required. All endpoints use x402 protocol (HTTP 402) for payment.
   });
 });
 
-// Free endpoint
-app.get("/api/free", (req, res) => {
-  res.json({ data: "free content" });
-});
-
-// Premium endpoint with payment required
-app.get("/api/premium", paywalledMiddleware, (req, res) => {
-  res.json({ data: "premium content" });
-});
-
-
-app.get("/weather-paid", (req, res) => {
-  res.send({
-    report: {
-      weather: "sunny",
-      temperature: 70,
-    },
-  });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error:", err);
@@ -583,6 +610,13 @@ connectMongoose().then(() => {
   console.log('MongoDB (Mongoose) connected for prediction game');
 }).catch(err => {
   console.error('Failed to connect MongoDB (Mongoose):', err);
+});
+
+// Eager-init x402 V2 resource server so first paid request doesn't wait for facilitator /supported
+import("./v2/utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
+  ensureX402ResourceServerInitialized().catch((e) => {
+    console.warn("x402 V2 pre-init (non-blocking):", e?.message || e);
+  });
 });
 
 app.listen(PORT, () => {

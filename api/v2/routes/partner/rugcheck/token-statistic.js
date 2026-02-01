@@ -1,8 +1,7 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { requirePayment, settlePaymentAndSetResponse } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
 import { rugcheckRequests } from "../../../../request/rugcheck.request.js";
-import { saveToLeaderboard } from "../../../../scripts/saveToLeaderboard.js";
 
 export async function createTokenStatisticRouter() {
   const router = express.Router();
@@ -44,15 +43,7 @@ export async function createTokenStatisticRouter() {
       };
 
       // Settle payment ONLY on success
-      const paymentResult = await getX402Handler().settlePayment(
-        req.x402Payment.paymentHeader,
-        req.x402Payment.paymentRequirements
-      );
-
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
+      await settlePaymentAndSetResponse(res, req);
 
       res.status(200).json(data);
     }
@@ -95,15 +86,7 @@ export async function createTokenStatisticRouter() {
       };
 
       // Settle payment ONLY on success
-      const paymentResult = await getX402Handler().settlePayment(
-        req.x402Payment.paymentHeader,
-        req.x402Payment.paymentRequirements
-      );
-
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
+      await settlePaymentAndSetResponse(res, req);
 
       res.status(200).json(data);
     }

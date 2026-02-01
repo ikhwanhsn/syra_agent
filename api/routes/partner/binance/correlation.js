@@ -3,8 +3,6 @@ import fs from "fs";
 import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
-
 // ---------- HELPERS ----------
 
 // Convert string OHLC to numbers
@@ -149,12 +147,6 @@ export async function createBinanceCorrelationRouter() {
         // Continue even if burn fails - payment was successful
       }
 
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
-
       res.json({
         interval: ohlcJson.interval,
         count: ohlcJson.count,
@@ -203,11 +195,6 @@ export async function createBinanceCorrelationRouter() {
         // Continue even if burn fails - payment was successful
       }
 
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
       res.json({
         interval: ohlcJson.interval,
         count: ohlcJson.count,
@@ -279,12 +266,6 @@ export async function createBinanceCorrelationRouter() {
         // Continue even if burn fails - payment was successful
       }
 
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
-
       res.json({
         symbol,
         top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
@@ -354,12 +335,6 @@ export async function createBinanceCorrelationRouter() {
         console.error("Buyback and burn failed:", burnError);
         // Continue even if burn fails - payment was successful
       }
-
-      // Save to leaderboard
-      await saveToLeaderboard({
-        wallet: paymentResult.payer,
-        volume: X402_API_PRICE_USD,
-      });
 
       res.json({
         symbol,

@@ -13,13 +13,16 @@ export const HeroSection = () => {
       className="relative flex items-center justify-center min-h-screen pt-24 pb-16 overflow-hidden"
     >
       {/* Background Elements */}
-      <div className="absolute inset-0 opacity-50 grid-pattern" />
+      <div className="absolute inset-0 opacity-60 grid-pattern" />
+      <div className="absolute inset-0 opacity-40 grid-pattern-accent" />
       <ParticleField />
       <OrbitRings />
 
-      {/* Gradient overlays */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-neon-purple/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Gradient overlays - theme colors only */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/12 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-neon-purple/12 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-accent/8 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/3 left-0 w-[350px] h-[350px] bg-neon-gold/6 rounded-full blur-[90px] pointer-events-none" />
 
       <div className="relative z-10 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -109,7 +112,7 @@ export const HeroSection = () => {
               </a>
               <a
                 href="/leaderboard"
-                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-secondary"
+                className="hidden"
               >
                 <Trophy className="w-4 h-4" />
                 {/* Leaderboard */}

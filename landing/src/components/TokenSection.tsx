@@ -211,10 +211,11 @@ export const TokenSection = () => {
 
   return (
     <section id="token" className="relative py-24 overflow-hidden">
-      {/* Background */}
-      <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-neon-gold/5 rounded-full blur-[150px] pointer-events-none" />
+      {/* Background - theme colors */}
+      <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-neon-gold/8 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-[400px] h-[400px] bg-accent/6 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -245,12 +246,12 @@ export const TokenSection = () => {
             trading.
           </motion.p>
 
-          {/* Reward Leaderboard Button */}
+          {/* Reward Leaderboard Button - hidden */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-6"
+            className="mt-6 hidden"
           >
             <a
               href="/leaderboard"

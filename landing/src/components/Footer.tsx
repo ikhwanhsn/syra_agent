@@ -54,8 +54,8 @@ export const Footer = () => {
           transition={{ duration: 0.6 }}
           className="relative p-12 overflow-hidden text-center glass-card rounded-3xl"
         >
-          {/* Background glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-neon-purple/10" />
+          {/* Background glow - theme colors */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-neon-gold/8" />
 
           <div className="relative z-10">
             <h2 className="mb-4 text-3xl font-bold sm:text-4xl">

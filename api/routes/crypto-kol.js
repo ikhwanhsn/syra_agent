@@ -7,8 +7,6 @@ import { kolPrompt } from "../prompts/kol.prompt.js";
 import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
 import { cryptoKolPrompt } from "../prompts/crypto-kol.prompt.js";
 import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
-import { saveToLeaderboard } from "../scripts/saveToLeaderboard.js";
-
 export async function createCryptoKOLRouter() {
   const router = express.Router();
 
@@ -83,12 +81,6 @@ export async function createCryptoKOLRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_USD,
-          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
@@ -180,12 +172,6 @@ export async function createCryptoKOLRouter() {
             console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
-
-          // Save to leaderboard
-          await saveToLeaderboard({
-            wallet: paymentResult.payer,
-            volume: X402_API_PRICE_USD,
-          });
 
           res.json({ query, result: message, citations, toolCalls });
         } else {

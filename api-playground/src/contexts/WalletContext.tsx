@@ -11,11 +11,9 @@ import {
   SolflareWalletAdapter,
   CoinbaseWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
-import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-
-// Import wallet adapter styles
-import '@solana/wallet-adapter-react-ui/styles.css';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { WalletModalProviderFixed } from '@/components/WalletModalProviderFixed';
 
 // USDC token mint on mainnet
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -82,78 +80,45 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
 
       // Validate connection is available
       if (!connection) {
-        console.error('[Wallet] Solana connection not available');
         return;
       }
 
       // Verify connection is working
       try {
-        const version = await connection.getVersion();
-        console.log('[Wallet] Connected to Solana:', version);
-      } catch (connError: any) {
-        console.error('[Wallet] Connection test failed:', connError);
-        // Check if it's a 403 CORS error
-        if (connError?.message?.includes('403') || connError?.message?.includes('forbidden')) {
-          console.error('[Wallet] RPC endpoint is blocking browser requests (CORS issue)');
-          console.error('[Wallet] Please update VITE_SOLANA_RPC_URL in .env to use a browser-friendly endpoint:');
-          console.error('[Wallet] Options: https://rpc.ankr.com/solana or your own RPC provider');
-        }
+        await connection.getVersion();
+      } catch {
         return;
       }
 
       try {
         // Fetch SOL balance
-        console.log('[Wallet] Fetching SOL balance for:', publicKey.toBase58());
-        console.log('[Wallet] RPC endpoint:', MAINNET_RPC);
-        
         const balance = await connection.getBalance(publicKey, 'confirmed');
         const solBalanceValue = balance / LAMPORTS_PER_SOL;
-        console.log('[Wallet] SOL balance (lamports):', balance);
-        console.log('[Wallet] SOL balance (SOL):', solBalanceValue);
         setSolBalance(solBalanceValue);
 
         // Fetch USDC balance using getParsedTokenAccountsByOwner
         // This finds USDC in ANY token account owned by the wallet, not just the associated one
         try {
-          console.log('[Wallet] Fetching USDC balance for:', publicKey.toBase58());
-          console.log('[Wallet] USDC mint:', USDC_MINT.toBase58());
-          
           const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
             publicKey,
             { mint: USDC_MINT }
           );
-
-          console.log('[Wallet] Found', tokenAccounts.value.length, 'USDC token account(s)');
 
           if (tokenAccounts.value.length > 0) {
             // Sum all USDC token accounts (in case user has multiple)
             const totalBalance = tokenAccounts.value.reduce((sum, account) => {
               const balance = account.account.data.parsed.info.tokenAmount.uiAmount;
               const balanceNum = Number(balance) || 0;
-              console.log('[Wallet] USDC account:', account.pubkey.toBase58(), 'balance:', balanceNum);
               return sum + balanceNum;
             }, 0);
-            console.log('[Wallet] Total USDC balance:', totalBalance);
             setUsdcBalance(totalBalance);
           } else {
-            // No USDC token account found - user has 0 USDC
-            console.log('[Wallet] No USDC token accounts found');
             setUsdcBalance(0);
           }
-        } catch (tokenError) {
-          console.error('[Wallet] Error fetching USDC token balance:', tokenError);
-          console.error('[Wallet] Error details:', {
-            message: tokenError instanceof Error ? tokenError.message : String(tokenError),
-            stack: tokenError instanceof Error ? tokenError.stack : undefined
-          });
+        } catch {
           setUsdcBalance(0);
         }
-      } catch (error) {
-        console.error('[Wallet] Error fetching balances:', error);
-        console.error('[Wallet] Error details:', {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
-        });
+      } catch {
         // Don't reset balances on error, keep previous values
       }
     }
@@ -216,33 +181,26 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Use mainnet for real payments
   const network = WalletAdapterNetwork.Mainnet;
-  const endpoint = useMemo(() => {
-    const rpcUrl = MAINNET_RPC;
-    console.log('[Wallet] Using RPC endpoint:', rpcUrl);
-    return rpcUrl;
-  }, []);
+  const endpoint = useMemo(() => MAINNET_RPC, []);
 
   // Configure supported wallets with network
   const wallets = useMemo(
-    () => {
-      console.log('[Wallet] Initializing wallets for network:', network);
-      return [
-        new PhantomWalletAdapter({ network }),
-        new SolflareWalletAdapter({ network }),
-        new CoinbaseWalletAdapter({ network }),
-      ];
-    },
+    () => [
+      new PhantomWalletAdapter({ network }),
+      new SolflareWalletAdapter({ network }),
+      new CoinbaseWalletAdapter({ network }),
+    ],
     [network]
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
+        <WalletModalProviderFixed>
           <WalletContextInner>
             {children}
           </WalletContextInner>
-        </WalletModalProvider>
+        </WalletModalProviderFixed>
       </WalletProvider>
     </ConnectionProvider>
   );

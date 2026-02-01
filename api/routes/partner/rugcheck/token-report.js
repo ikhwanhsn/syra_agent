@@ -3,8 +3,6 @@ import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
-import { saveToLeaderboard } from "../../../scripts/saveToLeaderboard.js";
-
 export async function createTokenReportRouter() {
   const router = express.Router();
 
@@ -69,11 +67,6 @@ export async function createTokenReportRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
 
         res.status(200).json({ data });
       } catch (error) {
@@ -147,11 +140,6 @@ export async function createTokenReportRouter() {
           console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
-
-        await saveToLeaderboard({
-          wallet: paymentResult.payer,
-          volume: X402_API_PRICE_USD,
-        });
 
         res.status(200).json({ data });
       } catch (error) {

@@ -60,7 +60,9 @@ interface SidebarProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   chatsLoading?: boolean;
-  /** When false, show connect-wallet prompt instead of chat list */
+  /** When false, show connect-wallet prompt (session not ready). When true, show New Chat, search, list. */
+  sessionReady?: boolean;
+  /** For future use (e.g. show "connect for tools" in sidebar) */
   walletConnected?: boolean;
 }
 
@@ -78,6 +80,7 @@ export function Sidebar({
   isDarkMode,
   onToggleDarkMode,
   chatsLoading = false,
+  sessionReady = true,
   walletConnected = true,
 }: SidebarProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
@@ -179,8 +182,8 @@ export function Sidebar({
         )}
       </div>
 
-      {/* New Chat Button – only when wallet connected */}
-      {walletConnected && (
+      {/* New Chat Button – when session ready (chat allowed without wallet) */}
+      {sessionReady && (
         <div className="p-3">
           <Button
             onClick={onNewChat}
@@ -193,8 +196,8 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Search – only when wallet connected */}
-      {walletConnected && (
+      {/* Search – when session ready */}
+      {sessionReady && (
         <div className="px-3 pb-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -209,15 +212,26 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Chat List or Connect Wallet */}
+      {/* Chat List or Connect Wallet (when session not ready) */}
       <ScrollArea className="flex-1 min-w-0 px-2">
         <div className="space-y-4 py-2 min-w-0">
-          {!walletConnected ? (
+          {!sessionReady ? (
             <ConnectWalletPrompt
               variant="compact"
               onConnectClick={() => setWalletModalVisible(true)}
             />
-          ) : chatsLoading ? (
+          ) : sessionReady && !walletConnected ? (
+            <div className="mx-2 mt-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-4">
+              <div className="flex items-start gap-2.5">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Connect your wallet to see your chat history.
+                </p>
+              </div>
+            </div>
+          ) : chatsLoading && walletConnected ? (
             <p className="px-2 py-4 text-sm text-muted-foreground">Loading chats...</p>
           ) : groupedChats.length === 0 ? (
             <p className="px-2 py-4 text-sm text-muted-foreground">No chats yet. Start a new one.</p>
@@ -342,8 +356,8 @@ export function Sidebar({
         </div>
       </ScrollArea>
 
-      {/* Footer – only when wallet connected */}
-      {walletConnected && (
+      {/* Footer – when session ready */}
+      {sessionReady && (
         <div className="p-3 border-t border-border space-y-1">
           <Button
             variant="ghost"

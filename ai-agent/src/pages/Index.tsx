@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
+import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
@@ -42,14 +43,34 @@ function toMessage(m: { id: string; role: string; content: string; timestamp: st
   };
 }
 
+/** In-memory-only chat id when user is not connected (history not saved). */
+const LOCAL_CHAT_ID = "local";
+
+function isLocalChat(id: string) {
+  return id === LOCAL_CHAT_ID;
+}
+
 export default function Index() {
   const { ready, anonymousId, connectedWalletAddress } = useAgentWallet();
   const walletConnected = !!connectedWalletAddress;
+  /** Can chat (anonymous or wallet session); when false, show connect-wallet gate. When true but !walletConnected, prompt to connect for tools. */
+  const sessionReady = ready && !!anonymousId;
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
+  const chatInputRefDesktop = useRef<ChatInputHandle>(null);
+  const chatInputRefMobile = useRef<ChatInputHandle>(null);
   const [chats, setChats] = useState<Chat[]>([]);
+
+  const focusChatInput = useCallback(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+        (isDesktop ? chatInputRefDesktop : chatInputRefMobile).current?.focus();
+      });
+    });
+  }, []);
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(defaultAgents[0]);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,12 +123,28 @@ export default function Index() {
     }
   }, [anonymousId]);
 
-  // Load chat list on mount and whenever session is ready again (e.g. after wallet change)
+  // Load chat list from server only when wallet is connected (history is saved). When not connected, use local-only chat.
   useEffect(() => {
-    if (ready && anonymousId) {
+    if (ready && anonymousId && walletConnected) {
       loadChats();
     }
-  }, [ready, anonymousId, loadChats]);
+  }, [ready, anonymousId, walletConnected, loadChats]);
+
+  // When session is ready but wallet not connected: use a single in-memory chat (history not saved).
+  useEffect(() => {
+    if (sessionReady && !walletConnected) {
+      const localChat: Chat = {
+        id: LOCAL_CHAT_ID,
+        title: "Current conversation",
+        timestamp: new Date(),
+        preview: "",
+        messages: [],
+      };
+      setChats([localChat]);
+      setActiveChat(LOCAL_CHAT_ID);
+      setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [] }));
+    }
+  }, [sessionReady, walletConnected]);
 
   const loadChatMessages = useCallback(async (id: string) => {
     if (!anonymousId) return;
@@ -121,7 +158,7 @@ export default function Index() {
   }, [anonymousId]);
 
   useEffect(() => {
-    if (activeChat && chatMessages[activeChat] === undefined) {
+    if (activeChat && !isLocalChat(activeChat) && chatMessages[activeChat] === undefined) {
       loadChatMessages(activeChat);
     }
   }, [activeChat, chatMessages, loadChatMessages]);
@@ -131,6 +168,13 @@ export default function Index() {
 
   const handleNewChat = async () => {
     if (!anonymousId) return;
+    if (!walletConnected) {
+      setActiveChat(LOCAL_CHAT_ID);
+      setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: [] }));
+      setSidebarOpen(false);
+      focusChatInput();
+      return;
+    }
     try {
       const { chat } = await chatApi.create(anonymousId, { title: "New Chat", preview: "" });
       const newChat: Chat = {
@@ -144,12 +188,18 @@ export default function Index() {
       setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
       setActiveChat(chat.id);
       setSidebarOpen(false);
+      focusChatInput();
     } catch (err) {
       console.error("Failed to create chat:", err);
     }
   };
 
   const handleDeleteChat = useCallback(async (id: string) => {
+    if (isLocalChat(id)) {
+      setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: [] }));
+      setSidebarOpen(false);
+      return;
+    }
     if (!anonymousId) return;
     try {
       await chatApi.delete(id, anonymousId);
@@ -171,7 +221,14 @@ export default function Index() {
 
   const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
     const trimmed = newTitle.trim();
-    if (!trimmed || !anonymousId) return;
+    if (!trimmed) return;
+    if (isLocalChat(id)) {
+      setChats((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+      );
+      return;
+    }
+    if (!anonymousId) return;
     try {
       await chatApi.update(id, anonymousId, { title: trimmed });
       setChats((prev) =>
@@ -185,7 +242,20 @@ export default function Index() {
   const handleSendMessage = async (content: string) => {
     if (!anonymousId) return;
     let chatId = activeChat;
-    if (!chatId) {
+    if (!walletConnected) {
+      if (!chatId || !isLocalChat(chatId)) {
+        chatId = LOCAL_CHAT_ID;
+        setActiveChat(LOCAL_CHAT_ID);
+        setChats((prev) =>
+          prev.some((c) => c.id === LOCAL_CHAT_ID)
+            ? prev
+            : [{ id: LOCAL_CHAT_ID, title: "Current conversation", timestamp: new Date(), preview: "" }, ...prev]
+        );
+        setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [] }));
+      } else {
+        chatId = LOCAL_CHAT_ID;
+      }
+    } else if (!chatId) {
       try {
         const { chat } = await chatApi.create(anonymousId, { title: "New Chat", preview: "" });
         chatId = chat.id;
@@ -227,8 +297,8 @@ export default function Index() {
       )
     );
 
-    // Persist title to DB immediately so it survives refresh (don't wait for stream to finish)
-    if (newTitle && anonymousId) {
+    // Persist title to DB only when wallet connected (history is saved)
+    if (newTitle && anonymousId && walletConnected && !isLocalChat(chatId!)) {
       chatApi
         .update(chatId!, anonymousId, { title: newTitle, preview: newPreview })
         .catch((err) => console.error("Failed to save chat title:", err));
@@ -248,6 +318,7 @@ export default function Index() {
       ...prev,
       [chatId!]: [...nextMessages, assistantMessage],
     }));
+    focusChatInput();
 
     const apiMessages = nextMessages.map((m) => ({
       role: m.role as "user" | "assistant",
@@ -263,6 +334,7 @@ export default function Index() {
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         anonymousId: anonymousId ?? undefined,
+        walletConnected,
       });
       if (import.meta.env?.DEV) {
         console.log(`[Agent] response received | ${Date.now() - requestStart}ms total`);
@@ -280,7 +352,8 @@ export default function Index() {
           ];
           setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
           setIsLoading(false);
-          if (anonymousId) {
+          focusChatInput();
+          if (anonymousId && walletConnected && !isLocalChat(chatId!)) {
             chatApi
               .putMessages(
                 chatId!,
@@ -317,15 +390,15 @@ export default function Index() {
         );
       }
       console.error("Completion error:", err);
-      const errorContent =
-        err instanceof Error ? err.message : "Failed to get response from the agent.";
+      const errorMessage = err instanceof Error ? err.message : "Failed to get response from the agent.";
       const finalMessages: Message[] = [
         ...nextMessages,
-        { ...assistantMessage, content: errorContent, isStreaming: false },
+        { ...assistantMessage, content: errorMessage, isStreaming: false },
       ];
       setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
       setIsLoading(false);
-      if (anonymousId) {
+      focusChatInput();
+      if (anonymousId && walletConnected && !isLocalChat(chatId!)) {
         chatApi
           .putMessages(
             chatId!,
@@ -394,6 +467,7 @@ export default function Index() {
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         anonymousId: anonymousId ?? undefined,
+        walletConnected,
       });
 
       let charIndex = 0;
@@ -408,19 +482,22 @@ export default function Index() {
           ];
           setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
           setIsLoading(false);
-          chatApi
-            .putMessages(
-              chatId,
-              anonymousId,
-              finalMessages.map((m) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                timestamp: m.timestamp,
-                toolUsage: m.toolUsage,
-              }))
-            )
-            .catch((err) => console.error("Failed to save messages:", err));
+          focusChatInput();
+          if (walletConnected && !isLocalChat(chatId)) {
+            chatApi
+              .putMessages(
+                chatId,
+                anonymousId,
+                finalMessages.map((m) => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: m.timestamp,
+                  toolUsage: m.toolUsage,
+                }))
+              )
+              .catch((err) => console.error("Failed to save messages:", err));
+          }
         } else {
           setChatMessages((prev) => ({
             ...prev,
@@ -444,19 +521,22 @@ export default function Index() {
       ];
       setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
       setIsLoading(false);
-      chatApi
-        .putMessages(
-          chatId,
-          anonymousId,
-          finalMessages.map((m) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            timestamp: m.timestamp,
-            toolUsage: m.toolUsage,
-          }))
-        )
-        .catch((e) => console.error("Failed to save messages:", e));
+      focusChatInput();
+      if (walletConnected && !isLocalChat(chatId)) {
+        chatApi
+          .putMessages(
+            chatId,
+            anonymousId,
+            finalMessages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              timestamp: m.timestamp,
+              toolUsage: m.toolUsage,
+            }))
+          )
+          .catch((e) => console.error("Failed to save messages:", e));
+      }
     }
   };
 
@@ -474,6 +554,7 @@ export default function Index() {
   const handleSelectChat = (id: string) => {
     setActiveChat(id);
     setSidebarOpen(false);
+    focusChatInput();
   };
 
   const handleToggleSidebar = () => {
@@ -529,6 +610,7 @@ export default function Index() {
           isDarkMode={isDarkMode}
           onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           chatsLoading={chatsLoading}
+          sessionReady={sessionReady}
           walletConnected={walletConnected}
         />
       </div>
@@ -565,6 +647,7 @@ export default function Index() {
               isDarkMode={isDarkMode}
               onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
               chatsLoading={chatsLoading}
+              sessionReady={sessionReady}
               walletConnected={walletConnected}
             />
           </ResizablePanel>
@@ -582,7 +665,9 @@ export default function Index() {
                 systemPrompt={DEFAULT_SYSTEM_PROMPT}
                 onToggleSidebar={handleToggleSidebar}
                 sidebarCollapsed={sidebarCollapsed}
+                sessionReady={sessionReady}
                 walletConnected={walletConnected}
+                inputRef={chatInputRefDesktop}
               />
             </main>
           </ResizablePanel>
@@ -607,7 +692,9 @@ export default function Index() {
           systemPrompt={DEFAULT_SYSTEM_PROMPT}
           onToggleSidebar={() => setSidebarOpen(true)}
           sidebarCollapsed={false}
+          sessionReady={sessionReady}
           walletConnected={walletConnected}
+          inputRef={chatInputRefMobile}
         />
       </main>
       </div>
