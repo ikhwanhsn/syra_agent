@@ -53,7 +53,6 @@ export async function createBrowseRouter() {
           name: browseService.runTaskToolName,
           arguments: browseService.getArguments(query),
         });
-        console.log(`${browseService.description} runTask result successful!`);
         const taskId = browseService.getRunTaskResult(result);
 
         const pollInterval = 5000; // 5 seconds
@@ -65,17 +64,9 @@ export async function createBrowseRouter() {
           });
 
           const taskData = browseService.getGetTaskResult(taskResult);
-          console.log(
-            `${browseService.description} runTask result successful!`
-          );
 
           // Check if task is complete
           if (["finished", "stopped", "failed"].includes(taskData.status)) {
-            console.log(`${browseService.description} result successful!`);
-            console.log(
-              `Task completed with data: ${JSON.stringify(taskData)}`
-            );
-
             // Settle payment ONLY on success
             const paymentResult = await getX402Handler().settlePayment(
               req.x402Payment.paymentHeader,
@@ -88,12 +79,8 @@ export async function createBrowseRouter() {
               // Use the price directly from requirePayment config (0.15 USD)
               const priceUSD = X402_API_PRICE_USD;
 
-              console.log(`Payment price: ${priceUSD} USD`);
-
               burnResult = await buybackAndBurnSYRA(priceUSD);
-              console.log("Buyback and burn completed:", burnResult);
             } catch (burnError) {
-              console.error("Buyback and burn failed:", burnError);
               // Continue even if burn fails - payment was successful
             }
 
@@ -104,11 +91,9 @@ export async function createBrowseRouter() {
           }
 
           // Wait before next poll
-          console.log(`${browseService.description} result pending.`);
           await new Promise((resolve) => setTimeout(resolve, pollInterval));
         }
       } catch (error) {
-        console.error(`Error with ${browseService.description}:`, error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",
@@ -165,7 +150,6 @@ export async function createBrowseRouter() {
           name: browseService.runTaskToolName,
           arguments: browseService.getArguments(query),
         });
-        console.log(`${browseService.description} runTask result successful!`);
         const taskId = browseService.getRunTaskResult(result);
 
         const pollInterval = 5000; // 5 seconds
@@ -177,17 +161,9 @@ export async function createBrowseRouter() {
           });
 
           const taskData = browseService.getGetTaskResult(taskResult);
-          console.log(
-            `${browseService.description} runTask result successful!`
-          );
 
           // Check if task is complete
           if (["finished", "stopped", "failed"].includes(taskData.status)) {
-            console.log(`${browseService.description} result successful!`);
-            console.log(
-              `Task completed with data: ${JSON.stringify(taskData)}`
-            );
-
             // Settle payment ONLY on success
             const paymentResult = await getX402Handler().settlePayment(
               req.x402Payment.paymentHeader,
@@ -200,12 +176,8 @@ export async function createBrowseRouter() {
               // Use the price directly from requirePayment config (0.15 USD)
               const priceUSD = X402_API_PRICE_USD;
 
-              console.log(`Payment price: ${priceUSD} USD`);
-
               burnResult = await buybackAndBurnSYRA(priceUSD);
-              console.log("Buyback and burn completed:", burnResult);
             } catch (burnError) {
-              console.error("Buyback and burn failed:", burnError);
               // Continue even if burn fails - payment was successful
             }
 
@@ -216,11 +188,9 @@ export async function createBrowseRouter() {
           }
 
           // Wait before next poll
-          console.log(`${browseService.description} result pending.`);
           await new Promise((resolve) => setTimeout(resolve, pollInterval));
         }
       } catch (error) {
-        console.error(`Error with ${browseService.description}:`, error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",

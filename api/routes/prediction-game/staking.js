@@ -32,7 +32,6 @@ router.get('/:walletAddress', async (req, res) => {
       stakingHistory: staking.stakingHistory.slice(-10), // Last 10 entries
     });
   } catch (error) {
-    console.error('Error getting staking info:', error);
     res.status(500).json({ error: 'Failed to get staking info' });
   }
 });
@@ -69,7 +68,6 @@ router.post('/:walletAddress/stake', async (req, res) => {
       canCreate: staking.canCreateEvent(),
     });
   } catch (error) {
-    console.error('Error staking:', error);
     res.status(500).json({ error: error.message || 'Failed to stake tokens' });
   }
 });
@@ -111,7 +109,6 @@ router.post('/:walletAddress/unstake', async (req, res) => {
       canCreate: staking.canCreateEvent(),
     });
   } catch (error) {
-    console.error('Error unstaking:', error);
     res.status(400).json({ error: error.message || 'Failed to unstake tokens' });
   }
 });
@@ -130,7 +127,6 @@ router.get('/:walletAddress/can-create', async (req, res) => {
       stakedAmount: staking.stakedAmount,
     });
   } catch (error) {
-    console.error('Error checking create permission:', error);
     res.status(500).json({ error: 'Failed to check permission' });
   }
 });
@@ -154,7 +150,6 @@ router.post('/:walletAddress/record-event', async (req, res) => {
       remainingToday: staking.getTierInfo().dailyEvents - staking.eventsCreatedToday,
     });
   } catch (error) {
-    console.error('Error recording event:', error);
     res.status(500).json({ error: 'Failed to record event creation' });
   }
 });
@@ -165,7 +160,6 @@ router.get('/admin/stats', async (req, res) => {
     const stats = await PredictionStaking.getStats();
     res.json(stats);
   } catch (error) {
-    console.error('Error getting staking stats:', error);
     res.status(500).json({ error: 'Failed to get staking stats' });
   }
 });
@@ -182,7 +176,6 @@ router.get('/leaderboard/top', async (req, res) => {
     
     res.json({ leaderboard: topStakers });
   } catch (error) {
-    console.error('Error getting leaderboard:', error);
     res.status(500).json({ error: 'Failed to get leaderboard' });
   }
 });

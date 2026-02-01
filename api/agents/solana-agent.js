@@ -89,12 +89,8 @@ export async function createSolanaAgentRouter() {
           // Use the global x402 API price
           const priceUSD = X402_API_PRICE_NANSEN_USD;
 
-          console.log(`Payment price: ${priceUSD} USD`);
-
           burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
         } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
 
@@ -189,12 +185,8 @@ export async function createSolanaAgentRouter() {
           // Use the global x402 API price
           const priceUSD = X402_API_PRICE_NANSEN_USD;
 
-          console.log(`Payment price: ${priceUSD} USD`);
-
           burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
         } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
 

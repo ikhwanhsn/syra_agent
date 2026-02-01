@@ -74,9 +74,6 @@ export async function getAgentUsdcBalance(anonymousId) {
     const isRpcUnavailable =
       e?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
       /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT/i.test(e?.message || '');
-    if (isRpcUnavailable) {
-      console.warn('[agentWallet] RPC unavailable for balance check:', e?.message?.slice(0, 80));
-    }
     // Return 0 balance so caller doesn't treat as "wallet not found"; UI can show "deposit" or retry
     return { usdcBalance: 0 };
   }

@@ -149,12 +149,6 @@ export const chatApi = {
     paymentHeader?: string | null;
   }): Promise<{ response: string }> {
     const stepStart = Date.now();
-    const isRetry = !!params.paymentHeader;
-    if (import.meta.env?.DEV) {
-      console.log(
-        `[Agent] completion ${isRetry ? "retry" : "start"} | anonymousId=${params.anonymousId ? "yes" : "no"} | paymentHeader=${isRetry}`
-      );
-    }
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (params.paymentHeader) {
       headers["X-Payment"] = params.paymentHeader;
@@ -171,21 +165,12 @@ export const chatApi = {
         walletConnected: params.walletConnected,
       }),
     });
-    const fetchMs = Date.now() - stepStart;
-    if (import.meta.env?.DEV) {
-      console.log(`[Agent] completion fetch done | status=${res.status} | ${fetchMs}ms`);
-    }
 
     if (res.status === 402) {
       const paymentRequired = await res.json().catch(() => ({}));
       const rawError = (paymentRequired as { error?: string })?.error ?? "";
       // Already retried with payment header; don't loop.
       if (params.paymentHeader) {
-        if (import.meta.env?.DEV) {
-          console.warn(
-            `[Agent] completion retry still got 402 after ${fetchMs}ms | error=${rawError}`
-          );
-        }
         const friendlyMessage =
           /Facilitator|500|Internal server error/i.test(rawError)
             ? "Payment verification is temporarily unavailable. Please try again in a moment."
@@ -194,9 +179,6 @@ export const chatApi = {
       }
       // Tools/realtime data require payment; if user has not connected wallet, ask them to connect.
       if (params.walletConnected === false) {
-        if (import.meta.env?.DEV) {
-          console.log(`[Agent] 402 received but wallet not connected – prompting user to connect`);
-        }
         throw new Error(chatApi.WALLET_REQUIRED_FOR_TOOLS);
       }
       if (
@@ -205,24 +187,14 @@ export const chatApi = {
         Array.isArray(paymentRequired.accepts) &&
         paymentRequired.accepts.length > 0
       ) {
-        if (import.meta.env?.DEV) {
-          console.log(`[Agent] 402 received, calling pay-402...`);
-        }
-        const payStart = Date.now();
         const { paymentHeader } = await agentWalletApi.pay402(
           params.anonymousId,
           paymentRequired
         );
-        if (import.meta.env?.DEV) {
-          console.log(`[Agent] pay-402 done in ${Date.now() - payStart}ms, retrying completion`);
-        }
         return chatApi.completion({
           ...params,
           paymentHeader,
         });
-      }
-      if (import.meta.env?.DEV) {
-        console.warn(`[Agent] 402 but no anonymousId or accepts | anonymousId=${!!params.anonymousId} | accepts=${Array.isArray((paymentRequired as { accepts?: unknown[] })?.accepts)?.length ?? 0}`);
       }
       throw new Error(
         (paymentRequired as { error?: string })?.error || "Payment required (402)"
@@ -230,9 +202,6 @@ export const chatApi = {
     }
 
     const data = await handleRes<{ success: boolean; response: string }>(res);
-    if (import.meta.env?.DEV) {
-      console.log(`[Agent] completion success | total ${Date.now() - stepStart}ms`);
-    }
     return { response: data.response ?? "" };
   },
 };

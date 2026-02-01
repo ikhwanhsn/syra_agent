@@ -28,7 +28,6 @@ const EventDetail = () => {
       const data = await api.getEvent(id);
       setEvent(data);
     } catch (err) {
-      console.error('Failed to fetch event:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch event');
     } finally {
       setIsLoading(false);
@@ -105,7 +104,6 @@ const EventDetail = () => {
       setEvent(updatedEvent);
       toast.success('Successfully joined the event!');
     } catch (err) {
-      console.error('Failed to join event:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to join event');
     } finally {
       setIsJoining(false);
@@ -125,7 +123,6 @@ const EventDetail = () => {
       setPrediction('');
       toast.success('Prediction submitted successfully!');
     } catch (err) {
-      console.error('Failed to submit prediction:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to submit prediction');
     } finally {
       setIsPredicting(false);
@@ -141,7 +138,6 @@ const EventDetail = () => {
       setEvent(updatedEvent);
       toast.success('Prediction phase started!');
     } catch (err) {
-      console.error('Failed to start prediction phase:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to start prediction phase');
     } finally {
       setIsStartingPrediction(false);

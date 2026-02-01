@@ -47,7 +47,6 @@ export default function Leaderboard() {
           `https://api.syraa.fun/leaderboard?period=${timeFilter}`,
         );
         const result = await response.json();
-        console.log("result", result);
 
         // Add rank based on volume (or your preferred metric)
         const rankedData = result
@@ -59,7 +58,7 @@ export default function Leaderboard() {
 
         setData(rankedData);
       } catch (error) {
-        console.error("Error fetching leaderboard:", error);
+        // Silently fail; user can retry
       } finally {
         setLoading(false);
       }

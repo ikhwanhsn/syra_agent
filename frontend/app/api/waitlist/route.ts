@@ -28,7 +28,6 @@ export async function POST(req: Request) {
     //   { status: 500 }
     // );
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to fetch waitlist" },
       { status: 500 }

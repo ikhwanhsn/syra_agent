@@ -155,14 +155,13 @@ const CreateEvent = () => {
       try {
         await stakingApi.recordEventCreation(walletAddress);
       } catch (recordError) {
-        console.warn('Failed to record event creation:', recordError);
+        // Silently fail; event was created
       }
 
       toast.success('Event created successfully!');
       await Promise.all([refreshBalances(), refreshStakingInfo()]);
       navigate(`/event/${event._id}`);
     } catch (error) {
-      console.error('Failed to create event:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create event');
     } finally {
       setIsSubmitting(false);

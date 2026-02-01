@@ -64,10 +64,8 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log("Smart Money Net Flow:", JSON.stringify(data, null, 2));
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
-    console.error("Error:", error);
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
     });

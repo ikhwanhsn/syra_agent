@@ -55,25 +55,19 @@ export async function createMemecoinsStrongNarrativeLowMarketCapRouter() {
             // Use the price directly from requirePayment config (0.15 USD)
             const priceUSD = X402_API_PRICE_USD;
 
-            console.log(`Payment price: ${priceUSD} USD`);
-
             burnResult = await buybackAndBurnSYRA(priceUSD);
-            console.log("Buyback and burn completed:", burnResult);
           } catch (burnError) {
-            console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
-          console.error("Search failed:", errorMessage);
           res.status(500).json({
             error: "Search failed",
             message: errorMessage,
           });
         }
       } catch (error) {
-        console.error(`Error with ${xLiveSearchService.description}:`, error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",
@@ -129,21 +123,15 @@ export async function createMemecoinsStrongNarrativeLowMarketCapRouter() {
             // Use the price directly from requirePayment config (0.15 USD)
             const priceUSD = X402_API_PRICE_USD;
 
-            console.log(`Payment price: ${priceUSD} USD`);
-
             burnResult = await buybackAndBurnSYRA(priceUSD);
-            console.log("Buyback and burn completed:", burnResult);
           } catch (burnError) {
-            console.error("Buyback and burn failed:", burnError);
             // Continue even if burn fails - payment was successful
           }
 
           res.json({ query, result: message, citations, toolCalls });
         } else {
-          console.error("Search failed:", errorMessage);
         }
       } catch (error) {
-        console.error(`Error with ${xLiveSearchService.description}:`, error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",

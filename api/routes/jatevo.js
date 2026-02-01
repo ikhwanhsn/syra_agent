@@ -21,7 +21,6 @@ export async function createJatevoRouter() {
       const result = await callJatevo(apiMessages);
       return res.json(result);
     } catch (error) {
-      console.error("Jatevo error:", error);
       const status = error.status || 500;
       return res.status(status).json({
         error: error.message,

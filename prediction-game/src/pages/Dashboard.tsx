@@ -77,7 +77,6 @@ const Dashboard = () => {
         setEvents([]);
       }
     } catch (err) {
-      console.error('Failed to fetch events:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch events');
     } finally {
       setIsLoading(false);

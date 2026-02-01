@@ -590,7 +590,6 @@ No API key required. All endpoints use x402 protocol (HTTP 402) for payment.
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("Error:", err);
   res.status(500).json({
     success: false,
     error: err.message || "Internal server error",
@@ -608,19 +607,11 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB (Mongoose) for prediction game
-connectMongoose().then(() => {
-  console.log('MongoDB (Mongoose) connected for prediction game');
-}).catch(err => {
-  console.error('Failed to connect MongoDB (Mongoose):', err);
-});
+connectMongoose().then(() => {}).catch(() => {});
 
 // Eager-init x402 V2 resource server so first paid request doesn't wait for facilitator /supported
 import("./v2/utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
-  ensureX402ResourceServerInitialized().catch((e) => {
-    console.warn("x402 V2 pre-init (non-blocking):", e?.message || e);
-  });
+  ensureX402ResourceServerInitialized().catch(() => {});
 });
 
-app.listen(PORT, () => {
-  console.log(`SYRA API running at http://localhost:${PORT}`);
-});
+app.listen(PORT, () => {});

@@ -45,7 +45,6 @@ export const StakingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const info = await stakingApi.getStakingInfo(walletAddress);
       setStakingInfo(info);
     } catch (err) {
-      console.error('Failed to fetch staking info:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch staking info');
     } finally {
       setIsLoading(false);
@@ -84,7 +83,6 @@ export const StakingProvider: React.FC<{ children: ReactNode }> = ({ children })
       } : null);
       return true;
     } catch (err) {
-      console.error('Failed to stake:', err);
       setError(err instanceof Error ? err.message : 'Failed to stake');
       return false;
     } finally {
@@ -113,7 +111,6 @@ export const StakingProvider: React.FC<{ children: ReactNode }> = ({ children })
       } : null);
       return true;
     } catch (err) {
-      console.error('Failed to unstake:', err);
       setError(err instanceof Error ? err.message : 'Failed to unstake');
       return false;
     } finally {

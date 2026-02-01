@@ -381,8 +381,7 @@ router.put('/:id/resolve', async (req, res) => {
         maxParticipants: event.maxParticipants,
       });
     } catch (creatorError) {
-      console.error('Failed to update creator stats:', creatorError);
-      // Don't fail the request, just log the error
+      // Don't fail the request
     }
     
     res.json(event);
@@ -493,8 +492,7 @@ router.delete('/:id', async (req, res) => {
       const creator = await Creator.getOrCreate(event.creatorWallet);
       await creator.onEventCancelled();
     } catch (creatorError) {
-      console.error('Failed to update creator stats:', creatorError);
-      // Don't fail the request, just log the error
+      // Don't fail the request
     }
     
     // Get refund information

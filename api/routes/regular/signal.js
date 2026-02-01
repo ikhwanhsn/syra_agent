@@ -23,7 +23,6 @@ export async function createRegularSignalRouter() {
         res.status(500).json({ error: "Failed to fetch signal" });
       }
     } catch (error) {
-      console.error("Error GET:", error);
       res.status(500).json({ error: "Server error" });
     }
   });

@@ -81,14 +81,12 @@ await settlePaymentAndSetResponse(res, req);
 
           res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {
-          console.error("Search failed:", errorMessage);
           res.status(500).json({
             error: "Search failed",
             message: errorMessage,
           });
         }
       } catch (error) {
-        console.error(`Error with ${xLiveSearchService.description}:`, error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",
@@ -171,10 +169,8 @@ await settlePaymentAndSetResponse(res, req);
 
           res.json({ query, tokenInfo, result: message, citations, toolCalls });
         } else {
-          console.error("Search failed:", errorMessage);
         }
       } catch (error) {
-        console.error(`Error with ${xLiveSearchService.description}:`, error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",

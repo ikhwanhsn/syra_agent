@@ -19,10 +19,6 @@ export class AITradingAgent {
     );
     this.wallet = Keypair.fromSecretKey(Uint8Array.from(privateKeyArray));
     this.serverUrl = serverUrl;
-    console.log(
-      "🤖 AI Agent initialized with wallet:",
-      this.wallet.publicKey.toBase58()
-    );
   }
 
   // AI Agent creates signal automatically (NO USER INTERACTION!)
@@ -31,12 +27,8 @@ export class AITradingAgent {
     symbol: string;
     price: number;
   }) {
-    console.log("🤖 AI Agent: Analyzing market...");
-    console.log("🤖 AI Agent: Creating signal:", signalData);
-
     try {
       // STEP 1: Request payment info from server
-      console.log("1. Requesting payment info...");
       const quoteRes = await fetch(`${this.serverUrl}/api/create-signal`);
       const quote = await quoteRes.json();
 
@@ -44,10 +36,7 @@ export class AITradingAgent {
         throw new Error("Expected 402 payment required");
       }
 
-      console.log("Payment required:", quote.payment.amountUSDC, "USDC");
-
       // STEP 2: Build transaction
-      console.log("2. Building transaction...");
       const mint = new PublicKey(quote.payment.mint);
       const recipientTokenAccount = new PublicKey(quote.payment.tokenAccount);
 
@@ -77,11 +66,9 @@ export class AITradingAgent {
       );
 
       // STEP 3: Sign automatically (NO POPUP!)
-      console.log("3. Signing transaction automatically...");
       tx.sign(this.wallet);
 
       // STEP 4: Send to server
-      console.log("4. Sending payment proof...");
       const serializedTx = tx.serialize().toString("base64");
 
       const paymentProof = {
@@ -99,7 +86,6 @@ export class AITradingAgent {
       );
 
       // STEP 5: Create signal with payment
-      console.log("5. Creating signal...");
       const response = await fetch(`${this.serverUrl}/api/create-signal`, {
         method: "POST",
         headers: {
@@ -112,15 +98,11 @@ export class AITradingAgent {
       const result = await response.json();
 
       if (response.ok) {
-        console.log("✅ Signal created successfully!");
-        console.log("Paid:", result.paymentDetails.amountUSDC, "USDC");
-        console.log("Transaction:", result.paymentDetails.explorerUrl);
         return result;
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error("❌ AI Agent error:", error);
       throw error;
     }
   }
@@ -136,7 +118,6 @@ export class AITradingAgent {
     const balance = await this.connection.getTokenAccountBalance(
       agentTokenAccount
     );
-    console.log("🤖 AI Agent Balance:", balance.value.uiAmountString, "USDC");
     return balance.value.uiAmountString;
   }
 }

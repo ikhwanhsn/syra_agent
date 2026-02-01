@@ -7,19 +7,16 @@ import { createFareMeterClient } from "@/lib/farameter-client";
 const TestPage = () => {
   const tryATXP = async () => {
     const res = await fetch(`/api/atxp/x`);
-    const data = await res.json();
-    console.log("data", data);
+    await res.json();
   };
   const tryCorbits = async () => {
     const res = await fetch(`/api/corbits/nansen`, { method: "POST" });
-    const data = await res.json();
-    console.log("data", data);
+    await res.json();
   };
   const tryFarameterClient = async () => {
     const fetchWithPayment = await createFareMeterClient();
     const res = await fetchWithPayment("/api/corbits/mint", { method: "POST" });
-    const data = await res.json();
-    console.log("data", data);
+    await res.json();
   };
 
   return (

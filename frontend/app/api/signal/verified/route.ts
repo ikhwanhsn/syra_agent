@@ -13,8 +13,6 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("Received prices:", prices.length, "pairs");
-
     let updatedSignalsFromPendingToActive = 0;
     let updatedSignalsFromActiveToSuccess = 0;
     let updatedSignalsFromActiveToFailed = 0;
@@ -153,7 +151,6 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to update signals" },
       { status: 500 }

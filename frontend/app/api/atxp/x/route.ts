@@ -81,7 +81,6 @@ export const GET = async (req: Request) => {
       arguments: xLiveSearchService.getArguments(searchParams),
     });
     const { taskId } = xLiveSearchService.getAsyncCreateResult(asyncResult);
-    console.log("Search started with task ID:", taskId);
 
     // Poll for completion
     let completed = false;
@@ -95,22 +94,14 @@ export const GET = async (req: Request) => {
       const { status, result, error } =
         xLiveSearchService.getAsyncStatusResult(statusResult);
 
-      console.log("Status:", status);
-
       if (status === "completed") {
-        console.log("Query:", result.query);
-        console.log("Summary:", result.message);
-        console.log("Citations:", result.citations);
-        console.log("Tool Calls:", result.toolCalls); // See what the agent did
         completed = true;
         return new Response(JSON.stringify({ message: result }));
       } else if (status === "error") {
-        console.error("Search failed:", error);
         completed = true;
       }
     }
   } catch (error) {
-    console.error(`Error with ${xLiveSearchService.description}:`, error);
     process.exit(1);
   }
 };

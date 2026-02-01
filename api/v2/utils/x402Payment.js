@@ -150,18 +150,11 @@ async function verifySolanaPaymentLocally(payload, acc) {
       status?.confirmationStatus === "finalized" ||
       status?.confirmationStatus === "processed"
     ) {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[x402] Local Solana verification succeeded (tx confirmed on-chain)");
-      }
       return { isValid: true };
     }
     // Not yet confirmed (or RPC returned null): accept anyway — payment is a valid signed tx from our pay-402.
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[x402] Local Solana verification: accepting signed payment (tx not yet confirmed on RPC)");
-    }
     return { isValid: true };
   } catch (e) {
-    console.warn("[x402] Local Solana verify error:", e?.message || e);
     return null;
   }
 }
@@ -242,7 +235,6 @@ export function requirePayment(options) {
         const msg = e?.message || "Payment verification failed";
         const isFacilitatorError = /Facilitator|500|Internal server error/i.test(msg);
         if (isFacilitatorError && String(acc?.network || "").startsWith("solana:")) {
-          console.warn("[x402] Facilitator failed, trying local Solana verification:", msg.slice(0, 80));
           const localVerify = await verifySolanaPaymentLocally(payload, acc);
           if (localVerify?.isValid) {
             verify = localVerify;
@@ -261,12 +253,6 @@ export function requirePayment(options) {
           const userMessage = isFacilitatorError
             ? "Payment verification is temporarily unavailable. Please try again in a moment."
             : msg;
-          console.warn(
-            "[x402] verifyPayment failed:",
-            msg,
-            "| Facilitator URL:",
-            process.env.PAYAI_FACILITATOR_URL || process.env.FACILITATOR_URL_PAYAI || process.env.FACILITATOR_URL || "(not set)"
-          );
           const pr = await buildPaymentRequired(
             resourceServer,
             req,
@@ -292,7 +278,6 @@ export function requirePayment(options) {
       req.x402Payment = { payload, accepted: acc };
       next();
     } catch (error) {
-      console.error("x402 V2 payment processing error:", error);
       res.status(500).json({
         error: "Internal server error",
         message: error instanceof Error ? error.message : "Unknown error",
@@ -318,9 +303,6 @@ export async function settlePaymentAndSetResponse(res, req) {
   } catch (e) {
     const msg = e?.message || "";
     if (/Facilitator|500|Internal server error/i.test(msg) && String(accepted?.network || "").startsWith("solana:")) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[x402] Settle failed (facilitator), using local success:", msg.slice(0, 60));
-      }
       settle = { success: true };
     } else {
       throw e;
@@ -351,9 +333,7 @@ export function microUsdcToUsd(microUsdc) {
  */
 export function runAfterResponse(fn) {
   setImmediate(() => {
-    Promise.resolve(typeof fn === "function" ? fn() : fn).catch((e) =>
-      console.error("runAfterResponse:", e?.message || e)
-    );
+    Promise.resolve(typeof fn === "function" ? fn() : fn).catch(() => {});
   });
 }
 

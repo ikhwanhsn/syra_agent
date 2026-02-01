@@ -52,11 +52,9 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log("Latest Block Height:", data.result);
 
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
-    console.error("Error:", error);
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
     });

@@ -79,11 +79,9 @@ export default function PaidAPICall() {
       }
 
       const data = await response.json();
-      console.log("Latest Block Height:", data.result);
       alert(`Success! Block height: ${data.result}`);
     } catch (error) {
-      console.error("Error:", error);
-      alert("Payment failed. Check console for details.");
+      alert("Payment failed.");
     }
   };
 

@@ -32,7 +32,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "No signals found" }, { status: 404 });
     }
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to fetch waitlist" },
       { status: 500 }

@@ -97,11 +97,10 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             setSyraBalance(0);
           }
         } catch (tokenError) {
-          console.warn('Error fetching SYRA token balance:', tokenError);
           setSyraBalance(0);
         }
       } catch (error) {
-        console.error('Error fetching balances:', error);
+        // Silently fail; balances may refresh on retry
       }
     } else {
       setSolBalance(0);
@@ -183,7 +182,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       
       return signature;
     } catch (error) {
-      console.error('Error sending SOL:', error);
       throw error;
     }
   }, [publicKey, connection, sendTransaction, refreshBalances]);

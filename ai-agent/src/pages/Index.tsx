@@ -110,7 +110,6 @@ export default function Index() {
         }))
       );
     } catch (err) {
-      console.error("Failed to load chats:", err);
       const isNetworkError =
         err instanceof TypeError && (err.message === "Failed to fetch" || err.message.includes("Load failed"));
       if (isNetworkError) {
@@ -153,7 +152,7 @@ export default function Index() {
       const msgs = (chat.messages || []).map(toMessage);
       setChatMessages((prev) => ({ ...prev, [id]: msgs }));
     } catch (err) {
-      console.error("Failed to load chat messages:", err);
+      // Silently fail; messages may load on retry
     }
   }, [anonymousId]);
 
@@ -190,7 +189,7 @@ export default function Index() {
       setSidebarOpen(false);
       focusChatInput();
     } catch (err) {
-      console.error("Failed to create chat:", err);
+      // Silently fail; user can retry
     }
   };
 
@@ -215,7 +214,7 @@ export default function Index() {
       }
       setSidebarOpen(false);
     } catch (err) {
-      console.error("Failed to delete chat:", err);
+      // Silently fail; user can retry
     }
   }, [anonymousId, activeChat, chats]);
 
@@ -235,7 +234,7 @@ export default function Index() {
         prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
       );
     } catch (err) {
-      console.error("Failed to rename chat:", err);
+      // Silently fail; user can retry
     }
   }, [anonymousId]);
 
@@ -270,7 +269,6 @@ export default function Index() {
         setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
         setActiveChat(chat.id);
       } catch (err) {
-        console.error("Failed to create chat:", err);
         return;
       }
     }
@@ -301,7 +299,7 @@ export default function Index() {
     if (newTitle && anonymousId && walletConnected && !isLocalChat(chatId!)) {
       chatApi
         .update(chatId!, anonymousId, { title: newTitle, preview: newPreview })
-        .catch((err) => console.error("Failed to save chat title:", err));
+        .catch(() => {});
     }
 
     setIsLoading(true);
@@ -325,10 +323,6 @@ export default function Index() {
       content: m.content,
     }));
 
-    const requestStart = Date.now();
-    if (import.meta.env?.DEV) {
-      console.log(`[Agent] request start | message="${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`);
-    }
     try {
       const { response: responseText } = await chatApi.completion({
         messages: apiMessages,
@@ -336,9 +330,6 @@ export default function Index() {
         anonymousId: anonymousId ?? undefined,
         walletConnected,
       });
-      if (import.meta.env?.DEV) {
-        console.log(`[Agent] response received | ${Date.now() - requestStart}ms total`);
-      }
 
       let charIndex = 0;
       const chunkSize = 24;
@@ -367,7 +358,7 @@ export default function Index() {
                 })),
                 newTitle ? { title: newTitle, preview: newPreview } : undefined
               )
-              .catch((err) => console.error("Failed to save messages:", err));
+              .catch(() => {});
           }
         } else {
           setChatMessages((prev) => ({
@@ -383,13 +374,6 @@ export default function Index() {
         }
       }, 8);
     } catch (err) {
-      if (import.meta.env?.DEV) {
-        console.error(
-          `[Agent] error after ${Date.now() - requestStart}ms:`,
-          err instanceof Error ? err.message : err
-        );
-      }
-      console.error("Completion error:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to get response from the agent.";
       const finalMessages: Message[] = [
         ...nextMessages,
@@ -412,7 +396,7 @@ export default function Index() {
             })),
             newTitle ? { title: newTitle, preview: newPreview } : undefined
           )
-          .catch((e) => console.error("Failed to save messages:", e));
+          .catch(() => {});
       }
     }
   };
@@ -496,7 +480,7 @@ export default function Index() {
                   toolUsage: m.toolUsage,
                 }))
               )
-              .catch((err) => console.error("Failed to save messages:", err));
+              .catch(() => {});
           }
         } else {
           setChatMessages((prev) => ({
@@ -512,7 +496,6 @@ export default function Index() {
         }
       }, 8);
     } catch (err) {
-      console.error("Regenerate completion error:", err);
       const errorContent =
         err instanceof Error ? err.message : "Failed to get response from the agent.";
       const finalMessages: Message[] = [
@@ -535,7 +518,7 @@ export default function Index() {
               toolUsage: m.toolUsage,
             }))
           )
-          .catch((e) => console.error("Failed to save messages:", e));
+          .catch(() => {});
       }
     }
   };

@@ -215,7 +215,6 @@ export function requirePayment(options) {
       // 12. Payment successful - continue to route handler
       next();
     } catch (error) {
-      console.error("Payment processing error:", error);
       res.status(500).json({
         error: "Internal server error",
         message: error instanceof Error ? error.message : "Unknown error",

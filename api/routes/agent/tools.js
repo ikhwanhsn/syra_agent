@@ -26,7 +26,6 @@ router.get('/', async (req, res) => {
     }));
     return res.json({ success: true, tools });
   } catch (error) {
-    console.error('Agent tools list error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -110,7 +109,6 @@ router.post('/call', async (req, res) => {
       data: result.data,
     });
   } catch (error) {
-    console.error('Agent tools call error:', error);
     return res.status(500).json({
       success: false,
       error: error.message || 'Tool call failed',

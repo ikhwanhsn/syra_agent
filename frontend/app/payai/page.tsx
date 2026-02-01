@@ -34,8 +34,7 @@ export default function Paywall() {
       method: "POST",
       body: JSON.stringify({ your: "data" }),
     });
-    const result = await response.json();
-    console.log("Paid request response:", result);
+    await response.json();
   };
 
   return (

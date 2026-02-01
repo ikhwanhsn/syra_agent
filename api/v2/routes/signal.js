@@ -49,7 +49,6 @@ export async function createSignalRouter() {
           res.status(500).json({ error: "Failed to fetch signal" });
         }
       } catch (error) {
-        console.error("Error GET:", error);
         res.status(500).json({ error: "Server error" });
       }
     }
@@ -94,7 +93,6 @@ export async function createSignalRouter() {
         await settlePaymentAndSetResponse(res, req);
         res.json({ signal });
       } catch (error) {
-        console.error("Error POST:", error);
         res.status(500).json({ error: "Server error" });
       }
     }

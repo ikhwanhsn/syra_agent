@@ -135,7 +135,6 @@ export async function createPumpRouter() {
           res.json({ status, content, sources });
         }
       } catch (error) {
-        console.error(`Error with ${researchService.description}:`, error);
         res.status(500).json({ error: "Internal server error" });
         process.exit(1);
       }

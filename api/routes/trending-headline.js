@@ -76,12 +76,8 @@ export async function createTrendingHeadlineRouter() {
           // Use the price directly from requirePayment config (0.15 USD)
           const priceUSD = X402_API_PRICE_USD;
 
-          console.log(`Payment price: ${priceUSD} USD`);
-
           burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
         } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
 
@@ -150,12 +146,8 @@ export async function createTrendingHeadlineRouter() {
           // Use the price directly from requirePayment config (0.15 USD)
           const priceUSD = X402_API_PRICE_USD;
 
-          console.log(`Payment price: ${priceUSD} USD`);
-
           burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
         } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
 

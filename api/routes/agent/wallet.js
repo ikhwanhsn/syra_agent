@@ -60,7 +60,6 @@ router.get('/:anonymousId/balance', async (req, res) => {
       usdcBalance,
     });
   } catch (error) {
-    console.error('Agent wallet balance error:', error);
     const isRpcUnavailable =
       error?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
       /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT/i.test(error?.message || '');
@@ -87,7 +86,6 @@ router.get('/:anonymousId', async (req, res) => {
     }
     return res.json({ success: true, agentAddress: doc.agentAddress });
   } catch (error) {
-    console.error('Agent wallet get error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -146,7 +144,6 @@ router.post('/connect', async (req, res) => {
         });
       }
     }
-    console.error('Agent wallet connect error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -167,25 +164,13 @@ router.post('/pay-402', async (req, res) => {
     if (!paymentRequired || typeof paymentRequired !== 'object') {
       return res.status(400).json({ success: false, error: 'paymentRequired (402 response body) is required' });
     }
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[Agent] pay-402 request | anonymousId=${anonymousId.slice(0, 18)}… (identifier only; payment uses agent wallet from DB)`
-      );
-    }
     const paymentHeader = await buildPaymentHeaderFrom402Body(anonymousId.trim(), paymentRequired);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[Agent] pay-402 success in ${Date.now() - payStart}ms`);
-    }
     return res.json({
       success: true,
       paymentHeader: paymentHeader.paymentHeader,
       ...(paymentHeader.signature ? { signature: paymentHeader.signature } : {}),
     });
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(`[Agent] pay-402 error after ${Date.now() - payStart}ms:`, error?.message || error);
-    }
-    console.error('Agent wallet pay-402 error:', error);
     return res.status(400).json({
       success: false,
       error: error.message || 'Payment failed',
@@ -235,7 +220,6 @@ router.post('/', async (req, res) => {
         });
       }
     }
-    console.error('Agent wallet create error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 });

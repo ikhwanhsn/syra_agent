@@ -99,7 +99,6 @@ export async function POST(req: Request) {
       }
     );
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }

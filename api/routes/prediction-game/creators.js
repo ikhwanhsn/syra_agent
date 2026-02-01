@@ -27,7 +27,6 @@ router.get('/:walletAddress', async (req, res) => {
       recentEvents,
     });
   } catch (error) {
-    console.error('Error fetching creator profile:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch creator profile' });
   }
 });
@@ -84,7 +83,6 @@ router.get('/:walletAddress/stats', async (req, res) => {
       lastEventAt: creator.lastEventAt,
     });
   } catch (error) {
-    console.error('Error fetching creator stats:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch creator stats' });
   }
 });
@@ -119,7 +117,6 @@ router.get('/:walletAddress/events', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching creator events:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch creator events' });
   }
 });
@@ -172,7 +169,6 @@ router.get('/:walletAddress/earnings', async (req, res) => {
       platformFeeDiscount: creator.platformFeeDiscount,
     });
   } catch (error) {
-    console.error('Error fetching creator earnings:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch creator earnings' });
   }
 });
@@ -204,7 +200,6 @@ router.get('/leaderboard/top', async (req, res) => {
     
     res.json({ creators });
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch leaderboard' });
   }
 });
@@ -218,7 +213,6 @@ router.get('/featured/list', async (req, res) => {
     
     res.json({ creators });
   } catch (error) {
-    console.error('Error fetching featured creators:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch featured creators' });
   }
 });
@@ -250,7 +244,6 @@ router.put('/:walletAddress/profile', async (req, res) => {
     
     res.json({ creator });
   } catch (error) {
-    console.error('Error updating creator profile:', error);
     res.status(500).json({ error: error.message || 'Failed to update creator profile' });
   }
 });
@@ -323,7 +316,6 @@ router.get('/tiers/info', async (req, res) => {
     
     res.json({ tiers });
   } catch (error) {
-    console.error('Error fetching tier info:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch tier info' });
   }
 });

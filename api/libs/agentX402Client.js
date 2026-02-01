@@ -122,7 +122,6 @@ export async function callX402V2WithAgent(opts) {
     return await callX402V2WithAgentImpl(opts);
   } catch (e) {
     const msg = e?.message || String(e);
-    console.error('[agentX402] callX402V2WithAgent error:', msg);
     return { success: false, error: msg };
   }
 }
@@ -157,9 +156,6 @@ async function callX402V2WithAgentImpl(opts) {
 
   // Payment only happens when the API returns 402. If 200/other, we return data without paying (balance unchanged).
   if (firstRes.status !== 402) {
-    console.log(
-      `[agentX402] First request to ${initialUrl} returned ${firstRes.status} (not 402) — returning data without payment. Agent balance will NOT decrease.`
-    );
     return { success: true, data: firstData };
   }
 
@@ -259,9 +255,6 @@ async function callX402V2WithAgentImpl(opts) {
       skipPreflight: false,
       maxRetries: 3,
     });
-    console.log(
-      `[agentX402] Payment tx sent. Agent ${agentPubkey.toBase58()} paid ${amountStr} micro-USDC to ${payTo}. Signature: ${signature}`
-    );
   } catch (sendErr) {
     return {
       success: false,
@@ -321,11 +314,6 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
   const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
   const agentAddress = agentPubkey.toBase58();
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(
-      `[Agent] pay-402: paying from AGENT wallet (not user wallet) | agentAddress=${agentAddress.slice(0, 6)}…${agentAddress.slice(-4)} | anonymousId=${anonymousId.slice(0, 18)}…`
-    );
-  }
   const rawAccept = paymentRequired.accepts[0];
   const accept = normalizeAccept(rawAccept);
   const amountStr = accept.amount;

@@ -20,9 +20,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Request logging middleware
+// Request logging middleware (no console output)
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
@@ -38,7 +37,6 @@ app.use('/api/staking', stakingRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
   res.status(500).json({ 
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined,
@@ -54,12 +52,8 @@ app.use((req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`API available at http://localhost:${PORT}/api`);
-    });
+    app.listen(PORT, () => {});
   } catch (error) {
-    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };

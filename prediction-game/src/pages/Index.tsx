@@ -53,7 +53,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
         setStats(statsData);
         setActiveEvents(eventsData.events || []);
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        // Silently fail; user can retry
       } finally {
         setIsLoading(false);
       }

@@ -68,9 +68,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
         Buffer.from(xPaymentHeader, "base64").toString("utf-8")
       );
 
-      console.log("📩 Received payment proof");
-      console.log("Network:", paymentData.network);
-
       // Deserialize transaction - handle both legacy and versioned transactions
       const txBuffer = Buffer.from(
         paymentData.payload.serializedTransaction,
@@ -84,11 +81,9 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
         // Try to deserialize as versioned transaction first
         tx = VersionedTransaction.deserialize(txBuffer);
         isVersioned = true;
-        console.log("📦 Versioned transaction detected");
       } catch {
         // Fall back to legacy transaction
         tx = Transaction.from(txBuffer);
-        console.log("📦 Legacy transaction detected");
       }
 
       // VERIFY: Check if transaction is already signed
@@ -114,7 +109,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
       }
 
       // VERIFY: Check if transaction sends USDC to us
-      console.log("🔍 Verifying USDC transfer...");
       let validTransfer = false;
       let transferAmount = 0;
       let senderTokenAccount: PublicKey | null = null;
@@ -152,9 +146,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
                   transferAmount >= PRICE_PER_SIGNAL
                 ) {
                   validTransfer = true;
-                  console.log(
-                    `✅ Valid transfer: ${transferAmount / 1000000} USDC`
-                  );
                   break;
                 }
               }
@@ -181,9 +172,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
                   transferAmount >= PRICE_PER_SIGNAL
                 ) {
                   validTransfer = true;
-                  console.log(
-                    `✅ Valid transfer: ${transferAmount / 1000000} USDC`
-                  );
                   break;
                 }
               }
@@ -202,8 +190,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
       }
 
       // SIMULATE: Test transaction before submitting
-      console.log("🧪 Simulating transaction...");
-
       let simulation;
       if (isVersioned) {
         simulation = await connection.simulateTransaction(
@@ -218,9 +204,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
       }
 
       if (simulation.value.err) {
-        console.error("❌ Simulation error:", simulation.value.err);
-        console.error("Logs:", simulation.value.logs);
-
         return NextResponse.json(
           {
             error: "Transaction simulation failed",
@@ -231,28 +214,20 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
         );
       }
 
-      console.log("✅ Simulation successful");
-      console.log("Logs:", simulation.value.logs);
-
       // SUBMIT: Send to blockchain
-      console.log("📤 Submitting transaction...");
       const signature = await connection.sendRawTransaction(txBuffer, {
         skipPreflight: false,
         preflightCommitment: "confirmed",
         maxRetries: 3,
       });
 
-      console.log("📝 Transaction signature:", signature);
-
       // WAIT: For confirmation with timeout
-      console.log("⏳ Waiting for confirmation...");
       const confirmation = await connection.confirmTransaction(
         signature,
         "confirmed"
       );
 
       if (confirmation.value.err) {
-        console.error("❌ Confirmation error:", confirmation.value.err);
         return NextResponse.json(
           {
             error: "Transaction failed on-chain",
@@ -261,8 +236,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
           { status: 402 }
         );
       }
-
-      console.log("✅ Transaction confirmed");
 
       // VERIFY: Check actual balance change
       const confirmedTx = await connection.getTransaction(signature, {
@@ -309,8 +282,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
       }
 
       // ✅ PAYMENT VERIFIED! CREATE SIGNAL
-      console.log(`💰 Payment verified: ${amountReceived / 1000000} USDC`);
-
       // Parse signal data from request body
       // const {
       //   facilitator,
@@ -360,8 +331,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
         );
       }
 
-      console.log("🎯 Signal created successfully");
-
       // Return success with signal details
       return NextResponse.json({
         success: true,
@@ -379,7 +348,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
         },
       });
     } catch (error) {
-      console.error("❌ Payment verification error:", error);
       return NextResponse.json(
         {
           error: "Payment verification failed",
@@ -394,8 +362,6 @@ async function createUsingSyraAI(req: NextRequest, body?: any) {
   // ============================================
   // NO PAYMENT: Return payment quote (402)
   // ============================================
-  console.log("💳 New payment quote requested");
-
   return NextResponse.json(
     {
       x402Version: 1,
@@ -426,8 +392,6 @@ async function createUsingPayAI(req: NextRequest, body?: any) {
     // 1. Extract payment header
     const paymentHeader = x402.extractPayment(req.headers);
 
-    console.log("paymentHeader", paymentHeader);
-
     // 2. Create payment requirements
     const paymentRequirements = await x402.createPaymentRequirements({
       price: {
@@ -444,8 +408,6 @@ async function createUsingPayAI(req: NextRequest, body?: any) {
       },
     });
 
-    console.log("paymentRequirements", paymentRequirements);
-
     if (!paymentHeader) {
       // Return 402 with payment requirements
       const response = x402.create402Response(paymentRequirements);
@@ -460,8 +422,6 @@ async function createUsingPayAI(req: NextRequest, body?: any) {
     if (!verified) {
       return NextResponse.json({ error: "Invalid payment" }, { status: 402 });
     }
-
-    console.log("verified", verified);
 
     // 4. Get signal data from body parameter
     const { wallet, signal, token, ticker, entryPrice, stopLoss, takeProfit } =
@@ -488,8 +448,6 @@ async function createUsingPayAI(req: NextRequest, body?: any) {
       paymentHeader,
       paymentRequirements
     );
-
-    console.log("settlementResult", settlementResult);
 
     // The facilitator returns the transaction signature in the response
     const transactionSignature =
@@ -525,14 +483,11 @@ async function createUsingPayAI(req: NextRequest, body?: any) {
       );
     }
 
-    console.log("🎯 Signal created successfully via PayAI");
-
     // 7. Settle payment with PayAI
-    const settleResult = await x402.settlePayment(
+    await x402.settlePayment(
       paymentHeader,
       paymentRequirements
     );
-    console.log("settleResult", settleResult);
 
     // 8. Return success
     return NextResponse.json({
@@ -549,7 +504,6 @@ async function createUsingPayAI(req: NextRequest, body?: any) {
       },
     });
   } catch (error) {
-    console.error("❌ PayAI error:", error);
     return NextResponse.json(
       {
         error: "Payment processing failed",

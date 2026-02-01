@@ -70,7 +70,6 @@ Response format: {"toolId": "<id>" | null, "params": {}}
         : {};
     return { toolId, params };
   } catch (err) {
-    console.warn('Tool selection LLM parse error:', err?.message);
     return null;
   }
 }
@@ -137,23 +136,11 @@ router.post('/completion', async (req, res) => {
       .map((m) => m.content)
       .pop();
 
-    const hasPaymentHeader = !!getClientPaymentHeader(req);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[Agent] completion request | anonymousId=${anonymousId ? 'yes' : 'no'} | paymentHeader=${hasPaymentHeader} | lastMsg="${(lastUserMessage || '').slice(0, 40)}…"`
-      );
-    }
-
     const toolSelectStart = Date.now();
     const matchedTool =
       clientToolRequest?.toolId != null
         ? { toolId: clientToolRequest.toolId, params: clientToolRequest.params }
         : await selectToolWithLlm(lastUserMessage);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[Agent] tool select done in ${Date.now() - toolSelectStart}ms | tool=${matchedTool?.toolId ?? 'none'}`
-      );
-    }
 
     const capabilitiesList = getCapabilitiesList().join('\n');
 
@@ -205,10 +192,6 @@ router.post('/completion', async (req, res) => {
           const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
           const method = tool.method || 'GET';
           const paymentHeader = getClientPaymentHeader(req);
-          if (process.env.NODE_ENV !== 'production') {
-            console.log(`[Agent] fetchToolOnce start | url=${url} | withPaymentHeader=${!!paymentHeader}`);
-          }
-          const toolFetchStart = Date.now();
           const result = await fetchToolOnce(
             url,
             method,
@@ -216,13 +199,7 @@ router.post('/completion', async (req, res) => {
             method === 'POST' ? params : undefined,
             paymentHeader
           );
-          if (process.env.NODE_ENV !== 'production') {
-            console.log(`[Agent] fetchToolOnce done in ${Date.now() - toolFetchStart}ms | status=${result.status}`);
-          }
           if (result.status === 402) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.log(`[Agent] returning 402 to client (tool requires payment)`);
-            }
             return res.status(402).json(result.body);
           }
           if (result.status !== 200) {
@@ -249,20 +226,9 @@ router.post('/completion', async (req, res) => {
       });
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[Agent] callJatevo start`);
-    }
-    const jatevoStart = Date.now();
     const { response } = await callJatevo(apiMessages, { anonymousId });
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[Agent] callJatevo done in ${Date.now() - jatevoStart}ms | total ${Date.now() - completionStart}ms`);
-    }
     return res.json({ success: true, response });
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(`[Agent] completion error after ${Date.now() - completionStart}ms:`, error?.message || error);
-    }
-    console.error('Agent completion error:', error);
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
@@ -298,7 +264,6 @@ router.get('/', async (req, res) => {
 
     res.json({ chats: result });
   } catch (error) {
-    console.error('Chat list error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -329,7 +294,6 @@ router.post('/', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Chat create error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -368,7 +332,6 @@ router.get('/:id', async (req, res) => {
       updatedAt: chat.updatedAt,
     });
   } catch (error) {
-    console.error('Chat get error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -411,7 +374,6 @@ router.patch('/:id', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Chat update error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -465,7 +427,6 @@ router.put('/:id/messages', async (req, res) => {
       updatedAt: chat.updatedAt,
     });
   } catch (error) {
-    console.error('Chat messages update error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -516,7 +477,6 @@ router.post('/:id/messages', async (req, res) => {
       updatedAt: chat.updatedAt,
     });
   } catch (error) {
-    console.error('Chat messages append error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -536,7 +496,6 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ success: true, id });
   } catch (error) {
-    console.error('Chat delete error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

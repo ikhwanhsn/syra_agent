@@ -28,7 +28,6 @@ const ATXPComponent = () => {
     setLoadingSearch(true);
     const res = await fetch(`/api/atxp/x?query=${valueSearch}`);
     const data = await res.json();
-    console.log("data", data);
 
     if (data.message.status === "success") {
       const html: any = marked.parse(data.message.message); // convert markdown → HTML

@@ -228,7 +228,6 @@ export function CreateSignalButton({
         });
       }
     } catch (error) {
-      console.error("PayAI error:", error);
       toast.error(
         `Error: ${error instanceof Error ? error.message : "Unknown error"}`
       );
@@ -248,7 +247,6 @@ export function CreateSignalButton({
 
     try {
       // STEP 1: Ask server "how much to pay?"
-      console.log("1️⃣ Requesting payment info from server...");
       const quoteRes = await fetch("/api/signal/create", {
         method: "GET",
       });
@@ -258,10 +256,7 @@ export function CreateSignalButton({
         throw new Error("Expected 402 payment required");
       }
 
-      console.log("💳 Payment required:", quote.accepts[0]);
-
       // STEP 2: Check and setup token accounts
-      console.log("2️⃣ Checking token accounts...");
       const mint = new PublicKey(quote.accepts[0].asset);
       // const recipientWallet = new PublicKey(
       //   quote.accepts[0].extra.recipientWallet
@@ -281,12 +276,6 @@ export function CreateSignalButton({
         recipientWallet
       );
 
-      console.log("📍 Sender token account:", senderTokenAccount.toBase58());
-      console.log(
-        "📍 Recipient token account:",
-        recipientTokenAccount.toBase58()
-      );
-
       // Create transaction
       const { blockhash, lastValidBlockHeight } =
         await connection.getLatestBlockhash("confirmed");
@@ -302,10 +291,7 @@ export function CreateSignalButton({
       try {
         await getAccount(connection, senderTokenAccount);
         senderAccountExists = true;
-        console.log("✅ Sender USDC account exists");
       } catch (error) {
-        console.log("⚠️ Sender USDC account doesn't exist - will create it");
-
         // Add instruction to create sender's token account
         tx.add(
           createAssociatedTokenAccountInstruction(
@@ -322,10 +308,7 @@ export function CreateSignalButton({
       try {
         await getAccount(connection, recipientTokenAccount);
         recipientAccountExists = true;
-        console.log("✅ Recipient USDC account exists");
       } catch (error) {
-        console.log("⚠️ Recipient USDC account doesn't exist - will create it");
-
         // Add instruction to create recipient's token account
         // User pays for this (required for first-time recipients)
         tx.add(
@@ -342,7 +325,6 @@ export function CreateSignalButton({
         try {
           const accountInfo = await getAccount(connection, senderTokenAccount);
           const balance = Number(accountInfo.amount); // accountInfo.amount is already a bigint
-          console.log(`💰 Your USDC balance: ${balance / 1000000} USDC`);
 
           const requiredAmount = Number(quote.accepts[0].maxAmountRequired);
 
@@ -362,7 +344,6 @@ export function CreateSignalButton({
           ) {
             throw error;
           }
-          console.warn("Could not check balance:", error);
         }
       }
 
@@ -378,32 +359,18 @@ export function CreateSignalButton({
         )
       );
 
-      console.log(`💸 Transfer amount: ${transferAmount / 1000000} USDC`);
-
-      // Get transaction size for debugging
-      const txSize = tx.serialize({ requireAllSignatures: false }).length;
-      console.log(`📦 Transaction size: ${txSize} bytes`);
-
       // STEP 3: Simulate transaction locally first
-      console.log("3️⃣ Testing transaction locally...");
       try {
         const simulation = await connection.simulateTransaction(tx);
 
         if (simulation.value.err) {
-          console.error("❌ Simulation failed:", simulation.value.err);
-          console.error("Logs:", simulation.value.logs);
-
           throw new Error(
             `Transaction simulation failed: ${JSON.stringify(
               simulation.value.err
             )}\n\nLogs:\n${simulation.value.logs?.join("\n")}`
           );
         }
-
-        console.log("✅ Simulation successful");
-        console.log("Logs:", simulation.value.logs);
       } catch (error) {
-        console.error("Simulation error:", error);
         throw new Error(
           `Transaction will fail: ${
             error instanceof Error ? error.message : "Unknown error"
@@ -412,9 +379,7 @@ export function CreateSignalButton({
       }
 
       // STEP 4: Ask user to sign
-      console.log("4️⃣ Requesting wallet signature...");
       const signedTx = await signTransaction(tx);
-      console.log("✅ Transaction signed");
 
       // STEP 5: Prepare signal data
       const signalData = {
@@ -429,7 +394,6 @@ export function CreateSignalButton({
       };
 
       // STEP 6: Send signed transaction to server
-      console.log("5️⃣ Sending payment proof to server...");
       const serializedTx = signedTx.serialize().toString("base64");
 
       const paymentProof = {
@@ -447,7 +411,6 @@ export function CreateSignalButton({
       );
 
       // STEP 7: Server verifies and creates signal
-      console.log("6️⃣ Server verifying payment and creating signal...");
       const response = await fetch("/api/signal/create", {
         method: "POST",
         headers: {
@@ -460,7 +423,6 @@ export function CreateSignalButton({
       const result = await response.json();
 
       if (response.ok) {
-        console.log("✅ Success:", result);
         toast.success("Signal created successfully!");
         queryClient.invalidateQueries({ queryKey: ["repoDataSignal"] });
         queryClient.invalidateQueries({
@@ -477,8 +439,6 @@ export function CreateSignalButton({
           takeProfit: "",
         });
       } else {
-        console.error("❌ Server error:", result);
-
         let errorMsg = `Failed: ${result.error}`;
         if (result.details) {
           errorMsg += `\n\nDetails: ${result.details}`;
@@ -490,7 +450,6 @@ export function CreateSignalButton({
         toast.error(errorMsg);
       }
     } catch (error) {
-      console.error("❌ Error:", error);
       toast.error(
         `Error: ${error instanceof Error ? error.message : "Unknown error"}`
       );

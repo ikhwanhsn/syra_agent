@@ -48,7 +48,7 @@ async function fetchOhlc(symbol, interval) {
 
     // Check Binance Weight (Limit is 1200/min)
     const weight = response.headers.get("x-mbx-used-weight-1m");
-    if (weight > 1000) console.warn(`🚨 Rate limit weight high: ${weight}`);
+    if (weight > 1000) { /* rate limit weight high */ }
 
     if (!response.ok) throw new Error(`Binance Error: ${response.statusText}`);
 

@@ -53,7 +53,6 @@ const Admin = () => {
       setLeaderboard(leaderboardData.leaderboard);
       setRecentEvents(eventsData.events || []);
     } catch (error) {
-      console.error('Failed to fetch admin data:', error);
       toast.error('Failed to load admin data');
     } finally {
       setIsLoading(false);

@@ -92,12 +92,8 @@ export async function createNewsRouter() {
           // Use the price directly from requirePayment config (0.15 USD)
           const priceUSD = X402_API_PRICE_NEWS_USD;
 
-          console.log(`Payment price: ${priceUSD} USD`);
-
           burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
         } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
 
@@ -166,7 +162,6 @@ export async function createNewsRouter() {
           req.x402Payment.paymentHeader,
           req.x402Payment.paymentRequirements,
         );
-        console.log("Payment result:", paymentResult);
 
         // Buyback and burn SYRA token (80% of revenue)
         let burnResult = null;
@@ -174,12 +169,8 @@ export async function createNewsRouter() {
           // Use the price directly from requirePayment config (0.15 USD)
           const priceUSD = X402_API_PRICE_NEWS_USD;
 
-          console.log(`Payment price: ${priceUSD} USD`);
-
           burnResult = await buybackAndBurnSYRA(priceUSD);
-          console.log("Buyback and burn completed:", burnResult);
         } catch (burnError) {
-          console.error("Buyback and burn failed:", burnError);
           // Continue even if burn fails - payment was successful
         }
 
