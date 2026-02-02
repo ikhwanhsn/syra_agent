@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, MessageSquare, Settings, Sparkles, Search, Trash2, MoreHorizontal, Moon, Sun, Pencil, PanelLeftClose } from "lucide-react";
+import { Plus, MessageSquare, Settings, Sparkles, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
 import { cn } from "@/lib/utils";
 import {
@@ -53,12 +54,12 @@ interface SidebarProps {
   onSelectChat: (id: string) => void;
   onNewChat: () => void;
   onDeleteChat?: (id: string) => void;
+  /** Bulk delete: called with array of chat ids when user confirms "Delete selected". */
+  onDeleteChats?: (ids: string[]) => void;
   onRenameChat?: (id: string, newTitle: string) => void;
   isOpen: boolean;
   onToggle: () => void;
   onCollapse?: () => void;
-  isDarkMode: boolean;
-  onToggleDarkMode: () => void;
   chatsLoading?: boolean;
   /** When false, show connect-wallet prompt (session not ready). When true, show New Chat, search, list. */
   sessionReady?: boolean;
@@ -73,12 +74,11 @@ export function Sidebar({
   onSelectChat,
   onNewChat,
   onDeleteChat,
+  onDeleteChats,
   onRenameChat,
   isOpen,
   onToggle,
   onCollapse,
-  isDarkMode,
-  onToggleDarkMode,
   chatsLoading = false,
   sessionReady = true,
   walletConnected = true,
@@ -88,8 +88,39 @@ export function Sidebar({
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [sidebarWidth, setSidebarWidth] = useState(280);
+  /** When true, show checkboxes and allow multi-delete. */
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const editInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    const ids = new Set(filteredChats.map((c) => c.id));
+    setSelectedIds(ids);
+  };
+
+  const deselectAll = () => setSelectedIds(new Set());
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    onDeleteChats?.(ids);
+    exitSelectionMode();
+  };
 
   useEffect(() => {
     if (editingChatId && editInputRef.current) {
@@ -212,6 +243,49 @@ export function Sidebar({
         </div>
       )}
 
+      {/* Selection mode bar – when wallet connected, has chats, and selection mode on */}
+      {sessionReady && walletConnected && groupedChats.length > 0 && selectionMode && onDeleteChats && (
+        <div className="px-2 sm:px-3 pb-2 flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={selectedIds.size === filteredChats.length ? deselectAll : selectAllFiltered}
+          >
+            {selectedIds.size === filteredChats.length ? "Deselect all" : "Select all"}
+          </Button>
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 text-xs gap-1"
+              onClick={handleDeleteSelected}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete selected ({selectedIds.size})
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={exitSelectionMode}>
+            Cancel
+          </Button>
+        </div>
+      )}
+
+      {/* "Select" to enter selection mode – when wallet connected and has chats */}
+      {sessionReady && walletConnected && groupedChats.length > 0 && !selectionMode && onDeleteChats && (
+        <div className="px-2 sm:px-3 pb-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+            onClick={() => setSelectionMode(true)}
+          >
+            <Square className="w-3.5 h-3.5" />
+            Select chats to delete
+          </Button>
+        </div>
+      )}
+
       {/* Chat List or Connect Wallet (when session not ready) */}
       <ScrollArea className="flex-1 min-h-0 min-w-0 px-2">
         <div className="space-y-4 py-2 min-w-0">
@@ -247,12 +321,29 @@ export function Sidebar({
                       key={chat.id}
                       className={cn(
                         "group relative flex items-center gap-2 px-2 sm:px-3 py-2.5 rounded-lg transition-all min-h-[44px] min-w-0 overflow-visible",
-                        activeChat === chat.id && "bg-secondary",
-                        editingChatId !== chat.id && "cursor-pointer hover:bg-secondary/80 active:bg-secondary/80"
+                        activeChat === chat.id && !selectionMode && "bg-secondary",
+                        editingChatId !== chat.id && "cursor-pointer hover:bg-secondary/80 active:bg-secondary/80",
+                        selectionMode && selectedIds.has(chat.id) && "bg-primary/10 ring-1 ring-primary/30"
                       )}
-                      onClick={() => editingChatId !== chat.id && onSelectChat(chat.id)}
+                      onClick={() => {
+                        if (editingChatId === chat.id) return;
+                        if (selectionMode) {
+                          toggleSelect(chat.id);
+                        } else {
+                          onSelectChat(chat.id);
+                        }
+                      }}
                     >
-                      <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
+                      {selectionMode ? (
+                        <Checkbox
+                          checked={selectedIds.has(chat.id)}
+                          onCheckedChange={() => toggleSelect(chat.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="shrink-0"
+                        />
+                      ) : (
+                        <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
+                      )}
                       {/* Text area: overflow hidden so long text truncates; padding so it never goes under the floating button */}
                       <div className="flex-1 min-w-0 overflow-hidden pr-12">
                         {editingChatId === chat.id ? (
@@ -305,8 +396,8 @@ export function Sidebar({
                           </>
                         )}
                       </div>
-                      {/* Floating ⋯ button: always on top, never clipped */}
-                      {editingChatId !== chat.id && (
+                      {/* Floating ⋯ button: always on top, never clipped (hidden in selection mode) */}
+                      {editingChatId !== chat.id && !selectionMode && (
                         <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-end w-12 pl-2 bg-card">
                           <div className="flex items-center bg-background rounded-md shadow-sm border border-border">
                             <DropdownMenu>
@@ -361,15 +452,13 @@ export function Sidebar({
         <div className="p-2 sm:p-3 border-t border-border space-y-1 shrink-0">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-            onClick={onToggleDarkMode}
+            className="w-full justify-start gap-2 text-muted-foreground cursor-not-allowed opacity-70"
+            disabled
+            title="Soon available"
           >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-            {isDarkMode ? "Light Mode" : "Dark Mode"}
+            <Store className="w-4 h-4" />
+            <span className="flex-1 text-left">Marketplace</span>
+            <span className="text-xs text-muted-foreground/80">Soon</span>
           </Button>
           <Button
             variant="ghost"

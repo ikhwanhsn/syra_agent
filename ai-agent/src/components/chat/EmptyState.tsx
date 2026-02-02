@@ -1,5 +1,13 @@
-import { Sparkles, Code, Lightbulb, FileText, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, Code, Lightbulb, FileText, ExternalLink, Wrench, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { agentToolsApi, type AgentTool } from "@/lib/chatApi";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const PLAYGROUND_URL = "https://playground.syraa.fun";
 const DOCS_URL = "https://docs.syraa.fun";
@@ -37,7 +45,39 @@ const suggestions: SuggestionCard[] = [
   },
 ];
 
+/** Group tools by category to match API v2 structure (core, partner, memecoin). */
+function groupTools(tools: AgentTool[]): { core: AgentTool[]; partner: AgentTool[]; memecoin: AgentTool[] } {
+  const coreIds = new Set([
+    "check-status", "news", "signal", "sentiment", "event", "browse", "x-search",
+    "research", "gems", "x-kol", "crypto-kol", "trending-headline", "sundown-digest",
+  ]);
+  const core: AgentTool[] = [];
+  const partner: AgentTool[] = [];
+  const memecoin: AgentTool[] = [];
+  for (const t of tools) {
+    if (t.id.startsWith("memecoin-")) memecoin.push(t);
+    else if (coreIds.has(t.id)) core.push(t);
+    else partner.push(t);
+  }
+  return { core, partner, memecoin };
+}
+
 export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
+  const [tools, setTools] = useState<AgentTool[]>([]);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsLoading, setToolsLoading] = useState(true);
+
+  useEffect(() => {
+    agentToolsApi
+      .list()
+      .then(({ tools: list }) => setTools(list))
+      .catch(() => setTools([]))
+      .finally(() => setToolsLoading(false));
+  }, []);
+
+  const { core, partner, memecoin } = groupTools(tools);
+  const hasTools = core.length > 0 || partner.length > 0 || memecoin.length > 0;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-full w-full max-w-full px-3 py-8 sm:px-4 sm:py-12 animate-fade-in overflow-x-hidden">
       <div className="relative mb-6 sm:mb-8">
@@ -72,7 +112,7 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full max-w-2xl px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full max-w-2xl px-1 mb-6">
         {suggestions.map((suggestion, index) => {
           const Icon = suggestion.icon;
           return (
@@ -99,6 +139,77 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
           );
         })}
       </div>
+
+      {hasTools && (
+        <Collapsible open={toolsOpen} onOpenChange={setToolsOpen} className="w-full max-w-2xl">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl text-sm font-medium",
+                "bg-secondary/60 hover:bg-secondary border border-border text-foreground",
+                "transition-colors touch-manipulation"
+              )}
+            >
+              <Wrench className="w-4 h-4" />
+              Available tools ({tools.length})
+              {toolsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ScrollArea className="mt-2 h-64 rounded-xl border border-border bg-card/80">
+              <div className="p-3 space-y-4">
+                {core.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Core</p>
+                    <ul className="space-y-1.5">
+                      {core.filter((t) => t.id !== "check-status").map((t) => (
+                        <li key={t.id} className="text-sm">
+                          <span className="font-medium text-foreground">{t.name}</span>
+                          <span className="text-muted-foreground"> — {t.description}</span>
+                          <span className="text-muted-foreground text-xs ml-1">(${t.priceUsd.toFixed(4)})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {partner.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Partner</p>
+                    <ul className="space-y-1.5">
+                      {partner.map((t) => (
+                        <li key={t.id} className="text-sm">
+                          <span className="font-medium text-foreground">{t.name}</span>
+                          <span className="text-muted-foreground"> — {t.description}</span>
+                          <span className="text-muted-foreground text-xs ml-1">(${t.priceUsd.toFixed(4)})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {memecoin.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Memecoin</p>
+                    <ul className="space-y-1.5">
+                      {memecoin.map((t) => (
+                        <li key={t.id} className="text-sm">
+                          <span className="font-medium text-foreground">{t.name}</span>
+                          <span className="text-muted-foreground"> — {t.description}</span>
+                          <span className="text-muted-foreground text-xs ml-1">(${t.priceUsd.toFixed(4)})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {!toolsLoading && !hasTools && (
+        <p className="text-xs text-muted-foreground text-center mt-2">Unable to load tools list. Ask: &quot;What can Syra do?&quot;</p>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createInfoRouter } from "./routes/info.js";
+import { createCoingeckoRouter } from "./routes/coingecko.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createPumpRouter } from "./routes/partner/workfun/pump.js";
 import { createTrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
@@ -392,6 +393,7 @@ app.use("/v1/regular/signal", await createRegularSignalRouter());
 
 // x402 routes (V1 format - x402scan compatible)
 app.use("/info", await createInfoRouter());
+app.use("/coingecko", await createCoingeckoRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
@@ -531,9 +533,9 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/sundown-digest",
       "https://api.syraa.fun/v2/check-status",
       // V2 X/Twitter endpoints
-      // "https://api.syraa.fun/v2/x-search",
-      // "https://api.syraa.fun/v2/x-kol",
-      // "https://api.syraa.fun/v2/crypto-kol",
+      "https://api.syraa.fun/v2/x-search",
+      "https://api.syraa.fun/v2/x-kol",
+      "https://api.syraa.fun/v2/crypto-kol",
       // V2 Research & Analysis endpoints
       "https://api.syraa.fun/v2/browse",
       "https://api.syraa.fun/v2/research",
@@ -549,15 +551,15 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/bubblemaps/maps",
       "https://api.syraa.fun/v2/binance/correlation",
       // V2 Memecoin endpoints
-      // "https://api.syraa.fun/v2/memecoin/fastest-holder-growth",
-      // "https://api.syraa.fun/v2/memecoin/most-mentioned-by-smart-money-x",
-      // "https://api.syraa.fun/v2/memecoin/accumulating-before-CEX-rumors",
-      // "https://api.syraa.fun/v2/memecoin/strong-narrative-low-market-cap",
-      // "https://api.syraa.fun/v2/memecoin/by-experienced-devs",
-      // "https://api.syraa.fun/v2/memecoin/unusual-whale-behavior",
-      // "https://api.syraa.fun/v2/memecoin/trending-on-x-not-dex",
-      // "https://api.syraa.fun/v2/memecoin/organic-traction",
-      // "https://api.syraa.fun/v2/memecoin/surviving-market-dumps",
+      "https://api.syraa.fun/v2/memecoin/fastest-holder-growth",
+      "https://api.syraa.fun/v2/memecoin/most-mentioned-by-smart-money-x",
+      "https://api.syraa.fun/v2/memecoin/accumulating-before-CEX-rumors",
+      "https://api.syraa.fun/v2/memecoin/strong-narrative-low-market-cap",
+      "https://api.syraa.fun/v2/memecoin/by-experienced-devs",
+      "https://api.syraa.fun/v2/memecoin/unusual-whale-behavior",
+      "https://api.syraa.fun/v2/memecoin/trending-on-x-not-dex",
+      "https://api.syraa.fun/v2/memecoin/organic-traction",
+      "https://api.syraa.fun/v2/memecoin/surviving-market-dumps",
     ],
     // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
     // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY

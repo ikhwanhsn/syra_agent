@@ -36,7 +36,7 @@ export async function createSignalRouter() {
       })(req, res, next),
     async (req, res) => {
       try {
-        const token = req.query.token || "solana";
+        const token = req.query.token || "bitcoin";
 
         const signal = await fetch(
           `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`

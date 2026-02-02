@@ -301,6 +301,18 @@ export function matchToolFromUserMessage(userMessage) {
     ? (tickerMatch[1] || tickerMatch[2] || '').toUpperCase()
     : 'general';
 
+  // Extract token for signal: "bitcoin signal", "give me BTC signal", "signal for ethereum", etc.
+  const signalTokenMatch = text.match(
+    /\b(bitcoin|btc|ethereum|eth|solana|sol)\s+signal|\bsignal\s+(?:for|on)?\s*(bitcoin|btc|ethereum|eth|solana|sol)\b|give\s+(?:me\s+)?(?:a\s+)?(bitcoin|btc|ethereum|eth|solana|sol)\s+signal/i
+  );
+  const signalTokenRaw = signalTokenMatch
+    ? (signalTokenMatch[1] || signalTokenMatch[2] || signalTokenMatch[3] || '').toLowerCase()
+    : '';
+  const TOKEN_MAP = { btc: 'bitcoin', eth: 'ethereum', sol: 'solana' };
+  const signalToken = signalTokenRaw
+    ? (TOKEN_MAP[signalTokenRaw] || signalTokenRaw)
+    : '';
+
   // Ordered intent patterns: more specific first. Return first match.
   const intents = [
     // Memecoin (specific screens)
@@ -418,9 +430,10 @@ export function matchToolFromUserMessage(userMessage) {
     {
       toolId: 'signal',
       test: () =>
-        /trading\s*signal|create\s*signal|signal\s*data|get\s*signal|give\s*(me\s*)?(a\s*)?(solana|btc|eth|crypto)?\s*signal|(solana|btc|eth|crypto|token)\s*signal|signal\s*(for|on)?\s*(solana|btc|eth|crypto)?/i.test(
+        /trading\s*signal|create\s*signal|signal\s*data|get\s*signal|give\s*(me\s*)?(a\s*)?(solana|btc|eth|bitcoin|ethereum|crypto)?\s*signal|(solana|btc|eth|bitcoin|ethereum|crypto|token)\s*signal|signal\s*(for|on)?\s*(solana|btc|eth|bitcoin|ethereum|crypto)?/i.test(
           text
         ),
+      params: () => (signalToken ? { token: signalToken } : {}),
     },
     {
       toolId: 'event',
@@ -545,6 +558,9 @@ export function getToolsForLlmSelection() {
     const out = { id: t.id, name: t.name, description: t.description };
     if (t.id === 'news') {
       out.paramsHint = 'Optional params: ticker (BTC, ETH, SOL, or general)';
+    }
+    if (t.id === 'signal') {
+      out.paramsHint = 'Optional params: token (bitcoin, ethereum, solana) — use the token the user asked for';
     }
     return out;
   });

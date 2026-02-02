@@ -14,8 +14,7 @@ const agentWalletSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-agentWalletSchema.index({ anonymousId: 1 });
-agentWalletSchema.index({ walletAddress: 1 });
+// Indexes are created automatically by unique: true on anonymousId and walletAddress
 
 const AgentWallet = mongoose.model('AgentWallet', agentWalletSchema);
 export default AgentWallet;

@@ -1,6 +1,7 @@
 import express from "express";
 import { requirePayment, settlePaymentAndSetResponse } from "../utils/x402Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../../config/x402Pricing.js";
+import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 
 /** Cache TTL in ms (90s) – repeated requests for same ticker return instantly. */
 const NEWS_CACHE_TTL_MS = 90 * 1000;
@@ -114,7 +115,11 @@ export async function createNewsRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.query.ticker || "general";
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
       const news = await getNewsForRequest(ticker);
       if (!news) return res.status(404).json({ error: "News not found" });
       if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -150,7 +155,11 @@ export async function createNewsRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.body.ticker || "general";
+      let ticker = req.body.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
       const news = await getNewsForRequest(ticker);
       if (!news) return res.status(404).json({ error: "News not found" });
       if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });

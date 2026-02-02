@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { Bot, User, Copy, Check, RefreshCw } from "lucide-react";
+import { Bot, User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -72,16 +72,17 @@ function getStepsForMessage(userMessage: string | undefined): string[] {
   return STEP_SEQUENCES.default;
 }
 
+export type ToolUsageItem = { name: string; status: "running" | "complete" | "error" };
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
-  toolUsage?: {
-    name: string;
-    status: "running" | "complete" | "error";
-  };
+  toolUsage?: ToolUsageItem;
+  /** Optional: multiple tools used for this answer (future API support). */
+  toolUsages?: ToolUsageItem[];
 }
 
 interface ChatMessageProps {
@@ -249,20 +250,48 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
           </span>
         </div>
 
-        {/* Tool Usage Indicator */}
-        {message.toolUsage && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 w-fit">
-            {message.toolUsage.status === "running" ? (
-              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
-            ) : (
-              <Check className="w-4 h-4 text-green-500" />
-            )}
-            <span className="text-sm text-foreground">
-              {message.toolUsage.status === "running" ? "Using" : "Used"}{" "}
-              <span className="font-medium text-primary">{message.toolUsage.name}</span>
-            </span>
-          </div>
-        )}
+        {/* Tools used for this answer — section for assistant messages */}
+        {!isUser && (message.toolUsage || (message.toolUsages && message.toolUsages.length > 0)) && (() => {
+          const tools: ToolUsageItem[] = message.toolUsages?.length
+            ? message.toolUsages
+            : message.toolUsage
+              ? [message.toolUsage]
+              : [];
+          if (tools.length === 0) return null;
+          return (
+            <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 border-b border-border bg-muted/80">
+                <Wrench className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {tools.length === 1 ? "Tool used for this answer" : "Tools used for this answer"}
+                </span>
+              </div>
+              <ul className="divide-y divide-border/50">
+                {tools.map((tool, i) => (
+                  <li
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3",
+                      tool.status === "error" && "bg-destructive/5"
+                    )}
+                  >
+                    {tool.status === "running" ? (
+                      <Loader2 className="w-4 h-4 text-primary shrink-0 animate-spin" />
+                    ) : tool.status === "error" ? (
+                      <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                    ) : (
+                      <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    )}
+                    <span className="text-sm font-medium text-foreground">{tool.name}</span>
+                    <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                      {tool.status === "running" ? "Running…" : tool.status === "error" ? "Error" : "Complete"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
 
         {/* Message Content - auto-detects markdown (tables, code, headings, lists) and renders rich UI */}
         <div className="text-foreground leading-relaxed">

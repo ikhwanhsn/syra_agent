@@ -1,14 +1,17 @@
-import { useRef, useEffect } from "react";
-import { Menu } from "lucide-react";
+import { useRef, useEffect, useCallback, useState } from "react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "./WalletNav";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage, LoadingStepMessage } from "./ChatMessage";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
-import { AgentSelector, Agent, defaultAgents } from "./AgentSelector";
 import { EmptyState } from "./EmptyState";
+import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
+
+/** Pixel threshold: if within this distance from bottom, consider "at bottom" for follow-scroll. */
+const SCROLL_BOTTOM_THRESHOLD = 80;
 
 interface Message {
   id: string;
@@ -42,6 +45,9 @@ interface ChatAreaProps {
   walletConnected?: boolean;
   /** Ref to focus the chat input (e.g. after new chat, after sending) */
   inputRef?: React.RefObject<ChatInputHandle | null>;
+  /** Dark mode state and toggle for navbar */
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 export function ChatArea({
@@ -58,15 +64,60 @@ export function ChatArea({
   sessionReady = true,
   walletConnected = true,
   inputRef,
+  isDarkMode = true,
+  onToggleDarkMode,
 }: ChatAreaProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [shouldFollowScroll, setShouldFollowScroll] = useState(true);
+  const lastMessageCountRef = useRef(0);
+  const lastMessageRoleRef = useRef<"user" | "assistant" | null>(null);
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, []);
+
+  const isAtBottom = useCallback((el: HTMLDivElement) => {
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    return scrollHeight - scrollTop - clientHeight <= SCROLL_BOTTOM_THRESHOLD;
+  }, []);
+
+  // When user sends a message (new user message added), scroll to bottom so the new Q&A is in view and enable follow-scroll. When assistant streams, follow only if user hasn't scrolled up.
+  useEffect(() => {
+    if (messages.length === 0) {
+      lastMessageCountRef.current = 0;
+      lastMessageRoleRef.current = null;
+      return;
+    }
+    const last = messages[messages.length - 1];
+    const prevCount = lastMessageCountRef.current;
+    const prevRole = lastMessageRoleRef.current;
+    lastMessageCountRef.current = messages.length;
+    lastMessageRoleRef.current = last.role;
+
+    // User just sent: scroll to bottom and follow
+    if (last.role === "user" && (messages.length > prevCount || prevRole !== "user")) {
+      setShouldFollowScroll(true);
+      scrollToBottom();
+      return;
+    }
+    // Switched chat or first load with messages: start at bottom
+    if (prevCount === 0 && messages.length > 0) {
+      setShouldFollowScroll(true);
+      scrollToBottom();
+      return;
+    }
+    if (shouldFollowScroll) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom, shouldFollowScroll]);
+
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
+    setShouldFollowScroll(isAtBottom(scrollRef.current));
+  }, [isAtBottom]);
 
   return (
     <div className="flex flex-col h-full min-h-0 min-w-0">
@@ -83,58 +134,77 @@ export function ChatArea({
           >
             <Menu className="w-5 h-5" />
           </Button>
-          <AgentSelector
-            agents={defaultAgents}
-            selectedAgent={selectedAgent}
-            onSelectAgent={onSelectAgent}
-          />
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+          {onToggleDarkMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={onToggleDarkMode}
+              title={isDarkMode ? "Light mode" : "Dark mode"}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </Button>
+          )}
           <WalletNav />
         </div>
       </header>
 
       {/* Messages or Connect Wallet (when session not ready) */}
-      <ScrollArea className="flex-1 min-h-0 min-w-0" ref={scrollRef}>
-        {!sessionReady ? (
+      {!sessionReady ? (
+        <ScrollArea className="flex-1 min-h-0 min-w-0">
           <ConnectWalletPrompt
             variant="center"
             onConnectClick={() => setWalletModalVisible(true)}
           />
-        ) : messages.length === 0 ? (
+        </ScrollArea>
+      ) : messages.length === 0 ? (
+        <ScrollArea className="flex-1 min-h-0 min-w-0">
           <EmptyState onSelectPrompt={onSendMessage} />
-        ) : (
+        </ScrollArea>
+      ) : (
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin"
+        >
           <div className="flex flex-col flex-1 min-w-0">
-            <div className="divide-y divide-border/50 flex-1 min-w-0 overflow-x-hidden">
-            {messages.map((message, index) => {
-              const isEmptyStreamingAssistant =
-                message.role === "assistant" &&
-                message.isStreaming &&
-                !message.content?.trim();
-              if (isEmptyStreamingAssistant && walletConnected) {
-                const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+            <div className="divide-y divide-border/50 flex-1 min-w-0">
+              {messages.map((message) => {
+                const isEmptyStreamingAssistant =
+                  message.role === "assistant" &&
+                  message.isStreaming &&
+                  !message.content?.trim();
+                if (isEmptyStreamingAssistant && walletConnected) {
+                  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+                  return (
+                    <LoadingStepMessage
+                      key={message.id}
+                      lastUserMessage={lastUserMsg?.content}
+                      agentName={selectedAgent.name}
+                    />
+                  );
+                }
                 return (
-                  <LoadingStepMessage
+                  <ChatMessage
                     key={message.id}
-                    lastUserMessage={lastUserMsg?.content}
+                    message={message}
                     agentName={selectedAgent.name}
+                    onRegenerate={onRegenerate}
+                    isRegenerateDisabled={isLoading}
                   />
                 );
-              }
-              return (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  agentName={selectedAgent.name}
-                  onRegenerate={onRegenerate}
-                  isRegenerateDisabled={isLoading}
-                />
-              );
-            })}
+              })}
             </div>
           </div>
-        )}
-      </ScrollArea>
+        </div>
+      )}
 
       {/* Input – when session ready (chat allowed with or without wallet) */}
       {sessionReady && (

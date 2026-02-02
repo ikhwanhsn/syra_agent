@@ -49,6 +49,8 @@ function fetchWithTimeout(url, init = {}) {
   );
 }
 
+const LAMPORTS_PER_SOL = 1e9;
+
 /**
  * Get agent USDC balance (human-readable number) for an anonymous user.
  * Returns null on wallet not found or RPC failure (so caller can degrade gracefully).
@@ -56,25 +58,37 @@ function fetchWithTimeout(url, init = {}) {
  * @returns {Promise<{ usdcBalance: number } | null>} Balance or null if wallet not found / RPC failed
  */
 export async function getAgentUsdcBalance(anonymousId) {
+  const result = await getAgentBalances(anonymousId);
+  return result ? { usdcBalance: result.usdcBalance } : null;
+}
+
+/**
+ * Get agent USDC and SOL balances for an anonymous user.
+ * Used so the agent can tell the user they need both: USDC for tool payments, SOL for transaction fees.
+ * @param {string} anonymousId - Client's anonymous id
+ * @returns {Promise<{ usdcBalance: number, solBalance: number, agentAddress?: string } | null>} Balances or null if wallet not found / RPC failed
+ */
+export async function getAgentBalances(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc) return null;
   try {
     const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
     const agentPubkey = new PublicKey(doc.agentAddress);
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(agentPubkey, {
-      mint: USDC_MAINNET,
-    });
+    const [solLamports, tokenAccounts] = await Promise.all([
+      connection.getBalance(agentPubkey, 'confirmed'),
+      connection.getParsedTokenAccountsByOwner(agentPubkey, { mint: USDC_MAINNET }),
+    ]);
+    const solBalance = solLamports / LAMPORTS_PER_SOL;
     const usdcBalance = tokenAccounts.value.reduce((sum, acc) => {
       const amt = acc.account.data?.parsed?.info?.tokenAmount?.uiAmount;
       return sum + (Number(amt) || 0);
     }, 0);
-    return { usdcBalance };
+    return { usdcBalance, solBalance, agentAddress: doc.agentAddress };
   } catch (e) {
     const isRpcUnavailable =
       e?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
       /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT/i.test(e?.message || '');
-    // Return 0 balance so caller doesn't treat as "wallet not found"; UI can show "deposit" or retry
-    return { usdcBalance: 0 };
+    return isRpcUnavailable ? { usdcBalance: 0, solBalance: 0 } : null;
   }
 }

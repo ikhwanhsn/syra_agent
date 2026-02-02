@@ -201,8 +201,13 @@ export const chatApi = {
       );
     }
 
-    const data = await handleRes<{ success: boolean; response: string }>(res);
-    return { response: data.response ?? "" };
+    const data = await handleRes<{ success: boolean; response: string; amountChargedUsd?: number }>(res);
+    return {
+      response: data.response ?? "",
+      ...(typeof data.amountChargedUsd === "number" && data.amountChargedUsd > 0
+        ? { amountChargedUsd: data.amountChargedUsd }
+        : {}),
+    };
   },
 };
 

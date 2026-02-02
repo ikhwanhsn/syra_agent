@@ -15,7 +15,11 @@ import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
+import bs58 from 'bs58';
 import { getAgentKeypair } from './agentWallet.js';
+
+/** Placeholder signature (64 zero bytes base58) = tx was not actually signed; RPC returns this when tx is invalid. */
+const ZERO_SIG_BASE58 = '1'.repeat(64);
 
 const USDC_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
@@ -171,14 +175,10 @@ async function callX402V2WithAgentImpl(opts) {
   const payTo = accept.payTo;
   const asset = accept.asset;
   const x402Version = firstData.x402Version ?? 2;
-  // V2 may not include extra.feePayer; agent is the payer so use agent pubkey as fee payer
-  const feePayer = accept.extra?.feePayer ?? agentPubkey.toBase58();
-
-  if (!payTo) {
-    return { success: false, error: '402 accepts missing payTo' };
-  }
-
-  const feePayerPubkey = new PublicKey(feePayer);
+  // Agent is the payer: we must be the fee payer so our signature is applied. Ignore accept.extra.feePayer
+  // (facilitator may set it to their address), otherwise the message would require a different signer and
+  // our signature would be missing → tx would have zero sig → RPC returns 111...111 and tx never lands.
+  const feePayerPubkey = agentPubkey;
   const destinationPubkey = new PublicKey(payTo);
   const mintPubkey = new PublicKey(asset);
 
@@ -208,18 +208,15 @@ async function callX402V2WithAgentImpl(opts) {
 
   const sourceAtaInfo = await connection.getAccountInfo(sourceAta, 'confirmed');
   if (!sourceAtaInfo) {
-    return {
-      success: false,
-      error: 'Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.',
-    };
+    const err = 'Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.';
+    return { success: false, error: err };
   }
 
   const destAtaInfo = await connection.getAccountInfo(destAta, 'confirmed');
   if (!destAtaInfo) {
-    return {
-      success: false,
-      error: 'Recipient token account not found',
-    };
+    const err =
+      'Recipient token account not found. The API treasury (SOLANA_PAYTO) must have a USDC token account. Create it or set SOLANA_PAYTO to an address that has USDC ATA.';
+    return { success: false, error: err };
   }
 
   const instructions = [
@@ -247,19 +244,37 @@ async function callX402V2WithAgentImpl(opts) {
   const transaction = new VersionedTransaction(message);
   transaction.sign([keypair]);
 
+  const sig0 = transaction.signatures[0];
+  if (!sig0 || sig0.length !== 64 || sig0.every((b) => b === 0)) {
+    const err =
+      'Transaction signing failed: fee payer must be the agent wallet. The payment was not sent.';
+    return { success: false, error: err };
+  }
+  const signatureFromTx = bs58.encode(Buffer.from(sig0));
+
   // Submit the transaction to Solana so the agent wallet actually pays (balance decreases).
-  // The user pays from their agent wallet; the facilitator may also submit the same tx (idempotent).
   let signature;
   try {
     signature = await connection.sendRawTransaction(transaction.serialize(), {
       skipPreflight: false,
       maxRetries: 3,
     });
+    if (signature === ZERO_SIG_BASE58) {
+      return {
+        success: false,
+        error: 'Payment transaction was invalid (not signed). Balance was not deducted.',
+      };
+    }
   } catch (sendErr) {
-    return {
-      success: false,
-      error: sendErr?.message || 'Failed to submit payment transaction to Solana',
-    };
+    const rawMsg = sendErr?.message || 'Failed to submit payment transaction to Solana';
+    const isDebitNoCredit =
+      /debit an account but found no record of a prior credit/i.test(rawMsg) ||
+      /insufficient funds/i.test(rawMsg);
+    const err = isDebitNoCredit
+      ? 'Agent wallet needs SOL for transaction fees. The wallet has USDC but no (or not enough) SOL to pay the network fee. Send a small amount of SOL (e.g. 0.01 SOL) to the agent wallet: ' +
+        agentPubkey.toBase58()
+      : rawMsg;
+    return { success: false, error: err };
   }
 
   // Wait for confirmation using HTTP-only polling (no signatureSubscribe) so it works with any RPC.
@@ -321,13 +336,8 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
   const payTo = accept.payTo;
   const asset = accept.asset;
   const x402Version = paymentRequired.x402Version ?? 2;
-  const feePayer = accept.extra?.feePayer ?? agentPubkey.toBase58();
-
-  if (!payTo) {
-    throw new Error('402 accepts missing payTo');
-  }
-
-  const feePayerPubkey = new PublicKey(feePayer);
+  // Agent is the payer: we must be the fee payer so our signature is applied (same fix as callX402V2WithAgentImpl).
+  const feePayerPubkey = agentPubkey;
   const destinationPubkey = new PublicKey(payTo);
   const mintPubkey = new PublicKey(asset);
 

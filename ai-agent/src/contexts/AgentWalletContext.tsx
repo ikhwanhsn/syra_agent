@@ -5,6 +5,7 @@ import {
   useState,
   useEffect,
   useRef,
+  useCallback,
   type ReactNode,
 } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -22,6 +23,12 @@ export interface AgentWalletState {
   /** Connected user wallet address (Solana), if wallet is connected */
   connectedWalletAddress: string | null;
   connectedWalletShort: string | null;
+  /** Transient: amount just debited (for -$X.XX effect); cleared after animation */
+  lastDebitUsd: number | null;
+  /** Refetch SOL/USDC balance (e.g. after a tool call). */
+  refetchBalance: () => Promise<void>;
+  /** Show debit effect (e.g. -0.01) then clear after a short delay. */
+  reportDebit: (amountUsd: number) => void;
 }
 
 const AgentWalletContext = createContext<AgentWalletState | null>(null);
@@ -34,7 +41,10 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const [agentAddress, setAgentAddress] = useState<string | null>(null);
   const [agentSolBalance, setAgentSolBalance] = useState<number | null>(null);
   const [agentUsdcBalance, setAgentUsdcBalance] = useState<number | null>(null);
+  const [lastDebitUsd, setLastDebitUsd] = useState<number | null>(null);
   const initRef = useRef(false);
+  const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refetchTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // When user connects wallet: get or create agent wallet by wallet address (check database)
   useEffect(() => {
@@ -96,6 +106,18 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     }
   }, [connectedWalletAddress]);
 
+  const refetchBalance = useCallback(async () => {
+    if (!anonymousId) return;
+    try {
+      const { solBalance: sol, usdcBalance: usdc } = await agentWalletApi.getBalance(anonymousId);
+      setAgentSolBalance(sol);
+      setAgentUsdcBalance(usdc);
+    } catch {
+      setAgentSolBalance(null);
+      setAgentUsdcBalance(null);
+    }
+  }, [anonymousId]);
+
   useEffect(() => {
     if (!anonymousId || !agentAddress) return;
     let cancelled = false;
@@ -123,6 +145,39 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     };
   }, [anonymousId, agentAddress]);
 
+  const reportDebit = useCallback(
+    (amountUsd: number) => {
+      if (debitTimeoutRef.current) clearTimeout(debitTimeoutRef.current);
+      refetchTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      refetchTimeoutsRef.current = [];
+      setLastDebitUsd(amountUsd);
+      // Optimistic update: subtract from balance immediately so UI updates in real time
+      setAgentUsdcBalance((prev) =>
+        prev != null ? Math.max(0, prev - amountUsd) : null
+      );
+      // Sync with chain: refetch now and after delays (chain may confirm later)
+      refetchBalance();
+      refetchTimeoutsRef.current = [
+        setTimeout(refetchBalance, 2000),
+        setTimeout(refetchBalance, 5000),
+      ];
+      debitTimeoutRef.current = setTimeout(() => {
+        setLastDebitUsd(null);
+        debitTimeoutRef.current = null;
+      }, 2800);
+    },
+    [refetchBalance]
+  );
+
+  useEffect(
+    () => () => {
+      if (debitTimeoutRef.current) clearTimeout(debitTimeoutRef.current);
+      refetchTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      refetchTimeoutsRef.current = [];
+    },
+    []
+  );
+
   const agentShortAddress = agentAddress
     ? `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`
     : null;
@@ -141,6 +196,9 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentUsdcBalance,
       connectedWalletAddress,
       connectedWalletShort,
+      lastDebitUsd,
+      refetchBalance,
+      reportDebit,
     }),
     [
       ready,
@@ -151,6 +209,9 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentUsdcBalance,
       connectedWalletAddress,
       connectedWalletShort,
+      lastDebitUsd,
+      refetchBalance,
+      reportDebit,
     ]
   );
 

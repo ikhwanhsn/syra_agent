@@ -6,7 +6,8 @@ import {
   getCapabilitiesList,
   getToolsForLlmSelection,
 } from '../../config/agentTools.js';
-import { getAgentUsdcBalance } from '../../libs/agentWallet.js';
+import { getAgentUsdcBalance, getAgentBalances, getAgentAddress } from '../../libs/agentWallet.js';
+import { callX402V2WithAgent } from '../../libs/agentX402Client.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -35,7 +36,9 @@ ${toolsText}
 
 Response format: {"toolId": "<id>" | null, "params": {}}
 - Use "toolId" with one of the ids above if a tool fits the question; otherwise use "toolId": null.
-- For the "news" tool you may set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"}. For all other tools use "params": {}.
+- For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
+- For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin (e.g. "bitcoin signal" -> token bitcoin, "BTC signal" -> token bitcoin, "eth signal" -> token ethereum).
+- For all other tools use "params": {}.
 - If the question does not match any tool, respond with: {"toolId": null, "params": {}}`;
 
   const userContent = `User question: ${userMessage.trim()}`;
@@ -74,45 +77,22 @@ Response format: {"toolId": "<id>" | null, "params": {}}
   }
 }
 
-/** Get client payment header from request (for playground-style pay-then-retry). */
-function getClientPaymentHeader(req) {
-  const h =
-    (req.get && (req.get('X-Payment') || req.get('PAYMENT-SIGNATURE') || req.get('x-payment') || req.get('payment-signature'))) ||
-    (req.headers && (req.headers['x-payment'] || req.headers['payment-signature'] || req.headers['X-Payment'] || req.headers['PAYMENT-SIGNATURE']));
-  return typeof h === 'string' && h.trim() ? h.trim() : null;
-}
-
 /**
- * Fetch tool URL once; if 402, return { status: 402, body } so caller can proxy to client.
- * If client sent payment header, include it so paid resource may return 200.
+ * Call x402 v2 tool with agent wallet (server pays in one shot; agent balance is reduced on-chain).
+ * Uses callX402V2WithAgent so payment is always done server-side when a tool is used in chat.
  */
-async function fetchToolOnce(url, method, query, body, paymentHeader) {
-  const u = new URL(url);
-  if (query && method === 'GET') {
-    Object.entries(query).forEach(([k, v]) => {
-      if (v != null && v !== '') u.searchParams.set(k, String(v));
-    });
-  }
-  const opts = {
+async function callToolWithAgentWallet(anonymousId, url, method, query, body) {
+  const result = await callX402V2WithAgent({
+    anonymousId,
+    url,
     method: method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  };
-  if (paymentHeader) {
-    opts.headers['X-Payment'] = paymentHeader;
-    opts.headers['PAYMENT-SIGNATURE'] = paymentHeader;
+    query: method === 'GET' ? query || {} : {},
+    body: method === 'POST' ? body : undefined,
+  });
+  if (!result.success) {
+    return { status: 502, error: result.error };
   }
-  if (body && method === 'POST') {
-    opts.body = JSON.stringify(body);
-  }
-  const res = await fetch(u.toString(), opts);
-  const data = await res.json().catch(() => ({}));
-  if (res.status === 402) {
-    return { status: 402, body: data };
-  }
-  if (!res.ok) {
-    return { status: res.status, error: data?.error || res.statusText };
-  }
-  return { status: 200, data };
+  return { status: 200, data: result.data };
 }
 
 // POST /completion - Get LLM completion from Jatevo. Tool is chosen dynamically by Jatevo from the user question.
@@ -161,10 +141,15 @@ router.post('/completion', async (req, res) => {
       `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). Do not include raw JSON, code blocks showing tool calls, or blocks like {"tool": "..."} in your reply—turn all data into plain, well-formatted prose and tables only.`
     );
     if (anonymousId) {
-      const balanceResult = await getAgentUsdcBalance(anonymousId);
+      const balanceResult = await getAgentBalances(anonymousId);
       const usdcBalance = balanceResult?.usdcBalance ?? 0;
+      const solBalance = balanceResult?.solBalance ?? 0;
+      const agentAddr = balanceResult?.agentAddress ?? '';
       systemParts.push(
-        `User's agent wallet USDC balance: $${usdcBalance.toFixed(4)}. If the user asks for a paid tool and balance is 0 or lower than the tool price, explain that they need to deposit USDC to their agent wallet.`
+        `User's agent wallet balances: USDC $${usdcBalance.toFixed(4)}, SOL ${solBalance.toFixed(4)}. Agent wallet address: ${agentAddr || 'unknown'}.`
+      );
+      systemParts.push(
+        `Agent wallet knowledge: The agent wallet needs BOTH (1) USDC to pay for paid tools, and (2) SOL to pay Solana transaction fees. If the user has 0 or very low USDC, tell them to deposit USDC to their agent wallet to use paid tools. If the user has 0 or very low SOL (e.g. below 0.001), tell them to send a small amount of SOL (e.g. 0.01 SOL) to their agent wallet address so payments can be processed. If a paid tool fails with a message about "SOL for transaction fees" or "debit an account", explain clearly that they need to add SOL to their agent wallet for network fees. If the failure mentions "USDC" or "insufficient balance", explain they need to add USDC for the tool cost.`
       );
     }
     if (systemPrompt && typeof systemPrompt === 'string') {
@@ -172,6 +157,7 @@ router.post('/completion', async (req, res) => {
     }
     apiMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
 
+    let amountChargedUsd = 0;
     if (!matchedTool) {
       // No tool matched: let the agent answer from the system prompt (general chat vs out-of-scope).
       // Do not inject any extra message; the conversation goes to the LLM as-is.
@@ -191,23 +177,30 @@ router.post('/completion', async (req, res) => {
         if (usdcBalance > 0 && usdcBalance >= requiredUsdc) {
           const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
           const method = tool.method || 'GET';
-          const paymentHeader = getClientPaymentHeader(req);
-          const result = await fetchToolOnce(
+          // Pay with agent wallet server-side (balance reduces on-chain here)
+          const agentAddr = await getAgentAddress(anonymousId);
+          const result = await callToolWithAgentWallet(
+            anonymousId,
             url,
             method,
             method === 'GET' ? params : {},
-            method === 'POST' ? params : undefined,
-            paymentHeader
+            method === 'POST' ? params : undefined
           );
-          if (result.status === 402) {
-            return res.status(402).json(result.body);
-          }
           if (result.status !== 200) {
-            apiMessages.push({
-              role: 'user',
-              content: `[Paid tool "${tool.name}" failed: ${result.error || 'Request failed'}. Explain the tool was unavailable and suggest trying again or depositing USDC if needed.]`,
-            });
+            const err = result.error || 'Request failed';
+            const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
+            const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
+            let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
+            if (needsSol) {
+              instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
+            } else if (needsUsdc) {
+              instruction += ` Tell the user they need to deposit USDC to their agent wallet to pay for this tool.`;
+            } else {
+              instruction += ` Suggest they check their agent wallet has both USDC (for the tool) and SOL (for fees), or try again later.`;
+            }
+            apiMessages.push({ role: 'user', content: instruction });
           } else {
+            amountChargedUsd = tool.priceUsd;
             const toolContent = `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form only. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks in your reply.]\n\n${JSON.stringify(result.data, null, 2)}`;
             apiMessages.push({ role: 'user', content: toolContent });
           }
@@ -226,8 +219,11 @@ router.post('/completion', async (req, res) => {
       });
     }
 
-    const { response } = await callJatevo(apiMessages, { anonymousId });
-    return res.json({ success: true, response });
+    const { response, truncated } = await callJatevo(apiMessages, { anonymousId });
+    const payload = { success: true, response };
+    if (truncated) payload.truncated = true;
+    if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
+    return res.json(payload);
   } catch (error) {
     const status = error.status || 500;
     return res.status(status).json({

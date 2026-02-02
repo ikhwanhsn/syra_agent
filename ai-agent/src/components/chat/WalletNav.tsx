@@ -24,6 +24,7 @@ export function WalletNav() {
     connectedWalletShort,
     agentUsdcBalance,
     agentSolBalance,
+    lastDebitUsd,
   } = useAgentWallet();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -84,9 +85,11 @@ export function WalletNav() {
   const navItemClass =
     "h-9 rounded-lg border border-border bg-background px-2 sm:px-3 gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm inline-flex items-center min-w-0";
 
+  const balanceJustReduced = lastDebitUsd != null && lastDebitUsd > 0;
+
   return (
     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-      {/* Agent wallet – same height & style as connected wallet */}
+      {/* Agent wallet – same height & style as connected wallet; red blink when balance reduced by tool */}
       <div
         className={`hidden md:flex ${navItemClass} max-w-[180px] lg:max-w-[220px]`}
         title="Agent wallet · Click address to copy"
@@ -108,7 +111,8 @@ export function WalletNav() {
           )}
           {agentUsdcBalance != null && (
             <span
-              className={`shrink-0 text-xs tabular-nums ${hasUsdc ? "font-semibold text-emerald-500" : "text-muted-foreground"}`}
+              key={balanceJustReduced ? "blink" : "normal"}
+              className={`shrink-0 text-xs tabular-nums rounded px-0.5 ${hasUsdc ? "font-semibold text-emerald-500" : "text-muted-foreground"} ${balanceJustReduced ? "balance-blink-red" : ""}`}
               title="USDC balance"
             >
               ${formatUsdc(agentUsdcBalance)}

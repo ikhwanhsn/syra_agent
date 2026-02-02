@@ -6,6 +6,7 @@ import {
   encodePaymentResponseHeader,
 } from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 
 const CACHE_TTL_MS = 90 * 1000;
 const sentimentCache = new Map();
@@ -110,7 +111,11 @@ export async function createSentimentRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.query.ticker || "general";
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
       const { resourceServer } = getX402ResourceServer();
       const { payload, accepted } = req.x402Payment;
       const [sentimentAnalysis, settle] = await Promise.all([
@@ -148,7 +153,11 @@ export async function createSentimentRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.body.ticker || "general";
+      let ticker = req.body.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
       const { resourceServer } = getX402ResourceServer();
       const { payload, accepted } = req.x402Payment;
       const [sentimentAnalysis, settle] = await Promise.all([

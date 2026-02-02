@@ -51,7 +51,7 @@ function isLocalChat(id: string) {
 }
 
 export default function Index() {
-  const { ready, anonymousId, connectedWalletAddress } = useAgentWallet();
+  const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit } = useAgentWallet();
   const walletConnected = !!connectedWalletAddress;
   /** Can chat (anonymous or wallet session); when false, show connect-wallet gate. When true but !walletConnected, prompt to connect for tools. */
   const sessionReady = ready && !!anonymousId;
@@ -218,6 +218,36 @@ export default function Index() {
     }
   }, [anonymousId, activeChat, chats]);
 
+  const handleDeleteChats = useCallback(
+    async (ids: string[]) => {
+      const localIds = ids.filter((id) => isLocalChat(id));
+      const remoteIds = ids.filter((id) => !isLocalChat(id));
+      if (localIds.length > 0) {
+        setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: [] }));
+      }
+      if (remoteIds.length > 0 && anonymousId) {
+        try {
+          await Promise.all(remoteIds.map((id) => chatApi.delete(id, anonymousId)));
+        } catch {
+          // Silently fail; user can retry
+        }
+      }
+      const idSet = new Set(ids);
+      const remaining = chats.filter((c) => !idSet.has(c.id));
+      setChats(remaining);
+      setChatMessages((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => delete next[id]);
+        return next;
+      });
+      if (activeChat && idSet.has(activeChat)) {
+        setActiveChat(remaining[0]?.id ?? null);
+      }
+      setSidebarOpen(false);
+    },
+    [anonymousId, activeChat, chats]
+  );
+
   const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
     const trimmed = newTitle.trim();
     if (!trimmed) return;
@@ -324,12 +354,17 @@ export default function Index() {
     }));
 
     try {
-      const { response: responseText } = await chatApi.completion({
+      const { response: responseText, amountChargedUsd } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
       });
+
+      if (amountChargedUsd != null && amountChargedUsd > 0) {
+        reportDebit(amountChargedUsd);
+        refetchBalance();
+      }
 
       let charIndex = 0;
       const chunkSize = 24;
@@ -447,12 +482,17 @@ export default function Index() {
 
     setIsLoading(true);
     try {
-      const { response: responseText } = await chatApi.completion({
+      const { response: responseText, amountChargedUsd } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
       });
+
+      if (amountChargedUsd != null && amountChargedUsd > 0) {
+        reportDebit(amountChargedUsd);
+        refetchBalance();
+      }
 
       let charIndex = 0;
       const chunkSize = 24;
@@ -587,11 +627,10 @@ export default function Index() {
           onSelectChat={handleSelectChat}
           onNewChat={handleNewChat}
           onDeleteChat={handleDeleteChat}
+          onDeleteChats={handleDeleteChats}
           onRenameChat={handleRenameChat}
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           chatsLoading={chatsLoading}
           sessionReady={sessionReady}
           walletConnected={walletConnected}
@@ -623,12 +662,11 @@ export default function Index() {
               onSelectChat={handleSelectChat}
               onNewChat={handleNewChat}
               onDeleteChat={handleDeleteChat}
+              onDeleteChats={handleDeleteChats}
               onRenameChat={handleRenameChat}
               isOpen={true}
               onToggle={() => setSidebarOpen(!sidebarOpen)}
               onCollapse={() => sidebarPanelRef.current?.collapse()}
-              isDarkMode={isDarkMode}
-              onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
               chatsLoading={chatsLoading}
               sessionReady={sessionReady}
               walletConnected={walletConnected}
@@ -651,6 +689,8 @@ export default function Index() {
                 sessionReady={sessionReady}
                 walletConnected={walletConnected}
                 inputRef={chatInputRefDesktop}
+                isDarkMode={isDarkMode}
+                onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
               />
             </main>
           </ResizablePanel>
@@ -678,6 +718,8 @@ export default function Index() {
           sessionReady={sessionReady}
           walletConnected={walletConnected}
           inputRef={chatInputRefMobile}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         />
       </main>
       </div>
