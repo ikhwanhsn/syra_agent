@@ -1,6 +1,6 @@
 # PayAI x402 v2 Example Server (Shareable)
 
-This example is intentionally **small and generic** so you can share it with a developer (or their agent) without exposing any Wurk production code.
+This example is intentionally **small and generic** so you can share it with a developer (or their agent) without exposing any Syra production code.
 
 It is an Express server that implements **x402 v2** payments for **Solana** and **Base (EVM)** via a facilitator (PayAI, or any other compatible facilitator URL).
 
@@ -54,7 +54,7 @@ npm install
 
 Copy `docs/PAYAI_EXAMPLE_SERVER.env.example` to `.env` and fill values.
 
-This example server intentionally supports **the same env var names as the main Wurk x402 server**, plus optional `PAYAI_*` aliases.
+This example server intentionally supports **the same env var names as the main Syra x402 server**, plus optional `PAYAI_*` aliases.
 
 #### Env var mapping (recommended: use the standard names)
 
@@ -132,4 +132,7 @@ If a client complains about missing EIP-712 domain (`name`, `version`) for USDC,
 
 If you change `BASE_USDC` to a different token, you may need to adjust the EIP-712 domain details accordingly.
 
+## License
+
+MIT — see [LICENSE](../../LICENSE) at repo root.
 

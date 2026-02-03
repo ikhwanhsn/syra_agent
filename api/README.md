@@ -34,3 +34,9 @@ npm run dev
 ```
 
 See repo root [README.md](../README.md) and [docs](https://syra.gitbook.io/syra-docs) for full setup and env details.
+
+---
+
+## License
+
+MIT — see [LICENSE](../LICENSE) at repo root.

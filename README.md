@@ -35,13 +35,13 @@ Instead of hype or speculation, Syra focuses on **structured research**, **risk-
 
 | Platform | Description |
 |----------|-------------|
-| **x402 Autonomous Agent** | Ranked #1 on x402scan ? executes research & insights workflows |
+| **x402 Autonomous Agent** | Ranked #1 on x402scan — executes research & insights workflows |
 | **Telegram Bot** | Chat-based access to market analysis & insights |
 | **API & Workflows** | Integrates with tools like n8n & automation pipelines |
 | **Data & Signal Engine** | Processes indicators, trends, & on-chain movements |
 | **AI Reasoning Layer** | Synthesizes signals into structured interpretations |
 
-Syra is designed as **an intelligence layer ? not just a signal bot**.
+Syra is designed as **an intelligence layer — not just a signal bot**.
 
 ---
 
@@ -79,20 +79,22 @@ Syra runs as an autonomous research agent on **x402scan**, currently ranked **#1
 | **`api`** | Backend API and services |
 | **`frontend`** | Next.js dashboard and app |
 | **`landing`** | Marketing/landing site (Vite + React) |
+| **`ai-agent`** | AI agent web app (chat, marketplace, x402) |
 | **`docs`** | Docusaurus documentation site |
 | **`api-playground`** | API testing and exploration UI |
 | **`prediction-game`** | Prediction game app + server |
+| **`payai-x402-example`** | PayAI x402 v2 example server (shareable) |
 
 ---
 
 ## Key Highlights
 
-- **AI-Assisted Insights** ? Multiple indicators + reasoning ? structured trade outlooks
-- **Real-Time Market Data** ? Powered by live technical & contextual data sources
-- **Research-Driven Output** ? Focused on understanding, not blind execution
-- **Multi-Platform Access** ? Telegram, x402 Agent, automation workflows
-- **Educational Context** ? Every output includes explanations & indicators
-- **Agentic Automation** ? Syra automates analysis pipelines across platforms
+- **AI-Assisted Insights** — Multiple indicators + reasoning → structured trade outlooks
+- **Real-Time Market Data** — Powered by live technical & contextual data sources
+- **Research-Driven Output** — Focused on understanding, not blind execution
+- **Multi-Platform Access** — Telegram, x402 Agent, automation workflows
+- **Educational Context** — Every output includes explanations & indicators
+- **Agentic Automation** — Syra automates analysis pipelines across platforms
 
 ---
 
@@ -113,4 +115,10 @@ Full documentation (getting started, commands, API, tokenomics, x402 agent) is a
 - Expanding across multi-surface agent environments
 - Evolving through real-world usage & community feedback
 
-Syra is not built to replace decision-making ? it is built to **enhance understanding.**
+Syra is not built to replace decision-making — it is built to **enhance understanding.**
+
+---
+
+## License
+
+This project is open source under the [MIT License](LICENSE).

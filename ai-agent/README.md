@@ -1,73 +1,44 @@
-# Welcome to your Lovable project
+# ai-agent
 
-## Project info
+## Purpose of this folder
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+The **ai-agent** folder is the **Syra AI Agent web app**. It is a Vite + React (TypeScript) application that provides:
 
-## How can I edit this code?
+- **AI chat** — web-based chat that explains Syra, tokens, and trading logic.
+- **Marketplace** — browse and use Syra agents and x402 pay-per-use flows.
+- **Shareable chats** — share chat sessions via URL.
+- **Solana wallet** — connect wallet for x402 payments and agent actions.
 
-There are several ways of editing your application.
+It uses the **api** backend and integrates with the x402 agent ecosystem (e.g. x402scan). Built with Vite, React, shadcn-ui, Tailwind, and Solana wallet adapters.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Build:** Vite, TypeScript
+- **UI:** React, shadcn-ui, Tailwind CSS, Radix UI
+- **Wallet:** Solana wallet adapters
+- **Testing:** Vitest, Testing Library
+- **Deploy:** Vercel (vercel.json)
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Run locally
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+cd ai-agent
+npm install
+# Set env if needed (API URL, etc.)
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+- **Build:** `npm run build` or `npm run build:dev`
+- **Preview:** `npm run preview`
+- **Test:** `npm run test` or `npm run test:watch`
+- **Lint:** `npm run lint`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## License
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT — see [LICENSE](../LICENSE) at repo root.
