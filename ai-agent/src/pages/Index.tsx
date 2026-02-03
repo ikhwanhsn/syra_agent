@@ -237,13 +237,15 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   }, [initialChatId, initialChat]);
 
   // When no chat or only local chat is selected, ensure URL is / (e.g. after deleting all chats).
+  // Skip when we have initialChatId: owner opened /c/:shareId and we're about to restore that chat (don't navigate away).
   // Use window.location.pathname because we may have set URL via replaceState, so React Router still thinks we're at "/".
   useEffect(() => {
+    if (initialChatId) return;
     if (activeChat !== null && !isLocalChat(activeChat)) return;
     const pathname = typeof window !== "undefined" ? window.location.pathname : location.pathname;
     if (pathname === "/" || !pathname.startsWith("/c/")) return;
     navigate("/", { replace: true });
-  }, [activeChat, location.pathname, navigate]);
+  }, [initialChatId, activeChat, location.pathname, navigate]);
 
   // Update browser URL to current chat share link only after history exists (avoids blink: we use replaceState so we stay on same route and don't remount).
   useEffect(() => {

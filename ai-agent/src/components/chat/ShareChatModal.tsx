@@ -51,8 +51,7 @@ export function ShareChatModal({
 
   const handleSaveSetting = useCallback(() => {
     toast({ title: "Settings saved", description: isSharePublic ? "Chat is now public." : "Chat is now private." });
-    onOpenChange(false);
-  }, [isSharePublic, onOpenChange, toast]);
+  }, [isSharePublic, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
