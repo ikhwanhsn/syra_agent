@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { LINK_AGENT } from "../../config/global";
+import { API_BASE, LINK_AGENT } from "../../config/global";
 
 type SortKey = "rank" | "wallet" | "volume" | "toolsCalls" | "totalReward";
 
@@ -44,7 +44,7 @@ export default function Leaderboard() {
       setLoading(true);
       try {
         const response = await fetch(
-          `https://api.syraa.fun/leaderboard?period=${timeFilter}`,
+          `${API_BASE}/leaderboard?period=${timeFilter}`,
         );
         const result = await response.json();
 

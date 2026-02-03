@@ -243,3 +243,17 @@ export function microUsdcToUsd(microUsdc) {
 export function getX402Handler() {
   return x402;
 }
+
+/**
+ * Settle payment and record paid API call for KPI tracking.
+ * Use in V1 routes after successful response: await settlePaymentAndRecord(req).
+ * @param {object} req - Express request with req.x402Payment
+ */
+export async function settlePaymentAndRecord(req) {
+  const { recordPaidApiCall } = await import("./recordPaidApiCall.js");
+  await x402.settlePayment(
+    req.x402Payment.paymentHeader,
+    req.x402Payment.paymentRequirements
+  );
+  await recordPaidApiCall(req);
+}

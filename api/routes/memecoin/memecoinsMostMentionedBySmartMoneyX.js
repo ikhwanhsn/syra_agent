@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../utils/x402Payment.js";
+import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
@@ -43,10 +43,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          const paymentResult = await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements,
-          );
+          await settlePaymentAndRecord(req);
 
           // Buyback and burn SYRA token (80% of revenue)
           let burnResult = null;
@@ -110,10 +107,7 @@ export async function createMemecoinsMostMentionedBySmartMoneyXRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          const paymentResult = await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements,
-          );
+          await settlePaymentAndRecord(req);
 
           // Buyback and burn SYRA token (80% of revenue)
           let burnResult = null;

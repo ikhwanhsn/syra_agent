@@ -1,5 +1,5 @@
 import express from "express";
-import { getX402Handler, requirePayment } from "../../../utils/x402Payment.js";
+import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_PUMP_USD } from "../../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../../../libs/atxp/researchService.js";
@@ -127,10 +127,7 @@ export async function createPumpRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await getX402Handler().settlePayment(
-            req.x402Payment.paymentHeader,
-            req.x402Payment.paymentRequirements
-          );
+          await settlePaymentAndRecord(req);
 
           res.json({ status, content, sources });
         }

@@ -17,6 +17,7 @@ const navLinks = [
   { label: "Token", href: "#token" },
   { label: "Roadmap", href: "#roadmap" },
   { label: "FAQ", href: "#faq" },
+  { label: "Analytics", href: "/analytics" },
 ];
 
 export const Navbar = () => {

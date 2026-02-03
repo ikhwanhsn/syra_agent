@@ -19,6 +19,7 @@ import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getX402ResourceServer, ensureX402ResourceServerInitialized } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+import { recordPaidApiCall } from "../../utils/recordPaidApiCall.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -312,6 +313,8 @@ export async function settlePaymentAndSetResponse(res, req) {
     throw new Error(settle?.errorReason || "Settlement failed");
   }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+  // KPI tracking: record paid API call (fire-and-forget)
+  runAfterResponse(() => recordPaidApiCall(req));
   return settle;
 }
 

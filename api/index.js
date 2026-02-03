@@ -33,6 +33,7 @@ import { createTrendingHeadlineRouter } from "./routes/trending-headline.js";
 import { createSundownDigestRouter } from "./routes/sundown-digest.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
+import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createBubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 import { createFastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fastestHolderGrowthMemecoins.js";
 import { createMemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
@@ -128,6 +129,9 @@ const CORS_OPTIONS_X402 = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
+    "api-key",
+    "Api-Key",
+    "API-KEY",
     "Payment-Signature",
     "PAYMENT-SIGNATURE",
     "Payment-Required",
@@ -143,6 +147,9 @@ const CORS_OPTIONS_REGULAR = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
+    "api-key",
+    "Api-Key",
+    "API-KEY",
     "Payment-Signature",
     "PAYMENT-SIGNATURE",
     "Payment-Required",
@@ -458,6 +465,7 @@ app.use("/trending-headline", await createTrendingHeadlineRouter());
 app.use("/sundown-digest", await createSundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
+app.use("/analytics", await createAnalyticsRouter());
 app.use("/bubblemaps/maps", await createBubblemapsMapsRouter());
 app.use(
   "/memecoin/fastest-holder-growth",
