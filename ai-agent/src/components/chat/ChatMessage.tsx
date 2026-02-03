@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { Bot, User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle } from "lucide-react";
+import { User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -94,7 +94,7 @@ interface ChatMessageProps {
   isRegenerateDisabled?: boolean;
 }
 
-export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, isRegenerateDisabled }: ChatMessageProps) {
+export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "/logo.jpg", onRegenerate, isRegenerateDisabled }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
 
@@ -230,8 +230,8 @@ export function ChatMessage({ message, agentName = "Syra Agent", onRegenerate, i
           </div>
         ) : (
           <div className="relative">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
-              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0">
+              <img src={agentAvatar} alt={agentName} className="w-full h-full object-cover" />
             </div>
             {message.isStreaming && (
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
@@ -407,10 +407,10 @@ export function LoadingStepMessage({
 
   return (
     <div className="group flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-secondary/30 animate-fade-in min-w-0">
-      {/* Avatar — matches ChatMessage assistant: Bot icon */}
+      {/* Avatar — matches ChatMessage assistant: brand logo */}
       <div className="flex-shrink-0">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow-sm">
-          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card">
+          <img src="/logo.jpg" alt={agentName} className="w-full h-full object-cover" />
         </div>
       </div>
 

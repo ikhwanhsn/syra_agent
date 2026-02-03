@@ -21,6 +21,8 @@ export interface ApiChat {
   preview: string;
   agentId?: string;
   systemPrompt?: string;
+  shareId: string | null;
+  isPublic: boolean;
   messages?: ApiMessage[];
   timestamp: string;
   createdAt?: string;
@@ -50,6 +52,39 @@ export const chatApi = {
     return handleRes(res);
   },
 
+  /**
+   * Get chat by share link. Pass anonymousId to detect owner (owner can always access).
+   * Returns chat + isOwner when successful.
+   */
+  async getByShareId(
+    shareId: string,
+    anonymousId?: string | null
+  ): Promise<
+    | { success: true; chat: ApiChat; isOwner: boolean }
+    | { success: false; private: true; error: string; message?: string }
+    | { success: false; error: string }
+  > {
+    const params = new URLSearchParams();
+    if (anonymousId?.trim()) params.set("anonymousId", anonymousId.trim());
+    const qs = params.toString();
+    const url = `${base()}/share/${encodeURIComponent(shareId)}${qs ? `?${qs}` : ""}`;
+    const res = await fetch(url);
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 403 && (data as { private?: boolean }).private) {
+      return {
+        success: false,
+        private: true,
+        error: (data as { error?: string }).error ?? "This chat is private",
+        message: (data as { message?: string }).message,
+      };
+    }
+    if (!res.ok) {
+      return { success: false, error: (data as { error?: string })?.error ?? res.statusText };
+    }
+    const isOwner = !!(data as { isOwner?: boolean }).isOwner;
+    return { success: true, chat: data as ApiChat, isOwner };
+  },
+
   /** Create a chat scoped to anonymousId (wallet/user). */
   async create(anonymousId: string, options?: {
     title?: string;
@@ -68,7 +103,7 @@ export const chatApi = {
   async update(
     id: string,
     anonymousId: string,
-    payload: { title?: string; preview?: string; agentId?: string; systemPrompt?: string }
+    payload: { title?: string; preview?: string; agentId?: string; systemPrompt?: string; isPublic?: boolean }
   ): Promise<{ chat: ApiChat }> {
     const res = await fetch(`${base()}/${id}`, {
       method: "PATCH",

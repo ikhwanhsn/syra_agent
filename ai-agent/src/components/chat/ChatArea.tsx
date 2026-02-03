@@ -9,6 +9,7 @@ import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
+import { ShareChatModal } from "./ShareChatModal";
 
 /** Pixel threshold: if within this distance from bottom, consider "at bottom" for follow-scroll. */
 const SCROLL_BOTTOM_THRESHOLD = 80;

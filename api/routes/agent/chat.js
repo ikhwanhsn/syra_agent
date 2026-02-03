@@ -12,13 +12,16 @@ import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
 
+const MAX_TOOLS_PER_REQUEST = 3;
+
 /**
- * Use Jatevo LLM to pick the best tool (and optional params) from the user question.
+ * Use Jatevo LLM to pick up to 3 most relevant tools (and optional params) from the user question.
+ * Returns tools ordered by relevance (most relevant first).
  * @param {string} userMessage - Last user message
- * @returns {Promise<{ toolId: string; params?: Record<string, string> } | null>}
+ * @returns {Promise<Array<{ toolId: string; params?: Record<string, string> }>>}
  */
-async function selectToolWithLlm(userMessage) {
-  if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) return null;
+async function selectToolsWithLlm(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) return [];
 
   const tools = getToolsForLlmSelection();
   const toolsText = tools
@@ -29,17 +32,19 @@ async function selectToolWithLlm(userMessage) {
     })
     .join('\n');
 
-  const systemContent = `You are a tool selector. Given the user's question, pick exactly ONE tool from the list below that best helps answer it. You must respond with ONLY a valid JSON object, no markdown, no explanation, no other text.
+  const systemContent = `You are a tool selector. Given the user's question, pick the tools from the list below that are MOST relevant to answering it. You may pick 1, 2, or up to 3 tools—only include tools that clearly help answer the question. Order by relevance (most relevant first). You must respond with ONLY a valid JSON object, no markdown, no explanation, no other text.
 
 Available tools (id, name, description):
 ${toolsText}
 
-Response format: {"toolId": "<id>" | null, "params": {}}
-- Use "toolId" with one of the ids above if a tool fits the question; otherwise use "toolId": null.
+Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
+- "tools" must be an array. Include 1 to 3 tools that best match the question; use [] if no tool fits.
+- Each tool object: "toolId" (one of the ids above), "params" (object, see below).
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
-- For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin (e.g. "bitcoin signal" -> token bitcoin, "BTC signal" -> token bitcoin, "eth signal" -> token ethereum).
+- For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
 - For all other tools use "params": {}.
-- If the question does not match any tool, respond with: {"toolId": null, "params": {}}`;
+- Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.
+- If the question does not match any tool, respond with: {"tools": []}`;
 
   const userContent = `User question: ${userMessage.trim()}`;
 
@@ -49,7 +54,7 @@ Response format: {"toolId": "<id>" | null, "params": {}}
         { role: 'system', content: systemContent },
         { role: 'user', content: userContent },
       ],
-      { max_tokens: 200, temperature: 0.2 }
+      { max_tokens: 400, temperature: 0.2 }
     );
 
     const raw = (response || '').trim();
@@ -57,23 +62,29 @@ Response format: {"toolId": "<id>" | null, "params": {}}
     const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlock) jsonStr = codeBlock[1].trim();
     const parsed = JSON.parse(jsonStr);
-    const toolId = parsed?.toolId;
-    if (toolId == null || typeof toolId !== 'string') return null;
-
-    const tool = getAgentTool(toolId);
-    if (!tool) return null;
-
-    const params =
-      parsed.params && typeof parsed.params === 'object' && !Array.isArray(parsed.params)
-        ? Object.fromEntries(
-            Object.entries(parsed.params).filter(
-              ([k, v]) => typeof k === 'string' && (v == null || typeof v === 'string')
+    const toolsList = Array.isArray(parsed?.tools) ? parsed.tools : [];
+    const result = [];
+    const seen = new Set();
+    for (const item of toolsList) {
+      if (result.length >= MAX_TOOLS_PER_REQUEST) break;
+      const toolId = item?.toolId;
+      if (toolId == null || typeof toolId !== 'string' || seen.has(toolId)) continue;
+      const tool = getAgentTool(toolId);
+      if (!tool) continue;
+      seen.add(toolId);
+      const params =
+        item.params && typeof item.params === 'object' && !Array.isArray(item.params)
+          ? Object.fromEntries(
+              Object.entries(item.params).filter(
+                ([k, v]) => typeof k === 'string' && (v == null || typeof v === 'string')
+              )
             )
-          )
-        : {};
-    return { toolId, params };
+          : {};
+      result.push({ toolId, params });
+    }
+    return result;
   } catch (err) {
-    return null;
+    return [];
   }
 }
 
@@ -117,10 +128,18 @@ router.post('/completion', async (req, res) => {
       .pop();
 
     const toolSelectStart = Date.now();
-    const matchedTool =
-      clientToolRequest?.toolId != null
-        ? { toolId: clientToolRequest.toolId, params: clientToolRequest.params }
-        : await selectToolWithLlm(lastUserMessage);
+    /** @type {Array<{ toolId: string; params?: Record<string, string> }>} */
+    let matchedTools;
+    if (clientToolRequest?.toolId != null) {
+      matchedTools = [{ toolId: clientToolRequest.toolId, params: clientToolRequest.params || {} }];
+    } else if (Array.isArray(clientToolRequest?.tools) && clientToolRequest.tools.length > 0) {
+      matchedTools = clientToolRequest.tools
+        .slice(0, MAX_TOOLS_PER_REQUEST)
+        .filter((t) => t?.toolId && getAgentTool(t.toolId))
+        .map((t) => ({ toolId: t.toolId, params: t.params || {} }));
+    } else {
+      matchedTools = await selectToolsWithLlm(lastUserMessage);
+    }
 
     const capabilitiesList = getCapabilitiesList().join('\n');
 
@@ -138,7 +157,7 @@ router.post('/completion', async (req, res) => {
       `When the user asks for something specific (e.g. "give me X", "show me Y data") that is not covered by the tools above, then say Syra doesn't have that capability right now and briefly list what Syra can do. Do not make up data or use general knowledge for topics that require a tool we don't have.`
     );
     systemParts.push(
-      `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). Do not include raw JSON, code blocks showing tool calls, or blocks like {"tool": "..."} in your reply—turn all data into plain, well-formatted prose and tables only.`
+      `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). Do not include raw JSON, code blocks showing tool calls, or blocks like {"tool": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
     );
     if (anonymousId) {
       const balanceResult = await getAgentBalances(anonymousId);
@@ -158,64 +177,75 @@ router.post('/completion', async (req, res) => {
     apiMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
 
     let amountChargedUsd = 0;
-    if (!matchedTool) {
-      // No tool matched: let the agent answer from the system prompt (general chat vs out-of-scope).
-      // Do not inject any extra message; the conversation goes to the LLM as-is.
+    if (!matchedTools || matchedTools.length === 0) {
+      // No tools matched: let the agent answer from the system prompt (general chat vs out-of-scope).
     } else if (walletConnected === false) {
-      // User has not connected a wallet; don't call the tool—ask them to connect.
+      const toolIds = matchedTools.map((t) => t.toolId).join(', ');
       apiMessages.push({
         role: 'user',
-        content: `[The user asked for something that requires a paid tool (${matchedTool.toolId}), but they have not connected a wallet. Reply that they need to connect their wallet to use tools and get this information. You can mention they can chat about crypto without a wallet, but tools and realtime data require a connected wallet.]`,
+        content: `[The user asked for something that requires paid tool(s) (${toolIds}), but they have not connected a wallet. Reply that they need to connect their wallet to use tools and get this information. You can mention they can chat about crypto without a wallet, but tools and realtime data require a connected wallet.]`,
       });
     } else if (anonymousId) {
-      const tool = getAgentTool(matchedTool.toolId);
-      const params = typeof matchedTool.params === 'object' ? matchedTool.params || {} : {};
-      if (tool) {
-        const balanceResult = await getAgentUsdcBalance(anonymousId);
-        const usdcBalance = balanceResult?.usdcBalance ?? 0;
+      let usdcBalance = (await getAgentUsdcBalance(anonymousId))?.usdcBalance ?? 0;
+      const toolResults = [];
+      const toolErrors = [];
+      for (const matched of matchedTools) {
+        const tool = getAgentTool(matched.toolId);
+        const params = typeof matched.params === 'object' ? matched.params || {} : {};
+        if (!tool) continue;
         const requiredUsdc = tool.priceUsd;
-        if (usdcBalance > 0 && usdcBalance >= requiredUsdc) {
-          const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
-          const method = tool.method || 'GET';
-          // Pay with agent wallet server-side (balance reduces on-chain here)
-          const agentAddr = await getAgentAddress(anonymousId);
-          const result = await callToolWithAgentWallet(
-            anonymousId,
-            url,
-            method,
-            method === 'GET' ? params : {},
-            method === 'POST' ? params : undefined
-          );
-          if (result.status !== 200) {
-            const err = result.error || 'Request failed';
-            const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
-            const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
-            let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
-            if (needsSol) {
-              instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
-            } else if (needsUsdc) {
-              instruction += ` Tell the user they need to deposit USDC to their agent wallet to pay for this tool.`;
-            } else {
-              instruction += ` Suggest they check their agent wallet has both USDC (for the tool) and SOL (for fees), or try again later.`;
-            }
-            apiMessages.push({ role: 'user', content: instruction });
-          } else {
-            amountChargedUsd = tool.priceUsd;
-            const toolContent = `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form only. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks in your reply.]\n\n${JSON.stringify(result.data, null, 2)}`;
-            apiMessages.push({ role: 'user', content: toolContent });
-          }
-        } else {
+        if (usdcBalance <= 0 || usdcBalance < requiredUsdc) {
           const msg =
             usdcBalance <= 0
               ? `The user's agent wallet has 0 USDC balance. The requested paid tool (${tool.name}) costs $${requiredUsdc.toFixed(4)}. Explain that they need to deposit USDC to their agent wallet to use this feature.`
               : `The user's agent wallet has insufficient USDC (balance: $${usdcBalance.toFixed(4)}, required for ${tool.name}: $${requiredUsdc.toFixed(4)}). Explain this and ask them to deposit more USDC.`;
-          apiMessages.push({ role: 'user', content: msg });
+          toolErrors.push(msg);
+          continue;
+        }
+        const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
+        const method = tool.method || 'GET';
+        const result = await callToolWithAgentWallet(
+          anonymousId,
+          url,
+          method,
+          method === 'GET' ? params : {},
+          method === 'POST' ? params : undefined
+        );
+        if (result.status !== 200) {
+          const err = result.error || 'Request failed';
+          const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
+          const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
+          let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
+          if (needsSol) {
+            instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
+          } else if (needsUsdc) {
+            instruction += ` Tell the user they need to deposit USDC to their agent wallet to pay for this tool.`;
+          } else {
+            instruction += ` Suggest they check their agent wallet has both USDC (for the tool) and SOL (for fees), or try again later.`;
+          }
+          toolErrors.push(instruction);
+        } else {
+          amountChargedUsd += tool.priceUsd;
+          usdcBalance -= tool.priceUsd;
+          toolResults.push(
+            `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.]\n\n${JSON.stringify(result.data, null, 2)}`
+          );
+        }
+      }
+      if (toolErrors.length > 0 && toolResults.length === 0) {
+        apiMessages.push({ role: 'user', content: toolErrors[0] });
+      } else if (toolResults.length > 0) {
+        const combined = toolResults.join('\n\n---\n\n');
+        apiMessages.push({ role: 'user', content: combined });
+        if (toolErrors.length > 0) {
+          apiMessages.push({ role: 'user', content: toolErrors.join(' ') });
         }
       }
     } else {
+      const toolIds = matchedTools.map((t) => t.toolId).join(', ');
       apiMessages.push({
         role: 'user',
-        content: `[The user asked for a paid tool (${matchedTool.toolId}) but no agent wallet is linked. Reply that they need to connect or create an agent wallet and deposit USDC to use Syra's paid features.]`,
+        content: `[The user asked for paid tool(s) (${toolIds}) but no agent wallet is linked. Reply that they need to connect or create an agent wallet and deposit USDC to use Syra's paid features.]`,
       });
     }
 
@@ -233,7 +263,81 @@ router.post('/completion', async (req, res) => {
   }
 });
 
+// GET /share/:shareId - Get chat by share link. Optional query anonymousId for owner check.
+// If anonymousId matches owner: 200 with full chat + isOwner: true (owner can always access).
+// If chat is public and not owner: 200 with read-only payload + isOwner: false.
+// If chat is private and not owner: 403.
+router.get('/share/:shareId', async (req, res) => {
+  try {
+    const { shareId } = req.params;
+    const { anonymousId } = req.query;
+    if (!shareId || typeof shareId !== 'string' || !shareId.trim()) {
+      return res.status(400).json({ success: false, error: 'shareId is required' });
+    }
+    const chat = await Chat.findOne({ shareId: shareId.trim() }).lean();
+    if (!chat) {
+      return res.status(404).json({ success: false, error: 'Chat not found' });
+    }
+    const ownerId = (chat.anonymousId || '').toString();
+    const isOwner =
+      anonymousId &&
+      typeof anonymousId === 'string' &&
+      anonymousId.trim() &&
+      ownerId === anonymousId.trim();
+
+    if (isOwner) {
+      const messages = (chat.messages || []).map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp,
+        toolUsage: m.toolUsage,
+      }));
+      return res.json({
+        id: chat._id.toString(),
+        shareId: chat.shareId,
+        title: chat.title,
+        preview: chat.preview,
+        messages,
+        timestamp: chat.updatedAt,
+        isPublic: !!chat.isPublic,
+        isOwner: true,
+      });
+    }
+
+    if (!chat.isPublic) {
+      return res.status(403).json({
+        success: false,
+        private: true,
+        error: 'This chat is private',
+        message: 'The owner has not made this chat public. Only they can view it.',
+      });
+    }
+
+    const messages = (chat.messages || []).map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp,
+      toolUsage: m.toolUsage,
+    }));
+    res.json({
+      id: chat._id.toString(),
+      shareId: chat.shareId,
+      title: chat.title,
+      preview: chat.preview,
+      messages,
+      timestamp: chat.updatedAt,
+      isPublic: true,
+      isOwner: false,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET / - List chats for the given anonymousId (newest first). Scoped by wallet/user.
+// Backfill shareId for any chat that doesn't have one (e.g. created before share feature).
 router.get('/', async (req, res) => {
   try {
     const { anonymousId, limit = 50 } = req.query;
@@ -241,11 +345,17 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
     const ownerId = anonymousId.trim();
+    const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
     const chats = await Chat.find({ anonymousId: ownerId })
       .sort({ updatedAt: -1 })
-      .limit(parseInt(limit, 10))
-      .select('title preview agentId systemPrompt updatedAt createdAt')
-      .lean();
+      .limit(limitNum);
+
+    for (const chat of chats) {
+      if (!chat.shareId) {
+        chat.shareId = Chat.generateShareId();
+        await chat.save();
+      }
+    }
 
     const result = chats.map((c) => ({
       id: c._id.toString(),
@@ -253,6 +363,8 @@ router.get('/', async (req, res) => {
       preview: c.preview,
       agentId: c.agentId,
       systemPrompt: c.systemPrompt,
+      shareId: c.shareId ?? null,
+      isPublic: !!c.isPublic,
       timestamp: c.updatedAt,
       updatedAt: c.updatedAt,
       createdAt: c.createdAt,
@@ -272,7 +384,17 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
     const ownerId = anonymousId.trim();
-    const chat = new Chat({ anonymousId: ownerId, title, preview, agentId, systemPrompt, messages: [] });
+    const shareId = Chat.generateShareId();
+    const chat = new Chat({
+      anonymousId: ownerId,
+      title,
+      preview,
+      agentId,
+      systemPrompt,
+      messages: [],
+      shareId,
+      isPublic: false,
+    });
     await chat.save();
 
     res.status(201).json({
@@ -283,6 +405,8 @@ router.post('/', async (req, res) => {
         preview: chat.preview,
         agentId: chat.agentId,
         systemPrompt: chat.systemPrompt,
+        shareId: chat.shareId,
+        isPublic: !!chat.isPublic,
         messages: [],
         timestamp: chat.updatedAt,
         createdAt: chat.createdAt,
@@ -303,12 +427,18 @@ router.get('/:id', async (req, res) => {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
     const ownerId = anonymousId.trim();
-    const chat = await Chat.findOne({ _id: id, anonymousId: ownerId }).lean();
+    let chat = await Chat.findOne({ _id: id, anonymousId: ownerId });
     if (!chat) {
       return res.status(404).json({ success: false, error: 'Chat not found' });
     }
+    // Backfill shareId for legacy chats
+    if (!chat.shareId) {
+      chat.shareId = Chat.generateShareId();
+      await chat.save();
+    }
+    const c = chat.toObject ? chat.toObject() : chat;
 
-    const messages = (chat.messages || []).map((m) => ({
+    const messages = (c.messages || []).map((m) => ({
       id: m.id,
       role: m.role,
       content: m.content,
@@ -317,15 +447,17 @@ router.get('/:id', async (req, res) => {
     }));
 
     res.json({
-      id: chat._id.toString(),
-      title: chat.title,
-      preview: chat.preview,
-      agentId: chat.agentId,
-      systemPrompt: chat.systemPrompt,
+      id: c._id.toString(),
+      title: c.title,
+      preview: c.preview,
+      agentId: c.agentId,
+      systemPrompt: c.systemPrompt,
+      shareId: c.shareId ?? null,
+      isPublic: !!c.isPublic,
       messages,
-      timestamp: chat.updatedAt,
-      createdAt: chat.createdAt,
-      updatedAt: chat.updatedAt,
+      timestamp: c.updatedAt,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -336,7 +468,7 @@ router.get('/:id', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { anonymousId, title, preview, agentId, systemPrompt } = req.body || {};
+    const { anonymousId, title, preview, agentId, systemPrompt, isPublic } = req.body || {};
     if (!anonymousId || typeof anonymousId !== 'string' || !anonymousId.trim()) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
@@ -346,27 +478,38 @@ router.patch('/:id', async (req, res) => {
     if (preview !== undefined) update.preview = preview;
     if (agentId !== undefined) update.agentId = agentId;
     if (systemPrompt !== undefined) update.systemPrompt = systemPrompt;
+    if (typeof isPublic === 'boolean') update.isPublic = isPublic;
 
-    const chat = await Chat.findOneAndUpdate(
+    let chat = await Chat.findOne({ _id: id, anonymousId: ownerId });
+    if (!chat) {
+      return res.status(404).json({ success: false, error: 'Chat not found' });
+    }
+    if (!chat.shareId) {
+      chat.shareId = Chat.generateShareId();
+      await chat.save();
+    }
+    const updated = await Chat.findOneAndUpdate(
       { _id: id, anonymousId: ownerId },
       { $set: update },
       { new: true, runValidators: true }
     ).lean();
 
-    if (!chat) {
+    if (!updated) {
       return res.status(404).json({ success: false, error: 'Chat not found' });
     }
 
     res.json({
       success: true,
       chat: {
-        id: chat._id.toString(),
-        title: chat.title,
-        preview: chat.preview,
-        agentId: chat.agentId,
-        systemPrompt: chat.systemPrompt,
-        timestamp: chat.updatedAt,
-        updatedAt: chat.updatedAt,
+        id: updated._id.toString(),
+        title: updated.title,
+        preview: updated.preview,
+        agentId: updated.agentId,
+        systemPrompt: updated.systemPrompt,
+        shareId: updated.shareId ?? null,
+        isPublic: !!updated.isPublic,
+        timestamp: updated.updatedAt,
+        updatedAt: updated.updatedAt,
       },
     });
   } catch (error) {

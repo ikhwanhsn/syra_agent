@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
@@ -31,6 +32,8 @@ interface Chat {
   timestamp: Date;
   preview: string;
   messages: Message[];
+  shareId?: string | null;
+  isPublic?: boolean;
 }
 
 function toMessage(m: { id: string; role: string; content: string; timestamp: string | Date; toolUsage?: { name: string; status: string } }): Message {
@@ -50,7 +53,25 @@ function isLocalChat(id: string) {
   return id === LOCAL_CHAT_ID;
 }
 
-export default function Index() {
+export interface IndexInitialChat {
+  id: string;
+  title: string;
+  preview: string;
+  shareId?: string | null;
+  isPublic?: boolean;
+  timestamp?: string | Date;
+  messages?: Array<{ id: string; role: string; content: string; timestamp: string | Date; toolUsage?: unknown }>;
+}
+
+interface IndexProps {
+  initialChatId?: string;
+  initialChat?: IndexInitialChat;
+}
+
+export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit } = useAgentWallet();
   const walletConnected = !!connectedWalletAddress;
   /** Can chat (anonymous or wallet session); when false, show connect-wallet gate. When true but !walletConnected, prompt to connect for tools. */
@@ -78,13 +99,18 @@ export default function Index() {
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
   const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
 
-  // When wallet changes (anonymousId changes), clear chat state so we show the correct wallet's history
+  // When wallet changes (anonymousId changes), clear chat state so we show the correct wallet's history.
+  // Skip when restoring from /c/:shareId (initialChatId) so refresh on a chat link keeps that chat.
+  const prevAnonymousIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!anonymousId) return;
+    if (initialChatId) return; // restoring from share link, don't clear
+    if (prevAnonymousIdRef.current === anonymousId) return; // same user, only skip clear on first mount
+    prevAnonymousIdRef.current = anonymousId;
     setChats([]);
     setActiveChat(null);
     setChatMessages({});
-  }, [anonymousId]);
+  }, [anonymousId, initialChatId]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -107,6 +133,8 @@ export default function Index() {
           preview: c.preview,
           timestamp: typeof c.timestamp === "string" ? new Date(c.timestamp) : new Date(c.timestamp),
           messages: [],
+          shareId: c.shareId ?? null,
+          isPublic: !!c.isPublic,
         }))
       );
     } catch (err) {
@@ -123,6 +151,7 @@ export default function Index() {
   }, [anonymousId]);
 
   // Load chat list from server only when wallet is connected (history is saved). When not connected, use local-only chat.
+  // When restoring from /c/:shareId we already have the chat; still load list so sidebar is full, but initial effect will set activeChat.
   useEffect(() => {
     if (ready && anonymousId && walletConnected) {
       loadChats();
@@ -130,7 +159,9 @@ export default function Index() {
   }, [ready, anonymousId, walletConnected, loadChats]);
 
   // When session is ready but wallet not connected: use a single in-memory chat (history not saved).
+  // Skip when restoring from /c/:shareId so we don't overwrite the restored chat with a new one.
   useEffect(() => {
+    if (initialChatId) return;
     if (sessionReady && !walletConnected) {
       const localChat: Chat = {
         id: LOCAL_CHAT_ID,
@@ -138,12 +169,14 @@ export default function Index() {
         timestamp: new Date(),
         preview: "",
         messages: [],
+        shareId: null,
+        isPublic: false,
       };
       setChats([localChat]);
       setActiveChat(LOCAL_CHAT_ID);
       setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [] }));
     }
-  }, [sessionReady, walletConnected]);
+  }, [sessionReady, walletConnected, initialChatId]);
 
   const loadChatMessages = useCallback(async (id: string) => {
     if (!anonymousId) return;
@@ -151,6 +184,11 @@ export default function Index() {
       const chat = await chatApi.get(id, anonymousId);
       const msgs = (chat.messages || []).map(toMessage);
       setChatMessages((prev) => ({ ...prev, [id]: msgs }));
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic } : c
+        )
+      );
     } catch (err) {
       // Silently fail; messages may load on retry
     }
@@ -164,6 +202,123 @@ export default function Index() {
 
   const currentChat = chats.find((c) => c.id === activeChat);
   const messages = activeChat ? (chatMessages[activeChat] ?? []) : [];
+
+  const shareIdFromQuery = searchParams.get("shareId");
+
+  // Apply initial chat when opened as owner from /c/:shareId
+  const initialAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!initialChatId || !initialChat || initialAppliedRef.current) return;
+    initialAppliedRef.current = true;
+    const ts =
+      typeof initialChat.timestamp === "string"
+        ? new Date(initialChat.timestamp)
+        : initialChat.timestamp
+          ? new Date(initialChat.timestamp)
+          : new Date();
+    const chatEntry: Chat = {
+      id: initialChat.id,
+      title: initialChat.title,
+      preview: initialChat.preview,
+      timestamp: ts,
+      messages: [],
+      shareId: initialChat.shareId ?? null,
+      isPublic: !!initialChat.isPublic,
+    };
+    setChats((prev) => {
+      const exists = prev.some((c) => c.id === initialChatId);
+      if (exists) return prev.map((c) => (c.id === initialChatId ? chatEntry : c));
+      return [chatEntry, ...prev];
+    });
+    const msgs = (initialChat.messages || []).map(toMessage);
+    setChatMessages((prev) => ({ ...prev, [initialChatId]: msgs }));
+    setActiveChat(initialChatId);
+    setChatsLoading(false);
+  }, [initialChatId, initialChat]);
+
+  // When no chat or only local chat is selected, ensure URL is / (e.g. after deleting all chats).
+  // Use window.location.pathname because we may have set URL via replaceState, so React Router still thinks we're at "/".
+  useEffect(() => {
+    if (activeChat !== null && !isLocalChat(activeChat)) return;
+    const pathname = typeof window !== "undefined" ? window.location.pathname : location.pathname;
+    if (pathname === "/" || !pathname.startsWith("/c/")) return;
+    navigate("/", { replace: true });
+  }, [activeChat, location.pathname, navigate]);
+
+  // Update browser URL to current chat share link only after history exists (avoids blink: we use replaceState so we stay on same route and don't remount).
+  useEffect(() => {
+    if (!activeChat || isLocalChat(activeChat) || isLoading) return;
+    const chat = chats.find((c) => c.id === activeChat);
+    if (!chat?.shareId) return;
+    const messages = chatMessages[activeChat] ?? [];
+    // Only update URL after chat has at least user + assistant (history created); avoids link change before first response.
+    if (messages.length < 2) return;
+    const state = {
+      fromOwner: true,
+      chat: {
+        id: chat.id,
+        title: chat.title,
+        preview: chat.preview,
+        shareId: chat.shareId,
+        isPublic: chat.isPublic,
+        timestamp: chat.timestamp,
+        messages: messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+          toolUsage: m.toolUsage,
+        })),
+      },
+    };
+    window.history.replaceState(state, "", `/c/${chat.shareId}`);
+  }, [activeChat, chats, chatMessages, isLoading]);
+
+  // Owner opened /?shareId=xyz — load that chat and clear query
+  useEffect(() => {
+    if (!shareIdFromQuery?.trim() || !anonymousId || !ready) return;
+    const sid = shareIdFromQuery.trim();
+    let cancelled = false;
+    chatApi.getByShareId(sid, anonymousId).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.isOwner && result.chat) {
+        const chat = result.chat;
+        const chatId = chat.id;
+        setChats((prev) => {
+          const exists = prev.some((c) => c.id === chatId);
+          if (exists) return prev.map((c) => (c.id === chatId ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic } : c));
+          return [
+            {
+              id: chatId,
+              title: chat.title,
+              preview: chat.preview,
+              timestamp: typeof chat.timestamp === "string" ? new Date(chat.timestamp) : new Date(chat.timestamp),
+              messages: [],
+              shareId: chat.shareId ?? null,
+              isPublic: !!chat.isPublic,
+            },
+            ...prev,
+          ];
+        });
+        const msgs = (chat.messages || []).map(toMessage);
+        setChatMessages((prev) => ({ ...prev, [chatId]: msgs }));
+        setActiveChat(chatId);
+        navigate(`/c/${chat.shareId ?? sid}`, {
+          replace: true,
+          state: { fromOwner: true, chat },
+        });
+      } else {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("shareId");
+          return next;
+        }, { replace: true });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [shareIdFromQuery, anonymousId, ready, setSearchParams, navigate]);
 
   const handleNewChat = async () => {
     if (!anonymousId) return;
@@ -182,6 +337,8 @@ export default function Index() {
         timestamp: new Date(chat.timestamp),
         preview: chat.preview,
         messages: [],
+        shareId: chat.shareId ?? null,
+        isPublic: !!chat.isPublic,
       };
       setChats((prev) => [newChat, ...prev]);
       setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -268,6 +425,21 @@ export default function Index() {
     }
   }, [anonymousId]);
 
+  const handleToggleShareVisibility = useCallback(
+    async (chatId: string, isPublic: boolean) => {
+      if (isLocalChat(chatId) || !anonymousId) return;
+      try {
+        await chatApi.update(chatId, anonymousId, { isPublic });
+        setChats((prev) =>
+          prev.map((c) => (c.id === chatId ? { ...c, isPublic } : c))
+        );
+      } catch (err) {
+        // Silently fail; user can retry
+      }
+    },
+    [anonymousId]
+  );
+
   const handleSendMessage = async (content: string) => {
     if (!anonymousId) return;
     let chatId = activeChat;
@@ -294,6 +466,8 @@ export default function Index() {
           timestamp: new Date(chat.timestamp),
           preview: chat.preview,
           messages: [],
+          shareId: chat.shareId ?? null,
+          isPublic: !!chat.isPublic,
         };
         setChats((prev) => [newChat, ...prev]);
         setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -634,6 +808,7 @@ export default function Index() {
           chatsLoading={chatsLoading}
           sessionReady={sessionReady}
           walletConnected={walletConnected}
+          onToggleShareVisibility={(chatId, isPublic) => !isLocalChat(chatId) && handleToggleShareVisibility(chatId, isPublic)}
         />
       </div>
 
@@ -670,6 +845,7 @@ export default function Index() {
               chatsLoading={chatsLoading}
               sessionReady={sessionReady}
               walletConnected={walletConnected}
+              onToggleShareVisibility={(chatId, isPublic) => !isLocalChat(chatId) && handleToggleShareVisibility(chatId, isPublic)}
             />
           </ResizablePanel>
           <ResizableHandle withHandle className="bg-border" />

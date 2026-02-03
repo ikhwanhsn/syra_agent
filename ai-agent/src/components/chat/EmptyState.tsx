@@ -81,8 +81,8 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-full w-full max-w-full px-3 py-8 sm:px-4 sm:py-12 animate-fade-in overflow-x-hidden">
       <div className="relative mb-6 sm:mb-8">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] flex items-center justify-center glow">
-          <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-primary-foreground" />
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-card border border-border flex items-center justify-center glow">
+          <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
         </div>
         <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-[hsl(199,89%,48%)]/20 rounded-3xl blur-xl -z-10" />
       </div>

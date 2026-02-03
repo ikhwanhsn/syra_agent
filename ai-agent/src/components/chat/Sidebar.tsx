@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, MessageSquare, Settings, Sparkles, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Share2, Lock, Globe } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
+import { ShareChatModal } from "./ShareChatModal";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -18,6 +20,8 @@ interface Chat {
   title: string;
   timestamp: Date;
   preview: string;
+  shareId?: string | null;
+  isPublic?: boolean;
 }
 
 const MIN_TITLE_LENGTH = 8;
@@ -65,6 +69,8 @@ interface SidebarProps {
   sessionReady?: boolean;
   /** For future use (e.g. show "connect for tools" in sidebar) */
   walletConnected?: boolean;
+  /** Toggle public/private for a chat (per-chat share in list) */
+  onToggleShareVisibility?: (chatId: string, isPublic: boolean) => void;
 }
 
 export function Sidebar({
@@ -82,8 +88,11 @@ export function Sidebar({
   chatsLoading = false,
   sessionReady = true,
   walletConnected = true,
+  onToggleShareVisibility,
 }: SidebarProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
+  /** Chat for which the share modal is open; null when closed */
+  const [shareModalChat, setShareModalChat] = useState<Chat | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -193,13 +202,15 @@ export function Sidebar({
       <div ref={sidebarRef} className="flex flex-col flex-1 min-w-0 overflow-hidden min-h-0">
       {/* Header */}
       <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-border shrink-0">
-        <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[hsl(199,89%,48%)] glow-sm shrink-0">
-          <Sparkles className="w-5 h-5 text-primary-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-foreground truncate">Syra Agent</h1>
-          <p className="text-xs text-muted-foreground truncate">Intelligent Assistant</p>
-        </div>
+        <Link to="/" className="flex items-center gap-2 flex-1 min-w-0 no-underline text-inherit hover:opacity-90 transition-opacity">
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden bg-card shrink-0">
+            <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-semibold text-foreground truncate">Syra Agent</h1>
+            <p className="text-xs text-muted-foreground truncate">Intelligent Assistant</p>
+          </div>
+        </Link>
         {isResizable && onCollapse && (
           <Button
             variant="ghost"
@@ -213,7 +224,7 @@ export function Sidebar({
         )}
       </div>
 
-      {/* New Chat Button – when session ready (chat allowed without wallet) */}
+      {/* New Chat – when session ready */}
       {sessionReady && (
         <div className="p-2 sm:p-3">
           <Button
@@ -381,12 +392,27 @@ export function Sidebar({
                           />
                         ) : (
                           <>
-                            <p
-                              className="text-sm font-medium truncate text-foreground"
-                              title={chat.title}
-                            >
-                              {truncateWithEllipsis(chat.title, maxTitleLen)}
-                            </p>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p
+                                className="text-sm font-medium truncate text-foreground"
+                                title={chat.title}
+                              >
+                                {truncateWithEllipsis(chat.title, maxTitleLen)}
+                              </p>
+                              {chat.shareId && (
+                                <span
+                                  className="shrink-0 flex items-center text-muted-foreground"
+                                  title={chat.isPublic ? "Public – anyone with link can view" : "Private – only you can view"}
+                                  aria-label={chat.isPublic ? "Public chat" : "Private chat"}
+                                >
+                                  {chat.isPublic ? (
+                                    <Globe className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Lock className="w-3.5 h-3.5" />
+                                  )}
+                                </span>
+                              )}
+                            </div>
                             <p
                               className="text-xs text-muted-foreground truncate"
                               title={chat.preview}
@@ -396,9 +422,9 @@ export function Sidebar({
                           </>
                         )}
                       </div>
-                      {/* Floating ⋯ button: always on top, never clipped (hidden in selection mode) */}
+                      {/* Floating ⋯ menu (hidden in selection mode) */}
                       {editingChatId !== chat.id && !selectionMode && (
-                        <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-end w-12 pl-2 bg-card">
+                        <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-end pl-2 bg-card">
                           <div className="flex items-center bg-background rounded-md shadow-sm border border-border">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -412,29 +438,40 @@ export function Sidebar({
                                   <MoreHorizontal className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40 z-50">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingChatId(chat.id);
-                                  setEditingTitle(chat.title);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteChat?.(chat.id);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              <DropdownMenuContent align="end" className="w-40 z-50">
+                                {chat.shareId && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShareModalChat(chat);
+                                    }}
+                                  >
+                                    <Share2 className="w-4 h-4 mr-2" />
+                                    Share
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingChatId(chat.id);
+                                    setEditingTitle(chat.title);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteChat?.(chat.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       )}
@@ -446,6 +483,20 @@ export function Sidebar({
           )}
         </div>
       </ScrollArea>
+
+      {/* Share modal for the selected chat */}
+      {shareModalChat?.shareId && (
+        <ShareChatModal
+          open={!!shareModalChat}
+          onOpenChange={(open) => !open && setShareModalChat(null)}
+          shareLink={`${typeof window !== "undefined" ? window.location.origin : ""}/c/${shareModalChat.shareId}`}
+          isSharePublic={!!shareModalChat.isPublic}
+          onVisibilityChange={(isPublic) => {
+            onToggleShareVisibility?.(shareModalChat.id, isPublic);
+            setShareModalChat((prev) => (prev ? { ...prev, isPublic } : null));
+          }}
+        />
+      )}
 
       {/* Footer – when session ready */}
       {sessionReady && (
