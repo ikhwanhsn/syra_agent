@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Share2, Lock, Globe } from "lucide-react";
+import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Share2, Lock, Globe, Twitter, Send, BookOpen, ExternalLink } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -500,17 +500,16 @@ export function Sidebar({
 
       {/* Footer – when session ready */}
       {sessionReady && (
-        <div className="p-2 sm:p-3 border-t border-border space-y-1 shrink-0">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-muted-foreground cursor-not-allowed opacity-70"
-            disabled
-            title="Soon available"
-          >
-            <Store className="w-4 h-4" />
-            <span className="flex-1 text-left">Marketplace</span>
-            <span className="text-xs text-muted-foreground/80">Soon</span>
-          </Button>
+        <div className="p-2 sm:p-3 border-t border-border space-y-2 shrink-0">
+          <Link to="/marketplace">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Store className="w-4 h-4" />
+              <span className="flex-1 text-left">Marketplace</span>
+            </Button>
+          </Link>
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
@@ -518,6 +517,53 @@ export function Sidebar({
             <Settings className="w-4 h-4" />
             Settings
           </Button>
+          <div className="pt-2 border-t border-border/60">
+            <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Connect
+            </p>
+            <div className="flex flex-wrap gap-1 px-1">
+              <a
+                href="https://x.com/syra_agent"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title="Official X"
+                aria-label="Official X"
+              >
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a
+                href="https://t.me/syra_ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title="Telegram"
+                aria-label="Telegram"
+              >
+                <Send className="w-4 h-4" />
+              </a>
+              <a
+                href="https://docs.syraa.fun"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title="Documentation"
+                aria-label="Docs"
+              >
+                <BookOpen className="w-4 h-4" />
+              </a>
+              <a
+                href="https://syraa.fun"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title="Website"
+                aria-label="Website"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
         </div>
       )}
       </div>

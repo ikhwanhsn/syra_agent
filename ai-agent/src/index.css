@@ -345,3 +345,23 @@
 .balance-blink-red {
   animation: balance-blink-red 1.2s ease-in-out 2 forwards;
 }
+
+/* Prompt card blink when duplicated (success feedback) */
+@keyframes prompt-card-blink {
+  0% {
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.8);
+    background-color: hsl(var(--primary) / 0.08);
+  }
+  100% {
+    box-shadow: none;
+    background-color: transparent;
+  }
+}
+
+.prompt-card-blink {
+  animation: prompt-card-blink 0.5s ease-out forwards;
+}

@@ -309,6 +309,144 @@ export const agentWalletApi = {
   },
 };
 
+/** Agent marketplace preferences API: favorites, recent, call counts (stored in DB by anonymousId). */
+const agentMarketplaceBase = () => getApiBaseUrl() + "/agent/marketplace";
+
+/** User-created prompts (marketplace). Stored in MongoDB; users can create and others can use. */
+const agentMarketplacePromptsBase = () => getApiBaseUrl() + "/agent/marketplace/prompts";
+
+export interface UserPromptItem {
+  id: string;
+  anonymousId: string;
+  title: string;
+  description: string;
+  prompt: string;
+  category: string;
+  useCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const userPromptsApi = {
+  /** List all user-created prompts (for discovery). */
+  async list(params?: { category?: string; limit?: number; skip?: number }): Promise<{ prompts: UserPromptItem[] }> {
+    const search = new URLSearchParams();
+    if (params?.category) search.set("category", params.category);
+    if (params?.limit != null) search.set("limit", String(params.limit));
+    if (params?.skip != null) search.set("skip", String(params.skip));
+    const qs = search.toString();
+    const res = await fetch(`${agentMarketplacePromptsBase()}${qs ? `?${qs}` : ""}`);
+    const data = await handleRes<{ success: boolean; prompts: UserPromptItem[] }>(res);
+    return { prompts: data.prompts ?? [] };
+  },
+
+  /** Create a user prompt. */
+  async create(anonymousId: string, payload: { title: string; description?: string; prompt: string; category?: string }): Promise<{ prompt: UserPromptItem }> {
+    const res = await fetch(agentMarketplacePromptsBase(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anonymousId, ...payload }),
+    });
+    return handleRes(res);
+  },
+
+  /** Get one user prompt by id. */
+  async get(id: string): Promise<{ prompt: UserPromptItem }> {
+    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}`);
+    return handleRes(res);
+  },
+
+  /** Update own prompt (anonymousId must match creator). */
+  async update(id: string, anonymousId: string, payload: { title?: string; description?: string; prompt?: string; category?: string }): Promise<{ prompt: UserPromptItem }> {
+    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anonymousId, ...payload }),
+    });
+    return handleRes(res);
+  },
+
+  /** Delete own prompt (anonymousId must match creator). */
+  async delete(id: string, anonymousId: string): Promise<{ success: boolean }> {
+    const params = new URLSearchParams({ anonymousId });
+    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}?${params}`, { method: "DELETE" });
+    return handleRes(res);
+  },
+
+  /** Bulk delete own prompts (only those owned by anonymousId). */
+  async bulkDelete(anonymousId: string, ids: string[]): Promise<{ deleted: number }> {
+    const res = await fetch(`${agentMarketplacePromptsBase()}/bulk-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anonymousId, ids }),
+    });
+    const data = await handleRes<{ success: boolean; deleted: number }>(res);
+    return { deleted: data.deleted ?? 0 };
+  },
+
+  /** Record that this prompt was used (increments useCount on server). */
+  async recordUse(id: string): Promise<{ useCount: number }> {
+    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}/use`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    return handleRes(res);
+  },
+};
+
+export interface MarketplacePreferencesData {
+  favorites: string[];
+  recent: Array<{ id: string; title: string; prompt: string }>;
+  callCounts: Record<string, number>;
+}
+
+export const marketplaceApi = {
+  /** Get preferences for the user (anonymousId). */
+  async get(anonymousId: string): Promise<MarketplacePreferencesData> {
+    const res = await fetch(
+      `${agentMarketplaceBase()}/${encodeURIComponent(anonymousId)}`
+    );
+    const data = await handleRes<{
+      success: boolean;
+      favorites: string[];
+      recent: Array<{ id: string; title: string; prompt: string }>;
+      callCounts: Record<string, number>;
+    }>(res);
+    return {
+      favorites: data.favorites ?? [],
+      recent: data.recent ?? [],
+      callCounts: data.callCounts ?? {},
+    };
+  },
+
+  /** Update preferences (merge: only provided fields are updated). */
+  async put(
+    anonymousId: string,
+    payload: Partial<MarketplacePreferencesData>
+  ): Promise<MarketplacePreferencesData> {
+    const res = await fetch(
+      `${agentMarketplaceBase()}/${encodeURIComponent(anonymousId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    const data = await handleRes<{
+      success: boolean;
+      favorites: string[];
+      recent: Array<{ id: string; title: string; prompt: string }>;
+      callCounts: Record<string, number>;
+    }>(res);
+    return {
+      favorites: data.favorites ?? [],
+      recent: data.recent ?? [],
+      callCounts: data.callCounts ?? {},
+    };
+  },
+};
+
 /** Agent tools API: list x402 v2 resources and call them (balance checked first; pay with agent wallet). */
 const agentToolsBase = () => getApiBaseUrl() + "/agent/tools";
 

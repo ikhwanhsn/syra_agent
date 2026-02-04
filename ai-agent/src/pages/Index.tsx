@@ -7,6 +7,7 @@ import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
+import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
 import { chatApi, getApiBaseUrl } from "@/lib/chatApi";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -739,6 +740,17 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }
   };
 
+  // When navigating from Marketplace with a prompt, send it to the agent and clear state
+  const lastAppliedPromptRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prompt = location.state?.prompt;
+    if (typeof prompt !== "string" || !prompt.trim()) return;
+    if (lastAppliedPromptRef.current === prompt) return;
+    lastAppliedPromptRef.current = prompt;
+    navigate(location.pathname, { replace: true, state: {} });
+    handleSendMessage(prompt.trim());
+  }, [location.state?.prompt, location.pathname, navigate]);
+
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -818,14 +830,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       <div className="hidden lg:flex flex-1 min-h-0 min-w-0">
         <ResizablePanelGroup
           direction="horizontal"
-          autoSaveId="ai-agent-sidebar"
+          autoSaveId={SIDEBAR_AUTO_SAVE_ID}
           className="h-full w-full"
         >
           <ResizablePanel
             ref={sidebarPanelRef}
-            defaultSize={18}
-            minSize={12}
-            maxSize={45}
+            defaultSize={SIDEBAR_PANEL.defaultSize}
+            minSize={SIDEBAR_PANEL.minSize}
+            maxSize={SIDEBAR_PANEL.maxSize}
             collapsible
             collapsedSize={0}
             onCollapse={() => setSidebarCollapsed(true)}
@@ -851,7 +863,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             />
           </ResizablePanel>
           <ResizableHandle withHandle className="bg-border" />
-          <ResizablePanel defaultSize={82} minSize={50} className="min-w-0">
+          <ResizablePanel defaultSize={MAIN_PANEL.defaultSize} minSize={MAIN_PANEL.minSize} className="min-w-0">
             <main className="h-full flex flex-col min-w-0">
               <ChatArea
                 messages={messages}
