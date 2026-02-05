@@ -125,13 +125,14 @@
   overflow: hidden;
 }
 
+/* Syra theme: Electric Cyan + Soft Purple */
 .heroGlow {
   position: absolute;
   top: -200px;
   left: 50%;
   width: 900px;
   height: 900px;
-  background: radial-gradient(circle, rgba(108, 0, 255, 0.4), transparent 70%);
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.35), rgba(139, 92, 246, 0.2), transparent 70%);
   transform: translateX(-50%);
   filter: blur(80px);
 
@@ -143,7 +144,7 @@
 .heroTitle {
   font-size: 3.8rem;
   font-weight: 800;
-  background: linear-gradient(90deg, #a855f7, #6366f1, #0ea5e9);
+  background: linear-gradient(90deg, #00d4ff, #8b5cf6, #00d4ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 1rem 0;
@@ -246,9 +247,9 @@
   color: #cbd5e1;
 }
 
-/* CTA SECTION */
+/* CTA SECTION — Syra cyan + purple */
 .sectionCTA {
-  background: linear-gradient(90deg, #5510cc, #6242f7, #0ea5e9);
+  background: linear-gradient(90deg, #008eb3, #00d4ff, #8b5cf6);
   padding: 5rem 0;
   text-align: center;
   color: white;

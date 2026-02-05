@@ -147,10 +147,61 @@
              },
              'code::before': { content: 'none' },
              'code::after': { content: 'none' },
+             strong: {
+               color: 'hsl(var(--foreground))',
+               fontWeight: '600',
+             },
+             'thead th': {
+               color: 'hsl(var(--foreground))',
+               fontWeight: '600',
+               backgroundColor: 'hsl(var(--muted))',
+               borderBottom: '1px solid hsl(var(--border))',
+               padding: '0.75rem 1rem',
+               textAlign: 'left',
+             },
+             'tbody td': {
+               borderBottom: '1px solid hsl(var(--border) / 0.6)',
+               padding: '0.75rem 1rem',
+               verticalAlign: 'top',
+             },
+             'tbody tr:last-child td': {
+               borderBottomWidth: '0',
+             },
+             table: {
+               width: '100%',
+               borderCollapse: 'collapse',
+             },
+             'table tr': {
+               borderBottom: '1px solid hsl(var(--border) / 0.5)',
+             },
+             blockquote: {
+               borderLeftColor: 'hsl(var(--primary))',
+               backgroundColor: 'hsl(var(--muted) / 0.5)',
+               padding: '1rem 1.25rem',
+               borderRadius: '0 0.375rem 0.375rem 0',
+               fontStyle: 'normal',
+               color: 'hsl(var(--foreground))',
+             },
+             'blockquote p:last-child': {
+               marginBottom: '0',
+             },
+             'ul, ol': {
+               paddingLeft: '1.5rem',
+               marginTop: '0.5rem',
+               marginBottom: '0.75rem',
+             },
+             'li': {
+               marginTop: '0.25rem',
+               marginBottom: '0.25rem',
+             },
+             'h1, h2, h3, h4': {
+               color: 'hsl(var(--foreground))',
+               fontWeight: '600',
+             },
            },
          },
        },
      },
    },
-   plugins: [require("tailwindcss-animate")],
+   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
  } satisfies Config;

@@ -51,6 +51,23 @@ function toMessage(m: { id: string; role: string; content: string; timestamp: st
 /** In-memory-only chat id when user is not connected (history not saved). */
 const LOCAL_CHAT_ID = "local";
 
+/** Default LLM model when none is selected (must match a Jatevo model id). */
+const DEFAULT_MODEL_ID = "glm-4.7";
+
+/** Default model list shown in the UI so user can always pick (fallback when API /models fails or before load). */
+const DEFAULT_JATEVO_MODELS: Array<{ id: string; name: string; contextWindow?: string }> = [
+  { id: "gpt-oss-120b", name: "GPT-OSS 120B", contextWindow: "32K" },
+  { id: "deepseek-v3.2", name: "DeepSeek V3.2", contextWindow: "128K" },
+  { id: "glm-4.6v", name: "GLM 4.6V", contextWindow: "131K" },
+  { id: "glm-4.7", name: "GLM 4.7", contextWindow: "128K" },
+  { id: "glm-4.7-fp8", name: "GLM 4.7 FP8", contextWindow: "128K" },
+  { id: "kimi-k2.5", name: "Kimi K2.5", contextWindow: "262K" },
+  { id: "llama-4-maverick", name: "Llama 4 Maverick", contextWindow: "128K" },
+  { id: "qwen-2.5-vl", name: "Qwen 2.5 VL", contextWindow: "128K" },
+  { id: "qwen-2.5-v1-72b", name: "Qwen 2.5 VL 72B", contextWindow: "128K" },
+  { id: "qwen-3-coder-480b", name: "Qwen 3 Coder 480B", contextWindow: "32K" },
+];
+
 function isLocalChat(id: string) {
   return id === LOCAL_CHAT_ID;
 }
@@ -101,7 +118,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const [chatsLoading, setChatsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
   const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
-  const [jatevoModels, setJatevoModels] = useState<Array<{ id: string; name: string; contextWindow?: string }>>([]);
+  const [jatevoModels, setJatevoModels] = useState<Array<{ id: string; name: string; contextWindow?: string }>>(
+    () => DEFAULT_JATEVO_MODELS
+  );
 
   // When wallet changes (anonymousId changes), clear chat state so we show the correct wallet's history.
   // Skip when restoring from /c/:shareId (initialChatId) so refresh on a chat link keeps that chat.
@@ -163,10 +182,15 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }
   }, [ready, anonymousId, walletConnected, loadChats]);
 
-  // Fetch available Jatevo LLM models for the model selector (once when session is ready).
+  // Fetch available Jatevo LLM models for the model selector (once when session is ready). Use default list until API responds.
   useEffect(() => {
     if (!ready) return;
-    chatApi.getModels().then(({ models }) => setJatevoModels(models)).catch(() => {});
+    chatApi
+      .getModels()
+      .then(({ models }) => {
+        if (Array.isArray(models) && models.length > 0) setJatevoModels(models);
+      })
+      .catch(() => {});
   }, [ready]);
 
   // When session is ready but wallet not connected: use a single in-memory chat (history not saved).
@@ -182,6 +206,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         messages: [],
         shareId: null,
         isPublic: false,
+        modelId: DEFAULT_MODEL_ID,
       };
       setChats([localChat]);
       setActiveChat(LOCAL_CHAT_ID);
@@ -195,13 +220,18 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const chat = await chatApi.get(id, anonymousId);
       const msgs = (chat.messages || []).map(toMessage);
       setChatMessages((prev) => ({ ...prev, [id]: msgs }));
-      setChats((prev) =>
-        prev.map((c) =>
+      setChats((prev) => {
+        const existing = prev.find((c) => c.id === id);
+        // Keep user's selection: don't overwrite with server if we already have a modelId in state
+        const modelId = existing?.modelId?.trim()
+          ? existing.modelId
+          : (chat.modelId ?? "");
+        return prev.map((c) =>
           c.id === id
-            ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic, modelId: chat.modelId ?? "" }
+            ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic, modelId }
             : c
-        )
-      );
+        );
+      });
     } catch (err) {
       // Silently fail; messages may load on retry
     }
@@ -345,7 +375,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       return;
     }
     try {
-      const { chat } = await chatApi.create(anonymousId, { title: "New Chat", preview: "" });
+      const { chat } = await chatApi.create(anonymousId, {
+        title: "New Chat",
+        preview: "",
+        modelId: DEFAULT_MODEL_ID,
+      });
       const newChat: Chat = {
         id: chat.id,
         title: chat.title,
@@ -354,7 +388,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         messages: [],
         shareId: chat.shareId ?? null,
         isPublic: !!chat.isPublic,
-        modelId: chat.modelId ?? "",
+        modelId: chat.modelId ?? DEFAULT_MODEL_ID,
       };
       setChats((prev) => [newChat, ...prev]);
       setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -369,21 +403,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const handleSelectModel = useCallback(
     (modelId: string) => {
       if (!activeChat) return;
-      if (isLocalChat(activeChat)) {
-        setChats((prev) =>
-          prev.map((c) => (c.id === activeChat ? { ...c, modelId } : c))
-        );
-        return;
-      }
-      if (!anonymousId) return;
-      chatApi.update(activeChat, anonymousId, { modelId }).then(
-        () => {
-          setChats((prev) =>
-            prev.map((c) => (c.id === activeChat ? { ...c, modelId } : c))
-          );
-        },
-        () => {}
+      // Update UI immediately so the dropdown reflects the selection
+      setChats((prev) =>
+        prev.map((c) => (c.id === activeChat ? { ...c, modelId } : c))
       );
+      if (isLocalChat(activeChat)) return;
+      if (!anonymousId) return;
+      // Persist for saved chats (fire-and-forget; UI already updated)
+      chatApi.update(activeChat, anonymousId, { modelId }).catch(() => {});
     },
     [activeChat, anonymousId]
   );
@@ -488,7 +515,17 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         setChats((prev) =>
           prev.some((c) => c.id === LOCAL_CHAT_ID)
             ? prev
-            : [{ id: LOCAL_CHAT_ID, title: "Current conversation", timestamp: new Date(), preview: "" }, ...prev]
+            : [
+                {
+                  id: LOCAL_CHAT_ID,
+                  title: "Current conversation",
+                  timestamp: new Date(),
+                  preview: "",
+                  messages: [],
+                  modelId: DEFAULT_MODEL_ID,
+                },
+                ...prev,
+              ]
         );
         setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [] }));
       } else {
@@ -496,7 +533,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }
     } else if (!chatId) {
       try {
-        const { chat } = await chatApi.create(anonymousId, { title: "New Chat", preview: "" });
+        const { chat } = await chatApi.create(anonymousId, {
+          title: "New Chat",
+          preview: "",
+          modelId: DEFAULT_MODEL_ID,
+        });
         chatId = chat.id;
         const newChat: Chat = {
           id: chat.id,
@@ -506,7 +547,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           messages: [],
           shareId: chat.shareId ?? null,
           isPublic: !!chat.isPublic,
-          modelId: chat.modelId ?? "",
+          modelId: chat.modelId ?? DEFAULT_MODEL_ID,
         };
         setChats((prev) => [newChat, ...prev]);
         setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -567,7 +608,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }));
 
     const effectiveModelId =
-      currentChat?.modelId?.trim() || (jatevoModels[0]?.id ?? "") || undefined;
+      currentChat?.modelId?.trim() || DEFAULT_MODEL_ID || undefined;
 
     try {
       const { response: responseText, amountChargedUsd } = await chatApi.completion({
@@ -698,7 +739,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }));
 
     const effectiveModelId =
-      currentChat?.modelId?.trim() || (jatevoModels[0]?.id ?? "") || undefined;
+      currentChat?.modelId?.trim() || DEFAULT_MODEL_ID || undefined;
 
     setIsLoading(true);
     try {
@@ -926,7 +967,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 isDarkMode={isDarkMode}
                 onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
                 models={jatevoModels}
-                selectedModelId={currentChat?.modelId ?? jatevoModels[0]?.id ?? ""}
+                selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
                 onSelectModel={handleSelectModel}
               />
             </main>
@@ -958,7 +999,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           isDarkMode={isDarkMode}
           onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           models={jatevoModels}
-          selectedModelId={currentChat?.modelId ?? jatevoModels[0]?.id ?? ""}
+          selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
           onSelectModel={handleSelectModel}
         />
       </main>

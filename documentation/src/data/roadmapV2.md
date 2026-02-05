@@ -1,8 +1,3 @@
----
-sidebar_position: 8
-title: 🚀 Roadmap V2
----
-
 # 🚀 Roadmap
 
 Our 2025–2027 Syra Roadmap - Building AI Trading Intelligence Infrastructure with x402 payments:
@@ -53,8 +48,7 @@ Our 2025–2027 Syra Roadmap - Building AI Trading Intelligence Infrastructure w
 
 ---
 
-:::info
-**Token Utility**: Pay for APIs with USDC via x402. 50% of USDC revenue used for buyback & burn.
-
-This roadmap is subject to change based on market conditions, x402 ecosystem evolution, and community feedback. Stay tuned for updates!
-:::
+> **ℹ️ Token Utility**  
+> Pay for APIs with USDC via x402. 50% of USDC revenue used for buyback & burn.  
+>  
+> This roadmap is subject to change based on market conditions, x402 ecosystem evolution, and community feedback. Stay tuned for updates!

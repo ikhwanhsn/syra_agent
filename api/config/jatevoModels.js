@@ -1,6 +1,9 @@
 /**
- * Jatevo Model Library – available AI models for inference (inference.jatevo.id).
+ * Jatevo Model Library – available AI models for inference.
  * Used by the agent chat completion and exposed to the frontend for model selection.
+ *
+ * Official API docs: https://jatevo.ai/private-ai/api
+ * (Check docs for current model IDs and base URL if inference host changes.)
  */
 export const JATEVO_DEFAULT_MODEL = 'glm-4.7';
 

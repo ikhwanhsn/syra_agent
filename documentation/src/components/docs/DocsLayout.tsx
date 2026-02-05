@@ -17,18 +17,18 @@
  export function DocsLayout({ children, toc = [] }: DocsLayoutProps) {
    const [sidebarOpen, setSidebarOpen] = useState(false);
  
-   return (
-     <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-[100dvh] flex flex-col" style={{ backgroundColor: "var(--syra-background)" }}>
        <Header 
          onMenuToggle={() => setSidebarOpen(!sidebarOpen)} 
          isSidebarOpen={sidebarOpen}
        />
        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
        
-       <div className="lg:pl-64">
-         <main className="max-w-6xl mx-auto px-4 py-8 lg:px-8">
-           <div className="flex gap-8">
-             <article className="flex-1 min-w-0 animate-fade-in">
+       <div className="flex-1 w-full lg:pl-64">
+         <main className="max-w-6xl mx-auto px-4 sm:px-5 md:px-6 py-6 sm:py-8 lg:px-8">
+           <div className="flex flex-col xl:flex-row xl:gap-8 gap-0">
+             <article className="flex-1 min-w-0 w-full animate-fade-in overflow-x-hidden">
                {children}
              </article>
              <TableOfContents items={toc} />

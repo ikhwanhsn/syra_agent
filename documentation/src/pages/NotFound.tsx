@@ -10,9 +10,9 @@
      console.error("404 Error: User attempted to access non-existent route:", location.pathname);
    }, [location.pathname]);
  
-   return (
-     <div className="min-h-screen flex items-center justify-center bg-background">
-       <div className="text-center max-w-md px-4">
+  return (
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background px-4 safe-bottom">
+      <div className="text-center max-w-md w-full">
          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
            <span className="text-4xl font-bold text-primary">404</span>
          </div>
@@ -20,20 +20,20 @@
          <p className="text-muted-foreground mb-8">
            The page you're looking for doesn't exist or has been moved.
          </p>
-         <div className="flex justify-center gap-3">
-           <Button variant="ghost" asChild>
-             <Link to="/docs">
-               <ArrowLeft className="mr-2 h-4 w-4" />
-               Go back
-             </Link>
-           </Button>
-           <Button variant="primary" asChild>
-             <Link to="/docs">
-               <Home className="mr-2 h-4 w-4" />
-               Documentation
-             </Link>
-           </Button>
-         </div>
+        <div className="flex flex-col sm:flex-row justify-center gap-3 w-full sm:w-auto">
+          <Button variant="ghost" className="w-full sm:w-auto justify-center" asChild>
+            <Link to="/docs">
+              <ArrowLeft className="mr-2 h-4 w-4 shrink-0" />
+              Go back
+            </Link>
+          </Button>
+          <Button variant="primary" className="w-full sm:w-auto justify-center" asChild>
+            <Link to="/docs">
+              <Home className="mr-2 h-4 w-4 shrink-0" />
+              Documentation
+            </Link>
+          </Button>
+        </div>
        </div>
      </div>
    );

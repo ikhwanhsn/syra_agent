@@ -1,7 +1,7 @@
 import express from 'express';
 import Chat from '../../models/agent/Chat.js';
-import { callJatevo } from '../../libs/jatevo.js';
-import { JATEVO_MODELS } from '../../config/jatevoModels.js';
+import { callJatevo, getJatevoModels } from '../../libs/jatevo.js';
+import { JATEVO_MODELS, JATEVO_DEFAULT_MODEL } from '../../config/jatevoModels.js';
 import {
   getAgentTool,
   getCapabilitiesList,
@@ -107,8 +107,16 @@ async function callToolWithAgentWallet(anonymousId, url, method, query, body) {
   return { status: 200, data: result.data };
 }
 
-// GET /models - List available Jatevo LLM models for the agent chat.
-router.get('/models', (_req, res) => {
+// GET /models - List available Jatevo LLM models for the agent chat. Prefer Jatevo API list when available.
+router.get('/models', async (_req, res) => {
+  try {
+    const fromApi = await getJatevoModels();
+    if (Array.isArray(fromApi) && fromApi.length > 0) {
+      return res.json({ models: fromApi });
+    }
+  } catch (err) {
+    console.warn('[agent/chat] GET /models: could not fetch from Jatevo, using config', err?.message);
+  }
   res.json({ models: JATEVO_MODELS });
 });
 
@@ -257,13 +265,58 @@ router.post('/completion', async (req, res) => {
 
     const jatevoOptions = { anonymousId };
     if (modelId && typeof modelId === 'string' && modelId.trim()) {
-      const valid = JATEVO_MODELS.some((m) => m.id === modelId.trim());
-      if (valid) jatevoOptions.model = modelId.trim();
+      jatevoOptions.model = modelId.trim();
     }
-    const { response, truncated } = await callJatevo(apiMessages, jatevoOptions);
+    const requestedModel = jatevoOptions.model || JATEVO_DEFAULT_MODEL;
+    console.log(`[agent/chat] Completion request model=${requestedModel}`);
+
+    let response;
+    let truncated = false;
+    let usedFallbackModel = false;
+
+    try {
+      const result = await callJatevo(apiMessages, jatevoOptions);
+      response = result.response;
+      truncated = result.truncated;
+    } catch (firstError) {
+      // If a non-default model was requested and failed, log why and retry with default model so the user still gets a reply
+      const requestedModel = jatevoOptions.model;
+      if (
+        requestedModel &&
+        requestedModel !== JATEVO_DEFAULT_MODEL
+      ) {
+        const reason = firstError?.message || String(firstError);
+        const isBudgetExceeded = /budget has been exceeded|max budget/i.test(reason);
+        if (isBudgetExceeded) {
+          console.warn(
+            `[agent/chat] Jatevo account budget exceeded. Using default model. Top up at Jatevo to use other models.`
+          );
+        } else {
+          console.error(
+            `[agent/chat] Requested model "${requestedModel}" failed, falling back to ${JATEVO_DEFAULT_MODEL}. Reason: ${reason}`
+          );
+        }
+        try {
+          const fallbackOptions = { ...jatevoOptions, model: JATEVO_DEFAULT_MODEL };
+          const fallbackResult = await callJatevo(apiMessages, fallbackOptions);
+          response = fallbackResult.response;
+          truncated = fallbackResult.truncated;
+          usedFallbackModel = true;
+        } catch (fallbackError) {
+          throw firstError;
+        }
+      } else {
+        throw firstError;
+      }
+    }
+
+    const actualModel = usedFallbackModel ? JATEVO_DEFAULT_MODEL : requestedModel;
+    console.log(`[agent/chat] Completion success model=${actualModel}${usedFallbackModel ? ' (fallback)' : ''}`);
+
     const payload = { success: true, response };
     if (truncated) payload.truncated = true;
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
+    if (usedFallbackModel) payload.usedFallbackModel = true;
     return res.json(payload);
   } catch (error) {
     const status = error.status || 500;

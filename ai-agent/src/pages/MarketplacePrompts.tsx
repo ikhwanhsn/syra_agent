@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { marketplaceApi, userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
 
@@ -335,7 +336,10 @@ const SECTIONS: { id: SectionId; label: string; icon: typeof LayoutGrid }[] = [
 
 export default function MarketplacePrompts() {
   const navigate = useNavigate();
-  const { anonymousId } = useAgentWallet();
+  const { toast } = useToast();
+  const { anonymousId, connectedWalletAddress } = useAgentWallet();
+  /** Only sync preferences / user prompts with DB when wallet is connected. */
+  const walletConnected = !!connectedWalletAddress;
   const [favorites, setFavorites] = useState<Set<string>>(loadFavoritesFromStorage);
   const [recent, setRecent] = useState<Array<{ id: string; title: string; prompt: string }>>(loadRecentFromStorage);
   const [callCounts, setCallCounts] = useState<Record<string, number>>(loadCallCountsFromStorage);
@@ -412,9 +416,9 @@ export default function MarketplacePrompts() {
     fetchUserPrompts();
   }, [fetchUserPrompts]);
 
-  // Load from API when anonymousId is available; optionally migrate from localStorage if API is empty
+  // Load from API only when wallet is connected (DB access requires wallet)
   useEffect(() => {
-    if (!anonymousId?.trim()) {
+    if (!walletConnected || !anonymousId?.trim()) {
       setPrefsLoaded(true);
       return;
     }
@@ -458,11 +462,11 @@ export default function MarketplacePrompts() {
         }
       })
       .finally(() => setPrefsLoaded(true));
-  }, [anonymousId]);
+  }, [anonymousId, walletConnected]);
 
-  // Persist: to API (debounced) when anonymousId set, else to localStorage
+  // Persist: to API (debounced) only when wallet connected; otherwise localStorage only
   const schedulePut = useCallback(() => {
-    if (!anonymousId?.trim()) return;
+    if (!walletConnected || !anonymousId?.trim()) return;
     if (putTimeoutRef.current) clearTimeout(putTimeoutRef.current);
     putTimeoutRef.current = setTimeout(() => {
       putTimeoutRef.current = null;
@@ -474,40 +478,40 @@ export default function MarketplacePrompts() {
         })
         .catch(() => {});
     }, 400);
-  }, [anonymousId, favorites, recent, callCounts]);
+  }, [walletConnected, anonymousId, favorites, recent, callCounts]);
 
   useEffect(() => {
     if (!prefsLoaded) return;
-    if (anonymousId?.trim()) {
+    if (walletConnected && anonymousId?.trim()) {
       schedulePut();
       return () => {
         if (putTimeoutRef.current) clearTimeout(putTimeoutRef.current);
       };
     }
     saveFavoritesToStorage(favorites);
-  }, [favorites, anonymousId, prefsLoaded, schedulePut]);
+  }, [favorites, walletConnected, anonymousId, prefsLoaded, schedulePut]);
 
   useEffect(() => {
     if (!prefsLoaded) return;
-    if (anonymousId?.trim()) {
+    if (walletConnected && anonymousId?.trim()) {
       schedulePut();
       return () => {
         if (putTimeoutRef.current) clearTimeout(putTimeoutRef.current);
       };
     }
     saveRecentToStorage(recent);
-  }, [recent, anonymousId, prefsLoaded, schedulePut]);
+  }, [recent, walletConnected, anonymousId, prefsLoaded, schedulePut]);
 
   useEffect(() => {
     if (!prefsLoaded) return;
-    if (anonymousId?.trim()) {
+    if (walletConnected && anonymousId?.trim()) {
       schedulePut();
       return () => {
         if (putTimeoutRef.current) clearTimeout(putTimeoutRef.current);
       };
     }
     saveCallCountsToStorage(callCounts);
-  }, [callCounts, anonymousId, prefsLoaded, schedulePut]);
+  }, [callCounts, walletConnected, anonymousId, prefsLoaded, schedulePut]);
 
   const toggleFavorite = useCallback((id: string) => {
     setFavorites((prev) => {
@@ -531,7 +535,7 @@ export default function MarketplacePrompts() {
       saveCallCountsToStorage(nextCallCounts);
       saveRecentToStorage(nextRecent);
 
-      if (anonymousId?.trim()) {
+      if (walletConnected && anonymousId?.trim()) {
         marketplaceApi
           .put(anonymousId, {
             favorites: [...favorites],
@@ -543,7 +547,7 @@ export default function MarketplacePrompts() {
 
       navigate("/", { state: { prompt: item.prompt } });
     },
-    [navigate, anonymousId, favorites, recent, callCounts]
+    [navigate, walletConnected, anonymousId, favorites, recent, callCounts]
   );
 
   const recordRecentAndNavigate = useCallback(
@@ -559,7 +563,7 @@ export default function MarketplacePrompts() {
       saveCallCountsToStorage(nextCallCounts);
       saveRecentToStorage(nextRecent);
 
-      if (anonymousId?.trim()) {
+      if (walletConnected && anonymousId?.trim()) {
         marketplaceApi
           .put(anonymousId, {
             favorites: [...favorites],
@@ -571,7 +575,7 @@ export default function MarketplacePrompts() {
 
       navigate("/", { state: { prompt } });
     },
-    [navigate, anonymousId, favorites, recent, callCounts]
+    [navigate, walletConnected, anonymousId, favorites, recent, callCounts]
   );
 
   const handleUseUserPrompt = useCallback(
@@ -598,8 +602,8 @@ export default function MarketplacePrompts() {
   );
 
   const handleCreatePrompt = useCallback(() => {
-    if (!anonymousId?.trim()) {
-      setCreateError("Connect or start a chat to create prompts.");
+    if (!walletConnected || !anonymousId?.trim()) {
+      setCreateError("Connect your wallet to create prompts.");
       return;
     }
     const title = createTitle.trim();
@@ -627,7 +631,7 @@ export default function MarketplacePrompts() {
       })
       .catch((err) => setCreateError(err?.message ?? "Failed to create prompt"))
       .finally(() => setCreateSubmitting(false));
-  }, [anonymousId, createTitle, createDescription, createPrompt, createCategory]);
+  }, [walletConnected, anonymousId, createTitle, createDescription, createPrompt, createCategory]);
 
   // Sync edit form when editingPrompt changes
   useEffect(() => {
@@ -641,7 +645,7 @@ export default function MarketplacePrompts() {
   }, [editingPrompt]);
 
   const handleSaveEdit = useCallback(() => {
-    if (!editingPrompt || !anonymousId?.trim()) return;
+    if (!editingPrompt || !walletConnected || !anonymousId?.trim()) return;
     const title = editTitle.trim();
     const promptText = editPrompt.trim();
     if (!title || !promptText) {
@@ -663,19 +667,26 @@ export default function MarketplacePrompts() {
       })
       .catch((err) => setEditError(err?.message ?? "Failed to update prompt"))
       .finally(() => setEditSubmitting(false));
-  }, [editingPrompt, anonymousId, editTitle, editDescription, editPrompt, editCategory]);
+  }, [editingPrompt, walletConnected, anonymousId, editTitle, editDescription, editPrompt, editCategory]);
 
   const handleDeleteConfirm = useCallback(() => {
-    if (!deleteConfirmId || !anonymousId?.trim()) return;
+    if (!deleteConfirmId || !walletConnected || !anonymousId?.trim()) return;
     userPromptsApi.delete(deleteConfirmId, anonymousId).then(() => {
       setUserPromptsList((prev) => prev.filter((p) => p.id !== deleteConfirmId));
       setDeleteConfirmId(null);
     });
-  }, [deleteConfirmId, anonymousId]);
+  }, [deleteConfirmId, walletConnected, anonymousId]);
 
   const handleDuplicatePrompt = useCallback(
     (payload: { title: string; description: string; prompt: string; category: MarketplacePrompt["category"] }) => {
-      if (!anonymousId?.trim()) return;
+      if (!walletConnected || !anonymousId?.trim()) {
+        toast({
+          title: "Wallet required",
+          description: "Connect your wallet to duplicate prompts.",
+          variant: "destructive",
+        });
+        return;
+      }
       userPromptsApi
         .create(anonymousId, {
           title: payload.title,
@@ -689,10 +700,20 @@ export default function MarketplacePrompts() {
           setUserListView("yours");
           setNewlyCreatedPromptId(created.id);
           setTimeout(() => setNewlyCreatedPromptId(null), 600);
+          toast({
+            title: "Prompt duplicated",
+            description: "Added to Your prompts.",
+          });
         })
-        .catch(() => {});
+        .catch(() => {
+          toast({
+            title: "Duplicate failed",
+            description: "Failed to duplicate prompt. Please try again.",
+            variant: "destructive",
+          });
+        });
     },
-    [anonymousId]
+    [walletConnected, anonymousId, toast]
   );
 
   const byCategory = MARKETPLACE_PROMPTS.reduce(
@@ -758,7 +779,7 @@ export default function MarketplacePrompts() {
       <div>
         <h2 className="text-base font-semibold text-foreground mb-0.5">Prompts</h2>
         <p className="text-sm text-muted-foreground">
-          Use a prompt in the agent to start a conversation. Live data prompts trigger paid tools—connect your wallet to use them.
+          Use a prompt in the agent to start a conversation. Live data prompts trigger paid tools—connect your wallet to use them. Connect your wallet to sync favorites and create or edit prompts.
         </p>
       </div>
 
@@ -1375,7 +1396,7 @@ export default function MarketplacePrompts() {
                             if ("category" in item && item.category && MARKETPLACE_PROMPTS.some((p) => p.id === item.id)) {
                               handleUseInAgent(item as MarketplacePrompt);
                             } else {
-                              if (isUserPromptId(item.id)) userPromptsApi.recordUse(item.id).catch(() => {});
+                              if (walletConnected && isUserPromptId(item.id)) userPromptsApi.recordUse(item.id).catch(() => {});
                               recordRecentAndNavigate(item.prompt, item.title, item.id);
                             }
                           }}
@@ -1394,7 +1415,7 @@ export default function MarketplacePrompts() {
                               if ("category" in item && item.category && MARKETPLACE_PROMPTS.some((p) => p.id === item.id)) {
                                 handleUseInAgent(item as MarketplacePrompt);
                               } else {
-                                if (isUserPromptId(item.id)) userPromptsApi.recordUse(item.id).catch(() => {});
+                                if (walletConnected && isUserPromptId(item.id)) userPromptsApi.recordUse(item.id).catch(() => {});
                                 recordRecentAndNavigate(item.prompt, item.title, item.id);
                               }
                             };

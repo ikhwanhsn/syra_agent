@@ -36,8 +36,8 @@
  
    if (items.length === 0) return null;
  
-   return (
-     <div className="hidden xl:block sticky top-24 w-56 shrink-0">
+  return (
+    <div className="hidden xl:block sticky top-20 xl:top-24 w-56 shrink-0 self-start">
        <div className="text-sm font-medium text-foreground mb-3">On this page</div>
        <nav className="space-y-1">
          {items.map((item) => (
