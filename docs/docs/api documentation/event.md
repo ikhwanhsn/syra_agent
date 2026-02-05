@@ -6,9 +6,9 @@ Get upcoming and past cryptocurrency events with HTTP 402 Payment Required proto
 
 The Event API provides access to cryptocurrency events, including conferences, launches, updates, and other important dates in the crypto market. Track events for specific tokens or get general crypto market events.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.15 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -16,7 +16,7 @@ This API uses the x402 payment protocol. On first request without payment, you'l
 
 ## Endpoints
 
-### GET /event
+### GET /v2/event
 
 Fetch cryptocurrency events.
 
@@ -30,10 +30,10 @@ Fetch cryptocurrency events.
 
 ```bash
 # General crypto events
-curl https://api.syraa.fun/event
+curl https://api.syraa.fun/v2/event
 
 # Specific ticker events
-curl https://api.syraa.fun/event?ticker=BTC
+curl https://api.syraa.fun/v2/event?ticker=BTC
 ```
 
 **Response (Success - 200):**
@@ -92,7 +92,7 @@ curl https://api.syraa.fun/event?ticker=BTC
 
 ---
 
-### POST /event
+### POST /v2/event
 
 Fetch cryptocurrency events via POST request.
 
@@ -107,7 +107,7 @@ Fetch cryptocurrency events via POST request.
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/event \
+curl -X POST https://api.syraa.fun/v2/event \
   -H "Content-Type: application/json" \
   -d '{"ticker": "ETH"}'
 ```
@@ -160,7 +160,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.15,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -216,25 +216,25 @@ The API tracks various types of crypto events:
 - General events include all crypto market events
 - Ticker-specific searches return events related to that cryptocurrency
 - Events are organized chronologically by date
-- Each request requires a separate payment ($0.15 USD)
+- Each request requires a separate payment ($0.01 USD)
 - Event data is updated regularly from trusted sources
 
 ## Example Queries
 
 ```bash
 # Get all upcoming crypto events
-curl https://api.syraa.fun/event
+curl https://api.syraa.fun/v2/event
 
 # Get Bitcoin-specific events
-curl https://api.syraa.fun/event?ticker=BTC
+curl https://api.syraa.fun/v2/event?ticker=BTC
 
 # Get Ethereum events via POST
-curl -X POST https://api.syraa.fun/event \
+curl -X POST https://api.syraa.fun/v2/event \
   -H "Content-Type: application/json" \
   -d '{"ticker": "ETH"}'
 
 # Get Solana events
-curl https://api.syraa.fun/event?ticker=SOL
+curl https://api.syraa.fun/v2/event?ticker=SOL
 ```
 
 ## Tips for Best Results
@@ -249,7 +249,7 @@ curl https://api.syraa.fun/event?ticker=SOL
 
 ```javascript
 // Fetch Bitcoin events
-const response = await fetch("https://api.syraa.fun/event?ticker=BTC", {
+const response = await fetch("https://api.syraa.fun/v2/event?ticker=BTC", {
   headers: {
     "X-Payment-Token": "your-payment-token",
   },

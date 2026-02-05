@@ -1,15 +1,23 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun, Cpu } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "./WalletNav";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChatMessage, LoadingStepMessage } from "./ChatMessage";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
 import { ShareChatModal } from "./ShareChatModal";
+import type { JatevoModel } from "@/lib/chatApi";
 
 /** Pixel threshold: if within this distance from bottom, consider "at bottom" for follow-scroll. */
 const SCROLL_BOTTOM_THRESHOLD = 80;
@@ -49,6 +57,10 @@ interface ChatAreaProps {
   /** Dark mode state and toggle for navbar */
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
+  /** Available LLM models and current selection (for AI agent chat) */
+  models?: JatevoModel[];
+  selectedModelId?: string;
+  onSelectModel?: (modelId: string) => void;
 }
 
 export function ChatArea({
@@ -67,6 +79,9 @@ export function ChatArea({
   inputRef,
   isDarkMode = true,
   onToggleDarkMode,
+  models = [],
+  selectedModelId = "",
+  onSelectModel,
 }: ChatAreaProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -137,6 +152,29 @@ export function ChatArea({
           </Button>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+          {models.length > 0 && onSelectModel && (
+            <Select
+              value={selectedModelId || (models[0]?.id ?? "")}
+              onValueChange={onSelectModel}
+              disabled={isLoading}
+            >
+              <SelectTrigger
+                className="h-9 w-[140px] sm:w-[160px] gap-1.5 border-border bg-background"
+                title="Choose LLM model"
+              >
+                <Cpu className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                <SelectValue placeholder="Model" />
+              </SelectTrigger>
+              <SelectContent>
+                {models.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                    {m.contextWindow ? ` (${m.contextWindow})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {onToggleDarkMode && (
             <Button
               variant="ghost"

@@ -15,12 +15,20 @@ export interface ApiMessage {
   toolUsage?: { name: string; status: "running" | "complete" | "error" };
 }
 
+export interface JatevoModel {
+  id: string;
+  name: string;
+  contextWindow?: string;
+  capabilities?: string[];
+}
+
 export interface ApiChat {
   id: string;
   title: string;
   preview: string;
   agentId?: string;
   systemPrompt?: string;
+  modelId?: string;
   shareId: string | null;
   isPublic: boolean;
   messages?: ApiMessage[];
@@ -85,12 +93,19 @@ export const chatApi = {
     return { success: true, chat: data as ApiChat, isOwner };
   },
 
+  /** List available Jatevo LLM models for agent chat. */
+  async getModels(): Promise<{ models: JatevoModel[] }> {
+    const res = await fetch(`${base()}/models`);
+    return handleRes(res);
+  },
+
   /** Create a chat scoped to anonymousId (wallet/user). */
   async create(anonymousId: string, options?: {
     title?: string;
     preview?: string;
     agentId?: string;
     systemPrompt?: string;
+    modelId?: string;
   }): Promise<{ chat: ApiChat }> {
     const res = await fetch(base(), {
       method: "POST",
@@ -103,7 +118,7 @@ export const chatApi = {
   async update(
     id: string,
     anonymousId: string,
-    payload: { title?: string; preview?: string; agentId?: string; systemPrompt?: string; isPublic?: boolean }
+    payload: { title?: string; preview?: string; agentId?: string; systemPrompt?: string; modelId?: string; isPublic?: boolean }
   ): Promise<{ chat: ApiChat }> {
     const res = await fetch(`${base()}/${id}`, {
       method: "PATCH",
@@ -174,6 +189,8 @@ export const chatApi = {
   async completion(params: {
     messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     systemPrompt?: string;
+    /** Jatevo model id (e.g. glm-4.7, deepseek-v3.2). Omit to use default. */
+    model?: string | null;
     /** Client anonymous id; agent wallet pays x402 (pay-402 then retry) */
     anonymousId?: string | null;
     /** When false, do not attempt pay-402 on 402; throw WALLET_REQUIRED_FOR_TOOLS instead */
@@ -195,6 +212,7 @@ export const chatApi = {
       body: JSON.stringify({
         messages: params.messages,
         systemPrompt: params.systemPrompt,
+        model: params.model ?? undefined,
         anonymousId: params.anonymousId ?? undefined,
         toolRequest: params.toolRequest ?? undefined,
         walletConnected: params.walletConnected,

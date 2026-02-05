@@ -14,7 +14,7 @@ export async function createXSearchRouter() {
       description: "Deep research on X/Twitter platform for crypto trends and discussions",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/x-search",
+      resource: "/v2/x/search",
       inputSchema: {
         queryParams: {
           query: {
@@ -94,7 +94,7 @@ export async function createXSearchRouter() {
       description: "Deep research on X/Twitter platform for crypto trends and discussions",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/x-search",
+      resource: "/v2/x/search",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

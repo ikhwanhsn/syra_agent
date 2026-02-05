@@ -6,9 +6,9 @@ Get insights from top crypto influencers and KOLs (Key Opinion Leaders) with HTT
 
 The Crypto KOL API provides AI-powered insights based on the perspectives and opinions of leading crypto influencers. Get analysis and viewpoints from top voices in the cryptocurrency space on various crypto topics.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.15 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -31,7 +31,7 @@ The API can provide insights from these influential crypto accounts:
 
 ## Endpoints
 
-### GET /crypto-kol
+### GET /v2/crypto-kol
 
 Get crypto insights from KOL perspectives.
 
@@ -42,7 +42,7 @@ None required. The API uses a predefined prompt to gather insights from crypto K
 **Example Request:**
 
 ```bash
-curl https://api.syraa.fun/crypto-kol
+curl https://api.syraa.fun/v2/crypto-kol
 ```
 
 **Response (Success - 200):**
@@ -69,7 +69,7 @@ curl https://api.syraa.fun/crypto-kol
 
 ---
 
-### POST /crypto-kol
+### POST /v2/crypto-kol
 
 Get crypto insights via POST request.
 
@@ -84,7 +84,7 @@ _Note: The POST endpoint uses the same predefined KOL prompt as the GET endpoint
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/crypto-kol \
+curl -X POST https://api.syraa.fun/v2/crypto-kol \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
@@ -129,7 +129,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.15,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -179,14 +179,14 @@ Include the payment proof in your retry request headers and you'll receive the K
 - Payment is only settled after successful insight generation
 - Results are based on real-time social media data from KOLs
 - Citations are provided for verification and transparency
-- Each request requires a separate payment ($0.15 USD)
+- Each request requires a separate payment ($0.01 USD)
 - Insights reflect recent KOL activity (typically last 24-48 hours)
 
 ## Example Use Case
 
 ```bash
 # Get current crypto market sentiment from KOLs
-curl https://api.syraa.fun/crypto-kol
+curl https://api.syraa.fun/v2/crypto-kol
 
 # Response includes:
 # - Aggregated insights from multiple KOLs

@@ -1,8 +1,10 @@
+import { JATEVO_DEFAULT_MODEL } from '../config/jatevoModels.js';
+
 /**
  * Call Jatevo LLM API (OpenAI-compatible chat completions).
  * When the model hits max_tokens, the API returns finish_reason "length" and the reply is truncated.
  * @param {Array<{ role: string; content: string }>} messages - Conversation messages (system can be first).
- * @param {{ max_tokens?: number; temperature?: number }} [options]
+ * @param {{ max_tokens?: number; temperature?: number; model?: string }} [options]
  * @returns {Promise<{ response: string; raw: object; truncated: boolean; finishReason: string | null }>}
  */
 export async function callJatevo(messages, options = {}) {
@@ -11,6 +13,8 @@ export async function callJatevo(messages, options = {}) {
     throw new Error("JATEVO_API_KEY is not set");
   }
 
+  const model = options.model && typeof options.model === 'string' ? options.model : JATEVO_DEFAULT_MODEL;
+
   const response = await fetch("https://inference.jatevo.id/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -18,7 +22,7 @@ export async function callJatevo(messages, options = {}) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "glm-4.7",
+      model,
       messages,
       stop: [],
       stream: false,

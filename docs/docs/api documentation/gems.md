@@ -6,9 +6,9 @@ Discover hidden gem cryptocurrency projects through deep X (Twitter) platform re
 
 The Gems API performs deep research on X (Twitter) to identify promising, under-the-radar cryptocurrency projects. Using AI-powered analysis, it scans social media for emerging tokens with strong community signals, developer activity, and growth potential.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.15 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -26,7 +26,7 @@ In crypto terminology, "gems" refer to hidden or undervalued projects with high 
 
 ## Endpoints
 
-### GET /gems
+### GET /v2/gems
 
 Discover hidden gem cryptocurrency projects.
 
@@ -37,7 +37,7 @@ None required. The API uses a predefined research prompt to find hidden gems.
 **Example Request:**
 
 ```bash
-curl https://api.syraa.fun/gems
+curl https://api.syraa.fun/v2/gems
 ```
 
 **Response (Success - 200):**
@@ -71,7 +71,7 @@ curl https://api.syraa.fun/gems
 
 ---
 
-### POST /gems
+### POST /v2/gems
 
 Discover hidden gems via POST request.
 
@@ -86,7 +86,7 @@ _Note: The POST endpoint uses the same predefined research prompt as the GET end
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/gems \
+curl -X POST https://api.syraa.fun/v2/gems \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
@@ -163,7 +163,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.15,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -216,7 +216,7 @@ Include the payment proof in your retry request headers and you'll receive the g
 - Results are based on real-time X platform data
 - Research reflects current trends (typically last 24-48 hours)
 - Citations provided for source verification
-- Each request requires a separate payment ($0.15 USD)
+- Each request requires a separate payment ($0.01 USD)
 - AI analysis combines multiple data points for comprehensive insights
 
 ## Best Practices
@@ -246,7 +246,7 @@ Include the payment proof in your retry request headers and you'll receive the g
 
 ```bash
 # Daily gem discovery routine
-curl https://api.syraa.fun/gems
+curl https://api.syraa.fun/v2/gems
 
 # The API returns:
 # - 3-5 promising projects with analysis
@@ -267,7 +267,7 @@ curl https://api.syraa.fun/gems
 
 ```javascript
 // Fetch hidden gems
-const response = await fetch("https://api.syraa.fun/gems", {
+const response = await fetch("https://api.syraa.fun/v2/gems", {
   headers: {
     "X-Payment-Token": "your-payment-token",
   },

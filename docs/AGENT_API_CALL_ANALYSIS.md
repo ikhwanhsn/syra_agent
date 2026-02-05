@@ -93,7 +93,7 @@ Either way, once `toolRequest` is sent, the backend will call the real API (subj
 
 ### 5. **x402 / BASE_URL / environment**
 
-- **`callX402V2WithAgent`** builds the URL as `BASE_URL + tool.path` (e.g. `http://localhost:3000/v2/news`). If `BASE_URL` is wrong (e.g. different host or port), the request may fail or hit the wrong server.
+- **`callX402V2WithAgent`** builds the URL as `BASE_URL + tool.path` (e.g. `http://localhost:3000/v2/core/news`). If `BASE_URL` is wrong (e.g. different host or port), the request may fail or hit the wrong server.
 - **Effect:** API “call” fails; backend injects the error message and still calls Jatevo, so the user sees an error, not “no capability”.
 - So this would explain “API failed” rather than “agent didn’t call API”. If you see no call at all, focus on 1–4 first.
 

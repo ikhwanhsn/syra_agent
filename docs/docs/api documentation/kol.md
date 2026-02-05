@@ -6,9 +6,9 @@ Deep research on X (Twitter) platform to analyze what influencers and KOLs are s
 
 The X KOL API performs deep research on X (Twitter) to discover what Key Opinion Leaders (KOLs) and influencers are saying about specific cryptocurrency tokens. Combine this with real-time token data from DexScreener for comprehensive token analysis.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.15 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -24,7 +24,7 @@ This API uses the x402 payment protocol. On first request without payment, you'l
 
 ## Endpoints
 
-### GET /x-kol
+### GET /v2/x-kol
 
 Research what KOLs are saying about a specific token.
 
@@ -38,10 +38,10 @@ Research what KOLs are saying about a specific token.
 
 ```bash
 # Research a specific token
-curl "https://api.syraa.fun/x-kol?address=7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"
+curl "https://api.syraa.fun/v2/x-kol?address=7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"
 
 # General crypto KOL research (without address)
-curl https://api.syraa.fun/x-kol
+curl https://api.syraa.fun/v2/x-kol
 ```
 
 **Response (Success - 200):**
@@ -88,7 +88,7 @@ curl https://api.syraa.fun/x-kol
 
 ---
 
-### POST /x-kol
+### POST /v2/x-kol
 
 Research token KOL sentiment via POST request.
 
@@ -103,7 +103,7 @@ Research token KOL sentiment via POST request.
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/x-kol \
+curl -X POST https://api.syraa.fun/v2/x-kol \
   -H "Content-Type: application/json" \
   -d '{
     "address": "0x1234567890abcdef1234567890abcdef12345678"
@@ -177,7 +177,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.15,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -260,7 +260,7 @@ The API evaluates KOL discussions across:
 - Token info is fetched in real-time from DexScreener
 - KOL analysis reflects recent X activity (24-48 hours)
 - Citations provided for transparency and verification
-- Each request requires a separate payment ($0.15 USD)
+- Each request requires a separate payment ($0.01 USD)
 - Works with any token that has a contract address
 
 ## Best Practices
@@ -292,13 +292,13 @@ The API evaluates KOL discussions across:
 
 ```bash
 # Analyze Solana meme coin
-curl "https://api.syraa.fun/x-kol?address=7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"
+curl "https://api.syraa.fun/v2/x-kol?address=7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"
 
 # Check Ethereum token sentiment
-curl "https://api.syraa.fun/x-kol?address=0x6982508145454Ce325dDbE47a25d4ec3d2311933"
+curl "https://api.syraa.fun/v2/x-kol?address=0x6982508145454Ce325dDbE47a25d4ec3d2311933"
 
 # Research BSC token
-curl "https://api.syraa.fun/x-kol?address=0x55d398326f99059fF775485246999027B3197955"
+curl "https://api.syraa.fun/v2/x-kol?address=0x55d398326f99059fF775485246999027B3197955"
 ```
 
 ## Integration Example
@@ -307,7 +307,7 @@ curl "https://api.syraa.fun/x-kol?address=0x55d398326f99059fF775485246999027B319
 // Analyze token before buying
 async function checkTokenSentiment(tokenAddress) {
   const response = await fetch(
-    `https://api.syraa.fun/x-kol?address=${tokenAddress}`,
+    `https://api.syraa.fun/v2/x-kol?address=${tokenAddress}`,
     {
       headers: {
         "X-Payment-Token": "your-payment-token",
@@ -346,13 +346,13 @@ Get comprehensive token intelligence by combining this API with others:
 
 ```bash
 # 1. Get KOL sentiment
-curl "https://api.syraa.fun/x-kol?address=YOUR_TOKEN"
+curl "https://api.syraa.fun/v2/x-kol?address=YOUR_TOKEN"
 
 # 2. Check latest news
-curl "https://api.syraa.fun/news?ticker=TOKEN_SYMBOL"
+curl "https://api.syraa.fun/v2/news?ticker=TOKEN_SYMBOL"
 
 # 3. Look for upcoming events
-curl "https://api.syraa.fun/event?ticker=TOKEN_SYMBOL"
+curl "https://api.syraa.fun/v2/event?ticker=TOKEN_SYMBOL"
 ```
 
 ## Support

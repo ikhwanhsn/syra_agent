@@ -6,9 +6,9 @@ Comprehensive AI-powered research from websites with quick or deep analysis mode
 
 The Research API provides AI-powered research capabilities with two modes: Quick Research for fast insights and Deep Research for comprehensive analysis. The system automatically gathers, analyzes, and synthesizes information from multiple web sources to answer your research queries.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.75 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -34,7 +34,7 @@ This API uses the x402 payment protocol. On first request without payment, you'l
 
 ## Endpoints
 
-### GET /research
+### GET /v2/research
 
 Perform research on any topic.
 
@@ -49,10 +49,10 @@ Perform research on any topic.
 
 ```bash
 # Quick research (default)
-curl "https://api.syraa.fun/research?query=What%20is%20Bitcoin%20ETF"
+curl "https://api.syraa.fun/v2/research?query=What%20is%20Bitcoin%20ETF"
 
 # Deep research
-curl "https://api.syraa.fun/research?query=Analyze%20the%20impact%20of%20Bitcoin%20ETFs%20on%20institutional%20adoption&type=deep"
+curl "https://api.syraa.fun/v2/research?query=Analyze%20the%20impact%20of%20Bitcoin%20ETFs%20on%20institutional%20adoption&type=deep"
 ```
 
 **Response (Success - 200):**
@@ -83,7 +83,7 @@ curl "https://api.syraa.fun/research?query=Analyze%20the%20impact%20of%20Bitcoin
 
 ---
 
-### POST /research
+### POST /v2/research
 
 Perform research via POST request.
 
@@ -99,7 +99,7 @@ Perform research via POST request.
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/research \
+curl -X POST https://api.syraa.fun/v2/research \
   -H "Content-Type: application/json" \
   -d '{
     "query": "What are the latest developments in AI and blockchain integration?",
@@ -150,7 +150,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.75,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -258,7 +258,7 @@ This makes the content easy to:
 
 - Payment is only settled after successful research completion
 - Processing time varies by research type and complexity
-- Each request requires a separate payment ($0.75 USD)
+- Each request requires a separate payment ($0.01 USD)
 - Sources are verified and relevant to your query
 - Content is AI-generated based on source material
 - Results reflect current web information
@@ -309,16 +309,16 @@ This makes the content easy to:
 
 ```bash
 # Technology comparison
-curl "https://api.syraa.fun/research?query=PostgreSQL%20vs%20MongoDB%20for%20Web3%20applications&type=deep"
+curl "https://api.syraa.fun/v2/research?query=PostgreSQL%20vs%20MongoDB%20for%20Web3%20applications&type=deep"
 
 # Market analysis
-curl "https://api.syraa.fun/research?query=NFT%20market%20trends%202024&type=quick"
+curl "https://api.syraa.fun/v2/research?query=NFT%20market%20trends%202024&type=quick"
 
 # Technical explanation
-curl "https://api.syraa.fun/research?query=How%20does%20Bitcoin%20Lightning%20Network%20work&type=quick"
+curl "https://api.syraa.fun/v2/research?query=How%20does%20Bitcoin%20Lightning%20Network%20work&type=quick"
 
 # Investment research
-curl "https://api.syraa.fun/research?query=Analyze%20Solana%20ecosystem%20growth%20potential&type=deep"
+curl "https://api.syraa.fun/v2/research?query=Analyze%20Solana%20ecosystem%20growth%20potential&type=deep"
 ```
 
 ## Integration Example
@@ -326,7 +326,7 @@ curl "https://api.syraa.fun/research?query=Analyze%20Solana%20ecosystem%20growth
 ```javascript
 // Perform deep research
 async function conductResearch(topic) {
-  const response = await fetch("https://api.syraa.fun/research", {
+  const response = await fetch("https://api.syraa.fun/v2/research", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -402,8 +402,8 @@ html = markdown.markdown(data['content'])
 
 For complex research needs:
 
-- **Single Deep Research:** $0.75 (comprehensive, all sources included)
-- **Multiple Quick Searches:** $0.75 each (may need several for same depth)
+- **Single Deep Research:** $0.01 (comprehensive, all sources included)
+- **Multiple Quick Searches:** $0.01 each (may need several for same depth)
 
 Deep research is often more cost-effective for complex topics.
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import Chat from '../../models/agent/Chat.js';
 import { callJatevo } from '../../libs/jatevo.js';
+import { JATEVO_MODELS } from '../../config/jatevoModels.js';
 import {
   getAgentTool,
   getCapabilitiesList,
@@ -106,13 +107,18 @@ async function callToolWithAgentWallet(anonymousId, url, method, query, body) {
   return { status: 200, data: result.data };
 }
 
+// GET /models - List available Jatevo LLM models for the agent chat.
+router.get('/models', (_req, res) => {
+  res.json({ models: JATEVO_MODELS });
+});
+
 // POST /completion - Get LLM completion from Jatevo. Tool is chosen dynamically by Jatevo from the user question.
 // Playground-style: when tool returns 402, we return 402 to client; client calls pay-402 then retries with X-Payment.
 // When client sends X-Payment, we forward it to the tool request.
 router.post('/completion', async (req, res) => {
   const completionStart = Date.now();
   try {
-    const { messages: bodyMessages, systemPrompt, anonymousId, toolRequest: clientToolRequest, walletConnected } =
+    const { messages: bodyMessages, systemPrompt, anonymousId, toolRequest: clientToolRequest, walletConnected, model: modelId } =
       req.body || {};
     if (!Array.isArray(bodyMessages) || bodyMessages.length === 0) {
       return res.status(400).json({ success: false, error: 'messages array is required' });
@@ -249,7 +255,12 @@ router.post('/completion', async (req, res) => {
       });
     }
 
-    const { response, truncated } = await callJatevo(apiMessages, { anonymousId });
+    const jatevoOptions = { anonymousId };
+    if (modelId && typeof modelId === 'string' && modelId.trim()) {
+      const valid = JATEVO_MODELS.some((m) => m.id === modelId.trim());
+      if (valid) jatevoOptions.model = modelId.trim();
+    }
+    const { response, truncated } = await callJatevo(apiMessages, jatevoOptions);
     const payload = { success: true, response };
     if (truncated) payload.truncated = true;
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
@@ -298,6 +309,7 @@ router.get('/share/:shareId', async (req, res) => {
         shareId: chat.shareId,
         title: chat.title,
         preview: chat.preview,
+        modelId: chat.modelId ?? '',
         messages,
         timestamp: chat.updatedAt,
         isPublic: !!chat.isPublic,
@@ -326,6 +338,7 @@ router.get('/share/:shareId', async (req, res) => {
       shareId: chat.shareId,
       title: chat.title,
       preview: chat.preview,
+      modelId: chat.modelId ?? '',
       messages,
       timestamp: chat.updatedAt,
       isPublic: true,
@@ -363,6 +376,7 @@ router.get('/', async (req, res) => {
       preview: c.preview,
       agentId: c.agentId,
       systemPrompt: c.systemPrompt,
+      modelId: c.modelId ?? '',
       shareId: c.shareId ?? null,
       isPublic: !!c.isPublic,
       timestamp: c.updatedAt,
@@ -379,7 +393,7 @@ router.get('/', async (req, res) => {
 // POST / - Create a new chat (scoped by anonymousId / wallet)
 router.post('/', async (req, res) => {
   try {
-    const { anonymousId, title = 'New Chat', preview = '', agentId = '', systemPrompt = '' } = req.body || {};
+    const { anonymousId, title = 'New Chat', preview = '', agentId = '', systemPrompt = '', modelId = '' } = req.body || {};
     if (!anonymousId || typeof anonymousId !== 'string' || !anonymousId.trim()) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
@@ -391,6 +405,7 @@ router.post('/', async (req, res) => {
       preview,
       agentId,
       systemPrompt,
+      modelId: typeof modelId === 'string' ? modelId : '',
       messages: [],
       shareId,
       isPublic: false,
@@ -405,6 +420,7 @@ router.post('/', async (req, res) => {
         preview: chat.preview,
         agentId: chat.agentId,
         systemPrompt: chat.systemPrompt,
+        modelId: chat.modelId ?? '',
         shareId: chat.shareId,
         isPublic: !!chat.isPublic,
         messages: [],
@@ -452,6 +468,7 @@ router.get('/:id', async (req, res) => {
       preview: c.preview,
       agentId: c.agentId,
       systemPrompt: c.systemPrompt,
+      modelId: c.modelId ?? '',
       shareId: c.shareId ?? null,
       isPublic: !!c.isPublic,
       messages,
@@ -468,7 +485,7 @@ router.get('/:id', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { anonymousId, title, preview, agentId, systemPrompt, isPublic } = req.body || {};
+    const { anonymousId, title, preview, agentId, systemPrompt, modelId, isPublic } = req.body || {};
     if (!anonymousId || typeof anonymousId !== 'string' || !anonymousId.trim()) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
@@ -478,6 +495,7 @@ router.patch('/:id', async (req, res) => {
     if (preview !== undefined) update.preview = preview;
     if (agentId !== undefined) update.agentId = agentId;
     if (systemPrompt !== undefined) update.systemPrompt = systemPrompt;
+    if (modelId !== undefined) update.modelId = typeof modelId === 'string' ? modelId : '';
     if (typeof isPublic === 'boolean') update.isPublic = isPublic;
 
     let chat = await Chat.findOne({ _id: id, anonymousId: ownerId });
@@ -506,6 +524,7 @@ router.patch('/:id', async (req, res) => {
         preview: updated.preview,
         agentId: updated.agentId,
         systemPrompt: updated.systemPrompt,
+        modelId: updated.modelId ?? '',
         shareId: updated.shareId ?? null,
         isPublic: !!updated.isPublic,
         timestamp: updated.updatedAt,

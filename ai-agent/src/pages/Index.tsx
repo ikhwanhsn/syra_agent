@@ -35,6 +35,7 @@ interface Chat {
   messages: Message[];
   shareId?: string | null;
   isPublic?: boolean;
+  modelId?: string;
 }
 
 function toMessage(m: { id: string; role: string; content: string; timestamp: string | Date; toolUsage?: { name: string; status: string } }): Message {
@@ -60,6 +61,7 @@ export interface IndexInitialChat {
   preview: string;
   shareId?: string | null;
   isPublic?: boolean;
+  modelId?: string;
   timestamp?: string | Date;
   messages?: Array<{ id: string; role: string; content: string; timestamp: string | Date; toolUsage?: unknown }>;
 }
@@ -99,6 +101,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const [chatsLoading, setChatsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
   const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
+  const [jatevoModels, setJatevoModels] = useState<Array<{ id: string; name: string; contextWindow?: string }>>([]);
 
   // When wallet changes (anonymousId changes), clear chat state so we show the correct wallet's history.
   // Skip when restoring from /c/:shareId (initialChatId) so refresh on a chat link keeps that chat.
@@ -136,6 +139,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           messages: [],
           shareId: c.shareId ?? null,
           isPublic: !!c.isPublic,
+          modelId: c.modelId ?? "",
         }))
       );
     } catch (err) {
@@ -158,6 +162,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       loadChats();
     }
   }, [ready, anonymousId, walletConnected, loadChats]);
+
+  // Fetch available Jatevo LLM models for the model selector (once when session is ready).
+  useEffect(() => {
+    if (!ready) return;
+    chatApi.getModels().then(({ models }) => setJatevoModels(models)).catch(() => {});
+  }, [ready]);
 
   // When session is ready but wallet not connected: use a single in-memory chat (history not saved).
   // Skip when restoring from /c/:shareId so we don't overwrite the restored chat with a new one.
@@ -187,7 +197,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       setChatMessages((prev) => ({ ...prev, [id]: msgs }));
       setChats((prev) =>
         prev.map((c) =>
-          c.id === id ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic } : c
+          c.id === id
+            ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic, modelId: chat.modelId ?? "" }
+            : c
         )
       );
     } catch (err) {
@@ -225,6 +237,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       messages: [],
       shareId: initialChat.shareId ?? null,
       isPublic: !!initialChat.isPublic,
+      modelId: initialChat.modelId ?? "",
     };
     setChats((prev) => {
       const exists = prev.some((c) => c.id === initialChatId);
@@ -289,19 +302,18 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         const chatId = chat.id;
         setChats((prev) => {
           const exists = prev.some((c) => c.id === chatId);
-          if (exists) return prev.map((c) => (c.id === chatId ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic } : c));
-          return [
-            {
-              id: chatId,
-              title: chat.title,
-              preview: chat.preview,
-              timestamp: typeof chat.timestamp === "string" ? new Date(chat.timestamp) : new Date(chat.timestamp),
-              messages: [],
-              shareId: chat.shareId ?? null,
-              isPublic: !!chat.isPublic,
-            },
-            ...prev,
-          ];
+          const entry = {
+            id: chatId,
+            title: chat.title,
+            preview: chat.preview,
+            timestamp: typeof chat.timestamp === "string" ? new Date(chat.timestamp) : new Date(chat.timestamp),
+            messages: [],
+            shareId: chat.shareId ?? null,
+            isPublic: !!chat.isPublic,
+            modelId: chat.modelId ?? "",
+          };
+          if (exists) return prev.map((c) => (c.id === chatId ? { ...c, ...entry } : c));
+          return [entry, ...prev];
         });
         const msgs = (chat.messages || []).map(toMessage);
         setChatMessages((prev) => ({ ...prev, [chatId]: msgs }));
@@ -342,6 +354,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         messages: [],
         shareId: chat.shareId ?? null,
         isPublic: !!chat.isPublic,
+        modelId: chat.modelId ?? "",
       };
       setChats((prev) => [newChat, ...prev]);
       setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -352,6 +365,28 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       // Silently fail; user can retry
     }
   };
+
+  const handleSelectModel = useCallback(
+    (modelId: string) => {
+      if (!activeChat) return;
+      if (isLocalChat(activeChat)) {
+        setChats((prev) =>
+          prev.map((c) => (c.id === activeChat ? { ...c, modelId } : c))
+        );
+        return;
+      }
+      if (!anonymousId) return;
+      chatApi.update(activeChat, anonymousId, { modelId }).then(
+        () => {
+          setChats((prev) =>
+            prev.map((c) => (c.id === activeChat ? { ...c, modelId } : c))
+          );
+        },
+        () => {}
+      );
+    },
+    [activeChat, anonymousId]
+  );
 
   const handleDeleteChat = useCallback(async (id: string) => {
     if (isLocalChat(id)) {
@@ -471,6 +506,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           messages: [],
           shareId: chat.shareId ?? null,
           isPublic: !!chat.isPublic,
+          modelId: chat.modelId ?? "",
         };
         setChats((prev) => [newChat, ...prev]);
         setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -530,10 +566,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       content: m.content,
     }));
 
+    const effectiveModelId =
+      currentChat?.modelId?.trim() || (jatevoModels[0]?.id ?? "") || undefined;
+
     try {
       const { response: responseText, amountChargedUsd } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        model: effectiveModelId || undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
       });
@@ -657,11 +697,15 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       content: m.content,
     }));
 
+    const effectiveModelId =
+      currentChat?.modelId?.trim() || (jatevoModels[0]?.id ?? "") || undefined;
+
     setIsLoading(true);
     try {
       const { response: responseText, amountChargedUsd } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        model: effectiveModelId || undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
       });
@@ -881,6 +925,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 inputRef={chatInputRefDesktop}
                 isDarkMode={isDarkMode}
                 onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                models={jatevoModels}
+                selectedModelId={currentChat?.modelId ?? jatevoModels[0]?.id ?? ""}
+                onSelectModel={handleSelectModel}
               />
             </main>
           </ResizablePanel>
@@ -910,6 +957,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           inputRef={chatInputRefMobile}
           isDarkMode={isDarkMode}
           onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          models={jatevoModels}
+          selectedModelId={currentChat?.modelId ?? jatevoModels[0]?.id ?? ""}
+          onSelectModel={handleSelectModel}
         />
       </main>
       </div>

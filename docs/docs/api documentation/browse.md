@@ -6,9 +6,9 @@ Scrape and extract information from websites using AI-powered browsing with HTTP
 
 The Browse API enables you to scrape and gather information from websites using an intelligent browsing service. This is a paid API that uses the x402 payment protocol - you'll need to complete payment before receiving the data.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.15 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -16,7 +16,7 @@ This API uses the x402 payment protocol. On first request without payment, you'l
 
 ## Endpoints
 
-### GET /browse
+### GET /v2/browse
 
 Scrape information from websites based on a query.
 
@@ -30,10 +30,10 @@ Scrape information from websites based on a query.
 
 ```bash
 # Basic scraping request
-curl "https://api.syraa.fun/browse?query=Find%20the%20latest%20Bitcoin%20price%20from%20CoinMarketCap"
+curl "https://api.syraa.fun/v2/browse?query=Find%20the%20latest%20Bitcoin%20price%20from%20CoinMarketCap"
 
 # Without query (general browsing)
-curl https://api.syraa.fun/browse
+curl https://api.syraa.fun/v2/browse
 ```
 
 **Response (Success - 200):**
@@ -47,7 +47,7 @@ curl https://api.syraa.fun/browse
 
 ---
 
-### POST /browse
+### POST /v2/browse
 
 Scrape information from websites via POST request.
 
@@ -62,7 +62,7 @@ Scrape information from websites via POST request.
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/browse \
+curl -X POST https://api.syraa.fun/v2/browse \
   -H "Content-Type: application/json" \
   -d '{
     "query": "Extract all product prices from example-shop.com"
@@ -95,7 +95,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.15,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -145,7 +145,7 @@ The browsing service returns results with the following statuses:
 - Payment is only settled after successful task completion
 - The API automatically polls for results - no manual polling needed
 - Processing time varies based on query complexity (typically 5-30 seconds)
-- Each request requires a separate payment ($0.15 USD)
+- Each request requires a separate payment ($0.01 USD)
 - The browsing agent uses AI to interpret and execute your query
 
 ## Rate Limits

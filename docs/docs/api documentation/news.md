@@ -11,9 +11,9 @@ Get cryptocurrency news with HTTP 402 Payment Required protocol.
 
 The News API provides access to cryptocurrency news articles. This is a paid API that uses the x402 payment protocol - you'll need to complete payment before receiving the data.
 
-**Base URL:** `https://api.syraa.fun`
+**Base URL:** `https://api.syraa.fun/v2`
 
-**Price:** $0.10 USD per request
+**Price:** $0.01 USD per request
 
 ## Authentication
 
@@ -21,7 +21,7 @@ This API uses the x402 payment protocol. On first request without payment, you'l
 
 ## Endpoints
 
-### GET /news
+### GET /v2/news
 
 Fetch cryptocurrency news articles.
 
@@ -35,10 +35,10 @@ Fetch cryptocurrency news articles.
 
 ```bash
 # General news
-curl https://api.syraa.fun/news
+curl https://api.syraa.fun/v2/news
 
 # Specific ticker
-curl https://api.syraa.fun/news?ticker=BTC
+curl https://api.syraa.fun/v2/news?ticker=BTC
 ```
 
 **Response (Success - 200):**
@@ -59,7 +59,7 @@ curl https://api.syraa.fun/news?ticker=BTC
 
 ---
 
-### POST /news
+### POST /v2/news
 
 Fetch cryptocurrency news articles via POST request.
 
@@ -74,7 +74,7 @@ Fetch cryptocurrency news articles via POST request.
 **Example Request:**
 
 ```bash
-curl -X POST https://api.syraa.fun/news \
+curl -X POST https://api.syraa.fun/v2/news \
   -H "Content-Type: application/json" \
   -d '{"ticker": "ETH"}'
 ```
@@ -104,7 +104,7 @@ When you first call the API without payment, you'll receive a `402 Payment Requi
 ```json
 {
   "error": "Payment Required",
-  "price": 0.1,
+  "price": 0.01,
   "currency": "USD",
   "paymentInstructions": {
     "method": "x402",
@@ -139,7 +139,7 @@ Include the payment proof in your retry request headers and you'll receive the n
 - Payment is only settled after successful news retrieval
 - General news includes articles from all tickers
 - Specific ticker searches return both exact matches and related articles
-- Each request requires a separate payment ($0.10 USD)
+- Each request requires a separate payment ($0.01 USD)
 
 ## Support
 
