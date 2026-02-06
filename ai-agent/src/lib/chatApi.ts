@@ -254,11 +254,19 @@ export const chatApi = {
       );
     }
 
-    const data = await handleRes<{ success: boolean; response: string; amountChargedUsd?: number }>(res);
+    const data = await handleRes<{
+      success: boolean;
+      response: string;
+      amountChargedUsd?: number;
+      toolUsages?: Array<{ name: string; status: "running" | "complete" | "error" }>;
+    }>(res);
     return {
       response: data.response ?? "",
       ...(typeof data.amountChargedUsd === "number" && data.amountChargedUsd > 0
         ? { amountChargedUsd: data.amountChargedUsd }
+        : {}),
+      ...(Array.isArray(data.toolUsages) && data.toolUsages.length > 0
+        ? { toolUsages: data.toolUsages }
         : {}),
     };
   },

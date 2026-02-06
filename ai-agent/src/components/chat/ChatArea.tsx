@@ -25,6 +25,7 @@ interface Message {
     name: string;
     status: "running" | "complete" | "error";
   };
+  toolUsages?: Array<{ name: string; status: "running" | "complete" | "error" }>;
 }
 
 interface ChatAreaProps {

@@ -191,9 +191,15 @@ router.post('/completion', async (req, res) => {
     apiMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
 
     let amountChargedUsd = 0;
+    /** @type {Array<{ name: string; status: 'complete' | 'error' }>} */
+    let toolUsages = [];
     if (!matchedTools || matchedTools.length === 0) {
       // No tools matched: let the agent answer from the system prompt (general chat vs out-of-scope).
     } else if (walletConnected === false) {
+      toolUsages = matchedTools.map((m) => {
+        const t = getAgentTool(m.toolId);
+        return { name: t ? t.name : m.toolId, status: 'error' };
+      });
       const toolIds = matchedTools.map((t) => t.toolId).join(', ');
       apiMessages.push({
         role: 'user',
@@ -214,6 +220,7 @@ router.post('/completion', async (req, res) => {
               ? `The user's agent wallet has 0 USDC balance. The requested paid tool (${tool.name}) costs $${requiredUsdc.toFixed(4)}. Explain that they need to deposit USDC to their agent wallet to use this feature.`
               : `The user's agent wallet has insufficient USDC (balance: $${usdcBalance.toFixed(4)}, required for ${tool.name}: $${requiredUsdc.toFixed(4)}). Explain this and ask them to deposit more USDC.`;
           toolErrors.push(msg);
+          toolUsages.push({ name: tool.name, status: 'error' });
           continue;
         }
         const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
@@ -238,9 +245,11 @@ router.post('/completion', async (req, res) => {
             instruction += ` Suggest they check their agent wallet has both USDC (for the tool) and SOL (for fees), or try again later.`;
           }
           toolErrors.push(instruction);
+          toolUsages.push({ name: tool.name, status: 'error' });
         } else {
           amountChargedUsd += tool.priceUsd;
           usdcBalance -= tool.priceUsd;
+          toolUsages.push({ name: tool.name, status: 'complete' });
           toolResults.push(
             `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.]\n\n${JSON.stringify(result.data, null, 2)}`
           );
@@ -256,6 +265,10 @@ router.post('/completion', async (req, res) => {
         }
       }
     } else {
+      toolUsages = matchedTools.map((m) => {
+        const t = getAgentTool(m.toolId);
+        return { name: t ? t.name : m.toolId, status: 'error' };
+      });
       const toolIds = matchedTools.map((t) => t.toolId).join(', ');
       apiMessages.push({
         role: 'user',
@@ -317,6 +330,7 @@ router.post('/completion', async (req, res) => {
     if (truncated) payload.truncated = true;
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
     if (usedFallbackModel) payload.usedFallbackModel = true;
+    if (toolUsages && toolUsages.length > 0) payload.toolUsages = toolUsages;
     return res.json(payload);
   } catch (error) {
     const status = error.status || 500;

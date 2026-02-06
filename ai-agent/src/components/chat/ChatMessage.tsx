@@ -241,13 +241,28 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
       </div>
 
       <div className="flex-1 min-w-0 space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span className="font-medium text-sm text-foreground">
             {isUser ? "You" : agentName}
           </span>
           <span className="text-xs text-muted-foreground">
             {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
+          {!isUser && (message.toolUsage || (message.toolUsages && message.toolUsages.length > 0)) && (() => {
+            const tools: ToolUsageItem[] = message.toolUsages?.length
+              ? message.toolUsages
+              : message.toolUsage
+                ? [message.toolUsage]
+                : [];
+            if (tools.length === 0) return null;
+            const names = tools.map((t) => t.name).join(", ");
+            return (
+              <span className="text-xs text-muted-foreground ml-auto shrink-0 flex items-center gap-1">
+                <Wrench className="w-3 h-3 text-muted-foreground" />
+                {names}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Tools used for this answer — section for assistant messages */}

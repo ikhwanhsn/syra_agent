@@ -25,6 +25,7 @@ interface Message {
     name: string;
     status: "running" | "complete" | "error";
   };
+  toolUsages?: Array<{ name: string; status: "running" | "complete" | "error" }>;
 }
 
 interface Chat {
@@ -38,13 +39,21 @@ interface Chat {
   modelId?: string;
 }
 
-function toMessage(m: { id: string; role: string; content: string; timestamp: string | Date; toolUsage?: { name: string; status: string } }): Message {
+function toMessage(m: {
+  id: string;
+  role: string;
+  content: string;
+  timestamp: string | Date;
+  toolUsage?: { name: string; status: string };
+  toolUsages?: Array<{ name: string; status: string }>;
+}): Message {
   return {
     id: m.id,
     role: m.role as "user" | "assistant",
     content: m.content,
     timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
     toolUsage: m.toolUsage as Message["toolUsage"],
+    toolUsages: m.toolUsages as Message["toolUsages"],
   };
 }
 
@@ -611,7 +620,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       currentChat?.modelId?.trim() || DEFAULT_MODEL_ID || undefined;
 
     try {
-      const { response: responseText, amountChargedUsd } = await chatApi.completion({
+      const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         model: effectiveModelId || undefined,
@@ -632,7 +641,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           clearInterval(streamInterval);
           const finalMessages: Message[] = [
             ...nextMessages,
-            { ...assistantMessage, content: responseText, isStreaming: false },
+            {
+              ...assistantMessage,
+              content: responseText,
+              isStreaming: false,
+              ...(toolUsages?.length ? { toolUsages } : {}),
+            },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
           setIsLoading(false);
@@ -647,7 +661,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                   role: m.role,
                   content: m.content,
                   timestamp: m.timestamp,
-                  toolUsage: m.toolUsage,
+                  toolUsage: m.toolUsage ?? m.toolUsages?.[0],
                 })),
                 newTitle ? { title: newTitle, preview: newPreview } : undefined
               )
@@ -685,7 +699,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               role: m.role,
               content: m.content,
               timestamp: m.timestamp,
-              toolUsage: m.toolUsage,
+              toolUsage: m.toolUsage ?? m.toolUsages?.[0],
             })),
             newTitle ? { title: newTitle, preview: newPreview } : undefined
           )
@@ -743,7 +757,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
     setIsLoading(true);
     try {
-      const { response: responseText, amountChargedUsd } = await chatApi.completion({
+      const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         model: effectiveModelId || undefined,
@@ -764,7 +778,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           clearInterval(streamInterval);
           const finalMessages: Message[] = [
             ...truncated,
-            { ...assistantMessage, content: responseText, isStreaming: false },
+            {
+              ...assistantMessage,
+              content: responseText,
+              isStreaming: false,
+              ...(toolUsages?.length ? { toolUsages } : {}),
+            },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
           setIsLoading(false);
@@ -779,7 +798,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                   role: m.role,
                   content: m.content,
                   timestamp: m.timestamp,
-                  toolUsage: m.toolUsage,
+                  toolUsage: m.toolUsage ?? m.toolUsages?.[0],
                 }))
               )
               .catch(() => {});
@@ -817,7 +836,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               role: m.role,
               content: m.content,
               timestamp: m.timestamp,
-              toolUsage: m.toolUsage,
+              toolUsage: m.toolUsage ?? m.toolUsages?.[0],
             }))
           )
           .catch(() => {});
