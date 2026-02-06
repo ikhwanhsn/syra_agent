@@ -37,6 +37,20 @@ export async function getAgentAddress(anonymousId) {
   return doc?.agentAddress ?? null;
 }
 
+/**
+ * Get connected wallet address (Solana) for an anonymous user, if they linked a wallet.
+ * Used to check SYRA balance for free-agent eligibility (e.g. 1M+ holders).
+ * @param {string} anonymousId - Client's anonymous id
+ * @returns {Promise<string | null>} Wallet address or null
+ */
+export async function getConnectedWalletAddress(anonymousId) {
+  if (!anonymousId || typeof anonymousId !== 'string') return null;
+  const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
+    .select('walletAddress')
+    .lean();
+  return doc?.walletAddress ?? null;
+}
+
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
 const RPC_TIMEOUT_MS = Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 30_000;

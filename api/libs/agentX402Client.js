@@ -16,7 +16,23 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
+import { Keypair } from '@solana/web3.js';
 import { getAgentKeypair } from './agentWallet.js';
+
+/**
+ * Get treasury keypair from AGENT_PRIVATE_KEY (base58). Used to pay for tool calls when user is a 1M+ SYRA holder.
+ * @returns {Keypair | null}
+ */
+function getTreasuryKeypair() {
+  const raw = process.env.AGENT_PRIVATE_KEY;
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return null;
+  try {
+    const secretKey = bs58.decode(raw.trim());
+    return Keypair.fromSecretKey(secretKey);
+  } catch {
+    return null;
+  }
+}
 
 /** Placeholder signature (64 zero bytes base58) = tx was not actually signed; RPC returns this when tx is invalid. */
 const ZERO_SIG_BASE58 = '1'.repeat(64);
@@ -123,20 +139,38 @@ function createPaymentHeaderFromTx(signedTx, accepted, x402Version = 2) {
  */
 export async function callX402V2WithAgent(opts) {
   try {
-    return await callX402V2WithAgentImpl(opts);
+    const { anonymousId, url, method = 'GET', query = {}, body } = opts;
+    const keypair = await getAgentKeypair(anonymousId);
+    if (!keypair) {
+      return { success: false, error: 'Agent wallet not found for this user' };
+    }
+    return await callX402V2WithKeypair(keypair, { url, method, query, body });
   } catch (e) {
     const msg = e?.message || String(e);
     return { success: false, error: msg };
   }
 }
 
-async function callX402V2WithAgentImpl(opts) {
-  const { anonymousId, url, method = 'GET', query = {}, body } = opts;
-  const keypair = await getAgentKeypair(anonymousId);
-  if (!keypair) {
-    return { success: false, error: 'Agent wallet not found for this user' };
+/**
+ * Call x402 v2 API using the treasury wallet (AGENT_PRIVATE_KEY). Used when user is a 1M+ SYRA holder (free tools).
+ * @param {object} opts - { url, method?, query?, body? }
+ * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
+ */
+export async function callX402V2WithTreasury(opts) {
+  try {
+    const keypair = getTreasuryKeypair();
+    if (!keypair) {
+      return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
+    }
+    return await callX402V2WithKeypair(keypair, opts);
+  } catch (e) {
+    const msg = e?.message || String(e);
+    return { success: false, error: msg };
   }
+}
 
+async function callX402V2WithKeypair(keypair, opts) {
+  const { url, method = 'GET', query = {}, body } = opts;
   const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
 

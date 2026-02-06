@@ -7,8 +7,14 @@ import {
   getCapabilitiesList,
   getToolsForLlmSelection,
 } from '../../config/agentTools.js';
-import { getAgentUsdcBalance, getAgentBalances, getAgentAddress } from '../../libs/agentWallet.js';
-import { callX402V2WithAgent } from '../../libs/agentX402Client.js';
+import {
+  getAgentUsdcBalance,
+  getAgentBalances,
+  getAgentAddress,
+  getConnectedWalletAddress,
+} from '../../libs/agentWallet.js';
+import { callX402V2WithAgent, callX402V2WithTreasury } from '../../libs/agentX402Client.js';
+import { isSyraHolderEligible } from '../../libs/syraToken.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -107,6 +113,22 @@ async function callToolWithAgentWallet(anonymousId, url, method, query, body) {
   return { status: 200, data: result.data };
 }
 
+/**
+ * Call x402 v2 tool with treasury wallet (AGENT_PRIVATE_KEY). Used for 1M+ SYRA holders (free tools).
+ */
+async function callToolWithTreasury(url, method, query, body) {
+  const result = await callX402V2WithTreasury({
+    url,
+    method: method || 'GET',
+    query: method === 'GET' ? query || {} : {},
+    body: method === 'POST' ? body : undefined,
+  });
+  if (!result.success) {
+    return { status: 502, error: result.error };
+  }
+  return { status: 200, data: result.data };
+}
+
 // GET /models - List available Jatevo LLM models for the agent chat. Prefer Jatevo API list when available.
 router.get('/models', async (_req, res) => {
   try {
@@ -157,6 +179,12 @@ router.post('/completion', async (req, res) => {
 
     const capabilitiesList = getCapabilitiesList().join('\n');
 
+    let useTreasuryForTools = false;
+    if (anonymousId && walletConnected) {
+      const connectedWallet = await getConnectedWalletAddress(anonymousId);
+      useTreasuryForTools = !!(connectedWallet && (await isSyraHolderEligible(connectedWallet)));
+    }
+
     let systemParts = [];
     systemParts.push(
       `You are Syra, a smart AI agent for crypto, web3, and blockchain. You can chat naturally and also use paid tools when the user asks for specific data.`
@@ -181,9 +209,15 @@ router.post('/completion', async (req, res) => {
       systemParts.push(
         `User's agent wallet balances: USDC $${usdcBalance.toFixed(4)}, SOL ${solBalance.toFixed(4)}. Agent wallet address: ${agentAddr || 'unknown'}.`
       );
-      systemParts.push(
-        `Agent wallet knowledge: The agent wallet needs BOTH (1) USDC to pay for paid tools, and (2) SOL to pay Solana transaction fees. If the user has 0 or very low USDC, tell them to deposit USDC to their agent wallet to use paid tools. If the user has 0 or very low SOL (e.g. below 0.001), tell them to send a small amount of SOL (e.g. 0.01 SOL) to their agent wallet address so payments can be processed. If a paid tool fails with a message about "SOL for transaction fees" or "debit an account", explain clearly that they need to add SOL to their agent wallet for network fees. If the failure mentions "USDC" or "insufficient balance", explain they need to add USDC for the tool cost.`
-      );
+      if (useTreasuryForTools) {
+        systemParts.push(
+          `The user holds 1M+ SYRA tokens and can use paid tools for free (treasury pays). Do not ask them to deposit USDC for tools.`
+        );
+      } else {
+        systemParts.push(
+          `Agent wallet knowledge: The agent wallet needs BOTH (1) USDC to pay for paid tools, and (2) SOL to pay Solana transaction fees. If the user has 0 or very low USDC, tell them to deposit USDC to their agent wallet to use paid tools. If the user has 0 or very low SOL (e.g. below 0.001), tell them to send a small amount of SOL (e.g. 0.01 SOL) to their agent wallet address so payments can be processed. If a paid tool fails with a message about "SOL for transaction fees" or "debit an account", explain clearly that they need to add SOL to their agent wallet for network fees. If the failure mentions "USDC" or "insufficient balance", explain they need to add USDC for the tool cost.`
+        );
+      }
     }
     if (systemPrompt && typeof systemPrompt === 'string') {
       systemParts.push(systemPrompt);
@@ -206,7 +240,8 @@ router.post('/completion', async (req, res) => {
         content: `[The user asked for something that requires paid tool(s) (${toolIds}), but they have not connected a wallet. Reply that they need to connect their wallet to use tools and get this information. You can mention they can chat about crypto without a wallet, but tools and realtime data require a connected wallet.]`,
       });
     } else if (anonymousId) {
-      let usdcBalance = (await getAgentUsdcBalance(anonymousId))?.usdcBalance ?? 0;
+      const useTreasury = useTreasuryForTools;
+      let usdcBalance = useTreasury ? Infinity : (await getAgentUsdcBalance(anonymousId))?.usdcBalance ?? 0;
       const toolResults = [];
       const toolErrors = [];
       for (const matched of matchedTools) {
@@ -214,7 +249,7 @@ router.post('/completion', async (req, res) => {
         const params = typeof matched.params === 'object' ? matched.params || {} : {};
         if (!tool) continue;
         const requiredUsdc = tool.priceUsd;
-        if (usdcBalance <= 0 || usdcBalance < requiredUsdc) {
+        if (!useTreasury && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
           const msg =
             usdcBalance <= 0
               ? `The user's agent wallet has 0 USDC balance. The requested paid tool (${tool.name}) costs $${requiredUsdc.toFixed(4)}. Explain that they need to deposit USDC to their agent wallet to use this feature.`
@@ -225,19 +260,23 @@ router.post('/completion', async (req, res) => {
         }
         const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
         const method = tool.method || 'GET';
-        const result = await callToolWithAgentWallet(
-          anonymousId,
-          url,
-          method,
-          method === 'GET' ? params : {},
-          method === 'POST' ? params : undefined
-        );
+        const result = useTreasury
+          ? await callToolWithTreasury(url, method, method === 'GET' ? params : {}, method === 'POST' ? params : undefined)
+          : await callToolWithAgentWallet(
+              anonymousId,
+              url,
+              method,
+              method === 'GET' ? params : {},
+              method === 'POST' ? params : undefined
+            );
         if (result.status !== 200) {
           const err = result.error || 'Request failed';
           const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
           const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
           let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
-          if (needsSol) {
+          if (useTreasury) {
+            instruction += ` This user is a 1M+ SYRA holder (treasury pays); suggest they try again or contact support if the issue persists.`;
+          } else if (needsSol) {
             instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
           } else if (needsUsdc) {
             instruction += ` Tell the user they need to deposit USDC to their agent wallet to pay for this tool.`;
@@ -247,7 +286,7 @@ router.post('/completion', async (req, res) => {
           toolErrors.push(instruction);
           toolUsages.push({ name: tool.name, status: 'error' });
         } else {
-          amountChargedUsd += tool.priceUsd;
+          if (!useTreasury) amountChargedUsd += tool.priceUsd;
           usdcBalance -= tool.priceUsd;
           toolUsages.push({ name: tool.name, status: 'complete' });
           toolResults.push(
