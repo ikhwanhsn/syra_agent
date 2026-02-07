@@ -71,6 +71,7 @@ import { createTokenReportRouter as createV2TokenReportRouter } from "./v2/route
 import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./v2/routes/partner/rugcheck/token-statistic.js";
 import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./v2/routes/partner/bubblemaps/maps.js";
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./v2/routes/partner/binance/correlation.js";
+import { createAnalyticsRouter as createV2AnalyticsRouter } from "./v2/routes/analytics.js";
 import { createFastestHolderGrowthMemecoinsRouter as createV2FastestHolderGrowthMemecoinsRouter } from "./v2/routes/memecoin/fastestHolderGrowthMemecoins.js";
 import { createMemecoinsAccumulatingBeforeCEXRumorsRouter as createV2MemecoinsAccumulatingBeforeCEXRumorsRouter } from "./v2/routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
 import { createMemecoinsMostMentionedBySmartMoneyXRouter as createV2MemecoinsMostMentionedBySmartMoneyXRouter } from "./v2/routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
@@ -446,6 +447,7 @@ app.use("/v2/token-report", await createV2TokenReportRouter());
 app.use("/v2/token-statistic", await createV2TokenStatisticRouter());
 app.use("/v2/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use("/v2/binance/correlation", await createV2BinanceCorrelationRouter());
+app.use("/v2/analytics", await createV2AnalyticsRouter());
 app.use("/v2/memecoin/fastest-holder-growth", await createV2FastestHolderGrowthMemecoinsRouter());
 app.use("/v2/memecoin/most-mentioned-by-smart-money-x", await createV2MemecoinsMostMentionedBySmartMoneyXRouter());
 app.use("/v2/memecoin/accumulating-before-CEX-rumors", await createV2MemecoinsAccumulatingBeforeCEXRumorsRouter());
