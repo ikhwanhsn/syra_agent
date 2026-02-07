@@ -86,6 +86,7 @@ import { createMemecoinsSurvivingMarketDumpsRouter as createV2MemecoinsSurviving
 // import { ExactEvmScheme } from "@x402/evm/exact/server";
 // import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
+import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { createRegularNewsRouter } from "./routes/regular/news.js";
 import { createRegularSentimentRouter } from "./routes/regular/sentiment.js";
 import { createRegularSignalRouter } from "./routes/regular/signal.js";
@@ -224,6 +225,21 @@ app.use(
     skip: (req) => isX402Route(req.path) || isAgentRoute(req.path),
   }),
 );
+
+// ZAuth x402 monitoring (before x402 routes) – telemetry & optional validation/refunds via zauthx402.com
+const ZAUTH_API_KEY = (process.env.ZAUTH_API_KEY || "").trim();
+if (ZAUTH_API_KEY) {
+  app.use(
+    zauthProvider(ZAUTH_API_KEY, {
+      refund: {
+        enabled: true,
+        solanaPrivateKey: process.env.ZAUTH_SOLANA_PRIVATE_KEY,
+        network: "solana",
+        maxRefundUsd: 1.0,
+      },
+    }),
+  );
+}
 
 app.get("/", (req, res) => {
   const art = `
