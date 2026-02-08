@@ -36,6 +36,7 @@ import { createSundownDigestRouter } from "./routes/sundown-digest.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
+import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createBubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 import { createFastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fastestHolderGrowthMemecoins.js";
 import { createMemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
@@ -421,6 +422,7 @@ app.use("/news", await createNewsRouter());
 app.use("/v1/regular/news", await createNewsRouterRegular());
 app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
 app.use("/v1/regular/signal", await createSignalRouterRegular());
+app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
 
 // x402 V2 routes (V2 format - CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/v2/news", await createV2NewsRouter());

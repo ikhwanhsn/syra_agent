@@ -1,7 +1,8 @@
 const LINK_AGENT = "https://agent.syraa.fun";
 const LINK_DOCS = "https://docs.syraa.fun";
 const LINK_PLAYGROUND = "https://playground.syraa.fun";
-const API_BASE = import.meta.env.DEV ? "http://localhost:3000" : "https://api.syraa.fun";
+// In dev, use /api so Vite proxies to localhost:3000 (run: cd api && npm run dev)
+const API_BASE = import.meta.env.DEV ? "/api" : "https://api.syraa.fun";
 const LINK_DEMO = "https://x.com/syra_agent/status/1994813375214489919?s=20";
 const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
