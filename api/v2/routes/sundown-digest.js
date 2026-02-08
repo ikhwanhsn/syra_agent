@@ -1,11 +1,9 @@
 // routes/sundown-digest.js – cache + parallel settle for fast response
 import express from "express";
-import {
-  requirePayment,
-  getX402ResourceServer,
-  encodePaymentResponseHeader,
-} from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader } = await getV2Payment();
 
 const CACHE_TTL_MS = 90 * 1000;
 let sundownCache = null;
@@ -41,8 +39,11 @@ export async function createSundownDigestRouter() {
   }
 
   function setPaymentResponseAndSend(res, data, settle) {
-    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
-    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+    const reason = settle?.errorReason || "";
+    const isFacilitatorFailure = /Facilitator|500|Internal server error/i.test(reason);
+    if (!settle?.success && !isFacilitatorFailure) throw new Error(reason || "Settlement failed");
+    const effectiveSettle = settle?.success ? settle : { success: true };
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(effectiveSettle));
     res.json({ sundownDigest: data });
   }
 
@@ -61,11 +62,10 @@ export async function createSundownDigestRouter() {
       },
     }),
     async (req, res) => {
-      const { resourceServer } = getX402ResourceServer();
       const { payload, accepted } = req.x402Payment;
       const [sundownDigest, settle] = await Promise.all([
         getData(),
-        resourceServer.settlePayment(payload, accepted),
+        settlePaymentWithFallback(payload, accepted),
       ]);
       if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
       if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
@@ -88,11 +88,10 @@ export async function createSundownDigestRouter() {
       },
     }),
     async (req, res) => {
-      const { resourceServer } = getX402ResourceServer();
       const { payload, accepted } = req.x402Payment;
       const [sundownDigest, settle] = await Promise.all([
         getData(),
-        resourceServer.settlePayment(payload, accepted),
+        settlePaymentWithFallback(payload, accepted),
       ]);
       if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
       if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });

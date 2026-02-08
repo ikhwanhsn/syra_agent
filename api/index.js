@@ -88,9 +88,6 @@ import { createMemecoinsSurvivingMarketDumpsRouter as createV2MemecoinsSurviving
 // import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
 import { zauthProvider } from "@zauthx402/sdk/middleware";
-import { createRegularNewsRouter } from "./routes/regular/news.js";
-import { createRegularSentimentRouter } from "./routes/regular/sentiment.js";
-import { createRegularSignalRouter } from "./routes/regular/signal.js";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import connectMongoose from "./config/mongoose.js";
 
@@ -412,11 +409,6 @@ app.get("/", (req, res) => {
   `);
 });
 
-// Regular routes
-app.use("/v1/regular/news", await createRegularNewsRouter());
-app.use("/v1/regular/sentiment", await createRegularSentimentRouter());
-app.use("/v1/regular/signal", await createRegularSignalRouter());
-
 // x402 routes (V1 format - x402scan compatible)
 app.use("/info", await createInfoRouter());
 app.use("/coingecko", await createCoingeckoRouter());
@@ -446,7 +438,7 @@ app.use("/v2/trending-jupiter", await createV2TrendingJupiterRouter());
 app.use("/v2/token-report", await createV2TokenReportRouter());
 app.use("/v2/token-statistic", await createV2TokenStatisticRouter());
 app.use("/v2/bubblemaps/maps", await createV2BubblemapsMapsRouter());
-app.use("/v2/binance/correlation", await createV2BinanceCorrelationRouter());
+app.use("/v2/binance", await createV2BinanceCorrelationRouter());
 app.use("/v2/analytics", await createV2AnalyticsRouter());
 app.use("/v2/memecoin/fastest-holder-growth", await createV2FastestHolderGrowthMemecoinsRouter());
 app.use("/v2/memecoin/most-mentioned-by-smart-money-x", await createV2MemecoinsMostMentionedBySmartMoneyXRouter());

@@ -1,6 +1,8 @@
 import express from "express";
-import { requirePayment, settlePaymentAndSetResponse } from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 
 /** Cache TTL in ms (90s) – repeated requests for same ticker return instantly. */

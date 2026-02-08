@@ -5,8 +5,10 @@
  * GET /v2/analytics/summary and POST /v2/analytics/summary (payment required).
  */
 import express from "express";
-import { requirePayment, settlePaymentAndSetResponse } from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_ANALYTICS_SUMMARY_USD } from "../../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import {
   fetchDexscreener,
   fetchTokenStatistic,

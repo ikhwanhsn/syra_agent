@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Play } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Play, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getExampleFlows, EXAMPLE_FLOWS_VISIBLE_COUNT } from '@/hooks/useApiPlayground';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -111,9 +113,9 @@ export function RequestBuilder({
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full">
-        {/* Header - stacks on mobile */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        {/* Header - fixed, does not scroll */}
+        <div className="shrink-0 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 shrink-0 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
               <Zap className="h-4.5 w-4.5 text-primary" />
@@ -137,49 +139,43 @@ export function RequestBuilder({
           </div>
         </div>
 
-        {/* Example flows - quick try for reviewers */}
+        {/* Example flows - fixed */}
         {onExampleFlow && (
-          <div className="mb-4">
+          <div className="shrink-0 mb-3 sm:mb-4">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">
               Example flows
             </span>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {getExampleFlows().slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT).map((flow) => (
+                <Button
+                  key={flow.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onExampleFlow(flow.id)}
+                  disabled={isLoading}
+                  className="gap-1.5 h-9 text-xs sm:text-sm"
+                >
+                  <Play className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{flow.label}</span>
+                </Button>
+              ))}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => onExampleFlow('correlation-matrix')}
-                disabled={isLoading}
-                className="gap-1.5 h-9 text-sm"
+                asChild
+                className="gap-1.5 h-9 text-xs sm:text-sm text-muted-foreground hover:text-foreground"
               >
-                <Play className="h-3.5 w-3.5 shrink-0" />
-                Get correlation matrix
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onExampleFlow('token-risk')}
-                disabled={isLoading}
-                className="gap-1.5 h-9 text-sm"
-              >
-                <Play className="h-3.5 w-3.5 shrink-0" />
-                Get token risk (RugCheck)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onExampleFlow('news')}
-                disabled={isLoading}
-                className="gap-1.5 h-9 text-sm"
-              >
-                <Play className="h-3.5 w-3.5 shrink-0" />
-                Get news
+                <Link to="/examples">
+                  <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">View all</span>
+                </Link>
               </Button>
             </div>
           </div>
         )}
 
-        {/* Method Selector - stacks on mobile */}
-        <div className="mb-4">
+        {/* Method Selector - fixed */}
+        <div className="shrink-0 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Method</span>
             <Tooltip>
@@ -221,8 +217,8 @@ export function RequestBuilder({
           </div>
         </div>
 
-        {/* URL Input - stacks on mobile, full-width Send */}
-        <div className="mb-4">
+        {/* Endpoint URL - fixed */}
+        <div className="shrink-0 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoint URL</span>
           </div>
@@ -266,9 +262,9 @@ export function RequestBuilder({
           </div>
         </div>
 
-        {/* Tabs - wrap on mobile */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="bg-secondary/30 w-full sm:w-fit p-1 gap-1 flex flex-wrap !h-auto">
+        {/* Tabs - tab bar fixed, only content below scrolls */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 min-w-0">
+          <TabsList className="shrink-0 bg-secondary/30 w-full sm:w-fit p-1 gap-1 flex flex-wrap !h-auto">
             {!isGetMethod && (
               <TabsTrigger 
                 value="body" 
@@ -304,10 +300,10 @@ export function RequestBuilder({
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 mt-3 overflow-hidden min-h-0">
+          <div className="flex-1 mt-3 min-h-0 overflow-hidden flex flex-col">
             {!isGetMethod && (
-              <TabsContent value="body" className="m-0 h-full">
-                <div className="h-full flex flex-col">
+              <TabsContent value="body" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar flex flex-col">
+                <div className="flex-1 min-h-0 flex flex-col">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs text-muted-foreground">JSON request body</span>
                     <Badge variant="secondary" className="text-xs px-2 py-1">application/json</Badge>
@@ -324,7 +320,7 @@ export function RequestBuilder({
               </TabsContent>
             )}
 
-            <TabsContent value="params" className="m-0 h-full overflow-auto custom-scrollbar">
+            <TabsContent value="params" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Query parameters will be appended to the URL</span>
@@ -370,7 +366,7 @@ export function RequestBuilder({
                           <Input
                             value={param.value}
                             onChange={(e) => updateParam(index, 'value', e.target.value)}
-                            placeholder="value"
+                            placeholder={param.description ?? 'value'}
                             className={cn(
                               "flex-1 min-w-0 h-10 bg-secondary/50 border-border font-mono text-sm",
                               !param.enabled && "opacity-50"
@@ -401,7 +397,7 @@ export function RequestBuilder({
               </div>
             </TabsContent>
 
-            <TabsContent value="headers" className="m-0 h-full overflow-auto custom-scrollbar">
+            <TabsContent value="headers" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Custom HTTP headers for your request</span>

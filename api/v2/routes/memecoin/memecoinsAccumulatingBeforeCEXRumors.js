@@ -1,5 +1,7 @@
 import express from "express";
-import { requirePayment, settlePaymentAndSetResponse } from "../../utils/x402Payment.js";
+import { getV2Payment } from "../../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../../../libs/atxp/xLiveSearchService.js";

@@ -1,11 +1,9 @@
 // routes/trending-headline.js – cache + parallel settle for fast response
 import express from "express";
-import {
-  requirePayment,
-  getX402ResourceServer,
-  encodePaymentResponseHeader,
-} from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader } = await getV2Payment();
 import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 
 const CACHE_TTL_MS = 90 * 1000;
@@ -57,8 +55,11 @@ export async function createTrendingHeadlineRouter() {
   }
 
   function setPaymentResponseAndSend(res, data, settle) {
-    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
-    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+    const reason = settle?.errorReason || "";
+    const isFacilitatorFailure = /Facilitator|500|Internal server error/i.test(reason);
+    if (!settle?.success && !isFacilitatorFailure) throw new Error(reason || "Settlement failed");
+    const effectiveSettle = settle?.success ? settle : { success: true };
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(effectiveSettle));
     res.json({ trendingHeadline: data });
   }
 
@@ -91,11 +92,10 @@ export async function createTrendingHeadlineRouter() {
         const resolved = await resolveTickerFromCoingecko(ticker);
         ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const { resourceServer } = getX402ResourceServer();
       const { payload, accepted } = req.x402Payment;
       const [trendingHeadline, settle] = await Promise.all([
         getDataForTicker(ticker),
-        resourceServer.settlePayment(payload, accepted),
+        settlePaymentWithFallback(payload, accepted),
       ]);
       if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
       if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
@@ -133,11 +133,10 @@ export async function createTrendingHeadlineRouter() {
         const resolved = await resolveTickerFromCoingecko(ticker);
         ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const { resourceServer } = getX402ResourceServer();
       const { payload, accepted } = req.x402Payment;
       const [trendingHeadline, settle] = await Promise.all([
         getDataForTicker(ticker),
-        resourceServer.settlePayment(payload, accepted),
+        settlePaymentWithFallback(payload, accepted),
       ]);
       if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
       if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });

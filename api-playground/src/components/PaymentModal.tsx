@@ -82,13 +82,13 @@ export function PaymentModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
         <div 
-          className="w-full max-w-md glass-panel animate-scale-in overflow-hidden"
+          className="w-full max-w-md glass-panel animate-scale-in overflow-hidden my-auto max-h-[calc(100dvh-2rem)] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with gradient */}
-          <div className="relative px-5 py-4 border-b border-border bg-gradient-to-r from-primary/10 via-accent/5 to-transparent">
+          <div className="relative px-4 sm:px-5 py-4 border-b border-border bg-gradient-to-r from-primary/10 via-accent/5 to-transparent shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
@@ -105,7 +105,7 @@ export function PaymentModal({
             </div>
 
             {/* Progress Steps */}
-            <div className="flex items-center justify-between mt-5 px-2">
+            <div className="flex items-center justify-between mt-4 sm:mt-5 px-1 sm:px-2 gap-0.5">
               {steps.map((step, index) => {
                 const status = getStepStatus(step.id);
                 const StepIcon = step.icon;
@@ -149,7 +149,7 @@ export function PaymentModal({
           </div>
 
           {/* Content */}
-          <div className="p-5 space-y-4">
+          <div className="p-4 sm:p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
             {/* Amount Card - Always visible */}
             <div className="relative p-5 rounded-xl bg-gradient-to-br from-secondary/80 to-secondary/40 border border-border overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-accent/10 blur-3xl" />
@@ -292,7 +292,7 @@ export function PaymentModal({
           </div>
 
           {/* Actions */}
-          <div className="p-5 pt-0 space-y-3">
+          <div className="p-4 sm:p-5 pt-0 space-y-3 shrink-0">
             {!wallet.connected ? (
               <Button variant="neon" className="w-full h-11 gap-2 text-sm font-semibold" onClick={onConnectWallet}>
                 <Wallet className="h-4 w-4" />

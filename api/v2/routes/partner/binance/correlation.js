@@ -1,12 +1,15 @@
 import express from "express";
-import fs from "fs";
-import { requirePayment, settlePaymentAndSetResponse } from "../../../utils/x402Payment.js";
+import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
+import { fetchBinanceOhlcBatch } from "../../../lib/binanceOhlcBatch.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
 // ---------- HELPERS ----------
 
 // Convert string OHLC to numbers
 function normalizeOHLC(data) {
+  if (!Array.isArray(data)) return [];
   return data.map((c) => ({
     time: c.time,
     close: parseFloat(c.close),
@@ -25,7 +28,11 @@ function calculateReturns(prices) {
 
 // Align multiple return series by timestamp
 function alignSeries(seriesMap) {
-  const timestamps = seriesMap[Object.keys(seriesMap)[0]].map((p) => p.time);
+  const keys = Object.keys(seriesMap);
+  if (keys.length === 0) return {};
+  const firstSeries = seriesMap[keys[0]];
+  if (!Array.isArray(firstSeries)) return {};
+  const timestamps = firstSeries.map((p) => p.time);
   const aligned = {};
 
   for (const [symbol, series] of Object.entries(seriesMap)) {
@@ -89,26 +96,86 @@ export const BINANCE_CORRELATION_TICKER =
   "BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,DOGEUSDT,DOTUSDT,LINKUSDT,MATICUSDT,OPUSDT,ARBUSDT,NEARUSDT,ATOMUSDT,FTMUSDT,INJUSDT,SUIUSDT,SEIUSDT,APTUSDT,RNDRUSDT,FETUSDT,UNIUSDT,AAVEUSDT,LDOUSDT,PENDLEUSDT,MKRUSDT,SNXUSDT,LTCUSDT,BCHUSDT,ETCUSDT,TRXUSDT,XLMUSDT,SHIBUSDT,PEPEUSDT,TIAUSDT,ORDIUSDT,STXUSDT,FILUSDT,ICPUSDT,HBARUSDT,VETUSDT,GRTUSDT,THETAUSDT,EGLDUSDT,ALGOUSDT,FLOWUSDT,SANDUSDT,MANAUSDT,AXSUSDT";
 
 export function computeCorrelationFromOHLC(ohlcPayload) {
+  const results = ohlcPayload?.results;
+  if (!Array.isArray(results)) return null;
+
   const seriesMap = {};
-
-  for (const item of ohlcPayload.results) {
-    if (!item.success) continue;
-
+  for (const item of results) {
+    if (!item || !item.success || !item.data) continue;
     const prices = normalizeOHLC(item.data);
+    if (prices.length < 2) continue; // need at least 2 points for returns
     const returns = calculateReturns(prices);
     seriesMap[item.symbol] = returns;
   }
 
   const alignedReturns = alignSeries(seriesMap);
-  const matrix = buildCorrelationMatrix(alignedReturns);
+  const tokens = Object.keys(alignedReturns);
+  if (tokens.length === 0) return null;
 
-  return matrix;
+  return buildCorrelationMatrix(alignedReturns);
 }
 
 export async function createBinanceCorrelationRouter() {
   const router = express.Router();
-  const BASE_URL = process.env.BASE_URL;
   const ticker = BINANCE_CORRELATION_TICKER;
+
+  // Shared handler for GET / and GET /correlation (symbol + limit from query)
+  const handleCorrelationGet = async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || "BTCUSDT").toUpperCase();
+      const limit = parseInt(req.query.limit || "10", 10) || 10;
+      const ohlcPayload = await fetchBinanceOhlcBatch(ticker, "1m");
+      const matrix = computeCorrelationFromOHLC(ohlcPayload);
+      if (!matrix || typeof matrix !== "object") {
+        const results = ohlcPayload?.results || [];
+        const succeeded = results.filter((r) => r?.success && r?.data?.length >= 2).length;
+        const failed = results.filter((r) => !r?.success);
+        const firstError = failed[0]?.error || (results.length === 0 ? "No OHLC results returned" : "All symbols failed or insufficient data");
+        return res.status(502).json({
+          success: false,
+          error: `No correlation data: ${succeeded}/${results.length} symbols had OHLC. ${firstError}`,
+        });
+      }
+      if (!matrix[symbol]) {
+        return res.status(404).json({ success: false, error: "Symbol not found" });
+      }
+      const ranked = Object.entries(matrix[symbol])
+        .filter(([s]) => s !== symbol)
+        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+        .slice(0, limit);
+      if (ranked.length === 0) {
+        return res.status(404).json({ success: false, error: "No correlation found" });
+      }
+      await settlePaymentAndSetResponse(res, req);
+      res.json({
+        symbol,
+        top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
+      });
+    } catch (err) {
+      console.error("[v2/binance/correlation GET]", err);
+      res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
+    }
+  };
+
+  // GET /v2/binance and GET /v2/binance?symbol=X (same as /correlation)
+  router.get(
+    "/",
+    requirePayment({
+      price: X402_API_PRICE_USD,
+      description: "Correlation for a symbol (default BTCUSDT)",
+      method: "GET",
+      discoverable: true,
+      resource: "/v2/binance/correlation",
+      inputSchema: {
+        queryParams: {
+          symbol: { type: "string", required: false, description: "Symbol for correlation" },
+          limit: { type: "string", required: false, description: "Max results (default 10)" },
+        },
+      },
+    }),
+    handleCorrelationGet,
+  );
+
   router.get(
     "/correlation-matrix",
     requirePayment({
@@ -118,25 +185,32 @@ export async function createBinanceCorrelationRouter() {
       resource: "/correlation-matrix",
     }),
     async (req, res) => {
-      const ohlc = await fetch(
-        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
-      );
-      const ohlcJson = await ohlc.json();
-      const data = await computeCorrelationFromOHLC(ohlcJson);
+      try {
+        const ohlcPayload = await fetchBinanceOhlcBatch(ticker, "1m");
+        const data = computeCorrelationFromOHLC(ohlcPayload);
 
-      if (!data) {
-        return res.status(404).json({ error: "Correlation matrix not found" });
+        if (!data || Object.keys(data).length === 0) {
+          const results = ohlcPayload?.results || [];
+          const succeeded = results.filter((r) => r?.success && r?.data?.length >= 2).length;
+          const failed = results.filter((r) => !r?.success);
+          const firstError = failed[0]?.error || (results.length === 0 ? "No OHLC results returned" : "All symbols failed or insufficient data");
+          return res.status(502).json({
+            success: false,
+            error: `Correlation matrix unavailable: ${succeeded}/${results.length} symbols had OHLC. ${firstError}`,
+          });
+        }
+
+        await settlePaymentAndSetResponse(res, req);
+        res.json({
+          interval: ohlcPayload.interval,
+          count: ohlcPayload.count,
+          tokens: Object.keys(data),
+          data,
+        });
+      } catch (err) {
+        console.error("[v2/binance/correlation-matrix GET]", err);
+        res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
-
-      // Settle payment ONLY on success
-      await settlePaymentAndSetResponse(res, req);
-
-      res.json({
-        interval: ohlcJson.interval,
-        count: ohlcJson.count,
-        tokens: Object.keys(data),
-        data,
-      });
     },
   );
 
@@ -150,22 +224,30 @@ export async function createBinanceCorrelationRouter() {
       resource: "/correlation-matrix",
     }),
     async (req, res) => {
-      const ohlc = await fetch(
-        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
-      );
-      const ohlcJson = await ohlc.json();
-      const data = await computeCorrelationFromOHLC(ohlcJson);
-      if (!data) {
-        return res.status(404).json({ error: "Correlation matrix not found" });
+      try {
+        const ohlcPayload = await fetchBinanceOhlcBatch(ticker, "1m");
+        const data = computeCorrelationFromOHLC(ohlcPayload);
+        if (!data || Object.keys(data).length === 0) {
+          const results = ohlcPayload?.results || [];
+          const succeeded = results.filter((r) => r?.success && r?.data?.length >= 2).length;
+          const failed = results.filter((r) => !r?.success);
+          const firstError = failed[0]?.error || (results.length === 0 ? "No OHLC results returned" : "All symbols failed or insufficient data");
+          return res.status(502).json({
+            success: false,
+            error: `Correlation matrix unavailable: ${succeeded}/${results.length} symbols had OHLC. ${firstError}`,
+          });
+        }
+        await settlePaymentAndSetResponse(res, req);
+        res.json({
+          interval: ohlcPayload.interval,
+          count: ohlcPayload.count,
+          tokens: Object.keys(data),
+          data,
+        });
+      } catch (err) {
+        console.error("[v2/binance/correlation-matrix POST]", err);
+        res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
-      // Settle payment ONLY on success
-      await settlePaymentAndSetResponse(res, req);
-      res.json({
-        interval: ohlcJson.interval,
-        count: ohlcJson.count,
-        tokens: Object.keys(data),
-        data,
-      });
     },
   );
 
@@ -175,49 +257,16 @@ export async function createBinanceCorrelationRouter() {
       price: X402_API_PRICE_USD,
       description: "Correlation matrix for a symbol",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
-      resource: "/correlation",
+      discoverable: true,
+      resource: "/v2/binance/correlation",
       inputSchema: {
         queryParams: {
-          symbol: {
-            type: "string",
-            required: false,
-            description: "Symbol name for the correlation",
-          },
+          symbol: { type: "string", required: false, description: "Symbol name for the correlation" },
+          limit: { type: "string", required: false, description: "Max results (default 10)" },
         },
       },
     }),
-    async (req, res) => {
-      const symbol = req.query.symbol || "BTCUSDT";
-      const limit = parseInt(req.query.limit || "10");
-      const ohlc = await fetch(
-        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
-      );
-      const ohlcJson = await ohlc.json();
-
-      const matrix = computeCorrelationFromOHLC(ohlcJson);
-
-      if (!matrix[symbol]) {
-        return res.status(404).json({ error: "Symbol not found" });
-      }
-
-      const ranked = Object.entries(matrix[symbol])
-        .filter(([s]) => s !== symbol)
-        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-        .slice(0, limit);
-
-      if (ranked.length === 0) {
-        return res.status(404).json({ error: "No correlation found" });
-      }
-
-      // Settle payment ONLY on success
-      await settlePaymentAndSetResponse(res, req);
-
-      res.json({
-        symbol,
-        top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
-      });
-    },
+    handleCorrelationGet,
   );
 
   router.post(
@@ -240,35 +289,40 @@ export async function createBinanceCorrelationRouter() {
       },
     }),
     async (req, res) => {
-      const symbol = req.body.symbol || "BTCUSDT";
-      const limit = parseInt(req.query.limit || "10");
-      const ohlc = await fetch(
-        `${BASE_URL}/binance/ohlc/batch?symbols=${ticker}&interval=1m`,
-      );
-      const ohlcJson = await ohlc.json();
-
-      const matrix = computeCorrelationFromOHLC(ohlcJson);
-
-      if (!matrix[symbol]) {
-        return res.status(404).json({ error: "Symbol not found" });
+      try {
+        const symbol = (req.body?.symbol || "BTCUSDT").toUpperCase();
+        const limit = parseInt(req.query.limit || "10", 10) || 10;
+        const ohlcPayload = await fetchBinanceOhlcBatch(ticker, "1m");
+        const matrix = computeCorrelationFromOHLC(ohlcPayload);
+        if (!matrix || typeof matrix !== "object") {
+          const results = ohlcPayload?.results || [];
+          const succeeded = results.filter((r) => r?.success && r?.data?.length >= 2).length;
+          const failed = results.filter((r) => !r?.success);
+          const firstError = failed[0]?.error || (results.length === 0 ? "No OHLC results returned" : "All symbols failed or insufficient data");
+          return res.status(502).json({
+            success: false,
+            error: `No correlation data: ${succeeded}/${results.length} symbols had OHLC. ${firstError}`,
+          });
+        }
+        if (!matrix[symbol]) {
+          return res.status(404).json({ success: false, error: "Symbol not found" });
+        }
+        const ranked = Object.entries(matrix[symbol])
+          .filter(([s]) => s !== symbol)
+          .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+          .slice(0, limit);
+        if (ranked.length === 0) {
+          return res.status(404).json({ success: false, error: "No correlation found" });
+        }
+        await settlePaymentAndSetResponse(res, req);
+        res.json({
+          symbol,
+          top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
+        });
+      } catch (err) {
+        console.error("[v2/binance/correlation POST]", err);
+        res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
       }
-
-      const ranked = Object.entries(matrix[symbol])
-        .filter(([s]) => s !== symbol)
-        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-        .slice(0, limit);
-
-      if (ranked.length === 0) {
-        return res.status(404).json({ error: "No correlation found" });
-      }
-
-      // Settle payment ONLY on success
-      await settlePaymentAndSetResponse(res, req);
-
-      res.json({
-        symbol,
-        top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
-      });
     },
   );
   return router;

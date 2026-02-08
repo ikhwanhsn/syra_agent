@@ -32,35 +32,35 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
   
   return (
     <TooltipProvider>
-      <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="flex items-center justify-between h-full px-4 lg:px-6">
+      <header className="min-h-14 sm:min-h-16 border-b border-border bg-card/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 safe-area-inset-top flex flex-col justify-center">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 gap-2 min-w-0">
           {/* Left: Logo and menu */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={onToggleSidebar}
-              className="lg:hidden"
+              className="lg:hidden shrink-0 h-9 w-9"
             >
               <Menu className="h-5 w-5" />
             </Button>
             
-            <div className="flex items-center gap-3">
-              <div className="relative group">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="relative group shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/30 to-black/20 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
-                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
-                  <Zap className="h-5 w-5 text-white" />
+                <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-base font-bold tracking-tight flex items-center gap-2">
+              <div className="hidden min-[420px]:block min-w-0">
+                <h1 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-1.5 sm:gap-2 truncate">
                   <span className="gradient-text">x402</span>
-                  <span className="text-foreground">Playground</span>
-                  <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 border-primary/30 text-primary bg-primary/10">
+                  <span className="text-foreground truncate">Playground</span>
+                  <Badge variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 h-5 border-primary/30 text-primary bg-primary/10 shrink-0">
                     v2
                   </Badge>
                 </h1>
-                <p className="text-xs text-muted-foreground -mt-0.5">HTTP 402 Payment Protocol</p>
+                <p className="text-xs text-muted-foreground -mt-0.5 truncate">HTTP 402 Payment Protocol</p>
               </div>
             </div>
           </div>
@@ -77,7 +77,7 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
           </div>
 
           {/* Right: Wallet connection */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Powered by Syra - link to main website */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -96,21 +96,21 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
               </TooltipContent>
             </Tooltip>
 
-            {/* Learn more link */}
+            {/* Try Agent link */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <a 
-                  href="https://www.x402.org" 
+                  href="https://agent.syraa.fun" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
                 >
-                  <span>Learn x402</span>
+                  <span>Try Agent</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">Learn about the x402 payment protocol</p>
+                <p className="text-xs">Try the Syra Agent</p>
               </TooltipContent>
             </Tooltip>
 
@@ -141,11 +141,11 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="glass" size="sm" className="font-mono text-xs gap-2 h-9">
-                      <Coins className="h-3.5 w-3.5 text-accent" />
-                      <span>{wallet.balance || '0 USDC'}</span>
-                      <span className="text-muted-foreground">|</span>
-                      <span>{walletContext.shortAddress}</span>
+                    <Button variant="glass" size="sm" className="font-mono text-xs gap-1.5 sm:gap-2 h-9 max-w-[140px] sm:max-w-none min-w-0">
+                      <Coins className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span className="truncate">{wallet.balance || '0 USDC'}</span>
+                      <span className="text-muted-foreground shrink-0 hidden sm:inline">|</span>
+                      <span className="truncate hidden sm:inline">{walletContext.shortAddress}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">

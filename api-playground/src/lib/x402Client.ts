@@ -1,14 +1,19 @@
-import { 
-  Connection, 
-  PublicKey, 
-  Transaction, 
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionMessage,
+  VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import {
   createTransferInstruction,
+  createTransferCheckedInstruction,
   getAssociatedTokenAddress,
+  getMint,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
@@ -179,9 +184,24 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
   return null;
 }
 
+/** Normalize raw accept from 402 so it has top-level amount and asset (V2 may send price: { asset, amount }). */
+function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: string; amount?: string } }): X402PaymentOption {
+  const amount = String(raw.price?.amount ?? raw.amount ?? '0');
+  const asset = raw.price?.asset ?? raw.asset ?? USDC_MINT_STRING;
+  return {
+    scheme: raw.scheme || 'exact',
+    network: raw.network,
+    payTo: raw.payTo,
+    amount,
+    asset,
+    maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
+    ...(raw.extra && typeof raw.extra === 'object' ? { extra: raw.extra } : {}),
+  };
+}
+
 /**
  * Get the best payment option from x402 response
- * Prioritizes Solana USDC payments
+ * Prioritizes Solana USDC payments. Normalizes so amount/asset are always set (V2 uses price.amount/price.asset).
  */
 export function getBestPaymentOption(x402Response: X402Response): X402PaymentOption | null {
   const { accepts } = x402Response;
@@ -197,7 +217,7 @@ export function getBestPaymentOption(x402Response: X402Response): X402PaymentOpt
   );
   
   if (solanaMainnetOption) {
-    return solanaMainnetOption;
+    return normalizePaymentOption(solanaMainnetOption as X402PaymentOption & { price?: { asset?: string; amount?: string } });
   }
   
   // Fallback: any Solana network (including devnet)
@@ -207,11 +227,11 @@ export function getBestPaymentOption(x402Response: X402Response): X402PaymentOpt
   );
   
   if (solanaOption) {
-    return solanaOption;
+    return normalizePaymentOption(solanaOption as X402PaymentOption & { price?: { asset?: string; amount?: string } });
   }
   
   // Last fallback: first option
-  return accepts[0];
+  return normalizePaymentOption(accepts[0] as X402PaymentOption & { price?: { asset?: string; amount?: string } });
 }
 
 /**
@@ -233,106 +253,133 @@ export function formatPaymentAmount(amount: string, decimals: number = 6): strin
 }
 
 /**
- * Create a USDC transfer transaction for x402 payment
+ * Result of createPaymentTransaction (VersionedTransaction + blockhash for confirmation).
+ */
+export interface PaymentTransactionResult {
+  transaction: VersionedTransaction;
+  lastValidBlockHeight: number;
+}
+
+/**
+ * Create a USDC transfer as VersionedTransaction for x402 V2 (server expects VersionedTransaction).
  */
 export async function createPaymentTransaction(
   config: X402ClientConfig,
   paymentOption: X402PaymentOption
-): Promise<Transaction> {
+): Promise<PaymentTransactionResult> {
   const { connection, publicKey } = config;
-  
-  // Parse recipient address
+
   const recipientPubkey = new PublicKey(paymentOption.payTo);
-  
-  // Get amount in micro-units (6 decimals for USDC)
   const amount = BigInt(paymentOption.amount);
-  
-  // Create transaction
-  const transaction = new Transaction();
-  
-  // Check if this is USDC or native SOL payment
-  const isUSDC = paymentOption.asset === USDC_MINT_STRING || 
-                 paymentOption.asset === USDC_DEVNET_STRING ||
-                 paymentOption.asset === 'USDC' ||
-                 !paymentOption.asset; // Default to USDC
-  
-  if (isUSDC) {
-    // Determine which USDC mint to use based on asset or network
-    const usdcMint = paymentOption.asset === USDC_DEVNET_STRING || 
-                     paymentOption.network?.includes('devnet') ||
-                     paymentOption.network === SOLANA_DEVNET_CAIP2
+
+  const isUSDC =
+    paymentOption.asset === USDC_MINT_STRING ||
+    paymentOption.asset === USDC_DEVNET_STRING ||
+    paymentOption.asset === 'USDC' ||
+    !paymentOption.asset;
+
+  if (!isUSDC) {
+    const lamports = (amount * BigInt(LAMPORTS_PER_SOL)) / BigInt(1_000_000);
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+    const message = new TransactionMessage({
+      payerKey: publicKey,
+      recentBlockhash: blockhash,
+      instructions: [
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: recipientPubkey,
+          lamports,
+        }),
+      ],
+    }).compileToV0Message();
+    const transaction = new VersionedTransaction(message);
+    return { transaction, lastValidBlockHeight };
+  }
+
+  const usdcMint =
+    paymentOption.asset === USDC_DEVNET_STRING ||
+    paymentOption.network?.includes('devnet') ||
+    paymentOption.network === SOLANA_DEVNET_CAIP2
       ? new PublicKey(USDC_DEVNET_STRING)
       : USDC_MINT;
-    
-    // USDC transfer
-    const senderTokenAccount = await getAssociatedTokenAddress(
-      usdcMint,
-      publicKey
-    );
-    
-    const recipientTokenAccount = await getAssociatedTokenAddress(
-      usdcMint,
-      recipientPubkey
-    );
-    
-    transaction.add(
-      createTransferInstruction(
-        senderTokenAccount,
-        recipientTokenAccount,
-        publicKey,
-        amount,
-        [],
-        TOKEN_PROGRAM_ID
-      )
-    );
-  } else {
-    // Native SOL transfer (convert amount from micro-units to lamports)
-    // 1 SOL = 1e9 lamports, amount is in micro-units (1e6)
-    const lamports = (amount * BigInt(LAMPORTS_PER_SOL)) / BigInt(1_000_000);
-    
-    transaction.add(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: recipientPubkey,
-        lamports,
-      })
-    );
+
+  let programId = TOKEN_PROGRAM_ID;
+  try {
+    const mintInfo = await connection.getAccountInfo(usdcMint, 'confirmed');
+    if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
+      programId = TOKEN_2022_PROGRAM_ID;
+    }
+  } catch {
+    // keep TOKEN_PROGRAM_ID
   }
-  
-  // Get recent blockhash
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = publicKey;
-  
-  return transaction;
+
+  const mint = await getMint(connection, usdcMint, 'confirmed', programId);
+  const sourceAta = await getAssociatedTokenAddress(usdcMint, publicKey, false, programId);
+  const destAta = await getAssociatedTokenAddress(usdcMint, recipientPubkey, false, programId);
+
+  const instructions = [
+    createTransferCheckedInstruction(
+      sourceAta,
+      usdcMint,
+      destAta,
+      publicKey,
+      amount,
+      mint.decimals,
+      [],
+      programId
+    ),
+  ];
+
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+  const message = new TransactionMessage({
+    payerKey: publicKey,
+    recentBlockhash: blockhash,
+    instructions,
+  }).compileToV0Message();
+
+  const transaction = new VersionedTransaction(message);
+  return { transaction, lastValidBlockHeight };
+}
+
+/** V2 API may return price as { asset, amount }; normalize to top-level for header. */
+function normalizeAcceptedForHeader(option: X402PaymentOption & { price?: { asset?: string; amount?: string } }): Record<string, unknown> {
+  const amount = String(option.price?.amount ?? option.amount ?? '0');
+  const asset = option.price?.asset ?? option.asset ?? USDC_MINT_STRING;
+  return {
+    scheme: option.scheme || 'exact',
+    network: option.network,
+    payTo: option.payTo,
+    asset,
+    amount,
+    maxTimeoutSeconds: option.maxTimeoutSeconds ?? 60,
+    ...(option.extra && typeof option.extra === 'object' ? { extra: option.extra } : {}),
+  };
 }
 
 /**
- * Create x402 payment header from signed transaction
- * The header format is base64 encoded JSON containing the signed transaction
+ * Create x402 V2 payment header from signed VersionedTransaction.
+ * V2 API expects decodePaymentSignatureHeader(header) to return payload with .accepted and .payload.transaction.
  */
 export function createPaymentHeader(
-  signedTransaction: Transaction,
+  signedTransaction: VersionedTransaction,
   paymentOption: X402PaymentOption
 ): string {
   const serialized = signedTransaction.serialize();
   const base64Tx = Buffer.from(serialized).toString('base64');
-  
-  // Create the payment header object per x402 spec
-  const paymentHeader = {
+  const accepted = normalizeAcceptedForHeader(paymentOption);
+  const sig = signedTransaction.signatures[0];
+  const signatureB58 = sig && sig.length === 64 ? bs58.encode(Buffer.from(sig)) : null;
+
+  const paymentPayload = {
     x402Version: X402_VERSION,
-    scheme: paymentOption.scheme,
-    network: paymentOption.network,
+    accepted,
     payload: {
       transaction: base64Tx,
-      signature: signedTransaction.signature ? 
-        bs58.encode(signedTransaction.signature) : null,
+      signature: signatureB58,
     },
   };
-  
-  // Encode as base64
-  return btoa(JSON.stringify(paymentHeader));
+
+  return btoa(JSON.stringify(paymentPayload));
 }
 
 /**
@@ -343,62 +390,49 @@ export async function executePayment(
   paymentOption: X402PaymentOption
 ): Promise<PaymentResult> {
   let signature: string | undefined;
-  let signedTransaction: Transaction | undefined;
-  
+  let signedTransaction: VersionedTransaction | undefined;
+
   try {
     const { connection, signTransaction } = config;
-    
-    // Create the transaction
-    const transaction = await createPaymentTransaction(config, paymentOption);
-    
-    // Sign the transaction
-    signedTransaction = await signTransaction(transaction);
-    
-    // Send the transaction
-    signature = await connection.sendRawTransaction(
-      signedTransaction.serialize(),
-      { skipPreflight: false }
-    );
-    
-    // Wait for confirmation using HTTP-only polling (no signatureSubscribe/WebSocket).
-    // This avoids "Received JSON-RPC error calling signatureSubscribe" on RPCs that don't support subscriptions.
+
+    const { transaction, lastValidBlockHeight } = await createPaymentTransaction(config, paymentOption);
+
+    signedTransaction = (await signTransaction(transaction as any)) as VersionedTransaction;
+
+    signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+      skipPreflight: false,
+    });
+
     const { confirmed: confirmationSuccess, err: confirmErr } = await confirmTransactionByPolling(
       connection,
       signature,
-      transaction.lastValidBlockHeight!
+      lastValidBlockHeight
     );
-    
-    // Only fail when tx actually failed or blockhash expired; on timeout we still proceed and let server verify
+
     if (!confirmationSuccess && confirmErr && confirmErr !== 'Confirmation timeout') {
       return {
         success: false,
         error: `Transaction failed: ${JSON.stringify(confirmErr)}`,
       };
     }
-    // Create the payment header for the retry request
-    // This is safe to do even if confirmation timed out because:
-    // - The transaction was successfully submitted
-    // - The server can verify the transaction using the signature
-    // - The signed transaction in the header proves payment intent
     if (!signedTransaction) {
       return {
         success: false,
         error: 'Failed to create signed transaction',
       };
     }
-    
+
     const paymentHeader = createPaymentHeader(signedTransaction, paymentOption);
-    
-    // If confirmation timed out, include a note in the success response
-    // The transaction was sent and will be verified by the server
+
     return {
       success: true,
       signature,
       paymentHeader,
-      // Include a warning if confirmation didn't complete (for user info, not an error)
-      ...(confirmationSuccess ? {} : {
-        warning: `Transaction submitted but confirmation timed out. Check status: https://solscan.io/tx/${signature}`,
-      }),
+      ...(confirmationSuccess
+        ? {}
+        : {
+            warning: `Transaction submitted but confirmation timed out. Check status: https://solscan.io/tx/${signature}`,
+          }),
     };
   } catch (error: any) {
     const errorMessage = error.message || 'Payment execution failed';

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Trash2, Clock, ChevronLeft, ChevronRight, History, Zap, CheckCircle, XCircle, Loader2, Filter, Plus, Copy, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { HistoryItem, HttpMethod } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -166,9 +165,9 @@ export function HistoryPanel({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto",
-          "w-96 bg-sidebar border-r border-sidebar-border",
-          "flex flex-col transition-all duration-300 ease-out",
+          "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto h-full",
+          "w-[min(384px,90vw)] sm:w-96 bg-sidebar border-r border-sidebar-border",
+          "flex flex-col overflow-hidden transition-all duration-300 ease-out",
           "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           !isDesktopSidebarOpen && "lg:-translate-x-full lg:absolute"
@@ -199,8 +198,8 @@ export function HistoryPanel({
           </div>
         )}
 
-        {/* Header */}
-        <div className="p-4 border-b border-sidebar-border">
+        {/* Header - fixed, does not scroll */}
+        <div className="shrink-0 p-3 sm:p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -290,8 +289,8 @@ export function HistoryPanel({
           )}
         </div>
 
-        {/* History list */}
-        <ScrollArea className="flex-1 custom-scrollbar">
+        {/* History list - scrollable vertically */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center px-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 border border-border/50">
@@ -317,42 +316,18 @@ export function HistoryPanel({
                   <div
                     key={item.id}
                     className={cn(
-                      "relative w-full rounded-xl transition-all duration-200 overflow-hidden",
+                      "flex flex-col sm:flex-row sm:items-start gap-2 w-full rounded-xl transition-all duration-200 overflow-hidden",
                       "hover:bg-sidebar-accent group border border-transparent",
                       isSelected && "bg-sidebar-accent border-primary/20 shadow-sm"
                     )}
                   >
-                    {/* Action buttons - absolutely positioned on top right, always visible */}
-                    <div className="absolute top-2 right-2 z-50 flex items-center gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onClone(item);
-                        }}
-                        className="h-8 w-8 text-muted-foreground hover:text-primary bg-background/95 backdrop-blur-md hover:bg-primary/20 border border-border/60 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl"
-                        title="Clone Request"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemove(item.id);
-                        }}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive bg-background/95 backdrop-blur-md hover:bg-destructive/20 border border-border/60 hover:border-destructive/40 transition-all shadow-lg hover:shadow-xl"
-                        title="Remove Request"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-start gap-2 p-3 pr-24 overflow-hidden">
+                    {/* Content row - grows and truncates so buttons always fit */}
+                    <button
+                      onClick={() => onSelect(item)}
+                      className="flex items-start gap-2 p-3 flex-1 min-w-0 text-left overflow-hidden rounded-lg hover:bg-transparent focus:bg-transparent"
+                    >
                       {/* Method & Status indicator */}
-                      <div className="flex flex-col items-center gap-2 shrink-0">
+                      <div className="flex flex-col items-center gap-1.5 shrink-0">
                         <Badge 
                           variant={methodVariants[item.request.method]}
                           className="text-xs px-2 py-1 font-semibold"
@@ -377,19 +352,14 @@ export function HistoryPanel({
                           )} />
                         </div>
                       </div>
-                      
-                      {/* Content area - clickable, wraps when long */}
-                      <button
-                        onClick={() => onSelect(item)}
-                        className="flex-1 min-w-0 text-left overflow-hidden"
-                      >
-                        <p className="font-mono text-xs text-foreground break-words leading-tight">
+                      {/* Path, domain, meta */}
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="font-mono text-xs text-foreground break-words leading-tight truncate sm:truncate">
                           {path || '/'}
                         </p>
-                        <p className="text-xs text-muted-foreground break-words mt-1">
+                        <p className="text-xs text-muted-foreground break-words mt-1 truncate">
                           {domain}
                         </p>
-                        
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <Badge 
                             variant={statusVariants[item.status]}
@@ -406,14 +376,42 @@ export function HistoryPanel({
                             </span>
                           )}
                         </div>
-                      </button>
+                      </div>
+                    </button>
+
+                    {/* Action buttons - in flow so always visible and responsive */}
+                    <div className="flex items-center gap-1.5 shrink-0 p-2 sm:p-3 pt-0 sm:pt-3 sm:pl-0 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClone(item);
+                        }}
+                        className="h-8 w-8 sm:h-8 sm:w-8 text-muted-foreground hover:text-primary bg-background/95 backdrop-blur-md hover:bg-primary/20 border border-border/60 hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
+                        title="Clone Request"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemove(item.id);
+                        }}
+                        className="h-8 w-8 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive bg-background/95 backdrop-blur-md hover:bg-destructive/20 border border-border/60 hover:border-destructive/40 transition-all shadow-sm hover:shadow-md"
+                        title="Remove Request"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </aside>
     </>
   );

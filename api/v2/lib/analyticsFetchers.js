@@ -9,6 +9,7 @@ import {
   computeCorrelationFromOHLC,
   BINANCE_CORRELATION_TICKER,
 } from "../routes/partner/binance/correlation.js";
+import { fetchBinanceOhlcBatch } from "./binanceOhlcBatch.js";
 import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import {
@@ -132,23 +133,14 @@ export async function fetchSmartMoney() {
 
 /** Binance correlation with default symbol (BTCUSDT) and limit (10). */
 export async function fetchBinanceCorrelation() {
-  const BASE_URL = process.env.BASE_URL;
-  if (!BASE_URL) throw new Error("BASE_URL must be set for correlation");
-  const ohlcRes = await fetch(
-    `${BASE_URL}/binance/ohlc/batch?symbols=${BINANCE_CORRELATION_TICKER}&interval=1m`
-  );
-  if (!ohlcRes.ok) {
-    const text = await ohlcRes.text().catch(() => "");
-    throw new Error(`Binance OHLC ${ohlcRes.status}: ${text}`);
-  }
-  const ohlcJson = await ohlcRes.json();
-  const matrix = computeCorrelationFromOHLC(ohlcJson);
-  if (!matrix[DEFAULT_CORRELATION_SYMBOL]) {
+  const ohlcPayload = await fetchBinanceOhlcBatch(BINANCE_CORRELATION_TICKER, "1m");
+  const matrix = computeCorrelationFromOHLC(ohlcPayload);
+  if (!matrix || !matrix[DEFAULT_CORRELATION_SYMBOL]) {
     return {
       symbol: DEFAULT_CORRELATION_SYMBOL,
       top: [],
-      interval: ohlcJson.interval,
-      count: ohlcJson.count,
+      interval: ohlcPayload.interval,
+      count: ohlcPayload.count,
     };
   }
   const ranked = Object.entries(matrix[DEFAULT_CORRELATION_SYMBOL])
@@ -159,8 +151,8 @@ export async function fetchBinanceCorrelation() {
   return {
     symbol: DEFAULT_CORRELATION_SYMBOL,
     top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
-    interval: ohlcJson.interval,
-    count: ohlcJson.count,
+    interval: ohlcPayload.interval,
+    count: ohlcPayload.count,
   };
 }
 

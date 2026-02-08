@@ -23,9 +23,14 @@ import {
   X402PaymentOption,
 } from '@/lib/x402Client';
 
-// Default API base URL - can be configured via environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.syraa.fun';
-
+// Resolve API base URL at runtime: when app is opened from localhost use localhost:3000, else api.syraa.fun (override via VITE_API_BASE_URL)
+function getApiBaseUrl(): string {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:3000';
+  }
+  return 'https://api.syraa.fun';
+}
 /** Example flow preset for quick try (load + send). */
 export interface ExampleFlowPreset {
   id: string;
@@ -35,29 +40,250 @@ export interface ExampleFlowPreset {
   params: RequestParam[];
 }
 
-export const EXAMPLE_FLOWS: ExampleFlowPreset[] = [
+/** All v2 endpoint example flows (resolved at runtime so dev uses localhost:3000). First N are shown on Request Builder; rest on /examples. */
+export function getExampleFlows(): ExampleFlowPreset[] {
+  const base = getApiBaseUrl();
+  return [
+  // Featured (shown on main builder)
   {
     id: 'correlation-matrix',
-    label: 'Get correlation matrix',
+    label: 'Correlation matrix',
     method: 'GET',
-    url: `${API_BASE_URL}/v2/binance/correlation/correlation-matrix`,
+    url: `${base}/v2/binance/correlation-matrix`,
     params: [],
   },
   {
     id: 'token-risk',
-    label: 'Get token risk (RugCheck)',
+    label: 'Token risk',
     method: 'GET',
-    url: `${API_BASE_URL}/v2/token-statistic`,
+    url: `${base}/v2/token-statistic`,
     params: [],
   },
   {
     id: 'news',
     label: 'Get news',
     method: 'GET',
-    url: `${API_BASE_URL}/v2/news`,
+    url: `${base}/v2/news`,
     params: [{ key: 'ticker', value: 'general', enabled: true }],
   },
+  {
+    id: 'check-status',
+    label: 'Check status',
+    method: 'GET',
+    url: `${base}/v2/check-status`,
+    params: [],
+  },
+  {
+    id: 'analytics-summary',
+    label: 'Analytics summary',
+    method: 'GET',
+    url: `${base}/v2/analytics/summary`,
+    params: [],
+  },
+  // Core
+  {
+    id: 'signal',
+    label: 'Signal',
+    method: 'GET',
+    url: `${base}/v2/signal`,
+    params: [],
+  },
+  {
+    id: 'sentiment',
+    label: 'Sentiment',
+    method: 'GET',
+    url: `${base}/v2/sentiment`,
+    params: [{ key: 'ticker', value: 'general', enabled: true }],
+  },
+  {
+    id: 'event',
+    label: 'Event',
+    method: 'GET',
+    url: `${base}/v2/event`,
+    params: [],
+  },
+  {
+    id: 'browse',
+    label: 'Browse',
+    method: 'GET',
+    url: `${base}/v2/browse`,
+    params: [],
+  },
+  {
+    id: 'x-search',
+    label: 'X search',
+    method: 'GET',
+    url: `${base}/v2/x-search`,
+    params: [],
+  },
+  {
+    id: 'research',
+    label: 'Research',
+    method: 'GET',
+    url: `${base}/v2/research`,
+    params: [],
+  },
+  {
+    id: 'gems',
+    label: 'Gems',
+    method: 'GET',
+    url: `${base}/v2/gems`,
+    params: [],
+  },
+  {
+    id: 'x-kol',
+    label: 'X KOL',
+    method: 'GET',
+    url: `${base}/v2/x-kol`,
+    params: [],
+  },
+  {
+    id: 'crypto-kol',
+    label: 'Crypto KOL',
+    method: 'GET',
+    url: `${base}/v2/crypto-kol`,
+    params: [],
+  },
+  {
+    id: 'trending-headline',
+    label: 'Trending headline',
+    method: 'GET',
+    url: `${base}/v2/trending-headline`,
+    params: [],
+  },
+  {
+    id: 'sundown-digest',
+    label: 'Sundown digest',
+    method: 'GET',
+    url: `${base}/v2/sundown-digest`,
+    params: [],
+  },
+  // Partner
+  {
+    id: 'smart-money',
+    label: 'Smart money',
+    method: 'GET',
+    url: `${base}/v2/smart-money`,
+    params: [],
+  },
+  {
+    id: 'token-god-mode',
+    label: 'Token god mode',
+    method: 'GET',
+    url: `${base}/v2/token-god-mode`,
+    params: [],
+  },
+  {
+    id: 'dexscreener',
+    label: 'DexScreener',
+    method: 'GET',
+    url: `${base}/v2/dexscreener`,
+    params: [],
+  },
+  {
+    id: 'trending-jupiter',
+    label: 'Trending Jupiter',
+    method: 'GET',
+    url: `${base}/v2/trending-jupiter`,
+    params: [],
+  },
+  {
+    id: 'token-report',
+    label: 'Token report',
+    method: 'GET',
+    url: `${base}/v2/token-report`,
+    params: [],
+  },
+  {
+    id: 'bubblemaps-maps',
+    label: 'Bubblemaps maps',
+    method: 'GET',
+    url: `${base}/v2/bubblemaps/maps`,
+    params: [],
+  },
+  {
+    id: 'binance-correlation',
+    label: 'Binance correlation',
+    method: 'GET',
+    url: `${base}/v2/binance/correlation`,
+    params: [],
+  },
+  {
+    id: 'pump',
+    label: 'Pump',
+    method: 'GET',
+    url: `${base}/v2/pump`,
+    params: [],
+  },
+  // Memecoin
+  {
+    id: 'memecoin-fastest-holder-growth',
+    label: 'Memecoin fastest holder growth',
+    method: 'GET',
+    url: `${base}/v2/memecoin/fastest-holder-growth`,
+    params: [],
+  },
+  {
+    id: 'memecoin-most-mentioned-by-smart-money-x',
+    label: 'Memecoin most mentioned (smart money X)',
+    method: 'GET',
+    url: `${base}/v2/memecoin/most-mentioned-by-smart-money-x`,
+    params: [],
+  },
+  {
+    id: 'memecoin-accumulating-before-cex-rumors',
+    label: 'Memecoin accumulating before CEX rumors',
+    method: 'GET',
+    url: `${base}/v2/memecoin/accumulating-before-CEX-rumors`,
+    params: [],
+  },
+  {
+    id: 'memecoin-strong-narrative-low-market-cap',
+    label: 'Memecoin strong narrative low cap',
+    method: 'GET',
+    url: `${base}/v2/memecoin/strong-narrative-low-market-cap`,
+    params: [],
+  },
+  {
+    id: 'memecoin-by-experienced-devs',
+    label: 'Memecoin by experienced devs',
+    method: 'GET',
+    url: `${base}/v2/memecoin/by-experienced-devs`,
+    params: [],
+  },
+  {
+    id: 'memecoin-unusual-whale-behavior',
+    label: 'Memecoin unusual whale behavior',
+    method: 'GET',
+    url: `${base}/v2/memecoin/unusual-whale-behavior`,
+    params: [],
+  },
+  {
+    id: 'memecoin-trending-on-x-not-dex',
+    label: 'Memecoin trending on X not DEX',
+    method: 'GET',
+    url: `${base}/v2/memecoin/trending-on-x-not-dex`,
+    params: [],
+  },
+  {
+    id: 'memecoin-organic-traction',
+    label: 'Memecoin organic traction',
+    method: 'GET',
+    url: `${base}/v2/memecoin/organic-traction`,
+    params: [],
+  },
+  {
+    id: 'memecoin-surviving-market-dumps',
+    label: 'Memecoin surviving market dumps',
+    method: 'GET',
+    url: `${base}/v2/memecoin/surviving-market-dumps`,
+    params: [],
+  },
 ];
+};
+
+/** Number of example flows to show on the Request Builder; rest are on /examples. */
+export const EXAMPLE_FLOWS_VISIBLE_COUNT = 4;
 
 // Proxy URL for avoiding CORS issues in development
 const PROXY_BASE_URL = '/api/proxy/';
@@ -73,37 +299,82 @@ const getProxiedUrl = (url: string): string => {
   return `${PROXY_BASE_URL}${encodeURIComponent(url)}`;
 };
 
-// V2 API endpoints list
-const V2_API_ENDPOINTS = [
-  `${API_BASE_URL}/v2/news`,
-  `${API_BASE_URL}/v2/signal`,
-  `${API_BASE_URL}/v2/sentiment`,
-  `${API_BASE_URL}/v2/event`,
-  `${API_BASE_URL}/v2/trending-headline`,
-  `${API_BASE_URL}/v2/sundown-digest`,
-  `${API_BASE_URL}/v2/check-status`,
-  `${API_BASE_URL}/v2/browse`,
-  `${API_BASE_URL}/v2/research`,
-  `${API_BASE_URL}/v2/gems`,
-  `${API_BASE_URL}/v2/smart-money`,
-  `${API_BASE_URL}/v2/dexscreener`,
-  `${API_BASE_URL}/v2/token-god-mode`,
-  `${API_BASE_URL}/v2/trending-jupiter`,
-  `${API_BASE_URL}/v2/token-report`,
-  `${API_BASE_URL}/v2/token-statistic`,
-  `${API_BASE_URL}/v2/bubblemaps/maps`,
-  `${API_BASE_URL}/v2/binance/correlation`,
-];
+// V2 API endpoints list (resolved at runtime for dev localhost)
+function getV2ApiEndpoints(): string[] {
+  const base = getApiBaseUrl();
+  return [
+    `${base}/v2/news`,
+    `${base}/v2/signal`,
+    `${base}/v2/sentiment`,
+    `${base}/v2/event`,
+    `${base}/v2/trending-headline`,
+    `${base}/v2/sundown-digest`,
+    `${base}/v2/check-status`,
+    `${base}/v2/browse`,
+    `${base}/v2/research`,
+    `${base}/v2/gems`,
+    `${base}/v2/smart-money`,
+    `${base}/v2/dexscreener`,
+    `${base}/v2/token-god-mode`,
+    `${base}/v2/trending-jupiter`,
+    `${base}/v2/token-report`,
+    `${base}/v2/token-statistic`,
+    `${base}/v2/bubblemaps/maps`,
+    `${base}/v2/binance/correlation`,
+  ];
+}
 
 // x402 only supports GET and POST methods
 const SUPPORTED_METHODS: HttpMethod[] = ['GET', 'POST'];
+
+/** Known Syra v2 GET query param names and API descriptions by path (for placeholder text) */
+function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
+  try {
+    const path = new URL(baseUrl).pathname.toLowerCase();
+    const known: Record<string, RequestParam[]> = {
+      '/v2/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/v2/event': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/v2/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/v2/trending-headline': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/v2/sundown-digest': [],
+      '/v2/check-status': [],
+      '/v2/gems': [],
+      '/v2/token-statistic': [],
+      '/v2/analytics/summary': [],
+      '/v2/signal': [{ key: 'token', value: '', enabled: false, description: 'e.g. solana, bitcoin' }],
+      '/v2/research': [{ key: 'query', value: '', enabled: true, description: 'e.g. token analysis, market trends' }],
+      '/v2/browse': [{ key: 'query', value: '', enabled: true, description: 'Search query or URL' }],
+      '/v2/x/search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
+      '/v2/x-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
+      '/v2/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
+      '/v2/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
+      '/v2/kol': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
+      '/v2/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
+      '/v2/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'e.g. BTCUSDT, ETHUSDT' }],
+      '/v2/binance/correlation-matrix': [],
+    };
+    const exact = known[path];
+    if (exact) return exact.map((p) => ({ ...p }));
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Params for an example flow: from preset if set, otherwise from known API params by path. Use to decide if query-params modal should show and what fields to display. */
+export function getParamsForExampleFlow(flow: ExampleFlowPreset): RequestParam[] {
+  if (flow.params.length > 0) return flow.params.map((p) => ({ ...p }));
+  const known = getKnownQueryParamsForPath(flow.url);
+  if (known && known.length > 0) return known.map((p) => ({ ...p }));
+  return [];
+}
 
 // Helper function to check if URL is a Syra API
 function isSyraApi(url: string): boolean {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
-    const syraHostname = new URL(API_BASE_URL).hostname.toLowerCase();
+    const syraHostname = new URL(getApiBaseUrl()).hostname.toLowerCase();
     // Check if hostname matches Syra API hostname or contains 'syra'
     return hostname === syraHostname || hostname.includes('syra');
   } catch {
@@ -310,34 +581,51 @@ export function useApiPlayground() {
   
   // Track the actual request ID being used (for updating existing items)
   const actualRequestIdRef = useRef<string>('');
+  // When true, skip the next auto-detect fetch (e.g. after clicking an example flow to avoid double request)
+  const skipNextAutoDetectRef = useRef<boolean>(false);
 
-  // Extract params from 402 response extensions
-  const extractParamsFrom402Response = useCallback((x402Resp: X402Response): RequestParam[] => {
+  // Response-only schema keys: do not show as query/input params (API expects input/query params only)
+  const OUTPUT_SCHEMA_KEY_BLOCKLIST = new Set([
+    'output', 'result', 'response', 'data', 'toolCalls', 'citations', 'news', 'message', 'error',
+  ]);
+
+  // Extract params from 402 response extensions (input/query only). Use known API param names (ticker, query, token, etc.) when 402 only gives generic "input".
+  const extractParamsFrom402Response = useCallback((x402Resp: X402Response, baseUrl?: string): RequestParam[] => {
     const params: RequestParam[] = [];
-    
+
     try {
       const schema = x402Resp.extensions?.bazaar?.schema;
       const exampleInput = x402Resp.extensions?.bazaar?.info?.input;
-      
+
       if (schema?.properties) {
         Object.entries(schema.properties).forEach(([key, prop]) => {
-          // Use example value from info.input if available, otherwise empty string
+          if (OUTPUT_SCHEMA_KEY_BLOCKLIST.has(key)) return;
           const exampleValue = exampleInput?.[key];
-          const defaultValue = exampleValue !== undefined 
-            ? String(exampleValue) 
-            : '';
-          
+          const defaultValue =
+            exampleValue !== undefined ? String(exampleValue) : '';
+          const desc = prop && typeof prop === 'object' && 'description' in prop ? String((prop as { description?: string }).description || '') : undefined;
           params.push({
             key,
             value: defaultValue,
-            enabled: schema.required?.includes(key) || false, // Enable required params by default
+            enabled: schema.required?.includes(key) || false,
+            ...(desc ? { description: desc } : {}),
           });
         });
+      }
+
+      const onlyGenericInput = params.length === 1 && params[0].key === 'input';
+      const known = baseUrl ? getKnownQueryParamsForPath(baseUrl) : null;
+      if (known !== null && (params.length === 0 || onlyGenericInput)) {
+        return known;
+      }
+      // Endpoints not in our list often get a generic "input" from 402 schema; show no params instead
+      if (onlyGenericInput) {
+        return [];
       }
     } catch {
       // Ignore extraction errors
     }
-    
+
     return params;
   }, []);
 
@@ -434,6 +722,12 @@ export function useApiPlayground() {
         return;
       }
 
+      // Skip fetch when we just ran an example flow (avoids second request / double entry)
+      if (skipNextAutoDetectRef.current) {
+        setIsAutoDetecting(false);
+        return;
+      }
+
       // Mark as processed to avoid duplicate requests
       lastProcessedUrlRef.current = baseUrl;
 
@@ -470,8 +764,8 @@ export function useApiPlayground() {
             const parsed = parseX402Response(jsonData);
             
             if (parsed) {
-              // Extract params from schema
-              const detectedParams = extractParamsFrom402Response(parsed);
+              // Extract params from schema (pass baseUrl so we use API param names like ticker, query, token)
+              const detectedParams = extractParamsFrom402Response(parsed, baseUrl);
               
               if (detectedParams.length > 0) {
                 setParams(currentParams => {
@@ -636,15 +930,16 @@ export function useApiPlayground() {
     body: string;
   };
 
-  // Send request (optionally with payment header or full request override for example flows)
-  const sendRequest = useCallback(async (paymentHeader?: string, requestOverride?: RequestOverride) => {
+  // Send request (optionally with payment header or full request override for example flows).
+  // Returns the HTTP status on success (e.g. 200, 402) or undefined on network error.
+  const sendRequest = useCallback(async (paymentHeader?: string, requestOverride?: RequestOverride): Promise<number | undefined> => {
     const useOverride = !!requestOverride;
     const baseUrl = useOverride ? requestOverride.url.trim() : url.trim();
-    if (!baseUrl) return;
+    if (!baseUrl) return undefined;
 
     if (!isSyraApi(baseUrl)) {
       setIsUnsupportedApiModalOpen(true);
-      return;
+      return undefined;
     }
 
     const startTime = Date.now();
@@ -668,9 +963,10 @@ export function useApiPlayground() {
       requestHeaders[h.key] = h.value;
     });
 
-    // Add payment header if provided (for retry after payment)
+    // Add payment header if provided (for retry after payment). V2 API accepts both headers.
     if (paymentHeader) {
       requestHeaders['X-Payment'] = paymentHeader;
+      requestHeaders['PAYMENT-SIGNATURE'] = paymentHeader;
     }
 
     // Build request object for comparison (without ID and timestamp)
@@ -709,20 +1005,26 @@ export function useApiPlayground() {
 
     // Update history and track actual request ID
     if (trackedId) {
-      // Update tracked request
+      // Update tracked request (or add it if not yet in list – e.g. example flow before our setState flushed)
       actualRequestIdRef.current = requestId;
       const trackedRequestId = requestId;
-      setHistory(prev => prev.map(h => {
-        if (h.id === trackedRequestId) {
-          return {
-            ...h,
-            request,
-            status: 'loading',
-            response: undefined,
-          };
+      const loadingItem: HistoryItem = {
+        id: trackedRequestId,
+        request,
+        status: 'loading',
+        timestamp: new Date(),
+      };
+      setHistory(prev => {
+        const idx = prev.findIndex(h => h.id === trackedRequestId);
+        if (idx >= 0) {
+          return prev.map(h =>
+            h.id === trackedRequestId
+              ? { ...h, request, status: 'loading' as const, response: undefined }
+              : h
+          );
         }
-        return h;
-      }));
+        return [loadingItem, ...prev];
+      });
     } else {
       // Check for existing history item with same request
       setHistory(prev => {
@@ -796,17 +1098,8 @@ export function useApiPlayground() {
       const proxiedUrl = getProxiedUrl(finalUrl);
       const fetchResponse = await fetch(proxiedUrl, fetchOptions);
       
-      // Get response body
+      // Get response body (store raw so Pretty/Raw toggle works in ResponseViewer)
       const responseText = await fetchResponse.text();
-      let responseBody = responseText;
-      
-      // Try to parse as JSON for formatting
-      try {
-        const jsonData = JSON.parse(responseText);
-        responseBody = JSON.stringify(jsonData, null, 2);
-      } catch {
-        // Keep as plain text if not JSON
-      }
 
       // Get response headers
       const responseHeaders: Record<string, string> = {};
@@ -818,7 +1111,7 @@ export function useApiPlayground() {
         status: fetchResponse.status,
         statusText: fetchResponse.statusText,
         headers: responseHeaders,
-        body: responseBody,
+        body: responseText,
         time: Date.now() - startTime,
         size: new TextEncoder().encode(responseText).length,
       };
@@ -827,6 +1120,7 @@ export function useApiPlayground() {
 
       // Check if 402 Payment Required
       if (fetchResponse.status === 402) {
+        // Return so caller knows retry got 402 (e.g. don't show "success" toast)
         let parsed = null;
         let details = null;
         let jsonData: any = null;
@@ -929,8 +1223,10 @@ export function useApiPlayground() {
             variant: "default",
           });
         }
-        
-      } else if (fetchResponse.ok) {
+        return fetchResponse.status;
+      }
+
+      if (fetchResponse.ok) {
         setStatus('success');
         setPaymentDetails(undefined);
         setX402Response(undefined);
@@ -938,12 +1234,14 @@ export function useApiPlayground() {
         setHistory(prev => prev.map(h => 
           h.id === actualRequestId ? { ...h, response: apiResponse, status: 'success' } : h
         ));
-      } else {
-        setStatus('error');
-        setHistory(prev => prev.map(h => 
-          h.id === actualRequestId ? { ...h, response: apiResponse, status: 'error' } : h
-        ));
+        return fetchResponse.status;
       }
+
+      setStatus('error');
+      setHistory(prev => prev.map(h => 
+        h.id === actualRequestId ? { ...h, response: apiResponse, status: 'error' } : h
+      ));
+      return fetchResponse.status;
 
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
@@ -968,19 +1266,29 @@ export function useApiPlayground() {
       setHistory(prev => prev.map(h => 
         h.id === actualRequestId ? { ...h, response: errorResponse, status: 'error' } : h
       ));
+      return undefined;
     }
   }, [method, url, headers, body, params]);
 
-  // Run an example flow: load preset into builder and send immediately
-  const runExampleFlow = useCallback((flowId: string) => {
-    const preset = EXAMPLE_FLOWS.find((f) => f.id === flowId);
+  // Run an example flow: load preset into builder and send immediately.
+  // Optional paramsOverride (e.g. from Examples page modal) is used instead of preset.params when provided.
+  // Uses a tracked ID so sendRequest adds exactly one history entry (no double from batching or double-click).
+  const runExampleFlow = useCallback((flowId: string, paramsOverride?: RequestParam[]) => {
+    const preset = getExampleFlows().find((f) => f.id === flowId);
     if (!preset) return;
+    if (status === 'loading') return;
+    const effectiveParams = paramsOverride ?? preset.params;
     const defaultHeaders: RequestHeader[] = [
       { key: 'Content-Type', value: 'application/json', enabled: true },
     ];
+    // Skip the next auto-detect fetch so we don't send a second request (no double entry / pending)
+    skipNextAutoDetectRef.current = true;
+    setTimeout(() => {
+      skipNextAutoDetectRef.current = false;
+    }, 2500);
     setMethod(preset.method);
     setUrl(preset.url);
-    setParams(preset.params.map((p) => ({ ...p })));
+    setParams(effectiveParams.map((p) => ({ ...p })));
     setHeaders(defaultHeaders);
     setBody('{\n  \n}');
     setResponse(undefined);
@@ -988,21 +1296,28 @@ export function useApiPlayground() {
     setPaymentDetails(undefined);
     setX402Response(undefined);
     setPaymentOption(undefined);
+
+    // Use a tracked ID so sendRequest adds/updates exactly one history entry (avoids double entry from batching or double-click)
+    const newId = generateId();
+    newRequestIdRef.current = newId;
+
     const override: RequestOverride = {
       method: preset.method,
       url: preset.url,
-      params: preset.params.map((p) => ({ ...p })),
+      params: effectiveParams.map((p) => ({ ...p })),
       headers: defaultHeaders,
       body: '{\n  \n}',
     };
     sendRequest(undefined, override);
-  }, [sendRequest]);
+    setSelectedHistoryId(newId);
+  }, [sendRequest, status]);
 
   // Try demo - randomly pick a v2 API and always create new history
   const tryDemo = useCallback(() => {
     // Randomly select a v2 API endpoint
-    const randomIndex = Math.floor(Math.random() * V2_API_ENDPOINTS.length);
-    const randomEndpoint = V2_API_ENDPOINTS[randomIndex];
+    const endpoints = getV2ApiEndpoints();
+    const randomIndex = Math.floor(Math.random() * endpoints.length);
+    const randomEndpoint = endpoints[randomIndex];
     
     // Generate new request ID for try demo
     const newId = generateId();
@@ -1237,17 +1552,20 @@ export function useApiPlayground() {
           
           // Retry the request with payment header
           // The server will verify the transaction even if confirmation timed out
-          await sendRequest(result.paymentHeader);
+          const retryStatus = await sendRequest(result.paymentHeader);
           
           // Clear stored payment header
           localStorage.removeItem('x402_payment_header');
           
-          // Show success toast
-          toast({
-            title: "Payment Successful",
-            description: "API data has been fetched successfully!",
-          });
-        }, 1500); // Show success for 1.5 seconds before retrying
+          // Only show success toast when retry actually returned 200; otherwise
+          // sendRequest already toasts "Payment not verified" for 402
+          if (retryStatus === 200) {
+            toast({
+              title: "Payment Successful",
+              description: "API data has been fetched successfully!",
+            });
+          }
+        }, 3000); // 3s delay so server/facilitator can see the transaction before retry
       } else {
         setTransactionStatus({
           status: 'failed',

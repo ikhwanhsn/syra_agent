@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { TopBar } from '@/components/TopBar';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RequestBuilder } from '@/components/RequestBuilder';
@@ -6,7 +7,7 @@ import { ResponseViewer } from '@/components/ResponseViewer';
 import { PaymentModal } from '@/components/PaymentModal';
 import { UnsupportedApiModal } from '@/components/UnsupportedApiModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
-import { PaymentDetails } from '@/types/api';
+import { PaymentDetails, RequestParam } from '@/types/api';
 import { GripVertical } from 'lucide-react';
 
 // Default payment details when we can't parse x402 response
@@ -18,6 +19,8 @@ const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
 };
 
 const Index = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     method,
     setMethod,
@@ -66,6 +69,15 @@ const Index = () => {
   const [isResizingPanels, setIsResizingPanels] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const panelsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Run example flow when navigated from /examples with state.runFlowId (and optional runFlowParams)
+  useEffect(() => {
+    const state = location.state as { runFlowId?: string; runFlowParams?: RequestParam[] } | null;
+    const flowId = state?.runFlowId;
+    if (!flowId) return;
+    runExampleFlow(flowId, state?.runFlowParams);
+    navigate('/', { replace: true, state: {} }); // Clear state so back doesn't re-run
+  }, [location.state, runExampleFlow, navigate]);
 
   // Detect desktop viewport
   useEffect(() => {
@@ -121,7 +133,7 @@ const Index = () => {
   const effectivePaymentDetails = paymentDetails || (status === 'payment_required' ? DEFAULT_PAYMENT_DETAILS : undefined);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-dvh bg-background flex flex-col w-full overflow-hidden">
       {/* Top Bar */}
       <TopBar
         wallet={wallet}
@@ -130,8 +142,8 @@ const Index = () => {
         isSidebarOpen={isSidebarOpen}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Content - fills viewport below fixed navbar, no page scroll */}
+      <div className="flex-1 flex min-h-0 overflow-hidden w-full pt-14 sm:pt-16 h-0">
         {/* History Panel */}
         <HistoryPanel
           history={history}
@@ -152,11 +164,11 @@ const Index = () => {
         {/* Main Panels */}
         <div 
           ref={panelsContainerRef}
-          className="flex-1 flex flex-col lg:flex-row overflow-hidden relative"
+          className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden relative w-full"
         >
-          {/* Request Builder */}
+          {/* Request Builder - overflow-hidden so only tab content scrolls */}
           <div 
-            className="min-w-0 p-4 lg:p-5 overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50"
+            className="min-w-0 min-h-[280px] lg:min-h-0 flex-1 lg:flex-initial p-3 sm:p-4 lg:p-5 overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50"
             style={{
               ...(isDesktop && {
                 width: `${panelSplitRatio}%`,
@@ -166,7 +178,7 @@ const Index = () => {
               })
             }}
           >
-            <div className="glass-panel h-full p-4 sm:p-5 overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel h-full min-h-0 p-3 sm:p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
               <RequestBuilder
                 method={method}
                 url={url}
@@ -205,9 +217,9 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Response Viewer */}
+          {/* Response Viewer - overflow-hidden so only tab content scrolls */}
           <div 
-            className="flex-1 min-w-0 p-4 lg:p-5 overflow-hidden"
+            className="flex-1 min-w-0 min-h-[240px] lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-hidden"
             style={{
               ...(isDesktop && {
                 width: `${100 - panelSplitRatio}%`,
@@ -215,7 +227,7 @@ const Index = () => {
               })
             }}
           >
-            <div className="glass-panel h-full p-5 overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel h-full min-h-0 p-3 sm:p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
               <ResponseViewer
                 response={response}
                 status={status}

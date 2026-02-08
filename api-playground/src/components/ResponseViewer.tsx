@@ -64,11 +64,11 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     }
   };
 
-  // Loading state
+  // Loading state - fixed header, scrollable content below
   if (status === 'loading') {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
               <Code2 className="h-4.5 w-4.5 text-accent" />
@@ -79,8 +79,8 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
             </div>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex items-center justify-center">
+          <div className="text-center py-4">
             <div className="relative w-16 h-16 mx-auto mb-4">
               <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
               <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
@@ -95,11 +95,11 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     );
   }
 
-  // Idle state
+  // Idle state - fixed header (red area), scrollable content below
   if (status === 'idle' || !response) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
               <Code2 className="h-4.5 w-4.5 text-muted-foreground" />
@@ -110,8 +110,8 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
             </div>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-xs">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar flex items-center justify-center">
+          <div className="text-center max-w-xs py-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 mx-auto border border-border/50">
               <FileText className="h-7 w-7 text-muted-foreground/50" />
             </div>
@@ -125,15 +125,17 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     );
   }
 
-  const isPaymentRequired = response.status === 402;
+  // Use request status as source of truth: after a successful retry we have status 'success'
+  // and must show success UI even if response object was briefly stale
+  const isPaymentRequired = response.status === 402 && status !== 'success';
   const StatusIcon = getStatusIcon(response.status);
   const isSuccess = response.status >= 200 && response.status < 300;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with Status */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      {/* Header with Status - fixed */}
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
           <div className={cn(
             "w-9 h-9 rounded-lg flex items-center justify-center",
             isPaymentRequired && "bg-warning/20",
@@ -147,38 +149,38 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
               !isPaymentRequired && !isSuccess && "text-destructive"
             )} />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground">Response</h2>
-            <p className="text-xs text-muted-foreground">{getStatusMessage(response.status)}</p>
+            <p className="text-xs text-muted-foreground truncate">{getStatusMessage(response.status)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <Badge variant={getStatusVariant(response.status)} className="font-mono text-xs px-3 py-1.5">
             {response.status} {response.statusText}
           </Badge>
         </div>
       </div>
 
-      {/* Response Metrics */}
-      <div className="flex items-center gap-4 mb-4 px-4 py-2.5 rounded-lg bg-secondary/30">
+      {/* Response Metrics - fixed */}
+      <div className="shrink-0 flex flex-wrap items-center gap-3 sm:gap-4 mb-4 px-3 sm:px-4 py-2.5 rounded-lg bg-secondary/30">
         <div className="flex items-center gap-2 text-xs">
-          <Timer className="h-4 w-4 text-muted-foreground" />
+          <Timer className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-muted-foreground">Time:</span>
           <span className="font-mono font-medium text-foreground">{response.time}ms</span>
         </div>
-        <div className="w-px h-4 bg-border" />
+        <div className="w-px h-4 bg-border hidden sm:block" />
         <div className="flex items-center gap-2 text-xs">
-          <HardDrive className="h-4 w-4 text-muted-foreground" />
+          <HardDrive className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-muted-foreground">Size:</span>
           <span className="font-mono font-medium text-foreground">{formatBytes(response.size)}</span>
         </div>
       </div>
 
-      {/* Payment Required Card - Prominent x402 specific */}
+      {/* Payment Required Card - fixed */}
       {isPaymentRequired && paymentDetails && (
-        <div className="mb-4 rounded-xl bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border border-warning/30 overflow-hidden animate-fade-in">
+        <div className="shrink-0 mb-4 rounded-xl bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border border-warning/30 overflow-hidden animate-fade-in">
           {/* Header */}
-          <div className="px-4 py-3 bg-warning/10 border-b border-warning/20 flex items-center gap-3">
+          <div className="px-3 sm:px-4 py-3 bg-warning/10 border-b border-warning/20 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
               <Zap className="h-5 w-5 text-warning" />
             </div>
@@ -189,18 +191,18 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
           </div>
           
           {/* Payment Details */}
-          <div className="p-4 space-y-3">
+          <div className="p-3 sm:p-4 space-y-3">
             {/* Amount - Prominent */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
+            <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
               <span className="text-sm text-muted-foreground">Amount</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold gradient-text">{paymentDetails.amount}</span>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <span className="text-xl sm:text-2xl font-bold gradient-text break-all">{paymentDetails.amount}</span>
                 <span className="text-sm font-semibold text-foreground">{paymentDetails.token}</span>
               </div>
             </div>
             
             {/* Network & Memo */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-background/30">
                 <span className="text-xs uppercase tracking-wider text-muted-foreground">Network</span>
                 <p className="text-sm font-medium text-foreground mt-1">{paymentDetails.network}</p>

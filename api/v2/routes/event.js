@@ -1,11 +1,8 @@
-// routes/event.js – cache + parallel settle for fast response
+// routes/event.js – cache + settle like news API (settlePaymentAndSetResponse handles facilitator errors)
 import express from "express";
-import {
-  requirePayment,
-  getX402ResourceServer,
-  encodePaymentResponseHeader,
-} from "../utils/x402Payment.js";
-import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 
 const CACHE_TTL_MS = 90 * 1000;
@@ -66,12 +63,6 @@ export async function createEventRouter() {
     return result;
   }
 
-  function setPaymentResponseAndSend(res, data, settle) {
-    if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
-    res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
-    res.json({ event: data });
-  }
-
   router.get(
     "/",
     requirePayment({
@@ -101,15 +92,11 @@ export async function createEventRouter() {
         const resolved = await resolveTickerFromCoingecko(ticker);
         ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const { resourceServer } = getX402ResourceServer();
-      const { payload, accepted } = req.x402Payment;
-      const [event, settle] = await Promise.all([
-        getDataForTicker(ticker),
-        resourceServer.settlePayment(payload, accepted),
-      ]);
+      const event = await getDataForTicker(ticker);
       if (!event) return res.status(404).json({ error: "Event not found" });
       if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
-      setPaymentResponseAndSend(res, event, settle);
+      await settlePaymentAndSetResponse(res, req);
+      res.json({ event });
     }
   );
 
@@ -143,15 +130,11 @@ export async function createEventRouter() {
         const resolved = await resolveTickerFromCoingecko(ticker);
         ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const { resourceServer } = getX402ResourceServer();
-      const { payload, accepted } = req.x402Payment;
-      const [event, settle] = await Promise.all([
-        getDataForTicker(ticker),
-        resourceServer.settlePayment(payload, accepted),
-      ]);
+      const event = await getDataForTicker(ticker);
       if (!event) return res.status(404).json({ error: "Event not found" });
       if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
-      setPaymentResponseAndSend(res, event, settle);
+      await settlePaymentAndSetResponse(res, req);
+      res.json({ event });
     }
   );
 

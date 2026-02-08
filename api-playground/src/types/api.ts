@@ -12,6 +12,8 @@ export interface RequestParam {
   key: string;
   value: string;
   enabled: boolean;
+  /** Optional API description, used as placeholder for the value input */
+  description?: string;
 }
 
 export interface ApiRequest {

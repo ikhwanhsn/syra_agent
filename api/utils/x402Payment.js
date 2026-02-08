@@ -257,3 +257,20 @@ export async function settlePaymentAndRecord(req) {
   );
   await recordPaidApiCall(req);
 }
+
+/**
+ * V1 compatibility: same as settlePaymentAndRecord then set a minimal Payment-Response.
+ * Exported so any code importing from this module (v1) has the symbol defined.
+ * @param {import('express').Response} res
+ * @param {object} req - Express request with req.x402Payment
+ */
+export async function settlePaymentAndSetResponse(res, req) {
+  await settlePaymentAndRecord(req);
+  try {
+    const { encodePaymentResponseHeader } = await import("@x402/core/http");
+    res.setHeader("Payment-Response", encodePaymentResponseHeader({ success: true }));
+  } catch (_) {
+    res.setHeader("Payment-Response", "eyJzdWNjZXNzIjp0cnVlfQ==");
+  }
+  return { success: true };
+}

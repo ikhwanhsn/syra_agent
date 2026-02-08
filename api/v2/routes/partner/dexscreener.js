@@ -1,10 +1,8 @@
 import express from "express";
-import {
-  requirePayment,
-  getX402ResourceServer,
-  encodePaymentResponseHeader,
-} from "../../utils/x402Payment.js";
+import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_DEXSCREENER_USD } from "../../../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader } = await getV2Payment();
 import { dexscreenerRequests } from "../../../request/dexscreener.request.js";
 
 export async function createDexscreenerRouter() {
@@ -64,13 +62,11 @@ export async function createDexscreenerRouter() {
     }),
     async (req, res) => {
       try {
-        const { resourceServer } = getX402ResourceServer();
         const { payload, accepted } = req.x402Payment;
         const [data, settle] = await Promise.all([
           fetchDexscreenerData(),
-          resourceServer.settlePayment(payload, accepted),
+          settlePaymentWithFallback(payload, accepted),
         ]);
-        if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
         res.status(200).json(data);
       } catch (error) {
@@ -116,13 +112,11 @@ export async function createDexscreenerRouter() {
     }),
     async (req, res) => {
       try {
-        const { resourceServer } = getX402ResourceServer();
         const { payload, accepted } = req.x402Payment;
         const [data, settle] = await Promise.all([
           fetchDexscreenerData(),
-          resourceServer.settlePayment(payload, accepted),
+          settlePaymentWithFallback(payload, accepted),
         ]);
-        if (!settle?.success) throw new Error(settle?.errorReason || "Settlement failed");
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
         res.status(200).json(data);
       } catch (error) {

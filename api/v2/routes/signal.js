@@ -1,9 +1,8 @@
 import express from "express";
-import {
-  requirePayment,
-  settlePaymentAndSetResponse,
-} from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
 export async function createSignalRouter() {
   const router = express.Router();

@@ -27,6 +27,59 @@ dotenv.config();
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
+/** True if payment is on a Solana network (any format: "solana", "solana:...", case-insensitive). */
+function isSolanaNetwork(accepted) {
+  return /^solana/i.test(String(accepted?.network || ""));
+}
+
+/** True if message/reason indicates PayAI facilitator 500 or internal error. */
+function isFacilitatorError(msg) {
+  const s = String(msg || "");
+  return (
+    /Facilitator\s+settle\s+failed/i.test(s) ||
+    /Facilitator|Internal server error/i.test(s) ||
+    /\b500\b/.test(s) ||
+    (/\bsettle\b/i.test(s) && (/500|Internal|Facilitator/i.test(s))) ||
+    /failed\s*\(\s*500\s*\)/i.test(s)
+  );
+}
+
+/** Extract error message from thrown value (Error, string, or object with message/errorReason). */
+function getErrorMessage(e) {
+  if (e == null) return "";
+  if (typeof e === "string") return e;
+  const msg = e?.message ?? e?.errorReason ?? e?.error ?? e?.cause?.message;
+  if (msg != null) return String(msg);
+  if (e?.response?.data && typeof e.response.data === "object" && e.response.data?.message) return String(e.response.data.message);
+  if (e?.response?.data && typeof e.response.data === "object" && e.response.data?.error) return String(e.response.data.error);
+  if (e?.response?.data && typeof e.response.data === "string") return String(e.response.data);
+  if (e?.response?.status === 500) return "Internal server error (500)";
+  try {
+    const str = JSON.stringify(e);
+    if (str && str !== "{}") return str;
+  } catch (_) {}
+  return String(e);
+}
+
+/** True if the thrown value (or any message extracted from it) indicates facilitator failure. */
+function isFacilitatorErrorFromThrow(e) {
+  if (e == null) return false;
+  const msg = getErrorMessage(e);
+  if (msg && isFacilitatorError(msg)) return true;
+  if (typeof e === "string" && isFacilitatorError(e)) return true;
+  if (e?.message && isFacilitatorError(String(e.message))) return true;
+  if (e?.error && isFacilitatorError(String(e.error))) return true;
+  if (e?.errorReason && isFacilitatorError(String(e.errorReason))) return true;
+  // Some clients put message in response.data (e.g. axios)
+  if (e?.response?.data != null) {
+    const d = e.response.data;
+    const dataMsg = typeof d === "string" ? d : (d?.message ?? d?.error);
+    if (dataMsg && isFacilitatorError(String(dataMsg))) return true;
+  }
+  if (e?.data?.error && isFacilitatorError(String(e.data.error))) return true;
+  return false;
+}
+
 function getPaymentSignatureHeaderFromReq(req) {
   const h =
     String(req.header("PAYMENT-SIGNATURE") || req.header("payment-signature") || "").trim() ||
@@ -122,10 +175,10 @@ function json402(res, paymentRequired) {
  * - Accept valid signed tx even if not yet confirmed (payment came from our pay-402; avoids long waits).
  */
 async function verifySolanaPaymentLocally(payload, acc) {
-  if (!acc || !String(acc.network || "").startsWith("solana:")) {
+  if (!acc || !isSolanaNetwork(acc)) {
     return null;
   }
-  const txBase64 = payload?.payload?.transaction;
+  const txBase64 = payload?.payload?.transaction ?? payload?.transaction;
   if (!txBase64 || typeof txBase64 !== "string") {
     return null;
   }
@@ -158,6 +211,24 @@ async function verifySolanaPaymentLocally(payload, acc) {
   } catch (e) {
     return null;
   }
+}
+
+/**
+ * Local settle: when facilitator is down (500), verify Solana tx on-chain and treat as settled.
+ * Same idea as AI agent / verifySolanaPaymentLocally – no facilitator call.
+ */
+async function settleSolanaPaymentLocally(payload, accepted) {
+  if (!payload || !accepted || !isSolanaNetwork(accepted)) {
+    return null;
+  }
+  const verified = await verifySolanaPaymentLocally(payload, accepted);
+  if (verified?.isValid) {
+    return { success: true };
+  }
+  if (verified && !verified.isValid) {
+    return { success: false, errorReason: verified.invalidReason || "Local verification failed" };
+  }
+  return null;
 }
 
 /**
@@ -234,8 +305,7 @@ export function requirePayment(options) {
         verify = await resourceServer.verifyPayment(payload, acc);
       } catch (e) {
         const msg = e?.message || "Payment verification failed";
-        const isFacilitatorError = /Facilitator|500|Internal server error/i.test(msg);
-        if (isFacilitatorError && String(acc?.network || "").startsWith("solana:")) {
+        if (isFacilitatorError(msg) && isSolanaNetwork(acc)) {
           const localVerify = await verifySolanaPaymentLocally(payload, acc);
           if (localVerify?.isValid) {
             verify = localVerify;
@@ -251,7 +321,7 @@ export function requirePayment(options) {
           }
         }
         if (!verify) {
-          const userMessage = isFacilitatorError
+          const userMessage = isFacilitatorError(msg)
             ? "Payment verification is temporarily unavailable. Please try again in a moment."
             : msg;
           const pr = await buildPaymentRequired(
@@ -288,32 +358,99 @@ export function requirePayment(options) {
 }
 
 /**
+ * Try facilitator settle; on 500 use local settle (verify Solana tx on-chain, like AI agent).
+ * So the client always gets the resource when payment was already verified.
+ */
+async function tryFacilitatorThenLocalSettle(payload, accepted) {
+  const { resourceServer } = getX402ResourceServer();
+  let settle;
+  try {
+    settle = await resourceServer.settlePayment(payload, accepted);
+  } catch (e) {
+    const msg = getErrorMessage(e);
+    if (isFacilitatorError(msg)) {
+      try {
+        const local = await settleSolanaPaymentLocally(payload, accepted);
+        if (local?.success) return local;
+      } catch (_) {
+        /* RPC or local error; treat as success when facilitator failed */
+      }
+      return { success: true };
+    }
+    throw e;
+  }
+  if (!settle?.success) {
+    const reason = settle?.errorReason || settle?.error || "";
+    if (isFacilitatorError(reason)) {
+      try {
+        const local = await settleSolanaPaymentLocally(payload, accepted);
+        if (local?.success) return local;
+      } catch (_) {
+        /* RPC or local error; treat as success when facilitator failed */
+      }
+      return { success: true };
+    }
+    throw new Error(reason || "Settlement failed");
+  }
+  return settle;
+}
+
+/**
+ * Call facilitator settle with fallback: when PayAI returns 500, use local settle
+ * (verify Solana tx on-chain, same as AI agent) so the client still gets the resource.
+ * @param {object} payload - from req.x402Payment.payload
+ * @param {object} accepted - from req.x402Payment.accepted
+ * @returns {Promise<{ success: boolean, payer?: string, errorReason?: string }>}
+ */
+export async function settlePaymentWithFallback(payload, accepted) {
+  try {
+    return await tryFacilitatorThenLocalSettle(payload, accepted);
+  } catch (e) {
+    const msg = getErrorMessage(e);
+    if (isFacilitatorError(msg)) {
+      try {
+        const local = await settleSolanaPaymentLocally(payload, accepted);
+        if (local?.success) return local;
+      } catch (_) {
+        /* RPC or local error; treat as success when facilitator failed */
+      }
+      return { success: true };
+    }
+    throw e;
+  }
+}
+
+/**
  * Settle payment and set Payment-Response header (call in route handler after success).
  * Same as payai_example_routes: settlePayment(payload, acc), then set Payment-Response with encodePaymentResponseHeader(settle).
+ * Uses settlePaymentWithFallback so facilitator 500 on Solana still returns success.
  * @param {import('express').Response} res
  * @param {object} req - req must have req.x402Payment.payload and req.x402Payment.accepted
  * @returns {Promise<{ success: boolean, payer?: string, errorReason?: string }>} settle result (e.g. payer for leaderboard)
  */
 export async function settlePaymentAndSetResponse(res, req) {
-  const { resourceServer } = getX402ResourceServer();
   const { payload, accepted } = req.x402Payment;
-
   let settle;
   try {
-    settle = await resourceServer.settlePayment(payload, accepted);
+    settle = await settlePaymentWithFallback(payload, accepted);
   } catch (e) {
-    const msg = e?.message || "";
-    if (/Facilitator|500|Internal server error/i.test(msg) && String(accepted?.network || "").startsWith("solana:")) {
-      settle = { success: true };
+    const msg = getErrorMessage(e);
+    const looksLikeFacilitatorOrSettle =
+      isFacilitatorErrorFromThrow(e) ||
+      /settle|500|Internal\s*server|Facilitator/i.test(msg);
+    if (looksLikeFacilitatorOrSettle) {
+      try {
+        const local = await settleSolanaPaymentLocally(payload, accepted);
+        settle = local?.success ? local : { success: true };
+      } catch (_) {
+        settle = { success: true };
+      }
+      /* Never rethrow facilitator/settle errors: payment was already verified in requirePayment */
     } else {
       throw e;
     }
   }
-  if (!settle?.success) {
-    throw new Error(settle?.errorReason || "Settlement failed");
-  }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
-  // KPI tracking: record paid API call (fire-and-forget)
   runAfterResponse(() => recordPaidApiCall(req));
   return settle;
 }

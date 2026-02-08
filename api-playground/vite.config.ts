@@ -39,13 +39,16 @@ function corsProxyPlugin(): Plugin {
 
           req.on('end', async () => {
             try {
-              // Build headers, excluding host and other problematic headers
+              // Build headers, excluding host and other problematic headers.
+              // Forward string headers; for arrays (e.g. duplicate x-payment) use first value.
               const headers: Record<string, string> = {};
               const excludeHeaders = ['host', 'connection', 'content-length', 'accept-encoding'];
-              
+
               for (const [key, value] of Object.entries(req.headers)) {
-                if (!excludeHeaders.includes(key.toLowerCase()) && typeof value === 'string') {
-                  headers[key] = value;
+                if (excludeHeaders.includes(key.toLowerCase())) continue;
+                const str = Array.isArray(value) ? value[0] : value;
+                if (str && typeof str === 'string') {
+                  headers[key] = str;
                 }
               }
 
