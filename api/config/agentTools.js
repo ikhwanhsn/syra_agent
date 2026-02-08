@@ -10,6 +10,7 @@ import {
   X402_API_PRICE_NANSEN_USD,
   X402_API_PRICE_DEXSCREENER_USD,
   X402_API_PRICE_PUMP_USD,
+  X402_API_PRICE_ANALYTICS_SUMMARY_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; name: string; description: string }} AgentTool */
@@ -123,6 +124,14 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     name: 'Sundown digest',
     description: 'Sundown digest / daily summary',
+  },
+  {
+    id: 'analytics-summary',
+    path: '/v2/analytics/summary',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ANALYTICS_SUMMARY_USD,
+    name: 'Analytics summary',
+    description: 'Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation, and 9 memecoin screens',
   },
   // Partner: Nansen
   {
@@ -478,6 +487,11 @@ export function matchToolFromUserMessage(userMessage) {
         /sundown\s*digest|daily\s*digest|sundown\s*daily|digest\s*sundown/i.test(text),
     },
     {
+      toolId: 'analytics-summary',
+      test: () =>
+        /analytics\s*summary|full\s*analytics|all\s*analytics|dashboard\s*data|summary\s*analytics/i.test(text),
+    },
+    {
       toolId: 'research',
       test: () =>
         /deep\s*research|research\s*(report|analysis)?|run\s*research|do\s*research/i.test(text),
@@ -526,7 +540,7 @@ export function matchToolFromUserMessage(userMessage) {
  */
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
-  const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest'];
+  const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'token-report', 'token-statistic', 'bubblemaps-maps', 'binance-correlation', 'pump'];
   const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 

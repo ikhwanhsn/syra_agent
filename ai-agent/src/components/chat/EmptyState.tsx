@@ -49,7 +49,7 @@ const suggestions: SuggestionCard[] = [
 function groupTools(tools: AgentTool[]): { core: AgentTool[]; partner: AgentTool[]; memecoin: AgentTool[] } {
   const coreIds = new Set([
     "check-status", "news", "signal", "sentiment", "event", "browse", "x-search",
-    "research", "gems", "x-kol", "crypto-kol", "trending-headline", "sundown-digest",
+    "research", "gems", "x-kol", "crypto-kol", "trending-headline", "sundown-digest", "analytics-summary",
   ]);
   const core: AgentTool[] = [];
   const partner: AgentTool[] = [];

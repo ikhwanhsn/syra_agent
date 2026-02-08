@@ -20,6 +20,11 @@ import { resolveAgentBaseUrl } from './utils.js';
 const router = express.Router();
 
 const MAX_TOOLS_PER_REQUEST = 3;
+/** Max characters of tool result to send to the LLM (avoids blowing context; ~28k chars ≈ 7k tokens). */
+const MAX_TOOL_RESULT_CHARS = 28_000;
+/** Higher max_tokens when we inject tool results so the model can write a full summary. */
+const MAX_TOKENS_WITH_TOOLS = 4096;
+const MAX_TOKENS_DEFAULT = 2000;
 
 /**
  * Use Jatevo LLM to pick up to 3 most relevant tools (and optional params) from the user question.
@@ -93,6 +98,70 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
   } catch (err) {
     return [];
   }
+}
+
+/**
+ * Format tool result for LLM context. Large payloads (e.g. analytics-summary) are condensed or truncated
+ * so we don't blow the context window and the model can still produce a useful answer.
+ * @param {unknown} data - Raw tool response data
+ * @param {string} toolId - Tool id (e.g. 'analytics-summary')
+ * @returns {string} - String to inject into the user message for the LLM
+ */
+function formatToolResultForLlm(data, toolId) {
+  if (toolId === 'analytics-summary' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      return condensedAnalyticsSummary(data);
+    } catch (e) {
+      console.warn('[agent/chat] condensedAnalyticsSummary failed, using truncation:', e?.message);
+    }
+  }
+  const raw = JSON.stringify(data, null, 2);
+  if (raw.length <= MAX_TOOL_RESULT_CHARS) return raw;
+  return (
+    raw.slice(0, MAX_TOOL_RESULT_CHARS) +
+    "\n\n[... Result truncated due to length. Ask for a specific section or metric if you need more detail.]"
+  );
+}
+
+/**
+ * Build a condensed text summary of analytics-summary payload for the LLM (sections + key counts/top items).
+ * @param {Record<string, unknown>} summary - Response from /v2/analytics/summary
+ * @returns {string}
+ */
+function condensedAnalyticsSummary(summary) {
+  const lines = [];
+  const sections = summary.sections && typeof summary.sections === 'object' ? summary.sections : {};
+  const sectionOrder = ['price', 'volume', 'correlation', 'tokenRisk', 'onChain', 'memecoin'];
+  for (const key of sectionOrder) {
+    const section = sections[key];
+    if (!section || typeof section !== 'object') continue;
+    const title = section.title || key;
+    lines.push(`## ${title}`);
+    for (const [subKey, value] of Object.entries(section)) {
+      if (subKey === 'title') continue;
+      try {
+        if (value && typeof value === 'object' && 'ok' in value && value.ok && value.data) {
+          const data = value.data;
+          if (Array.isArray(data)) {
+            const top = data.slice(0, 5);
+            lines.push(`  ${subKey}: ${data.length} items. Top entries: ${JSON.stringify(top).slice(0, 500)}${data.length > 5 ? '...' : ''}`);
+          } else if (data && typeof data === 'object') {
+            const keys = Object.keys(data);
+            const preview = keys.length <= 4 ? JSON.stringify(data).slice(0, 400) : `${keys.length} keys: ${keys.slice(0, 4).join(', ')}...`;
+            lines.push(`  ${subKey}: ${preview}`);
+          }
+        } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          const keys = Object.keys(value);
+          lines.push(`  ${subKey}: ${keys.length} keys — ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? '...' : ''}`);
+        }
+      } catch (_) {
+        lines.push(`  ${subKey}: (data)`);
+      }
+    }
+    lines.push('');
+  }
+  const out = lines.join('\n').trim();
+  return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + "\n\n[... truncated.]";
 }
 
 /**
@@ -227,6 +296,7 @@ router.post('/completion', async (req, res) => {
     let amountChargedUsd = 0;
     /** @type {Array<{ name: string; status: 'complete' | 'error' }>} */
     let toolUsages = [];
+    let hadToolResults = false;
     if (!matchedTools || matchedTools.length === 0) {
       // No tools matched: let the agent answer from the system prompt (general chat vs out-of-scope).
     } else if (walletConnected === false) {
@@ -289,14 +359,16 @@ router.post('/completion', async (req, res) => {
           if (!useTreasury) amountChargedUsd += tool.priceUsd;
           usdcBalance -= tool.priceUsd;
           toolUsages.push({ name: tool.name, status: 'complete' });
+          const formatted = formatToolResultForLlm(result.data, tool.id);
           toolResults.push(
-            `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.]\n\n${JSON.stringify(result.data, null, 2)}`
+            `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.]\n\n${formatted}`
           );
         }
       }
       if (toolErrors.length > 0 && toolResults.length === 0) {
         apiMessages.push({ role: 'user', content: toolErrors[0] });
       } else if (toolResults.length > 0) {
+        hadToolResults = true;
         const combined = toolResults.join('\n\n---\n\n');
         apiMessages.push({ role: 'user', content: combined });
         if (toolErrors.length > 0) {
@@ -318,6 +390,11 @@ router.post('/completion', async (req, res) => {
     const jatevoOptions = { anonymousId };
     if (modelId && typeof modelId === 'string' && modelId.trim()) {
       jatevoOptions.model = modelId.trim();
+    }
+    if (hadToolResults) {
+      jatevoOptions.max_tokens = MAX_TOKENS_WITH_TOOLS;
+    } else {
+      jatevoOptions.max_tokens = MAX_TOKENS_DEFAULT;
     }
     const requestedModel = jatevoOptions.model || JATEVO_DEFAULT_MODEL;
     console.log(`[agent/chat] Completion request model=${requestedModel}`);
