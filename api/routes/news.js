@@ -189,3 +189,61 @@ export async function createNewsRouter() {
 
   return router;
 }
+
+/** Regular (no x402) news router for landing/dashboard – same data, no payment. */
+export async function createNewsRouterRegular() {
+  const router = express.Router();
+
+  const fetchGeneralNews = async () => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1/category?section=general&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
+    );
+    const data = await response.json();
+    return data.data || [];
+  };
+
+  const fetchAllTickerNews = async () => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1/category?section=alltickers&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
+    );
+    const data = await response.json();
+    return data.data || [];
+  };
+
+  const fetchTickerNews = async (ticker) => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1?tickers=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
+    );
+    const data = await response.json();
+    return data.data || [];
+  };
+
+  const fetchTickerNewsAdvance = async (ticker) => {
+    const response = await fetch(
+      `https://cryptonews-api.com/api/v1?tickers-only=${ticker}&items=100&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`,
+    );
+    const data = await response.json();
+    return data.data || [];
+  };
+
+  const handleGet = async (req, res) => {
+    const ticker = req.query.ticker || "general";
+    let result;
+    if (ticker !== "general") {
+      const tickerNews = await fetchTickerNews(ticker);
+      const tickerNewsAdvance = await fetchTickerNewsAdvance(ticker);
+      result = tickerNews.concat(tickerNewsAdvance);
+    } else {
+      const generalNews = await fetchGeneralNews();
+      const allTickerNews = await fetchAllTickerNews();
+      result = generalNews.concat(allTickerNews);
+    }
+    const news = result;
+    if (!news) return res.status(404).json({ error: "News not found" });
+    if (news?.length > 0) res.json({ news });
+    else res.status(500).json({ error: "Failed to fetch news" });
+  };
+
+  router.get("/", handleGet);
+  return router;
+}

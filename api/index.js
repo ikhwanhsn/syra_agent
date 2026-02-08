@@ -3,8 +3,8 @@ import express from "express";
 import rateLimit from "./utils/rateLimit.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createNewsRouter } from "./routes/news.js";
-import { createSignalRouter } from "./routes/signal.js";
+import { createNewsRouter, createNewsRouterRegular } from "./routes/news.js";
+import { createSignalRouter, createSignalRouterRegular } from "./routes/signal.js";
 import { createXSearchRouter } from "./routes/xSearch.js";
 import { createXKOLRouter } from "./routes/kol.js";
 import { createBrowseRouter } from "./routes/browse.js";
@@ -29,7 +29,7 @@ import { createPumpRouter } from "./routes/partner/workfun/pump.js";
 import { createTrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
 import { createTokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
 import { createTokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
-import { createSentimentRouter } from "./routes/sentiment.js";
+import { createSentimentRouter, createSentimentRouterRegular } from "./routes/sentiment.js";
 import { createEventRouter } from "./routes/event.js";
 import { createTrendingHeadlineRouter } from "./routes/trending-headline.js";
 import { createSundownDigestRouter } from "./routes/sundown-digest.js";
@@ -165,6 +165,7 @@ const CORS_OPTIONS_REGULAR = {
 function isX402Route(p) {
   if (!p) return false;
   if (p.startsWith("/.well-known")) return true;
+  if (p.startsWith("/v1/")) return true;
   if (p.startsWith("/v2/")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
@@ -415,6 +416,11 @@ app.use("/coingecko", await createCoingeckoRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
+
+// v1/regular (no x402) – landing page dashboard preview, same data without payment
+app.use("/v1/regular/news", await createNewsRouterRegular());
+app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
+app.use("/v1/regular/signal", await createSignalRouterRegular());
 
 // x402 V2 routes (V2 format - CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/v2/news", await createV2NewsRouter());

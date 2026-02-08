@@ -124,3 +124,23 @@ export async function createSignalRouter() {
 
   return router;
 }
+
+/** Regular (no x402) signal router for landing/dashboard – same data, no payment. */
+export async function createSignalRouterRegular() {
+  const router = express.Router();
+
+  router.get("/", async (req, res) => {
+    try {
+      const token = req.query.token || "solana";
+      const signal = await fetch(
+        `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
+      ).then((r) => r.json());
+      if (signal) res.json({ signal, token });
+      else res.status(500).json({ error: "Failed to fetch signal" });
+    } catch (error) {
+      res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  return router;
+}

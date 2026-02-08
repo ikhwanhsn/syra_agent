@@ -20,6 +20,10 @@ import {
   ReferenceLine,
 } from "recharts";
 import { useEffect, useState } from "react";
+import { API_BASE } from "../../config/global";
+
+// API base for dashboard preview: env VITE_SYRA_API_URL or fallback to API_BASE (ensure trailing slash)
+const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(/\/?$/, "/");
 
 export const DashboardPreview = () => {
   const [counter, setCounter] = useState(0);
@@ -56,7 +60,7 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["news"],
     queryFn: () =>
-      fetch(`${import.meta.env.VITE_SYRA_API_URL}v1/regular/news`, {
+      fetch(`${SYRA_API_BASE}v1/regular/news`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -76,7 +80,7 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["sentiment"],
     queryFn: () =>
-      fetch(`${import.meta.env.VITE_SYRA_API_URL}v1/regular/sentiment`, {
+      fetch(`${SYRA_API_BASE}v1/regular/sentiment`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -168,7 +172,7 @@ export const DashboardPreview = () => {
     queryKey: ["signals"],
     queryFn: () =>
       fetch(
-        `${import.meta.env.VITE_SYRA_API_URL}v1/regular/signal?token=bitcoin`,
+        `${SYRA_API_BASE}v1/regular/signal?token=bitcoin`,
         {
           method: "GET",
           headers: {
@@ -215,7 +219,7 @@ export const DashboardPreview = () => {
       {/* Glow effect behind dashboard */}
       <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-3xl" />
 
-      <div className="relative w-4/5 p-6 mx-auto sm:mx-0 sm:w-full glass-card rounded-2xl">
+      <div className="relative w-full max-w-full p-4 sm:p-6 mx-auto sm:mx-0 glass-card rounded-2xl min-w-0">
         {/* Dashboard Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -422,9 +426,9 @@ export const DashboardPreview = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 1 + i * 0.1 }}
-              className="flex items-center gap-3 p-3 rounded-lg glass-card"
+              className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg glass-card min-w-0"
             >
-              <item.icon className={`w-4 h-4 ${item.color}`} />
+              <item.icon className={`w-4 h-4 shrink-0 ${item.color}`} />
 
               {/* Animated text for news only */}
               {item.isNews ? (
@@ -435,13 +439,13 @@ export const DashboardPreview = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
-                    className="text-xs text-muted-foreground"
+                    className="text-xs text-muted-foreground min-w-0 flex-1"
                   >
                     {item.text || "Loading news..."}
                   </motion.span>
                 </AnimatePresence>
               ) : (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {item.text}
                 </span>
               )}
@@ -450,7 +454,8 @@ export const DashboardPreview = () => {
                 <a
                   href="https://dexscreener.com/solana/ha56u92pmwnh9ksqf7wwhi2xh9aqdedqsazo6m6jdbqf"
                   target="_blank"
-                  className="relative z-10 text-xs text-blue-100 text-muted-foreground"
+                  rel="noopener noreferrer"
+                  className="relative z-10 min-w-0 flex-1 text-xs text-blue-100 text-muted-foreground break-all"
                 >
                   8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump
                 </a>
