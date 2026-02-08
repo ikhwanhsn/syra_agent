@@ -21,13 +21,13 @@
            The page you're looking for doesn't exist or has been moved.
          </p>
         <div className="flex flex-col sm:flex-row justify-center gap-3 w-full sm:w-auto">
-          <Button variant="ghost" className="w-full sm:w-auto justify-center" asChild>
+          <Button variant="ghost" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
             <Link to="/docs">
               <ArrowLeft className="mr-2 h-4 w-4 shrink-0" />
               Go back
             </Link>
           </Button>
-          <Button variant="primary" className="w-full sm:w-auto justify-center" asChild>
+          <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
             <Link to="/docs">
               <Home className="mr-2 h-4 w-4 shrink-0" />
               Documentation

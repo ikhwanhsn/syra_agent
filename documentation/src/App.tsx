@@ -11,9 +11,15 @@ import APIReference from "./pages/docs/APIReference";
 import ApiDocPage from "./pages/docs/ApiDocPage";
 import Changelog from "./pages/docs/Changelog";
 import Community from "./pages/docs/Community";
-import Agent from "./pages/docs/Agent";
+import AgentGettingStarted from "./pages/docs/AgentGettingStarted";
+import AgentHowItWorks from "./pages/docs/AgentHowItWorks";
+import AgentFeatures from "./pages/docs/AgentFeatures";
+import AgentSupportedTokens from "./pages/docs/AgentSupportedTokens";
+import AgentTradingGuidance from "./pages/docs/AgentTradingGuidance";
+import AgentSystemPrompt from "./pages/docs/AgentSystemPrompt";
 import X402Agent from "./pages/docs/X402Agent";
 import AgentCatalog from "./pages/docs/AgentCatalog";
+import SyraAgentCatalog from "./pages/docs/SyraAgentCatalog";
 import Token from "./pages/docs/Token";
 import NotFound from "./pages/NotFound";
 
@@ -35,11 +41,14 @@ const App = () => (
           <Route path="/docs/api/:slug" element={<ApiDocPage />} />
           <Route path="/docs/api-reference/errors" element={<APIReference />} />
           <Route path="/docs/api-reference/rate-limits" element={<APIReference />} />
-          <Route path="/docs/agent/getting-started" element={<Agent />} />
-          <Route path="/docs/agent/how-it-works" element={<Agent />} />
-          <Route path="/docs/agent/features" element={<Agent />} />
-          <Route path="/docs/agent/supported-tokens" element={<Agent />} />
-          <Route path="/docs/agent/trading-guidance" element={<Agent />} />
+          <Route path="/docs/agent" element={<Navigate to="/docs/agent/getting-started" replace />} />
+          <Route path="/docs/agent/getting-started" element={<AgentGettingStarted />} />
+          <Route path="/docs/agent/how-it-works" element={<AgentHowItWorks />} />
+          <Route path="/docs/agent/features" element={<AgentFeatures />} />
+          <Route path="/docs/agent/supported-tokens" element={<AgentSupportedTokens />} />
+          <Route path="/docs/agent/trading-guidance" element={<AgentTradingGuidance />} />
+          <Route path="/docs/agent/agent-catalog" element={<SyraAgentCatalog />} />
+          <Route path="/docs/agent/system-prompt" element={<AgentSystemPrompt />} />
           <Route path="/docs/x402-agent/getting-started" element={<X402Agent />} />
           <Route path="/docs/x402-agent/agent-catalog" element={<AgentCatalog />} />
           <Route path="/docs/token/tokenomicsv2" element={<Navigate to="/docs/token/tokenomics" replace />} />

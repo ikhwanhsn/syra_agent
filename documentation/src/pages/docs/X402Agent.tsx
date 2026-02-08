@@ -58,13 +58,13 @@ export default function X402Agent() {
       </section>
 
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
-        <Button variant="primary" size="lg" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <Link to="/docs/x402-agent/agent-catalog">
             Agent Catalog
             <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
           </Link>
         </Button>
-        <Button variant="outline" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <Link to="/docs/welcome">Back to Welcome</Link>
         </Button>
       </div>

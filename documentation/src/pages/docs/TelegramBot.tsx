@@ -100,13 +100,13 @@ export default function TelegramBot() {
       </section>
 
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
-        <Button variant="primary" size="lg" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <a href="https://t.me/syra_trading_bot" target="_blank" rel="noopener noreferrer">
             Open Telegram Bot
             <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
           </a>
         </Button>
-        <Button variant="outline" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <Link to="/docs/welcome">Back to Welcome</Link>
         </Button>
       </div>

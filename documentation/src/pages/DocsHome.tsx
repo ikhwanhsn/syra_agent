@@ -79,13 +79,13 @@ export default function DocsHome() {
           </p>
 
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 animate-fade-in animation-delay-200">
-            <Button variant="primary" size="lg" className="w-full sm:w-auto justify-center" asChild>
+            <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
               <Link to="/docs/welcome">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="w-full sm:w-auto justify-center" asChild>
+            <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
               <a href="https://agent.syraa.fun" target="_blank" rel="noopener noreferrer">
                 <Bot className="mr-2 h-4 w-4 shrink-0" />
                 Try Agent
@@ -93,8 +93,8 @@ export default function DocsHome() {
             </Button>
             <Button
               variant="outline"
-              size="default"
-              className="w-full sm:w-auto justify-center border-border/60 bg-transparent hover:bg-muted/50 text-foreground"
+              size="lg"
+              className="w-full sm:min-w-[12rem] sm:w-auto justify-center border-border/60 bg-transparent hover:bg-muted/50 text-foreground"
               asChild
             >
               <a href="https://playground.syraa.fun" target="_blank" rel="noopener noreferrer">
@@ -104,8 +104,8 @@ export default function DocsHome() {
             </Button>
             <Button
               variant="outline"
-              size="default"
-              className="w-full sm:w-auto justify-center border-border/60 bg-transparent hover:bg-muted/50 text-foreground"
+              size="lg"
+              className="w-full sm:min-w-[12rem] sm:w-auto justify-center border-border/60 bg-transparent hover:bg-muted/50 text-foreground"
               asChild
             >
               <a href="https://syraa.fun" target="_blank" rel="noopener noreferrer">

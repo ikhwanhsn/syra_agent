@@ -128,6 +128,8 @@ export const navigation: NavItem[] = [
       { title: "Agent Features", href: "/docs/agent/features" },
       { title: "Supported Tokens", href: "/docs/agent/supported-tokens" },
       { title: "Trading Guidance", href: "/docs/agent/trading-guidance" },
+      { title: "Agent Catalog", href: "/docs/agent/agent-catalog" },
+      { title: "System Prompt", href: "/docs/agent/system-prompt" },
     ],
   },
   {

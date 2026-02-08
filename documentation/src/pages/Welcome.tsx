@@ -156,16 +156,16 @@ export default function Welcome() {
       </section>
 
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 pt-4">
-        <Button variant="primary" size="default" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <a href="https://agent.syraa.fun" target="_blank" rel="noopener noreferrer">
             Open Syra Agent
             <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
           </a>
         </Button>
-        <Button variant="outline" size="default" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <Link to="/docs/agent/getting-started">Agent Docs</Link>
         </Button>
-        <Button variant="outline" size="default" className="w-full sm:w-auto justify-center" asChild>
+        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
           <Link to="/docs/api-reference">API Reference</Link>
         </Button>
       </div>
