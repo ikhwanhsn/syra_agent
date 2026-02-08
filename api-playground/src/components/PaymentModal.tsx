@@ -81,10 +81,10 @@ export function PaymentModal({
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      {/* Modal - scrollable on small screens; safe area padding */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden safe-area-inset-top safe-area-inset-bottom">
         <div 
-          className="w-full max-w-md glass-panel animate-scale-in overflow-hidden my-auto max-h-[calc(100dvh-2rem)] flex flex-col"
+          className="w-full max-w-md glass-panel animate-scale-in overflow-hidden my-auto max-h-[min(calc(100dvh-2rem),calc(100svh-2rem))] flex flex-col min-h-0"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with gradient */}

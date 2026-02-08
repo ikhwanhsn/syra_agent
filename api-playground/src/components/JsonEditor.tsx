@@ -59,7 +59,7 @@ export function JsonEditor({
     .replace(/: (null)/g, ': <span class="text-muted-foreground">$1</span>');
 
   return (
-    <div className="relative group h-full flex flex-col min-h-0 overflow-hidden">
+    <div className="relative group h-full flex flex-col min-h-0 min-w-0 overflow-hidden">
       {/* Toolbar */}
       <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {!readOnly && value.trim() && (
@@ -113,13 +113,13 @@ export function JsonEditor({
       {/* Editor */}
       <div 
         className={cn(
-          "code-editor relative flex-1 min-h-0 overflow-auto custom-scrollbar w-full",
+          "code-editor relative flex-1 min-h-0 min-w-0 overflow-auto custom-scrollbar w-full max-w-full",
           !isValid && !readOnly && "border-destructive/50"
         )}
       >
         {readOnly ? (
           <pre 
-            className="p-4 text-sm w-full min-h-full"
+            className="p-4 text-sm w-full min-h-full overflow-x-auto"
             dangerouslySetInnerHTML={{ __html: highlightedValue || '<span class="text-muted-foreground">No content</span>' }}
           />
         ) : (

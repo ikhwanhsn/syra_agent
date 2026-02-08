@@ -32,8 +32,8 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
   
   return (
     <TooltipProvider>
-      <header className="min-h-14 sm:min-h-16 border-b border-border bg-card/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 safe-area-inset-top flex flex-col justify-center">
-        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 gap-2 min-w-0">
+      <header className="min-h-14 sm:min-h-16 border-b border-border bg-card/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 safe-area-inset-top flex flex-col justify-center max-w-[100vw] overflow-hidden">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 gap-2 min-w-0 overflow-hidden">
           {/* Left: Logo and menu */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
             <Button

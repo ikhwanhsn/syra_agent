@@ -875,7 +875,7 @@ export function useApiPlayground() {
   // Panel split ratio (percentage for request builder, 0-100)
   const [panelSplitRatio, setPanelSplitRatio] = useState(() => {
     const stored = localStorage.getItem('x402_api_playground_panel_split_ratio');
-    return stored ? parseFloat(stored) : 50; // Default 50% (equal split)
+    return stored ? parseFloat(stored) : 42; // Default 42% request / 58% response so response body has more room
   });
   
   // Save panel split ratio to localStorage

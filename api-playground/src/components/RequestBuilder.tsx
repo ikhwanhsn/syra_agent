@@ -113,7 +113,7 @@ export function RequestBuilder({
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col min-h-0 lg:h-full lg:overflow-hidden">
         {/* Header - fixed, does not scroll */}
         <div className="shrink-0 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5">
           <div className="flex items-center gap-3 min-w-0">
@@ -228,7 +228,7 @@ export function RequestBuilder({
                 value={url}
                 onChange={(e) => onUrlChange(e.target.value)}
                 placeholder="https://api.example.com/v1/resource"
-                className="font-mono text-sm bg-secondary/50 border-border h-11 pl-4 pr-14 sm:pr-14"
+                className="font-mono text-sm bg-secondary/50 border-border h-11 pl-4 pr-14 sm:pr-14 min-w-0 w-full max-w-full"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                 {isAutoDetecting && (
@@ -262,8 +262,8 @@ export function RequestBuilder({
           </div>
         </div>
 
-        {/* Tabs - tab bar fixed, only content below scrolls */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 min-w-0">
+        {/* Tabs - on mobile: min-height so section is visible in flow; on desktop: flex-1 and scrolls internally */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-[320px] lg:min-h-0 min-w-0">
           <TabsList className="shrink-0 bg-secondary/30 w-full sm:w-fit p-1 gap-1 flex flex-wrap !h-auto">
             {!isGetMethod && (
               <TabsTrigger 
@@ -300,7 +300,7 @@ export function RequestBuilder({
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 mt-3 min-h-0 overflow-hidden flex flex-col">
+          <div className="flex-1 mt-3 min-h-0 overflow-auto lg:overflow-hidden flex flex-col">
             {!isGetMethod && (
               <TabsContent value="body" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar flex flex-col">
                 <div className="flex-1 min-h-0 flex flex-col">

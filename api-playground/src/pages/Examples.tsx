@@ -35,14 +35,14 @@ const Examples = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full">
+    <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
       <TopBar
         wallet={wallet}
         onConnectWallet={connectWallet}
         onToggleSidebar={() => {}}
         isSidebarOpen={false}
       />
-      <div className="flex-1 pt-14 sm:pt-16 p-4 sm:p-6 max-w-5xl mx-auto w-full">
+      <div className="flex-1 pt-14 sm:pt-16 p-3 sm:p-6 max-w-5xl mx-auto w-full min-w-0">
         <div className="flex items-center gap-4 mb-6 pt-4 pb-2">
           <Button variant="ghost" size="sm" asChild className="gap-2 text-muted-foreground px-4 py-2 -ml-2">
             <Link to="/">

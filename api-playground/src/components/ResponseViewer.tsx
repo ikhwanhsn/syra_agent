@@ -64,10 +64,10 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     }
   };
 
-  // Loading state - fixed header, scrollable content below
+  // Loading state - fixed header, scrollable content below; on mobile use min-height so section is visible in scroll
   if (status === 'loading') {
     return (
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col min-h-[280px] lg:h-full lg:min-h-0 overflow-hidden">
         <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
@@ -95,10 +95,10 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
     );
   }
 
-  // Idle state - fixed header (red area), scrollable content below
+  // Idle state - on mobile use min-height so Response section is visible when scrolling
   if (status === 'idle' || !response) {
     return (
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col min-h-[280px] lg:h-full lg:min-h-0 overflow-hidden">
         <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
@@ -132,7 +132,7 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
   const isSuccess = response.status >= 200 && response.status < 300;
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col min-h-[280px] lg:h-full lg:min-h-0 overflow-hidden">
       {/* Header with Status - fixed */}
       <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -235,8 +235,8 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
         </div>
       )}
 
-      {/* Tabs - Only show if not payment required or collapsed */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Tabs - Body/Headers; ensure body viewer has good height for UX */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-[280px] lg:min-h-[360px] overflow-hidden">
         {/* Tab Header - Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-3">
           <TabsList className="bg-secondary/30 w-fit p-1 gap-1 shrink-0">
@@ -284,8 +284,8 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
           </div>
         </div>
 
-        {/* Tab Content Container */}
-        <div className="flex-1 min-h-0 overflow-hidden relative">
+        {/* Tab Content Container - min height so JSON body viewer is comfortably tall */}
+        <div className="flex-1 min-h-[280px] lg:min-h-[320px] overflow-hidden relative">
           <TabsContent 
             value="body" 
             className="m-0 absolute inset-0 flex flex-col overflow-hidden"

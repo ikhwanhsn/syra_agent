@@ -133,7 +133,7 @@ const Index = () => {
   const effectivePaymentDetails = paymentDetails || (status === 'payment_required' ? DEFAULT_PAYMENT_DETAILS : undefined);
 
   return (
-    <div className="h-dvh bg-background flex flex-col w-full overflow-hidden">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
       {/* Top Bar */}
       <TopBar
         wallet={wallet}
@@ -142,8 +142,8 @@ const Index = () => {
         isSidebarOpen={isSidebarOpen}
       />
 
-      {/* Main Content - fills viewport below fixed navbar, no page scroll */}
-      <div className="flex-1 flex min-h-0 overflow-hidden w-full pt-14 sm:pt-16 h-0">
+      {/* Main Content - fills viewport below fixed navbar; on mobile panels scroll */}
+      <div className="flex-1 flex min-h-0 w-full max-w-full pt-14 sm:pt-16 overflow-hidden">
         {/* History Panel */}
         <HistoryPanel
           history={history}
@@ -161,14 +161,14 @@ const Index = () => {
           onSidebarWidthChange={setSidebarWidth}
         />
 
-        {/* Main Panels */}
+        {/* Main Panels - on mobile: single scrollable column (content-sized, not fixed); on desktop: side-by-side fixed */}
         <div 
           ref={panelsContainerRef}
-          className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden relative w-full"
+          className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden relative w-full max-w-full touch-pan-y"
         >
-          {/* Request Builder - overflow-hidden so only tab content scrolls */}
+          {/* Request Builder - on mobile: full content height so POST, URL, Params/Body are all visible when scrolling */}
           <div 
-            className="min-w-0 min-h-[280px] lg:min-h-0 flex-1 lg:flex-initial p-3 sm:p-4 lg:p-5 overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50"
+            className="min-w-0 flex-shrink-0 lg:flex-initial lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50"
             style={{
               ...(isDesktop && {
                 width: `${panelSplitRatio}%`,
@@ -178,7 +178,7 @@ const Index = () => {
               })
             }}
           >
-            <div className="glass-panel h-full min-h-0 p-3 sm:p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel h-auto min-h-0 lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
               <RequestBuilder
                 method={method}
                 url={url}
@@ -217,9 +217,9 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Response Viewer - overflow-hidden so only tab content scrolls */}
+          {/* Response Viewer - taller on mobile; on desktop gets more space via default split */}
           <div 
-            className="flex-1 min-w-0 min-h-[240px] lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-hidden"
+            className="min-w-0 flex-shrink-0 lg:flex-1 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden min-h-[55vh] lg:min-h-[420px]"
             style={{
               ...(isDesktop && {
                 width: `${100 - panelSplitRatio}%`,
@@ -227,7 +227,7 @@ const Index = () => {
               })
             }}
           >
-            <div className="glass-panel h-full min-h-0 p-3 sm:p-4 lg:p-5 overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel h-auto min-h-[50vh] lg:h-full lg:min-h-[400px] p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
               <ResponseViewer
                 response={response}
                 status={status}

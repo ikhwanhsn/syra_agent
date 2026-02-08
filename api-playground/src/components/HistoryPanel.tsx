@@ -168,7 +168,7 @@ export function HistoryPanel({
           "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto h-full",
           "w-[min(384px,90vw)] sm:w-96 bg-sidebar border-r border-sidebar-border",
           "flex flex-col overflow-hidden transition-all duration-300 ease-out",
-          "lg:translate-x-0",
+          "lg:translate-x-0 safe-area-inset-left",
           isOpen ? "translate-x-0" : "-translate-x-full",
           !isDesktopSidebarOpen && "lg:-translate-x-full lg:absolute"
         )}
