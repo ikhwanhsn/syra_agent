@@ -87,7 +87,7 @@ export const LiveDashboard = () => {
     setError(null);
     try {
       const url = `${API_BASE}/v1/regular/dashboard-summary?period=${period}&t=${Date.now()}`;
-      const res = await fetch(url, { cache: "no-store", headers: { Pragma: "no-cache" } });
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load dashboard");
       const json: DashboardSummary = await res.json();
       if (timeFrameRef.current === json.period) setData(json);
