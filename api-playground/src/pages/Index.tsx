@@ -46,6 +46,7 @@ const Index = () => {
     retryAfterPayment,
     sendRequest,
     tryDemo,
+    runExampleFlow,
     isSidebarOpen,
     setIsSidebarOpen,
     isPaymentModalOpen,
@@ -182,6 +183,7 @@ const Index = () => {
                 onParamsChange={setParams}
                 onSend={sendRequest}
                 onTryDemo={tryDemo}
+                onExampleFlow={runExampleFlow}
               />
             </div>
           </div>

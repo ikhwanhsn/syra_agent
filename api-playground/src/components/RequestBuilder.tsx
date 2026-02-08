@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,7 @@ interface RequestBuilderProps {
   onParamsChange: (params: RequestParam[]) => void;
   onSend: () => void;
   onTryDemo: () => void;
+  onExampleFlow?: (flowId: string) => void;
 }
 
 // x402 API only supports GET and POST
@@ -65,6 +66,7 @@ export function RequestBuilder({
   onParamsChange,
   onSend,
   onTryDemo,
+  onExampleFlow,
 }: RequestBuilderProps) {
   const [activeTab, setActiveTab] = useState('body');
   const isGetMethod = method === 'GET';
@@ -134,6 +136,47 @@ export function RequestBuilder({
             </Button>
           </div>
         </div>
+
+        {/* Example flows - quick try for reviewers */}
+        {onExampleFlow && (
+          <div className="mb-4">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">
+              Example flows
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onExampleFlow('correlation-matrix')}
+                disabled={isLoading}
+                className="gap-1.5 h-9 text-sm"
+              >
+                <Play className="h-3.5 w-3.5 shrink-0" />
+                Get correlation matrix
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onExampleFlow('token-risk')}
+                disabled={isLoading}
+                className="gap-1.5 h-9 text-sm"
+              >
+                <Play className="h-3.5 w-3.5 shrink-0" />
+                Get token risk (RugCheck)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onExampleFlow('news')}
+                disabled={isLoading}
+                className="gap-1.5 h-9 text-sm"
+              >
+                <Play className="h-3.5 w-3.5 shrink-0" />
+                Get news
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Method Selector - stacks on mobile */}
         <div className="mb-4">

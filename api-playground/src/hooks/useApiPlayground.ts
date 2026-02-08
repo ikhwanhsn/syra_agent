@@ -26,6 +26,39 @@ import {
 // Default API base URL - can be configured via environment
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.syraa.fun';
 
+/** Example flow preset for quick try (load + send). */
+export interface ExampleFlowPreset {
+  id: string;
+  label: string;
+  method: HttpMethod;
+  url: string;
+  params: RequestParam[];
+}
+
+export const EXAMPLE_FLOWS: ExampleFlowPreset[] = [
+  {
+    id: 'correlation-matrix',
+    label: 'Get correlation matrix',
+    method: 'GET',
+    url: `${API_BASE_URL}/v2/binance/correlation/correlation-matrix`,
+    params: [],
+  },
+  {
+    id: 'token-risk',
+    label: 'Get token risk (RugCheck)',
+    method: 'GET',
+    url: `${API_BASE_URL}/v2/token-statistic`,
+    params: [],
+  },
+  {
+    id: 'news',
+    label: 'Get news',
+    method: 'GET',
+    url: `${API_BASE_URL}/v2/news`,
+    params: [{ key: 'ticker', value: 'general', enabled: true }],
+  },
+];
+
 // Proxy URL for avoiding CORS issues in development
 const PROXY_BASE_URL = '/api/proxy/';
 
@@ -594,22 +627,35 @@ export function useApiPlayground() {
     }
   }, [walletContext]);
 
-  // Send request
-  const sendRequest = useCallback(async (paymentHeader?: string) => {
-    if (!url.trim()) return;
+  // Optional override when running an example flow (use instead of state).
+  type RequestOverride = {
+    method: HttpMethod;
+    url: string;
+    params: RequestParam[];
+    headers: RequestHeader[];
+    body: string;
+  };
 
-    // Check if URL is a Syra API (before adding params)
-    const baseUrl = url.trim();
+  // Send request (optionally with payment header or full request override for example flows)
+  const sendRequest = useCallback(async (paymentHeader?: string, requestOverride?: RequestOverride) => {
+    const useOverride = !!requestOverride;
+    const baseUrl = useOverride ? requestOverride.url.trim() : url.trim();
+    if (!baseUrl) return;
+
     if (!isSyraApi(baseUrl)) {
       setIsUnsupportedApiModalOpen(true);
       return;
     }
 
     const startTime = Date.now();
+    const effectiveMethod = useOverride ? requestOverride.method : method;
+    const effectiveParams = useOverride ? requestOverride.params : params;
+    const effectiveHeaders = useOverride ? requestOverride.headers : headers;
+    const effectiveBody = useOverride ? requestOverride.body : body;
 
     // Build URL with params
     let finalUrl = baseUrl;
-    const enabledParams = params.filter(p => p.enabled && p.key);
+    const enabledParams = effectiveParams.filter(p => p.enabled && p.key);
     if (enabledParams.length > 0) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach(p => searchParams.append(p.key, p.value));
@@ -618,7 +664,7 @@ export function useApiPlayground() {
 
     // Build headers
     const requestHeaders: Record<string, string> = {};
-    headers.filter(h => h.enabled && h.key).forEach(h => {
+    effectiveHeaders.filter(h => h.enabled && h.key).forEach(h => {
       requestHeaders[h.key] = h.value;
     });
 
@@ -629,11 +675,11 @@ export function useApiPlayground() {
 
     // Build request object for comparison (without ID and timestamp)
     const requestForComparison: Omit<ApiRequest, 'id' | 'timestamp'> = {
-      method,
+      method: effectiveMethod,
       url: finalUrl,
-      headers,
-      body,
-      params,
+      headers: effectiveHeaders,
+      body: effectiveBody,
+      params: effectiveParams,
     };
 
     // Check if this is a tracked request (cloned or new)
@@ -653,7 +699,11 @@ export function useApiPlayground() {
 
     const request: ApiRequest = {
       id: requestId,
-      ...requestForComparison,
+      method: effectiveMethod,
+      url: finalUrl,
+      headers: effectiveHeaders,
+      body: effectiveBody,
+      params: effectiveParams,
       timestamp: new Date(),
     };
 
@@ -733,13 +783,13 @@ export function useApiPlayground() {
     try {
       // Make the actual API request
       const fetchOptions: RequestInit = {
-        method,
+        method: effectiveMethod,
         headers: requestHeaders,
       };
 
       // Add body for POST requests
-      if (method === 'POST' && body.trim()) {
-        fetchOptions.body = body;
+      if (effectiveMethod === 'POST' && effectiveBody.trim()) {
+        fetchOptions.body = effectiveBody;
       }
 
       // Use proxy for external URLs to avoid CORS issues
@@ -855,22 +905,36 @@ export function useApiPlayground() {
         // Set payment details (or null if none found)
         if (details) {
           setPaymentDetails(details);
-          toast({
-            title: "Payment Required",
-            description: `This API requires ${details.amount} ${details.token} to access.`,
-          });
+        }
+
+        // Only auto-open payment modal for initial 402. If we already sent a payment header (retry),
+        // do not open the modal again so the user doesn't see "pay again" after a successful payment.
+        if (!paymentHeader) {
+          if (details) {
+            toast({
+              title: "Payment Required",
+              description: `This API requires ${details.amount} ${details.token} to access.`,
+            });
+          } else {
+            toast({
+              title: "Payment Required (402)",
+              description: "This API requires payment. Check the response body for payment details.",
+            });
+          }
+          setIsPaymentModalOpen(true);
         } else {
           toast({
-            title: "Payment Required (402)",
-            description: "This API requires payment. Check the response body for payment details.",
+            title: "Payment not verified",
+            description: "Your payment could not be verified yet. Use « Retry » below or try paying again.",
+            variant: "default",
           });
         }
         
-        // ALWAYS open the payment modal for 402 responses
-        setIsPaymentModalOpen(true);
-        
       } else if (fetchResponse.ok) {
         setStatus('success');
+        setPaymentDetails(undefined);
+        setX402Response(undefined);
+        setPaymentOption(undefined);
         setHistory(prev => prev.map(h => 
           h.id === actualRequestId ? { ...h, response: apiResponse, status: 'success' } : h
         ));
@@ -906,6 +970,33 @@ export function useApiPlayground() {
       ));
     }
   }, [method, url, headers, body, params]);
+
+  // Run an example flow: load preset into builder and send immediately
+  const runExampleFlow = useCallback((flowId: string) => {
+    const preset = EXAMPLE_FLOWS.find((f) => f.id === flowId);
+    if (!preset) return;
+    const defaultHeaders: RequestHeader[] = [
+      { key: 'Content-Type', value: 'application/json', enabled: true },
+    ];
+    setMethod(preset.method);
+    setUrl(preset.url);
+    setParams(preset.params.map((p) => ({ ...p })));
+    setHeaders(defaultHeaders);
+    setBody('{\n  \n}');
+    setResponse(undefined);
+    setStatus('loading');
+    setPaymentDetails(undefined);
+    setX402Response(undefined);
+    setPaymentOption(undefined);
+    const override: RequestOverride = {
+      method: preset.method,
+      url: preset.url,
+      params: preset.params.map((p) => ({ ...p })),
+      headers: defaultHeaders,
+      body: '{\n  \n}',
+    };
+    sendRequest(undefined, override);
+  }, [sendRequest]);
 
   // Try demo - randomly pick a v2 API and always create new history
   const tryDemo = useCallback(() => {
@@ -1237,6 +1328,7 @@ export function useApiPlayground() {
     // Actions
     sendRequest: () => sendRequest(),
     tryDemo,
+    runExampleFlow,
 
     // UI state
     isSidebarOpen,
