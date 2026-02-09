@@ -5,6 +5,10 @@ import { solana } from "@faremeter/info";
 
 // Create middleware instance once at module level
 const facilitatorURL = "https://facilitator.corbits.dev.solana-devnet";
+const payToAddress = process.env.CORBITS_PAYTO_ADDRESS || process.env.ADDRESS_PAYAI;
+if (!payToAddress) {
+  throw new Error("CORBITS_PAYTO_ADDRESS or ADDRESS_PAYAI env is required for /api/corbits/premium");
+}
 
 const paywalledMiddlewarePromise = faremeter.createMiddleware({
   facilitatorURL,
@@ -14,7 +18,7 @@ const paywalledMiddlewarePromise = faremeter.createMiddleware({
         network: "devnet",
         asset: "USDC",
         amount: 1000, // $0.01
-        payTo: "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        payTo: payToAddress,
       }),
       resource: "/api/corbits/premium",
       description: "Premium API access",

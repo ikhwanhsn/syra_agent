@@ -62,7 +62,7 @@ export default function X402FlowDiagram() {
     "asset": "USDC_MINT_ADDRESS",
     "payTo": "TOKEN_ACCOUNT",
     "extra": {
-      "recipientWallet": "SERVER_WALLET"
+      "recipientWallet": "ADDRESS_PAYAI"
     }
   }]
 }`}

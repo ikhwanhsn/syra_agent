@@ -43,7 +43,7 @@ function generateAgentWallet() {
 # Copy these to your .env.local file
 
 # Agent authentication secret (generate with: openssl rand -base64 32)
-AGENT_SECRET_KEY=change-this-to-a-random-secret
+ADDRESS_PAYAI_PRIVATE_KEY=change-this-to-a-random-secret
 
 # Agent wallet private key (Base58 format)
 AGENT_PRIVATE_KEY=${privateKeyBase58}

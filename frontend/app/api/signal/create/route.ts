@@ -20,10 +20,12 @@ const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 // Devnet USDC
 const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
-// Your server's wallet (receives payments)
-const SERVER_WALLET = new PublicKey(
-  "Cp5yFGYx88EEuUjhDAaQzXHrgxvVeYEWixtRnLFE81K4"
-);
+// Server's wallet (receives payments) - set via ADDRESS_PAYAI env
+const SERVER_WALLET = (() => {
+  const addr = process.env.ADDRESS_PAYAI;
+  if (!addr) throw new Error("ADDRESS_PAYAI env is required");
+  return new PublicKey(addr);
+})();
 
 // Price per signal creation
 const PRICE_PER_SIGNAL = 100; // 0.0001 USDC (100 = 0.0001 USDC with 6 decimals)

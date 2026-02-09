@@ -16,22 +16,24 @@ const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 // Devnet USDC
 const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
-// Server's wallet (receives payments)
-const SERVER_WALLET = new PublicKey(
-  "Cp5yFGYx88EEuUjhDAaQzXHrgxvVeYEWixtRnLFE81K4"
-);
+// Server's wallet (receives payments) - must be set via env
+const SERVER_WALLET = (() => {
+  const addr = process.env.ADDRESS_PAYAI;
+  if (!addr) throw new Error("ADDRESS_PAYAI env is required");
+  return new PublicKey(addr);
+})();
 
 // Price per signal
 const PRICE_PER_SIGNAL = 100; // 0.0001 USDC
 
-// Agent authentication - use environment variable for security
-const AGENT_SECRET_KEY = process.env.AGENT_SECRET_KEY || "your-secret-here";
+// Agent authentication - no default; must be set via env
+const AGENT_SECRET_KEY = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
 
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate the agent request
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader || authHeader !== `Bearer ${AGENT_SECRET_KEY}`) {
+    if (!AGENT_SECRET_KEY || !authHeader || authHeader !== `Bearer ${AGENT_SECRET_KEY}`) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid agent credentials" },
         { status: 401 }

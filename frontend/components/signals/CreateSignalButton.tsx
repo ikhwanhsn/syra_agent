@@ -261,9 +261,9 @@ export function CreateSignalButton({
       // const recipientWallet = new PublicKey(
       //   quote.accepts[0].extra.recipientWallet
       // );
-      const recipientWallet = new PublicKey(
-        "Cp5yFGYx88EEuUjhDAaQzXHrgxvVeYEWixtRnLFE81K4"
-      );
+      const serverWallet = process.env.NEXT_PUBLIC_ADDRESS_PAYAI;
+      if (!serverWallet) throw new Error("NEXT_PUBLIC_ADDRESS_PAYAI is not set");
+      const recipientWallet = new PublicKey(serverWallet);
 
       // Get associated token accounts
       const senderTokenAccount = await getAssociatedTokenAddress(

@@ -14,7 +14,7 @@ import bs58 from "bs58";
 
 // Configuration
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-const AGENT_SECRET_KEY = process.env.AGENT_SECRET_KEY || "your-secret-here";
+const AGENT_SECRET_KEY = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
 const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY!; // Base58 encoded private key
 
 // Supported trading pairs
