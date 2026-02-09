@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { toast } from '@/hooks/use-toast';
@@ -291,13 +291,29 @@ const PROXY_BASE_URL = '/api/proxy/';
 // Check if we should use proxy (in development or when explicitly enabled)
 const USE_PROXY = import.meta.env.DEV || import.meta.env.VITE_USE_PROXY === 'true';
 
-// Helper function to get the proxied URL
+// Helper function to get the proxied URL (Vite dev server proxy)
 const getProxiedUrl = (url: string): string => {
   if (!USE_PROXY) return url;
   // Don't proxy relative URLs or already proxied URLs
   if (url.startsWith('/') || url.startsWith(PROXY_BASE_URL)) return url;
   return `${PROXY_BASE_URL}${encodeURIComponent(url)}`;
 };
+
+// In production, cross-origin requests hit CORS. Use the API's playground-proxy when we're not in dev and the target is another origin.
+function useBackendPlaygroundProxy(targetUrl: string): boolean {
+  if (USE_PROXY) return false; // Dev proxy handles it
+  if (typeof window === 'undefined') return false;
+  const targetOrigin = getRequestOrigin(targetUrl);
+  const pageOrigin = window.location.origin;
+  return !!targetOrigin && targetOrigin !== pageOrigin;
+}
+
+// When using backend proxy, call the proxy on the **target** API's origin so the request reaches the right service (fixes "other service" when e.g. calling api.syraa.fun from localhost).
+function getPlaygroundProxyUrl(targetUrl: string): string {
+  const origin = getRequestOrigin(targetUrl);
+  if (origin) return `${origin}/api/playground-proxy`;
+  return `${getApiBaseUrl()}/api/playground-proxy`;
+}
 
 // V2 API endpoints list (resolved at runtime for dev localhost)
 function getV2ApiEndpoints(): string[] {
@@ -326,6 +342,11 @@ function getV2ApiEndpoints(): string[] {
 
 // x402 only supports GET and POST methods
 const SUPPORTED_METHODS: HttpMethod[] = ['GET', 'POST'];
+
+/** Default method when detection hasn't run yet (e.g. example flow). Detection uses 402/405 from actual requests. */
+export function getDefaultMethodForUrl(_url: string): HttpMethod {
+  return 'GET';
+}
 
 /** Known Syra v2 GET query param names and API descriptions by path (for placeholder text) */
 function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
@@ -369,19 +390,29 @@ export function getParamsForExampleFlow(flow: ExampleFlowPreset): RequestParam[]
   return [];
 }
 
-// Helper function to check if URL is a Syra API
-function isSyraApi(url: string): boolean {
+// Allow any valid http(s) URL so the playground works with Syra and all other x402 APIs
+function isValidApiUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
   try {
-    const urlObj = new URL(url);
-    const hostname = urlObj.hostname.toLowerCase();
-    const syraHostname = new URL(getApiBaseUrl()).hostname.toLowerCase();
-    // Check if hostname matches Syra API hostname or contains 'syra'
-    return hostname === syraHostname || hostname.includes('syra');
+    const urlObj = new URL(trimmed);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
   } catch {
-    // If URL parsing fails (e.g., relative URL), check if it contains 'syra' in the path
-    // Relative URLs starting with /v2/ are assumed to be Syra API endpoints
-    const lowerUrl = url.toLowerCase();
-    return lowerUrl.includes('syra') || lowerUrl.startsWith('/v2/');
+    return false;
+  }
+}
+
+// localStorage keys for payment header (scoped by origin so we don't send one API's payment to another)
+const PAYMENT_HEADER_KEY = 'x402_payment_header';
+const PAYMENT_ORIGIN_KEY = 'x402_payment_origin';
+
+function getRequestOrigin(urlStr: string): string | null {
+  try {
+    const u = urlStr.trim();
+    if (!u) return null;
+    return new URL(u).origin;
+  } catch {
+    return null;
   }
 }
 
@@ -572,6 +603,8 @@ export function useApiPlayground() {
   const lastProcessedUrlRef = useRef<string>('');
   const autoDetectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAutoDetecting, setIsAutoDetecting] = useState(false);
+  // Allowed methods from OPTIONS (for unknown URLs); cleared when base URL changes
+  const [allowedMethodsFromDetection, setAllowedMethodsFromDetection] = useState<HttpMethod[]>([]);
   
   // Track cloned request ID to update it when user makes changes
   const clonedRequestIdRef = useRef<string | null>(null);
@@ -648,8 +681,9 @@ export function useApiPlayground() {
     // Get base URL to detect significant changes
     const currentBaseUrl = getBaseUrl(url);
     
-    // If base URL changed significantly, clear previous params/headers
-    if (previousBaseUrlRef.current && currentBaseUrl !== previousBaseUrlRef.current) {
+    // When base URL changes, clear detection result; method will be set after 402/405 probe
+    if (currentBaseUrl !== previousBaseUrlRef.current) {
+      setAllowedMethodsFromDetection([]);
       // Clear params except those from URL query string
       setParams(currentParams => {
         // Keep params that came from URL query string (they have values)
@@ -710,8 +744,8 @@ export function useApiPlayground() {
       // Get base URL (without query params)
       const baseUrl = getBaseUrl(currentUrl);
       
-      // Check if URL is a Syra API - skip auto-detection for non-Syra APIs
-      if (!isSyraApi(baseUrl)) {
+      // Skip auto-detection for invalid URLs
+      if (!isValidApiUrl(baseUrl)) {
         setIsAutoDetecting(false);
         return;
       }
@@ -732,101 +766,94 @@ export function useApiPlayground() {
       lastProcessedUrlRef.current = baseUrl;
 
       try {
-        // Make a request to detect 402 response
-        const fetchOptions: RequestInit = {
-          method: method, // Use current method
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        };
-
-        // Use proxy if needed
-        const proxiedUrl = getProxiedUrl(baseUrl);
-        
-        // Set timeout for the request (5 seconds)
+        // Probe GET and POST to detect allowed methods from 402 (payment required) or 2xx; 405 = method not allowed
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const fetchResponse = await fetch(proxiedUrl, {
-          ...fetchOptions,
-          signal: controller.signal,
-        });
-        
+        const opts = { headers: { 'Content-Type': 'application/json' } as Record<string, string>, signal: controller.signal };
+
+        const doProbe = async (probeMethod: HttpMethod): Promise<{ status: number; body?: string }> => {
+          if (useBackendPlaygroundProxy(baseUrl)) {
+            const res = await fetch(getPlaygroundProxyUrl(baseUrl), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                url: baseUrl,
+                method: probeMethod,
+                headers: { 'Content-Type': 'application/json' },
+                body: probeMethod === 'POST' ? '{}' : undefined,
+              }),
+              signal: controller.signal,
+            });
+            const text = await res.text();
+            return { status: res.status, body: text };
+          }
+          const res = await fetch(getProxiedUrl(baseUrl), {
+            method: probeMethod,
+            ...opts,
+            ...(probeMethod === 'POST' ? { body: '{}' } : {}),
+          });
+          const text = await res.text();
+          return { status: res.status, body: text };
+        };
+
+        const [getResult, postResult] = await Promise.all([
+          doProbe('GET').catch(() => ({ status: 0 })),
+          doProbe('POST').catch(() => ({ status: 0 })),
+        ]);
         clearTimeout(timeoutId);
-        
-        // Handle different response statuses
-        if (fetchResponse.status === 402) {
-          // 402 Payment Required - extract params and headers
-          const responseText = await fetchResponse.text();
-          
+
+        const methodAllowed = (s: number) => s === 402 || (s >= 200 && s < 300);
+        const getAllowed = getResult.status !== 405 && methodAllowed(getResult.status);
+        const postAllowed = postResult.status !== 405 && methodAllowed(postResult.status);
+        const allowed: HttpMethod[] = [];
+        if (getAllowed) allowed.push('GET');
+        if (postAllowed) allowed.push('POST');
+
+        if (allowed.length > 0) {
+          setAllowedMethodsFromDetection(allowed);
+          setMethod(allowed.includes('GET') ? 'GET' : 'POST');
+        }
+
+        // Use 402 response from the chosen method for params/headers (prefer GET if both 402)
+        const chosenMethod = allowed.includes('GET') ? 'GET' : 'POST';
+        const response402 =
+          (chosenMethod === 'GET' && getResult.status === 402 ? getResult.body : null) ??
+          (postResult.status === 402 ? postResult.body : null);
+
+        if (response402) {
           try {
-            const jsonData = JSON.parse(responseText);
+            const jsonData = JSON.parse(response402);
             const parsed = parseX402Response(jsonData);
-            
             if (parsed) {
-              // Extract params from schema (pass baseUrl so we use API param names like ticker, query, token)
               const detectedParams = extractParamsFrom402Response(parsed, baseUrl);
-              
               if (detectedParams.length > 0) {
-                setParams(currentParams => {
-                  // Replace params if empty, otherwise merge new ones
-                  if (currentParams.length === 0) {
-                    return detectedParams;
-                  }
-                  // Merge new params that don't exist yet
-                  const existingKeys = new Set(currentParams.map(p => p.key.toLowerCase()));
-                  const newParams = detectedParams.filter(p => !existingKeys.has(p.key.toLowerCase()));
-                  if (newParams.length > 0) {
-                    return [...currentParams, ...newParams];
-                  }
-                  return currentParams;
+                setParams((currentParams) => {
+                  if (currentParams.length === 0) return detectedParams;
+                  const existingKeys = new Set(currentParams.map((p) => p.key.toLowerCase()));
+                  const newParams = detectedParams.filter((p) => !existingKeys.has(p.key.toLowerCase()));
+                  return newParams.length > 0 ? [...currentParams, ...newParams] : currentParams;
                 });
               }
-
-              // Auto-detect headers based on 402 response
-              setHeaders(currentHeaders => {
-                const hasOnlyDefaultHeaders = currentHeaders.length === 1 && 
-                  currentHeaders[0].key === 'Content-Type' && 
+              setHeaders((currentHeaders) => {
+                const hasOnlyDefault =
+                  currentHeaders.length === 1 &&
+                  currentHeaders[0].key === 'Content-Type' &&
                   currentHeaders[0].value === 'application/json';
-                
-                if (hasOnlyDefaultHeaders) {
-                  const detectedHeaders: RequestHeader[] = [];
-                  
-                  // Add Accept header if resource has mimeType
-                  if (parsed.resource?.mimeType) {
-                    detectedHeaders.push({
-                      key: 'Accept',
-                      value: parsed.resource.mimeType,
-                      enabled: true,
-                    });
-                  }
-                  
-                  // Also detect headers from URL patterns
-                  const urlHeaders = detectHeadersFromUrl(currentUrl);
-                  detectedHeaders.push(...urlHeaders);
-                  
-                  // Merge detected headers (avoid duplicates)
-                  if (detectedHeaders.length > 0) {
-                    const existingKeys = new Set(currentHeaders.map(h => h.key.toLowerCase()));
-                    const newHeaders = detectedHeaders.filter(h => !existingKeys.has(h.key.toLowerCase()));
-                    
-                    if (newHeaders.length > 0) {
-                      return [...currentHeaders, ...newHeaders];
-                    }
-                  }
+                if (!hasOnlyDefault) return currentHeaders;
+                const detectedHeaders: RequestHeader[] = [];
+                if (parsed.resource?.mimeType) {
+                  detectedHeaders.push({ key: 'Accept', value: parsed.resource.mimeType, enabled: true });
                 }
-                
-                return currentHeaders;
+                detectedHeaders.push(...detectHeadersFromUrl(currentUrl));
+                const existingKeys = new Set(currentHeaders.map((h) => h.key.toLowerCase()));
+                const newHeaders = detectedHeaders.filter((h) => !existingKeys.has(h.key.toLowerCase()));
+                return newHeaders.length > 0 ? [...currentHeaders, ...newHeaders] : currentHeaders;
               });
             }
           } catch {
             // Ignore parse errors
           }
-        } else if (fetchResponse.ok) {
-          // API is available but doesn't require payment (200-299)
-          // Don't modify params/headers for non-402 APIs
         }
-        // Silently ignore other status codes for auto-detect
       } catch {
         // Silently fail - don't interrupt user input
       } finally {
@@ -850,6 +877,7 @@ export function useApiPlayground() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUnsupportedApiModalOpen, setIsUnsupportedApiModalOpen] = useState(false);
+  const [isV1UnsupportedModalOpen, setIsV1UnsupportedModalOpen] = useState(false);
   
   // Desktop sidebar state - load from localStorage
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => {
@@ -937,7 +965,7 @@ export function useApiPlayground() {
     const baseUrl = useOverride ? requestOverride.url.trim() : url.trim();
     if (!baseUrl) return undefined;
 
-    if (!isSyraApi(baseUrl)) {
+    if (!isValidApiUrl(baseUrl)) {
       setIsUnsupportedApiModalOpen(true);
       return undefined;
     }
@@ -1083,20 +1111,32 @@ export function useApiPlayground() {
     setPaymentOption(undefined);
 
     try {
-      // Make the actual API request
-      const fetchOptions: RequestInit = {
-        method: effectiveMethod,
-        headers: requestHeaders,
-      };
-
-      // Add body for POST requests
-      if (effectiveMethod === 'POST' && effectiveBody.trim()) {
-        fetchOptions.body = effectiveBody;
+      let fetchResponse: Response;
+      if (useBackendPlaygroundProxy(finalUrl)) {
+        // Cross-origin: use the **target** API's playground-proxy so the request reaches the right service (e.g. api.syraa.fun)
+        const proxyUrl = getPlaygroundProxyUrl(finalUrl);
+        fetchResponse = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: finalUrl,
+            method: effectiveMethod,
+            body: effectiveBody.trim() || undefined,
+            headers: requestHeaders,
+          }),
+        });
+      } else {
+        // Dev proxy or same-origin: request directly (or via Vite proxy)
+        const fetchOptions: RequestInit = {
+          method: effectiveMethod,
+          headers: requestHeaders,
+        };
+        if (effectiveMethod === 'POST' && effectiveBody.trim()) {
+          fetchOptions.body = effectiveBody;
+        }
+        const proxiedUrl = getProxiedUrl(finalUrl);
+        fetchResponse = await fetch(proxiedUrl, fetchOptions);
       }
-
-      // Use proxy for external URLs to avoid CORS issues
-      const proxiedUrl = getProxiedUrl(finalUrl);
-      const fetchResponse = await fetch(proxiedUrl, fetchOptions);
       
       // Get response body (store raw so Pretty/Raw toggle works in ResponseViewer)
       const responseText = await fetchResponse.text();
@@ -1139,9 +1179,14 @@ export function useApiPlayground() {
             
             if (parsed) {
               setX402Response(parsed);
+              // v1 and v2: both use payment modal; v1 uses different header format (X-PAYMENT with v1 payload)
               const option = getBestPaymentOption(parsed);
               setPaymentOption(option || undefined);
               details = extractPaymentDetails(parsed);
+              // Only show v1-unsupported modal when we cannot build a payment option (e.g. missing payTo/amount)
+              if (parsed.x402Version === 1 && !option) {
+                setIsV1UnsupportedModalOpen(true);
+              }
             }
           } catch {
             // Ignore x402 parsing errors
@@ -1201,8 +1246,7 @@ export function useApiPlayground() {
           setPaymentDetails(details);
         }
 
-        // Only auto-open payment modal for initial 402. If we already sent a payment header (retry),
-        // do not open the modal again so the user doesn't see "pay again" after a successful payment.
+        // Auto-open payment modal for initial 402 (v1 and v2). If we already sent a payment header (retry), do not open again.
         if (!paymentHeader) {
           if (details) {
             toast({
@@ -1216,11 +1260,14 @@ export function useApiPlayground() {
             });
           }
           setIsPaymentModalOpen(true);
-        } else {
+        } else if (paymentHeader) {
+          const apiError = jsonData?.error && typeof jsonData.error === 'string' ? jsonData.error : null;
           toast({
             title: "Payment not verified",
-            description: "Your payment could not be verified yet. Use « Retry » below or try paying again.",
-            variant: "default",
+            description: apiError
+              ? `The API rejected the payment: ${apiError}`
+              : "Your payment could not be verified yet. Use « Retry » below or try paying again.",
+            variant: apiError ? "destructive" : "default",
           });
         }
         return fetchResponse.status;
@@ -1286,7 +1333,9 @@ export function useApiPlayground() {
     setTimeout(() => {
       skipNextAutoDetectRef.current = false;
     }, 2500);
-    setMethod(preset.method);
+    // Default to GET for example flow; real method will be detected on 402 when user enters URL
+    const defaultMethod = getDefaultMethodForUrl(preset.url);
+    setMethod(defaultMethod);
     setUrl(preset.url);
     setParams(effectiveParams.map((p) => ({ ...p })));
     setHeaders(defaultHeaders);
@@ -1302,7 +1351,7 @@ export function useApiPlayground() {
     newRequestIdRef.current = newId;
 
     const override: RequestOverride = {
-      method: preset.method,
+      method: defaultMethod,
       url: preset.url,
       params: effectiveParams.map((p) => ({ ...p })),
       headers: defaultHeaders,
@@ -1323,9 +1372,9 @@ export function useApiPlayground() {
     const newId = generateId();
     newRequestIdRef.current = newId;
     
-    // Update form fields
+    // Update form fields; auto-detect method (GET when both supported)
     setUrl(randomEndpoint);
-    setMethod('GET'); // Most v2 APIs support GET
+    setMethod(getDefaultMethodForUrl(randomEndpoint));
     setBody('{\n  \n}'); // Clear body for GET requests
     setHeaders([
       { key: 'Content-Type', value: 'application/json', enabled: true },
@@ -1333,9 +1382,10 @@ export function useApiPlayground() {
     setParams([]);
     
     // Always create a new history item for try demo
+    const demoMethod = getDefaultMethodForUrl(randomEndpoint);
     const demoRequest: ApiRequest = {
       id: newId,
-      method: 'GET',
+      method: demoMethod,
       url: randomEndpoint,
       headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
       body: '{\n  \n}',
@@ -1509,13 +1559,18 @@ export function useApiPlayground() {
     });
   }, [selectedHistoryId]);
 
-  // Execute payment and auto-retry
+  // Execute payment and auto-retry (v1 uses X-PAYMENT with v1 payload; v2 uses PAYMENT-SIGNATURE)
   const pay = useCallback(async () => {
     if (!walletContext.connected || !walletContext.publicKey || !paymentOption) {
       return;
     }
 
     setTransactionStatus({ status: 'pending' });
+
+    const rawV1Accept =
+      x402Response?.x402Version === 1 && x402Response._rawV1Accepts?.[0]
+        ? x402Response._rawV1Accepts[0]
+        : undefined;
 
     try {
       const result = await executePayment(
@@ -1524,7 +1579,8 @@ export function useApiPlayground() {
           publicKey: walletContext.publicKey,
           signTransaction: walletContext.signTransaction,
         },
-        paymentOption
+        paymentOption,
+        rawV1Accept
       );
 
       if (result.success && result.signature && result.paymentHeader) {
@@ -1542,8 +1598,10 @@ export function useApiPlayground() {
           });
         }
 
-        // Store payment header for retry
-        localStorage.setItem('x402_payment_header', result.paymentHeader);
+        // Store payment header and origin so we only reuse it for the same API
+        localStorage.setItem(PAYMENT_HEADER_KEY, result.paymentHeader);
+        const paidOrigin = getRequestOrigin(url);
+        if (paidOrigin) localStorage.setItem(PAYMENT_ORIGIN_KEY, paidOrigin);
         
         // Auto-retry the request after a short delay to show success state
         setTimeout(async () => {
@@ -1554,8 +1612,9 @@ export function useApiPlayground() {
           // The server will verify the transaction even if confirmation timed out
           const retryStatus = await sendRequest(result.paymentHeader);
           
-          // Clear stored payment header
-          localStorage.removeItem('x402_payment_header');
+          // Clear stored payment header and origin
+          localStorage.removeItem(PAYMENT_HEADER_KEY);
+          localStorage.removeItem(PAYMENT_ORIGIN_KEY);
           
           // Only show success toast when retry actually returned 200; otherwise
           // sendRequest already toasts "Payment not verified" for 402
@@ -1590,24 +1649,42 @@ export function useApiPlayground() {
         variant: "destructive",
       });
     }
-  }, [walletContext, paymentOption, connection, sendRequest]);
+  }, [walletContext, paymentOption, connection, sendRequest, x402Response]);
 
-  // Retry after payment
+  // Allowed methods from 402/405 probe (GET and/or POST); empty until detection runs
+  const allowedMethods = useMemo((): HttpMethod[] => allowedMethodsFromDetection, [allowedMethodsFromDetection]);
+
+  // Retry after payment (only use stored header if it was for this API's origin)
   const retryAfterPayment = useCallback(async () => {
     setIsPaymentModalOpen(false);
     
-    const paymentHeader = localStorage.getItem('x402_payment_header');
-    if (paymentHeader) {
-      // Reset transaction status
+    const paymentHeader = localStorage.getItem(PAYMENT_HEADER_KEY);
+    const storedOrigin = localStorage.getItem(PAYMENT_ORIGIN_KEY);
+    const currentOrigin = getRequestOrigin(url);
+    
+    // Only send the stored payment header if it was for this same API origin
+    if (paymentHeader && currentOrigin && storedOrigin && storedOrigin === currentOrigin) {
       setTransactionStatus({ status: 'idle' });
-      
-      // Retry the request with payment header
       await sendRequest(paymentHeader);
-      
-      // Clear stored payment header
-      localStorage.removeItem('x402_payment_header');
+      localStorage.removeItem(PAYMENT_HEADER_KEY);
+      localStorage.removeItem(PAYMENT_ORIGIN_KEY);
+    } else {
+      // Stored payment was for a different API or has no origin (legacy); don't send it
+      if (paymentHeader && (!storedOrigin || (currentOrigin && storedOrigin !== currentOrigin))) {
+        localStorage.removeItem(PAYMENT_HEADER_KEY);
+        localStorage.removeItem(PAYMENT_ORIGIN_KEY);
+        if (currentOrigin && storedOrigin && storedOrigin !== currentOrigin) {
+          toast({
+            title: "Payment was for a different API",
+            description: "Your previous payment was for another service. Send the request again and pay for this API.",
+            variant: "default",
+          });
+        }
+      }
+      // Send without payment header so user gets 402 and can pay for this API
+      await sendRequest();
     }
-  }, [sendRequest]);
+  }, [sendRequest, url]);
 
   return {
     // Request state
@@ -1655,6 +1732,8 @@ export function useApiPlayground() {
     setIsPaymentModalOpen,
     isUnsupportedApiModalOpen,
     setIsUnsupportedApiModalOpen,
+    isV1UnsupportedModalOpen,
+    setIsV1UnsupportedModalOpen,
     isDesktopSidebarOpen,
     setIsDesktopSidebarOpen,
     sidebarWidth,
@@ -1664,5 +1743,8 @@ export function useApiPlayground() {
     
     // Auto-detection state
     isAutoDetecting,
+
+    // Allowed methods for current URL (from known path); empty = unknown, show both
+    allowedMethods,
   };
 }

@@ -200,9 +200,14 @@ function isAgentRoute(p) {
   return p && (p === "/agent" || p.startsWith("/agent/"));
 }
 
+/** Playground proxy: allows api-playground (playground.syraa.fun) to call other x402 APIs without CORS issues. */
+function isPlaygroundProxyRoute(p) {
+  return p === "/api/playground-proxy";
+}
+
 app.use((req, res, next) => {
   const options =
-    isX402Route(req.path) || isAgentRoute(req.path)
+    isX402Route(req.path) || isAgentRoute(req.path) || isPlaygroundProxyRoute(req.path)
       ? CORS_OPTIONS_X402
       : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);
@@ -217,12 +222,52 @@ app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "favicon.ico"));
 });
 
-// Rate limit only non-x402 routes (free/regular APIs) to avoid spam; x402 and agent routes skip
+// Playground CORS proxy: forward requests to external x402 APIs so the playground can call them from the browser
+app.post("/api/playground-proxy", async (req, res) => {
+  const { url: targetUrl, method = "GET", body: forwardBody, headers: forwardHeaders = {} } = req.body || {};
+  if (!targetUrl || typeof targetUrl !== "string") {
+    res.status(400).json({ error: "Missing or invalid url in body" });
+    return;
+  }
+  const allowedMethods = ["GET", "POST", "HEAD"];
+  const forwardMethod = (method || "GET").toUpperCase();
+  if (!allowedMethods.includes(forwardMethod)) {
+    res.status(400).json({ error: "Method not allowed. Use GET or POST." });
+    return;
+  }
+  try {
+    const fetchOpts = {
+      method: forwardMethod,
+      headers: { ...forwardHeaders },
+    };
+    if (forwardBody != null && forwardBody !== "" && forwardMethod !== "GET" && forwardMethod !== "HEAD") {
+      fetchOpts.body = typeof forwardBody === "string" ? forwardBody : JSON.stringify(forwardBody);
+    }
+    const proxyRes = await fetch(targetUrl, fetchOpts);
+    const responseText = await proxyRes.text();
+    // Forward safe response headers (exclude hop-by-hop and encoding)
+    const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
+    proxyRes.headers.forEach((value, key) => {
+      if (!skipHeaders.includes(key.toLowerCase())) {
+        res.setHeader(key, value);
+      }
+    });
+    res.status(proxyRes.status).send(responseText);
+  } catch (err) {
+    res.status(502).json({
+      error: "Proxy fetch failed",
+      message: err.message || String(err),
+    });
+  }
+});
+
+// Rate limit only non-x402 routes (free/regular APIs) to avoid spam; x402, agent, playground-proxy skip
 app.use(
   rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 100, // max 100 requests per minute per IP on free routes
-    skip: (req) => isX402Route(req.path) || isAgentRoute(req.path),
+    skip: (req) =>
+      isX402Route(req.path) || isAgentRoute(req.path) || isPlaygroundProxyRoute(req.path),
   }),
 );
 

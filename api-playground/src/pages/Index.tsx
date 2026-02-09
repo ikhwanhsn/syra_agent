@@ -6,6 +6,7 @@ import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { PaymentModal } from '@/components/PaymentModal';
 import { UnsupportedApiModal } from '@/components/UnsupportedApiModal';
+import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { PaymentDetails, RequestParam } from '@/types/api';
 import { GripVertical } from 'lucide-react';
@@ -56,6 +57,8 @@ const Index = () => {
     setIsPaymentModalOpen,
     isUnsupportedApiModalOpen,
     setIsUnsupportedApiModalOpen,
+    isV1UnsupportedModalOpen,
+    setIsV1UnsupportedModalOpen,
     isDesktopSidebarOpen,
     setIsDesktopSidebarOpen,
     sidebarWidth,
@@ -63,6 +66,7 @@ const Index = () => {
     panelSplitRatio,
     setPanelSplitRatio,
     isAutoDetecting,
+    allowedMethods,
   } = useApiPlayground();
 
   // Panel resize state
@@ -187,6 +191,7 @@ const Index = () => {
                 params={params}
                 isLoading={status === 'loading'}
                 isAutoDetecting={isAutoDetecting}
+                allowedMethods={allowedMethods}
                 wallet={wallet}
                 onMethodChange={setMethod}
                 onUrlChange={setUrl}
@@ -253,10 +258,16 @@ const Index = () => {
         />
       )}
 
-      {/* Unsupported API Modal */}
+      {/* Unsupported API Modal (invalid URL) */}
       <UnsupportedApiModal
         isOpen={isUnsupportedApiModalOpen}
         onClose={() => setIsUnsupportedApiModalOpen(false)}
+      />
+
+      {/* x402 v1 not supported Modal */}
+      <V1UnsupportedModal
+        isOpen={isV1UnsupportedModalOpen}
+        onClose={() => setIsV1UnsupportedModalOpen(false)}
       />
     </div>
   );

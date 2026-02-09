@@ -25,6 +25,8 @@ interface RequestBuilderProps {
   params: RequestParam[];
   isLoading: boolean;
   isAutoDetecting?: boolean;
+  /** When set, only these methods are enabled for the current API; empty = both GET and POST */
+  allowedMethods?: HttpMethod[];
   wallet: WalletState;
   onMethodChange: (method: HttpMethod) => void;
   onUrlChange: (url: string) => void;
@@ -60,6 +62,7 @@ export function RequestBuilder({
   params,
   isLoading,
   isAutoDetecting = false,
+  allowedMethods = [],
   wallet,
   onMethodChange,
   onUrlChange,
@@ -72,6 +75,9 @@ export function RequestBuilder({
 }: RequestBuilderProps) {
   const [activeTab, setActiveTab] = useState('body');
   const isGetMethod = method === 'GET';
+  // When API type is known, disable method buttons that aren't supported
+  const isMethodDisabled = (m: HttpMethod) =>
+    allowedMethods.length > 0 && !allowedMethods.includes(m);
 
   // Auto-switch tab when method changes
   useEffect(() => {
@@ -192,13 +198,17 @@ export function RequestBuilder({
               const methodKey = m as 'GET' | 'POST';
               const mConfig = methodConfig[methodKey];
               const isSelected = method === m;
+              const disabled = isMethodDisabled(m);
               return (
                 <button
                   key={m}
-                  onClick={() => onMethodChange(m)}
+                  type="button"
+                  onClick={() => !disabled && onMethodChange(m)}
+                  disabled={disabled}
                   className={cn(
                     "flex-1 min-w-0 py-3 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
                     "flex items-center justify-center gap-2 h-11",
+                    disabled && "opacity-50 cursor-not-allowed",
                     isSelected 
                       ? cn(mConfig.bg, mConfig.color, "border-current") 
                       : "bg-secondary/50 border-border text-muted-foreground hover:bg-secondary hover:text-foreground"

@@ -3,6 +3,7 @@ import {
   PublicKey,
   Transaction,
   TransactionMessage,
+  TransactionInstruction,
   VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
@@ -10,8 +11,10 @@ import {
 import {
   createTransferInstruction,
   createTransferCheckedInstruction,
+  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   getMint,
+  getAccount,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
@@ -109,6 +112,8 @@ export interface X402Response {
   };
   // Flag to indicate if this is a generic 402 (not x402 protocol)
   isGeneric402?: boolean;
+  /** Raw v1 accepts from 402 body (for building X-Payment header in v1 format) */
+  _rawV1Accepts?: any[];
 }
 
 export interface PaymentResult {
@@ -125,19 +130,48 @@ export interface X402ClientConfig {
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
 }
 
+/** Normalize a v1 accept (maxAmountRequired, network "solana") to shared shape for getBestPaymentOption and createPaymentTransaction. */
+function normalizeV1Accept(raw: any): X402PaymentOption {
+  const amount = String(raw.maxAmountRequired ?? raw.amount ?? '0');
+  const network =
+    raw.network === 'solana' || !raw.network
+      ? SOLANA_MAINNET_CAIP2
+      : raw.network.startsWith('solana:')
+        ? raw.network
+        : SOLANA_MAINNET_CAIP2;
+  return {
+    scheme: raw.scheme || 'exact',
+    network,
+    payTo: raw.payTo ?? '',
+    amount,
+    asset: raw.asset ?? USDC_MINT_STRING,
+    maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
+    ...(raw.extra && typeof raw.extra === 'object' ? { extra: raw.extra } : {}),
+  };
+}
+
 /**
  * Parse x402 response from API
- * Handles x402 v2 protocol responses (matching api/utils/x402Payment.js format)
+ * Handles x402 v2 and v1 protocol responses (matching api/utils/x402Payment.js format)
  */
 export function parseX402Response(data: any, responseHeaders?: Record<string, string>): X402Response | null {
-  // Check for x402 protocol response (v2 or any version)
+  // Check for x402 protocol response (v2 or v1)
   if (data && typeof data.x402Version === 'number') {
+    const version = data.x402Version;
+    const rawAccepts = data.accepts || [];
+    // v1 uses maxAmountRequired and simple "solana" network; normalize so getBestPaymentOption/createPaymentTransaction work
+    const accepts =
+      version === 1 && rawAccepts.length > 0
+        ? rawAccepts.map((a: any) => normalizeV1Accept(a))
+        : rawAccepts;
     return {
-      x402Version: data.x402Version,
-      accepts: data.accepts || [],
+      x402Version: version,
+      accepts,
       resource: data.resource,
       error: data.error,
       extensions: data.extensions,
+      // Keep raw accepts for v1 so we can build the correct X-Payment header (server expects v1 shape)
+      ...(version === 1 && rawAccepts.length > 0 ? { _rawV1Accepts: rawAccepts } : {}),
     };
   }
   
@@ -317,7 +351,24 @@ export async function createPaymentTransaction(
   const sourceAta = await getAssociatedTokenAddress(usdcMint, publicKey, false, programId);
   const destAta = await getAssociatedTokenAddress(usdcMint, recipientPubkey, false, programId);
 
-  const instructions = [
+  const instructions: TransactionInstruction[] = [];
+
+  // Ensure destination ATA exists (recipient may never have received this token) — avoids "invalid account data"
+  try {
+    await getAccount(connection, destAta, 'confirmed');
+  } catch {
+    instructions.push(
+      createAssociatedTokenAccountInstruction(
+        publicKey,
+        destAta,
+        recipientPubkey,
+        usdcMint,
+        programId
+      )
+    );
+  }
+
+  instructions.push(
     createTransferCheckedInstruction(
       sourceAta,
       usdcMint,
@@ -327,8 +378,8 @@ export async function createPaymentTransaction(
       mint.decimals,
       [],
       programId
-    ),
-  ];
+    )
+  );
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   const message = new TransactionMessage({
@@ -383,11 +434,62 @@ export function createPaymentHeader(
 }
 
 /**
- * Execute payment and create payment header
+ * Build v1 "accepted" object for X-PAYMENT header. Server (x402-solana) expects simple network string "solana" or "devnet", not CAIP-2.
+ * Sending CAIP-2 (e.g. "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp") causes "Invalid network" on verification.
+ */
+function buildV1AcceptedForHeader(rawV1Accept: Record<string, any>): Record<string, any> {
+  const rawNetwork = rawV1Accept.network;
+  const network =
+    rawNetwork === 'solana' || rawNetwork === 'devnet'
+      ? rawNetwork
+      : typeof rawNetwork === 'string' && rawNetwork.includes('devnet')
+        ? 'devnet'
+        : 'solana';
+  return {
+    scheme: rawV1Accept.scheme ?? 'exact',
+    network,
+    maxAmountRequired: rawV1Accept.maxAmountRequired ?? rawV1Accept.amount,
+    resource: rawV1Accept.resource,
+    description: rawV1Accept.description,
+    mimeType: rawV1Accept.mimeType ?? '',
+    payTo: rawV1Accept.payTo,
+    maxTimeoutSeconds: rawV1Accept.maxTimeoutSeconds ?? 60,
+    asset: rawV1Accept.asset,
+    outputSchema: rawV1Accept.outputSchema,
+    extra: rawV1Accept.extra && typeof rawV1Accept.extra === 'object' ? rawV1Accept.extra : undefined,
+  };
+}
+
+/**
+ * Create x402 V1 payment header from signed VersionedTransaction.
+ * V1 API (x402-solana) expects X-PAYMENT header with x402Version: 1 and accepted in v1 shape (maxAmountRequired, network "solana").
+ */
+export function createV1PaymentHeader(
+  signedTransaction: VersionedTransaction,
+  rawV1Accept: Record<string, any>
+): string {
+  const serialized = signedTransaction.serialize();
+  const base64Tx = typeof Buffer !== 'undefined'
+    ? Buffer.from(serialized).toString('base64')
+    : btoa(String.fromCharCode(...new Uint8Array(serialized)));
+  const paymentPayload = {
+    x402Version: 1,
+    accepted: buildV1AcceptedForHeader(rawV1Accept),
+    payload: {
+      transaction: base64Tx,
+    },
+  };
+  return btoa(JSON.stringify(paymentPayload));
+}
+
+/**
+ * Execute payment and create payment header.
+ * For v1 APIs pass rawV1Accept (the original accept from 402 body) so the header is built in v1 format (X-PAYMENT).
  */
 export async function executePayment(
   config: X402ClientConfig,
-  paymentOption: X402PaymentOption
+  paymentOption: X402PaymentOption,
+  rawV1Accept?: Record<string, any>
 ): Promise<PaymentResult> {
   let signature: string | undefined;
   let signedTransaction: VersionedTransaction | undefined;
@@ -397,7 +499,7 @@ export async function executePayment(
 
     const { transaction, lastValidBlockHeight } = await createPaymentTransaction(config, paymentOption);
 
-    signedTransaction = (await signTransaction(transaction as any)) as VersionedTransaction;
+    signedTransaction = (await signTransaction(transaction as any)) as unknown as VersionedTransaction;
 
     signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
       skipPreflight: false,
@@ -422,7 +524,9 @@ export async function executePayment(
       };
     }
 
-    const paymentHeader = createPaymentHeader(signedTransaction, paymentOption);
+    const paymentHeader = rawV1Accept
+      ? createV1PaymentHeader(signedTransaction, rawV1Accept)
+      : createPaymentHeader(signedTransaction, paymentOption);
 
     return {
       success: true,
