@@ -184,6 +184,14 @@ export const AGENT_TOOLS = [
     description: 'Token statistics from Rugcheck',
   },
   {
+    id: 'token-risk-alerts',
+    path: '/v2/token-risk/alerts',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD * 2,
+    name: 'Token risk alerts (Rugcheck)',
+    description: 'Tokens from Rugcheck stats with risk score at or above threshold (e.g. rugScoreMin=80)',
+  },
+  {
     id: 'bubblemaps-maps',
     path: '/v2/bubblemaps/maps',
     method: 'GET',
@@ -541,7 +549,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'token-report', 'token-statistic', 'bubblemaps-maps', 'binance-correlation', 'pump'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump'];
   const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];

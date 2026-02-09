@@ -328,6 +328,7 @@ All of these require a **token or contract address** (Solana where noted).
 |------|------------|-------------|
 | `syra_v2_x_kol` | `address` (required) — Solana token contract address | KOL/influencer mentions and sentiment for a token on X. |
 | `syra_v2_token_report` | `address` (required) | Rugcheck token report. |
+| `syra_v2_token_risk_alerts` | `rugScoreMin` (optional, default 80), `source` (optional), `limit` (optional, default 20) | Token risk alerts: tokens from Rugcheck with risk score ≥ threshold. Use with dev routes to call without payment. |
 | `syra_v2_token_god_mode` | `tokenAddress` (required) | Nansen token god mode: deep research for a token. |
 | `syra_v2_bubblemaps_maps` | `address` (required) — Solana token contract address | Bubblemaps holder/concentration map data. |
 
@@ -399,6 +400,7 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_x_search` | `/v2/x-search` |
 | `syra_v2_x_kol` | `/v2/x-kol` |
 | `syra_v2_token_report` | `/v2/token-report` |
+| `syra_v2_token_risk_alerts` | `/v2/token-risk/alerts` |
 | `syra_v2_token_god_mode` | `/v2/token-god-mode` |
 | `syra_v2_bubblemaps_maps` | `/v2/bubblemaps/maps` |
 | `syra_v2_binance_correlation` | `/v2/binance/correlation` |

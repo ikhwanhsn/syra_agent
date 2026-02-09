@@ -21,6 +21,7 @@ const PRICE = {
   nansen: 0.01,
   dexscreener: 0.01,
   pump: 0.01,
+  tokenRiskAlerts: 0.02,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -177,6 +178,14 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Token statistics from Rugcheck.",
     priceUsd: PRICE.default,
     examplePrompt: "Token statistic / Rugcheck stats",
+    category: "partner",
+  },
+  {
+    id: "token-risk-alerts",
+    name: "Token risk alerts (Rugcheck)",
+    description: "Tokens from Rugcheck stats with risk score at or above threshold (e.g. rugScoreMin=80).",
+    priceUsd: PRICE.tokenRiskAlerts,
+    examplePrompt: "Token risk alerts / High-risk tokens / Rugcheck alerts",
     category: "partner",
   },
   {

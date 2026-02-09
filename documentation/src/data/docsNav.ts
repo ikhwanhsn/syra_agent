@@ -88,6 +88,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "Token Report", href: api("token-report") },
           { title: "Token Statistic", href: api("token-statistic") },
+          { title: "Token Risk Alerts", href: api("token-risk-alerts") },
         ],
       },
       {

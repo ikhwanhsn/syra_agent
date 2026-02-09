@@ -38,7 +38,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Partner: Rugcheck",
-    slugs: ["token-report", "token-statistic"],
+    slugs: ["token-report", "token-statistic", "token-risk-alerts"],
   },
   {
     title: "Partner: Bubblemaps & Binance",

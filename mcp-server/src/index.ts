@@ -196,6 +196,24 @@ async function main() {
   );
 
   server.tool(
+    "syra_v2_token_risk_alerts",
+    "Token risk alerts: tokens from Rugcheck (new/recent/trending/verified) with risk score at or above threshold. Use from dev with SYRA_USE_DEV_ROUTES=true and SYRA_API_BASE_URL to skip payment." + PAYMENT_NOTE,
+    {
+      rugScoreMin: z.number().optional().default(80).describe("Minimum normalised risk score 0-100 (default 80)"),
+      source: z.string().optional().describe("Comma-separated: new_tokens, recent, trending, verified (default all)"),
+      limit: z.number().optional().default(20).describe("Max tokens to check 1-50 (default 20)"),
+    },
+    async ({ rugScoreMin, source, limit }) => {
+      const params: Record<string, string> = {};
+      if (rugScoreMin != null) params.rugScoreMin = String(rugScoreMin);
+      if (source) params.source = source;
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/v2/token-risk/alerts", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
     "syra_v2_token_god_mode",
     "Nansen token god mode: deep research for a token. Requires token address." + PAYMENT_NOTE,
     {

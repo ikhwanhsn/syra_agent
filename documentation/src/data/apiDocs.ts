@@ -716,6 +716,108 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
+  "token-risk-alerts": doc({
+    title: "Token Risk Alerts API (Rugcheck)",
+    overview:
+      "Anomaly and risk-alert endpoint that returns tokens from Rugcheck’s stat lists (new, recent, trending, verified) whose normalised risk score meets or exceeds a threshold. Each request fetches the stat lists, then fetches a Rugcheck token report for up to a capped number of tokens, and filters by score_normalised. Use this to surface high-risk or anomalous tokens for monitoring or dashboards. Uses the x402 payment protocol.",
+    price: "$0.02 USD per request",
+    paymentFlow: {
+      step1: "Initial request returns 402 with payment instructions.",
+      step2: "Complete payment (process payment header, submit via specified method, receive payment proof/token).",
+      step3: "Retry request with payment proof in headers to receive the data.",
+      response402: standard402(0.02),
+    },
+    useCases: [
+      "Monitor high-risk tokens from new or trending lists",
+      "Build dashboards of tokens above a risk threshold (e.g. score ≥ 80)",
+      "Filter by source (e.g. new_tokens only) and tune limit for cost/latency",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/v2/token-risk/alerts",
+        description:
+          "Fetch tokens from Rugcheck stats (new_tokens, recent, trending, verified) whose normalised risk score is at or above rugScoreMin. The API checks up to limit tokens (each triggers one Rugcheck report call) and returns only those passing the threshold. Response includes score range of checked tokens (max_score_normalised_checked, min_score_normalised_checked) to interpret empty alerts.",
+        params: [
+          {
+            name: "rugScoreMin",
+            type: "number",
+            required: "No",
+            description:
+              "Minimum normalised risk score (0–100). Only tokens with score_normalised ≥ this value are returned. Default: 80.",
+          },
+          {
+            name: "source",
+            type: "string",
+            required: "No",
+            description:
+              "Comma-separated list of stat sources to pull mints from: new_tokens, recent, trending, verified. Default: new_tokens,recent,trending,verified.",
+          },
+          {
+            name: "limit",
+            type: "number",
+            required: "No",
+            description:
+              "Maximum number of tokens to check (1–50). Each checked token requires one Rugcheck report call. Default: 20.",
+          },
+        ],
+        requestExample: `# Default: rugScoreMin=80, all sources, limit=20
+curl "${BASE_URL}/token-risk/alerts"
+
+# Only high-risk threshold 80, check up to 30 tokens
+curl "${BASE_URL}/token-risk/alerts?rugScoreMin=80&limit=30"
+
+# Lower threshold and only new tokens
+curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
+        responseExample: `{
+  "alerts": [
+    {
+      "mint": "8SL2M7Y18eNxtZQTC7vdKUKAfgav7sqr7fxpxufXZNHx",
+      "score": 117601,
+      "score_normalised": 80,
+      "risks": [
+        {
+          "name": "Creator history of rugged tokens",
+          "value": "",
+          "description": "Creator has a history of rugging tokens.",
+          "score": 117600,
+          "level": "danger"
+        }
+      ],
+      "rugged": false,
+      "tokenMeta": {
+        "name": "AMERICA",
+        "symbol": "AMERICA",
+        "uri": "https://...",
+        "mutable": false,
+        "updateAuthority": "..."
+      }
+    }
+  ],
+  "count": 1,
+  "rugScoreMin": 80,
+  "source": ["new_tokens", "recent", "trending", "verified"],
+  "limit": 20,
+  "checked": 20,
+  "max_score_normalised_checked": 80,
+  "min_score_normalised_checked": 0
+}`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Understanding the response",
+        content:
+          "alerts: array of tokens that passed the threshold; each has mint, score, score_normalised, risks, rugged, tokenMeta. count: number of alerts. rugScoreMin, source, limit: echo of query params. checked: how many tokens were actually fetched and evaluated. max_score_normalised_checked and min_score_normalised_checked: range of score_normalised among the checked tokens (included when at least one report was fetched). If alerts is empty but checked > 0, these fields show the highest and lowest scores seen so you can tell whether the threshold is above the current pool (e.g. max 45 with rugScoreMin 80) or adjust rugScoreMin/limit/source.",
+      },
+      {
+        title: "Dev route (no payment)",
+        content:
+          "When NODE_ENV is not production, GET /v2/token-risk/alerts/dev accepts the same query parameters and returns the same response shape without x402 payment. Use for local testing.",
+      },
+    ],
+  }),
+
   "bubblemaps-maps": doc({
     title: "Bubblemaps Maps API",
     overview: "Partner API with Bubblemaps for holder distribution and map data. Uses the x402 payment protocol.",

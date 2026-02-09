@@ -60,6 +60,17 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
+    id: 'token-risk-alerts',
+    label: 'Token risk alerts',
+    method: 'GET',
+    url: `${base}/v2/token-risk/alerts`,
+    params: [
+      { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
+      { key: 'source', value: 'new_tokens,recent,trending,verified', enabled: false, description: 'new_tokens, recent, trending, verified' },
+      { key: 'limit', value: '20', enabled: false, description: 'Max tokens to check (1-50)' },
+    ],
+  },
+  {
     id: 'news',
     label: 'Get news',
     method: 'GET',
@@ -335,6 +346,7 @@ function getV2ApiEndpoints(): string[] {
     `${base}/v2/trending-jupiter`,
     `${base}/v2/token-report`,
     `${base}/v2/token-statistic`,
+    `${base}/v2/token-risk/alerts`,
     `${base}/v2/bubblemaps/maps`,
     `${base}/v2/binance/correlation`,
   ];
@@ -361,6 +373,11 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/v2/check-status': [],
       '/v2/gems': [],
       '/v2/token-statistic': [],
+      '/v2/token-risk/alerts': [
+        { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
+        { key: 'source', value: 'new_tokens,recent,trending,verified', enabled: false, description: 'Comma-separated sources' },
+        { key: 'limit', value: '20', enabled: false, description: 'Max tokens to check (1-50)' },
+      ],
       '/v2/analytics/summary': [],
       '/v2/signal': [{ key: 'token', value: '', enabled: false, description: 'e.g. solana, bitcoin' }],
       '/v2/research': [{ key: 'query', value: '', enabled: true, description: 'e.g. token analysis, market trends' }],

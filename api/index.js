@@ -70,6 +70,7 @@ import { createPumpRouter as createV2PumpRouter } from "./v2/routes/partner/work
 import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./v2/routes/partner/jupiter/trending.js";
 import { createTokenReportRouter as createV2TokenReportRouter } from "./v2/routes/partner/rugcheck/token-report.js";
 import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./v2/routes/partner/rugcheck/token-statistic.js";
+import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./v2/routes/partner/rugcheck/token-risk-alerts.js";
 import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./v2/routes/partner/bubblemaps/maps.js";
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./v2/routes/partner/binance/correlation.js";
 import { createAnalyticsRouter as createV2AnalyticsRouter } from "./v2/routes/analytics.js";
@@ -185,6 +186,7 @@ function isX402Route(p) {
   if (p.startsWith("/trending-jupiter")) return true;
   if (p.startsWith("/token-report")) return true;
   if (p.startsWith("/token-statistic")) return true;
+  if (p.startsWith("/token-risk")) return true;
   if (p.startsWith("/sentiment")) return true;
   if (p.startsWith("/event")) return true;
   if (p.startsWith("/trending-headline")) return true;
@@ -490,6 +492,7 @@ app.use("/v2/pump", await createV2PumpRouter());
 app.use("/v2/trending-jupiter", await createV2TrendingJupiterRouter());
 app.use("/v2/token-report", await createV2TokenReportRouter());
 app.use("/v2/token-statistic", await createV2TokenStatisticRouter());
+app.use("/v2/token-risk/alerts", await createV2TokenRiskAlertsRouter());
 app.use("/v2/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use("/v2/binance", await createV2BinanceCorrelationRouter());
 app.use("/v2/analytics", await createV2AnalyticsRouter());
@@ -623,6 +626,7 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/trending-jupiter",
       "https://api.syraa.fun/v2/token-report",
       "https://api.syraa.fun/v2/token-statistic",
+      "https://api.syraa.fun/v2/token-risk/alerts",
       "https://api.syraa.fun/v2/bubblemaps/maps",
       "https://api.syraa.fun/v2/binance/correlation",
       // V2 Memecoin endpoints
