@@ -10,6 +10,29 @@ import { fastestHolderGrowthMemecoins } from "../../../prompts/memecoin.js";
 export async function createFastestHolderGrowthMemecoinsRouter() {
   const router = express.Router();
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (_req, res) => {
+      const client = await atxpClient({
+        mcpServer: xLiveSearchService.mcpServer,
+        account: new ATXPAccount(process.env.ATXP_CONNECTION),
+      });
+      try {
+        const result = await client.callTool({
+          name: xLiveSearchService.toolName,
+          arguments: xLiveSearchService.getArguments({ query: fastestHolderGrowthMemecoins }),
+        });
+        const { status, query, message, citations, toolCalls, errorMessage } = xLiveSearchService.getResult(result);
+        if (status === "success") res.json({ query, result: message, citations, toolCalls });
+        else res.status(500).json({ error: "Search failed", message: errorMessage });
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
+
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",

@@ -30,7 +30,7 @@ export async function getTokenBalance(walletAddress, mintAddress) {
 
     return balanceData;
   } catch (error) {
-    console.error("Error reading SPL token balance:", error);
+    console.error("Error reading SPL token balance:", error?.message || "Unknown error");
     return 0;
   }
 }

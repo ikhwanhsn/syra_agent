@@ -47,6 +47,15 @@ export async function createSundownDigestRouter() {
     res.json({ sundownDigest: data });
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (_req, res) => {
+      const sundownDigest = await getData();
+      if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
+      if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
+      res.json({ sundownDigest });
+    });
+  }
+
   router.get(
     "/",
     requirePayment({

@@ -8,6 +8,30 @@ import { payer } from "@faremeter/rides";
 export async function createTokenReportRouter() {
   const router = express.Router();
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      const { address } = req.query;
+      if (!address) return res.status(400).json({ error: "address is required" });
+      try {
+        const response = await fetch(`https://api.rugcheck.xyz/v1/tokens/${address}/report`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(`HTTP ${response.status} ${response.statusText} ${text}`);
+        }
+        const data = await response.json();
+        res.status(200).json({ data });
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
+
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",

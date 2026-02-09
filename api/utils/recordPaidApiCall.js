@@ -15,6 +15,6 @@ export async function recordPaidApiCall(req, options = {}) {
     });
   } catch (err) {
     // Fire-and-forget: log only so payment flow is never broken
-    console.error('[recordPaidApiCall]', err?.message || err);
+    console.error('[recordPaidApiCall]', err?.message || 'Unknown error');
   }
 }

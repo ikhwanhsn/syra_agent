@@ -46,7 +46,7 @@ async function fetchMarketPrice(ticker: string): Promise<number> {
     const data = await response.json();
     return parseFloat(data.price);
   } catch (error) {
-    console.error(`❌ Error fetching price for ${ticker}:`, error);
+    console.error(`❌ Error fetching price for ${ticker}:`, error instanceof Error ? error.message : "Unknown error");
     throw error;
   }
 }
@@ -131,17 +131,12 @@ async function createSignal(signalData: SignalData): Promise<void> {
 
     if (response.ok) {
       console.log("✅ Signal created successfully!");
-      console.log(`📝 Transaction: ${result.paymentDetails.explorerUrl}`);
-      console.log(`💰 Paid: ${result.paymentDetails.amountUSDC} USDC`);
-      console.log(`🆔 Signal ID: ${result.signal._id}`);
+      // Do not log explorer URL (contains tx signature) or signal ID in case logs are captured
     } else {
-      console.error("❌ Failed to create signal:", result.error);
-      if (result.details) {
-        console.error("Details:", result.details);
-      }
+      console.error("❌ Failed to create signal:", typeof result.error === "string" ? result.error : "Unknown error");
     }
   } catch (error) {
-    console.error("❌ Error creating signal:", error);
+    console.error("❌ Error creating signal:", error instanceof Error ? error.message : "Unknown error");
     throw error;
   }
 }
@@ -159,9 +154,8 @@ async function runAgent() {
       throw new Error("AGENT_PRIVATE_KEY environment variable is required");
     }
 
-    // Verify keypair can be created
-    const keypair = Keypair.fromSecretKey(bs58.decode(AGENT_PRIVATE_KEY));
-    console.log(`🔑 Agent wallet: ${keypair.publicKey.toBase58()}\n`);
+    // Verify keypair can be created (do not log wallet address)
+    Keypair.fromSecretKey(bs58.decode(AGENT_PRIVATE_KEY));
 
     // Generate signal
     const signal = await generateSignal();
@@ -171,7 +165,7 @@ async function runAgent() {
 
     console.log("\n✅ Agent execution completed successfully");
   } catch (error) {
-    console.error("\n❌ Agent execution failed:", error);
+    console.error("\n❌ Agent execution failed:", error instanceof Error ? error.message : "Unknown error");
     process.exit(1);
   }
 }

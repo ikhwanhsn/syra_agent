@@ -63,6 +63,21 @@ export async function createEventRouter() {
     return result;
   }
 
+  /** Dev-only: GET /v2/event/dev returns events without payment (for browser/testing). Disabled in production. */
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
+      const event = await getDataForTicker(ticker);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+      res.json({ event });
+    });
+  }
+
   router.get(
     "/",
     requirePayment({

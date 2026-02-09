@@ -91,6 +91,21 @@ export async function createNewsRouter() {
     return news;
   }
 
+  /** Dev-only: GET /v2/news/dev returns news without payment (for browser/testing). Disabled in production. */
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
+      const news = await getNewsForRequest(ticker);
+      if (!news) return res.status(404).json({ error: "News not found" });
+      if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
+      res.json({ news });
+    });
+  }
+
   // GET endpoint with V2 x402 format
   router.get(
     "/",

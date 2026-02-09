@@ -112,7 +112,7 @@ function formatToolResultForLlm(data, toolId) {
     try {
       return condensedAnalyticsSummary(data);
     } catch (e) {
-      console.warn('[agent/chat] condensedAnalyticsSummary failed, using truncation:', e?.message);
+      console.warn('[agent/chat] condensedAnalyticsSummary failed, using truncation');
     }
   }
   const raw = JSON.stringify(data, null, 2);
@@ -206,7 +206,7 @@ router.get('/models', async (_req, res) => {
       return res.json({ models: fromApi });
     }
   } catch (err) {
-    console.warn('[agent/chat] GET /models: could not fetch from Jatevo, using config', err?.message);
+    console.warn('[agent/chat] GET /models: could not fetch from Jatevo, using config');
   }
   res.json({ models: JATEVO_MODELS });
 });
@@ -397,7 +397,6 @@ router.post('/completion', async (req, res) => {
       jatevoOptions.max_tokens = MAX_TOKENS_DEFAULT;
     }
     const requestedModel = jatevoOptions.model || JATEVO_DEFAULT_MODEL;
-    console.log(`[agent/chat] Completion request model=${requestedModel}`);
 
     let response;
     let truncated = false;
@@ -418,11 +417,11 @@ router.post('/completion', async (req, res) => {
         const isBudgetExceeded = /budget has been exceeded|max budget/i.test(reason);
         if (isBudgetExceeded) {
           console.warn(
-            `[agent/chat] Jatevo account budget exceeded. Using default model. Top up at Jatevo to use other models.`
+            '[agent/chat] Jatevo account budget exceeded. Using default model.'
           );
         } else {
           console.error(
-            `[agent/chat] Requested model "${requestedModel}" failed, falling back to ${JATEVO_DEFAULT_MODEL}. Reason: ${reason}`
+            '[agent/chat] Requested model failed, falling back to default model.'
           );
         }
         try {
@@ -440,7 +439,6 @@ router.post('/completion', async (req, res) => {
     }
 
     const actualModel = usedFallbackModel ? JATEVO_DEFAULT_MODEL : requestedModel;
-    console.log(`[agent/chat] Completion success model=${actualModel}${usedFallbackModel ? ' (fallback)' : ''}`);
 
     const payload = { success: true, response };
     if (truncated) payload.truncated = true;

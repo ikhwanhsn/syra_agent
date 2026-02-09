@@ -14,14 +14,11 @@ function generateAgentWallet() {
   const privateKeyBase58 = bs58.encode(keypair.secretKey);
   const privateKeyArray = Array.from(keypair.secretKey);
 
-  // Display information
+  // Display information (private key is never printed to console to avoid log/screenshot exposure)
   console.log("✅ Wallet Generated Successfully!\n");
   console.log("📍 Public Key (Wallet Address):");
   console.log(keypair.publicKey.toBase58());
-  console.log("\n🔑 Private Key (Base58 - Use this in .env):");
-  console.log(privateKeyBase58);
-  console.log("\n🔑 Private Key (Array format - Alternative):");
-  console.log(JSON.stringify(privateKeyArray));
+  console.log("\n🔑 Private key saved to files only (see below). Do not share or log it.");
 
   // Create wallet data
   const walletData = {
@@ -115,6 +112,6 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 try {
   generateAgentWallet();
 } catch (error) {
-  console.error("❌ Error generating wallet:", error);
+  console.error("❌ Error generating wallet:", error?.message || "Unknown error");
   process.exit(1);
 }

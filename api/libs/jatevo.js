@@ -37,9 +37,6 @@ export async function callJatevo(messages, options = {}) {
 
   const requestedId = options.model && typeof options.model === 'string' ? options.model.trim() : null;
   const model = resolveJatevoModelId(requestedId || JATEVO_DEFAULT_MODEL);
-  if (requestedId && requestedId !== model) {
-    console.log(`[jatevo] Model id resolved: "${requestedId}" -> "${model}"`);
-  }
 
   const response = await fetch(`${JATEVO_BASE}/chat/completions`, {
     method: "POST",

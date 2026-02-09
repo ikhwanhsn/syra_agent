@@ -152,10 +152,67 @@ export async function createBinanceCorrelationRouter() {
         top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
       });
     } catch (err) {
-      console.error("[v2/binance/correlation GET]", err);
+      console.error("[v2/binance/correlation GET]", err?.message || "Unknown error");
       res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
     }
   };
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      try {
+        const symbol = (req.query.symbol || "BTCUSDT").toUpperCase();
+        const limit = parseInt(req.query.limit || "10", 10) || 10;
+        const ohlcPayload = await fetchBinanceOhlcBatch(ticker, "1m");
+        const matrix = computeCorrelationFromOHLC(ohlcPayload);
+        if (!matrix || typeof matrix !== "object") {
+          const results = ohlcPayload?.results || [];
+          const succeeded = results.filter((r) => r?.success && r?.data?.length >= 2).length;
+          const firstError = (results.find((r) => !r?.success))?.error || "No OHLC results returned";
+          return res.status(502).json({
+            success: false,
+            error: `No correlation data: ${succeeded}/${results.length} symbols had OHLC. ${firstError}`,
+          });
+        }
+        if (!matrix[symbol]) return res.status(404).json({ success: false, error: "Symbol not found" });
+        const ranked = Object.entries(matrix[symbol])
+          .filter(([s]) => s !== symbol)
+          .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+          .slice(0, limit);
+        if (ranked.length === 0) return res.status(404).json({ success: false, error: "No correlation found" });
+        res.json({
+          symbol,
+          top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
+        });
+      } catch (err) {
+        console.error("[v2/binance/correlation GET dev]", err?.message || "Unknown error");
+        res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
+      }
+    });
+    router.get("/correlation-matrix/dev", async (_req, res) => {
+      try {
+        const ohlcPayload = await fetchBinanceOhlcBatch(ticker, "1m");
+        const data = computeCorrelationFromOHLC(ohlcPayload);
+        if (!data || Object.keys(data).length === 0) {
+          const results = ohlcPayload?.results || [];
+          const succeeded = results.filter((r) => r?.success && r?.data?.length >= 2).length;
+          const firstError = (results.find((r) => !r?.success))?.error || "No OHLC results returned";
+          return res.status(502).json({
+            success: false,
+            error: `Correlation matrix unavailable: ${succeeded}/${results.length} symbols had OHLC. ${firstError}`,
+          });
+        }
+        res.json({
+          interval: ohlcPayload.interval,
+          count: ohlcPayload.count,
+          tokens: Object.keys(data),
+          data,
+        });
+      } catch (err) {
+        console.error("[v2/binance/correlation-matrix GET dev]", err?.message || "Unknown error");
+        res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
+      }
+    });
+  }
 
   // GET /v2/binance and GET /v2/binance?symbol=X (same as /correlation)
   router.get(
@@ -208,7 +265,7 @@ export async function createBinanceCorrelationRouter() {
           data,
         });
       } catch (err) {
-        console.error("[v2/binance/correlation-matrix GET]", err);
+        console.error("[v2/binance/correlation-matrix GET]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
     },
@@ -245,7 +302,7 @@ export async function createBinanceCorrelationRouter() {
           data,
         });
       } catch (err) {
-        console.error("[v2/binance/correlation-matrix POST]", err);
+        console.error("[v2/binance/correlation-matrix POST]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
     },
@@ -320,7 +377,7 @@ export async function createBinanceCorrelationRouter() {
           top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
         });
       } catch (err) {
-        console.error("[v2/binance/correlation POST]", err);
+        console.error("[v2/binance/correlation POST]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
       }
     },

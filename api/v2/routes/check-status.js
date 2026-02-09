@@ -20,6 +20,10 @@ export async function createCheckStatusRouter() {
     },
   };
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", (_req, res) => res.status(200).json(statusPayload));
+  }
+
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",

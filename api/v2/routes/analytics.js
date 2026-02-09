@@ -52,8 +52,9 @@ const summaryPaymentOptions = {
  * GET /summary
  * POST /summary
  * x402 V2: payment required. Returns full data from all included tools after payment.
+ * skipSettle: if true, do not call settlePaymentAndSetResponse (for /summary/dev).
  */
-async function handleSummary(req, res) {
+async function handleSummary(req, res, options = {}) {
   try {
     const [
       dexscreenerResult,
@@ -124,7 +125,7 @@ async function handleSummary(req, res) {
       },
     };
 
-    await settlePaymentAndSetResponse(res, req);
+    if (!options.skipSettle) await settlePaymentAndSetResponse(res, req);
     res.status(200).json(summary);
   } catch (error) {
     res.status(500).json({
@@ -132,6 +133,10 @@ async function handleSummary(req, res) {
       message: error instanceof Error ? error.message : "Unknown error",
     });
   }
+}
+
+if (process.env.NODE_ENV !== "production") {
+  router.get("/summary/dev", (req, res) => handleSummary(req, res, { skipSettle: true }));
 }
 
 router.get(

@@ -7,7 +7,8 @@
    const location = useLocation();
  
    useEffect(() => {
-     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+     // Avoid logging pathname to prevent sensitive paths in log aggregation
+     console.error("404 Error: User attempted to access non-existent route");
    }, [location.pathname]);
  
   return (

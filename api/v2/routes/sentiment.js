@@ -88,6 +88,20 @@ export async function createSentimentRouter() {
     res.json({ sentimentAnalysis: data });
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
+      const sentimentAnalysis = await getDataForTicker(ticker);
+      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+      res.json({ sentimentAnalysis });
+    });
+  }
+
   router.get(
     "/",
     requirePayment({

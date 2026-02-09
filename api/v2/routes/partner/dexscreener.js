@@ -28,6 +28,20 @@ export async function createDexscreenerRouter() {
     };
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (_req, res) => {
+      try {
+        const data = await fetchDexscreenerData();
+        res.status(200).json(data);
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
+
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",

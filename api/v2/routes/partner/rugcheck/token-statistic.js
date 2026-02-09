@@ -8,6 +8,32 @@ import { rugcheckRequests } from "../../../../request/rugcheck.request.js";
 export async function createTokenStatisticRouter() {
   const router = express.Router();
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (_req, res) => {
+      try {
+        const responses = await Promise.all(rugcheckRequests.map(({ url }) => fetch(url)));
+        for (const response of responses) {
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`HTTP ${response.status} ${response.statusText} ${text}`);
+          }
+        }
+        const allData = await Promise.all(responses.map((r) => r.json()));
+        res.status(200).json({
+          "rugcheck/new_tokens": allData[0],
+          "rugcheck/recent": allData[1],
+          "rugcheck/trending": allData[2],
+          "rugcheck/verified": allData[3],
+        });
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
+
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",

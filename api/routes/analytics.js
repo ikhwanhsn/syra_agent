@@ -93,7 +93,7 @@ router.get('/kpi', async (req, res) => {
 
     res.json(payload);
   } catch (error) {
-    console.error('[analytics/kpi]', error);
+    console.error('[analytics/kpi]', error?.message || 'Unknown error');
     res.status(500).json({
       error: 'Internal server error',
       message: error?.message || 'Unknown error',

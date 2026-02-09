@@ -9,6 +9,42 @@ import { browseService } from "../../libs/atxp/browseService.js";
 export async function createBrowseRouter() {
   const router = express.Router();
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      const { query } = req.query;
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const client = await atxpClient({
+        mcpServer: browseService.mcpServer,
+        account: new ATXPAccount(process.env.ATXP_CONNECTION),
+      });
+      try {
+        const result = await client.callTool({
+          name: browseService.runTaskToolName,
+          arguments: browseService.getArguments(query),
+        });
+        const taskId = browseService.getRunTaskResult(result);
+        const pollInterval = 5000;
+        while (true) {
+          const taskResult = await client.callTool({
+            name: browseService.getTaskToolName,
+            arguments: { taskId },
+          });
+          const taskData = browseService.getGetTaskResult(taskResult);
+          if (["finished", "stopped", "failed"].includes(taskData.status)) {
+            res.json({ query, result: JSON.stringify(taskData) });
+            break;
+          }
+          await new Promise((r) => setTimeout(r, pollInterval));
+        }
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
+
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",

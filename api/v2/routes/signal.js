@@ -7,6 +7,21 @@ const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 export async function createSignalRouter() {
   const router = express.Router();
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      try {
+        const token = req.query.token || "bitcoin";
+        const signal = await fetch(
+          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
+        ).then((r) => r.json());
+        if (signal) res.json({ signal });
+        else res.status(500).json({ error: "Failed to fetch signal" });
+      } catch (error) {
+        res.status(500).json({ error: "Server error" });
+      }
+    });
+  }
+
   // GET Route Example
   router.get(
     "/",

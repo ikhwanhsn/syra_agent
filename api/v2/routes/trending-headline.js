@@ -63,6 +63,20 @@ export async function createTrendingHeadlineRouter() {
     res.json({ trendingHeadline: data });
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
+      const trendingHeadline = await getDataForTicker(ticker);
+      if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
+      if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
+      res.json({ trendingHeadline });
+    });
+  }
+
   router.get(
     "/",
     requirePayment({

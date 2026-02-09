@@ -98,7 +98,6 @@ async function handleCreateSignal(req, res) {
           : new Uint8Array(privateKey);
 
       agentKeypair = Keypair.fromSecretKey(secretKey);
-      console.log("🤖 Agent wallet:", agentKeypair.publicKey.toBase58());
     } catch (error) {
       return res.status(400).json({
         error: "Invalid private key format",
@@ -116,8 +115,6 @@ async function handleCreateSignal(req, res) {
       agentKeypair.publicKey
     );
 
-    console.log("🔍 Checking token accounts...");
-
     // 6. Create transaction
     const { blockhash, lastValidBlockHeight } =
       await connection.getLatestBlockhash("confirmed");
@@ -133,9 +130,7 @@ async function handleCreateSignal(req, res) {
     try {
       await getAccount(connection, agentTokenAccount);
       agentAccountExists = true;
-      console.log("✅ Agent USDC account exists");
     } catch (error) {
-      console.log("⚠️ Agent USDC account doesn't exist - creating it");
       tx.add(
         createAssociatedTokenAccountInstruction(
           agentKeypair.publicKey,
@@ -150,7 +145,6 @@ async function handleCreateSignal(req, res) {
     if (agentAccountExists) {
       const accountInfo = await getAccount(connection, agentTokenAccount);
       const balance = Number(accountInfo.amount);
-      console.log(`💰 Agent USDC balance: ${balance / 1000000} USDC`);
 
       if (balance < PRICE_PER_SIGNAL) {
         return res.status(400).json({
@@ -166,9 +160,7 @@ async function handleCreateSignal(req, res) {
     // 9. Check if server's token account exists
     try {
       await getAccount(connection, SERVER_TOKEN_ACCOUNT);
-      console.log("✅ Server USDC account exists");
     } catch (error) {
-      console.log("⚠️ Server USDC account doesn't exist - creating it");
       tx.add(
         createAssociatedTokenAccountInstruction(
           agentKeypair.publicKey,
@@ -191,14 +183,10 @@ async function handleCreateSignal(req, res) {
       )
     );
 
-    console.log(`💸 Transfer amount: ${PRICE_PER_SIGNAL / 1000000} USDC`);
-
     // 11. Simulate transaction
-    console.log("🧪 Simulating transaction...");
     const simulation = await connection.simulateTransaction(tx);
 
     if (simulation.value.err) {
-      console.error("❌ Simulation failed:", simulation.value.err);
       return res.status(400).json({
         error: "Transaction simulation failed",
         details: simulation.value.err,
@@ -206,37 +194,27 @@ async function handleCreateSignal(req, res) {
       });
     }
 
-    console.log("✅ Simulation successful");
-
     // 12. Sign and send transaction
-    console.log("✍️ Signing transaction...");
     tx.sign(agentKeypair);
 
-    console.log("📤 Submitting transaction...");
     const signature = await connection.sendRawTransaction(tx.serialize(), {
       skipPreflight: false,
       preflightCommitment: "confirmed",
       maxRetries: 3,
     });
 
-    console.log("📝 Transaction signature:", signature);
-
     // 13. Wait for confirmation
-    console.log("⏳ Waiting for confirmation...");
     const confirmation = await connection.confirmTransaction(
       signature,
       "confirmed"
     );
 
     if (confirmation.value.err) {
-      console.error("❌ Confirmation error:", confirmation.value.err);
       return res.status(400).json({
         error: "Transaction failed on-chain",
         details: confirmation.value.err,
       });
     }
-
-    console.log("✅ Transaction confirmed");
 
     // 14. Verify balance change
     const confirmedTx = await connection.getTransaction(signature, {
@@ -270,8 +248,6 @@ async function handleCreateSignal(req, res) {
       }
     }
 
-    console.log(`💰 Payment verified: ${amountReceived / 1000000} USDC`);
-
     // 15. Create signal in database
     const newSignal = {
       wallet: agentKeypair.publicKey.toBase58(),
@@ -300,8 +276,6 @@ async function handleCreateSignal(req, res) {
       });
     }
 
-    console.log("🎯 Signal created successfully by agent");
-
     // 16. Return success
     return res.json({
       success: true,
@@ -319,7 +293,6 @@ async function handleCreateSignal(req, res) {
       },
     });
   } catch (error) {
-    console.error("❌ Agent error:", error);
     return res.status(500).json({
       error: "Agent signal creation failed",
       details: error instanceof Error ? error.message : "Unknown error",
