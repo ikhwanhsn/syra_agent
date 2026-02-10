@@ -6,6 +6,7 @@ import {
   getAgentTool,
   getCapabilitiesList,
   getToolsForLlmSelection,
+  normalizeJupiterSwapParams,
 } from '../../config/agentTools.js';
 import {
   getAgentUsdcBalance,
@@ -13,8 +14,13 @@ import {
   getAgentAddress,
   getConnectedWalletAddress,
 } from '../../libs/agentWallet.js';
-import { callX402V2WithAgent, callX402V2WithTreasury } from '../../libs/agentX402Client.js';
-import { isSyraHolderEligible } from '../../libs/syraToken.js';
+import {
+  callX402V2WithAgent,
+  callX402V2WithTreasury,
+  signAndSubmitSwapTransaction,
+} from '../../libs/agentX402Client.js';
+import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
+import { findVerifiedJupiterToken } from '../../v2/lib/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -98,6 +104,175 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
   } catch (err) {
     return [];
   }
+}
+
+/**
+ * Locally-known Jupiter tokens that we want to support even if the public
+ * Jupiter token list (https://tokens.jup.ag/tokens) is temporarily unreachable.
+ * These entries are used as a fast path in parseBuyTokenFromText so that
+ * "buy $SYRA $0.1" or "buy $BONK $0.1" works without needing a network call.
+ *
+ * NOTE: Decimals here are only used when the token is the *output* asset in
+ * parseBuyTokenFromText, so inaccuracies would not affect how much SOL/USDC
+ * is spent. BONK decimals are taken from public Solana metadata; SYRA mint
+ * comes from SYRA_TOKEN_MINT and decimals are not critical in this flow.
+ */
+const HARDCODED_JUPITER_TOKENS = {
+  SYRA: {
+    address: SYRA_TOKEN_MINT,
+    // Decimals not strictly needed for "buy $SYRA $amount" where the input
+    // token is SOL/USDC, but we default to 9 (standard SPL / pump.fun tokens).
+    decimals: 9,
+    symbol: 'SYRA',
+    verified: true,
+  },
+  BONK: {
+    // Official BONK mint on Solana
+    address: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+    decimals: 5,
+    symbol: 'BONK',
+    verified: true,
+  },
+};
+
+/**
+ * Try to parse a simple "swap X TOKEN_A for TOKEN_B" pattern from free text and map it to
+ * Jupiter Ultra swap params. Currently supports SOL and USDC only, using known mint addresses.
+ * Example: "swap 0.1 USDC for SOL" -> inputMint = USDC, outputMint = SOL, amount in base units.
+ * @param {string | undefined} text
+ * @returns {{ inputMint: string; outputMint: string; amount: string } | null}
+ */
+function parseJupiterSwapParamsFromText(text) {
+  if (!text || typeof text !== 'string') return null;
+  // Allow optional "$" before the amount and token symbols so phrases like
+  // "swap $0.1 USDC to SOL" or "swap 0.1 $USDC to $SOL" are parsed correctly.
+  const match =
+    /swap\s+\$?([\d.,]+)\s+\$?([A-Za-z0-9]+)\s+(for|to)\s+\$?([A-Za-z0-9]+)/i.exec(text);
+  if (!match) return null;
+  const amountStr = match[1].replace(/,/g, '');
+  const fromSymbol = match[2].toUpperCase();
+  const toSymbol = match[4].toUpperCase();
+  const amountNum = Number(amountStr);
+  if (!Number.isFinite(amountNum) || amountNum <= 0) return null;
+
+  // Known tokens and their mint addresses / decimals (Jupiter standard mints).
+  const TOKENS = {
+    USDC: {
+      mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      decimals: 6,
+    },
+    SOL: {
+      // Wrapped SOL mint used by Jupiter
+      mint: 'So11111111111111111111111111111111111111112',
+      decimals: 9,
+    },
+  };
+
+  const fromToken = TOKENS[fromSymbol];
+  const toToken = TOKENS[toSymbol];
+  if (!fromToken || !toToken) return null;
+
+  const amountBaseUnits = Math.round(amountNum * 10 ** fromToken.decimals);
+  if (!Number.isFinite(amountBaseUnits) || amountBaseUnits <= 0) return null;
+
+  return {
+    inputMint: fromToken.mint,
+    outputMint: toToken.mint,
+    amount: String(amountBaseUnits),
+  };
+}
+
+/**
+ * Parse a simple \"buy $TOKEN $AMOUNT\" pattern and build Jupiter swap params using
+ * the agent's default funding token (SOL or USDC). Example: \"buy $SYRA $0.1\"
+ * will spend 0.1 of the higher-balance token (SOL vs USDC) to buy SYRA (or BONK, etc).
+ *
+ * This function prefers locally-known tokens (HARDCODED_JUPITER_TOKENS) so that
+ * common tokens like SYRA and BONK work even if the Jupiter token list fetch
+ * fails. For all other symbols it falls back to findVerifiedJupiterToken().
+ * @param {string | undefined} text
+ * @param {number} usdcBalance
+ * @param {number} solBalance
+ * @returns {{ inputMint: string; outputMint: string; amount: string } | null}
+ */
+async function parseBuyTokenFromText(text, usdcBalance, solBalance) {
+  if (!text || typeof text !== 'string') return null;
+  const match = /buy\s+\$?([A-Za-z0-9]+)\s+\$?([\d.,]+)/i.exec(text);
+  if (!match) return null;
+  const tokenSymbol = match[1].toUpperCase();
+  const amountStr = match[2].replace(/,/g, '');
+  const amountNum = Number(amountStr);
+  if (!Number.isFinite(amountNum) || amountNum <= 0) return null;
+
+  // 1) Prefer locally hardcoded tokens (SYRA, BONK, etc.) so we don't depend
+  // on Jupiter's public token list for the most common cases.
+  let target = HARDCODED_JUPITER_TOKENS[tokenSymbol] || null;
+
+  // 2) Fallback to Jupiter token list for other symbols, but make sure a
+  // network error ("fetch failed") doesn't crash the entire swap flow.
+  if (!target) {
+    try {
+      const resolved = await findVerifiedJupiterToken(tokenSymbol);
+      if (resolved && resolved.address) {
+        target = resolved;
+      }
+    } catch {
+      target = null;
+    }
+  }
+
+  if (!target) return null;
+
+  // Pick default funding token based on higher balance (SOL vs USDC).
+  const useSol = solBalance > usdcBalance;
+  const fromToken = useSol
+    ? { mint: 'So11111111111111111111111111111111111111112', decimals: 9 }
+    : { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6 };
+
+  const amountBaseUnits = Math.round(amountNum * 10 ** fromToken.decimals);
+  if (!Number.isFinite(amountBaseUnits) || amountBaseUnits <= 0) return null;
+
+  return {
+    inputMint: fromToken.mint,
+    outputMint: target.address,
+    amount: String(amountBaseUnits),
+  };
+}
+
+/**
+ * Ensure Jupiter amount is in base units (smallest units) based on inputMint decimals.
+ * If amount looks like a human number (e.g. 0.1 with a decimal), convert using token decimals.
+ * For SOL/USDC we use known decimals; otherwise we query Jupiter token list once.
+ * @param {{ inputMint?: string; amount?: string | number }} params
+ * @returns {Promise<void>}
+ */
+async function normalizeJupiterAmountToBaseUnits(params) {
+  if (!params || params.amount == null || !params.inputMint) return;
+  const raw = String(params.amount);
+  // If there's no decimal point and it's an integer string, assume it's already base units.
+  if (!raw.includes('.')) return;
+  const human = Number(raw);
+  if (!Number.isFinite(human) || human <= 0) return;
+
+  const mint = String(params.inputMint);
+  let decimals = 0;
+  if (mint === 'So11111111111111111111111111111111111111112') {
+    decimals = 9; // wrapped SOL
+  } else if (mint === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
+    decimals = 6; // USDC
+  } else {
+    try {
+      const info = await findVerifiedJupiterToken(mint);
+      if (!info || !Number.isFinite(Number(info.decimals))) return;
+      decimals = Number(info.decimals);
+    } catch {
+      return;
+    }
+  }
+  if (!Number.isFinite(decimals) || decimals <= 0) return;
+  const base = Math.round(human * 10 ** decimals);
+  if (!Number.isFinite(base) || base <= 0) return;
+  params.amount = String(base);
 }
 
 /**
@@ -233,15 +408,19 @@ router.post('/completion', async (req, res) => {
       .pop();
 
     const toolSelectStart = Date.now();
+    /** Normalize toolId so "jupiter_swap_order" becomes "jupiter-swap-order" for backend. */
+    const normalizeToolId = (id) =>
+      id === 'jupiter_swap_order' ? 'jupiter-swap-order' : id;
     /** @type {Array<{ toolId: string; params?: Record<string, string> }>} */
     let matchedTools;
     if (clientToolRequest?.toolId != null) {
-      matchedTools = [{ toolId: clientToolRequest.toolId, params: clientToolRequest.params || {} }];
+      const toolId = normalizeToolId(clientToolRequest.toolId);
+      matchedTools = [{ toolId, params: clientToolRequest.params || {} }];
     } else if (Array.isArray(clientToolRequest?.tools) && clientToolRequest.tools.length > 0) {
       matchedTools = clientToolRequest.tools
         .slice(0, MAX_TOOLS_PER_REQUEST)
         .filter((t) => t?.toolId && getAgentTool(t.toolId))
-        .map((t) => ({ toolId: t.toolId, params: t.params || {} }));
+        .map((t) => ({ toolId: normalizeToolId(t.toolId), params: t.params || {} }));
     } else {
       matchedTools = await selectToolsWithLlm(lastUserMessage);
     }
@@ -311,13 +490,69 @@ router.post('/completion', async (req, res) => {
       });
     } else if (anonymousId) {
       const useTreasury = useTreasuryForTools;
-      let usdcBalance = useTreasury ? Infinity : (await getAgentUsdcBalance(anonymousId))?.usdcBalance ?? 0;
+      // For swap defaults we need both USDC and SOL balances, regardless of who pays the tool fee.
+      const balanceInfoForSwap = await getAgentBalances(anonymousId);
+      let usdcBalance = balanceInfoForSwap?.usdcBalance ?? 0;
+      let solBalanceForSwap = balanceInfoForSwap?.solBalance ?? 0;
+      if (useTreasury) {
+        // Treasury pays the x402 fee but swaps still use the agent wallet; don't cap balances,
+        // just use the actual USDC/SOL values for choosing default from_token.
+      }
       const toolResults = [];
       const toolErrors = [];
       for (const matched of matchedTools) {
         const tool = getAgentTool(matched.toolId);
-        const params = typeof matched.params === 'object' ? matched.params || {} : {};
+        let params = typeof matched.params === 'object' ? { ...matched.params } : {};
         if (!tool) continue;
+        // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount) or infer from message.
+        if (matched.toolId === 'jupiter-swap-order') {
+          const agentAddr = await getAgentAddress(anonymousId);
+          if (agentAddr) params.taker = agentAddr;
+
+          // 1) Prefer explicit LLM params (from_token, to_token, amount).
+          if (!params.inputMint || !params.outputMint || !params.amount) {
+            const fromLlm = normalizeJupiterSwapParams(params);
+            if (fromLlm) {
+              params = { ...params, ...fromLlm };
+            }
+          }
+
+          // 2) If still incomplete, try generic \"swap X TOKEN for TOKEN\" pattern.
+          if (!params.inputMint || !params.outputMint || !params.amount) {
+            const inferredSwap = parseJupiterSwapParamsFromText(lastUserMessage);
+            if (inferredSwap) {
+              params = { ...params, ...inferredSwap };
+            }
+          }
+
+          // 3) If user said \"buy $TOKEN $0.1\" and we still don't have params,
+          //    default from_token to the higher of SOL vs USDC balance and resolve TOKEN via Jupiter.
+          if (!params.inputMint || !params.outputMint || !params.amount) {
+            const inferredBuy = await parseBuyTokenFromText(
+              lastUserMessage,
+              usdcBalance,
+              solBalanceForSwap
+            );
+            if (inferredBuy) {
+              params = { ...params, ...inferredBuy };
+            }
+          }
+
+          // 4) If amount still looks like a human number (e.g. 0.1), convert to base units using inputMint decimals.
+          await normalizeJupiterAmountToBaseUnits(params);
+
+          // 5) If we still don't have full Jupiter params, it means the user
+          //    requested a token outside the supported set (SOL, USDC, SYRA, BONK).
+          //    Instead of calling the swap API and returning a generic 400 error,
+          //    instruct the LLM to clearly say this is not supported yet.
+          if (!params.inputMint || !params.outputMint || !params.amount || !params.taker) {
+            const msg =
+              'The user asked to swap a token that is not currently supported. For now, Syra only supports swaps involving SOL, USDC, SYRA, and BONK. Explain this limitation and ask them to choose one of these tokens.';
+            toolErrors.push(msg);
+            toolUsages.push({ name: tool.name, status: 'error' });
+            continue;
+          }
+        }
         const requiredUsdc = tool.priceUsd;
         if (!useTreasury && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
           const msg =
@@ -359,7 +594,32 @@ router.post('/completion', async (req, res) => {
           if (!useTreasury) amountChargedUsd += tool.priceUsd;
           usdcBalance -= tool.priceUsd;
           toolUsages.push({ name: tool.name, status: 'complete' });
-          const formatted = formatToolResultForLlm(result.data, tool.id);
+          let toolData = result.data;
+          // Jupiter swap: sign and submit the transaction with the agent wallet so the swap executes (agent balance reduced).
+          if (matched.toolId === 'jupiter-swap-order' && toolData?.transaction) {
+            try {
+              const { signature } = await signAndSubmitSwapTransaction(anonymousId, toolData.transaction);
+              toolData = { ...toolData, swapSignature: signature, swapSubmitted: true };
+            } catch (swapErr) {
+              toolData = {
+                ...toolData,
+                swapSubmitted: false,
+                swapError: swapErr?.message || 'Failed to submit swap transaction',
+              };
+            }
+            // Log minimal swap result server-side for debugging without exposing sensitive details.
+            try {
+              console.log('[agent/chat] Jupiter swap result', {
+                swapSubmitted: toolData.swapSubmitted,
+                // Avoid logging full swapSignature or error contents to keep logs non-sensitive.
+                hasSwapSignature: !!toolData.swapSignature,
+                hasSwapError: !!toolData.swapError,
+              });
+            } catch {
+              // ignore logging errors
+            }
+          }
+          const formatted = formatToolResultForLlm(toolData, tool.id);
           toolResults.push(
             `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.]\n\n${formatted}`
           );

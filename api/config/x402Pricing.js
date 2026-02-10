@@ -22,6 +22,9 @@ export const X402_API_PRICE_DEXSCREENER_USD = 0.01; // 0.05
 /** Workfun pump endpoint */
 export const X402_API_PRICE_PUMP_USD = 0.01; // 0.75
 
+/** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
+export const X402_API_PRICE_JUPITER_SWAP_USD = 0.02;
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /v2/analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation + 9 memecoin screens)

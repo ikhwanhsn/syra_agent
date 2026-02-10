@@ -67,7 +67,11 @@ export async function callJatevo(messages, options = {}) {
   }
 
   const choice = data?.choices?.[0];
-  const content = choice?.message?.content || "No response";
+  const rawContent = choice?.message?.content;
+  const content =
+    (typeof rawContent === "string" && rawContent.trim().length > 0)
+      ? rawContent
+      : "I couldn't generate a response for that request. Please try again or rephrase your question.";
   const finishReason = choice?.finish_reason;
   const truncated = finishReason === "length";
 

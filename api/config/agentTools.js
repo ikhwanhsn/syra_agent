@@ -11,6 +11,7 @@ import {
   X402_API_PRICE_DEXSCREENER_USD,
   X402_API_PRICE_PUMP_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
+  X402_API_PRICE_JUPITER_SWAP_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; name: string; description: string }} AgentTool */
@@ -168,6 +169,14 @@ export const AGENT_TOOLS = [
     description: 'Trending tokens on Jupiter',
   },
   {
+    id: 'jupiter-swap-order',
+    path: '/v2/jupiter/swap/order',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_JUPITER_SWAP_USD,
+    name: 'Jupiter swap order (buy/sell token)',
+    description: 'Get a Jupiter Ultra swap order for buying or selling a token on Solana; returns transaction to sign and submit',
+  },
+  {
     id: 'token-report',
     path: '/v2/token-report',
     method: 'GET',
@@ -290,13 +299,47 @@ export const AGENT_TOOLS = [
   },
 ];
 
+/** LLM/frontend may send underscore variant; backend uses hyphen. */
+const JUPITER_SWAP_TOOL_ID_ALIASES = ['jupiter_swap_order', 'jupiter-swap-order'];
+
+/** Token symbols -> mint + decimals for Jupiter swap param normalization (SOL, USDC). */
+const JUPITER_SWAP_TOKEN_MAP = {
+  USDC: { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6 },
+  SOL: { mint: 'So11111111111111111111111111111111111111112', decimals: 9 },
+};
+
 /**
- * Get tool by id.
+ * Convert LLM-style params (from_token, to_token, amount as human number) to Jupiter API params.
+ * @param {Record<string, string>} params
+ * @returns {{ inputMint: string; outputMint: string; amount: string } | null}
+ */
+export function normalizeJupiterSwapParams(params) {
+  if (!params || typeof params !== 'object') return null;
+  const fromSymbol = String(params.from_token || params.fromToken || '').toUpperCase();
+  const toSymbol = String(params.to_token || params.toToken || '').toUpperCase();
+  const amountHuman = params.amount != null ? Number(String(params.amount).replace(/,/g, '')) : NaN;
+  if (!fromSymbol || !toSymbol || !Number.isFinite(amountHuman) || amountHuman <= 0) return null;
+  const fromToken = JUPITER_SWAP_TOKEN_MAP[fromSymbol];
+  const toToken = JUPITER_SWAP_TOKEN_MAP[toSymbol];
+  if (!fromToken || !toToken) return null;
+  const amountBase = Math.round(amountHuman * 10 ** fromToken.decimals);
+  if (!Number.isFinite(amountBase) || amountBase <= 0) return null;
+  return {
+    inputMint: fromToken.mint,
+    outputMint: toToken.mint,
+    amount: String(amountBase),
+  };
+}
+
+/**
+ * Get tool by id. Accepts "jupiter_swap_order" as alias for "jupiter-swap-order".
  * @param {string} toolId
  * @returns {AgentTool | undefined}
  */
 export function getAgentTool(toolId) {
-  return AGENT_TOOLS.find((t) => t.id === toolId);
+  const normalized =
+    toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId) ? 'jupiter-swap-order' : toolId;
+  return AGENT_TOOLS.find((t) => t.id === normalized);
 }
 
 /**
@@ -434,6 +477,13 @@ export function matchToolFromUserMessage(userMessage) {
         ),
     },
     {
+      toolId: 'jupiter-swap-order',
+      test: () =>
+        /jupiter\s*swap|swap\s*(order|token|solana)?|buy\s*token\s*(on\s*solana)?|sell\s*token\s*(on\s*solana)?|swap\s*(via\s*)?jupiter/i.test(
+          text
+        ),
+    },
+    {
       toolId: 'dexscreener',
       test: () =>
         /dexscreener|dex\s*screener|dex\s*data|dex\s*screen/i.test(text),
@@ -549,7 +599,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump'];
   const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];

@@ -35,7 +35,6 @@ export const burnToken = async ({
 
     // 2️⃣ Convert balance from smallest unit
     const userBalance = Number(accountInfo.amount) / 10 ** decimals;
-    console.log("User balance:", userBalance);
 
     // 3️⃣ Check if user holds minimum 100 tokens
     if (userBalance < 100) {
@@ -55,10 +54,10 @@ export const burnToken = async ({
     const tx = new Transaction().add(burnIx);
     const signature = await wallet.sendTransaction(tx, connection);
 
-    console.log("✅ Burn successful! Signature:", signature);
+    console.log("✅ Burn successful!");
     alert("🔥 Token burned successfully!");
   } catch (err) {
-    console.error("❌ Burn failed:", err);
+    console.error("❌ Burn failed:", err instanceof Error ? err.message : "Unknown error");
     alert("Failed to burn token. Check console for details.");
   }
 };
@@ -110,8 +109,6 @@ export const burnTokenByAgent = async ({
     const accountInfo = await getAccount(connection, tokenAccount.address);
     const balance = Number(accountInfo.amount) / 10 ** decimals;
 
-    console.log("AI Agent balance:", balance);
-
     // 6️⃣ Check if agent holds at least 100 tokens
     if (balance < 100) {
       console.log("❌ Agent must hold at least 100 tokens to burn.");
@@ -129,10 +126,9 @@ export const burnTokenByAgent = async ({
     );
 
     console.log("✅ Burn successful!");
-    console.log("Transaction signature:", txSig);
     return txSig;
   } catch (err) {
-    console.error("❌ Burn failed:", err);
+    console.error("❌ Burn failed:", err instanceof Error ? err.message : "Unknown error");
     throw err;
   }
 };

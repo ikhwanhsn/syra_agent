@@ -457,3 +457,41 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
   const paymentHeader = createPaymentHeaderFromTx(transaction, accept, x402Version);
   return { paymentHeader, signature };
 }
+
+/**
+ * Sign and submit a Jupiter swap transaction with the agent wallet.
+ * Used after getting a swap order so the agent's token balance is actually reduced (swap executed).
+ * @param {string} anonymousId - Agent wallet anonymousId
+ * @param {string} serializedTxBase64 - Base64-encoded transaction from Jupiter order response
+ * @returns {Promise<{ signature: string }>} Transaction signature (base58)
+ */
+export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase64) {
+  const keypair = await getAgentKeypair(anonymousId);
+  if (!keypair) {
+    throw new Error('Agent wallet not found for this user');
+  }
+  const connection = new Connection(RPC_URL, 'confirmed');
+  const txBuf = Buffer.from(serializedTxBase64, 'base64');
+  const transaction = VersionedTransaction.deserialize(txBuf);
+  transaction.sign([keypair]);
+  const sig0 = transaction.signatures[0];
+  if (!sig0 || sig0.length !== 64) {
+    throw new Error('Failed to sign swap transaction');
+  }
+  try {
+    const signature = await connection.sendRawTransaction(transaction.serialize(), {
+      skipPreflight: false,
+      maxRetries: 3,
+    });
+    return { signature };
+  } catch (sendErr) {
+    const rawMsg = sendErr?.message || 'Failed to submit swap transaction to Solana';
+    const isDebitNoCredit =
+      /debit an account but found no record of a prior credit/i.test(rawMsg) ||
+      /insufficient funds/i.test(rawMsg);
+    const err = isDebitNoCredit
+      ? 'Agent wallet needs SOL for transaction fees. Send a small amount of SOL (e.g. 0.01) to the agent wallet.'
+      : rawMsg;
+    throw new Error(err);
+  }
+}

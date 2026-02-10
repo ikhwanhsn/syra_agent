@@ -177,6 +177,6 @@ async function main() {
     console.error("Syra MCP server running on stdio.");
 }
 main().catch((err) => {
-    console.error(err);
+    console.error(err instanceof Error ? err.message : "Unknown error");
     process.exit(1);
 });

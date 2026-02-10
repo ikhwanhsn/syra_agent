@@ -4,7 +4,8 @@
  */
 import { Connection, PublicKey } from '@solana/web3.js';
 
-const SYRA_TOKEN_MINT = process.env.SYRA_TOKEN_MINT || '8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump';
+export const SYRA_TOKEN_MINT =
+  process.env.SYRA_TOKEN_MINT || '8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump';
 const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
 const RPC_TIMEOUT_MS = Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 30_000;
 

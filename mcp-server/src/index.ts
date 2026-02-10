@@ -147,6 +147,26 @@ async function main() {
   );
 
   server.tool(
+    "syra_v2_jupiter_swap_order",
+    "Get a Jupiter Ultra swap order (buy/sell token on Solana). Returns a transaction to sign and submit. Requires inputMint, outputMint, amount (smallest units), taker (wallet pubkey)." + PAYMENT_NOTE,
+    {
+      inputMint: z.string().describe("Input token mint address (e.g. SOL: So11111111111111111111111111111111111111112)"),
+      outputMint: z.string().describe("Output token mint address (e.g. USDC: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)"),
+      amount: z.string().describe("Amount in smallest units (e.g. lamports for SOL)"),
+      taker: z.string().describe("Wallet public key that will execute the swap"),
+    },
+    async ({ inputMint, outputMint, amount, taker }) => {
+      const { status, body } = await fetchV2("/v2/jupiter/swap/order", {
+        inputMint,
+        outputMint,
+        amount,
+        taker,
+      });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
     "syra_v2_browse",
     "AI-powered web browsing and information extraction from a URL or search query." + PAYMENT_NOTE,
     {

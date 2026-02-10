@@ -68,6 +68,7 @@ import { createDexscreenerRouter as createV2DexscreenerRouter } from "./v2/route
 import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./v2/routes/partner/nansen/token-god-mode.js";
 import { createPumpRouter as createV2PumpRouter } from "./v2/routes/partner/workfun/pump.js";
 import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./v2/routes/partner/jupiter/trending.js";
+import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./v2/routes/partner/jupiter/swap-order.js";
 import { createTokenReportRouter as createV2TokenReportRouter } from "./v2/routes/partner/rugcheck/token-report.js";
 import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./v2/routes/partner/rugcheck/token-statistic.js";
 import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./v2/routes/partner/rugcheck/token-risk-alerts.js";
@@ -490,6 +491,7 @@ app.use("/v2/dexscreener", await createV2DexscreenerRouter());
 app.use("/v2/token-god-mode", await createV2TokenGodModeRouter());
 app.use("/v2/pump", await createV2PumpRouter());
 app.use("/v2/trending-jupiter", await createV2TrendingJupiterRouter());
+app.use("/v2/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
 app.use("/v2/token-report", await createV2TokenReportRouter());
 app.use("/v2/token-statistic", await createV2TokenStatisticRouter());
 app.use("/v2/token-risk/alerts", await createV2TokenRiskAlertsRouter());
@@ -624,6 +626,7 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/token-god-mode",
       // "https://api.syraa.fun/v2/pump",
       "https://api.syraa.fun/v2/trending-jupiter",
+      "https://api.syraa.fun/v2/jupiter/swap/order",
       "https://api.syraa.fun/v2/token-report",
       "https://api.syraa.fun/v2/token-statistic",
       "https://api.syraa.fun/v2/token-risk/alerts",
