@@ -7,10 +7,10 @@
 ### Official docs, API reference, and guides for the Syra ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
-[![Docs Site](https://img.shields.io/badge/Docs-Docusaurus-26a5e4)](https://syraa.fun/docs)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
+[![Docs Site](https://img.shields.io/badge/Docs-docs.syraa.fun-26a5e4)](https://docs.syraa.fun)
 
-**[Documentation](https://syraa.fun)** · **[API Reference](https://syraa.fun/docs)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syraa_fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Reference](https://docs.syraa.fun)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 

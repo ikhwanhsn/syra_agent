@@ -7,10 +7,10 @@
 ### API testing and exploration UI for the Syra v2 API
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Playground](https://img.shields.io/badge/Playground-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
 
-**[Documentation](https://syraa.fun)** · **[Playground](https://playground.syraa.fun)** · **[API](https://api.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)**
+**[Documentation](https://docs.syraa.fun)** · **[Playground](https://playground.syraa.fun)** · **[API](https://api.syraa.fun)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)**
 
 </div>
 

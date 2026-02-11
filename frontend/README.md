@@ -7,10 +7,10 @@
 ### Dashboard and main web app for the Syra ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Website](https://img.shields.io/badge/Website-syraa.fun-26a5e4)](https://syraa.fun)
 
-**[Documentation](https://syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[API Playground](https://playground.syraa.fun)** · **[X (Twitter)](https://x.com/syraa_fun)**
+**[Documentation](https://docs.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[API Playground](https://playground.syraa.fun)** · **[Agent](https://agent.syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 
@@ -66,7 +66,7 @@ npm run dev
 |----------|------|
 | **Website** | [syraa.fun](https://www.syraa.fun/) |
 | **Telegram Bot** | [@syra_trading_bot](https://t.me/syra_trading_bot) |
-| **Docs** | [syraa.fun/docs](https://syraa.fun/docs) |
+| **Docs** | [docs.syraa.fun](https://docs.syraa.fun) |
 | **X Community** | [Join here](https://x.com/i/communities/1984803953360716275) |
 | **PumpFun Token** | [View](https://pump.fun/coin/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump) |
 

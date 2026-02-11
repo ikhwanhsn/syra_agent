@@ -7,10 +7,10 @@
 ### Backend services and intelligence layer for the Syra ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API](https://img.shields.io/badge/API-Gateway-26a5e4)](https://api.syraa.fun)
 
-**[Documentation](https://syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
+**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://agent.syraa.fun)** · **[x402 Agent](https://x402scan.io)**
 
 </div>
 
@@ -51,7 +51,7 @@ npm install
 npm run dev
 ```
 
-See the [root README](../README.md) and [Syra docs](https://syraa.fun) for full setup and environment details.
+See the [root README](../README.md) and [Syra docs](https://docs.syraa.fun) for full setup and environment details.
 
 ---
 

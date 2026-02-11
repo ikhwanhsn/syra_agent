@@ -7,10 +7,10 @@
 ### Web app for the Syra AI research and trading agent
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Agent](https://img.shields.io/badge/Agent-agent.syraa.fun-26a5e4)](https://agent.syraa.fun)
 
-**[Documentation](https://syraa.fun)** · **[Try Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
+**[Documentation](https://docs.syraa.fun)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
 
 </div>
 

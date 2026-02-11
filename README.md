@@ -7,10 +7,10 @@
 ### The Intelligence Layer for Autonomous Trading Agents
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-26a5e4)](https://t.me/syra_trading_bot)
 
-**[Documentation](https://syraa.fun)** · **[SDK & API](https://syraa.fun/docs)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syraa_fun)** · **[x402 Agent](https://x402scan.io)**
+**[Documentation](https://docs.syraa.fun)** · **[SDK & API](https://docs.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syra_agent)** · **[Agent](https://agent.syraa.fun)** · **[x402 Agent](https://x402scan.io)**
 
 </div>
 
