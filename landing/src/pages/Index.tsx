@@ -10,10 +10,12 @@ import { Roadmap } from "@/components/Roadmap";
 import { Testimonials } from "@/components/Testimonials";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
+import { VoteSupportModal } from "@/components/VoteSupportModal";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+      <VoteSupportModal />
       <Navbar />
       <main>
         <HeroSection />
