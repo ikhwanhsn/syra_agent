@@ -155,6 +155,14 @@
   #root {
     min-height: 100dvh;
     min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  @media (max-width: 1023px) {
+    #root {
+      min-height: -webkit-fill-available;
+    }
   }
 }
 

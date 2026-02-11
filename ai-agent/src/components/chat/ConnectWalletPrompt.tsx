@@ -25,7 +25,7 @@ export function ConnectWalletPrompt({
         <Button
           onClick={onConnectClick}
           size="sm"
-          className="w-full gap-2"
+          className="w-full gap-2 min-h-[44px] touch-manipulation"
         >
           <Wallet className="w-4 h-4" />
           Connect wallet
@@ -57,7 +57,7 @@ export function ConnectWalletPrompt({
         </p>
       </div>
 
-      <Button onClick={onConnectClick} className="gap-2 touch-manipulation">
+      <Button onClick={onConnectClick} className="gap-2 min-h-[48px] touch-manipulation">
         <Wallet className="w-4 h-4 shrink-0" />
         Connect wallet
       </Button>

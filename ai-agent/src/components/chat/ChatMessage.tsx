@@ -107,8 +107,8 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
   const markdownComponents: Components = {
     // Tables: scrollable container and styled cells
     table: ({ children, ...props }) => (
-      <div className="my-4 overflow-x-auto rounded-xl border border-border max-w-full scrollbar-thin">
-        <table className="w-full min-w-[280px] sm:min-w-[400px] border-collapse text-sm" {...props}>
+      <div className="my-4 overflow-x-auto rounded-xl border border-border max-w-full scrollbar-thin -mx-1 sm:mx-0">
+        <table className="w-full min-w-[240px] sm:min-w-[400px] border-collapse text-sm" {...props}>
           {children}
         </table>
       </div>
@@ -140,29 +140,53 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
       const hasLanguage = className?.startsWith("language-");
       const isBlock = hasLanguage || code.includes("\n");
       const lang = className?.replace("language-", "") ?? "plaintext";
+      // Detect very long single-line strings (like transaction signatures)
+      const isLongSingleLine = !code.includes("\n") && code.length > 40;
       if (isBlock) {
         return (
-          <div className="my-3 rounded-xl overflow-hidden border border-border max-w-full">
+          <div className="my-3 rounded-xl overflow-hidden border border-border max-w-full min-w-0">
             <div className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-secondary/50 border-b border-border min-w-0">
-              <span className="text-xs font-medium text-muted-foreground truncate">{lang}</span>
+              <span className="text-xs font-medium text-muted-foreground truncate min-w-0">{lang}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1.5 text-xs shrink-0"
+                className="h-8 sm:h-7 gap-1.5 text-xs shrink-0 min-h-[36px] sm:min-h-0 touch-manipulation"
                 onClick={() => navigator.clipboard.writeText(code)}
+                title="Copy code"
+                aria-label="Copy code"
               >
-                <Copy className="w-3 h-3" />
-                Copy
+                <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+                <span className="hidden sm:inline">Copy</span>
               </Button>
             </div>
-            <pre className="p-3 sm:p-4 overflow-x-auto bg-secondary/30 text-xs sm:text-sm">
-              <code className="font-mono text-foreground break-words">{children}</code>
+            <pre className={cn(
+              "p-3 sm:p-4 bg-secondary/30 text-xs sm:text-sm min-w-0 max-w-full scrollbar-thin",
+              // For long single-line strings (like signatures): wrap on all screens
+              // For multi-line code blocks: allow horizontal scroll
+              isLongSingleLine 
+                ? "overflow-x-auto break-all whitespace-pre-wrap" 
+                : "overflow-x-auto whitespace-pre"
+            )}
+            style={isLongSingleLine ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
+            >
+              <code 
+                className="font-mono text-foreground break-all min-w-0" 
+                style={isLongSingleLine ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
+              >
+                {children}
+              </code>
             </pre>
           </div>
         );
       }
+      const inlineCode = String(children);
+      const isLongInline = inlineCode.length > 30 && !inlineCode.includes(' ');
       return (
-        <code className="rounded bg-secondary/60 px-1.5 py-0.5 text-sm font-mono text-foreground" {...props}>
+        <code 
+          className="rounded bg-secondary/60 px-1.5 py-0.5 text-sm font-mono text-foreground break-all" 
+          style={isLongInline ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
+          {...props}
+        >
           {children}
         </code>
       );
@@ -195,12 +219,22 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
       <ol className="my-2 ml-4 list-decimal space-y-1 text-foreground" {...props}>{children}</ol>
     ),
     li: ({ children, ...props }) => (
-      <li className="pl-1" {...props}>{children}</li>
+      <li className="pl-1 break-words min-w-0" {...props}>{children}</li>
     ),
-    // Paragraphs and blockquote
-    p: ({ children, ...props }) => (
-      <p className="my-2 whitespace-pre-wrap text-foreground leading-relaxed" {...props}>{children}</p>
-    ),
+    // Paragraphs and blockquote — wrap long strings like signatures
+    p: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : String(children);
+      const hasLongString = text.length > 50 && !text.includes(' ');
+      return (
+        <p 
+          className="my-2 whitespace-pre-wrap text-foreground leading-relaxed break-words min-w-0" 
+          style={hasLongString ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
+          {...props}
+        >
+          {children}
+        </p>
+      );
+    },
     blockquote: ({ children, ...props }) => (
       <blockquote className="my-2 border-l-4 border-primary/50 pl-4 italic text-muted-foreground" {...props}>
         {children}
@@ -219,18 +253,18 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
   return (
     <div
       className={cn(
-        "group flex gap-3 sm:gap-4 px-3 py-4 sm:px-4 sm:py-6 animate-fade-in min-w-0",
+        "group flex gap-3 sm:gap-4 px-3 py-4 sm:px-4 sm:py-6 animate-fade-in min-w-0 max-w-full overflow-hidden",
         isUser ? "bg-transparent" : "bg-secondary/30"
       )}
     >
       <div className="flex-shrink-0">
         {isUser ? (
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
-            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground" />
+          <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
+            <User className="w-4 h-4 text-foreground" />
           </div>
         ) : (
           <div className="relative">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0">
               <img src={agentAvatar} alt={agentName} className="w-full h-full object-cover" />
             </div>
             {message.isStreaming && (
@@ -240,12 +274,12 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
         )}
       </div>
 
-      <div className="flex-1 min-w-0 space-y-2">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className="font-medium text-sm text-foreground">
+      <div className="flex-1 min-w-0 overflow-hidden space-y-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0 gap-y-0.5">
+          <span className="font-medium text-sm text-foreground shrink-0">
             {isUser ? "You" : agentName}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground shrink-0">
             {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
           {!isUser && (message.toolUsage || (message.toolUsages && message.toolUsages.length > 0)) && (() => {
@@ -257,9 +291,9 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
             if (tools.length === 0) return null;
             const names = tools.map((t) => t.name).join(", ");
             return (
-              <span className="text-xs text-muted-foreground ml-auto shrink-0 flex items-center gap-1">
-                <Wrench className="w-3 h-3 text-muted-foreground" />
-                {names}
+              <span className="hidden sm:flex text-xs text-muted-foreground ml-auto min-w-0 items-center gap-1 overflow-hidden">
+                <Wrench className="w-3 h-3 text-muted-foreground shrink-0" />
+                <span className="truncate" title={names}>{names}</span>
               </span>
             );
           })()}
@@ -274,10 +308,10 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
               : [];
           if (tools.length === 0) return null;
           return (
-            <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 border-b border-border bg-muted/80">
+            <div className="rounded-xl border border-border bg-muted/50 overflow-hidden min-w-0">
+              <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 border-b border-border bg-muted/80 min-w-0">
                 <Wrench className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
                   {tools.length === 1 ? "Tool used for this answer" : "Tools used for this answer"}
                 </span>
               </div>
@@ -286,7 +320,7 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
                   <li
                     key={i}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3",
+                      "flex items-center gap-2 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-0",
                       tool.status === "error" && "bg-destructive/5"
                     )}
                   >
@@ -297,8 +331,8 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
                     ) : (
                       <Check className="w-4 h-4 text-green-500 shrink-0" />
                     )}
-                    <span className="text-sm font-medium text-foreground">{tool.name}</span>
-                    <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                    <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1" title={tool.name}>{tool.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
                       {tool.status === "running" ? "Running…" : tool.status === "error" ? "Error" : "Complete"}
                     </span>
                   </li>
@@ -309,7 +343,7 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
         })()}
 
         {/* Message Content - auto-detects markdown (tables, code, headings, lists) and renders rich UI */}
-        <div className="text-foreground leading-relaxed">
+        <div className="text-foreground leading-relaxed break-words min-w-0">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
             {message.content}
           </ReactMarkdown>
@@ -322,13 +356,13 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
           )}
         </div>
 
-        {/* Actions */}
+        {/* Actions — always visible on touch for mobile */}
         {!isUser && !message.isStreaming && (
-          <div className="flex flex-wrap items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-2">
+          <div className="flex flex-wrap items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity pt-2">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation"
+              className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
               onClick={copyToClipboard}
             >
               {copied ? (
@@ -341,7 +375,7 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation"
+              className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
               onClick={() => onRegenerate?.(message.id)}
               disabled={!onRegenerate || isRegenerateDisabled}
             >

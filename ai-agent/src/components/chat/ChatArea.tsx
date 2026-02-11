@@ -130,14 +130,14 @@ export function ChatArea({
   }, [isAtBottom]);
 
   return (
-    <div className="flex flex-col h-full min-h-0 min-w-0">
-      {/* Header */}
-      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] sm:min-h-0 shrink-0">
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
+      {/* Header — safe-area-top for notched devices, touch-friendly on mobile */}
+      <header className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-2.5 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[56px] sm:min-h-[52px] shrink-0 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
           <Button
             variant="ghost"
             size="icon"
-            className={(sidebarCollapsed ? "" : "lg:hidden ") + "h-9 w-9 shrink-0 touch-manipulation"}
+            className={(sidebarCollapsed ? "" : "lg:hidden ") + "h-10 w-10 sm:h-9 sm:w-9 shrink-0 touch-manipulation min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"}
             onClick={onToggleSidebar}
             title={sidebarCollapsed ? "Show sidebar" : "Open menu"}
             aria-label={sidebarCollapsed ? "Show sidebar" : "Open menu"}
@@ -145,12 +145,12 @@ export function ChatArea({
             <Menu className="w-5 h-5" />
           </Button>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
           {onToggleDarkMode && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0"
+              className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 touch-manipulation"
               onClick={onToggleDarkMode}
               title={isDarkMode ? "Light mode" : "Dark mode"}
               aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
@@ -182,10 +182,10 @@ export function ChatArea({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin"
+          className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin overscroll-behavior-contain"
         >
-          <div className="flex flex-col flex-1 min-w-0">
-            <div className="divide-y divide-border/50 flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0 max-w-full">
+            <div className="divide-y divide-border/50 flex-1 min-w-0 w-full">
               {messages.map((message) => {
                 const isEmptyStreamingAssistant =
                   message.role === "assistant" &&

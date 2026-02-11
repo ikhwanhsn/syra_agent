@@ -197,14 +197,14 @@ export function Sidebar({
     <aside
       className={cn(
         "flex flex-col h-full bg-card border-r border-border",
-        isOverlay && "fixed left-0 top-0 z-40 w-[280px] max-w-[85vw] sm:max-w-[90vw] h-screen transition-transform duration-300 ease-out safe-area-top safe-area-bottom",
+        isOverlay && "fixed left-0 top-0 z-40 w-[280px] max-w-[min(320px,85vw)] sm:max-w-[90vw] h-screen max-h-[100dvh] transition-transform duration-300 ease-out safe-area-top safe-area-bottom overflow-y-auto",
         isOverlay && (isOpen ? "translate-x-0" : "-translate-x-full"),
         isResizable && "w-full min-w-0"
       )}
     >
       <div ref={sidebarRef} className="flex flex-col flex-1 min-w-0 overflow-hidden min-h-0">
-      {/* Header */}
-      <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-border shrink-0">
+      {/* Header — safe area for notch on mobile */}
+      <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-border shrink-0 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
         {onLogoClick ? (
           <button
             type="button"

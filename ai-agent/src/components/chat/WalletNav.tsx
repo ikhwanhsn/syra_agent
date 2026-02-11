@@ -127,7 +127,7 @@ export function WalletNav() {
   if (!connected) {
     return (
       <Button
-        className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm px-2 sm:px-3 touch-manipulation shrink-0"
+        className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm px-3 sm:px-3 touch-manipulation shrink-0"
         onClick={() => setWalletModalVisible(true)}
       >
         <Wallet className="w-4 h-4 mr-1.5 sm:mr-2 shrink-0" />
@@ -137,7 +137,7 @@ export function WalletNav() {
   }
 
   const navItemClass =
-    "h-9 rounded-lg border border-border bg-background px-2 sm:px-3 gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm inline-flex items-center min-w-0";
+    "h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg border border-border bg-background px-2.5 sm:px-3 gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm inline-flex items-center min-w-0 touch-manipulation";
 
   const balanceJustReduced = lastDebitUsd != null && lastDebitUsd > 0;
 
@@ -148,7 +148,7 @@ export function WalletNav() {
         <Button
           variant="outline"
           size="sm"
-          className="h-9 rounded-lg font-medium text-xs sm:text-sm px-2 sm:px-3 gap-1.5 shrink-0"
+          className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg font-medium text-xs sm:text-sm px-2.5 sm:px-3 gap-1.5 shrink-0 touch-manipulation"
           onClick={() => setFuelModalOpen(true)}
           title="Add USDC and SOL to agent wallet"
           aria-label="Fuel the agent"
@@ -192,7 +192,7 @@ export function WalletNav() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className={`${navItemClass} min-w-0 max-w-[140px] sm:max-w-[180px] justify-between`}
+            className={`${navItemClass} min-w-0 max-w-[130px] sm:max-w-[180px] justify-between`}
           >
             <span className="truncate">{connectedWalletShort ?? "…"}</span>
             <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 opacity-50" />

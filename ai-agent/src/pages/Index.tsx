@@ -922,7 +922,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background min-h-0">
+    <div className="h-screen min-h-[100dvh] flex flex-col overflow-hidden bg-background">
       {/* API connection error banner */}
       {apiConnectionError && (
         <Alert variant="destructive" className="rounded-none border-x-0 border-t-0 shrink-0">
@@ -1037,11 +1037,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         </ResizablePanelGroup>
       </div>
 
-      {/* Mobile: main content */}
+      {/* Mobile: main content — full width, proper flex for keyboard */}
       <main
         className={cn(
-          "flex-1 flex flex-col min-h-0 min-w-0 lg:hidden",
-          "transition-all duration-300"
+          "flex-1 flex flex-col min-h-0 min-w-0 w-full lg:hidden",
+          "transition-all duration-300 overflow-hidden"
         )}
       >
         <ChatArea
