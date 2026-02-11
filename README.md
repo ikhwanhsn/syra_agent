@@ -1,6 +1,6 @@
 <div align="center">
 
-![Syra Logo](frontend/public/images/logo.jpg)
+<img src="frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra**
 
