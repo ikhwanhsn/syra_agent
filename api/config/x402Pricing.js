@@ -1,29 +1,38 @@
 /**
  * x402 API pricing in USD – single place to maintain all x402 endpoint prices.
  * Import the constant that matches your endpoint tier.
+ *
+ * Environment-based pricing:
+ * - Local (NODE_ENV !== 'production'): cheap prices for testing
+ * - Production: 10x base price ("kill 1 zero")
  */
-export const X402_API_PRICE_USD = 0.01; // 0.15
+const isProduction = process.env.NODE_ENV === 'production';
+const mult = isProduction ? 10 : 0.01; // production: 10x; local: 1/100 (cheap)
+
+const price = (base) => base * mult;
+
+export const X402_API_PRICE_USD = price(0.01);
 
 /** Check-status / health endpoints (minimal fee) */
-export const X402_API_PRICE_CHECK_STATUS_USD = 0.0001;
+export const X402_API_PRICE_CHECK_STATUS_USD = price(0.0001);
 
 /** News endpoints */
-export const X402_API_PRICE_NEWS_USD = 0.01; // 0.1
+export const X402_API_PRICE_NEWS_USD = price(0.01);
 
 /** Research / deep research endpoints */
-export const X402_API_PRICE_RESEARCH_USD = 0.01; // 0.75
+export const X402_API_PRICE_RESEARCH_USD = price(0.01);
 
 /** Nansen (smart-money, token-god-mode) endpoints */
-export const X402_API_PRICE_NANSEN_USD = 0.01; // 0.5
+export const X402_API_PRICE_NANSEN_USD = price(0.01);
 
 /** DexScreener endpoints */
-export const X402_API_PRICE_DEXSCREENER_USD = 0.01; // 0.05
+export const X402_API_PRICE_DEXSCREENER_USD = price(0.01);
 
 /** Workfun pump endpoint */
-export const X402_API_PRICE_PUMP_USD = 0.01; // 0.75
+export const X402_API_PRICE_PUMP_USD = price(0.01);
 
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
-export const X402_API_PRICE_JUPITER_SWAP_USD = 0.02;
+export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
 /**
  * Analytics summary: sum of all tools included in GET/POST /v2/analytics/summary.
