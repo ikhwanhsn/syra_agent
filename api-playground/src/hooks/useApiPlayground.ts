@@ -226,6 +226,58 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     url: `${base}/v2/pump`,
     params: [],
   },
+  {
+    id: 'coingecko-simple-price',
+    label: 'CoinGecko simple price',
+    method: 'GET',
+    url: `${base}/v2/coingecko/simple-price`,
+    params: [
+      { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols' },
+      { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
+      { key: 'include_24hr_vol', value: 'true', enabled: false, description: 'true/false' },
+      { key: 'include_24hr_change', value: 'true', enabled: false, description: 'true/false' },
+    ],
+  },
+  {
+    id: 'coingecko-onchain-token-price',
+    label: 'CoinGecko onchain token price',
+    method: 'GET',
+    url: `${base}/v2/coingecko/onchain/token-price`,
+    params: [
+      { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
+      { key: 'address', value: '', enabled: true, description: 'Token contract address (comma for multiple)' },
+    ],
+  },
+  {
+    id: 'coingecko-search-pools',
+    label: 'CoinGecko search pools',
+    method: 'GET',
+    url: `${base}/v2/coingecko/onchain/search-pools`,
+    params: [
+      { key: 'query', value: 'pump', enabled: true, description: 'Search query (name, symbol, or address)' },
+      { key: 'network', value: 'solana', enabled: true, description: 'e.g. solana, base' },
+    ],
+  },
+  {
+    id: 'coingecko-trending-pools',
+    label: 'CoinGecko trending pools',
+    method: 'GET',
+    url: `${base}/v2/coingecko/onchain/trending-pools`,
+    params: [
+      { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana' },
+      { key: 'duration', value: '5m', enabled: false, description: 'e.g. 5m' },
+    ],
+  },
+  {
+    id: 'coingecko-onchain-token',
+    label: 'CoinGecko onchain token',
+    method: 'GET',
+    url: `${base}/v2/coingecko/onchain/token`,
+    params: [
+      { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
+      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+    ],
+  },
   // Memecoin
   {
     id: 'memecoin-fastest-holder-growth',
@@ -349,6 +401,11 @@ function getV2ApiEndpoints(): string[] {
     `${base}/v2/token-risk/alerts`,
     `${base}/v2/bubblemaps/maps`,
     `${base}/v2/binance/correlation`,
+    `${base}/v2/coingecko/simple-price`,
+    `${base}/v2/coingecko/onchain/token-price`,
+    `${base}/v2/coingecko/onchain/search-pools`,
+    `${base}/v2/coingecko/onchain/trending-pools`,
+    `${base}/v2/coingecko/onchain/token`,
   ];
 }
 
@@ -390,6 +447,36 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/v2/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
       '/v2/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'e.g. BTCUSDT, ETHUSDT' }],
       '/v2/binance/correlation-matrix': [],
+      '/v2/coingecko/simple-price': [
+        { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols (or use ids)' },
+        { key: 'ids', value: '', enabled: false, description: 'Comma-separated CoinGecko ids (e.g. bitcoin,ethereum)' },
+        { key: 'vs_currencies', value: 'usd', enabled: false, description: 'e.g. usd' },
+        { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
+        { key: 'include_24hr_vol', value: 'true', enabled: false, description: 'true/false' },
+        { key: 'include_24hr_change', value: 'true', enabled: false, description: 'true/false' },
+      ],
+      '/v2/coingecko/onchain/token-price': [
+        { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
+        { key: 'address', value: '', enabled: true, description: 'Token contract address (comma for multiple)' },
+        { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
+      ],
+      '/v2/coingecko/onchain/search-pools': [
+        { key: 'query', value: '', enabled: true, description: 'Search query (name, symbol, or contract address)' },
+        { key: 'network', value: 'solana', enabled: true, description: 'e.g. solana, base' },
+        { key: 'page', value: '1', enabled: false, description: 'Page number' },
+        { key: 'include', value: 'base_token,quote_token,dex', enabled: false, description: 'Comma-separated' },
+      ],
+      '/v2/coingecko/onchain/trending-pools': [
+        { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana' },
+        { key: 'duration', value: '5m', enabled: false, description: 'e.g. 5m' },
+        { key: 'page', value: '1', enabled: false, description: 'Page number' },
+      ],
+      '/v2/coingecko/onchain/token': [
+        { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
+        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+        { key: 'include', value: 'top_pools', enabled: false, description: 'e.g. top_pools' },
+        { key: 'include_composition', value: 'true', enabled: false, description: 'true/false' },
+      ],
     };
     const exact = known[path];
     if (exact) return exact.map((p) => ({ ...p }));

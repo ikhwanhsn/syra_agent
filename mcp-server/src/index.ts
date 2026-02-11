@@ -295,6 +295,107 @@ async function main() {
     },
   );
 
+  // --- CoinGecko x402 simple price & onchain token price ---
+  server.tool(
+    "syra_v2_coingecko_simple_price",
+    "CoinGecko x402: USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum). Provide either symbols or ids." + PAYMENT_NOTE,
+    {
+      symbols: z.string().optional().describe("Comma-separated symbols (e.g. btc,eth,sol)"),
+      ids: z.string().optional().describe("Comma-separated CoinGecko ids (e.g. bitcoin,ethereum,solana)"),
+      vs_currencies: z.string().optional().default("usd").describe("e.g. usd"),
+      include_market_cap: z.string().optional().describe("true/false"),
+      include_24hr_vol: z.string().optional().describe("true/false"),
+      include_24hr_change: z.string().optional().describe("true/false"),
+    },
+    async ({ symbols, ids, vs_currencies, include_market_cap, include_24hr_vol, include_24hr_change }) => {
+      const params: Record<string, string> = { vs_currencies: vs_currencies ?? "usd" };
+      if (symbols) params.symbols = symbols;
+      if (ids) params.ids = ids;
+      if (include_market_cap) params.include_market_cap = include_market_cap;
+      if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
+      if (include_24hr_change) params.include_24hr_change = include_24hr_change;
+      const { status, body } = await fetchV2("/v2/coingecko/simple-price", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_coingecko_onchain_token_price",
+    "CoinGecko x402: token price(s) by contract address on a network. Supports multiple addresses comma-separated. Requires network and address." + PAYMENT_NOTE,
+    {
+      network: z.string().describe("Network id (e.g. base, solana, eth)"),
+      address: z.string().describe("Token contract address (comma-separated for multiple)"),
+      include_market_cap: z.string().optional().describe("true/false"),
+      include_24hr_vol: z.string().optional().describe("true/false"),
+      include_24hr_price_change: z.string().optional().describe("true/false"),
+    },
+    async ({ network, address, include_market_cap, include_24hr_vol, include_24hr_price_change }) => {
+      const params: Record<string, string> = { network: network ?? "", address: address ?? "" };
+      if (include_market_cap) params.include_market_cap = include_market_cap;
+      if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
+      if (include_24hr_price_change) params.include_24hr_price_change = include_24hr_price_change;
+      const { status, body } = await fetchV2("/v2/coingecko/onchain/token-price", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  // --- CoinGecko x402 onchain ---
+  server.tool(
+    "syra_v2_coingecko_search_pools",
+    "CoinGecko x402: search pools and tokens by name, symbol, or contract address on a network (e.g. solana, base)." + PAYMENT_NOTE,
+    {
+      query: z.string().describe("Search query (name, symbol, or contract address)"),
+      network: z.string().optional().default("solana").describe("Network id (e.g. solana, base)"),
+      page: z.string().optional().describe("Page number"),
+      include: z.string().optional().describe("Comma-separated: base_token, quote_token, dex"),
+    },
+    async ({ query, network, page, include }) => {
+      const params: Record<string, string> = { query: query ?? "", network: network ?? "solana" };
+      if (page) params.page = page;
+      if (include) params.include = include;
+      const { status, body } = await fetchV2("/v2/coingecko/onchain/search-pools", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_coingecko_trending_pools",
+    "CoinGecko x402: trending pools and tokens by network (e.g. base, solana). Optional duration (e.g. 5m)." + PAYMENT_NOTE,
+    {
+      network: z.string().optional().default("base").describe("Network id (e.g. base, solana)"),
+      duration: z.string().optional().default("5m").describe("Duration (e.g. 5m)"),
+      page: z.string().optional().describe("Page number"),
+      include_gt_community_data: z.string().optional().describe("Include community data (true/false)"),
+      include: z.string().optional().describe("Comma-separated fields"),
+    },
+    async ({ network, duration, page, include_gt_community_data, include }) => {
+      const params: Record<string, string> = { network: network ?? "base", duration: duration ?? "5m" };
+      if (page) params.page = page;
+      if (include_gt_community_data) params.include_gt_community_data = include_gt_community_data;
+      if (include) params.include = include;
+      const { status, body } = await fetchV2("/v2/coingecko/onchain/trending-pools", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_coingecko_onchain_token",
+    "CoinGecko x402: token data by contract address on a network (price, liquidity, top pools). Requires network and address." + PAYMENT_NOTE,
+    {
+      network: z.string().describe("Network id (e.g. base, solana, eth)"),
+      address: z.string().describe("Token contract address"),
+      include: z.string().optional().describe("e.g. top_pools"),
+      include_composition: z.string().optional().describe("true/false"),
+    },
+    async ({ network, address, include, include_composition }) => {
+      const params: Record<string, string> = { network: network ?? "", address: address ?? "" };
+      if (include) params.include = include;
+      if (include_composition) params.include_composition = include_composition;
+      const { status, body } = await fetchV2("/v2/coingecko/onchain/token", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   // --- Memecoin screens (all no-param GET) ---
   const memecoinTools: Array<{ name: string; path: string; description: string }> = [
     { name: "syra_v2_memecoin_fastest_holder_growth", path: "/v2/memecoin/fastest-holder-growth", description: "Fastest growing memecoins by holder growth rate." + PAYMENT_NOTE },

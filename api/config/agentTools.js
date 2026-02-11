@@ -12,6 +12,7 @@ import {
   X402_API_PRICE_PUMP_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_JUPITER_SWAP_USD,
+  X402_API_PRICE_COINGECKO_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; name: string; description: string }} AgentTool */
@@ -223,6 +224,47 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_PUMP_USD,
     name: 'Pump (Workfun)',
     description: 'Pump data from Workfun',
+  },
+  // Partner: CoinGecko x402 (simple price + onchain)
+  {
+    id: 'coingecko-simple-price',
+    path: '/v2/coingecko/simple-price',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINGECKO_USD,
+    name: 'CoinGecko simple price',
+    description: 'USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum)',
+  },
+  {
+    id: 'coingecko-onchain-token-price',
+    path: '/v2/coingecko/onchain/token-price',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINGECKO_USD,
+    name: 'CoinGecko onchain token price',
+    description: 'Token price(s) by contract address on a network; supports multiple addresses comma-separated (network + address required)',
+  },
+  {
+    id: 'coingecko-search-pools',
+    path: '/v2/coingecko/onchain/search-pools',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINGECKO_USD,
+    name: 'CoinGecko search pools',
+    description: 'Search pools and tokens by name, symbol, or contract address on a network (e.g. solana, base)',
+  },
+  {
+    id: 'coingecko-trending-pools',
+    path: '/v2/coingecko/onchain/trending-pools',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINGECKO_USD,
+    name: 'CoinGecko trending pools',
+    description: 'Trending pools and tokens by network (e.g. base, solana) with optional duration (e.g. 5m)',
+  },
+  {
+    id: 'coingecko-onchain-token',
+    path: '/v2/coingecko/onchain/token',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINGECKO_USD,
+    name: 'CoinGecko onchain token',
+    description: 'Token data by contract address on a network: price, liquidity, top pools (network + address required)',
   },
   // Memecoin
   {
@@ -493,6 +535,32 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /pump\.fun|pump\s*fun|pump\s*data|workfun\s*pump/i.test(text),
     },
+    // Partner: CoinGecko x402 onchain
+    {
+      toolId: 'coingecko-search-pools',
+      test: () =>
+        /coingecko\s*search\s*pools|search\s*pools\s*coingecko|search\s*tokens?\s*(and\s*)?pools?|pools?\s*search\s*(solana|base)/i.test(text),
+    },
+    {
+      toolId: 'coingecko-trending-pools',
+      test: () =>
+        /coingecko\s*trending|trending\s*pools?\s*(on\s*)?(base|solana)|trending\s*(on\s*)?(base|solana)\s*pools?|coingecko\s*trending\s*pools?/i.test(text),
+    },
+    {
+      toolId: 'coingecko-onchain-token',
+      test: () =>
+        /coingecko\s*token\s*(data|by\s*address)?|token\s*data\s*coingecko|onchain\s*token\s*(data)?|token\s*by\s*address\s*coingecko/i.test(text),
+    },
+    {
+      toolId: 'coingecko-simple-price',
+      test: () =>
+        /(?:what\'?s?|get|current|latest)?\s*(?:the\s*)?price\s*(?:of|for)?\s*(?:btc|eth|sol|bitcoin|ethereum|solana|crypto)|coingecko\s*simple\s*price|price\s*(?:of\s*)?(?:btc|eth|sol|bitcoin|ethereum)/i.test(text),
+    },
+    {
+      toolId: 'coingecko-onchain-token-price',
+      test: () =>
+        /token\s*price\s*by\s*(?:contract\s*)?address|onchain\s*token\s*price|price\s*of\s*token\s*(?:at|by)\s*address|coingecko\s*token\s*price/i.test(text),
+    },
     // Core: signal, event, browse, x-search, gems, KOL, digest, headline
     {
       toolId: 'signal',
@@ -599,7 +667,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
   const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
@@ -633,6 +701,21 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'signal') {
       out.paramsHint = 'Optional params: token (bitcoin, ethereum, solana) — use the token the user asked for';
+    }
+    if (t.id === 'coingecko-simple-price') {
+      out.paramsHint = 'Params: symbols (e.g. btc,eth,sol) or ids (e.g. bitcoin,ethereum); optional include_market_cap, include_24hr_vol, include_24hr_change';
+    }
+    if (t.id === 'coingecko-onchain-token-price') {
+      out.paramsHint = 'Params: network (e.g. base, solana, eth), address (contract address, required; comma-separated for multiple)';
+    }
+    if (t.id === 'coingecko-search-pools') {
+      out.paramsHint = 'Params: query (required), network (e.g. solana, base)';
+    }
+    if (t.id === 'coingecko-trending-pools') {
+      out.paramsHint = 'Params: network (e.g. base, solana), optional duration (e.g. 5m)';
+    }
+    if (t.id === 'coingecko-onchain-token') {
+      out.paramsHint = 'Params: network (e.g. base, solana, eth), address (token contract address, required)';
     }
     return out;
   });

@@ -105,6 +105,11 @@ export const navigation: NavItem[] = [
         items: [{ title: "Pump", href: api("pump") }],
       },
       {
+        title: "Partner: CoinGecko",
+        defaultCollapsed: false,
+        items: [{ title: "CoinGecko API", href: api("coingecko-onchain") }],
+      },
+      {
         title: "Memecoin",
         defaultCollapsed: true,
         items: [

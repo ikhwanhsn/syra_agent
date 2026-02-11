@@ -34,6 +34,9 @@ export const X402_API_PRICE_PUMP_USD = price(0.01);
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
+/** CoinGecko x402 (onchain search pools, trending pools, token by address) */
+export const X402_API_PRICE_COINGECKO_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /v2/analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation + 9 memecoin screens)

@@ -49,6 +49,10 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["pump"],
   },
   {
+    title: "Partner: CoinGecko",
+    slugs: ["coingecko-onchain"],
+  },
+  {
     title: "Memecoin",
     slugs: [
       "memecoin-fastest-holder-growth",

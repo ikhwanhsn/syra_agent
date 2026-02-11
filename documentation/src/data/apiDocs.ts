@@ -878,6 +878,153 @@ curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
     ],
   }),
 
+  "coingecko-onchain": doc({
+    title: "CoinGecko API (x402)",
+    overview:
+      "Partner API with CoinGecko x402: simple USD price by symbol or id, onchain token price by contract address, search pools, trending pools, and full token data. Data is sourced from CoinGecko's pay-per-use x402 API. Supports networks such as base, solana, and eth. Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    useCases: [
+      "Get current USD price for BTC, ETH, SOL or other coins by symbol or CoinGecko id",
+      "Get token price(s) by contract address on a network (single or multiple addresses)",
+      "Search for pools and tokens by name, symbol, or contract address on a given network",
+      "Get trending pools and tokens on Base or Solana (e.g. last 5 minutes)",
+      "Get token profile by contract address: price, FDV, volume, top pools, composition",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/v2/coingecko/simple-price",
+        description: "USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum). Requires either symbols or ids.",
+        params: [
+          { name: "symbols", type: "string", required: "No*", description: "Comma-separated symbols (e.g. btc,eth,sol). *Required if ids omitted." },
+          { name: "ids", type: "string", required: "No*", description: "Comma-separated CoinGecko ids (e.g. bitcoin,ethereum,solana). *Required if symbols omitted." },
+          { name: "vs_currencies", type: "string", required: "No", description: "e.g. usd. Default: usd." },
+          { name: "include_market_cap", type: "string", required: "No", description: "true/false." },
+          { name: "include_24hr_vol", type: "string", required: "No", description: "true/false." },
+          { name: "include_24hr_change", type: "string", required: "No", description: "true/false." },
+        ],
+        requestExample: `# By symbols
+curl "${BASE_URL}/coingecko/simple-price?symbols=btc,eth,sol&include_market_cap=true"
+
+# By CoinGecko ids
+curl "${BASE_URL}/coingecko/simple-price?ids=bitcoin,ethereum,solana&vs_currencies=usd"`,
+        responseExample: `{
+  "bitcoin": { "usd": 97234.5, "usd_market_cap": 1912345678901 },
+  "ethereum": { "usd": 3456.78, "usd_market_cap": 415000000000 },
+  "solana": { "usd": 234.56, "usd_market_cap": 108000000000 }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/v2/coingecko/onchain/token-price",
+        description: "Token price(s) by contract address on a network. Address can be comma-separated for multiple tokens.",
+        params: [
+          { name: "network", type: "string", required: "Yes", description: "Network id (e.g. base, solana, eth)." },
+          { name: "address", type: "string", required: "Yes", description: "Token contract address (comma-separated for multiple)." },
+          { name: "include_market_cap", type: "string", required: "No", description: "true/false." },
+          { name: "include_24hr_vol", type: "string", required: "No", description: "true/false." },
+          { name: "include_24hr_price_change", type: "string", required: "No", description: "true/false." },
+        ],
+        requestExample: `# Single token on Base
+curl "${BASE_URL}/coingecko/onchain/token-price?network=base&address=0x4200000000000000000000000000000000000006"
+
+# Multiple tokens (comma-separated)
+curl "${BASE_URL}/coingecko/onchain/token-price?network=base&address=0x...,0x..."`,
+        responseExample: `{
+  "0x4200000000000000000000000000000000000006": { "usd": 2345.67 }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/v2/coingecko/onchain/search-pools",
+        description: "Search pools and tokens by query (name, symbol, or contract address) on a network.",
+        params: [
+          { name: "query", type: "string", required: "Yes", description: "Search query: token name, symbol, or contract address." },
+          { name: "network", type: "string", required: "No", description: "Network id (e.g. solana, base). Default: solana." },
+          { name: "page", type: "string", required: "No", description: "Page number for pagination." },
+          { name: "include", type: "string", required: "No", description: "Comma-separated: base_token, quote_token, dex." },
+        ],
+        requestExample: `# Search for "pump" on Solana
+curl "${BASE_URL}/coingecko/onchain/search-pools?query=pump&network=solana"
+
+# Search on Base with optional include
+curl "${BASE_URL}/coingecko/onchain/search-pools?query=WETH&network=base&include=base_token,quote_token,dex"`,
+        responseExample: `{
+  "data": [],
+  "included": []
+}`,
+      },
+      {
+        method: "GET",
+        path: "/v2/coingecko/onchain/trending-pools",
+        description: "Get trending pools and tokens on a network (e.g. last 5 minutes).",
+        params: [
+          { name: "network", type: "string", required: "No", description: "Network id (e.g. base, solana). Default: base." },
+          { name: "duration", type: "string", required: "No", description: "Time window (e.g. 5m). Default: 5m." },
+          { name: "page", type: "string", required: "No", description: "Page number for pagination." },
+          { name: "include_gt_community_data", type: "string", required: "No", description: "Include community data (true/false)." },
+          { name: "include", type: "string", required: "No", description: "Comma-separated fields to include." },
+        ],
+        requestExample: `# Trending on Base (default 5m)
+curl "${BASE_URL}/coingecko/onchain/trending-pools?network=base"
+
+# Trending on Solana
+curl "${BASE_URL}/coingecko/onchain/trending-pools?network=solana&duration=5m"`,
+        responseExample: `{
+  "data": [],
+  "included": []
+}`,
+      },
+      {
+        method: "GET",
+        path: "/v2/coingecko/onchain/token",
+        description: "Get token data by contract address on a network: price, liquidity, FDV, volume, top pools.",
+        params: [
+          { name: "network", type: "string", required: "Yes", description: "Network id (e.g. base, solana, eth)." },
+          { name: "address", type: "string", required: "Yes", description: "Token contract address." },
+          { name: "include", type: "string", required: "No", description: "e.g. top_pools." },
+          { name: "include_composition", type: "string", required: "No", description: "true/false." },
+        ],
+        requestExample: `# Token on Base by contract address
+curl "${BASE_URL}/coingecko/onchain/token?network=base&address=0x4200000000000000000000000000000000000006"
+
+# Token on Solana with top pools
+curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So11111111111111111111111111111111111111112&include=top_pools"`,
+        responseExample: `{
+  "data": {
+    "id": "eth_0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "type": "token",
+    "attributes": {
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "name": "Tether USD",
+      "symbol": "USDT",
+      "decimals": 6,
+      "price_usd": "0.999188255",
+      "fdv_usd": "91700939859.6687",
+      "total_reserve_in_usd": "405089394.14",
+      "volume_usd": { "h24": "1142454033.37" },
+      "market_cap_usd": "171798403974.784"
+    },
+    "relationships": { "top_pools": { "data": [] } }
+  },
+  "included": []
+}`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Networks",
+        content:
+          "Supported network ids include base, solana, eth, and many others (250+ networks). CoinGecko x402 supports Base and Solana for payment; Syra proxies the request and returns the same JSON:API-style response (data, included).",
+      },
+      {
+        title: "Dev routes (no payment)",
+        content:
+          "When NODE_ENV is not production, GET /v2/coingecko/simple-price/dev, /v2/coingecko/onchain/token-price/dev, /v2/coingecko/onchain/search-pools/dev, /v2/coingecko/onchain/trending-pools/dev, and /v2/coingecko/onchain/token/dev accept the same query parameters and return the same response shape without x402 payment. PAYER_KEYPAIR must be set for the server to pay CoinGecko x402.",
+      },
+    ],
+  }),
+
   "memecoin-fastest-holder-growth": doc({
     title: "Memecoin: Fastest Holder Growth",
     overview: "Get the fastest growing memecoins by holder growth rate. Uses the x402 payment protocol.",

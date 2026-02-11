@@ -74,6 +74,8 @@ import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./v2
 import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./v2/routes/partner/rugcheck/token-risk-alerts.js";
 import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./v2/routes/partner/bubblemaps/maps.js";
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./v2/routes/partner/binance/correlation.js";
+import { createV2CoingeckoOnchainRouter } from "./v2/routes/partner/coingecko/onchain.js";
+import { createV2CoingeckoSimplePriceRouter } from "./v2/routes/partner/coingecko/simple-price.js";
 import { createAnalyticsRouter as createV2AnalyticsRouter } from "./v2/routes/analytics.js";
 import { createFastestHolderGrowthMemecoinsRouter as createV2FastestHolderGrowthMemecoinsRouter } from "./v2/routes/memecoin/fastestHolderGrowthMemecoins.js";
 import { createMemecoinsAccumulatingBeforeCEXRumorsRouter as createV2MemecoinsAccumulatingBeforeCEXRumorsRouter } from "./v2/routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
@@ -497,6 +499,8 @@ app.use("/v2/token-statistic", await createV2TokenStatisticRouter());
 app.use("/v2/token-risk/alerts", await createV2TokenRiskAlertsRouter());
 app.use("/v2/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use("/v2/binance", await createV2BinanceCorrelationRouter());
+app.use("/v2/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
+app.use("/v2/coingecko/onchain", await createV2CoingeckoOnchainRouter());
 app.use("/v2/analytics", await createV2AnalyticsRouter());
 app.use("/v2/memecoin/fastest-holder-growth", await createV2FastestHolderGrowthMemecoinsRouter());
 app.use("/v2/memecoin/most-mentioned-by-smart-money-x", await createV2MemecoinsMostMentionedBySmartMoneyXRouter());
@@ -632,6 +636,11 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/token-risk/alerts",
       "https://api.syraa.fun/v2/bubblemaps/maps",
       "https://api.syraa.fun/v2/binance/correlation",
+      "https://api.syraa.fun/v2/coingecko/simple-price",
+      "https://api.syraa.fun/v2/coingecko/onchain/token-price",
+      "https://api.syraa.fun/v2/coingecko/onchain/search-pools",
+      "https://api.syraa.fun/v2/coingecko/onchain/trending-pools",
+      "https://api.syraa.fun/v2/coingecko/onchain/token",
       // V2 Memecoin endpoints
       "https://api.syraa.fun/v2/memecoin/fastest-holder-growth",
       "https://api.syraa.fun/v2/memecoin/most-mentioned-by-smart-money-x",

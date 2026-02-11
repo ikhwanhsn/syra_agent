@@ -60,6 +60,11 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - Each tool object: "toolId" (one of the ids above), "params" (object, see below).
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
+- For the "coingecko-search-pools" tool set "params": {"query": "<search term from user>", "network": "solana"} or "base" when the user asks to search pools/tokens (e.g. "search pools for pump", "find token X on Solana").
+- For the "coingecko-trending-pools" tool set "params": {"network": "base"} or {"network": "solana"}, optionally {"duration": "5m"} when the user asks for trending pools/tokens on a network.
+- For the "coingecko-onchain-token" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address from user>"} when the user asks for token data by contract address.
+- For the "coingecko-simple-price" tool set "params": {"symbols": "btc,eth,sol"} or {"ids": "bitcoin,ethereum,solana"} when the user asks for the price of BTC/ETH/SOL or other coins by symbol or name; optionally include_market_cap, include_24hr_vol, include_24hr_change.
+- For the "coingecko-onchain-token-price" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address>"} when the user asks for the price of a token by its contract address (or multiple addresses comma-separated).
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.
 - If the question does not match any tool, respond with: {"tools": []}`;
