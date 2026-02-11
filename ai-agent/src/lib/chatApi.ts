@@ -275,29 +275,29 @@ export const chatApi = {
 /** Agent wallet API: get/create agent wallet by anonymousId or by connected wallet. Private key stored on server for permissionless x402. */
 export const agentWalletApi = {
   /** Get or create agent wallet by connected wallet address (checks database first). */
-  async getOrCreateByWallet(walletAddress: string): Promise<{ anonymousId: string; agentAddress: string }> {
+  async getOrCreateByWallet(walletAddress: string): Promise<{ anonymousId: string; agentAddress: string; avatarUrl?: string | null }> {
     const res = await fetch(`${agentWalletBase()}/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ walletAddress }),
     });
-    const data = await handleRes<{ success: boolean; anonymousId: string; agentAddress: string }>(res);
-    return { anonymousId: data.anonymousId, agentAddress: data.agentAddress };
+    const data = await handleRes<{ success: boolean; anonymousId: string; agentAddress: string; avatarUrl?: string | null }>(res);
+    return { anonymousId: data.anonymousId, agentAddress: data.agentAddress, avatarUrl: data.avatarUrl || null };
   },
 
-  /** Get or create agent wallet. Pass existing anonymousId or omit to get a new one. Returns anonymousId + agentAddress. */
-  async getOrCreate(anonymousId?: string | null): Promise<{ anonymousId: string; agentAddress: string }> {
+  /** Get or create agent wallet. Pass existing anonymousId or omit to get a new one. Returns anonymousId + agentAddress + avatarUrl. */
+  async getOrCreate(anonymousId?: string | null): Promise<{ anonymousId: string; agentAddress: string; avatarUrl?: string | null }> {
     const res = await fetch(agentWalletBase(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(anonymousId ? { anonymousId } : {}),
     });
-    const data = await handleRes<{ success: boolean; anonymousId: string; agentAddress: string }>(res);
-    return { anonymousId: data.anonymousId, agentAddress: data.agentAddress };
+    const data = await handleRes<{ success: boolean; anonymousId: string; agentAddress: string; avatarUrl?: string | null }>(res);
+    return { anonymousId: data.anonymousId, agentAddress: data.agentAddress, avatarUrl: data.avatarUrl || null };
   },
 
   /** Get agent wallet address by anonymousId (404 if not created yet). */
-  async get(anonymousId: string): Promise<{ agentAddress: string }> {
+  async get(anonymousId: string): Promise<{ agentAddress: string; avatarUrl?: string | null }> {
     const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`);
     return handleRes(res);
   },
@@ -332,6 +332,25 @@ export const agentWalletApi = {
       throw new Error((data as { error?: string })?.error || res.statusText || "Payment failed");
     }
     return data as { paymentHeader: string; signature?: string };
+  },
+
+  /** Update user avatar with a base64 image data URL. */
+  async updateAvatar(anonymousId: string, avatarDataUrl: string): Promise<{ success: boolean; avatarUrl: string }> {
+    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatarUrl: avatarDataUrl }),
+    });
+    return handleRes(res);
+  },
+
+  /** Generate a new random avatar for the user. */
+  async generateAvatar(anonymousId: string): Promise<{ success: boolean; avatarUrl: string }> {
+    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    return handleRes(res);
   },
 };
 

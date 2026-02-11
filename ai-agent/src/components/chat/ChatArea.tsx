@@ -55,6 +55,8 @@ interface ChatAreaProps {
   models?: JatevoModel[];
   selectedModelId?: string;
   onSelectModel?: (modelId: string) => void;
+  /** User avatar URL for user messages */
+  userAvatarUrl?: string | null;
 }
 
 export function ChatArea({
@@ -76,6 +78,7 @@ export function ChatArea({
   models = [],
   selectedModelId = "",
   onSelectModel,
+  userAvatarUrl = null,
 }: ChatAreaProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -208,6 +211,7 @@ export function ChatArea({
                     agentName={selectedAgent.name}
                     onRegenerate={onRegenerate}
                     isRegenerateDisabled={isLoading}
+                    userAvatarUrl={userAvatarUrl}
                   />
                 );
               })}

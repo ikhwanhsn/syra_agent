@@ -12,9 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, ChevronDown, Wallet, Loader2, Zap, RefreshCw } from "lucide-react";
+import { Copy, ChevronDown, Wallet, Loader2, Zap, RefreshCw, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FuelAgentModal } from "./FuelAgentModal";
+import { ProfileModal } from "./ProfileModal";
 
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
@@ -36,6 +37,7 @@ export function WalletNav() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
@@ -286,6 +288,16 @@ export function WalletNav() {
 
           {/* Actions */}
           <div className="border-t border-border/60 py-1">
+            <DropdownMenuItem 
+              className="cursor-pointer py-2.5 text-sm rounded-none focus:bg-muted/50" 
+              onSelect={() => {
+                setProfileModalOpen(true);
+                setOpen(false);
+              }}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer py-2.5 text-sm rounded-none focus:bg-muted/50" onSelect={handleChangeWallet}>
               Change wallet
             </DropdownMenuItem>
@@ -302,6 +314,10 @@ export function WalletNav() {
       <FuelAgentModal
         open={fuelModalOpen}
         onOpenChange={setFuelModalOpen}
+      />
+      <ProfileModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
       />
     </div>
   );

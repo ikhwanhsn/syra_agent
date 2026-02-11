@@ -3,8 +3,12 @@ import { Keypair } from '@solana/web3.js';
 import { Connection, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import crypto from 'crypto';
+import pkg from 'random-avatar-generator';
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
+
+const { AvatarGenerator } = pkg;
+const avatarGenerator = new AvatarGenerator();
 
 const router = express.Router();
 
@@ -80,11 +84,15 @@ router.get('/:anonymousId', async (req, res) => {
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
-    const doc = await AgentWallet.findOne({ anonymousId }).select('agentAddress').lean();
+    const doc = await AgentWallet.findOne({ anonymousId }).select('agentAddress avatarUrl').lean();
     if (!doc) {
       return res.status(404).json({ success: false, error: 'Agent wallet not found' });
     }
-    return res.json({ success: true, agentAddress: doc.agentAddress });
+    return res.json({ 
+      success: true, 
+      agentAddress: doc.agentAddress,
+      avatarUrl: doc.avatarUrl || null,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -111,6 +119,7 @@ router.post('/connect', async (req, res) => {
         success: true,
         anonymousId: doc.anonymousId,
         agentAddress: doc.agentAddress,
+        avatarUrl: doc.avatarUrl || null,
       });
     }
 
@@ -118,29 +127,34 @@ router.post('/connect', async (req, res) => {
     const keypair = Keypair.generate();
     const agentAddress = keypair.publicKey.toBase58();
     const agentSecretKey = bs58.encode(keypair.secretKey);
+    // Generate unique avatar based on wallet address
+    const avatarUrl = avatarGenerator.generateRandomAvatar(walletAddress);
 
     await AgentWallet.create({
       anonymousId,
       walletAddress,
       agentAddress,
       agentSecretKey,
+      avatarUrl,
     });
 
     return res.status(201).json({
       success: true,
       anonymousId,
       agentAddress,
+      avatarUrl,
     });
   } catch (error) {
     if (error.code === 11000) {
       const existing = await AgentWallet.findOne({ walletAddress: req.body?.walletAddress?.trim() })
-        .select('anonymousId agentAddress')
+        .select('anonymousId agentAddress avatarUrl')
         .lean();
       if (existing) {
         return res.json({
           success: true,
           anonymousId: existing.anonymousId,
           agentAddress: existing.agentAddress,
+          avatarUrl: existing.avatarUrl || null,
         });
       }
     }
@@ -193,33 +207,123 @@ router.post('/', async (req, res) => {
 
     let doc = await AgentWallet.findOne({ anonymousId }).lean();
     if (doc) {
-      return res.json({ success: true, anonymousId, agentAddress: doc.agentAddress });
+      return res.json({ 
+        success: true, 
+        anonymousId, 
+        agentAddress: doc.agentAddress,
+        avatarUrl: doc.avatarUrl || null,
+      });
     }
 
     const keypair = Keypair.generate();
     const agentAddress = keypair.publicKey.toBase58();
     const agentSecretKey = bs58.encode(keypair.secretKey);
+    // Generate unique avatar based on anonymousId
+    const avatarUrl = avatarGenerator.generateRandomAvatar(anonymousId);
 
     await AgentWallet.create({
       anonymousId,
       agentAddress,
       agentSecretKey,
+      avatarUrl,
     });
 
-    return res.status(201).json({ success: true, anonymousId, agentAddress });
+    return res.status(201).json({ 
+      success: true, 
+      anonymousId, 
+      agentAddress,
+      avatarUrl,
+    });
   } catch (error) {
     if (error.code === 11000) {
       const existing = await AgentWallet.findOne({ anonymousId: (req.body || {}).anonymousId?.trim() })
-        .select('agentAddress')
+        .select('agentAddress avatarUrl')
         .lean();
       if (existing) {
         return res.json({
           success: true,
           anonymousId: (req.body || {}).anonymousId?.trim(),
           agentAddress: existing.agentAddress,
+          avatarUrl: existing.avatarUrl || null,
         });
       }
     }
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /agent/wallet/:anonymousId/avatar
+ * Update user avatar with a base64 data URL.
+ * Body: { avatarUrl: string }
+ * Returns: { success: boolean, avatarUrl: string }
+ */
+router.put('/:anonymousId/avatar', async (req, res) => {
+  try {
+    const { anonymousId } = req.params;
+    const { avatarUrl } = req.body || {};
+    
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    }
+    
+    if (typeof avatarUrl !== 'string' || !avatarUrl.trim()) {
+      return res.status(400).json({ success: false, error: 'avatarUrl is required' });
+    }
+
+    const doc = await AgentWallet.findOneAndUpdate(
+      { anonymousId },
+      { avatarUrl: avatarUrl.trim() },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!doc) {
+      return res.status(404).json({ success: false, error: 'Agent wallet not found' });
+    }
+
+    return res.json({
+      success: true,
+      avatarUrl: doc.avatarUrl || null,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /agent/wallet/:anonymousId/avatar/generate
+ * Generate a new random avatar for the user.
+ * Returns: { success: boolean, avatarUrl: string }
+ */
+router.post('/:anonymousId/avatar/generate', async (req, res) => {
+  try {
+    const { anonymousId } = req.params;
+    
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    }
+
+    const doc = await AgentWallet.findOne({ anonymousId }).lean();
+    if (!doc) {
+      return res.status(404).json({ success: false, error: 'Agent wallet not found' });
+    }
+
+    // Generate new random avatar (without seed to get a different avatar each time)
+    // Pass undefined or random value to ensure a unique avatar each time
+    const randomSeed = `${doc.walletAddress || anonymousId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const newAvatarUrl = avatarGenerator.generateRandomAvatar(randomSeed);
+
+    const updated = await AgentWallet.findOneAndUpdate(
+      { anonymousId },
+      { avatarUrl: newAvatarUrl },
+      { new: true }
+    ).lean();
+
+    return res.json({
+      success: true,
+      avatarUrl: updated?.avatarUrl || newAvatarUrl,
+    });
+  } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
 });

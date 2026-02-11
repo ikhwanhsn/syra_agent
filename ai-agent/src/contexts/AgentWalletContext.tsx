@@ -20,6 +20,8 @@ export interface AgentWalletState {
   agentShortAddress: string | null;
   agentSolBalance: number | null;
   agentUsdcBalance: number | null;
+  /** User avatar URL generated when wallet was created */
+  avatarUrl: string | null;
   /** Connected user wallet address (Solana), if wallet is connected */
   connectedWalletAddress: string | null;
   connectedWalletShort: string | null;
@@ -29,6 +31,8 @@ export interface AgentWalletState {
   refetchBalance: () => Promise<void>;
   /** Show debit effect (e.g. -0.01) then clear after a short delay. */
   reportDebit: (amountUsd: number) => void;
+  /** Update avatar URL in real-time (e.g. after generating new avatar). */
+  updateAvatarUrl: (newAvatarUrl: string | null) => void;
 }
 
 const AgentWalletContext = createContext<AgentWalletState | null>(null);
@@ -41,6 +45,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const [agentAddress, setAgentAddress] = useState<string | null>(null);
   const [agentSolBalance, setAgentSolBalance] = useState<number | null>(null);
   const [agentUsdcBalance, setAgentUsdcBalance] = useState<number | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [lastDebitUsd, setLastDebitUsd] = useState<number | null>(null);
   const initRef = useRef(false);
   const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,13 +57,15 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setReady(false);
       agentWalletApi
         .getOrCreateByWallet(connectedWalletAddress)
-        .then(({ anonymousId: id, agentAddress: addr }) => {
+        .then(({ anonymousId: id, agentAddress: addr, avatarUrl: avatar }) => {
           setAnonymousId(id);
           setAgentAddress(addr);
+          setAvatarUrl(avatar || null);
         })
         .catch(() => {
           setAnonymousId(null);
           setAgentAddress(null);
+          setAvatarUrl(null);
         })
         .finally(() => setReady(true));
       return;
@@ -72,13 +79,15 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setReady(false);
       agentWalletApi
         .getOrCreate(id)
-        .then(({ agentAddress: addr }) => {
+        .then(({ agentAddress: addr, avatarUrl: avatar }) => {
           setAnonymousId(id);
           setAgentAddress(addr);
+          setAvatarUrl(avatar || null);
         })
         .catch(() => {
           setAnonymousId(null);
           setAgentAddress(null);
+          setAvatarUrl(null);
         })
         .finally(() => {
           initRef.current = true;
@@ -88,16 +97,18 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setReady(false);
       agentWalletApi
         .getOrCreate()
-        .then(({ anonymousId: newId, agentAddress: addr }) => {
+        .then(({ anonymousId: newId, agentAddress: addr, avatarUrl: avatar }) => {
           if (typeof localStorage !== "undefined") {
             localStorage.setItem(STORAGE_KEY, newId);
           }
           setAnonymousId(newId);
           setAgentAddress(addr);
+          setAvatarUrl(avatar || null);
         })
         .catch(() => {
           setAnonymousId(null);
           setAgentAddress(null);
+          setAvatarUrl(null);
         })
         .finally(() => {
           initRef.current = true;
@@ -186,6 +197,10 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     ? `${connectedWalletAddress.slice(0, 4)}...${connectedWalletAddress.slice(-4)}`
     : null;
 
+  const updateAvatarUrl = useCallback((newAvatarUrl: string | null) => {
+    setAvatarUrl(newAvatarUrl);
+  }, []);
+
   const value = useMemo<AgentWalletState>(
     () => ({
       ready,
@@ -194,11 +209,13 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentShortAddress,
       agentSolBalance,
       agentUsdcBalance,
+      avatarUrl,
       connectedWalletAddress,
       connectedWalletShort,
       lastDebitUsd,
       refetchBalance,
       reportDebit,
+      updateAvatarUrl,
     }),
     [
       ready,
@@ -207,11 +224,13 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentShortAddress,
       agentSolBalance,
       agentUsdcBalance,
+      avatarUrl,
       connectedWalletAddress,
       connectedWalletShort,
       lastDebitUsd,
       refetchBalance,
       reportDebit,
+      updateAvatarUrl,
     ]
   );
 

@@ -10,6 +10,8 @@ const agentWalletSchema = new mongoose.Schema(
     agentAddress: { type: String, required: true },
     /** Agent wallet secret key (base58) - stored in DB so backend can pay permissionlessly */
     agentSecretKey: { type: String, required: true },
+    /** User avatar URL generated when wallet is first created */
+    avatarUrl: { type: String, required: false },
   },
   { timestamps: true }
 );

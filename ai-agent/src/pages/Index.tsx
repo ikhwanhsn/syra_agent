@@ -101,7 +101,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit } = useAgentWallet();
+  const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit, avatarUrl } = useAgentWallet();
   const walletConnected = !!connectedWalletAddress;
   /** Can chat (anonymous or wallet session); when false, show connect-wallet gate. When true but !walletConnected, prompt to connect for tools. */
   const sessionReady = ready && !!anonymousId;
@@ -1031,6 +1031,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 models={jatevoModels}
                 selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
                 onSelectModel={handleSelectModel}
+                userAvatarUrl={avatarUrl}
               />
             </main>
           </ResizablePanel>
@@ -1063,6 +1064,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           models={jatevoModels}
           selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
           onSelectModel={handleSelectModel}
+          userAvatarUrl={avatarUrl}
         />
       </main>
       </div>

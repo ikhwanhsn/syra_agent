@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
@@ -92,11 +92,43 @@ interface ChatMessageProps {
   onRegenerate?: (messageId: string) => void;
   /** When true, disable Regenerate (e.g. while another request is in progress) */
   isRegenerateDisabled?: boolean;
+  /** User avatar URL for user messages */
+  userAvatarUrl?: string | null;
 }
 
-export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "/logo.jpg", onRegenerate, isRegenerateDisabled }: ChatMessageProps) {
+/** Generate a cute, unique avatar for user messages */
+function getUserAvatar(messageId: string) {
+  // Generate a consistent color based on message ID hash
+  const colors = [
+    { gradient: "from-pink-500 to-rose-500", emoji: "✨" },
+    { gradient: "from-blue-500 to-cyan-500", emoji: "🌟" },
+    { gradient: "from-purple-500 to-pink-500", emoji: "💫" },
+    { gradient: "from-orange-500 to-yellow-500", emoji: "⭐" },
+    { gradient: "from-green-500 to-emerald-500", emoji: "🎯" },
+    { gradient: "from-indigo-500 to-purple-500", emoji: "🚀" },
+    { gradient: "from-rose-500 to-pink-500", emoji: "💎" },
+    { gradient: "from-cyan-500 to-blue-500", emoji: "👑" },
+  ];
+  
+  // Use message ID to generate consistent hash
+  let hash = 0;
+  for (let i = 0; i < messageId.length; i++) {
+    hash = ((hash << 5) - hash) + messageId.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "/logo.jpg", onRegenerate, isRegenerateDisabled, userAvatarUrl = null }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
+  // Use provided avatarUrl or fallback to generated avatar
+  const userAvatar = useMemo(() => {
+    if (userAvatarUrl) {
+      return { avatarUrl: userAvatarUrl };
+    }
+    return getUserAvatar(message.id);
+  }, [message.id, userAvatarUrl]);
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -259,9 +291,23 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
     >
       <div className="flex-shrink-0">
         {isUser ? (
-          <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
-            <User className="w-4 h-4 text-foreground" />
-          </div>
+          userAvatar.avatarUrl ? (
+            <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0 shadow-md ring-2 ring-background/50">
+              <img 
+                src={userAvatar.avatarUrl} 
+                alt="You" 
+                className="w-full h-full object-cover" 
+                key={userAvatar.avatarUrl} 
+              />
+            </div>
+          ) : (
+            <div className={cn(
+              "w-8 h-8 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-md ring-2 ring-background/50",
+              `bg-gradient-to-br ${userAvatar.gradient}`
+            )}>
+              <span className="text-base leading-none select-none">{userAvatar.emoji}</span>
+            </div>
+          )
         ) : (
           <div className="relative">
             <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0">
