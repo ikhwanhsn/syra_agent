@@ -422,9 +422,9 @@ export function LoadingStepMessage({
 
   return (
     <div className="group flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-secondary/30 animate-fade-in min-w-0">
-      {/* Avatar — matches ChatMessage assistant: brand logo */}
+      {/* Avatar — matches ChatMessage assistant with subtle pulse */}
       <div className="flex-shrink-0">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card loader-avatar-pulse ring-2 ring-transparent">
           <img src="/logo.jpg" alt={agentName} className="w-full h-full object-cover" />
         </div>
       </div>
@@ -436,7 +436,7 @@ export function LoadingStepMessage({
           <span className="text-xs text-muted-foreground">Thinking</span>
         </div>
 
-        {/* Step text in a pill — dynamic text with blink */}
+        {/* Step text in a pill — shimmer pill + text */}
         <div
           className={cn(
             "inline-flex items-center px-4 py-2.5 rounded-xl loading-step-pill transition-all duration-200",

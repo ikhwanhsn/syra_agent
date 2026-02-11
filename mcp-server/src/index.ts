@@ -311,6 +311,8 @@ async function main() {
       const params: Record<string, string> = { vs_currencies: vs_currencies ?? "usd" };
       if (symbols) params.symbols = symbols;
       if (ids) params.ids = ids;
+      // API requires either symbols or ids; default to bitcoin when agent omits both
+      if (!params.symbols && !params.ids) params.ids = "bitcoin";
       if (include_market_cap) params.include_market_cap = include_market_cap;
       if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
       if (include_24hr_change) params.include_24hr_change = include_24hr_change;

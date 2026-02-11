@@ -1,28 +1,46 @@
 /**
  * v2 x402 API: CoinGecko x402 simple/price — USD price and market data for coins by symbol or CoinGecko id.
- * Proxies to pro-api.coingecko.com/api/v3/x402/simple/price with payer (x402) for payment.
+ * Proxies to pro-api.coingecko.com/api/v3/x402/simple/price; pays with Solana/USDC only (not Base).
+ * See https://docs.coingecko.com/docs/x402 and https://docs.coingecko.com/reference/simple-price
  */
 import express from "express";
+import { X402_API_PRICE_COINGECKO_USD } from "../../../../config/x402Pricing.js";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
+import { ensurePayer, coinGeckoFetch } from "./coinGeckoPayer.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
-import { X402_API_PRICE_COINGECKO_USD } from "../../../../config/x402Pricing.js";
-import { payer } from "@faremeter/rides";
 
+/** CoinGecko x402 base (do not send x-cg-pro-api-key; payment via x402 only). */
 const COINGECKO_X402_BASE = "https://pro-api.coingecko.com/api/v3/x402";
+/** Free public API used as fallback when x402 fails so the tool always returns price data. */
+const COINGECKO_FREE_BASE = "https://api.coingecko.com/api/v3";
 
-function ensurePayer() {
-  const keypair = process.env.PAYER_KEYPAIR;
-  if (!keypair) throw new Error("PAYER_KEYPAIR must be set for CoinGecko x402");
-  return payer.addLocalWallet(keypair);
+/** Request headers (no API key per CoinGecko x402 docs). */
+const COINGECKO_HEADERS = {
+  Accept: "application/json",
+  "User-Agent": "Syra-API/1.0 (https://syraa.fun; server)",
+};
+
+/**
+ * Fetch from CoinGecko free API (same query params). Used when x402 is unavailable or fails.
+ */
+async function fetchFreeSimplePrice(url) {
+  const freeUrl = new URL(`${COINGECKO_FREE_BASE}/simple/price`);
+  for (const [k, v] of url.searchParams) freeUrl.searchParams.set(k, v);
+  const res = await fetch(freeUrl.toString(), { method: "GET", headers: COINGECKO_HEADERS });
+  if (!res.ok) return null;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 /**
- * GET / — CoinGecko x402 simple/price. Requires either symbols or ids.
+ * GET / — CoinGecko simple/price. Tries x402 first; on any failure falls back to free API so the tool always returns data.
  * Query params: vs_currencies (default usd), symbols (e.g. btc,eth,sol) OR ids (e.g. bitcoin,ethereum), include_market_cap, include_24hr_vol, include_24hr_change, include_last_updated_at, precision.
  */
 async function handleSimplePrice(req, res) {
-  await ensurePayer();
   const {
     vs_currencies = "usd",
     symbols,
@@ -60,19 +78,47 @@ async function handleSimplePrice(req, res) {
   if (include_tokens != null && include_tokens !== "")
     url.searchParams.set("include_tokens", String(include_tokens));
 
-  const response = await payer.fetch(url.toString(), {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    return res.status(response.status).json({
-      error: "CoinGecko x402 request failed",
-      message: response.status === 402 ? "Payment required (x402)" : text || response.statusText,
+  let data = null;
+  let usedX402 = false;
+
+  try {
+    await ensurePayer();
+    const response = await coinGeckoFetch(url.toString(), {
+      method: "GET",
+      headers: COINGECKO_HEADERS,
+    });
+    if (response.ok) {
+      data = await response.json().catch(() => null);
+      usedX402 = true;
+    }
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[coingecko/simple-price] x402 failed, using free API:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  if (!data) {
+    data = await fetchFreeSimplePrice(url);
+  }
+  if (!data) {
+    return res.status(502).json({
+      error: "CoinGecko request failed",
+      message: "Could not fetch price from CoinGecko (x402 and free API failed or rate limited). Try again shortly.",
     });
   }
-  const data = await response.json();
-  if (req.x402Payment) await settlePaymentAndSetResponse(res, req);
+
+  // Indicate data source: both are real CoinGecko data (pro = paid x402, free = public API fallback)
+  res.setHeader("X-Data-Source", usedX402 ? "coingecko-pro-x402" : "coingecko-free");
+
+  if (req.x402Payment && usedX402) {
+    try {
+      await settlePaymentAndSetResponse(res, req);
+    } catch (e) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[coingecko/simple-price] settlePayment failed:", e instanceof Error ? e.message : String(e));
+      }
+    }
+  }
   res.status(200).json(data);
 }
 

@@ -71,6 +71,8 @@ interface SidebarProps {
   walletConnected?: boolean;
   /** Toggle public/private for a chat (per-chat share in list) */
   onToggleShareVisibility?: (chatId: string, isPublic: boolean) => void;
+  /** When provided, logo click calls this instead of only navigating to / (resets chat to default screen) */
+  onLogoClick?: () => void;
 }
 
 export function Sidebar({
@@ -89,6 +91,7 @@ export function Sidebar({
   sessionReady = true,
   walletConnected = true,
   onToggleShareVisibility,
+  onLogoClick,
 }: SidebarProps) {
   const { setVisible: setWalletModalVisible } = useWalletModal();
   /** Chat for which the share modal is open; null when closed */
@@ -202,15 +205,31 @@ export function Sidebar({
       <div ref={sidebarRef} className="flex flex-col flex-1 min-w-0 overflow-hidden min-h-0">
       {/* Header */}
       <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-border shrink-0">
-        <Link to="/" className="flex items-center gap-2 flex-1 min-w-0 no-underline text-inherit hover:opacity-90 transition-opacity">
-          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden bg-card shrink-0">
-            <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-semibold text-foreground truncate">Syra Agent</h1>
-            <p className="text-xs text-muted-foreground truncate">Intelligent Assistant</p>
-          </div>
-        </Link>
+        {onLogoClick ? (
+          <button
+            type="button"
+            onClick={onLogoClick}
+            className="flex items-center gap-2 flex-1 min-w-0 no-underline text-inherit hover:opacity-90 transition-opacity cursor-pointer bg-transparent border-0 text-left p-0"
+          >
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden bg-card shrink-0">
+              <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-semibold text-foreground truncate">Syra Agent</h1>
+              <p className="text-xs text-muted-foreground truncate">Intelligent Assistant</p>
+            </div>
+          </button>
+        ) : (
+          <Link to="/" className="flex items-center gap-2 flex-1 min-w-0 no-underline text-inherit hover:opacity-90 transition-opacity">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden bg-card shrink-0">
+              <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-semibold text-foreground truncate">Syra Agent</h1>
+              <p className="text-xs text-muted-foreground truncate">Intelligent Assistant</p>
+            </div>
+          </Link>
+        )}
         {isResizable && onCollapse && (
           <Button
             variant="ghost"
@@ -317,7 +336,14 @@ export function Sidebar({
               </div>
             </div>
           ) : chatsLoading && walletConnected ? (
-            <p className="px-2 py-4 text-sm text-muted-foreground">Loading chats...</p>
+            <div className="px-2 py-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Loading chats</span>
+              <span className="flex items-center gap-1" aria-hidden>
+                <span className="loader-dot" />
+                <span className="loader-dot" />
+                <span className="loader-dot" />
+              </span>
+            </div>
           ) : groupedChats.length === 0 ? (
             <p className="px-2 py-4 text-sm text-muted-foreground">No chats yet. Start a new one.</p>
           ) : (

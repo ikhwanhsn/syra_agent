@@ -409,6 +409,20 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }
   };
 
+  /** Reset to default screen (empty state) when user clicks logo in sidebar */
+  const handleLogoClick = useCallback(() => {
+    setActiveChat(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("shareId");
+      return next;
+    }, { replace: true });
+    if (location.pathname !== "/") {
+      navigate("/", { replace: true });
+    }
+    setSidebarOpen(false);
+  }, [navigate, location.pathname, setSearchParams]);
+
   const handleSelectModel = useCallback(
     (modelId: string) => {
       if (!activeChat) return;
@@ -441,13 +455,19 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         return next;
       });
       if (activeChat === id) {
-        setActiveChat(remaining[0]?.id ?? null);
+        setActiveChat(null);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("shareId");
+          return next;
+        }, { replace: true });
+        navigate("/", { replace: true });
       }
       setSidebarOpen(false);
     } catch (err) {
       // Silently fail; user can retry
     }
-  }, [anonymousId, activeChat, chats]);
+  }, [anonymousId, activeChat, chats, navigate, setSearchParams]);
 
   const handleDeleteChats = useCallback(
     async (ids: string[]) => {
@@ -472,11 +492,17 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         return next;
       });
       if (activeChat && idSet.has(activeChat)) {
-        setActiveChat(remaining[0]?.id ?? null);
+        setActiveChat(null);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("shareId");
+          return next;
+        }, { replace: true });
+        navigate("/", { replace: true });
       }
       setSidebarOpen(false);
     },
-    [anonymousId, activeChat, chats]
+    [anonymousId, activeChat, chats, navigate, setSearchParams]
   );
 
   const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
@@ -857,10 +883,25 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 animate-pulse" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 overflow-hidden">
+        {/* Animated rings */}
+        <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40">
+          <div className="absolute inset-0 rounded-full border-2 border-accent/30 loader-app-glow" />
+          <div className="absolute w-full h-full rounded-full border-2 border-dashed border-primary/30 loader-app-ring" />
+          <div className="absolute w-[70%] h-[70%] rounded-full border border-primary/20 loader-app-ring-slow" />
+          {/* Center orb with logo */}
+          <div className="relative z-10 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-card border border-border shadow-xl loader-app-orb overflow-hidden">
+            <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
+          </div>
+        </div>
+        <p className="mt-8 text-sm font-medium text-foreground loader-text-fade">
+          Preparing your experience...
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">Just a moment</p>
+        <div className="mt-6 flex items-center gap-1.5 text-muted-foreground">
+          <span className="loader-dot" />
+          <span className="loader-dot" />
+          <span className="loader-dot" />
         </div>
       </div>
     );
@@ -927,6 +968,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           sessionReady={sessionReady}
           walletConnected={walletConnected}
           onToggleShareVisibility={(chatId, isPublic) => !isLocalChat(chatId) && handleToggleShareVisibility(chatId, isPublic)}
+          onLogoClick={handleLogoClick}
         />
       </div>
 
@@ -964,6 +1006,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               sessionReady={sessionReady}
               walletConnected={walletConnected}
               onToggleShareVisibility={(chatId, isPublic) => !isLocalChat(chatId) && handleToggleShareVisibility(chatId, isPublic)}
+              onLogoClick={handleLogoClick}
             />
           </ResizablePanel>
           <ResizableHandle withHandle className="bg-border" />

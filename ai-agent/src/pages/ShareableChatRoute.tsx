@@ -74,10 +74,18 @@ export default function ShareableChatRoute() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          <div className="relative flex items-center justify-center w-20 h-20">
+            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: "2.5s" }} />
+            <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center loader-avatar-pulse">
+              <Loader2 className="w-6 h-6 text-primary" />
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground loader-text-fade">Loading...</p>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="loader-dot" />
+            <span className="loader-dot" />
+            <span className="loader-dot" />
+          </div>
         </div>
       </div>
     );

@@ -61,7 +61,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
 - For the "coingecko-search-pools" tool set "params": {"query": "<search term from user>", "network": "solana"} or "base" when the user asks to search pools/tokens (e.g. "search pools for pump", "find token X on Solana").
-- For the "coingecko-trending-pools" tool set "params": {"network": "base"} or {"network": "solana"}, optionally {"duration": "5m"} when the user asks for trending pools/tokens on a network.
+- For the "coingecko-trending-pools" tool always set "params": {"network": "solana", "duration": "5m"} when the user asks for trending pools (e.g. "give me coingecko trending pools"). Only use a different network if the user explicitly says "on Base" or "on Ethereum".
 - For the "coingecko-onchain-token" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address from user>"} when the user asks for token data by contract address.
 - For the "coingecko-simple-price" tool set "params": {"symbols": "btc,eth,sol"} or {"ids": "bitcoin,ethereum,solana"} when the user asks for the price of BTC/ETH/SOL or other coins by symbol or name; optionally include_market_cap, include_24hr_vol, include_24hr_change.
 - For the "coingecko-onchain-token-price" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address>"} when the user asks for the price of a token by its contract address (or multiple addresses comma-separated).
@@ -295,6 +295,28 @@ function formatToolResultForLlm(data, toolId) {
       console.warn('[agent/chat] condensedAnalyticsSummary failed, using truncation');
     }
   }
+  // CoinGecko trending pools: only present real API data; never allow the LLM to invent pools/prices
+  if (toolId === 'coingecko-trending-pools' && data && typeof data === 'object') {
+    const pools = Array.isArray(data.data) ? data.data : [];
+    if (pools.length === 0) {
+      return '[The trending pools API returned no data. Do NOT invent or make up token names, prices, or tables. Tell the user that trending pools could not be loaded and suggest trying again later.]';
+    }
+    try {
+      const lines = ['Trending pools (live data from CoinGecko):'];
+      for (const item of pools.slice(0, 15)) {
+        const attrs = item?.attributes || item;
+        const name = attrs.name || attrs.base_token_symbol || item?.id || '—';
+        const priceCh = attrs.price_change_percentage?.h24 ?? attrs.price_change_percentage ?? '—';
+        const vol = attrs.volume_usd?.h24 ?? attrs.volume_usd ?? '—';
+        const liq = attrs.liquidity_usd ?? attrs.fdv_usd ?? '—';
+        lines.push(`- ${name} | 24h change: ${priceCh} | volume: ${vol} | liquidity: ${liq}`);
+      }
+      if (pools.length > 15) lines.push(`... and ${pools.length - 15} more pools.`);
+      return lines.join('\n');
+    } catch (e) {
+      console.warn('[agent/chat] coingecko-trending-pools format failed', e?.message);
+    }
+  }
   const raw = JSON.stringify(data, null, 2);
   if (raw.length <= MAX_TOOL_RESULT_CHARS) return raw;
   return (
@@ -507,7 +529,18 @@ router.post('/completion', async (req, res) => {
       const toolErrors = [];
       for (const matched of matchedTools) {
         const tool = getAgentTool(matched.toolId);
-        let params = typeof matched.params === 'object' ? { ...matched.params } : {};
+        // Normalize params to string values so GET query and x402 client build URL correctly
+        const rawParams = typeof matched.params === 'object' ? matched.params : {};
+        let params = Object.fromEntries(
+          Object.entries(rawParams).filter(
+            ([k, v]) => typeof k === 'string' && v != null && v !== ''
+          ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+        );
+        // Default coingecko-trending-pools to same network/duration so "give me trending pools" is consistent
+        if (matched.toolId === 'coingecko-trending-pools') {
+          if (!params.network) params.network = 'solana';
+          if (!params.duration) params.duration = '5m';
+        }
         if (!tool) continue;
         // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount) or infer from message.
         if (matched.toolId === 'jupiter-swap-order') {
@@ -593,6 +626,7 @@ router.post('/completion', async (req, res) => {
           } else {
             instruction += ` Suggest they check their agent wallet has both USDC (for the tool) and SOL (for fees), or try again later.`;
           }
+          instruction += ` Do NOT invent or make up data (e.g. trending pools, token names, prices, or tables). Only report that the tool failed and the user should try again.`;
           toolErrors.push(instruction);
           toolUsages.push({ name: tool.name, status: 'error' });
         } else {
@@ -625,8 +659,12 @@ router.post('/completion', async (req, res) => {
             }
           }
           const formatted = formatToolResultForLlm(toolData, tool.id);
+          const presentInstruction =
+            tool.id === 'coingecko-trending-pools'
+              ? 'Present this trending pools data to the user in a clear table or list. Use ONLY the data below—do not invent token names, prices, or percentages.'
+              : 'Present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.';
           toolResults.push(
-            `[Result from paid tool "${tool.name}" — present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.]\n\n${formatted}`
+            `[Result from paid tool "${tool.name}" — ${presentInstruction}]\n\n${formatted}`
           );
         }
       }
