@@ -1,4 +1,20 @@
-# Syra MCP Server
+<div align="center">
+
+<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+
+# **Syra MCP Server**
+
+### Expose the Syra v2 API as MCP tools for Cursor, Claude Desktop, and other AI assistants
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![API](https://img.shields.io/badge/API-v2-26a5e4)](https://api.syraa.fun)
+
+**[Documentation](https://syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
+
+</div>
+
+---
 
 A **Model Context Protocol (MCP)** server that exposes the **Syra v2 API** as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, or any other MCP-compatible client to fetch crypto news, events, sentiment, signals, research, token reports, memecoin screens, and more—all from inside your AI chat.
 

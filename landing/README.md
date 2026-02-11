@@ -1,8 +1,24 @@
-# landing
+<div align="center">
 
-## Purpose of this folder
+<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
-The **landing** folder is Syra’s **marketing and landing website**. It is a static site built with Vite + React that:
+# **Syra Landing**
+
+### Marketing and landing website for Syra
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Website](https://img.shields.io/badge/Website-syraa.fun-26a5e4)](https://syraa.fun)
+
+**[Documentation](https://syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syraa_fun)**
+
+</div>
+
+---
+
+## Purpose
+
+The **landing** package is Syra's **marketing and landing website**. It is a static site built with Vite + React that:
 
 - **Introduces Syra** — hero, “What is Syra”, “Why Syra”, product modules, dashboard preview.
 - **Showcases features** — FAQ, testimonials, roadmap, token section, live dashboard teaser.
@@ -15,9 +31,11 @@ It is **not** the logged-in dashboard (that’s **frontend**). It’s the first 
 
 ## Tech stack
 
-- **Build:** Vite, TypeScript
-- **UI:** React, shadcn-ui, Tailwind CSS
-- **Deploy:** Vercel (vercel.json)
+| Layer | Technology |
+|-------|------------|
+| **Build** | Vite, TypeScript |
+| **UI** | React, shadcn-ui, Tailwind CSS |
+| **Deploy** | Vercel (vercel.json) |
 
 ---
 
@@ -29,9 +47,11 @@ npm install
 npm run dev
 ```
 
-- **Build:** `npm run build`
-- **Preview (prod build):** `npm run preview`
-- **Lint:** `npm run lint`
+| Script | Description |
+|--------|-------------|
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run linting |
 
 ---
 

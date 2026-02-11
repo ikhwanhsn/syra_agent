@@ -1,8 +1,24 @@
-# prediction-game
+<div align="center">
 
-## Purpose of this folder
+<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
-The **prediction-game** folder is a **prediction/events app** in the Syra ecosystem. It allows users to:
+# **Syra Prediction Game**
+
+### Prediction and events app in the Syra ecosystem
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Website](https://img.shields.io/badge/Website-syraa.fun-26a5e4)](https://syraa.fun)
+
+**[Documentation](https://syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syraa_fun)**
+
+</div>
+
+---
+
+## Purpose
+
+The **prediction-game** package is a **prediction/events app** in the Syra ecosystem. It allows users to:
 
 - **Browse and join prediction events** — view event details, countdowns, and participate (e.g. stake or predict).
 - **Stake** — stake on outcomes via the Staking page and context.
@@ -15,9 +31,11 @@ It has its own **server** (Node/Express under `server/`) for event/creator/staki
 
 ## Tech stack
 
-- **Frontend:** Vite, React, TypeScript, shadcn-ui, Tailwind CSS
-- **Wallet:** Solana wallet adapters
-- **Server:** Node.js, Express (in `server/`)
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | Vite, React, TypeScript, shadcn-ui, Tailwind CSS |
+| **Wallet** | Solana wallet adapters |
+| **Server** | Node.js, Express (in `server/`) |
 
 ---
 
@@ -40,11 +58,13 @@ npm install
 npm start
 ```
 
-- **Build (frontend):** `npm run build` or `npm run build:dev`
-- **Preview:** `npm run preview`
-- **Lint:** `npm run lint`
+| Script | Description |
+|--------|-------------|
+| `npm run build` / `npm run build:dev` | Frontend production build |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run linting |
 
-See also:
+### See also
 
 - [INSTALLATION_INSTRUCTIONS.md](INSTALLATION_INSTRUCTIONS.md)
 - [WALLET_INTEGRATION_GUIDE.md](WALLET_INTEGRATION_GUIDE.md)

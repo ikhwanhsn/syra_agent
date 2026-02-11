@@ -1,8 +1,24 @@
-# ai-agent
+<div align="center">
 
-## Purpose of this folder
+<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
-The **ai-agent** folder is the **Syra AI Agent web app**. It is a Vite + React (TypeScript) application that provides:
+# **Syra AI Agent**
+
+### Web app for the Syra AI research and trading agent
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![Agent](https://img.shields.io/badge/Agent-agent.syraa.fun-26a5e4)](https://agent.syraa.fun)
+
+**[Documentation](https://syraa.fun)** · **[Try Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
+
+</div>
+
+---
+
+## Purpose
+
+The **ai-agent** package is the **Syra AI Agent web app**. It is a Vite + React (TypeScript) application that provides:
 
 - **AI chat** — web-based chat that explains Syra, tokens, and trading logic.
 - **Marketplace** — browse and use Syra agents and x402 pay-per-use flows.
@@ -15,11 +31,13 @@ It uses the **api** backend and integrates with the x402 agent ecosystem (e.g. x
 
 ## Tech stack
 
-- **Build:** Vite, TypeScript
-- **UI:** React, shadcn-ui, Tailwind CSS, Radix UI
-- **Wallet:** Solana wallet adapters
-- **Testing:** Vitest, Testing Library
-- **Deploy:** Vercel (vercel.json)
+| Layer | Technology |
+|-------|------------|
+| **Build** | Vite, TypeScript |
+| **UI** | React, shadcn-ui, Tailwind CSS, Radix UI |
+| **Wallet** | Solana wallet adapters |
+| **Testing** | Vitest, Testing Library |
+| **Deploy** | Vercel (vercel.json) |
 
 ---
 
@@ -32,10 +50,12 @@ npm install
 npm run dev
 ```
 
-- **Build:** `npm run build` or `npm run build:dev`
-- **Preview:** `npm run preview`
-- **Test:** `npm run test` or `npm run test:watch`
-- **Lint:** `npm run lint`
+| Script | Description |
+|--------|-------------|
+| `npm run build` / `npm run build:dev` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run test` / `npm run test:watch` | Run tests |
+| `npm run lint` | Run linting |
 
 ---
 

@@ -1,10 +1,26 @@
-# api
+<div align="center">
 
-## Purpose of this folder
+<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
-The **api** folder is the **backend service** for Syra. It is a Node.js (Express) server that:
+# **Syra API**
 
-- **Exposes Syra’s data and intelligence** — signals, research, news, sentiment, gems, KOL/crypto-KOL, browse, events, leaderboard, and sundown digest.
+### Backend services and intelligence layer for the Syra ecosystem
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-syraa.fun-0ea5e9)](https://syraa.fun)
+[![API](https://img.shields.io/badge/API-Gateway-26a5e4)](https://api.syraa.fun)
+
+**[Documentation](https://syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
+
+</div>
+
+---
+
+## Purpose
+
+The **api** package is the **backend service** for Syra. It is a Node.js (Express) server that:
+
+- **Exposes Syra's data and intelligence** — signals, research, news, sentiment, gems, KOL/crypto-KOL, browse, events, leaderboard, and sundown digest.
 - **Integrates with x402 & FareMeter** — pay-per-use and Solana payment flows for API access.
 - **Connects to external data** — Binance (OHLC, correlation), DexScreener, Nansen (smart money, token god mode), RugCheck, Bubblemaps, Jupiter (trending), WorkFun (pump), and others.
 - **Runs Syra agents** — Solana agent, check-status, and create-signal for on-chain verified signals.
@@ -17,11 +33,13 @@ This API backs the **Telegram bot**, **frontend dashboard**, **api-playground**,
 
 ## Tech stack
 
-- **Runtime:** Node.js (ES modules)
-- **Framework:** Express
-- **Payments / gating:** x402, FareMeter (Solana)
-- **Database:** MongoDB (Mongoose)
-- **Blockchain:** Solana (SPL, web3.js, PayAI/facilitator)
+| Layer | Technology |
+|-------|------------|
+| **Runtime** | Node.js (ES modules) |
+| **Framework** | Express |
+| **Payments / gating** | x402, FareMeter (Solana) |
+| **Database** | MongoDB (Mongoose) |
+| **Blockchain** | Solana (SPL, web3.js, PayAI/facilitator) |
 
 ---
 
@@ -33,7 +51,7 @@ npm install
 npm run dev
 ```
 
-See repo root [README.md](../README.md) and [docs](https://syra.gitbook.io/syra-docs) for full setup and env details.
+See the [root README](../README.md) and [Syra docs](https://syraa.fun) for full setup and environment details.
 
 ---
 
