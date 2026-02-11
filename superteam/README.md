@@ -10,7 +10,7 @@
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Analytics](https://img.shields.io/badge/Analytics-syraa.fun%2Fanalytics-26a5e4)](https://syraa.fun/analytics)
 
-**[Documentation](https://docs.syraa.fun)** · **[Analytics](https://syraa.fun/analytics)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[x402 Agent](https://x402scan.io)**
+**[Documentation](https://docs.syraa.fun)** · **[Analytics](https://syraa.fun/analytics)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)**
 
 </div>
 
