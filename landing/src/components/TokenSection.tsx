@@ -171,8 +171,8 @@
 
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
-import { useRef } from "react";
-import { Flame, Vote, Lock, TrendingUp, Coins, Trophy } from "lucide-react";
+import { useRef, useState } from "react";
+import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check } from "lucide-react";
 
 const utilities = [
   {
@@ -208,6 +208,19 @@ const utilities = [
 export const TokenSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const [copied, setCopied] = useState(false);
+  
+  const tokenAddress = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
+  
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(tokenAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
   return (
     <section id="token" className="relative py-24 overflow-hidden">
@@ -245,6 +258,46 @@ export const TokenSection = () => {
             ecosystem. Hold, stake, and participate in the future of AI-powered
             trading.
           </motion.p>
+
+          {/* Token Details Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="max-w-2xl mx-auto mt-8"
+          >
+            <div className="p-6 glass-card rounded-xl border border-neon-gold/20 hover:border-neon-gold/40 transition-all duration-300">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+                <div className="flex-1 text-center sm:text-left">
+                  <div className="mb-2 text-sm font-medium text-muted-foreground">
+                    Token Contract Address
+                  </div>
+                  <div className="flex items-center justify-center gap-2 sm:justify-start">
+                    <span className="font-mono text-sm break-all text-foreground">
+                      {tokenAddress}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-300 border rounded-lg border-neon-gold/30 bg-neon-gold/10 text-neon-gold hover:bg-neon-gold/20 hover:border-neon-gold/50 hover:scale-105 shrink-0"
+                  title="Copy address"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
 
           {/* Reward Leaderboard Button - hidden */}
           <motion.div
