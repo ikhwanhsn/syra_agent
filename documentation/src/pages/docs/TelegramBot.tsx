@@ -1,3 +1,7 @@
+/**
+ * Telegram Bot docs page — HIDDEN: focus on website.
+ * Content commented out below; uncomment to show again.
+ */
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
 import { CodeBlock } from "@/components/docs/CodeBlock";

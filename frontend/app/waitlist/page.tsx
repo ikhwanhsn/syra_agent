@@ -111,7 +111,7 @@ export default function Waitlist() {
                     htmlFor="telegram"
                     className="block text-sm font-medium text-zinc-300 text-left"
                   >
-                    Telegram Username
+                    Username
                   </label>
                   <input
                     id="telegram"

@@ -178,7 +178,7 @@ In any scenario, $SYRA holders benefit from buybacks, revenue sharing, or acquis
 > **ℹ️ Stay Updated**  
 > - **Website**: [syra.ai](https://syraa.fun)  
 > - **Twitter**: [@syra_agent](https://twitter.com/syra_agent)  
-> - **Telegram**: [t.me/syra_ai](https://t.me/syra_ai)  
+> <!-- hidden: focus on website - **Telegram**: [t.me/syra_ai](https://t.me/syra_ai) -->
 > - **x402 Directory**: Listed at x402scan  
 >  
 > For technical documentation and API integration, visit our developer portal.

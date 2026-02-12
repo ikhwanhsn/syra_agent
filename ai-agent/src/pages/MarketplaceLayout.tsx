@@ -24,7 +24,7 @@ const PAGE_TITLES: Record<string, string> = {
 
 const CONNECT_LINKS = [
   { href: "https://x.com/syra_agent", icon: Twitter, label: "X" },
-  { href: "https://t.me/syra_ai", icon: Send, label: "Telegram" },
+  // { href: "https://t.me/syra_ai", icon: Send, label: "Telegram" }, // hidden: focus on website
   { href: "https://docs.syraa.fun", icon: BookOpen, label: "Docs" },
   { href: "https://syraa.fun", icon: ExternalLink, label: "Website" },
 ];

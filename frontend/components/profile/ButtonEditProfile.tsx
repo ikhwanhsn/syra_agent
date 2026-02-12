@@ -82,7 +82,7 @@ export function ButtonEditProfile() {
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-3">
-            <Label htmlFor="username-1">Username Telegram</Label>
+            <Label htmlFor="username-1">Username</Label>
             <Input
               id="username-1"
               name="username"
@@ -111,7 +111,7 @@ export function ButtonEditProfile() {
         {!data?.user?.username && !data?.user?.email && (
           <div className="bg-red-50 p-2 rounded-md">
             <p className="text-xs text-red-600">
-              Please fill with your username Telegram and email, you can't
+              Please fill with your username and email, you can't
               change it after you registered
             </p>
           </div>

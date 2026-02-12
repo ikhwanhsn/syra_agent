@@ -197,12 +197,14 @@ export default function ApiDocPage() {
         <p className="text-muted-foreground mb-4">
           For payment-related issues or API support:
         </p>
+        {/* Hidden: focus on website — Telegram support link
         <Button variant="outline" size="sm" asChild>
           <a href={doc.supportLink} target="_blank" rel="noopener noreferrer">
             Telegram
             <ExternalLink className="ml-2 h-3.5 w-3.5" />
           </a>
         </Button>
+        */}
       </section>
 
       <div className="flex gap-3 pt-4 border-t border-border">

@@ -59,6 +59,7 @@ export default function Home() {
           Make money never been easier.
         </TextEffect>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6 w-full sm:justify-center">
+          {/* Hidden for now: focus on website — Telegram bot CTA
           <Link href="https://t.me/syra_trading_bot" target="_blank">
             <button className="bg-transparent text-white px-6 py-3 rounded-full text-lg font-bold border-4 border-blue-500 hover:bg-blue-500 cursor-pointer w-4/5 sm:w-60 transition-colors duration-300">
               <AnimateIcon
@@ -70,6 +71,7 @@ export default function Home() {
               </AnimateIcon>
             </button>
           </Link>
+          */}
           <Link href="/dashboard">
             <button className="bg-white text-zinc-900 px-6 py-3 rounded-full text-lg font-bold w-4/5 sm:w-60 transition-colors duration-300 hover:bg-gray-300 cursor-pointer border-4 border-white hover:border-gray-300">
               <AnimateIcon

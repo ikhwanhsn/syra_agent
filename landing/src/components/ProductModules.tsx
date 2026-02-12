@@ -8,7 +8,7 @@ const modules = [
     icon: MessageSquare,
     title: "Sentiment Analysis API",
     description: "Real-time sentiment scoring from social media, news, and on-chain signals. Our AI processes millions of data points to gauge market mood.",
-    features: ["Twitter/X Integration", "Telegram Monitoring", "Fear & Greed Index", "Custom Alerts"],
+    features: ["Twitter/X Integration", "Fear & Greed Index", "Custom Alerts"], // "Telegram Monitoring" hidden: focus on website
     gradient: "from-neon-cyan to-neon-blue",
   },
   {

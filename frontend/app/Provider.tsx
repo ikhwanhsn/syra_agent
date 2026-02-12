@@ -67,7 +67,7 @@ export default function Provider({ children }: { children: React.ReactNode }) {
         initialMessages: [
           "👋 Hello and welcome!",
           "I'm Syra AI Assistant — your information guide for the Syra Trading Ecosystem.",
-          "Ask me anything about Syra, our Telegram bot, roadmap, or community.",
+          "Ask me anything about Syra, roadmap, or community.", // was: "our Telegram bot,"
         ],
         i18n: {
           en: {
@@ -150,7 +150,7 @@ export default function Provider({ children }: { children: React.ReactNode }) {
                 </DialogHeader>
                 <div className="grid gap-4 mt-3">
                   <div className="grid gap-3">
-                    <Label htmlFor="username-1">Username Telegram</Label>
+                    <Label htmlFor="username-1">Username</Label>
                     <Input
                       id="username-1"
                       name="username"

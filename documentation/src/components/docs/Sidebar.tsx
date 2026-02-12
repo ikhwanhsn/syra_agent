@@ -244,6 +244,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <Twitter className="w-4 h-4" />
             </a>
+            {/* Hidden: focus on website — Telegram link
             <a
               href="https://t.me/syra_ai"
               target="_blank"
@@ -254,6 +255,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <Send className="w-4 h-4" />
             </a>
+            */}
             <a
               href="https://docs.syraa.fun"
               target="_blank"

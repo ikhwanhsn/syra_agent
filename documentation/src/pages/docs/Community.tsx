@@ -3,13 +3,14 @@
  import { Send, Twitter, BookOpen, ExternalLink, Users, Heart } from "lucide-react";
 
  const communities = [
-   {
-     icon: Send,
-     title: "Telegram",
-     description: "Join our Telegram for updates, support, and community discussions.",
-     href: "https://t.me/syra_ai",
-     cta: "Join Telegram",
-   },
+   // Hidden: focus on website — Telegram
+   // {
+   //   icon: Send,
+   //   title: "Telegram",
+   //   description: "Join our Telegram for updates, support, and community discussions.",
+   //   href: "https://t.me/syra_ai",
+   //   cta: "Join Telegram",
+   // },
    {
      icon: Twitter,
      title: "X (Twitter)",
@@ -122,6 +123,7 @@
              Need help? Our community is here for you:
            </p>
            <ul className="space-y-4 sm:space-y-5 text-sm">
+             {/* Hidden: focus on website — Telegram support
              <li className="flex flex-col gap-1.5 sm:gap-2">
                <span className="flex items-center gap-2">
                  <span className="text-primary font-medium">•</span>
@@ -138,6 +140,7 @@
                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                </a>
              </li>
+             */}
              <li className="flex flex-col gap-1.5 sm:gap-2">
                <span className="flex items-center gap-2">
                  <span className="text-primary font-medium">•</span>

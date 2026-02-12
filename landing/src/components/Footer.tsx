@@ -5,7 +5,7 @@ import {
   EMAIL_SUPPORT,
   LINK_AGENT,
   LINK_DOCS,
-  LINK_TELEGRAM,
+  // LINK_TELEGRAM, // hidden: focus on website
   LINK_X,
 } from "../../config/global";
 
@@ -37,7 +37,7 @@ const footerLinks = {
 
 const socials = [
   { icon: Twitter, href: LINK_X, label: "Twitter" },
-  { icon: MessageCircle, href: LINK_TELEGRAM, label: "Telegram" },
+  // { icon: MessageCircle, href: LINK_TELEGRAM, label: "Telegram" }, // hidden: focus on website
   { icon: Github, href: "#", label: "GitHub" },
   { icon: FileText, href: LINK_DOCS, label: "Docs" },
 ];
