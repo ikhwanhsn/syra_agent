@@ -65,7 +65,7 @@ Lock $SYRA tokens to unlock tiered discounts on all x402 API calls:
 | **Gold**     | 100,000         | 40%      | soon                |
 | **Platinum** | 500,000         | 50%      | soon                |
 
-**Lock periods:** 30-day minimum. Longer locks = higher APY rewards.
+**Lock periods:** 30-day minimum. Longer locks can unlock higher reward tiers.
 
 ### 3. **Governance Rights**
 

@@ -27,7 +27,7 @@ const faqs = [
   {
     question: "What is the $SYRA token used for?",
     answer:
-      "$SYRA provides governance rights, premium feature access, reduced fees, and staking rewards. Token holders can vote on protocol upgrades, access exclusive modules, and earn a share of protocol revenue. A portion of transaction fees are used for buyback and burn.",
+      "$SYRA provides governance rights, premium feature access, reduced fees, and staking rewards. Token holders can vote on protocol upgrades, access exclusive modules, and stakers earn 10% of protocol revenue. A portion of transaction fees are used for buyback and burn.",
   },
   {
     question: "How do I get started with Syra?",

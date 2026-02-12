@@ -1015,7 +1015,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
       {
         title: "Networks",
         content:
-          "Supported network ids include base, solana, eth, and many others (250+ networks). CoinGecko x402 supports Base and Solana for payment; Syra proxies the request and returns the same JSON:API-style response (data, included).",
+          "Response data may include tokens from various networks (e.g. base, solana, eth). Payment for this API is via x402 on Solana. Syra proxies the request to CoinGecko x402 and returns the same JSON:API-style response (data, included).",
       },
       {
         title: "Dev routes (no payment)",

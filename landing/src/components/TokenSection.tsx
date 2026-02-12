@@ -30,8 +30,8 @@
 //     icon: TrendingUp,
 //     title: "Revenue Share",
 //     description:
-//       "Stakers receive a share of protocol revenue, distributed weekly in ETH/USDC.",
-//     highlight: "Up to 40% APY",
+//       "Stakers receive 10% of protocol revenue, distributed weekly in ETH/USDC.",
+//     highlight: "10% to stakers",
 //   },
 // ];
 
@@ -200,8 +200,8 @@ const utilities = [
     icon: TrendingUp,
     title: "Revenue Share",
     description:
-      "Stakers receive a share of protocol revenue, distributed weekly in ETH/USDC.",
-    highlight: "Up to 40% APY",
+      "Stakers receive 10% of protocol revenue, distributed weekly in ETH/USDC.",
+    highlight: "10% to stakers",
   },
 ];
 

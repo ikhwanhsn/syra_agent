@@ -22,15 +22,15 @@ const valueProps = [
   },
   {
     icon: Target,
-    title: "99.9% Accuracy",
+    title: "High Accuracy",
     description:
-      "Our AI models achieve industry-leading accuracy in sentiment prediction",
+      "Our AI models deliver strong accuracy in sentiment prediction and market analysis",
   },
   {
     icon: Zap,
-    title: "Sub-ms Execution",
+    title: "Fast Execution",
     description:
-      "Lightning-fast order routing across 50+ DEXs with optimal slippage",
+      "Efficient execution on Solana DEXs with slippage protection via x402",
   },
   {
     icon: Eye,
@@ -82,7 +82,7 @@ const comparisonData = [
   },
   {
     feature: "Multi-Chain Support",
-    syra: true,
+    syra: false,
     arkham: true,
     nansen: true,
     dexscreener: true,

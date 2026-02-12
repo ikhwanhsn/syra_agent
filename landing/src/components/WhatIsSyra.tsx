@@ -16,13 +16,13 @@ const features = [
   },
   {
     icon: Zap,
-    title: "Lightning Execution",
-    description: "Sub-millisecond trade execution across multiple chains and DEXs",
+    title: "Fast Execution",
+    description: "Efficient trade execution on Solana with pay-per-request x402 API access",
   },
   {
     icon: Globe,
-    title: "Multi-Chain Support",
-    description: "Seamlessly operate across Ethereum, Solana, BSC, and 20+ networks",
+    title: "Solana-Native",
+    description: "Built for Solana with x402 programmable payments — pay only for what you use",
   },
   {
     icon: Lock,

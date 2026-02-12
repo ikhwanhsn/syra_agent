@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 const stats = [
   { label: "Users", value: 600, suffix: "+", prefix: "", decimals: 0 },
-  { label: "Uptime", value: 99.99, suffix: "%", prefix: "", decimals: 2 },
+  { label: "Uptime", value: 99.9, suffix: "%", prefix: "", decimals: 1 },
   {
     label: "Signals",
     value: 1760,
