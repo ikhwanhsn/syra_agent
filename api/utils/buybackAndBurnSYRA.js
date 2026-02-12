@@ -11,207 +11,189 @@ import {
 } from "@solana/spl-token";
 import bs58 from "bs58";
 
+const isProduction = process.env.NODE_ENV === "production";
+
+/**
+ * Buy back SYRA with 80% of revenue (USDC) via Jupiter swap, then burn the SYRA.
+ * Only runs in production (NODE_ENV === 'production'). In other environments, returns null without error.
+ * @param {number} revenueAmountUSD - Revenue in USD (e.g. price charged for the API call)
+ * @returns {Promise<{ swapSignature: string, burnSignature: string, amountBurned: string } | null>}
+ */
 export async function buybackAndBurnSYRA(revenueAmountUSD) {
-  // try {
-  //   const connection = new Connection(process.env.SOLANA_RPC_URL);
-  //   const agentKeypair = Keypair.fromSecretKey(
-  //     bs58.decode(process.env.AGENT_PRIVATE_KEY),
-  //   );
-  //   const syraMint = new PublicKey(process.env.SYRA_TOKEN_MINT);
-  //   const usdcMint = new PublicKey(process.env.USDC_MINT);
+  if (!isProduction) {
+    return null;
+  }
 
-  //   // Ensure revenueAmountUSD is a number
-  //   const revenue =
-  //     typeof revenueAmountUSD === "string"
-  //       ? parseFloat(revenueAmountUSD)
-  //       : revenueAmountUSD;
+  try {
+    const connection = new Connection(process.env.SOLANA_RPC_URL);
+    const agentKeypair = Keypair.fromSecretKey(
+      bs58.decode(process.env.AGENT_PRIVATE_KEY),
+    );
+    const syraMint = new PublicKey(process.env.SYRA_TOKEN_MINT);
+    const usdcMint = new PublicKey(process.env.USDC_MINT);
 
-  //   if (isNaN(revenue) || revenue <= 0) {
-  //     throw new Error(`Invalid revenue amount: ${revenueAmountUSD}`);
-  //   }
+    const revenue =
+      typeof revenueAmountUSD === "string"
+        ? parseFloat(revenueAmountUSD)
+        : revenueAmountUSD;
 
-  //   // Calculate 80% of revenue for buyback
-  //   const buybackAmountUSD = revenue * 0.8;
-  //   // Convert to lamports (USDC has 6 decimals) - MUST be an integer
-  //   const buybackAmountLamports = Math.floor(buybackAmountUSD * 1_000_000);
+    if (isNaN(revenue) || revenue <= 0) {
+      throw new Error(`Invalid revenue amount: ${revenueAmountUSD}`);
+    }
 
-  //   // Validate amount is a positive integer
-  //   if (
-  //     !Number.isInteger(buybackAmountLamports) ||
-  //     buybackAmountLamports <= 0
-  //   ) {
-  //     throw new Error(
-  //       `Invalid buyback amount: ${buybackAmountLamports}. Must be a positive integer. Revenue was: ${revenue} USD`,
-  //     );
-  //   }
+    // Calculate 80% of revenue for buyback
+    const buybackAmountUSD = revenue * 0.8;
+    // Convert to lamports (USDC has 6 decimals) - MUST be an integer
+    const buybackAmountLamports = Math.floor(buybackAmountUSD * 1_000_000);
 
-  //   console.log(
-  //     `Buying back $${buybackAmountUSD} worth of SYRA (${buybackAmountLamports} lamports)...`,
-  //   );
+    if (
+      !Number.isInteger(buybackAmountLamports) ||
+      buybackAmountLamports <= 0
+    ) {
+      throw new Error(
+        `Invalid buyback amount: ${buybackAmountLamports}. Must be a positive integer. Revenue was: ${revenue} USD`,
+      );
+    }
 
-  //   // NEW API endpoints (migrated from lite-api.jup.ag)
-  //   const JUPITER_API_BASE = "https://api.jup.ag";
-  //   const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
-  //   const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
+    console.log(
+      `[buyback] Buying back $${buybackAmountUSD} worth of SYRA (${buybackAmountLamports} lamports)...`,
+    );
 
-  //   // API key from environment
-  //   const headers = {
-  //     "Content-Type": "application/json",
-  //     "x-api-key": process.env.JUPITER_API_KEY,
-  //   };
+    const JUPITER_API_BASE = "https://api.jup.ag";
+    const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
+    const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
 
-  //   // Step 1: Get quote from Jupiter for USDC -> SYRA swap
-  //   const quoteUrl = new URL(JUPITER_QUOTE_API);
-  //   quoteUrl.searchParams.append("inputMint", usdcMint.toString());
-  //   quoteUrl.searchParams.append("outputMint", syraMint.toString());
-  //   quoteUrl.searchParams.append("amount", buybackAmountLamports.toString());
-  //   quoteUrl.searchParams.append("slippageBps", "100");
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.JUPITER_API_KEY,
+    };
 
-  //   console.log("Requesting quote:", quoteUrl.toString());
+    const quoteUrl = new URL(JUPITER_QUOTE_API);
+    quoteUrl.searchParams.append("inputMint", usdcMint.toString());
+    quoteUrl.searchParams.append("outputMint", syraMint.toString());
+    quoteUrl.searchParams.append("amount", buybackAmountLamports.toString());
+    quoteUrl.searchParams.append("slippageBps", "100");
 
-  //   const quoteResponse = await axios.get(quoteUrl.toString(), { headers });
+    const quoteResponse = await axios.get(quoteUrl.toString(), { headers });
 
-  //   console.log("Jupiter quote received");
+    const swapResponse = await axios.post(
+      JUPITER_SWAP_API,
+      {
+        quoteResponse: quoteResponse.data,
+        userPublicKey: agentKeypair.publicKey.toString(),
+        wrapAndUnwrapSol: false,
+        skipPreflight: true,
+        dynamicComputeUnitLimit: true,
+        dynamicSlippage: true,
+        prioritizationFeeLamports: {
+          priorityLevelWithMaxLamports: {
+            maxLamports: 100000,
+            priorityLevel: "medium",
+          },
+        },
+      },
+      { headers },
+    );
 
-  //   // Step 2: Get swap transaction from Jupiter
-  //   const swapResponse = await axios.post(
-  //     JUPITER_SWAP_API,
-  //     {
-  //       quoteResponse: quoteResponse.data,
-  //       userPublicKey: agentKeypair.publicKey.toString(),
-  //       // wrapAndUnwrapSol: true,
-  //       wrapAndUnwrapSol: false,
-  //       // computeUnitPriceMicroLamports: "auto",
-  //       skipPreflight: true,
-  //       // test
-  //       dynamicComputeUnitLimit: true,
-  //       dynamicSlippage: true,
-  //       prioritizationFeeLamports: {
-  //         priorityLevelWithMaxLamports: {
-  //           // maxLamports: 1000000,
-  //           // priorityLevel: "veryHigh",
-  //           maxLamports: 100000,
-  //           priorityLevel: "medium",
-  //         },
-  //       },
-  //     },
-  //     { headers },
-  //   );
+    const { swapTransaction } = swapResponse.data;
 
-  //   const { swapTransaction } = swapResponse.data;
+    const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
+    let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
 
-  //   // Step 3: Deserialize the transaction
-  //   const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
-  //   let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+    transaction.sign([agentKeypair]);
 
-  //   // Step 4: Sign the transaction
-  //   transaction.sign([agentKeypair]);
+    const swapSignature = await connection.sendTransaction(transaction, {
+      skipPreflight: false,
+      preflightCommitment: "confirmed",
+    });
 
-  //   // Step 5: Send swap transaction
-  //   const swapSignature = await connection.sendTransaction(transaction, {
-  //     skipPreflight: false,
-  //     preflightCommitment: "confirmed",
-  //   });
+    console.log(`[buyback] Swap transaction sent: ${swapSignature}`);
 
-  //   console.log(`Swap transaction sent: ${swapSignature}`);
+    const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+    await connection.confirmTransaction(
+      {
+        signature: swapSignature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      },
+      "confirmed",
+    );
 
-  //   // Wait for confirmation
-  //   const latestBlockhash = await connection.getLatestBlockhash("confirmed");
-  //   await connection.confirmTransaction(
-  //     {
-  //       signature: swapSignature,
-  //       blockhash: latestBlockhash.blockhash,
-  //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-  //     },
-  //     "confirmed",
-  //   );
+    console.log(`[buyback] Swap confirmed: https://solscan.io/tx/${swapSignature}`);
 
-  //   console.log(`Swap confirmed: https://solscan.io/tx/${swapSignature}`);
+    const syraTokenAccount = await getAssociatedTokenAddress(
+      syraMint,
+      agentKeypair.publicKey,
+    );
 
-  //   // Step 6: Get SYRA token account address
-  //   const syraTokenAccount = await getAssociatedTokenAddress(
-  //     syraMint,
-  //     agentKeypair.publicKey,
-  //   );
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  //   console.log(`SYRA token account: ${syraTokenAccount.toString()}`);
+    let tokenBalance;
+    let retries = 5;
 
-  //   // Wait a bit for the account to be indexed
-  //   await new Promise((resolve) => setTimeout(resolve, 2000));
+    while (retries > 0) {
+      try {
+        tokenBalance =
+          await connection.getTokenAccountBalance(syraTokenAccount);
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) {
+          throw new Error(
+            `Failed to get token balance after 5 attempts: ${error.message}`,
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
 
-  //   // Step 7: Get the balance of SYRA tokens with retries
-  //   let tokenBalance;
-  //   let retries = 5;
+    const burnAmount = BigInt(tokenBalance.value.amount);
 
-  //   while (retries > 0) {
-  //     try {
-  //       tokenBalance =
-  //         await connection.getTokenAccountBalance(syraTokenAccount);
-  //       console.log(`SYRA balance: ${tokenBalance.value.amount}`);
-  //       break;
-  //     } catch (error) {
-  //       retries--;
-  //       if (retries === 0) {
-  //         throw new Error(
-  //           `Failed to get token balance after 5 attempts: ${error.message}`,
-  //         );
-  //       }
-  //       console.log(`Retrying to get token balance... (${5 - retries}/5)`);
-  //       await new Promise((resolve) => setTimeout(resolve, 2000));
-  //     }
-  //   }
+    if (burnAmount === 0n) {
+      throw new Error("No SYRA tokens to burn. Swap may have failed.");
+    }
 
-  //   const burnAmount = BigInt(tokenBalance.value.amount);
+    console.log(`[buyback] Burning ${burnAmount} SYRA tokens...`);
 
-  //   if (burnAmount === 0n) {
-  //     throw new Error("No SYRA tokens to burn. Swap may have failed.");
-  //   }
+    const burnIx = createBurnInstruction(
+      syraTokenAccount,
+      syraMint,
+      agentKeypair.publicKey,
+      burnAmount,
+    );
 
-  //   console.log(`Burning ${burnAmount} SYRA tokens...`);
+    const { Transaction } = await import("@solana/web3.js");
+    const burnTx = new Transaction().add(burnIx);
+    const burnBhInfo = await connection.getLatestBlockhash("confirmed");
+    burnTx.recentBlockhash = burnBhInfo.blockhash;
+    burnTx.feePayer = agentKeypair.publicKey;
 
-  //   // Step 8: Create burn instruction
-  //   const burnIx = createBurnInstruction(
-  //     syraTokenAccount,
-  //     syraMint,
-  //     agentKeypair.publicKey,
-  //     burnAmount,
-  //   );
+    const burnSignature = await connection.sendTransaction(burnTx, [
+      agentKeypair,
+    ]);
+    await connection.confirmTransaction(
+      {
+        signature: burnSignature,
+        blockhash: burnBhInfo.blockhash,
+        lastValidBlockHeight: burnBhInfo.lastValidBlockHeight,
+      },
+      "confirmed",
+    );
 
-  //   // Create and send burn transaction
-  //   const { Transaction } = await import("@solana/web3.js");
-  //   const burnTx = new Transaction().add(burnIx);
-  //   const burnBhInfo = await connection.getLatestBlockhash("confirmed");
-  //   burnTx.recentBlockhash = burnBhInfo.blockhash;
-  //   burnTx.feePayer = agentKeypair.publicKey;
+    console.log(
+      `[buyback] Burned ${burnAmount} SYRA. https://solscan.io/tx/${burnSignature}`,
+    );
 
-  //   const burnSignature = await connection.sendTransaction(burnTx, [
-  //     agentKeypair,
-  //   ]);
-  //   await connection.confirmTransaction(
-  //     {
-  //       signature: burnSignature,
-  //       blockhash: burnBhInfo.blockhash,
-  //       lastValidBlockHeight: burnBhInfo.lastValidBlockHeight,
-  //     },
-  //     "confirmed",
-  //   );
-
-  //   console.log(
-  //     `Burned ${burnAmount} SYRA tokens. Signature: ${burnSignature}`,
-  //   );
-  //   console.log(`Burn transaction: https://solscan.io/tx/${burnSignature}`);
-
-  //   return {
-  //     swapSignature,
-  //     burnSignature,
-  //     amountBurned: burnAmount.toString(),
-  //   };
-  // } catch (error) {
-  //   console.error("Error in buyback and burn:", error);
-  //   if (error.response) {
-  //     console.error("API Error:", error.response.data);
-  //   }
-  //   throw error;
-  // }
-  return true;
+    return {
+      swapSignature,
+      burnSignature,
+      amountBurned: burnAmount.toString(),
+    };
+  } catch (error) {
+    console.error("[buyback] Error in buyback and burn:", error);
+    if (error.response) {
+      console.error("[buyback] API Error:", error.response.data);
+    }
+    throw error;
+  }
 }

@@ -4,10 +4,10 @@
  *
  * Environment-based pricing:
  * - Local (NODE_ENV !== 'production'): cheap prices for testing
- * - Production: 10x base price ("kill 1 zero")
+ * - Production: 100x base price ("kill 1 zero" = 10x previous production price)
  */
 const isProduction = process.env.NODE_ENV === 'production';
-const mult = isProduction ? 10 : 0.01; // production: 10x; local: 1/100 (cheap)
+const mult = isProduction ? 100 : 0.01; // production: 100x (kill 1 zero); local: 1/100 (cheap)
 
 const price = (base) => base * mult;
 
