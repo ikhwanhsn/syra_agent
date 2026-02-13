@@ -1098,6 +1098,43 @@ export function useApiPlayground() {
       finalUrl += (baseUrl.includes('?') ? '&' : '?') + searchParams.toString();
     }
 
+    // Client-side validation: GET to query-required endpoints must have non-empty query param
+    const pathname = (() => {
+      try {
+        return new URL(baseUrl).pathname.toLowerCase();
+      } catch {
+        return '';
+      }
+    })();
+    if (effectiveMethod === 'GET' && (pathname === '/v2/exa-search' || pathname === '/v2/browse' || pathname === '/v2/x-search')) {
+      const queryVal = enabledParams.find(p => p.key === 'query')?.value?.trim() ?? '';
+      if (!queryVal) {
+        toast({
+          title: 'Query required',
+          description: 'Please enter a search query in the Params section (e.g. "bitcoin insight", "latest Nvidia news").',
+          variant: 'destructive',
+        });
+        return undefined;
+      }
+    }
+
+    // For POST to query-based endpoints, ensure body includes query when body is empty (playground fills params, not body)
+    let bodyToSend = effectiveBody;
+    if (effectiveMethod === 'POST' && enabledParams.length > 0) {
+      const pathname = (() => {
+        try {
+          return new URL(baseUrl).pathname.toLowerCase();
+        } catch {
+          return '';
+        }
+      })();
+      const emptyBody = !effectiveBody.trim() || /^\s*\{\s*\}\s*$/.test(effectiveBody.trim()) || /^\s*\{\s*\n?\s*\}\s*$/.test(effectiveBody.trim());
+      if (emptyBody && (pathname === '/v2/exa-search' || pathname === '/v2/browse' || pathname === '/v2/x-search')) {
+        const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
+        bodyToSend = JSON.stringify({ query: queryVal });
+      }
+    }
+
     // Build headers
     const requestHeaders: Record<string, string> = {};
     effectiveHeaders.filter(h => h.enabled && h.key).forEach(h => {
@@ -1234,7 +1271,7 @@ export function useApiPlayground() {
           body: JSON.stringify({
             url: finalUrl,
             method: effectiveMethod,
-            body: effectiveBody.trim() || undefined,
+            body: bodyToSend.trim() || undefined,
             headers: requestHeaders,
           }),
         });
@@ -1244,8 +1281,8 @@ export function useApiPlayground() {
           method: effectiveMethod,
           headers: requestHeaders,
         };
-        if (effectiveMethod === 'POST' && effectiveBody.trim()) {
-          fetchOptions.body = effectiveBody;
+        if (effectiveMethod === 'POST' && bodyToSend.trim()) {
+          fetchOptions.body = bodyToSend;
         }
         const proxiedUrl = getProxiedUrl(finalUrl);
         fetchResponse = await fetch(proxiedUrl, fetchOptions);
@@ -1437,7 +1474,9 @@ export function useApiPlayground() {
     const preset = getExampleFlows().find((f) => f.id === flowId);
     if (!preset) return;
     if (status === 'loading') return;
-    const effectiveParams = paramsOverride ?? preset.params;
+    // Use known params for this path when preset has none (e.g. exa-search needs query param for GET)
+    const presetOrKnownParams = preset.params.length > 0 ? preset.params : getParamsForExampleFlow(preset);
+    const effectiveParams = paramsOverride ?? presetOrKnownParams;
     const defaultHeaders: RequestHeader[] = [
       { key: 'Content-Type', value: 'application/json', enabled: true },
     ];
