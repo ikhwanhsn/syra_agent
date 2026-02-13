@@ -57,6 +57,7 @@ import { createEventRouter as createV2EventRouter } from "./v2/routes/event.js";
 import { createBrowseRouter as createV2BrowseRouter } from "./v2/routes/browse.js";
 import { createXSearchRouter as createV2XSearchRouter } from "./v2/routes/xSearch.js";
 import { createResearchRouter as createV2ResearchRouter } from "./v2/routes/research.js";
+import { createExaSearchRouter as createV2ExaSearchRouter } from "./v2/routes/exa-search.js";
 import { createGemsRouter as createV2GemsRouter } from "./v2/routes/gems.js";
 import { createXKOLRouter as createV2XKOLRouter } from "./v2/routes/kol.js";
 import { createCryptoKOLRouter as createV2CryptoKOLRouter } from "./v2/routes/crypto-kol.js";
@@ -178,6 +179,7 @@ function isX402Route(p) {
   if (p.startsWith("/x-kol")) return true;
   if (p.startsWith("/browse")) return true;
   if (p.startsWith("/research")) return true;
+  if (p.startsWith("/exa-search")) return true;
   if (p.startsWith("/gems")) return true;
   if (p.startsWith("/crypto-kol")) return true;
   if (p.startsWith("/check-status") && !p.startsWith("/check-status-agent")) return true;
@@ -482,6 +484,7 @@ app.use("/v2/event", await createV2EventRouter());
 app.use("/v2/browse", await createV2BrowseRouter());
 app.use("/v2/x-search", await createV2XSearchRouter());
 app.use("/v2/research", await createV2ResearchRouter());
+app.use("/v2/exa-search", await createV2ExaSearchRouter());
 app.use("/v2/gems", await createV2GemsRouter());
 app.use("/v2/x-kol", await createV2XKOLRouter());
 app.use("/v2/crypto-kol", await createV2CryptoKOLRouter());
@@ -623,6 +626,7 @@ app.get("/.well-known/x402", (req, res) => {
       // V2 Research & Analysis endpoints
       "https://api.syraa.fun/v2/browse",
       "https://api.syraa.fun/v2/research",
+      "https://api.syraa.fun/v2/exa-search",
       "https://api.syraa.fun/v2/gems",
       // V2 Partner endpoints
       "https://api.syraa.fun/v2/smart-money",

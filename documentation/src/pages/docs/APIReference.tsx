@@ -18,7 +18,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Research & Discovery",
-    slugs: ["browse", "research", "x-search", "gems"],
+    slugs: ["browse", "research", "x-search", "exa-search", "gems"],
   },
   {
     title: "Trading & Events",

@@ -13,6 +13,7 @@ import {
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_COINGECKO_USD,
+  X402_API_PRICE_EXA_SEARCH_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; name: string; description: string }} AgentTool */
@@ -86,6 +87,14 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_RESEARCH_USD,
     name: 'Research',
     description: 'Deep research / analysis',
+  },
+  {
+    id: 'exa-search',
+    path: '/v2/exa-search',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_EXA_SEARCH_USD,
+    name: 'EXA search',
+    description: 'EXA AI web search – dynamic search (query, numResults, type, contents/highlights)',
   },
   {
     id: 'gems',

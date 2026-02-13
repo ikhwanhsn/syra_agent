@@ -190,6 +190,23 @@ async function main() {
     },
   );
 
+  server.tool(
+    "syra_v2_exa_search",
+    "EXA AI web search: dynamic search with configurable options (numResults, type, contents/highlights)." + PAYMENT_NOTE,
+    {
+      query: z.string().describe("Search query (e.g. latest news on Nvidia, crypto market analysis)"),
+      numResults: z.number().optional().describe("Number of results 1–100 (default 10)"),
+      type: z.enum(["auto", "keyword", "neural", "fast", "deep"]).optional().describe("Search type"),
+    },
+    async ({ query, numResults, type }) => {
+      const params: Record<string, string> = { query };
+      if (numResults != null) params.numResults = String(numResults);
+      if (type) params.type = type;
+      const { status, body } = await fetchV2("/v2/exa-search", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   // --- Address / token address param ---
   server.tool(
     "syra_v2_x_kol",

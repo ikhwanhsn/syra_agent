@@ -37,6 +37,9 @@ export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 /** CoinGecko x402 (onchain search pools, trending pools, token by address) */
 export const X402_API_PRICE_COINGECKO_USD = price(0.01);
 
+/** EXA search (dynamic web search via Exa AI) */
+export const X402_API_PRICE_EXA_SEARCH_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /v2/analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation + 9 memecoin screens)

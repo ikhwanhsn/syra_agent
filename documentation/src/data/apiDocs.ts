@@ -405,6 +405,56 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     ],
   }),
 
+  "exa-search": doc({
+    title: "EXA Search API",
+    overview:
+      "EXA AI web search: dynamic search with configurable options (numResults, type, contents/highlights). Uses the x402 payment protocol.",
+    useCases: [
+      "Latest news and articles on any topic (e.g. Nvidia, crypto)",
+      "Semantic search with highlights or full text",
+      "Fast vs deep search (type: auto, fast, or deep)",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/v2/exa-search",
+        description: "Run an EXA search with optional parameters.",
+        params: [
+          { name: "query", type: "string", required: "Yes", description: "Search query (e.g. latest news on Nvidia, crypto market analysis)." },
+          { name: "numResults", type: "number", required: "No", description: "Number of results 1–100. Default: 10." },
+          { name: "type", type: "string", required: "No", description: "Search type: auto, keyword, neural, fast, or deep." },
+          { name: "contents", type: "string", required: "No", description: "JSON object for content options, e.g. {\"highlights\":{\"maxCharacters\":4000}} or {\"text\":true}." },
+        ],
+        requestExample: `# Basic search
+curl "${BASE_URL}/exa-search?query=Latest%20news%20on%20Nvidia"
+
+# With options
+curl "${BASE_URL}/exa-search?query=Bitcoin%20ETF&numResults=5&type=auto"`,
+        responseExample: `{
+  "query": "Latest news on Nvidia",
+  "results": [
+    { "title": "...", "url": "https://...", "score": 0.95, "highlights": ["..."] }
+  ],
+  "autopromptString": null
+}`,
+      },
+      {
+        method: "POST",
+        path: "/v2/exa-search",
+        description: "EXA search via POST with full options in body.",
+        bodyExample: `{ "query": "Latest news on Nvidia", "numResults": 10, "type": "auto", "contents": { "highlights": { "maxCharacters": 4000 } } }`,
+        requestExample: `curl -X POST ${BASE_URL}/exa-search \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "Latest news on Nvidia", "numResults": 10, "type": "auto", "contents": {"highlights": {"maxCharacters": 4000}}}'`,
+        responseExample: `{
+  "query": "Latest news on Nvidia",
+  "results": [ { "title": "...", "url": "https://...", "score": 0.95, "highlights": ["..."] } ],
+  "autopromptString": null
+}`,
+      },
+    ],
+  }),
+
   gems: doc({
     title: "Gems API",
     overview: "Discover hidden gem crypto projects trending on X/Twitter. Uses the x402 payment protocol.",

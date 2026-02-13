@@ -335,6 +335,7 @@ All tools return the **raw API response body** (usually a JSON string) when the 
 | `syra_v2_research` | `query` (required), `type` (optional: `"quick"` \| `"deep"`) | AI-powered deep research on a crypto topic with cited sources. |
 | `syra_v2_browse` | `query` (required) — URL or search query | AI-powered web browsing and information extraction. |
 | `syra_v2_x_search` | `query` (required) | Deep research on X/Twitter for crypto trends and discussions. |
+| `syra_v2_exa_search` | `query` (required), `numResults` (optional), `type` (optional: `auto` \| `keyword` \| `neural` \| `fast` \| `deep`) | EXA AI web search with configurable options. |
 
 ### Token & address-based
 
@@ -414,6 +415,7 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_research` | `/v2/research` |
 | `syra_v2_browse` | `/v2/browse` |
 | `syra_v2_x_search` | `/v2/x-search` |
+| `syra_v2_exa_search` | `/v2/exa-search` |
 | `syra_v2_x_kol` | `/v2/x-kol` |
 | `syra_v2_token_report` | `/v2/token-report` |
 | `syra_v2_token_risk_alerts` | `/v2/token-risk/alerts` |

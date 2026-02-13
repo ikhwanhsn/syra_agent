@@ -91,6 +91,14 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     category: "core",
   },
   {
+    id: "exa-search",
+    name: "EXA search",
+    description: "EXA AI web search with configurable options (numResults, type, contents/highlights).",
+    priceUsd: PRICE.default,
+    examplePrompt: "Search the web for latest Nvidia news / EXA search for crypto market",
+    category: "core",
+  },
+  {
     id: "gems",
     name: "Gems",
     description: "Gems and curated insights.",

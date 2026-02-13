@@ -47,6 +47,7 @@ export const navigation: NavItem[] = [
           { title: "Browse", href: api("browse") },
           { title: "Research", href: api("research") },
           { title: "X Search", href: api("x-search") },
+          { title: "EXA Search", href: api("exa-search") },
           { title: "Gems", href: api("gems") },
         ],
       },
