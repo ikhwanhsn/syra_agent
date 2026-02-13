@@ -335,7 +335,7 @@ All tools return the **raw API response body** (usually a JSON string) when the 
 | `syra_v2_research` | `query` (required), `type` (optional: `"quick"` \| `"deep"`) | AI-powered deep research on a crypto topic with cited sources. |
 | `syra_v2_browse` | `query` (required) — URL or search query | AI-powered web browsing and information extraction. |
 | `syra_v2_x_search` | `query` (required) | Deep research on X/Twitter for crypto trends and discussions. |
-| `syra_v2_exa_search` | `query` (required), `numResults` (optional), `type` (optional: `auto` \| `keyword` \| `neural` \| `fast` \| `deep`) | EXA AI web search with configurable options. |
+| `syra_v2_exa_search` | `query` (required) | EXA AI web search; only the search query is dynamic. |
 
 ### Token & address-based
 

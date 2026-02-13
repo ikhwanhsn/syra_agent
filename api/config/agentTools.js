@@ -94,7 +94,7 @@ export const AGENT_TOOLS = [
     method: 'GET',
     priceUsd: X402_API_PRICE_EXA_SEARCH_USD,
     name: 'EXA search',
-    description: 'EXA AI web search – dynamic search (query, numResults, type, contents/highlights)',
+    description: 'EXA AI web search – dynamic query only',
   },
   {
     id: 'gems',

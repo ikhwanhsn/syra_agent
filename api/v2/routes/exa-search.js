@@ -1,6 +1,6 @@
 /**
  * v2 x402 API: EXA search – dynamic web search via Exa AI.
- * Uses EXA_API_KEY from env. Search is fully dynamic: query + optional numResults, type, contents, etc.
+ * Uses EXA_API_KEY from env. Only the search query is dynamic; options (numResults, type, contents) are fixed.
  */
 import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
@@ -17,42 +17,8 @@ function getExaClient() {
   return new Exa(key);
 }
 
-/**
- * Build EXA search options from request (GET query params or POST body).
- * Fully dynamic: accepts numResults, type, contents, and any other valid EXA options.
- */
-function buildSearchOptions(input) {
-  const opts = {};
-  if (input.numResults != null) {
-    const n = parseInt(input.numResults, 10);
-    if (!Number.isNaN(n) && n >= 1 && n <= 100) opts.numResults = n;
-  }
-  if (input.type != null && typeof input.type === "string") {
-    const t = input.type.trim().toLowerCase();
-    if (["auto", "keyword", "neural", "fast", "deep"].includes(t)) opts.type = t;
-  }
-  if (input.contents != null) {
-    if (typeof input.contents === "object" && input.contents !== null) {
-      opts.contents = input.contents;
-    } else if (typeof input.contents === "string") {
-      try {
-        opts.contents = JSON.parse(input.contents);
-      } catch (_) {
-        // ignore invalid JSON
-      }
-    }
-  }
-  // Allow any other EXA search options to be passed through (e.g. includeDomains, startPublishedDate)
-  const known = new Set(["query", "numResults", "type", "contents"]);
-  for (const [k, v] of Object.entries(input)) {
-    if (known.has(k) || v === undefined || v === null) continue;
-    opts[k] = v;
-  }
-  return opts;
-}
-
-/** Default options when none provided (matches user example: numResults 10, type auto, highlights) */
-const defaultSearchOptions = {
+/** Fixed EXA search options (only query is dynamic). */
+const searchOptions = {
   numResults: 10,
   type: "auto",
   contents: {
@@ -67,7 +33,7 @@ export async function createExaSearchRouter() {
 
   const paymentOptions = {
     price: X402_API_PRICE_EXA_SEARCH_USD,
-    description: "EXA AI web search – dynamic search with configurable options (numResults, type, contents)",
+    description: "EXA AI web search – dynamic query only (e.g. latest news on Nvidia, crypto market analysis)",
     method: "GET",
     discoverable: true,
     resource: "/v2/exa-search",
@@ -78,21 +44,6 @@ export async function createExaSearchRouter() {
           required: true,
           description: "Search query (e.g. latest news on Nvidia, crypto market analysis)",
         },
-        numResults: {
-          type: "number",
-          required: false,
-          description: "Number of results (1–100). Default 10.",
-        },
-        type: {
-          type: "string",
-          required: false,
-          description: "Search type: auto, keyword, neural, fast, or deep",
-        },
-        contents: {
-          type: "string",
-          required: false,
-          description: "JSON object for content options, e.g. {\"highlights\":{\"maxCharacters\":4000}} or {\"text\":true}",
-        },
       },
     },
     outputSchema: {
@@ -102,7 +53,7 @@ export async function createExaSearchRouter() {
     },
   };
 
-  // GET /v2/exa-search?query=...&numResults=10&type=auto&contents={...}
+  // GET /v2/exa-search?query=...
   router.get(
     "/",
     requirePayment(paymentOptions),
@@ -112,12 +63,10 @@ export async function createExaSearchRouter() {
         res.status(400).json({ error: "query is required" });
         return;
       }
-      const built = buildSearchOptions(req.query);
-      const options = { ...defaultSearchOptions, ...built };
 
       try {
         const exa = getExaClient();
-        const result = await exa.search(query, options);
+        const result = await exa.search(query, searchOptions);
         await settlePaymentAndSetResponse(res, req);
         res.json({
           query,
@@ -138,7 +87,7 @@ export async function createExaSearchRouter() {
     }
   );
 
-  // POST /v2/exa-search – body: { query, numResults?, type?, contents?, ... } (fully dynamic)
+  // POST /v2/exa-search – body: { query } (only query is dynamic)
   const postPaymentOptions = {
     ...paymentOptions,
     method: "POST",
@@ -149,21 +98,6 @@ export async function createExaSearchRouter() {
           type: "string",
           required: true,
           description: "Search query",
-        },
-        numResults: {
-          type: "number",
-          required: false,
-          description: "Number of results (1–100)",
-        },
-        type: {
-          type: "string",
-          required: false,
-          description: "Search type: auto, keyword, neural, fast, deep",
-        },
-        contents: {
-          type: "object",
-          required: false,
-          description: "Content options, e.g. { highlights: { maxCharacters: 4000 } } or { text: true }",
         },
       },
     },
@@ -179,12 +113,10 @@ export async function createExaSearchRouter() {
         res.status(400).json({ error: "query is required" });
         return;
       }
-      const built = buildSearchOptions(body);
-      const options = { ...defaultSearchOptions, ...built };
 
       try {
         const exa = getExaClient();
-        const result = await exa.search(query, options);
+        const result = await exa.search(query, searchOptions);
         await settlePaymentAndSetResponse(res, req);
         res.json({
           query,

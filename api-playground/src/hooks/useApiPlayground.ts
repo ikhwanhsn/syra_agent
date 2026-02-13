@@ -449,12 +449,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/v2/browse': [{ key: 'query', value: '', enabled: true, description: 'Search query or URL' }],
       '/v2/x/search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
       '/v2/x-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
-      '/v2/exa-search': [
-        { key: 'query', value: '', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' },
-        { key: 'numResults', value: '10', enabled: false, description: '1–100 (default 10)' },
-        { key: 'type', value: 'auto', enabled: false, description: 'auto, keyword, neural, fast, deep' },
-        { key: 'contents', value: '{"highlights":{"maxCharacters":4000}}', enabled: false, description: 'JSON: highlights or text options' },
-      ],
+      '/v2/exa-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
       '/v2/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/v2/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
       '/v2/kol': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
