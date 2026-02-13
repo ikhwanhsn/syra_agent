@@ -32,6 +32,7 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "exa-js": "^2.3.0",
     "express": "^5.2.1",
     "mongodb": "^7.0.0",
     "mongoose": "^8.5.0",
