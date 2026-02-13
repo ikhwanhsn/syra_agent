@@ -1493,24 +1493,42 @@ export function useApiPlayground() {
     setHeaders(defaultHeaders);
     setBody('{\n  \n}');
     setResponse(undefined);
-    setStatus('loading');
     setPaymentDetails(undefined);
     setX402Response(undefined);
     setPaymentOption(undefined);
 
-    // Use a tracked ID so sendRequest adds/updates exactly one history entry (avoids double entry from batching or double-click)
-    const newId = generateId();
-    newRequestIdRef.current = newId;
+    // For flows that require a non-empty query (exa-search, browse, x-search), don't send automatically when query is empty
+    const pathname = (() => {
+      try {
+        return new URL(preset.url).pathname.toLowerCase();
+      } catch {
+        return '';
+      }
+    })();
+    const queryRequiredPaths = ['/v2/exa-search', '/v2/browse', '/v2/x-search'];
+    const queryValue = (effectiveParams.find((p) => p.key === 'query')?.value ?? '').trim();
+    const shouldSend = !queryRequiredPaths.includes(pathname) || !!queryValue;
 
-    const override: RequestOverride = {
-      method: defaultMethod,
-      url: preset.url,
-      params: effectiveParams.map((p) => ({ ...p })),
-      headers: defaultHeaders,
-      body: '{\n  \n}',
-    };
-    sendRequest(undefined, override);
-    setSelectedHistoryId(newId);
+    if (shouldSend) {
+      setStatus('loading');
+      const newId = generateId();
+      newRequestIdRef.current = newId;
+      const override: RequestOverride = {
+        method: defaultMethod,
+        url: preset.url,
+        params: effectiveParams.map((p) => ({ ...p })),
+        headers: defaultHeaders,
+        body: '{\n  \n}',
+      };
+      sendRequest(undefined, override);
+      setSelectedHistoryId(newId);
+    } else {
+      setStatus('idle');
+      toast({
+        title: 'Enter your search query',
+        description: 'Fill in the "query" param above (e.g. bitcoin insight, latest Nvidia news) and click Send.',
+      });
+    }
   }, [sendRequest, status]);
 
   // Try demo - randomly pick a v2 API and always create new history
