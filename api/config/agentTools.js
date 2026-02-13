@@ -675,7 +675,7 @@ export function matchToolFromUserMessage(userMessage) {
  */
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
-  const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
+  const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'exa-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
   const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 
@@ -710,6 +710,9 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'signal') {
       out.paramsHint = 'Optional params: token (bitcoin, ethereum, solana) — use the token the user asked for';
+    }
+    if (t.id === 'exa-search') {
+      out.paramsHint = 'Params: query (required) — search query from the user, e.g. "bitcoin insight", "latest Nvidia news"';
     }
     if (t.id === 'coingecko-simple-price') {
       out.paramsHint = 'Params: symbols (e.g. btc,eth,sol) or ids (e.g. bitcoin,ethereum); optional include_market_cap, include_24hr_vol, include_24hr_change';

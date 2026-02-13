@@ -108,7 +108,8 @@ export async function createExaSearchRouter() {
     requirePayment(postPaymentOptions),
     async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {};
-      const query = (body.query ?? "").trim();
+      // Accept query from body (POST JSON) or from URL query string (e.g. playground sends params in URL)
+      const query = (body.query ?? req.query?.query ?? "").trim();
       if (!query) {
         res.status(400).json({ error: "query is required" });
         return;

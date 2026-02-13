@@ -59,6 +59,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - "tools" must be an array. Include 1 to 3 tools that best match the question; use [] if no tool fits.
 - Each tool object: "toolId" (one of the ids above), "params" (object, see below).
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
+- For the "exa-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for Exa search, web search, or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
 - For the "coingecko-search-pools" tool set "params": {"query": "<search term from user>", "network": "solana"} or "base" when the user asks to search pools/tokens (e.g. "search pools for pump", "find token X on Solana").
 - For the "coingecko-trending-pools" tool always set "params": {"network": "solana", "duration": "5m"} when the user asks for trending pools (e.g. "give me coingecko trending pools"). Only use a different network if the user explicitly says "on Base" or "on Ethereum".
