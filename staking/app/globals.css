@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0f0f0f;
+  --foreground: #fafafa;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Wallet adapter modal overrides for dark theme */
+.wallet-adapter-modal-wrapper {
+  background: rgba(15, 15, 15, 0.95) !important;
+}
+.wallet-adapter-modal-container {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1rem !important;
+}
+.wallet-adapter-button {
+  border-radius: 0.75rem !important;
+}
+.wallet-adapter-button-trigger {
+  background: linear-gradient(135deg, #a855f7 0%, #22d3ee 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
