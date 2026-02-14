@@ -14,7 +14,7 @@ pub struct Initialize<'info> {
         seeds = [POOL_SEED],
         bump
     )]
-    pub global_pool: Account<'info, GlobalPool>,
+    pub global_pool: Box<Account<'info, GlobalPool>>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -29,7 +29,7 @@ pub struct Initialize<'info> {
         associated_token::mint = staking_mint,
         associated_token::authority = global_pool
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: Box<Account<'info, TokenAccount>>,
 
     /// Reward vault (ATA owned by pool PDA)
     #[account(
@@ -38,7 +38,7 @@ pub struct Initialize<'info> {
         associated_token::mint = reward_mint,
         associated_token::authority = global_pool
     )]
-    pub reward_vault: Account<'info, TokenAccount>,
+    pub reward_vault: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,

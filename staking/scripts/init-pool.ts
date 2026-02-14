@@ -33,14 +33,14 @@ async function main() {
   });
   anchor.setProvider(provider);
 
-  // Load program
-  const programId = new PublicKey(
-    process.env.PROGRAM_ID || "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
-  );
+  // Load program (Anchor 0.30: Program(idl, provider); programId comes from idl.address)
   const idl = JSON.parse(
     fs.readFileSync("target/idl/staking.json", "utf-8")
   );
-  const program = new Program(idl, programId, provider);
+  const programId = new PublicKey(
+    process.env.PROGRAM_ID || idl.address || "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+  );
+  const program = new Program(idl as any, provider) as anchor.Program;
 
   // Derive PDAs
   const [globalPool] = PublicKey.findProgramAddressSync(

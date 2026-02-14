@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./Providers";
-import { Toaster } from "sonner";
+import { ToasterThemed } from "@/components/ToasterThemed";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,21 +18,18 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem("staking-theme");var d=window.matchMedia("(prefers-color-scheme: dark)").matches;var r=t==="light"||t==="dark"?t:(d?"dark":"light");document.documentElement.classList.toggle("dark",r==="dark");})();`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
           {children}
-          <Toaster
-            position="top-center"
-            theme="dark"
-            toastOptions={{
-              style: {
-                background: "rgba(23, 23, 23, 0.95)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fafafa",
-              },
-            }}
-          />
+          <ToasterThemed />
         </Providers>
       </body>
     </html>

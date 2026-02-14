@@ -20,4 +20,6 @@ pub enum StakingError {
     InsufficientRewardBalance,
     #[msg("Math overflow")]
     MathOverflow,
+    #[msg("No rewards to claim")]
+    NothingToClaim,
 }

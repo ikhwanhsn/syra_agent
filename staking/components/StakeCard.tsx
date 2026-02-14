@@ -54,11 +54,11 @@ export function StakeCard({
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-      <h3 className="mb-4 text-lg font-semibold text-white">
+    <div className="card-surface p-6">
+      <h3 className="mb-4 text-lg font-semibold text-foreground">
         {isStake ? "Stake" : "Unstake"} {tokenSymbol}
       </h3>
-      <p className="mb-2 text-sm text-zinc-400">
+      <p className="mb-2 text-sm text-muted-foreground">
         {isStake ? "Wallet balance" : "Staked"}: {max} {tokenSymbol}
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -72,18 +72,18 @@ export function StakeCard({
               const v = e.target.value.replace(/[^0-9.]/g, "");
               setAmount(v);
             }}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-zinc-500 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+            className="w-full rounded-xl border-2 border-border bg-input px-4 py-3 text-foreground placeholder-muted-foreground transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
             disabled={disabled || loading || localLoading}
           />
           {hasInsufficient && (
-            <p className="mt-1 text-sm text-red-400">Insufficient balance</p>
+            <p className="mt-1 text-sm text-destructive">Insufficient balance</p>
           )}
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleMax}
-            className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/15"
+            className="rounded-lg border-2 border-border bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground shadow-sm transition hover:bg-secondary/80 hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/30 active:scale-[0.98]"
           >
             Max
           </button>
@@ -91,7 +91,7 @@ export function StakeCard({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl border-2 border-primary bg-primary py-3 font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           {localLoading || loading
             ? "Processing..."

@@ -60,7 +60,7 @@ pub fn claim(ctx: Context<Claim>) -> Result<()> {
         user_stake_info.reward_debt,
     )?;
 
-    require!(pending_reward > 0, StakingError::InvalidAmount);
+    require!(pending_reward > 0, StakingError::NothingToClaim);
 
     // Convert u128 to u64 for transfer (ensure it fits)
     let reward_to_claim = u64::try_from(pending_reward)

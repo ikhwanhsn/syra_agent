@@ -2,7 +2,6 @@
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getConnection } from "@/lib/solana";
 import {
   fetchGlobalPool,
   fetchUserStakeInfo,
@@ -14,6 +13,7 @@ import {
   stake as stakeTx,
   unstake as unstakeTx,
   claim as claimTx,
+  toAnchorWallet,
   getUserStakingAta,
   getUserRewardAta,
 } from "@/lib/stakingClient";
@@ -124,13 +124,18 @@ export function useStaking(): StakingState {
 
   const stake = useCallback(
     async (amount: string) => {
-      if (!wallet.publicKey || !wallet.adapter) return;
+      const adapter = wallet.wallet?.adapter ?? null;
+      if (!wallet.publicKey || !adapter) {
+        throw new Error("Wallet not connected");
+      }
       setStakeLoading(true);
       setError(null);
       try {
         const amountRaw = parseUnits(amount, CONFIG.stakingDecimals);
-        await stakeTx(getConnection(), wallet.adapter as any, amountRaw);
+        const anchorWallet = toAnchorWallet(adapter);
+        const sig = await stakeTx(connection, anchorWallet, amountRaw);
         await fetchData();
+        return sig;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Stake failed");
         throw e;
@@ -138,18 +143,23 @@ export function useStaking(): StakingState {
         setStakeLoading(false);
       }
     },
-    [wallet.publicKey, wallet.adapter, fetchData]
+    [connection, wallet.publicKey, wallet.wallet, fetchData]
   );
 
   const unstake = useCallback(
     async (amount: string) => {
-      if (!wallet.publicKey || !wallet.adapter) return;
+      const adapter = wallet.wallet?.adapter ?? null;
+      if (!wallet.publicKey || !adapter) {
+        throw new Error("Wallet not connected");
+      }
       setUnstakeLoading(true);
       setError(null);
       try {
         const amountRaw = parseUnits(amount, CONFIG.stakingDecimals);
-        await unstakeTx(getConnection(), wallet.adapter as any, amountRaw);
+        const anchorWallet = toAnchorWallet(adapter);
+        const sig = await unstakeTx(connection, anchorWallet, amountRaw);
         await fetchData();
+        return sig;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Unstake failed");
         throw e;
@@ -157,23 +167,28 @@ export function useStaking(): StakingState {
         setUnstakeLoading(false);
       }
     },
-    [wallet.publicKey, wallet.adapter, fetchData]
+    [connection, wallet.publicKey, wallet.wallet, fetchData]
   );
 
   const claim = useCallback(async () => {
-    if (!wallet.publicKey || !wallet.adapter) return;
+    const adapter = wallet.wallet?.adapter ?? null;
+    if (!wallet.publicKey || !adapter) {
+      throw new Error("Wallet not connected");
+    }
     setClaimLoading(true);
     setError(null);
     try {
-      await claimTx(getConnection(), wallet.adapter as any);
+      const anchorWallet = toAnchorWallet(adapter);
+      const sig = await claimTx(connection, anchorWallet);
       await fetchData();
+      return sig;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Claim failed");
       throw e;
     } finally {
       setClaimLoading(false);
     }
-  }, [wallet.publicKey, wallet.adapter, fetchData]);
+  }, [connection, wallet.publicKey, wallet.wallet, fetchData]);
 
   const totalStakedFormatted = useMemo(() => {
     if (!pool) return "0";

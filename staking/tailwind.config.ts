@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: ["class"],
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,22 +9,51 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0f0f0f",
-        surface: "rgba(255,255,255,0.03)",
-        border: "rgba(255,255,255,0.08)",
-        accent: {
-          purple: "#a855f7",
-          cyan: "#22d3ee",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       backgroundImage: {
-        "gradient-accent":
-          "linear-gradient(135deg, #a855f7 0%, #22d3ee 100%)",
-        "glass": "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+        "gradient-primary": "var(--gradient-primary)",
+        glass:
+          "linear-gradient(135deg, hsl(var(--glass-bg)) 0%, hsl(var(--card)) 100%)",
       },
       boxShadow: {
-        glow: "0 0 40px -10px rgba(168, 85, 247, 0.4)",
-        "glow-cyan": "0 0 40px -10px rgba(34, 211, 238, 0.3)",
+        glow: "0 0 40px -10px hsl(var(--accent) / 0.4)",
+        "glow-sm": "0 0 20px -5px hsl(var(--accent) / 0.3)",
       },
     },
   },

@@ -219,6 +219,11 @@ pub struct Stake<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Entrypoint for stake instruction (called from lib.rs).
+pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+    Stake::exec(ctx, amount)
+}
+
 impl<'info> Stake<'info> {
     pub fn exec(ctx: Context<Stake>, amount: u64) -> Result<()> {
         require!(amount > 0, StakingError::InvalidAmount);
