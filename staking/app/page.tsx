@@ -1,7 +1,11 @@
 "use client";
 
+import React from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/WalletButton";
+import { useTheme } from "@/app/ThemeContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatsCard } from "@/components/StatsCard";
 import { StakeCard } from "@/components/StakeCard";
@@ -9,12 +13,44 @@ import { useStaking } from "@/hooks/useStaking";
 import { toast } from "sonner";
 import { CONFIG } from "@/constants/config";
 
-const TOKEN_SYMBOL = "STAKE";
 const EXPLORER_CLUSTER = CONFIG.rpcEndpoint.includes("devnet") ? "devnet" : "mainnet";
 const EXPLORER_TX = (sig: string) =>
   `https://explorer.solana.com/tx/${sig}?cluster=${EXPLORER_CLUSTER}`;
 
+/** Format APR for readability: compact (e.g. 631.15M%) when very large, otherwise with commas. */
+function formatApr(apr: number): string {
+  if (apr >= 1_000_000_000) {
+    return `${(apr / 1_000_000_000).toFixed(2)}B%`;
+  }
+  if (apr >= 1_000_000) {
+    return `${(apr / 1_000_000).toFixed(2)}M%`;
+  }
+  if (apr >= 1_000) {
+    return `${(apr / 1_000).toFixed(2)}K%`;
+  }
+  return `${apr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
+function NavbarLogo() {
+  const [failed, setFailed] = React.useState(false);
+  if (failed) {
+    return <span className="text-xl font-bold text-foreground">Staking dApp</span>;
+  }
+  return (
+    <Image
+      src="/logo.jpg"
+      alt="Staking dApp"
+      width={140}
+      height={36}
+      className="h-9 w-auto object-contain"
+      priority
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function StakingPage() {
+  const { resolved: theme } = useTheme();
   const { connected } = useWallet();
   const {
     pool,
@@ -54,7 +90,7 @@ export default function StakingPage() {
       const sig = await stake(amount);
       toast.success(
         <>
-          Staked {amount} {TOKEN_SYMBOL}.{" "}
+          Staked {amount} {CONFIG.stakingTokenSymbol}.{" "}
           <a
             href={EXPLORER_TX(sig)}
             target="_blank"
@@ -88,7 +124,7 @@ export default function StakingPage() {
       const sig = await unstake(amount);
       toast.success(
         <>
-          Unstaked {amount} {TOKEN_SYMBOL}.{" "}
+          Unstaked {amount} {CONFIG.stakingTokenSymbol}.{" "}
           <a
             href={EXPLORER_TX(sig)}
             target="_blank"
@@ -138,9 +174,13 @@ export default function StakingPage() {
     <div className="min-h-screen bg-background">
       <header className="navbar border-b border-border">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <h1 className="text-xl font-bold text-foreground">
-            Staking dApp
-          </h1>
+          <Link
+            href="/"
+            className={`flex items-center gap-3 no-underline hover:no-underline ${theme === "dark" ? "text-[#f5f5f5] hover:text-[#f5f5f5]" : "text-black hover:text-black"}`}
+          >
+            <NavbarLogo />
+            <span className="text-xl font-semibold">Syra Staking</span>
+          </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <WalletButton />
@@ -195,11 +235,11 @@ export default function StakingPage() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatsCard
                     title="Total Staked"
-                    value={`${totalStakedFormatted} ${TOKEN_SYMBOL}`}
+                    value={`${totalStakedFormatted} ${CONFIG.stakingTokenSymbol}`}
                   />
                   <StatsCard
                     title="APR"
-                    value={`${apr.toFixed(2)}%`}
+                    value={formatApr(apr)}
                     subValue="Based on current emission"
                     gradient
                   />
@@ -210,7 +250,7 @@ export default function StakingPage() {
                   />
                   <StatsCard
                     title="Your Staked"
-                    value={`${userStakedFormatted} ${TOKEN_SYMBOL}`}
+                    value={`${userStakedFormatted} ${CONFIG.stakingTokenSymbol}`}
                   />
                 </div>
               )}
@@ -247,7 +287,7 @@ export default function StakingPage() {
                   Wallet Balance
                 </h3>
                 <p className="text-2xl font-bold text-foreground">
-                  {userStakingBalanceFormatted} {TOKEN_SYMBOL}
+                  {userStakingBalanceFormatted} {CONFIG.stakingTokenSymbol}
                 </p>
               </div>
             </section>
@@ -261,7 +301,7 @@ export default function StakingPage() {
                 disabled={!pool || loading}
                 loading={stakeLoading}
                 onConfirm={handleStake}
-                tokenSymbol={TOKEN_SYMBOL}
+                tokenSymbol={CONFIG.stakingTokenSymbol}
               />
               <StakeCard
                 action="unstake"
@@ -271,7 +311,7 @@ export default function StakingPage() {
                 disabled={!pool || loading}
                 loading={unstakeLoading}
                 onConfirm={handleUnstake}
-                tokenSymbol={TOKEN_SYMBOL}
+                tokenSymbol={CONFIG.stakingTokenSymbol}
               />
             </section>
           </>

@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Staking dApp | SPL Token Staking",
   description: "Stake your SPL tokens and earn rewards.",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/logo.jpg",
+  },
 };
 
 export default function RootLayout({

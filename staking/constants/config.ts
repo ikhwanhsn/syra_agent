@@ -47,6 +47,10 @@ export const CONFIG = {
   /** Staking token decimals. */
   stakingDecimals: Number(process.env.NEXT_PUBLIC_STAKING_DECIMALS || "6"),
 
+  /** Display symbol for the staking token (e.g. SYRA). */
+  stakingTokenSymbol:
+    process.env.NEXT_PUBLIC_STAKING_TOKEN_SYMBOL || "SYRA",
+
   /** Seconds in a year for APR. */
   secondsPerYear: 365.25 * 24 * 60 * 60,
 
