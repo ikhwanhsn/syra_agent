@@ -554,3 +554,42 @@ export const agentToolsApi = {
     return data as { success: true; toolId: string; data: unknown };
   },
 };
+
+/** Agent chat leaderboard: users ranked by messages/chats/tools/volume/recent. */
+const agentLeaderboardBase = () => getApiBaseUrl() + "/agent/leaderboard";
+
+export interface AgentLeaderboardEntry {
+  rank: number;
+  anonymousId: string;
+  totalMessages: number;
+  totalChats: number;
+  totalToolCalls: number;
+  x402VolumeUsd: number;
+  lastActiveAt: string;
+}
+
+export const agentLeaderboardApi = {
+  /** Get leaderboard with sort, order, pagination (limit, skip). Returns total for pagination. */
+  async get(params?: {
+    sort?: "messages" | "chats" | "recent" | "tools" | "volume";
+    order?: "asc" | "desc";
+    limit?: number;
+    skip?: number;
+  }): Promise<{
+    leaderboard: AgentLeaderboardEntry[];
+    sort: string;
+    order: "asc" | "desc";
+    total: number;
+    limit: number;
+    skip: number;
+  }> {
+    const search = new URLSearchParams();
+    if (params?.sort) search.set("sort", params.sort);
+    if (params?.order) search.set("order", params.order);
+    if (params?.limit != null) search.set("limit", String(params.limit));
+    if (params?.skip != null) search.set("skip", String(params.skip));
+    const qs = search.toString();
+    const res = await fetch(`${agentLeaderboardBase()}${qs ? `?${qs}` : ""}`);
+    return handleRes(res);
+  },
+};

@@ -22,6 +22,7 @@ import {
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../v2/lib/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
+import { recordAgentChatUsage } from '../../libs/agentLeaderboard.js';
 
 const router = express.Router();
 
@@ -749,6 +750,15 @@ router.post('/completion', async (req, res) => {
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
     if (usedFallbackModel) payload.usedFallbackModel = true;
     if (toolUsages && toolUsages.length > 0) payload.toolUsages = toolUsages;
+
+    if (anonymousId && (amountChargedUsd > 0 || (toolUsages && toolUsages.some((u) => u.status === 'complete')))) {
+      const toolCallsDelta = toolUsages ? toolUsages.filter((u) => u.status === 'complete').length : 0;
+      recordAgentChatUsage(anonymousId, {
+        toolCallsDelta,
+        x402VolumeUsdDelta: amountChargedUsd,
+      }).catch(() => {});
+    }
+
     return res.json(payload);
   } catch (error) {
     const status = error.status || 500;
@@ -896,6 +906,7 @@ router.post('/', async (req, res) => {
       isPublic: false,
     });
     await chat.save();
+    recordAgentChatUsage(ownerId, { chatsDelta: 1 }).catch(() => {});
 
     res.status(201).json({
       success: true,
@@ -1105,6 +1116,8 @@ router.post('/:id/messages', async (req, res) => {
     if (!chat) {
       return res.status(404).json({ success: false, error: 'Chat not found' });
     }
+
+    recordAgentChatUsage(ownerId, { messagesDelta: newMessages.length }).catch(() => {});
 
     const outMessages = (chat.messages || []).map((m) => ({
       id: m.id,

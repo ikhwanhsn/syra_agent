@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Share2, Lock, Globe, Twitter, Send, BookOpen, ExternalLink } from "lucide-react";
+import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Trophy, Share2, Lock, Globe, Twitter, Send, BookOpen, ExternalLink } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -534,6 +534,15 @@ export function Sidebar({
             >
               <Store className="w-4 h-4" />
               <span className="flex-1 text-left">Marketplace</span>
+            </Button>
+          </Link>
+          <Link to="/leaderboard">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Trophy className="w-4 h-4" />
+              <span className="flex-1 text-left">Leaderboard</span>
             </Button>
           </Link>
           <Button

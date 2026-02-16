@@ -12,6 +12,7 @@ import MarketplaceAgents from "./pages/MarketplaceAgents";
 import MarketplaceTools from "./pages/MarketplaceTools";
 import MarketplaceMore from "./pages/MarketplaceMore";
 import ShareableChatRoute from "./pages/ShareableChatRoute";
+import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="more" element={<MarketplaceMore />} />
             </Route>
             <Route path="/c/:shareId" element={<ShareableChatRoute />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
