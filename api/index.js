@@ -168,10 +168,11 @@ const CORS_OPTIONS_REGULAR = {
   ],
 };
 
+// COMMAND: x402 API — only v2 is used for other websites; v1 is not x402.
+// All v1 API (e.g. /v1/regular/*) is internal/free preview; only v2 endpoints get x402 CORS and skip rate limit.
 function isX402Route(p) {
   if (!p) return false;
   if (p.startsWith("/.well-known")) return true;
-  if (p.startsWith("/v1/")) return true;
   if (p.startsWith("/v2/")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
@@ -463,14 +464,47 @@ app.get("/", (req, res) => {
   `);
 });
 
-// x402 routes (V1 format - x402scan compatible)
+// COMMAND: Legacy (unversioned) API disabled — paths that have v2 are blocked; code kept for reference. Use /v2/* only.
+const LEGACY_PATHS_WITH_V2 = [
+  "/news", "/signal", "/sentiment", "/event", "/browse", "/x-search", "/research", "/gems",
+  "/x-kol", "/crypto-kol", "/check-status", "/smart-money", "/dexscreener", "/token-god-mode",
+  "/pump", "/trending-jupiter", "/token-report", "/token-statistic", "/trending-headline",
+  "/sundown-digest", "/analytics", "/bubblemaps", "/coingecko", "/binance", "/memecoin",
+];
+function isLegacyPathWithV2(path) {
+  if (!path || path.startsWith("/v2")) return false;
+  if (path.startsWith("/check-status-agent")) return false;
+  return LEGACY_PATHS_WITH_V2.some((p) => path === p || path.startsWith(p + "/"));
+}
+app.use((req, res, next) => {
+  if (isLegacyPathWithV2(req.path)) {
+    return res.status(410).json({
+      success: false,
+      error: "This API is no longer available. Please use v2.",
+      migration: "https://api.syraa.fun/v2/",
+      docs: "https://docs.syraa.fun",
+    });
+  }
+  next();
+});
+
+// x402 routes (V1 format - x402scan compatible); kept for reference; blocked by middleware above
 app.use("/info", await createInfoRouter());
 app.use("/coingecko", await createCoingeckoRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
 
-// v1/regular (no x402) – landing page dashboard preview, same data without payment
+// COMMAND: v1 API disabled for users — block all /v1/* requests; code kept for reference. Use /v2/* only.
+app.use("/v1", (req, res) => {
+  res.status(410).json({
+    success: false,
+    error: "v1 API is no longer available. Please use v2.",
+    migration: "https://api.syraa.fun/v2/",
+    docs: "https://docs.syraa.fun",
+  });
+});
+// v1/regular (no x402) – kept for reference; blocked by /v1 handler above
 app.use("/v1/regular/news", await createNewsRouterRegular());
 app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
 app.use("/v1/regular/signal", await createSignalRouterRegular());
@@ -592,6 +626,7 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)
+// COMMAND: x402 discovery lists only v2 URLs; v1 is not used on other websites — call https://api.syraa.fun/v2/* for x402.
 // NOTE: Only list endpoints that use paymentMiddleware (return 402 without payment)
 // Discovery document version is 1, but 402 responses use x402Version: 2
 app.get("/.well-known/x402", (req, res) => {
@@ -623,10 +658,9 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/x-search",
       "https://api.syraa.fun/v2/x-kol",
       "https://api.syraa.fun/v2/crypto-kol",
-      // V2 Research & Analysis endpoints
+      // V2 Research & Analysis endpoints (exa-search omitted: internal/agent only, not for other websites)
       "https://api.syraa.fun/v2/browse",
       "https://api.syraa.fun/v2/research",
-      "https://api.syraa.fun/v2/exa-search",
       "https://api.syraa.fun/v2/gems",
       // V2 Partner endpoints
       "https://api.syraa.fun/v2/smart-money",
