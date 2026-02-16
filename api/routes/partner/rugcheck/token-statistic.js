@@ -1,7 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
-import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { rugcheckRequests } from "../../../request/rugcheck.request.js";
 export async function createTokenStatisticRouter() {
   const router = express.Router();
@@ -42,20 +41,7 @@ export async function createTokenStatisticRouter() {
         "rugcheck/verified": allData[3],
       };
 
-      // Settle payment ONLY on success
       await settlePaymentAndRecord(req);
-
-      // Buyback and burn SYRA token (80% of revenue)
-      let burnResult = null;
-      try {
-        // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = X402_API_PRICE_USD;
-
-        burnResult = await buybackAndBurnSYRA(priceUSD);
-      } catch (burnError) {
-        // Continue even if burn fails - payment was successful
-      }
-
       res.status(200).json(data);
     }
   );
@@ -96,20 +82,7 @@ export async function createTokenStatisticRouter() {
         "rugcheck/verified": allData[3],
       };
 
-      // Settle payment ONLY on success
       await settlePaymentAndRecord(req);
-
-      // Buyback and burn SYRA token (80% of revenue)
-      let burnResult = null;
-      try {
-        // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = X402_API_PRICE_USD;
-
-        burnResult = await buybackAndBurnSYRA(priceUSD);
-      } catch (burnError) {
-        // Continue even if burn fails - payment was successful
-      }
-
       res.status(200).json(data);
     }
   );

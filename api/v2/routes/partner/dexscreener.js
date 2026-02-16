@@ -2,7 +2,7 @@ import express from "express";
 import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_DEXSCREENER_USD } from "../../../config/x402Pricing.js";
 
-const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader } = await getV2Payment();
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader, runBuybackForRequest } = await getV2Payment();
 import { dexscreenerRequests } from "../../../request/dexscreener.request.js";
 
 export async function createDexscreenerRouter() {
@@ -82,6 +82,7 @@ export async function createDexscreenerRouter() {
           settlePaymentWithFallback(payload, accepted),
         ]);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+        runBuybackForRequest(req);
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({
@@ -132,6 +133,7 @@ export async function createDexscreenerRouter() {
           settlePaymentWithFallback(payload, accepted),
         ]);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+        runBuybackForRequest(req);
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({

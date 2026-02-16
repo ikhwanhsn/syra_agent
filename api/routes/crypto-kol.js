@@ -6,7 +6,6 @@ import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { kolPrompt } from "../prompts/kol.prompt.js";
 import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
 import { cryptoKolPrompt } from "../prompts/crypto-kol.prompt.js";
-import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 export async function createCryptoKOLRouter() {
   const router = express.Router();
 
@@ -61,20 +60,7 @@ export async function createCryptoKOLRouter() {
           xLiveSearchService.getResult(result);
 
         if (status === "success") {
-          // Settle payment ONLY on success
           await settlePaymentAndRecord(req);
-
-          // Buyback and burn SYRA token (80% of revenue)
-          let burnResult = null;
-          try {
-            // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = X402_API_PRICE_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-            // Continue even if burn fails - payment was successful
-          }
-
           res.json({ query, result: message, citations, toolCalls });
         } else {
           res.status(500).json({
@@ -143,20 +129,7 @@ export async function createCryptoKOLRouter() {
           xLiveSearchService.getResult(result); // Parse the result
 
         if (status === "success") {
-          // Settle payment ONLY on success
           await settlePaymentAndRecord(req);
-
-          // Buyback and burn SYRA token (80% of revenue)
-          let burnResult = null;
-          try {
-            // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = X402_API_PRICE_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-            // Continue even if burn fails - payment was successful
-          }
-
           res.json({ query, result: message, citations, toolCalls });
         } else {
         }

@@ -2,7 +2,7 @@ import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_CHECK_STATUS_USD } from "../../config/x402Pricing.js";
 
-const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader } = await getV2Payment();
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader, runBuybackForRequest } = await getV2Payment();
 
 const statusPayload = { status: "ok", message: "Check status server is running" };
 
@@ -32,6 +32,7 @@ export async function createCheckStatusRouter() {
       const { payload, accepted } = req.x402Payment;
       const settle = await settlePaymentWithFallback(payload, accepted);
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
+      runBuybackForRequest(req);
       res.status(200).json(statusPayload);
     }
   );
@@ -44,6 +45,7 @@ export async function createCheckStatusRouter() {
       const { payload, accepted } = req.x402Payment;
       const settle = await settlePaymentWithFallback(payload, accepted);
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
+      runBuybackForRequest(req);
       res.status(200).json(statusPayload);
     }
   );

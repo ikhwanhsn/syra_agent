@@ -2,7 +2,6 @@ import express from "express";
 import fs from "fs";
 import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
-import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 // ---------- HELPERS ----------
 
 // Convert string OHLC to numbers
@@ -126,20 +125,7 @@ export async function createBinanceCorrelationRouter() {
         return res.status(404).json({ error: "Correlation matrix not found" });
       }
 
-      // Settle payment ONLY on success
       await settlePaymentAndRecord(req);
-
-      // Buyback and burn SYRA token (80% of revenue)
-      let burnResult = null;
-      try {
-        // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = X402_API_PRICE_USD;
-
-        burnResult = await buybackAndBurnSYRA(priceUSD);
-      } catch (burnError) {
-        // Continue even if burn fails - payment was successful
-      }
-
       res.json({
         interval: ohlcJson.interval,
         count: ohlcJson.count,
@@ -167,20 +153,7 @@ export async function createBinanceCorrelationRouter() {
       if (!data) {
         return res.status(404).json({ error: "Correlation matrix not found" });
       }
-      // Settle payment ONLY on success
       await settlePaymentAndRecord(req);
-
-      // Buyback and burn SYRA token (80% of revenue)
-      let burnResult = null;
-      try {
-        // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = X402_API_PRICE_USD;
-
-        burnResult = await buybackAndBurnSYRA(priceUSD);
-      } catch (burnError) {
-        // Continue even if burn fails - payment was successful
-      }
-
       res.json({
         interval: ohlcJson.interval,
         count: ohlcJson.count,
@@ -231,20 +204,7 @@ export async function createBinanceCorrelationRouter() {
         return res.status(404).json({ error: "No correlation found" });
       }
 
-      // Settle payment ONLY on success
       await settlePaymentAndRecord(req);
-
-      // Buyback and burn SYRA token (80% of revenue)
-      let burnResult = null;
-      try {
-        // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = X402_API_PRICE_USD;
-
-        burnResult = await buybackAndBurnSYRA(priceUSD);
-      } catch (burnError) {
-        // Continue even if burn fails - payment was successful
-      }
-
       res.json({
         symbol,
         top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
@@ -294,20 +254,7 @@ export async function createBinanceCorrelationRouter() {
         return res.status(404).json({ error: "No correlation found" });
       }
 
-      // Settle payment ONLY on success
       await settlePaymentAndRecord(req);
-
-      // Buyback and burn SYRA token (80% of revenue)
-      let burnResult = null;
-      try {
-        // Use the price directly from requirePayment config (0.15 USD)
-        const priceUSD = X402_API_PRICE_USD;
-
-        burnResult = await buybackAndBurnSYRA(priceUSD);
-      } catch (burnError) {
-        // Continue even if burn fails - payment was successful
-      }
-
       res.json({
         symbol,
         top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),

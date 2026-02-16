@@ -3,7 +3,6 @@ import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils
 import { X402_API_PRICE_NANSEN_USD } from "../config/x402Pricing.js";
 import { tokenGodModePerpRequests } from "../request/nansen/token-god-mode-perp.js";
 import { payer } from "@faremeter/rides";
-import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 
 export async function createSolanaAgentRouter() {
   const router = express.Router();
@@ -77,20 +76,7 @@ export async function createSolanaAgentRouter() {
           tokenGodModePerp: allData,
         };
 
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the global x402 API price
-          const priceUSD = X402_API_PRICE_NANSEN_USD;
-
-          burnResult = await buybackAndBurnSYRA(priceUSD);
-        } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({
@@ -170,20 +156,7 @@ export async function createSolanaAgentRouter() {
           tokenGodModePerp: allData,
         };
 
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the global x402 API price
-          const priceUSD = X402_API_PRICE_NANSEN_USD;
-
-          burnResult = await buybackAndBurnSYRA(priceUSD);
-        } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({

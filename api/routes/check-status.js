@@ -1,9 +1,11 @@
 import express from "express";
-import { requirePayment } from "../utils/x402Payment.js";
+import { requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
 import { X402_API_PRICE_CHECK_STATUS_USD } from "../config/x402Pricing.js";
 
 export async function createCheckStatusRouter() {
   const router = express.Router();
+
+  const statusPayload = { status: "ok", message: "Check status server is running" };
 
   // GET endpoint with x402scan compatible schema
   router.get(
@@ -26,10 +28,8 @@ export async function createCheckStatusRouter() {
       },
     }),
     async (req, res) => {
-      res.status(200).json({
-        status: "ok",
-        message: "Check status server is running",
-      });
+      await settlePaymentAndRecord(req);
+      res.status(200).json(statusPayload);
     }
   );
 
@@ -54,10 +54,8 @@ export async function createCheckStatusRouter() {
       },
     }),
     async (req, res) => {
-      res.status(200).json({
-        status: "ok",
-        message: "Check status server is running",
-      });
+      await settlePaymentAndRecord(req);
+      res.status(200).json(statusPayload);
     }
   );
 

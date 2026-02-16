@@ -4,7 +4,6 @@ import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { gemsPrompt } from "../prompts/gems.prompt.js";
-import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 export async function createGemsRouter() {
   const router = express.Router();
 
@@ -59,20 +58,7 @@ export async function createGemsRouter() {
           xLiveSearchService.getResult(result);
 
         if (status === "success") {
-          // Settle payment ONLY on success
           await settlePaymentAndRecord(req);
-
-          // Buyback and burn SYRA token (80% of revenue)
-          let burnResult = null;
-          try {
-            // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = X402_API_PRICE_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-            // Continue even if burn fails - payment was successful
-          }
-
           res.json({ query, result: message, citations, toolCalls });
         } else {
           res.status(500).json({
@@ -141,20 +127,7 @@ export async function createGemsRouter() {
           xLiveSearchService.getResult(result); // Parse the result
 
         if (status === "success") {
-          // Settle payment ONLY on success
           await settlePaymentAndRecord(req);
-
-          // Buyback and burn SYRA token (80% of revenue)
-          let burnResult = null;
-          try {
-            // Use the price directly from requirePayment config (0.15 USD)
-            const priceUSD = X402_API_PRICE_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-            // Continue even if burn fails - payment was successful
-          }
-
           res.json({ query, result: message, citations, toolCalls });
         } else {
         }

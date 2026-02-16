@@ -13,6 +13,7 @@ export async function getV2Payment() {
     encodePaymentResponseHeader: mod.encodePaymentResponseHeader,
     getX402ResourceServer: mod.getX402ResourceServer,
     runAfterResponse: mod.runAfterResponse,
+    runBuybackForRequest: mod.runBuybackForRequest,
     usdToMicroUsdc: mod.usdToMicroUsdc,
     microUsdcToUsd: mod.microUsdcToUsd,
     getX402Handler: mod.getX402Handler,

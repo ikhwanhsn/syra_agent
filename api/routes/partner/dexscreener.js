@@ -1,7 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../utils/x402Payment.js";
 import { X402_API_PRICE_DEXSCREENER_USD } from "../../config/x402Pricing.js";
-import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
 import { dexscreenerRequests } from "../../request/dexscreener.request.js";
 export async function createDexscreenerRouter() {
   const router = express.Router();
@@ -65,20 +64,7 @@ export async function createDexscreenerRouter() {
           "dexscreener/token-boosts-top": allData[4],
         };
 
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = X402_API_PRICE_DEXSCREENER_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({
@@ -148,20 +134,7 @@ export async function createDexscreenerRouter() {
           "dexscreener/token-boosts-top": allData[4],
         };
 
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = X402_API_PRICE_DEXSCREENER_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({

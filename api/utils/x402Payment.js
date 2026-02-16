@@ -246,8 +246,9 @@ export function getX402Handler() {
 
 /**
  * Settle payment and record paid API call for KPI tracking.
+ * Also triggers SYRA buyback-and-burn (80% of revenue) in the background.
  * Use in V1 routes after successful response: await settlePaymentAndRecord(req).
- * @param {object} req - Express request with req.x402Payment
+ * @param {object} req - Express request with req.x402Payment (amount in micro-units)
  */
 export async function settlePaymentAndRecord(req) {
   const { recordPaidApiCall } = await import("./recordPaidApiCall.js");
@@ -256,6 +257,15 @@ export async function settlePaymentAndRecord(req) {
     req.x402Payment.paymentRequirements
   );
   await recordPaidApiCall(req);
+  const priceUsd = Number(req.x402Payment.amount) / 1_000_000;
+  if (priceUsd > 0) {
+    const { buybackAndBurnSYRA } = await import("./buybackAndBurnSYRA.js");
+    setImmediate(() =>
+      buybackAndBurnSYRA(priceUsd).catch((err) =>
+        console.error("[buyback] After v1 settlement:", err?.message || err)
+      )
+    );
+  }
 }
 
 /**

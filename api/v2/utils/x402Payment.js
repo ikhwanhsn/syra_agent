@@ -20,6 +20,7 @@ import bs58 from "bs58";
 import { getX402ResourceServer, ensureX402ResourceServerInitialized } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 import { recordPaidApiCall } from "../../utils/recordPaidApiCall.js";
+import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -346,7 +347,7 @@ export function requirePayment(options) {
         return;
       }
 
-      req.x402Payment = { payload, accepted: acc };
+      req.x402Payment = { payload, accepted: acc, priceUsd };
       next();
     } catch (error) {
       res.status(500).json({
@@ -452,6 +453,14 @@ export async function settlePaymentAndSetResponse(res, req) {
   }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
   runAfterResponse(() => recordPaidApiCall(req));
+  const priceUsd = req.x402Payment?.priceUsd;
+  if (typeof priceUsd === "number" && priceUsd > 0) {
+    runAfterResponse(() =>
+      buybackAndBurnSYRA(priceUsd).catch((err) =>
+        console.error("[buyback] After v2 settlement:", err?.message || err)
+      )
+    );
+  }
   return settle;
 }
 
@@ -475,6 +484,22 @@ export function runAfterResponse(fn) {
   setImmediate(() => {
     Promise.resolve(typeof fn === "function" ? fn() : fn).catch(() => {});
   });
+}
+
+/**
+ * Run buyback-and-burn after a paid request when the route uses settlePaymentWithFallback
+ * instead of settlePaymentAndSetResponse. Call this after settling and setting Payment-Response.
+ * @param {import('express').Request} req - Must have req.x402Payment.priceUsd (set by requirePayment)
+ */
+export function runBuybackForRequest(req) {
+  const priceUsd = req.x402Payment?.priceUsd;
+  if (typeof priceUsd === "number" && priceUsd > 0) {
+    runAfterResponse(() =>
+      buybackAndBurnSYRA(priceUsd).catch((err) =>
+        console.error("[buyback] After v2 settlement (fallback path):", err?.message || err)
+      )
+    );
+  }
 }
 
 /**

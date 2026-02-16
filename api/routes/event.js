@@ -2,7 +2,6 @@
 import express from "express";
 import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
-import { buybackAndBurnSYRA } from "../utils/buybackAndBurnSYRA.js";
 export async function createEventRouter() {
   const router = express.Router();
 
@@ -68,20 +67,7 @@ export async function createEventRouter() {
         return res.status(404).json({ error: "Sentiment analysis not found" });
       }
       if (event?.length > 0) {
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = X402_API_PRICE_USD;
-
-          burnResult = await buybackAndBurnSYRA(priceUSD);
-        } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res.json({
           event,
         });
@@ -139,20 +125,7 @@ export async function createEventRouter() {
         return res.status(404).json({ error: "Sentiment analysis not found" });
       }
       if (event?.length > 0) {
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = X402_API_PRICE_USD;
-
-          burnResult = await buybackAndBurnSYRA(priceUSD);
-        } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res.json({
           event,
         });

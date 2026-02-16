@@ -466,11 +466,12 @@ app.get("/", (req, res) => {
 });
 
 // COMMAND: Legacy (unversioned) API disabled — paths that have v2 are blocked; code kept for reference. Use /v2/* only.
+// /analytics excluded: GET /analytics/kpi is used by the landing page (syraa.fun/analytics) for grant KPI dashboard — no v2 KPI equivalent.
 const LEGACY_PATHS_WITH_V2 = [
   "/news", "/signal", "/sentiment", "/event", "/browse", "/x-search", "/research", "/gems",
   "/x-kol", "/crypto-kol", "/check-status", "/smart-money", "/dexscreener", "/token-god-mode",
   "/pump", "/trending-jupiter", "/token-report", "/token-statistic", "/trending-headline",
-  "/sundown-digest", "/analytics", "/bubblemaps", "/coingecko", "/binance", "/memecoin",
+  "/sundown-digest", "/bubblemaps", "/coingecko", "/binance", "/memecoin",
 ];
 function isLegacyPathWithV2(path) {
   if (!path || path.startsWith("/v2")) return false;

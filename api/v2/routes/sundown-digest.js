@@ -3,7 +3,7 @@ import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
 
-const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader } = await getV2Payment();
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader, runBuybackForRequest } = await getV2Payment();
 
 const CACHE_TTL_MS = 90 * 1000;
 let sundownCache = null;
@@ -79,6 +79,7 @@ export async function createSundownDigestRouter() {
       if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
       if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
       setPaymentResponseAndSend(res, sundownDigest, settle);
+      runBuybackForRequest(req);
     }
   );
 
@@ -105,6 +106,7 @@ export async function createSundownDigestRouter() {
       if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
       if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
       setPaymentResponseAndSend(res, sundownDigest, settle);
+      runBuybackForRequest(req);
     }
   );
 

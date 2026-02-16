@@ -1,7 +1,6 @@
 import express from "express";
 import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../../utils/x402Payment.js";
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
-import { buybackAndBurnSYRA } from "../../../utils/buybackAndBurnSYRA.js";
 import { payer } from "@faremeter/rides";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
 export async function createTrendingJupiterRouter() {
@@ -50,20 +49,7 @@ export async function createTrendingJupiterRouter() {
         const tokenSummary = data?.data?.map((item) => item.tokenSummary);
         const newsSummary = data?.data?.map((item) => item.newsSummary);
 
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = X402_API_PRICE_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res
           .status(200)
           .json({ contractAddresses, content, tokenSummary, newsSummary });
@@ -119,20 +105,7 @@ export async function createTrendingJupiterRouter() {
         const tokenSummary = data?.data?.map((item) => item.tokenSummary);
         const newsSummary = data?.data?.map((item) => item.newsSummary);
 
-        // Settle payment ONLY on success
         await settlePaymentAndRecord(req);
-
-        // Buyback and burn SYRA token (80% of revenue)
-        let burnResult = null;
-        try {
-          // Use the price directly from requirePayment config (0.15 USD)
-          const priceUSD = X402_API_PRICE_USD;
-
-            burnResult = await buybackAndBurnSYRA(priceUSD);
-          } catch (burnError) {
-          // Continue even if burn fails - payment was successful
-        }
-
         res
           .status(200)
           .json({ contractAddresses, content, tokenSummary, newsSummary });
