@@ -496,7 +496,12 @@ app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createBinanceCorrelationRouter());
 app.use("/news", await createNewsRouter());
 
-// COMMAND: v1 API disabled for users — block all /v1/* requests; code kept for reference. Use /v2/* only.
+// v1/regular (no x402) – used by landing page (LiveDashboard, DashboardPreview); must be mounted before /v1 block
+app.use("/v1/regular/news", await createNewsRouterRegular());
+app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
+app.use("/v1/regular/signal", await createSignalRouterRegular());
+app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
+// Block other /v1/* (non-regular) with 410; use /v2/* for x402
 app.use("/v1", (req, res) => {
   res.status(410).json({
     success: false,
@@ -505,11 +510,6 @@ app.use("/v1", (req, res) => {
     docs: "https://docs.syraa.fun",
   });
 });
-// v1/regular (no x402) – kept for reference; blocked by /v1 handler above
-app.use("/v1/regular/news", await createNewsRouterRegular());
-app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
-app.use("/v1/regular/signal", await createSignalRouterRegular());
-app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
 
 // x402 V2 routes (V2 format - CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/v2/news", await createV2NewsRouter());
