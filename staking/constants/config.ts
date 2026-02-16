@@ -8,6 +8,9 @@ import { PublicKey } from "@solana/web3.js";
 export const IS_DEVNET = process.env.NEXT_PUBLIC_SOLANA_NETWORK !== "mainnet-beta";
 
 export const CONFIG = {
+  /** true on devnet, false on mainnet (used for period labels and future overrides) */
+  IS_DEVNET,
+
   /** Solana RPC endpoint. Use .env for secrets. */
   rpcEndpoint:
     process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||

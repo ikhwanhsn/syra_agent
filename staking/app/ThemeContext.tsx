@@ -30,11 +30,9 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** Same on SSR and first client render to avoid hydration mismatch; real theme applied in useEffect. */
 function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  const stored = getStored();
-  if (stored) return stored;
-  return getSystemDark() ? "dark" : "light";
+  return "light";
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

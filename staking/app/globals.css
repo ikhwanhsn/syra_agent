@@ -193,6 +193,28 @@ html.dark .placeholder-muted-foreground::placeholder,
 }
 
 /* Readability: focus ring and links */
+/* Staking toasts (Sonner) — themed success/error */
+[data-sonner-toast].staking-toast {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+[data-sonner-toast].staking-toast-success {
+  border-left: 4px solid hsl(var(--success));
+}
+[data-sonner-toast].staking-toast-success [data-icon] {
+  color: hsl(var(--success));
+}
+[data-sonner-toast].staking-toast-error {
+  border-left: 4px solid hsl(var(--destructive));
+}
+[data-sonner-toast].staking-toast-error [data-icon] {
+  color: hsl(var(--destructive));
+}
+[data-sonner-toast] a {
+  color: hsl(var(--primary));
+  font-weight: 500;
+}
+
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));

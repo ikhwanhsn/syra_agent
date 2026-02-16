@@ -21,10 +21,14 @@ export interface GlobalPool {
   isInitialized: boolean;
 }
 
+/** Staking period: 0 = 1 minute, 1 = 1 hour, 2 = 1 day */
+export type StakingPeriod = 0 | 1 | 2;
+
 export interface UserStakeInfo {
   owner: PublicKey;
   amount: bigint;
   rewardDebt: bigint;
+  unlockAt: bigint;
 }
 
 export const STAKING_IDL = {
@@ -57,6 +61,7 @@ export const STAKING_IDL = {
           { name: "owner", type: "publicKey" },
           { name: "amount", type: "u64" },
           { name: "rewardDebt", type: "u128" },
+          { name: "unlockAt", type: "i64" },
         ],
       },
     },
@@ -68,6 +73,8 @@ const ACCUMULATED_REWARD_PER_SHARE_PRECISION = 1e12;
 /** PDA seeds used by the program */
 export const PDA_SEEDS = {
   pool: Buffer.from("pool"),
+  position: Buffer.from("position"),
+  counter: Buffer.from("counter"),
   stakingVault: Buffer.from("staking_vault"),
   rewardVault: Buffer.from("reward_vault"),
 } as const;
@@ -80,14 +87,47 @@ export function getGlobalPoolPda(programId: PublicKey): [PublicKey, number] {
 }
 
 /**
- * Derive UserStakeInfo PDA (user's stake account).
+ * Derive UserStakeInfo PDA for a period (0=1m, 1=3m, 2=1y).
  */
 export function getUserStakeInfoPda(
   user: PublicKey,
-  programId: PublicKey
+  programId: PublicKey,
+  period: StakingPeriod = 0
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [PDA_SEEDS.pool, user.toBuffer()],
+    [PDA_SEEDS.pool, user.toBuffer(), Buffer.from([period])],
+    programId
+  );
+}
+
+/**
+ * Derive PositionCounter PDA for a user and period (0=1m, 1=3m, 2=1y).
+ * Used to get the next stake position index.
+ */
+export function getPositionCounterPda(
+  user: PublicKey,
+  programId: PublicKey,
+  period: StakingPeriod
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [PDA_SEEDS.pool, PDA_SEEDS.counter, user.toBuffer(), Buffer.from([period])],
+    programId
+  );
+}
+
+/**
+ * Derive StakePosition PDA for a user, period, and position index.
+ */
+export function getStakePositionPda(
+  user: PublicKey,
+  programId: PublicKey,
+  period: StakingPeriod,
+  positionIndex: number
+): [PublicKey, number] {
+  const indexBuf = Buffer.alloc(4);
+  indexBuf.writeUInt32LE(positionIndex, 0);
+  return PublicKey.findProgramAddressSync(
+    [PDA_SEEDS.pool, PDA_SEEDS.position, user.toBuffer(), Buffer.from([period]), indexBuf],
     programId
   );
 }
@@ -131,18 +171,53 @@ export async function fetchGlobalPool(
 }
 
 /**
- * Fetch and deserialize UserStakeInfo account.
+ * Fetch and deserialize UserStakeInfo account for a period.
  */
 export async function fetchUserStakeInfo(
   connection: Connection,
   user: PublicKey,
   programId: PublicKey,
+  period: StakingPeriod,
   commitment: Commitment = "confirmed"
 ): Promise<UserStakeInfo | null> {
-  const [pda] = getUserStakeInfoPda(user, programId);
+  const [pda] = getUserStakeInfoPda(user, programId, period);
   const accountInfo = await connection.getAccountInfo(pda, commitment);
   if (!accountInfo?.data) return null;
   return deserializeUserStakeInfo(accountInfo.data);
+}
+
+/**
+ * Fetch all 3 period stake infos for a user (1m, 3m, 1y).
+ */
+export async function fetchAllUserStakeInfos(
+  connection: Connection,
+  user: PublicKey,
+  programId: PublicKey,
+  commitment: Commitment = "confirmed"
+): Promise<[UserStakeInfo | null, UserStakeInfo | null, UserStakeInfo | null]> {
+  const [info1m, info3m, info1y] = await Promise.all([
+    fetchUserStakeInfo(connection, user, programId, 0, commitment),
+    fetchUserStakeInfo(connection, user, programId, 1, commitment),
+    fetchUserStakeInfo(connection, user, programId, 2, commitment),
+  ]);
+  return [info1m, info3m, info1y];
+}
+
+/**
+ * Fetch the next stake position index for a user and period.
+ * If the PositionCounter account does not exist, returns 0.
+ */
+export async function fetchNextPositionIndex(
+  connection: Connection,
+  user: PublicKey,
+  programId: PublicKey,
+  period: StakingPeriod,
+  commitment: Commitment = "confirmed"
+): Promise<number> {
+  const [pda] = getPositionCounterPda(user, programId, period);
+  const accountInfo = await connection.getAccountInfo(pda, commitment);
+  if (!accountInfo?.data || accountInfo.data.length < 8 + 4) return 0;
+  return accountInfo.data.readUInt32LE(8);
 }
 
 /** Minimal deserialization for GlobalPool (Anchor layout: 8 discriminator + fields) */
@@ -190,7 +265,9 @@ function deserializeUserStakeInfo(data: Buffer): UserStakeInfo {
   const rewardDebt =
     data.readBigUInt64LE(offset) +
     data.readBigUInt64LE(offset + 8) * (1n << 64n);
-  return { owner, amount, rewardDebt };
+  offset += 16;
+  const unlockAt = data.readBigInt64LE(offset);
+  return { owner, amount, rewardDebt, unlockAt: BigInt(unlockAt) };
 }
 
 /**

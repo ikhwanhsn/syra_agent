@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
-    "anchor:build": "anchor build",
+    "anchor:build": "anchor build && node scripts/sync-idl.js",
+    "anchor:build:devnet": "anchor build -- --features devnet && node scripts/sync-idl.js",
     "anchor:deploy": "anchor deploy",
-    "init-pool": "ts-node scripts/init-pool.ts"
+    "anchor:upgrade": "anchor upgrade target/deploy/staking.so --program-id w446ABrZadQZonJhfM6JxdBNrK2azPT328trf7EQnAc",
+    "init-pool": "ts-node scripts/init-pool.ts",
+    "fund-reward-vault": "ts-node scripts/fund-reward-vault.ts",
+    "get-reward-vault-address": "ts-node scripts/get-reward-vault-address.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

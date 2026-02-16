@@ -1,5 +1,5 @@
 {
-  "address": "CTLfYYz7FcDm9PSGNJbbvvkwE7fmm2eAey6rRSZnaERb",
+  "address": "w446ABrZadQZonJhfM6JxdBNrK2azPT328trf7EQnAc",
   "metadata": {
     "name": "staking",
     "version": "0.1.0",
@@ -41,25 +41,16 @@
           }
         },
         {
-          "name": "user_stake_info",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
+          "name": "user_stake_info_1m",
+          "writable": true
+        },
+        {
+          "name": "user_stake_info_3m",
+          "writable": true
+        },
+        {
+          "name": "user_stake_info_1y",
+          "writable": true
         },
         {
           "name": "owner",
@@ -77,6 +68,10 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
@@ -369,25 +364,16 @@
           }
         },
         {
-          "name": "user_stake_info",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
+          "name": "user_stake_info_1m",
+          "writable": true
+        },
+        {
+          "name": "user_stake_info_3m",
+          "writable": true
+        },
+        {
+          "name": "user_stake_info_1y",
+          "writable": true
         },
         {
           "name": "owner",
@@ -403,6 +389,22 @@
           "writable": true
         },
         {
+          "name": "position_counter_1m",
+          "writable": true
+        },
+        {
+          "name": "position_counter_3m",
+          "writable": true
+        },
+        {
+          "name": "position_counter_1y",
+          "writable": true
+        },
+        {
+          "name": "stake_position",
+          "writable": true
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
@@ -415,6 +417,14 @@
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "period",
+          "type": "u8"
+        },
+        {
+          "name": "position_index",
+          "type": "u32"
         }
       ]
     },
@@ -452,25 +462,16 @@
           }
         },
         {
-          "name": "user_stake_info",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
+          "name": "user_stake_info_1m",
+          "writable": true
+        },
+        {
+          "name": "user_stake_info_3m",
+          "writable": true
+        },
+        {
+          "name": "user_stake_info_1y",
+          "writable": true
         },
         {
           "name": "owner",
@@ -494,6 +495,10 @@
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "period",
+          "type": "u8"
         }
       ]
     }

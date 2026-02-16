@@ -18,6 +18,10 @@ import {
   getUserStakeInfoPda,
   getStakingVaultPda,
   getRewardVaultPda,
+  getPositionCounterPda,
+  getStakePositionPda,
+  fetchNextPositionIndex,
+  type StakingPeriod,
 } from "./staking";
 
 import stakingIdl from "./idl/staking.json";
@@ -59,7 +63,9 @@ export function createStakingProgram(
     commitment: "confirmed",
     preflightCommitment: "confirmed",
   });
-  return new Program(STAKING_IDL as any, provider);
+  // Use CONFIG.programId so the client invokes the deployed program (lib/idl may have a stale address)
+  const idlWithProgramId = { ...(STAKING_IDL as Record<string, unknown>), address: CONFIG.programId.toBase58() };
+  return new Program(idlWithProgramId as any, provider);
 }
 
 export function getUserStakingAta(user: PublicKey): PublicKey {
@@ -85,18 +91,34 @@ const OPTS: SendTransactionOptions = {
 };
 
 /**
- * Build and send stake transaction.
+ * Build and send stake transaction (period: 0=1m, 1=3m, 2=1y).
  * Creates user staking ATA if it doesn't exist.
+ * Fetches next position index and passes position_counter + stake_position accounts.
  */
 export async function stake(
   connection: Connection,
   wallet: Wallet,
-  amountRaw: bigint
+  amountRaw: bigint,
+  period: StakingPeriod
 ): Promise<string> {
   const program = createStakingProgram(connection, wallet);
   const owner = wallet.publicKey!;
   const [globalPool] = getGlobalPoolPda(CONFIG.programId);
-  const [userStakeInfo] = getUserStakeInfoPda(owner, CONFIG.programId);
+  const [userStakeInfo1m] = getUserStakeInfoPda(owner, CONFIG.programId, 0);
+  const [userStakeInfo3m] = getUserStakeInfoPda(owner, CONFIG.programId, 1);
+  const [userStakeInfo1y] = getUserStakeInfoPda(owner, CONFIG.programId, 2);
+  const [positionCounter1m] = getPositionCounterPda(owner, CONFIG.programId, 0);
+  const [positionCounter3m] = getPositionCounterPda(owner, CONFIG.programId, 1);
+  const [positionCounter1y] = getPositionCounterPda(owner, CONFIG.programId, 2);
+
+  const positionIndex = await fetchNextPositionIndex(
+    connection,
+    owner,
+    CONFIG.programId,
+    period
+  );
+  const [stakePosition] = getStakePositionPda(owner, CONFIG.programId, period, positionIndex);
+
   const userStakingTokenAccount = getUserStakingAta(owner);
   const stakingVault = getStakingVaultPda(CONFIG.programId);
 
@@ -111,13 +133,19 @@ export async function stake(
   );
 
   const stakeIx = await program.methods
-    .stake(new BN(amountRaw.toString()))
+    .stake(new BN(amountRaw.toString()), period, positionIndex)
     .accountsStrict({
       globalPool,
-      userStakeInfo,
+      userStakeInfo1M: userStakeInfo1m,
+      userStakeInfo3M: userStakeInfo3m,
+      userStakeInfo1Y: userStakeInfo1y,
       owner,
       userStakingTokenAccount,
       stakingVault,
+      positionCounter1M: positionCounter1m,
+      positionCounter3M: positionCounter3m,
+      positionCounter1Y: positionCounter1y,
+      stakePosition,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
@@ -129,38 +157,48 @@ export async function stake(
 }
 
 /**
- * Build and send unstake transaction.
+ * Build and send unstake transaction (period: 0=1m, 1=3m, 2=1y).
+ */
+/**
+ * Unstake only returns staked tokens. Rewards are NOT auto-claimed;
+ * user must click "Claim Reward" to claim.
  */
 export async function unstake(
   connection: Connection,
   wallet: Wallet,
-  amountRaw: bigint
+  amountRaw: bigint,
+  period: StakingPeriod
 ): Promise<string> {
   const program = createStakingProgram(connection, wallet);
   const owner = wallet.publicKey!;
   const [globalPool] = getGlobalPoolPda(CONFIG.programId);
-  const [userStakeInfo] = getUserStakeInfoPda(owner, CONFIG.programId);
+  const [userStakeInfo1m] = getUserStakeInfoPda(owner, CONFIG.programId, 0);
+  const [userStakeInfo3m] = getUserStakeInfoPda(owner, CONFIG.programId, 1);
+  const [userStakeInfo1y] = getUserStakeInfoPda(owner, CONFIG.programId, 2);
   const userStakingTokenAccount = getUserStakingAta(owner);
   const stakingVault = getStakingVaultPda(CONFIG.programId);
 
-  const tx = await program.methods
-    .unstake(new BN(amountRaw.toString()))
+  const unstakeIx = await program.methods
+    .unstake(new BN(amountRaw.toString()), period)
     .accountsStrict({
       globalPool,
-      userStakeInfo,
+      userStakeInfo1M: userStakeInfo1m,
+      userStakeInfo3M: userStakeInfo3m,
+      userStakeInfo1Y: userStakeInfo1y,
       owner,
       userStakingTokenAccount,
       stakingVault,
       tokenProgram: TOKEN_PROGRAM_ID,
     })
-    .transaction();
+    .instruction();
 
+  const tx = new Transaction().add(unstakeIx);
   const sig = await program.provider.sendAndConfirm(tx, [], OPTS);
   return sig;
 }
 
 /**
- * Build and send claim rewards transaction.
+ * Build and send claim rewards transaction (aggregates all 3 periods).
  * Creates user reward ATA if it doesn't exist.
  */
 export async function claim(
@@ -170,7 +208,9 @@ export async function claim(
   const program = createStakingProgram(connection, wallet);
   const owner = wallet.publicKey!;
   const [globalPool] = getGlobalPoolPda(CONFIG.programId);
-  const [userStakeInfo] = getUserStakeInfoPda(owner, CONFIG.programId);
+  const [userStakeInfo1m] = getUserStakeInfoPda(owner, CONFIG.programId, 0);
+  const [userStakeInfo3m] = getUserStakeInfoPda(owner, CONFIG.programId, 1);
+  const [userStakeInfo1y] = getUserStakeInfoPda(owner, CONFIG.programId, 2);
   const rewardVault = getRewardVaultPda(CONFIG.programId);
   const userRewardTokenAccount = getUserRewardAta(owner);
 
@@ -188,11 +228,14 @@ export async function claim(
     .claim()
     .accountsStrict({
       globalPool,
-      userStakeInfo,
+      userStakeInfo1M: userStakeInfo1m,
+      userStakeInfo3M: userStakeInfo3m,
+      userStakeInfo1Y: userStakeInfo1y,
       owner,
       rewardVault,
       userRewardTokenAccount,
       tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
     })
     .instruction();
 

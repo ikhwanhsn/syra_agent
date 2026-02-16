@@ -22,4 +22,8 @@ pub enum StakingError {
     MathOverflow,
     #[msg("No rewards to claim")]
     NothingToClaim,
+    #[msg("Invalid period (0=1m, 1=3m, 2=1y)")]
+    InvalidPeriod,
+    #[msg("Stake is still locked")]
+    StakeLocked,
 }

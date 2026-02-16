@@ -4,7 +4,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchGlobalPool,
-  fetchUserStakeInfo,
+  fetchAllUserStakeInfos,
   computePendingReward,
   computeApr,
   getCurrentTimeSeconds,
@@ -19,12 +19,21 @@ import {
 } from "@/lib/stakingClient";
 import { CONFIG } from "@/constants/config";
 import { formatUnits, parseUnits } from "@/lib/format";
-import type { GlobalPool, UserStakeInfo } from "@/lib/staking";
+import type { GlobalPool, UserStakeInfo, StakingPeriod } from "@/lib/staking";
 import { getAccount } from "@solana/spl-token";
+
+export interface PeriodStakeInfo {
+  amount: bigint;
+  amountFormatted: string;
+  unlockAt: number;
+  isLocked: boolean;
+  pendingRewardRaw: bigint;
+}
 
 export interface StakingState {
   pool: GlobalPool | null;
-  userStakeInfo: UserStakeInfo | null;
+  userStakeInfos: [UserStakeInfo | null, UserStakeInfo | null, UserStakeInfo | null];
+  periodStakes: [PeriodStakeInfo, PeriodStakeInfo, PeriodStakeInfo];
   totalStakedFormatted: string;
   apr: number;
   rewardPerSecondFormatted: string;
@@ -35,8 +44,8 @@ export interface StakingState {
   userStakingBalanceFormatted: string;
   userRewardBalanceFormatted: string;
   refetch: () => Promise<void>;
-  stake: (amount: string) => Promise<void>;
-  unstake: (amount: string) => Promise<void>;
+  stake: (amount: string, period: StakingPeriod) => Promise<void>;
+  unstake: (amount: string, period: StakingPeriod) => Promise<void>;
   claim: () => Promise<void>;
   loading: boolean;
   stakeLoading: boolean;
@@ -49,7 +58,9 @@ export function useStaking(): StakingState {
   const { connection } = useConnection();
   const wallet = useWallet();
   const [pool, setPool] = useState<GlobalPool | null>(null);
-  const [userStakeInfo, setUserStakeInfo] = useState<UserStakeInfo | null>(null);
+  const [userStakeInfos, setUserStakeInfos] = useState<
+    [UserStakeInfo | null, UserStakeInfo | null, UserStakeInfo | null]
+  >([null, null, null]);
   const [userStakingBalanceRaw, setUserStakingBalanceRaw] = useState<bigint>(0n);
   const [userRewardBalanceRaw, setUserRewardBalanceRaw] = useState<bigint>(0n);
   const [loading, setLoading] = useState(true);
@@ -63,14 +74,14 @@ export function useStaking(): StakingState {
     if (!connection) return;
     setError(null);
     try {
-      const [poolData, userInfo] = await Promise.all([
+      const [poolData, infos] = await Promise.all([
         fetchGlobalPool(connection, CONFIG.programId),
         wallet.publicKey
-          ? fetchUserStakeInfo(connection, wallet.publicKey, CONFIG.programId)
-          : Promise.resolve(null),
+          ? fetchAllUserStakeInfos(connection, wallet.publicKey, CONFIG.programId)
+          : Promise.resolve<[UserStakeInfo | null, UserStakeInfo | null, UserStakeInfo | null]>([null, null, null]),
       ]);
       setPool(poolData);
-      setUserStakeInfo(userInfo);
+      setUserStakeInfos(infos);
 
       if (wallet.publicKey) {
         try {
@@ -92,16 +103,21 @@ export function useStaking(): StakingState {
       }
 
       const now = getCurrentTimeSeconds();
-      if (poolData && userInfo) {
-        const pending = computePendingReward(poolData, userInfo, now);
-        setPendingRewardRaw(pending);
+      if (poolData) {
+        let total = 0n;
+        for (const info of infos) {
+          if (info && info.amount > 0n) {
+            total += computePendingReward(poolData, info, now);
+          }
+        }
+        setPendingRewardRaw(total);
       } else {
         setPendingRewardRaw(0n);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
       setPool(null);
-      setUserStakeInfo(null);
+      setUserStakeInfos([null, null, null]);
       setPendingRewardRaw(0n);
     } finally {
       setLoading(false);
@@ -114,16 +130,22 @@ export function useStaking(): StakingState {
 
   useEffect(() => {
     const t = setInterval(() => {
-      if (pool && userStakeInfo) {
+      if (pool && userStakeInfos) {
         const now = getCurrentTimeSeconds();
-        setPendingRewardRaw(computePendingReward(pool, userStakeInfo, now));
+        let total = 0n;
+        for (const info of userStakeInfos) {
+          if (info && info.amount > 0n) {
+            total += computePendingReward(pool, info, now);
+          }
+        }
+        setPendingRewardRaw(total);
       }
     }, 10_000);
     return () => clearInterval(t);
-  }, [pool, userStakeInfo]);
+  }, [pool, userStakeInfos]);
 
   const stake = useCallback(
-    async (amount: string) => {
+    async (amount: string, period: StakingPeriod) => {
       const adapter = wallet.wallet?.adapter ?? null;
       if (!wallet.publicKey || !adapter) {
         throw new Error("Wallet not connected");
@@ -133,7 +155,7 @@ export function useStaking(): StakingState {
       try {
         const amountRaw = parseUnits(amount, CONFIG.stakingDecimals);
         const anchorWallet = toAnchorWallet(adapter);
-        const sig = await stakeTx(connection, anchorWallet, amountRaw);
+        const sig = await stakeTx(connection, anchorWallet, amountRaw, period);
         await fetchData();
         return sig;
       } catch (e) {
@@ -147,7 +169,7 @@ export function useStaking(): StakingState {
   );
 
   const unstake = useCallback(
-    async (amount: string) => {
+    async (amount: string, period: StakingPeriod) => {
       const adapter = wallet.wallet?.adapter ?? null;
       if (!wallet.publicKey || !adapter) {
         throw new Error("Wallet not connected");
@@ -157,7 +179,7 @@ export function useStaking(): StakingState {
       try {
         const amountRaw = parseUnits(amount, CONFIG.stakingDecimals);
         const anchorWallet = toAnchorWallet(adapter);
-        const sig = await unstakeTx(connection, anchorWallet, amountRaw);
+        const sig = await unstakeTx(connection, anchorWallet, amountRaw, period);
         await fetchData();
         return sig;
       } catch (e) {
@@ -183,7 +205,16 @@ export function useStaking(): StakingState {
       await fetchData();
       return sig;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Claim failed");
+      const msg = e instanceof Error ? e.message : "Claim failed";
+      if (msg.includes("NothingToClaim") || msg.includes("No rewards to claim")) {
+        setError("No rewards to claim yet");
+      } else if (msg.includes("InsufficientRewardBalance")) {
+        setError(
+          "Reward vault has insufficient balance. Pool operator: run `npm run fund-reward-vault` (or send reward tokens to the pool reward vault)."
+        );
+      } else {
+        setError(msg);
+      }
       throw e;
     } finally {
       setClaimLoading(false);
@@ -217,9 +248,37 @@ export function useStaking(): StakingState {
   }, [pool]);
 
   const userStakedFormatted = useMemo(() => {
-    if (!userStakeInfo) return "0";
-    return formatUnits(userStakeInfo.amount, CONFIG.stakingDecimals);
-  }, [userStakeInfo]);
+    let total = 0n;
+    for (const info of userStakeInfos) {
+      if (info) total += info.amount;
+    }
+    return formatUnits(total, CONFIG.stakingDecimals);
+  }, [userStakeInfos]);
+
+  const periodStakes = useMemo((): [PeriodStakeInfo, PeriodStakeInfo, PeriodStakeInfo] => {
+    const now = getCurrentTimeSeconds();
+    const build = (info: UserStakeInfo | null, poolData: GlobalPool | null): PeriodStakeInfo => {
+      const amount = info?.amount ?? 0n;
+      const unlockAt = info ? Number(info.unlockAt) : 0;
+      const isLocked = unlockAt > now;
+      const pendingRewardRaw =
+        poolData && info && info.amount > 0n
+          ? computePendingReward(poolData, info, now)
+          : 0n;
+      return {
+        amount,
+        amountFormatted: formatUnits(amount, CONFIG.stakingDecimals),
+        unlockAt,
+        isLocked,
+        pendingRewardRaw,
+      };
+    };
+    return [
+      build(userStakeInfos[0], pool),
+      build(userStakeInfos[1], pool),
+      build(userStakeInfos[2], pool),
+    ];
+  }, [userStakeInfos, pool]);
 
   const pendingRewardFormatted = useMemo(() => {
     return formatUnits(pendingRewardRaw, CONFIG.rewardDecimals);
@@ -235,7 +294,8 @@ export function useStaking(): StakingState {
 
   return {
     pool,
-    userStakeInfo,
+    userStakeInfos,
+    periodStakes,
     totalStakedFormatted,
     apr,
     rewardPerSecondFormatted,
