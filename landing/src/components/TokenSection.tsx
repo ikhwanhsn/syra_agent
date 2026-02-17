@@ -172,7 +172,10 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check } from "lucide-react";
+import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check, ExternalLink } from "lucide-react";
+
+const SOLSCAN_TOKEN_URL =
+  "https://solscan.io/token/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump?activity_type=ACTIVITY_SPL_BURN&exclude_amount_zero=true&remove_spam=false&page_size=10";
 
 const utilities = [
   {
@@ -180,7 +183,8 @@ const utilities = [
     title: "Buyback & Burn",
     description:
       "A portion of all x402 transaction fees are used to buy back and burn $SYRA, creating deflationary pressure.",
-    highlight: "Fees + revenue",
+    highlight: "",
+    solscanUrl: SOLSCAN_TOKEN_URL,
   },
   {
     icon: Vote,
@@ -364,14 +368,28 @@ export const TokenSection = () => {
                   <div className="flex items-center justify-center w-10 h-10 transition-colors rounded-lg bg-neon-gold/10 shrink-0 group-hover:bg-neon-gold/20">
                     <util.icon className="w-5 h-5 text-neon-gold" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="mb-1 font-semibold">{util.title}</h3>
                     <p className="mb-2 text-xs text-muted-foreground">
                       {util.description}
                     </p>
-                    <span className="text-xs font-medium text-neon-gold">
-                      {util.highlight}
-                    </span>
+                    {util.highlight && (
+                      <span className="text-xs font-medium text-neon-gold">
+                        {util.highlight}
+                      </span>
+                    )}
+                    {"solscanUrl" in util && util.solscanUrl && (
+                      <a
+                        href={util.solscanUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-neon-gold hover:underline"
+                        title="View burns on Solscan"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        View burns on Solscan
+                      </a>
+                    )}
                   </div>
                 </div>
               </motion.div>
