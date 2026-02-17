@@ -13,6 +13,58 @@ import bs58 from "bs58";
 
 const isProduction = process.env.NODE_ENV === "production";
 
+/** Poll interval for confirmation (ms). */
+const CONFIRM_POLL_MS = 1500;
+/** Max time to wait for confirmation (ms). */
+const CONFIRM_TIMEOUT_MS = 90_000;
+
+/**
+ * Wait for transaction confirmation using HTTP-only polling (getSignatureStatuses).
+ * Does not use signatureSubscribe, so it works with RPCs that don't support WebSocket subscriptions.
+ * @param {import('@solana/web3.js').Connection} connection
+ * @param {string} signature
+ * @param {number} lastValidBlockHeight
+ * @param {number} [maxWaitMs]
+ * @returns {Promise<void>} resolves when confirmed; throws if expired or failed
+ */
+async function confirmTransactionByPolling(
+  connection,
+  signature,
+  lastValidBlockHeight,
+  maxWaitMs = CONFIRM_TIMEOUT_MS,
+) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const currentBlockHeight =
+        await connection.getBlockHeight("confirmed");
+      if (currentBlockHeight > lastValidBlockHeight) {
+        throw new Error(
+          "Signature has expired: block height exceeded",
+        );
+      }
+      const { value } = await connection.getSignatureStatuses([signature]);
+      const status = value?.[0];
+      if (status?.err) {
+        throw new Error(String(status.err));
+      }
+      if (
+        status?.confirmationStatus === "confirmed" ||
+        status?.confirmationStatus === "finalized" ||
+        status?.confirmationStatus === "processed"
+      ) {
+        return;
+      }
+    } catch (e) {
+      if (e.message?.includes("expired") || e.message?.includes("block height"))
+        throw e;
+      // Transient RPC error; keep polling
+    }
+    await new Promise((r) => setTimeout(r, CONFIRM_POLL_MS));
+  }
+  throw new Error("Confirmation timeout");
+}
+
 /**
  * Buy back SYRA with 80% of revenue (USDC) via Jupiter swap, then burn the SYRA.
  * Only runs in production (NODE_ENV === 'production'). In other environments, returns null without error.
@@ -110,13 +162,10 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     console.log(`[buyback] Swap transaction sent: ${swapSignature}`);
 
     const latestBlockhash = await connection.getLatestBlockhash("confirmed");
-    await connection.confirmTransaction(
-      {
-        signature: swapSignature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      },
-      "confirmed",
+    await confirmTransactionByPolling(
+      connection,
+      swapSignature,
+      latestBlockhash.lastValidBlockHeight,
     );
 
     console.log(`[buyback] Swap confirmed: https://solscan.io/tx/${swapSignature}`);
@@ -171,13 +220,10 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
     const burnSignature = await connection.sendTransaction(burnTx, [
       agentKeypair,
     ]);
-    await connection.confirmTransaction(
-      {
-        signature: burnSignature,
-        blockhash: burnBhInfo.blockhash,
-        lastValidBlockHeight: burnBhInfo.lastValidBlockHeight,
-      },
-      "confirmed",
+    await confirmTransactionByPolling(
+      connection,
+      burnSignature,
+      burnBhInfo.lastValidBlockHeight,
     );
 
     console.log(

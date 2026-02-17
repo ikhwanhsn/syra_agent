@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import pkg from 'random-avatar-generator';
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
+import { fundNewAgentWallet } from '../../libs/fundNewAgentWallet.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -138,6 +139,15 @@ router.post('/connect', async (req, res) => {
       avatarUrl,
     });
 
+    // Fund new agent with $0.5 SOL + $0.5 USDC from PayAI treasury (non-blocking; log on failure)
+    fundNewAgentWallet(agentAddress).then((fundResult) => {
+      if (!fundResult.success) {
+        console.warn('[agent/wallet] Initial funding failed for', agentAddress, fundResult.error);
+      }
+    }).catch((err) => {
+      console.warn('[agent/wallet] Initial funding error for', agentAddress, err?.message || err);
+    });
+
     return res.status(201).json({
       success: true,
       anonymousId,
@@ -226,6 +236,15 @@ router.post('/', async (req, res) => {
       agentAddress,
       agentSecretKey,
       avatarUrl,
+    });
+
+    // Fund new agent with $0.5 SOL + $0.5 USDC from PayAI treasury (non-blocking; log on failure)
+    fundNewAgentWallet(agentAddress).then((fundResult) => {
+      if (!fundResult.success) {
+        console.warn('[agent/wallet] Initial funding failed for', agentAddress, fundResult.error);
+      }
+    }).catch((err) => {
+      console.warn('[agent/wallet] Initial funding error for', agentAddress, err?.message || err);
     });
 
     return res.status(201).json({ 
