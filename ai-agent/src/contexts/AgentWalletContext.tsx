@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { toast } from "sonner";
 import { agentWalletApi } from "@/lib/chatApi";
 
 const STORAGE_KEY = "syra_agent_anonymous_id";
@@ -50,6 +51,9 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const initRef = useRef(false);
   const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refetchTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** When true, show welcome toast when balance appears (funding ran in background). */
+  const pendingWelcomeRef = useRef(false);
+  const [pendingWelcomeFunding, setPendingWelcomeFunding] = useState(false);
 
   // When user connects wallet: get or create agent wallet by wallet address (check database)
   useEffect(() => {
@@ -57,10 +61,35 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setReady(false);
       agentWalletApi
         .getOrCreateByWallet(connectedWalletAddress)
-        .then(({ anonymousId: id, agentAddress: addr, avatarUrl: avatar }) => {
+        .then(async (res) => {
+          const { anonymousId: id, agentAddress: addr, avatarUrl: avatar, isNewWallet, fundingSuccess, fundingError, fundingPending } = res;
           setAnonymousId(id);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          if (isNewWallet === true) {
+            if (fundingPending === true) {
+              pendingWelcomeRef.current = true;
+              setPendingWelcomeFunding(true);
+              toast.info("Setting up your $1 credit…", { duration: 4000 });
+            } else if (fundingSuccess === true) {
+              toast.success("Welcome! You received $1 free ($0.50 SOL + $0.50 USDC) for testing.");
+            } else if (fundingSuccess === false) {
+              try {
+                const { solBalance, usdcBalance } = await agentWalletApi.getBalance(id);
+                setAgentSolBalance(solBalance);
+                setAgentUsdcBalance(usdcBalance);
+                if (usdcBalance > 0 || solBalance > 0) {
+                  toast.success("Your free $1 was added. Balance updated.");
+                } else {
+                  const reason = fundingError || "Treasury or network issue.";
+                  toast.error(`Free $1 could not be added. ${reason} You can still deposit to your agent wallet.`, { duration: 8000 });
+                }
+              } catch {
+                const reason = fundingError || "Treasury or network issue.";
+                toast.error(`Free $1 could not be added. ${reason} You can still deposit to your agent wallet.`, { duration: 8000 });
+              }
+            }
+          }
         })
         .catch(() => {
           setAnonymousId(null);
@@ -72,6 +101,8 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     }
 
     // No wallet connected: use anonymous id from localStorage
+    pendingWelcomeRef.current = false;
+    setPendingWelcomeFunding(false);
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     const id = stored?.trim() || null;
 
@@ -97,13 +128,36 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setReady(false);
       agentWalletApi
         .getOrCreate()
-        .then(({ anonymousId: newId, agentAddress: addr, avatarUrl: avatar }) => {
+        .then(async (res) => {
+          const { anonymousId: newId, agentAddress: addr, avatarUrl: avatar, isNewWallet, fundingSuccess, fundingError, fundingPending } = res;
           if (typeof localStorage !== "undefined") {
             localStorage.setItem(STORAGE_KEY, newId);
           }
           setAnonymousId(newId);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          if (isNewWallet === true) {
+            if (fundingPending === true) {
+              pendingWelcomeRef.current = true;
+              setPendingWelcomeFunding(true);
+              toast.info("Setting up your $1 credit…", { duration: 4000 });
+            } else if (fundingSuccess === true) {
+              toast.success("You received $1 free ($0.50 SOL + $0.50 USDC) for testing.");
+            } else if (fundingSuccess === false) {
+              try {
+                const { solBalance, usdcBalance } = await agentWalletApi.getBalance(newId);
+                setAgentSolBalance(solBalance);
+                setAgentUsdcBalance(usdcBalance);
+                if (usdcBalance > 0 || solBalance > 0) {
+                  toast.success("Your free $1 was added. Balance updated.");
+                } else {
+                  toast.error(`Free $1 could not be added. ${fundingError || "Try again or deposit manually."}`, { duration: 8000 });
+                }
+              } catch {
+                toast.error(`Free $1 could not be added. ${fundingError || "Try again or deposit manually."}`, { duration: 8000 });
+              }
+            }
+          }
         })
         .catch(() => {
           setAnonymousId(null);
@@ -132,6 +186,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!anonymousId || !agentAddress) return;
     let cancelled = false;
+    const pollMs = pendingWelcomeFunding ? 3000 : 30000;
     function fetchBalance() {
       agentWalletApi
         .getBalance(anonymousId)
@@ -139,6 +194,11 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           if (!cancelled) {
             setAgentSolBalance(sol);
             setAgentUsdcBalance(usdc);
+            if ((sol > 0 || usdc > 0) && pendingWelcomeRef.current) {
+              pendingWelcomeRef.current = false;
+              setPendingWelcomeFunding(false);
+              toast.success("Welcome! You received $1 free ($0.50 SOL + $0.50 USDC) for testing.");
+            }
           }
         })
         .catch(() => {
@@ -149,12 +209,12 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
         });
     }
     fetchBalance();
-    const interval = setInterval(fetchBalance, 30000);
+    const interval = setInterval(fetchBalance, pollMs);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [anonymousId, agentAddress]);
+  }, [anonymousId, agentAddress, pendingWelcomeFunding]);
 
   const reportDebit = useCallback(
     (amountUsd: number) => {

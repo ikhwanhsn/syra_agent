@@ -102,8 +102,10 @@ router.get('/:anonymousId', async (req, res) => {
 /**
  * POST /agent/wallet/connect
  * Get or create agent wallet by connected wallet address (check database first).
+ * On first connect (new wallet): funds agent with $0.5 SOL + $0.5 USDC from PayAI treasury.
+ * Free $1 is only sent when this wallet address has never been used before (new DB record).
  * Body: { walletAddress: string }
- * Returns: { anonymousId: string, agentAddress: string }
+ * Returns: { anonymousId, agentAddress, avatarUrl?, isNewWallet?, fundingSuccess?, fundingError? }
  */
 router.post('/connect', async (req, res) => {
   try {
@@ -121,6 +123,7 @@ router.post('/connect', async (req, res) => {
         anonymousId: doc.anonymousId,
         agentAddress: doc.agentAddress,
         avatarUrl: doc.avatarUrl || null,
+        isNewWallet: false,
       });
     }
 
@@ -139,21 +142,26 @@ router.post('/connect', async (req, res) => {
       avatarUrl,
     });
 
-    // Fund new agent with $0.5 SOL + $0.5 USDC from PayAI treasury (non-blocking; log on failure)
-    fundNewAgentWallet(agentAddress).then((fundResult) => {
-      if (!fundResult.success) {
-        console.warn('[agent/wallet] Initial funding failed for', agentAddress, fundResult.error);
-      }
-    }).catch((err) => {
-      console.warn('[agent/wallet] Initial funding error for', agentAddress, err?.message || err);
-    });
-
-    return res.status(201).json({
+    // Return immediately for better UX; fund in background (~20–60s on-chain)
+    res.status(201).json({
       success: true,
       anonymousId,
       agentAddress,
       avatarUrl,
+      isNewWallet: true,
+      fundingPending: true,
     });
+
+    fundNewAgentWallet(agentAddress)
+      .then((fundResult) => {
+        if (!fundResult.success) {
+          console.warn('[agent/wallet] Background funding failed for', agentAddress, fundResult.error);
+        }
+      })
+      .catch((err) => {
+        console.warn('[agent/wallet] Background funding error for', agentAddress, err?.message || err);
+      });
+    return;
   } catch (error) {
     if (error.code === 11000) {
       const existing = await AgentWallet.findOne({ walletAddress: req.body?.walletAddress?.trim() })
@@ -165,6 +173,7 @@ router.post('/connect', async (req, res) => {
           anonymousId: existing.anonymousId,
           agentAddress: existing.agentAddress,
           avatarUrl: existing.avatarUrl || null,
+          isNewWallet: false,
         });
       }
     }
@@ -238,21 +247,26 @@ router.post('/', async (req, res) => {
       avatarUrl,
     });
 
-    // Fund new agent with $0.5 SOL + $0.5 USDC from PayAI treasury (non-blocking; log on failure)
-    fundNewAgentWallet(agentAddress).then((fundResult) => {
-      if (!fundResult.success) {
-        console.warn('[agent/wallet] Initial funding failed for', agentAddress, fundResult.error);
-      }
-    }).catch((err) => {
-      console.warn('[agent/wallet] Initial funding error for', agentAddress, err?.message || err);
-    });
-
-    return res.status(201).json({ 
-      success: true, 
-      anonymousId, 
+    // Return immediately for better UX; fund in background (~20–60s on-chain)
+    res.status(201).json({
+      success: true,
+      anonymousId,
       agentAddress,
       avatarUrl,
+      isNewWallet: true,
+      fundingPending: true,
     });
+
+    fundNewAgentWallet(agentAddress)
+      .then((fundResult) => {
+        if (!fundResult.success) {
+          console.warn('[agent/wallet] Background funding failed for', agentAddress, fundResult.error);
+        }
+      })
+      .catch((err) => {
+        console.warn('[agent/wallet] Background funding error for', agentAddress, err?.message || err);
+      });
+    return;
   } catch (error) {
     if (error.code === 11000) {
       const existing = await AgentWallet.findOne({ anonymousId: (req.body || {}).anonymousId?.trim() })
@@ -264,6 +278,7 @@ router.post('/', async (req, res) => {
           anonymousId: (req.body || {}).anonymousId?.trim(),
           agentAddress: existing.agentAddress,
           avatarUrl: existing.avatarUrl || null,
+          isNewWallet: false,
         });
       }
     }

@@ -275,25 +275,76 @@ export const chatApi = {
 /** Agent wallet API: get/create agent wallet by anonymousId or by connected wallet. Private key stored on server for permissionless x402. */
 export const agentWalletApi = {
   /** Get or create agent wallet by connected wallet address (checks database first). */
-  async getOrCreateByWallet(walletAddress: string): Promise<{ anonymousId: string; agentAddress: string; avatarUrl?: string | null }> {
+  async getOrCreateByWallet(walletAddress: string): Promise<{
+    anonymousId: string;
+    agentAddress: string;
+    avatarUrl?: string | null;
+    isNewWallet?: boolean;
+    fundingSuccess?: boolean;
+    fundingError?: string;
+    /** True when funding runs in background; show welcome toast when balance appears */
+    fundingPending?: boolean;
+  }> {
     const res = await fetch(`${agentWalletBase()}/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ walletAddress }),
     });
-    const data = await handleRes<{ success: boolean; anonymousId: string; agentAddress: string; avatarUrl?: string | null }>(res);
-    return { anonymousId: data.anonymousId, agentAddress: data.agentAddress, avatarUrl: data.avatarUrl || null };
+    const data = await handleRes<{
+      success: boolean;
+      anonymousId: string;
+      agentAddress: string;
+      avatarUrl?: string | null;
+      isNewWallet?: boolean;
+      fundingSuccess?: boolean;
+      fundingError?: string;
+      fundingPending?: boolean;
+    }>(res);
+    return {
+      anonymousId: data.anonymousId,
+      agentAddress: data.agentAddress,
+      avatarUrl: data.avatarUrl ?? null,
+      isNewWallet: data.isNewWallet,
+      fundingSuccess: data.fundingSuccess,
+      fundingError: data.fundingError,
+      fundingPending: data.fundingPending,
+    };
   },
 
   /** Get or create agent wallet. Pass existing anonymousId or omit to get a new one. Returns anonymousId + agentAddress + avatarUrl. */
-  async getOrCreate(anonymousId?: string | null): Promise<{ anonymousId: string; agentAddress: string; avatarUrl?: string | null }> {
+  async getOrCreate(anonymousId?: string | null): Promise<{
+    anonymousId: string;
+    agentAddress: string;
+    avatarUrl?: string | null;
+    isNewWallet?: boolean;
+    fundingSuccess?: boolean;
+    fundingError?: string;
+    fundingPending?: boolean;
+  }> {
     const res = await fetch(agentWalletBase(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(anonymousId ? { anonymousId } : {}),
     });
-    const data = await handleRes<{ success: boolean; anonymousId: string; agentAddress: string; avatarUrl?: string | null }>(res);
-    return { anonymousId: data.anonymousId, agentAddress: data.agentAddress, avatarUrl: data.avatarUrl || null };
+    const data = await handleRes<{
+      success: boolean;
+      anonymousId: string;
+      agentAddress: string;
+      avatarUrl?: string | null;
+      isNewWallet?: boolean;
+      fundingSuccess?: boolean;
+      fundingError?: string;
+      fundingPending?: boolean;
+    }>(res);
+    return {
+      anonymousId: data.anonymousId,
+      agentAddress: data.agentAddress,
+      avatarUrl: data.avatarUrl ?? null,
+      isNewWallet: data.isNewWallet,
+      fundingSuccess: data.fundingSuccess,
+      fundingError: data.fundingError,
+      fundingPending: data.fundingPending,
+    };
   },
 
   /** Get agent wallet address by anonymousId (404 if not created yet). */

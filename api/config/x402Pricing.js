@@ -5,9 +5,12 @@
  * Environment-based pricing:
  * - Local (NODE_ENV !== 'production'): cheap prices for testing
  * - Production: 10x base price (kill 1 zero from previous 100x)
+ *
+ * Display/catalog prices: always production (base * 10) so the UI shows real API cost.
  */
 const isProduction = process.env.NODE_ENV === 'production';
 const mult = isProduction ? 10 : 0.01; // production: 10x (kill 1 zero from previous 100x); local: 1/100 (cheap)
+const PRODUCTION_MULT = 10;
 
 const price = (base) => base * mult;
 
@@ -51,3 +54,22 @@ export const X402_API_PRICE_ANALYTICS_SUMMARY_USD =
   X402_API_PRICE_NANSEN_USD + // smart-money
   X402_API_PRICE_USD + // binance correlation
   9 * X402_API_PRICE_USD; // 9 memecoin screens
+
+/** Display prices: real API cost (production level = base * 10). Use for tools list/catalog so UI matches actual cost. */
+export const X402_DISPLAY_PRICE_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = 0.0001 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_NEWS_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_RESEARCH_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_DEXSCREENER_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PUMP_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_COINGECKO_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
+  X402_DISPLAY_PRICE_DEXSCREENER_USD +
+  X402_DISPLAY_PRICE_USD +
+  X402_DISPLAY_PRICE_USD +
+  X402_DISPLAY_PRICE_NANSEN_USD +
+  X402_DISPLAY_PRICE_USD +
+  9 * X402_DISPLAY_PRICE_USD;

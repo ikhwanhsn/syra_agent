@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
       id: t.id,
       name: t.name,
       description: t.description,
-      priceUsd: t.priceUsd,
+      priceUsd: t.displayPriceUsd ?? t.priceUsd,
       path: t.path,
       method: t.method,
     }));
