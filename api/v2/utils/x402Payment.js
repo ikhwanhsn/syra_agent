@@ -454,7 +454,7 @@ export async function settlePaymentAndSetResponse(res, req) {
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
   runAfterResponse(() => recordPaidApiCall(req));
   const priceUsd = req.x402Payment?.priceUsd;
-  if (typeof priceUsd === "number" && priceUsd > 0) {
+  if (typeof priceUsd === "number" && priceUsd > 0 && process.env.NODE_ENV === "production") {
     runAfterResponse(() =>
       buybackAndBurnSYRA(priceUsd).catch((err) =>
         console.error("[buyback] After v2 settlement:", err?.message || err)
@@ -492,6 +492,7 @@ export function runAfterResponse(fn) {
  * @param {import('express').Request} req - Must have req.x402Payment.priceUsd (set by requirePayment)
  */
 export function runBuybackForRequest(req) {
+  if (process.env.NODE_ENV !== "production") return;
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0) {
     runAfterResponse(() =>
