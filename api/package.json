@@ -34,6 +34,7 @@
     "dotenv": "^17.2.3",
     "exa-js": "^2.3.0",
     "express": "^5.2.1",
+    "helmet": "^8.1.0",
     "mongodb": "^7.0.0",
     "mongoose": "^8.5.0",
     "p-limit": "^7.2.0",

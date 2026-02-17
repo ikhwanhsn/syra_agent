@@ -174,9 +174,7 @@ async function main() {
     }
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("Syra MCP server running on stdio.");
 }
-main().catch((err) => {
-    console.error(err instanceof Error ? err.message : "Unknown error");
+main().catch(() => {
     process.exit(1);
 });

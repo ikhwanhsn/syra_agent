@@ -211,7 +211,6 @@ export async function createDashboardSummaryRouterRegular() {
         updatedAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.error("[dashboard-summary]", err?.message || "Unknown error");
       res.status(500).json({
         error: "Failed to load dashboard summary",
         message: err?.message || String(err),

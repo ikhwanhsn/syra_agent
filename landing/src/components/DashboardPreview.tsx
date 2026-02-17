@@ -20,7 +20,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { useEffect, useState } from "react";
-import { API_BASE } from "../../config/global";
+import { API_BASE, getApiHeaders } from "../../config/global";
 
 // API base for dashboard preview: env VITE_SYRA_API_URL or fallback to API_BASE (ensure trailing slash)
 const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(/\/?$/, "/");
@@ -62,11 +62,7 @@ export const DashboardPreview = () => {
     queryFn: () =>
       fetch(`${SYRA_API_BASE}v1/regular/news`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // Replace 'x-api-key' with the specific header name your API expects
-          "api-key": import.meta.env.VITE_SYRA_API_KEY,
-        },
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
       }).then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
@@ -82,11 +78,7 @@ export const DashboardPreview = () => {
     queryFn: () =>
       fetch(`${SYRA_API_BASE}v1/regular/sentiment`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // Replace 'x-api-key' with the specific header name your API expects
-          "api-key": import.meta.env.VITE_SYRA_API_KEY,
-        },
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
       }).then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
@@ -171,17 +163,10 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["signals"],
     queryFn: () =>
-      fetch(
-        `${SYRA_API_BASE}v1/regular/signal?token=bitcoin`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            // Replace 'x-api-key' with the specific header name your API expects
-            "api-key": import.meta.env.VITE_SYRA_API_KEY,
-          },
-        },
-      ).then((res) => {
+      fetch(`${SYRA_API_BASE}v1/regular/signal?token=bitcoin`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
+      }).then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
       }),

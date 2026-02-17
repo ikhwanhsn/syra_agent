@@ -221,8 +221,8 @@ export const TokenSection = () => {
       await navigator.clipboard.writeText(tokenAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } catch {
+      // copy failed; user may have denied clipboard access
     }
   };
 

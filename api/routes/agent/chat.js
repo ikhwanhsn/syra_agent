@@ -293,8 +293,8 @@ function formatToolResultForLlm(data, toolId) {
   if (toolId === 'analytics-summary' && data && typeof data === 'object' && !Array.isArray(data)) {
     try {
       return condensedAnalyticsSummary(data);
-    } catch (e) {
-      console.warn('[agent/chat] condensedAnalyticsSummary failed, using truncation');
+    } catch {
+      // use truncation fallback
     }
   }
   // CoinGecko trending pools: only present real API data; never allow the LLM to invent pools/prices
@@ -315,8 +315,8 @@ function formatToolResultForLlm(data, toolId) {
       }
       if (pools.length > 15) lines.push(`... and ${pools.length - 15} more pools.`);
       return lines.join('\n');
-    } catch (e) {
-      console.warn('[agent/chat] coingecko-trending-pools format failed', e?.message);
+    } catch {
+      // fallback to raw below
     }
   }
   const raw = JSON.stringify(data, null, 2);
@@ -409,8 +409,8 @@ router.get('/models', async (_req, res) => {
     if (Array.isArray(fromApi) && fromApi.length > 0) {
       return res.json({ models: fromApi });
     }
-  } catch (err) {
-    console.warn('[agent/chat] GET /models: could not fetch from Jatevo, using config');
+  } catch {
+    // use config fallback
   }
   res.json({ models: JATEVO_MODELS });
 });
@@ -648,17 +648,6 @@ router.post('/completion', async (req, res) => {
                 swapError: swapErr?.message || 'Failed to submit swap transaction',
               };
             }
-            // Log minimal swap result server-side for debugging without exposing sensitive details.
-            try {
-              console.log('[agent/chat] Jupiter swap result', {
-                swapSubmitted: toolData.swapSubmitted,
-                // Avoid logging full swapSignature or error contents to keep logs non-sensitive.
-                hasSwapSignature: !!toolData.swapSignature,
-                hasSwapError: !!toolData.swapError,
-              });
-            } catch {
-              // ignore logging errors
-            }
           }
           const formatted = formatToolResultForLlm(toolData, tool.id);
           const presentInstruction =
@@ -718,17 +707,6 @@ router.post('/completion', async (req, res) => {
         requestedModel &&
         requestedModel !== JATEVO_DEFAULT_MODEL
       ) {
-        const reason = firstError?.message || String(firstError);
-        const isBudgetExceeded = /budget has been exceeded|max budget/i.test(reason);
-        if (isBudgetExceeded) {
-          console.warn(
-            '[agent/chat] Jatevo account budget exceeded. Using default model.'
-          );
-        } else {
-          console.error(
-            '[agent/chat] Requested model failed, falling back to default model.'
-          );
-        }
         try {
           const fallbackOptions = { ...jatevoOptions, model: JATEVO_DEFAULT_MODEL };
           const fallbackResult = await callJatevo(apiMessages, fallbackOptions);

@@ -152,7 +152,6 @@ export async function createBinanceCorrelationRouter() {
         top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
       });
     } catch (err) {
-      console.error("[v2/binance/correlation GET]", err?.message || "Unknown error");
       res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
     }
   };
@@ -184,7 +183,6 @@ export async function createBinanceCorrelationRouter() {
           top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
         });
       } catch (err) {
-        console.error("[v2/binance/correlation GET dev]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
       }
     });
@@ -208,7 +206,6 @@ export async function createBinanceCorrelationRouter() {
           data,
         });
       } catch (err) {
-        console.error("[v2/binance/correlation-matrix GET dev]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
     });
@@ -265,7 +262,6 @@ export async function createBinanceCorrelationRouter() {
           data,
         });
       } catch (err) {
-        console.error("[v2/binance/correlation-matrix GET]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
     },
@@ -302,7 +298,6 @@ export async function createBinanceCorrelationRouter() {
           data,
         });
       } catch (err) {
-        console.error("[v2/binance/correlation-matrix POST]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation matrix" });
       }
     },
@@ -377,7 +372,6 @@ export async function createBinanceCorrelationRouter() {
           top: ranked.map(([s, v]) => ({ symbol: s, correlation: v })),
         });
       } catch (err) {
-        console.error("[v2/binance/correlation POST]", err?.message || "Unknown error");
         res.status(500).json({ success: false, error: err.message || "Failed to compute correlation" });
       }
     },

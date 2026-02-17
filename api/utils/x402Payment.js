@@ -260,11 +260,7 @@ export async function settlePaymentAndRecord(req) {
   const priceUsd = Number(req.x402Payment.amount) / 1_000_000;
   if (priceUsd > 0 && process.env.NODE_ENV === "production") {
     const { buybackAndBurnSYRA } = await import("./buybackAndBurnSYRA.js");
-    setImmediate(() =>
-      buybackAndBurnSYRA(priceUsd).catch((err) =>
-        console.error("[buyback] After v1 settlement:", err?.message || err)
-      )
-    );
+    setImmediate(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
   }
 }
 

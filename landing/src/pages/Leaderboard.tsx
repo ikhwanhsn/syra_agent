@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { API_BASE, LINK_AGENT } from "../../config/global";
+import { API_BASE, LINK_AGENT, getApiHeaders } from "../../config/global";
 
 type SortKey = "rank" | "wallet" | "volume" | "toolsCalls" | "totalReward";
 
@@ -45,6 +45,7 @@ export default function Leaderboard() {
       try {
         const response = await fetch(
           `${API_BASE}/leaderboard?period=${timeFilter}`,
+          { headers: getApiHeaders() },
         );
         const result = await response.json();
 

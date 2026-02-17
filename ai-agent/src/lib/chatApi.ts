@@ -4,6 +4,15 @@ export const getApiBaseUrl = () => {
   return "http://localhost:3000";
 };
 
+/** Headers for Syra API (X-API-Key). Set VITE_API_KEY or VITE_SYRA_API_KEY in .env. */
+function getApiHeaders(): Record<string, string> {
+  const key =
+    (import.meta.env?.VITE_API_KEY as string | undefined) ||
+    (import.meta.env?.VITE_SYRA_API_KEY as string | undefined);
+  if (!key || typeof key !== "string") return {};
+  return { "X-API-Key": key };
+}
+
 const base = () => getApiBaseUrl() + "/agent/chat";
 const agentWalletBase = () => getApiBaseUrl() + "/agent/wallet";
 
@@ -49,14 +58,14 @@ export const chatApi = {
   /** List chats for the given anonymousId (wallet-scoped). */
   async list(anonymousId: string): Promise<{ chats: ApiChat[] }> {
     const params = new URLSearchParams({ anonymousId });
-    const res = await fetch(`${base()}?${params}`);
+    const res = await fetch(`${base()}?${params}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 
   /** Get one chat (must belong to anonymousId). */
   async get(id: string, anonymousId: string): Promise<ApiChat> {
     const params = new URLSearchParams({ anonymousId });
-    const res = await fetch(`${base()}/${id}?${params}`);
+    const res = await fetch(`${base()}/${id}?${params}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -76,7 +85,7 @@ export const chatApi = {
     if (anonymousId?.trim()) params.set("anonymousId", anonymousId.trim());
     const qs = params.toString();
     const url = `${base()}/share/${encodeURIComponent(shareId)}${qs ? `?${qs}` : ""}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: getApiHeaders() });
     const data = await res.json().catch(() => ({}));
     if (res.status === 403 && (data as { private?: boolean }).private) {
       return {
@@ -95,7 +104,7 @@ export const chatApi = {
 
   /** List available Jatevo LLM models for agent chat. */
   async getModels(): Promise<{ models: JatevoModel[] }> {
-    const res = await fetch(`${base()}/models`);
+    const res = await fetch(`${base()}/models`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -109,7 +118,7 @@ export const chatApi = {
   }): Promise<{ chat: ApiChat }> {
     const res = await fetch(base(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ ...(options ?? {}), anonymousId }),
     });
     return handleRes(res);
@@ -122,7 +131,7 @@ export const chatApi = {
   ): Promise<{ chat: ApiChat }> {
     const res = await fetch(`${base()}/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ ...payload, anonymousId }),
     });
     return handleRes(res);
@@ -149,7 +158,7 @@ export const chatApi = {
     if (meta?.preview !== undefined) body.preview = meta.preview;
     const res = await fetch(`${base()}/${id}/messages`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify(body),
     });
     return handleRes(res);
@@ -165,7 +174,7 @@ export const chatApi = {
     }));
     const res = await fetch(`${base()}/${id}/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, messages: normalized }),
     });
     return handleRes(res);
@@ -174,7 +183,7 @@ export const chatApi = {
   /** Delete a chat (must belong to anonymousId). */
   async delete(id: string, anonymousId: string): Promise<{ success: boolean }> {
     const params = new URLSearchParams({ anonymousId });
-    const res = await fetch(`${base()}/${id}?${params}`, { method: "DELETE" });
+    const res = await fetch(`${base()}/${id}?${params}`, { method: "DELETE", headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -201,7 +210,7 @@ export const chatApi = {
     paymentHeader?: string | null;
   }): Promise<{ response: string }> {
     const stepStart = Date.now();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = { "Content-Type": "application/json", ...getApiHeaders() };
     if (params.paymentHeader) {
       headers["X-Payment"] = params.paymentHeader;
       headers["PAYMENT-SIGNATURE"] = params.paymentHeader;
@@ -287,7 +296,7 @@ export const agentWalletApi = {
   }> {
     const res = await fetch(`${agentWalletBase()}/connect`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ walletAddress }),
     });
     const data = await handleRes<{
@@ -323,7 +332,7 @@ export const agentWalletApi = {
   }> {
     const res = await fetch(agentWalletBase(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify(anonymousId ? { anonymousId } : {}),
     });
     const data = await handleRes<{
@@ -349,7 +358,7 @@ export const agentWalletApi = {
 
   /** Get agent wallet address by anonymousId (404 if not created yet). */
   async get(anonymousId: string): Promise<{ agentAddress: string; avatarUrl?: string | null }> {
-    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`);
+    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -360,7 +369,8 @@ export const agentWalletApi = {
     usdcBalance: number;
   }> {
     const res = await fetch(
-      `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/balance`
+      `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/balance`,
+      { headers: getApiHeaders() },
     );
     return handleRes(res);
   },
@@ -375,7 +385,7 @@ export const agentWalletApi = {
   ): Promise<{ paymentHeader: string; signature?: string }> {
     const res = await fetch(`${agentWalletBase()}/pay-402`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, paymentRequired }),
     });
     const data = await res.json().catch(() => ({}));
@@ -389,7 +399,7 @@ export const agentWalletApi = {
   async updateAvatar(anonymousId: string, avatarDataUrl: string): Promise<{ success: boolean; avatarUrl: string }> {
     const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ avatarUrl: avatarDataUrl }),
     });
     return handleRes(res);
@@ -399,7 +409,7 @@ export const agentWalletApi = {
   async generateAvatar(anonymousId: string): Promise<{ success: boolean; avatarUrl: string }> {
     const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
     });
     return handleRes(res);
   },
@@ -431,7 +441,7 @@ export const userPromptsApi = {
     if (params?.limit != null) search.set("limit", String(params.limit));
     if (params?.skip != null) search.set("skip", String(params.skip));
     const qs = search.toString();
-    const res = await fetch(`${agentMarketplacePromptsBase()}${qs ? `?${qs}` : ""}`);
+    const res = await fetch(`${agentMarketplacePromptsBase()}${qs ? `?${qs}` : ""}`, { headers: getApiHeaders() });
     const data = await handleRes<{ success: boolean; prompts: UserPromptItem[] }>(res);
     return { prompts: data.prompts ?? [] };
   },
@@ -440,7 +450,7 @@ export const userPromptsApi = {
   async create(anonymousId: string, payload: { title: string; description?: string; prompt: string; category?: string }): Promise<{ prompt: UserPromptItem }> {
     const res = await fetch(agentMarketplacePromptsBase(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, ...payload }),
     });
     return handleRes(res);
@@ -448,7 +458,7 @@ export const userPromptsApi = {
 
   /** Get one user prompt by id. */
   async get(id: string): Promise<{ prompt: UserPromptItem }> {
-    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}`);
+    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -456,7 +466,7 @@ export const userPromptsApi = {
   async update(id: string, anonymousId: string, payload: { title?: string; description?: string; prompt?: string; category?: string }): Promise<{ prompt: UserPromptItem }> {
     const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, ...payload }),
     });
     return handleRes(res);
@@ -465,7 +475,7 @@ export const userPromptsApi = {
   /** Delete own prompt (anonymousId must match creator). */
   async delete(id: string, anonymousId: string): Promise<{ success: boolean }> {
     const params = new URLSearchParams({ anonymousId });
-    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}?${params}`, { method: "DELETE" });
+    const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}?${params}`, { method: "DELETE", headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -473,7 +483,7 @@ export const userPromptsApi = {
   async bulkDelete(anonymousId: string, ids: string[]): Promise<{ deleted: number }> {
     const res = await fetch(`${agentMarketplacePromptsBase()}/bulk-delete`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, ids }),
     });
     const data = await handleRes<{ success: boolean; deleted: number }>(res);
@@ -484,7 +494,7 @@ export const userPromptsApi = {
   async recordUse(id: string): Promise<{ useCount: number }> {
     const res = await fetch(`${agentMarketplacePromptsBase()}/${encodeURIComponent(id)}/use`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({}),
     });
     return handleRes(res);
@@ -501,7 +511,8 @@ export const marketplaceApi = {
   /** Get preferences for the user (anonymousId). */
   async get(anonymousId: string): Promise<MarketplacePreferencesData> {
     const res = await fetch(
-      `${agentMarketplaceBase()}/${encodeURIComponent(anonymousId)}`
+      `${agentMarketplaceBase()}/${encodeURIComponent(anonymousId)}`,
+      { headers: getApiHeaders() },
     );
     const data = await handleRes<{
       success: boolean;
@@ -525,9 +536,9 @@ export const marketplaceApi = {
       `${agentMarketplaceBase()}/${encodeURIComponent(anonymousId)}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
         body: JSON.stringify(payload),
-      }
+      },
     );
     const data = await handleRes<{
       success: boolean;
@@ -558,7 +569,7 @@ export interface AgentTool {
 export const agentToolsApi = {
   /** List available x402 v2 tools (id, name, description, priceUsd). */
   async list(): Promise<{ tools: AgentTool[] }> {
-    const res = await fetch(agentToolsBase());
+    const res = await fetch(agentToolsBase(), { headers: getApiHeaders() });
     const data = await handleRes<{ success: boolean; tools: AgentTool[] }>(res);
     return { tools: data.tools ?? [] };
   },
@@ -584,7 +595,7 @@ export const agentToolsApi = {
   > {
     const res = await fetch(agentToolsBase() + "/call", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({
         anonymousId: params.anonymousId,
         toolId: params.toolId,
@@ -640,7 +651,7 @@ export const agentLeaderboardApi = {
     if (params?.limit != null) search.set("limit", String(params.limit));
     if (params?.skip != null) search.set("skip", String(params.skip));
     const qs = search.toString();
-    const res = await fetch(`${agentLeaderboardBase()}${qs ? `?${qs}` : ""}`);
+    const res = await fetch(`${agentLeaderboardBase()}${qs ? `?${qs}` : ""}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 };

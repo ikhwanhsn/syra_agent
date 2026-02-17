@@ -6,10 +6,9 @@
  const NotFound = () => {
    const location = useLocation();
  
-   useEffect(() => {
-     // Avoid logging pathname to prevent sensitive paths in log aggregation
-     console.error("404 Error: User attempted to access non-existent route");
-   }, [location.pathname]);
+  useEffect(() => {
+    // 404 - no console logging to avoid log aggregation of routes
+  }, [location.pathname]);
  
   return (
     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background px-4 safe-bottom">

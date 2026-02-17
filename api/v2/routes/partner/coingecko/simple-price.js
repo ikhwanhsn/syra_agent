@@ -91,10 +91,8 @@ async function handleSimplePrice(req, res) {
       data = await response.json().catch(() => null);
       usedX402 = true;
     }
-  } catch (e) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[coingecko/simple-price] x402 failed, using free API:", e instanceof Error ? e.message : String(e));
-    }
+  } catch {
+    // fallback to free API below
   }
 
   if (!data) {
@@ -113,10 +111,8 @@ async function handleSimplePrice(req, res) {
   if (req.x402Payment && usedX402) {
     try {
       await settlePaymentAndSetResponse(res, req);
-    } catch (e) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[coingecko/simple-price] settlePayment failed:", e instanceof Error ? e.message : String(e));
-      }
+    } catch {
+      // settlePayment failed; response may already be sent
     }
   }
   res.status(200).json(data);

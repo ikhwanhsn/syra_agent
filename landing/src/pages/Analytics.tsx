@@ -14,7 +14,7 @@ import { Footer } from "@/components/Footer";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
-import { API_BASE, LINK_AGENT } from "../../config/global";
+import { API_BASE, LINK_AGENT, getApiHeaders } from "../../config/global";
 
 type KpiData = {
   totalPaidApiCalls: number;
@@ -45,7 +45,7 @@ export default function Analytics() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/analytics/kpi`);
+        const res = await fetch(`${API_BASE}/analytics/kpi`, { headers: getApiHeaders() });
         if (!res.ok) throw new Error("Failed to load analytics");
         const json = await res.json();
         setData(json);

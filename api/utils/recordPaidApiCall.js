@@ -13,8 +13,7 @@ export async function recordPaidApiCall(req, options = {}) {
       path: req.path,
       source: options.source || 'api',
     });
-  } catch (err) {
-    // Fire-and-forget: log only so payment flow is never broken
-    console.error('[recordPaidApiCall]', err?.message || 'Unknown error');
+  } catch {
+    // Fire-and-forget: payment flow is never broken
   }
 }

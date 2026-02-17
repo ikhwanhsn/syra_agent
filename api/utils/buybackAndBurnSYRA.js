@@ -107,10 +107,6 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
       );
     }
 
-    console.log(
-      `[buyback] Buying back $${buybackAmountUSD} worth of SYRA (${buybackAmountLamports} lamports)...`,
-    );
-
     const JUPITER_API_BASE = "https://api.jup.ag";
     const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
     const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
@@ -159,16 +155,12 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
       preflightCommitment: "confirmed",
     });
 
-    console.log(`[buyback] Swap transaction sent: ${swapSignature}`);
-
     const latestBlockhash = await connection.getLatestBlockhash("confirmed");
     await confirmTransactionByPolling(
       connection,
       swapSignature,
       latestBlockhash.lastValidBlockHeight,
     );
-
-    console.log(`[buyback] Swap confirmed: https://solscan.io/tx/${swapSignature}`);
 
     const syraTokenAccount = await getAssociatedTokenAddress(
       syraMint,
@@ -202,8 +194,6 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
       throw new Error("No SYRA tokens to burn. Swap may have failed.");
     }
 
-    console.log(`[buyback] Burning ${burnAmount} SYRA tokens...`);
-
     const burnIx = createBurnInstruction(
       syraTokenAccount,
       syraMint,
@@ -226,20 +216,12 @@ export async function buybackAndBurnSYRA(revenueAmountUSD) {
       burnBhInfo.lastValidBlockHeight,
     );
 
-    console.log(
-      `[buyback] Burned ${burnAmount} SYRA. https://solscan.io/tx/${burnSignature}`,
-    );
-
     return {
       swapSignature,
       burnSignature,
       amountBurned: burnAmount.toString(),
     };
   } catch (error) {
-    console.error("[buyback] Error in buyback and burn:", error);
-    if (error.response) {
-      console.error("[buyback] API Error:", error.response.data);
-    }
     throw error;
   }
 }

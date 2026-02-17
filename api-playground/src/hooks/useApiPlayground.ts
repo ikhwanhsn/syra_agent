@@ -31,6 +31,13 @@ function getApiBaseUrl(): string {
   }
   return 'https://api.syraa.fun';
 }
+
+/** Headers for Syra API (playground-proxy and other non-x402). Set VITE_API_KEY or VITE_SYRA_API_KEY in .env. */
+function getApiHeaders(): Record<string, string> {
+  const key = (import.meta.env.VITE_API_KEY as string | undefined) || (import.meta.env.VITE_SYRA_API_KEY as string | undefined);
+  if (!key || typeof key !== 'string') return {};
+  return { 'X-API-Key': key };
+}
 /** Example flow preset for quick try (load + send). */
 export interface ExampleFlowPreset {
   id: string;
@@ -888,7 +895,7 @@ export function useApiPlayground() {
           if (useBackendPlaygroundProxy(baseUrl)) {
             const res = await fetch(getPlaygroundProxyUrl(baseUrl), {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...getApiHeaders() },
               body: JSON.stringify({
                 url: baseUrl,
                 method: probeMethod,
@@ -1267,7 +1274,7 @@ export function useApiPlayground() {
         const proxyUrl = getPlaygroundProxyUrl(finalUrl);
         fetchResponse = await fetch(proxyUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getApiHeaders() },
           body: JSON.stringify({
             url: finalUrl,
             method: effectiveMethod,

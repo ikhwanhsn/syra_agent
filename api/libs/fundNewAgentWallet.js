@@ -198,11 +198,9 @@ export async function fundNewAgentWallet(agentAddress) {
     } catch (err) {
       const msg = err?.message || String(err);
       if (attempt < FUNDING_MAX_RETRIES && isRetryableSendError(msg)) {
-        console.warn('[fundNewAgentWallet] attempt', attempt, 'retrying:', msg);
         await new Promise((r) => setTimeout(r, 2000));
         continue;
       }
-      console.error('[fundNewAgentWallet] failed:', msg);
       result.success = false;
       result.error = msg;
       return result;

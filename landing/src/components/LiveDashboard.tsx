@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   TooltipProps,
 } from "recharts";
-import { API_BASE } from "../../config/global";
+import { API_BASE, getApiHeaders } from "../../config/global";
 
 type DashboardMetrics = {
   volume24h: string;
@@ -87,7 +87,7 @@ export const LiveDashboard = () => {
     setError(null);
     try {
       const url = `${API_BASE}/v1/regular/dashboard-summary?period=${period}&t=${Date.now()}`;
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url, { cache: "no-store", headers: { ...getApiHeaders() } });
       if (!res.ok) throw new Error("Failed to load dashboard");
       const json: DashboardSummary = await res.json();
       if (timeFrameRef.current === json.period) setData(json);

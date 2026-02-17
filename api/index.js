@@ -1,6 +1,8 @@
 import cors from "cors";
 import express from "express";
 import rateLimit from "./utils/rateLimit.js";
+import { securityHeaders } from "./utils/security.js";
+import { requireApiKey } from "./utils/apiKeyAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createNewsRouter, createNewsRouterRegular } from "./routes/news.js";
@@ -110,6 +112,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Trust first proxy (e.g. Nginx, Cloudflare) so req.ip / X-Forwarded-For are correct for rate limiting
+if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
+  app.set("trust proxy", 1);
+}
+
 // NOTE: @x402/express paymentMiddleware DISABLED
 // We use custom V1-compatible requirePayment middleware in each route file instead.
 // This ensures x402scan compatibility with x402Version: 1 format.
@@ -137,9 +144,11 @@ const CORS_OPTIONS_X402 = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
+    "Authorization",
     "api-key",
     "Api-Key",
     "API-KEY",
+    "X-API-Key",
     "Payment-Signature",
     "PAYMENT-SIGNATURE",
     "Payment-Required",
@@ -155,9 +164,11 @@ const CORS_OPTIONS_REGULAR = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
+    "Authorization",
     "api-key",
     "Api-Key",
     "API-KEY",
+    "X-API-Key",
     "Payment-Signature",
     "PAYMENT-SIGNATURE",
     "Payment-Required",
@@ -222,8 +233,9 @@ app.use((req, res, next) => {
   cors(options)(req, res, next);
 });
 
-// Serve static files (OG image, favicon, etc)
-app.use(express.json());
+// Security: headers (X-Content-Type-Options, X-Frame-Options, etc.) and body size limit
+app.use(securityHeaders);
+app.use(express.json({ limit: "200kb" })); // Prevent large-payload DoS
 app.use(express.static(path.join(__dirname, "public")));
 
 // Favicon explicit route (important for bots)
@@ -270,14 +282,28 @@ app.post("/api/playground-proxy", async (req, res) => {
   }
 });
 
-// Rate limit only non-x402 routes (free/regular APIs) to avoid spam; x402, agent, playground-proxy skip
+// Rate limit all non-x402 routes (v1/regular, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
+// Strict dual-window: burst 25/10s + sustained 100/min. Only x402 (paid) routes skip.
 app.use(
   rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 100, // max 100 requests per minute per IP on free routes
-    skip: (req) =>
-      isX402Route(req.path) || isAgentRoute(req.path) || isPlaygroundProxyRoute(req.path),
+    strict: true,
+    burstWindowMs: 10 * 1000,
+    burstMax: 25,
+    windowMs: 60 * 1000,
+    max: 100,
+    skip: (req) => isX402Route(req.path),
   }),
+);
+
+// API key / Bearer auth for non-x402 routes when API_KEY or API_KEYS is set in env
+app.use(
+  requireApiKey(
+    (req) =>
+      isX402Route(req.path) ||
+      req.path === "/" ||
+      req.path === "/favicon.ico" ||
+      req.path.startsWith("/og"),
+  ),
 );
 
 // ZAuth x402 monitoring (before x402 routes) – telemetry & optional validation/refunds via zauthx402.com

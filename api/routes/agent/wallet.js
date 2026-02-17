@@ -152,15 +152,7 @@ router.post('/connect', async (req, res) => {
       fundingPending: true,
     });
 
-    fundNewAgentWallet(agentAddress)
-      .then((fundResult) => {
-        if (!fundResult.success) {
-          console.warn('[agent/wallet] Background funding failed for', agentAddress, fundResult.error);
-        }
-      })
-      .catch((err) => {
-        console.warn('[agent/wallet] Background funding error for', agentAddress, err?.message || err);
-      });
+    fundNewAgentWallet(agentAddress).catch(() => {});
     return;
   } catch (error) {
     if (error.code === 11000) {
@@ -257,15 +249,7 @@ router.post('/', async (req, res) => {
       fundingPending: true,
     });
 
-    fundNewAgentWallet(agentAddress)
-      .then((fundResult) => {
-        if (!fundResult.success) {
-          console.warn('[agent/wallet] Background funding failed for', agentAddress, fundResult.error);
-        }
-      })
-      .catch((err) => {
-        console.warn('[agent/wallet] Background funding error for', agentAddress, err?.message || err);
-      });
+    fundNewAgentWallet(agentAddress).catch(() => {});
     return;
   } catch (error) {
     if (error.code === 11000) {

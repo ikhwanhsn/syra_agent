@@ -29,7 +29,7 @@ export async function recordAgentChatUsage(anonymousId, {
       { $inc: inc, $set: { lastActiveAt: now } },
       { upsert: true, new: true }
     );
-  } catch (err) {
-    console.warn('[agent/leaderboard] recordAgentChatUsage failed:', err?.message);
+  } catch {
+    // recordAgentChatUsage failed; non-fatal
   }
 }
