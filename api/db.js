@@ -14,3 +14,5 @@ export async function getDb() {
   }
   return client.db(process.env.DB_NAME || "syra");
 }
+
+// test
