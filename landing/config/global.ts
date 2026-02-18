@@ -8,11 +8,9 @@ const LINK_DEMO = "https://x.com/syra_agent/status/1994813375214489919?s=20";
 const LINK_X = "https://x.com/syra_agent";
 const EMAIL_SUPPORT = "ikhwanulhusna111@gmail.com";
 
-/** Headers for Syra API (X-API-Key or Bearer). Set VITE_SYRA_API_KEY or VITE_API_KEY in .env. */
+/** Headers for Syra API (X-API-Key). Set VITE_API_KEY in .env to match the API's API_KEY. */
 function getApiHeaders(): Record<string, string> {
-  const key =
-    (import.meta.env.VITE_SYRA_API_KEY as string | undefined) ||
-    (import.meta.env.VITE_API_KEY as string | undefined);
+  const key = import.meta.env.VITE_API_KEY as string | undefined;
   if (!key || typeof key !== "string") return {};
   return { "X-API-Key": key };
 }
