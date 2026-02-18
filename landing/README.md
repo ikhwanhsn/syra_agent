@@ -55,6 +55,17 @@ npm run dev
 
 ---
 
+## Production build (API key)
+
+The dashboard preview calls `api.syraa.fun/v1/regular/*` (news, sentiment, signal, binance-ticker). The production API requires an API key for those routes. When building the landing for production (e.g. on Vercel), set:
+
+- **`VITE_SYRA_API_KEY`** — same value as one of the production API’s `API_KEY` or `API_KEYS`. This is baked into the client bundle and sent as `X-API-Key` on each request.
+- **`VITE_SYRA_API_URL`** — leave unset or set to `https://api.syraa.fun/` so the app targets the production API. (Do not use `http://localhost:3000/` for production builds.)
+
+If the production build is missing a valid `VITE_SYRA_API_KEY`, requests to the API will return **401 Unauthorized**.
+
+---
+
 ## License
 
 MIT — see [LICENSE](../LICENSE) at repo root.

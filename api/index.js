@@ -52,6 +52,7 @@ import { createMemecoinsOrganicTractionRouter } from "./routes/memecoin/aiMemeco
 import { createMemecoinsSurvivingMarketDumpsRouter } from "./routes/memecoin/memecoinsSurvivingMarketDumps.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
+import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 // V2 route imports
 import { createNewsRouter as createV2NewsRouter } from "./v2/routes/news.js";
 import { createSignalRouter as createV2SignalRouter } from "./v2/routes/signal.js";
@@ -525,9 +526,10 @@ app.use("/news", await createNewsRouter());
 
 // v1/regular (no x402) – used by landing page (LiveDashboard, DashboardPreview); must be mounted before /v1 block
 app.use("/v1/regular/news", await createNewsRouterRegular());
-app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
-app.use("/v1/regular/signal", await createSignalRouterRegular());
-app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
+  app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
+  app.use("/v1/regular/signal", await createSignalRouterRegular());
+  app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
+  app.use("/v1/regular/binance-ticker", await createBinanceTickerPriceRouter());
 // Block other /v1/* (non-regular) with 410; use /v2/* for x402
 app.use("/v1", (req, res) => {
   res.status(410).json({

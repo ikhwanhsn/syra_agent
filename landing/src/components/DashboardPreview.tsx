@@ -35,9 +35,13 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["cryptoPrice"],
     queryFn: () =>
-      fetch(`https://api.binance.com/api/v3/ticker/price`).then((res) =>
-        res.json(),
-      ),
+      fetch(`${SYRA_API_BASE}v1/regular/binance-ticker`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
+      }).then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      }),
     refetchInterval: 1000,
   });
 
