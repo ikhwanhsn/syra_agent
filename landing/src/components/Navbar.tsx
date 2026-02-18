@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { SyraLogo } from "./SyraLogo";
@@ -12,18 +13,17 @@ import {
 import { LINK_AGENT, LINK_DOCS } from "../../config/global";
 
 const navLinks = [
-  { label: "Product", href: "#product" },
-  { label: "API", href: "#api" },
-  { label: "Token", href: "#token" },
-  { label: "Roadmap", href: "#roadmap" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Product", href: "/#product" },
+  { label: "API", href: "/#api" },
+  { label: "Token", href: "/#token" },
+  { label: "Roadmap", href: "/#roadmap" },
+  { label: "FAQ", href: "/#faq" },
   { label: "Analytics", href: "/analytics" },
 ];
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-
   return (
     <motion.header
       initial={{ y: -100, opacity: 0 }}
@@ -34,23 +34,23 @@ export const Navbar = () => {
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <nav className="px-6 py-4 mt-4 pointer-events-auto glass-card">
           <div className="flex items-center justify-between">
-            <a
-              href="#home"
+            <Link
+              to="/"
               className="relative z-10 text-2xl font-bold cursor-pointer text-foreground"
             >
               <SyraLogo />
-            </a>
+            </Link>
 
             {/* Desktop Navigation */}
             <div className="items-center hidden gap-8 md:flex">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="relative z-10 text-sm font-medium transition-colors duration-300 pointer-events-auto text-muted-foreground hover:text-primary"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
 
@@ -109,14 +109,14 @@ export const Navbar = () => {
             >
               <div className="flex flex-col gap-4">
                 {navLinks.map((link) => (
-                  <a
+                  <Link
                     key={link.label}
-                    href={link.href}
+                    to={link.href}
                     onClick={() => setIsOpen(false)}
                     className="relative z-10 font-medium transition-colors duration-300 text-muted-foreground hover:text-primary"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 ))}
                 <div className="flex flex-col gap-3 mt-4">
                   <Button

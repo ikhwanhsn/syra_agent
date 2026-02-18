@@ -8,6 +8,7 @@ import { WhySyra } from "@/components/WhySyra";
 import { TokenSection } from "@/components/TokenSection";
 import { Roadmap } from "@/components/Roadmap";
 import { Testimonials } from "@/components/Testimonials";
+import { ArticlesSection } from "@/components/ArticlesSection";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
 import { VoteSupportModal } from "@/components/VoteSupportModal";
@@ -27,6 +28,7 @@ const Index = () => {
         <TokenSection />
         <Roadmap />
         <Testimonials />
+        <ArticlesSection />
         <FAQ />
       </main>
       <Footer />
