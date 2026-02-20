@@ -607,9 +607,9 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)
-// COMMAND: x402 discovery lists only v2 URLs; v1 is not used on other websites — call https://api.syraa.fun/v2/* for x402.
-// NOTE: Only list endpoints that use paymentMiddleware (return 402 without payment)
+// Lists all x402 APIs (V2 format); available under both /v2/* and unversioned paths.
 // Discovery document version is 1, but 402 responses use x402Version: 2
+const X402_BASE = "https://api.syraa.fun";
 app.get("/.well-known/x402", (req, res) => {
   // Collect ownership proofs for both EVM and Solana addresses
   const ownershipProofs = [];
@@ -624,55 +624,65 @@ app.get("/.well-known/x402", (req, res) => {
     ownershipProofs.push(process.env.X402_OWNERSHIP_PROOF);
   }
 
+  // All x402 API paths (V2 payment); exposed as both /v2/* and unversioned
+  const x402Paths = [
+    // Core
+    "news",
+    "signal",
+    "sentiment",
+    "event",
+    "trending-headline",
+    "sundown-digest",
+    "check-status",
+    // X/Twitter & search
+    "x-search",
+    "exa-search",
+    "x-kol",
+    "crypto-kol",
+    // Research & analysis
+    "browse",
+    "research",
+    "gems",
+    // Partner: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Workfun
+    "smart-money",
+    "dexscreener",
+    "token-god-mode",
+    "pump",
+    "trending-jupiter",
+    "jupiter/swap/order",
+    "token-report",
+    "token-statistic",
+    "token-risk/alerts",
+    "bubblemaps/maps",
+    // Binance & CoinGecko
+    "binance/correlation",
+    "coingecko/simple-price",
+    "coingecko/onchain/token-price",
+    "coingecko/onchain/search-pools",
+    "coingecko/onchain/trending-pools",
+    "coingecko/onchain/token",
+    // Analytics
+    "analytics/summary",
+    // Memecoin
+    "memecoin/fastest-holder-growth",
+    "memecoin/most-mentioned-by-smart-money-x",
+    "memecoin/accumulating-before-CEX-rumors",
+    "memecoin/strong-narrative-low-market-cap",
+    "memecoin/by-experienced-devs",
+    "memecoin/unusual-whale-behavior",
+    "memecoin/trending-on-x-not-dex",
+    "memecoin/organic-traction",
+    "memecoin/surviving-market-dumps",
+  ];
+
+  const resources = [
+    ...x402Paths.map((p) => `${X402_BASE}/v2/${p}`),
+    ...x402Paths.map((p) => `${X402_BASE}/${p}`),
+  ];
+
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)
-    resources: [
-      // V2 Core endpoints
-      "https://api.syraa.fun/v2/news",
-      "https://api.syraa.fun/v2/signal",
-      "https://api.syraa.fun/v2/sentiment",
-      "https://api.syraa.fun/v2/event",
-      "https://api.syraa.fun/v2/trending-headline",
-      "https://api.syraa.fun/v2/sundown-digest",
-      "https://api.syraa.fun/v2/check-status",
-      // V2 X/Twitter endpoints
-      "https://api.syraa.fun/v2/x-search",
-      "https://api.syraa.fun/v2/x-kol",
-      "https://api.syraa.fun/v2/crypto-kol",
-      // V2 Research & Analysis endpoints (exa-search omitted: internal/agent only, not for other websites)
-      "https://api.syraa.fun/v2/browse",
-      "https://api.syraa.fun/v2/research",
-      "https://api.syraa.fun/v2/gems",
-      // V2 Partner endpoints
-      "https://api.syraa.fun/v2/smart-money",
-      "https://api.syraa.fun/v2/dexscreener",
-      "https://api.syraa.fun/v2/token-god-mode",
-      "https://api.syraa.fun/v2/pump",
-      "https://api.syraa.fun/v2/trending-jupiter",
-      "https://api.syraa.fun/v2/jupiter/swap/order",
-      "https://api.syraa.fun/v2/token-report",
-      "https://api.syraa.fun/v2/token-statistic",
-      "https://api.syraa.fun/v2/token-risk/alerts",
-      "https://api.syraa.fun/v2/bubblemaps/maps",
-      "https://api.syraa.fun/v2/binance/correlation",
-      "https://api.syraa.fun/v2/coingecko/simple-price",
-      "https://api.syraa.fun/v2/coingecko/onchain/token-price",
-      "https://api.syraa.fun/v2/coingecko/onchain/search-pools",
-      "https://api.syraa.fun/v2/coingecko/onchain/trending-pools",
-      "https://api.syraa.fun/v2/coingecko/onchain/token",
-      // V2 Analytics
-      "https://api.syraa.fun/v2/analytics/summary",
-      // V2 Memecoin endpoints
-      "https://api.syraa.fun/v2/memecoin/fastest-holder-growth",
-      "https://api.syraa.fun/v2/memecoin/most-mentioned-by-smart-money-x",
-      "https://api.syraa.fun/v2/memecoin/accumulating-before-CEX-rumors",
-      "https://api.syraa.fun/v2/memecoin/strong-narrative-low-market-cap",
-      "https://api.syraa.fun/v2/memecoin/by-experienced-devs",
-      "https://api.syraa.fun/v2/memecoin/unusual-whale-behavior",
-      "https://api.syraa.fun/v2/memecoin/trending-on-x-not-dex",
-      "https://api.syraa.fun/v2/memecoin/organic-traction",
-      "https://api.syraa.fun/v2/memecoin/surviving-market-dumps",
-    ],
+    resources,
     // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
     // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY
     // Set X402_OWNERSHIP_PROOF_EVM and X402_OWNERSHIP_PROOF_SVM environment variables
