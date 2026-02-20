@@ -1,8 +1,9 @@
 /**
- * x402 V1 Payment Utilities (x402scan compatible)
- * 
+ * x402 V1 Payment Utilities (x402scan compatible) — LEGACY ONLY.
+ * Syra API uses v2 for all paid routes; see api/v2/utils/x402Payment.js for v2 (CAIP-2, PAYMENT-SIGNATURE).
+ *
  * This utility provides x402 V1 compliant responses that work with x402scan.
- * 
+ *
  * x402 V1 Format:
  * - Uses "X-PAYMENT" header for payment signatures
  * - Network is simple string (e.g., "solana")

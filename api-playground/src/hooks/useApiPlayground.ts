@@ -1148,10 +1148,10 @@ export function useApiPlayground() {
       requestHeaders[h.key] = h.value;
     });
 
-    // Add payment header if provided (for retry after payment). V2 API accepts both headers.
+    // Add payment header if provided (for retry after payment). V2 format: use PAYMENT-SIGNATURE; also send X-Payment for legacy v1 APIs.
     if (paymentHeader) {
-      requestHeaders['X-Payment'] = paymentHeader;
       requestHeaders['PAYMENT-SIGNATURE'] = paymentHeader;
+      requestHeaders['X-Payment'] = paymentHeader;
     }
 
     // Build request object for comparison (without ID and timestamp)

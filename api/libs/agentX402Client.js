@@ -106,18 +106,23 @@ function normalizeAccept(accept) {
 
 /**
  * Build PAYMENT-SIGNATURE header (base64) for x402 v2.
- * V2 server expects decodePaymentSignatureHeader(header) to return PaymentPayload with .accepted.
+ * V2 server expects decodePaymentSignatureHeader(header) to return PaymentPayload with .accepted and .payload.transaction (and optionally .payload.signature).
  * @param {VersionedTransaction} signedTx
  * @param {object} accepted - Normalized PaymentRequirements (scheme, network, payTo, asset, amount, ...)
- * @param {number} x402Version
+ * @param {number} x402Version - Must be 2 for Syra API; v1 is legacy.
  * @returns {string} base64 payment header
  */
 function createPaymentHeaderFromTx(signedTx, accepted, x402Version = 2) {
   const serialized = Buffer.from(signedTx.serialize()).toString('base64');
+  const sig = signedTx.signatures?.[0];
+  const signatureB58 = sig && sig.length === 64 ? bs58.encode(Buffer.from(sig)) : null;
   const paymentPayload = {
-    x402Version,
+    x402Version: Number(x402Version) === 1 ? 1 : 2,
     accepted,
-    payload: { transaction: serialized },
+    payload: {
+      transaction: serialized,
+      ...(signatureB58 && { signature: signatureB58 }),
+    },
   };
   return Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 }
@@ -326,7 +331,7 @@ async function callX402V2WithKeypair(keypair, opts) {
     headers: {
       'Content-Type': 'application/json',
       'PAYMENT-SIGNATURE': paymentHeader,
-      'X-PAYMENT': paymentHeader,
+      ...(x402Version === 1 && { 'X-PAYMENT': paymentHeader }),
     },
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
