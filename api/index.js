@@ -5,16 +5,8 @@ import { securityHeaders } from "./utils/security.js";
 import { requireApiKey } from "./utils/apiKeyAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createNewsRouter, createNewsRouterRegular } from "./routes/news.js";
-import { createSignalRouter, createSignalRouterRegular } from "./routes/signal.js";
-import { createXSearchRouter } from "./routes/xSearch.js";
-import { createXKOLRouter } from "./routes/kol.js";
-import { createBrowseRouter } from "./routes/browse.js";
-import { createResearchRouter } from "./routes/research.js";
-import { createGemsRouter } from "./routes/gems.js";
-import { createCryptoKOLRouter } from "./routes/crypto-kol.js";
-import { createSmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
-import { createCheckStatusRouter } from "./routes/check-status.js";
+import { createNewsRouterRegular } from "./routes/news.js";
+import { createSignalRouterRegular } from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createJatevoRouter } from "./routes/jatevo.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
@@ -23,35 +15,13 @@ import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
 import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
 import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
-import { createDexscreenerRouter } from "./routes/partner/dexscreener.js";
-import { createTokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createInfoRouter } from "./routes/info.js";
-import { createCoingeckoRouter } from "./routes/coingecko.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
-import { createPumpRouter } from "./routes/partner/workfun/pump.js";
-import { createTrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
-import { createTokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
-import { createTokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
-import { createSentimentRouter, createSentimentRouterRegular } from "./routes/sentiment.js";
-import { createEventRouter } from "./routes/event.js";
-import { createTrendingHeadlineRouter } from "./routes/trending-headline.js";
-import { createSundownDigestRouter } from "./routes/sundown-digest.js";
+import { createSentimentRouterRegular } from "./routes/sentiment.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
-import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
-import { createBubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
-import { createFastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fastestHolderGrowthMemecoins.js";
-import { createMemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
-import { createMemecoinsMostMentionedBySmartMoneyXRouter } from "./routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
-import { createMemecoinsStrongNarrativeLowMarketCapRouter } from "./routes/memecoin/memecoinsStrongNarrativeLowMarketCap.js";
-import { createMemecoinsByExperiencedDevsRouter } from "./routes/memecoin/memecoinsByExperiencedDevs.js";
-import { createMemecoinsUnusualWhaleBehaviorRouter } from "./routes/memecoin/memecoinsUnusualWhaleBehavior.js";
-import { createMemecoinsTrendingOnXNotDEXRouter } from "./routes/memecoin/memecoinsTrendingOnXNotDEX.js";
-import { createMemecoinsOrganicTractionRouter } from "./routes/memecoin/aiMemecoinsOrganicTraction.js";
-import { createMemecoinsSurvivingMarketDumpsRouter } from "./routes/memecoin/memecoinsSurvivingMarketDumps.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
-import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 // V2 route imports
 import { createNewsRouter as createV2NewsRouter } from "./v2/routes/news.js";
@@ -492,37 +462,13 @@ app.get("/", (req, res) => {
   `);
 });
 
-// COMMAND: Legacy (unversioned) API disabled — paths that have v2 are blocked; code kept for reference. Use /v2/* only.
-// /analytics excluded: GET /analytics/kpi is used by the landing page (syraa.fun/analytics) for grant KPI dashboard — no v2 KPI equivalent.
-const LEGACY_PATHS_WITH_V2 = [
-  "/news", "/signal", "/sentiment", "/event", "/browse", "/x-search", "/research", "/gems",
-  "/x-kol", "/crypto-kol", "/check-status", "/smart-money", "/dexscreener", "/token-god-mode",
-  "/pump", "/trending-jupiter", "/token-report", "/token-statistic", "/trending-headline",
-  "/sundown-digest", "/bubblemaps", "/coingecko", "/binance", "/memecoin",
-];
-function isLegacyPathWithV2(path) {
-  if (!path || path.startsWith("/v2")) return false;
-  if (path.startsWith("/check-status-agent")) return false;
-  return LEGACY_PATHS_WITH_V2.some((p) => path === p || path.startsWith(p + "/"));
-}
-app.use((req, res, next) => {
-  if (isLegacyPathWithV2(req.path)) {
-    return res.status(410).json({
-      success: false,
-      error: "This API is no longer available. Please use v2.",
-      migration: "https://api.syraa.fun/v2/",
-      docs: "https://docs.syraa.fun",
-    });
-  }
-  next();
-});
-
-// x402 routes (V1 format - x402scan compatible); kept for reference; blocked by middleware above
+// Unversioned x402 routes (use V2 format from v2 folder; /v2/* routes remain in v2 section below)
 app.use("/info", await createInfoRouter());
-app.use("/coingecko", await createCoingeckoRouter());
+app.use("/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
+app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
-app.use("/binance", await createBinanceCorrelationRouter());
-app.use("/news", await createNewsRouter());
+app.use("/binance", await createV2BinanceCorrelationRouter());
+app.use("/news", await createV2NewsRouter());
 
 // v1/regular (no x402) – used by landing page (LiveDashboard, DashboardPreview); must be mounted before /v1 block
 app.use("/v1/regular/news", await createNewsRouterRegular());
@@ -579,16 +525,18 @@ app.use("/v2/memecoin/trending-on-x-not-dex", await createV2MemecoinsTrendingOnX
 app.use("/v2/memecoin/organic-traction", await createV2MemecoinsOrganicTractionRouter());
 app.use("/v2/memecoin/surviving-market-dumps", await createV2MemecoinsSurvivingMarketDumpsRouter());
 // app.use("/test", await createTestRouter());
-app.use("/signal", await createSignalRouter());
-app.use("/x-search", await createXSearchRouter());
-app.use("/x-kol", await createXKOLRouter());
-app.use("/browse", await createBrowseRouter());
-app.use("/research", await createResearchRouter());
-app.use("/gems", await createGemsRouter());
-app.use("/crypto-kol", await createCryptoKOLRouter());
-app.use("/check-status", await createCheckStatusRouter());
+// Unversioned x402 routes — same V2 handlers as /v2/* (CAIP-2, PAYMENT-SIGNATURE)
+app.use("/signal", await createV2SignalRouter());
+app.use("/x-search", await createV2XSearchRouter());
+app.use("/exa-search", await createV2ExaSearchRouter());
+app.use("/x-kol", await createV2XKOLRouter());
+app.use("/browse", await createV2BrowseRouter());
+app.use("/research", await createV2ResearchRouter());
+app.use("/gems", await createV2GemsRouter());
+app.use("/crypto-kol", await createV2CryptoKOLRouter());
+app.use("/check-status", await createV2CheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
-app.use("/smart-money", await createSmartMoneyRouter());
+app.use("/smart-money", await createV2SmartMoneyRouter());
 app.use("/jatevo", await createJatevoRouter());
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
@@ -596,56 +544,58 @@ app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
 app.use("/agent/marketplace", await createAgentMarketplaceRouter());
 app.use("/agent/leaderboard", await createAgentLeaderboardRouter());
-app.use("/dexscreener", await createDexscreenerRouter());
-app.use("/token-god-mode", await createTokenGodModeRouter());
+app.use("/dexscreener", await createV2DexscreenerRouter());
+app.use("/token-god-mode", await createV2TokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
-app.use("/pump", await createPumpRouter());
-app.use("/trending-jupiter", await createTrendingJupiterRouter());
-app.use("/token-report", await createTokenReportRouter());
-app.use("/token-statistic", await createTokenStatisticRouter());
-app.use("/sentiment", await createSentimentRouter());
-app.use("/event", await createEventRouter());
-app.use("/trending-headline", await createTrendingHeadlineRouter());
-app.use("/sundown-digest", await createSundownDigestRouter());
+app.use("/pump", await createV2PumpRouter());
+app.use("/trending-jupiter", await createV2TrendingJupiterRouter());
+app.use("/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
+app.use("/token-report", await createV2TokenReportRouter());
+app.use("/token-statistic", await createV2TokenStatisticRouter());
+app.use("/token-risk/alerts", await createV2TokenRiskAlertsRouter());
+app.use("/sentiment", await createV2SentimentRouter());
+app.use("/event", await createV2EventRouter());
+app.use("/trending-headline", await createV2TrendingHeadlineRouter());
+app.use("/sundown-digest", await createV2SundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
-app.use("/analytics", await createAnalyticsRouter());
-app.use("/bubblemaps/maps", await createBubblemapsMapsRouter());
+app.use("/analytics", await createV2AnalyticsRouter());
+app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use(
   "/memecoin/fastest-holder-growth",
-  await createFastestHolderGrowthMemecoinsRouter(),
+  await createV2FastestHolderGrowthMemecoinsRouter(),
 );
 app.use(
   "/memecoin/most-mentioned-by-smart-money-x",
-  await createMemecoinsMostMentionedBySmartMoneyXRouter(),
+  await createV2MemecoinsMostMentionedBySmartMoneyXRouter(),
 );
 app.use(
   "/memecoin/accumulating-before-CEX-rumors",
-  await createMemecoinsAccumulatingBeforeCEXRumorsRouter(),
+  await createV2MemecoinsAccumulatingBeforeCEXRumorsRouter(),
 );
 app.use(
   "/memecoin/strong-narrative-low-market-cap",
-  await createMemecoinsStrongNarrativeLowMarketCapRouter(),
+  await createV2MemecoinsStrongNarrativeLowMarketCapRouter(),
 );
 app.use(
   "/memecoin/by-experienced-devs",
-  await createMemecoinsByExperiencedDevsRouter(),
+  await createV2MemecoinsByExperiencedDevsRouter(),
 );
 app.use(
   "/memecoin/unusual-whale-behavior",
-  await createMemecoinsUnusualWhaleBehaviorRouter(),
+  await createV2MemecoinsUnusualWhaleBehaviorRouter(),
 );
 app.use(
   "/memecoin/trending-on-x-not-dex",
-  await createMemecoinsTrendingOnXNotDEXRouter(),
+  await createV2MemecoinsTrendingOnXNotDEXRouter(),
 );
 app.use(
   "/memecoin/organic-traction",
-  await createMemecoinsOrganicTractionRouter(),
+  await createV2MemecoinsOrganicTractionRouter(),
 );
 app.use(
   "/memecoin/surviving-market-dumps",
-  await createMemecoinsSurvivingMarketDumpsRouter(),
+  await createV2MemecoinsSurvivingMarketDumpsRouter(),
 );
 
 // Prediction Game API routes
@@ -697,7 +647,7 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/smart-money",
       "https://api.syraa.fun/v2/dexscreener",
       "https://api.syraa.fun/v2/token-god-mode",
-      // "https://api.syraa.fun/v2/pump",
+      "https://api.syraa.fun/v2/pump",
       "https://api.syraa.fun/v2/trending-jupiter",
       "https://api.syraa.fun/v2/jupiter/swap/order",
       "https://api.syraa.fun/v2/token-report",
@@ -710,6 +660,8 @@ app.get("/.well-known/x402", (req, res) => {
       "https://api.syraa.fun/v2/coingecko/onchain/search-pools",
       "https://api.syraa.fun/v2/coingecko/onchain/trending-pools",
       "https://api.syraa.fun/v2/coingecko/onchain/token",
+      // V2 Analytics
+      "https://api.syraa.fun/v2/analytics/summary",
       // V2 Memecoin endpoints
       "https://api.syraa.fun/v2/memecoin/fastest-holder-growth",
       "https://api.syraa.fun/v2/memecoin/most-mentioned-by-smart-money-x",
