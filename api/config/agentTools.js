@@ -8,6 +8,7 @@ import {
   X402_API_PRICE_NEWS_USD,
   X402_API_PRICE_RESEARCH_USD,
   X402_API_PRICE_NANSEN_USD,
+  X402_API_PRICE_NANSEN_PREMIUM_USD,
   X402_API_PRICE_DEXSCREENER_USD,
   X402_API_PRICE_PUMP_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
@@ -21,6 +22,7 @@ import {
   X402_DISPLAY_PRICE_NEWS_USD,
   X402_DISPLAY_PRICE_RESEARCH_USD,
   X402_DISPLAY_PRICE_NANSEN_USD,
+  X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
   X402_DISPLAY_PRICE_DEXSCREENER_USD,
   X402_DISPLAY_PRICE_PUMP_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
@@ -191,6 +193,127 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
     name: 'Token god mode (Nansen)',
     description: 'Token god mode insights from Nansen',
+  },
+  // Nansen x402 endpoints — agent calls real Nansen API (api.nansen.ai), not our route
+  {
+    id: 'nansen-address-current-balance',
+    path: '/v2/nansen/profiler/address/current-balance',
+    nansenPath: '/api/v1/profiler/address/current-balance',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
+    name: 'Nansen: address current balance',
+    description: 'Current token holdings for a wallet or entity (chain + address required)',
+  },
+  {
+    id: 'nansen-address-historical-balances',
+    path: '/v2/nansen/profiler/address/historical-balances',
+    nansenPath: '/api/v1/profiler/address/historical-balances',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
+    name: 'Nansen: address historical balances',
+    description: 'Historical balances for a wallet (chain + address required)',
+  },
+  {
+    id: 'nansen-smart-money-netflow',
+    path: '/v2/nansen/smart-money/netflow',
+    nansenPath: '/api/v1/smart-money/netflow',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+    name: 'Nansen: smart money netflow',
+    description: 'Smart money net flow / accumulation (chains e.g. ["solana"]; optional filters, pagination)',
+  },
+  {
+    id: 'nansen-smart-money-holdings',
+    path: '/v2/nansen/smart-money/holdings',
+    nansenPath: '/api/v1/smart-money/holdings',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+    name: 'Nansen: smart money holdings',
+    description: 'Current smart money positions (chains e.g. ["solana"]; optional filters, pagination)',
+  },
+  {
+    id: 'nansen-smart-money-dex-trades',
+    path: '/v2/nansen/smart-money/dex-trades',
+    nansenPath: '/api/v1/smart-money/dex-trades',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+    name: 'Nansen: smart money DEX trades',
+    description: 'Recent DEX trades by smart money (chains; optional filters, pagination)',
+  },
+  {
+    id: 'nansen-tgm-holders',
+    path: '/v2/nansen/tgm/holders',
+    nansenPath: '/api/v1/tgm/holders',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+    name: 'Nansen: TGM holders',
+    description: 'Token holders from Token God Mode (chain + token_address required)',
+  },
+  {
+    id: 'nansen-tgm-flow-intelligence',
+    path: '/v2/nansen/tgm/flow-intelligence',
+    nansenPath: '/api/v1/tgm/flow-intelligence',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
+    name: 'Nansen: TGM flow intelligence',
+    description: 'Flow intelligence for a token (chain + token_address required)',
+  },
+  {
+    id: 'nansen-tgm-flows',
+    path: '/v2/nansen/tgm/flows',
+    nansenPath: '/api/v1/tgm/flows',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
+    name: 'Nansen: TGM flows',
+    description: 'Flow history for a token (chain, date range, token_address; optional filters)',
+  },
+  {
+    id: 'nansen-tgm-dex-trades',
+    path: '/v2/nansen/tgm/dex-trades',
+    nansenPath: '/api/v1/tgm/dex-trades',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
+    name: 'Nansen: TGM DEX trades',
+    description: 'DEX trades for a token (chain + token_address; optional date, filters)',
+  },
+  {
+    id: 'nansen-token-screener',
+    path: '/v2/nansen/token-screener',
+    nansenPath: '/api/v1/token-screener',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
+    name: 'Nansen: token screener',
+    description: 'Token screener data (chain; optional filters, pagination)',
+  },
+  {
+    id: 'nansen-profiler-counterparties',
+    path: '/v2/nansen/profiler/address/counterparties',
+    nansenPath: '/api/v1/profiler/address/counterparties',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+    name: 'Nansen: address counterparties',
+    description: 'Counterparties for a wallet (chain + address required)',
+  },
+  {
+    id: 'nansen-tgm-pnl-leaderboard',
+    path: '/v2/nansen/tgm/pnl-leaderboard',
+    nansenPath: '/api/v1/tgm/pnl-leaderboard',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+    name: 'Nansen: TGM PnL leaderboard',
+    description: 'PnL leaderboard for a token (chain, date range; optional filters)',
   },
   // Partner: DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun
   {
@@ -573,6 +696,67 @@ export function matchToolFromUserMessage(userMessage) {
         /smart\s*money|smart\s*money\s*data|nansen\s*smart\s*money|whale\s*movement|whale\s*activity/i.test(
           text
         ),
+    },
+    // Nansen x402 endpoints (per-endpoint)
+    {
+      toolId: 'nansen-address-current-balance',
+      test: () =>
+        /(?:nansen\s+)?address\s+current\s+balance|(?:nansen\s+)?current\s+balance\s+(?:for\s+)?(?:wallet|address)|wallet\s+balance\s+nansen/i.test(text),
+    },
+    {
+      toolId: 'nansen-address-historical-balances',
+      test: () =>
+        /(?:nansen\s+)?(?:address\s+)?historical\s+balances?|historical\s+balance\s+(?:for\s+)?(?:wallet|address)/i.test(text),
+    },
+    {
+      toolId: 'nansen-smart-money-netflow',
+      test: () =>
+        /(?:nansen\s+)?smart\s+money\s+net\s*flow|net\s*flow\s+(?:smart\s+money)?|smart\s+money\s+accumulation/i.test(text),
+    },
+    {
+      toolId: 'nansen-smart-money-holdings',
+      test: () =>
+        /(?:nansen\s+)?smart\s+money\s+holdings?|smart\s+money\s+positions?/i.test(text),
+    },
+    {
+      toolId: 'nansen-smart-money-dex-trades',
+      test: () =>
+        /(?:nansen\s+)?smart\s+money\s+dex\s*trades?|smart\s+money\s+trades?/i.test(text),
+    },
+    {
+      toolId: 'nansen-tgm-holders',
+      test: () =>
+        /(?:nansen\s+)?tgm\s+holders?|(?:nansen\s+)?token\s+holders?|holders?\s+(?:for\s+)?token\s+(?:god\s*mode)?/i.test(text),
+    },
+    {
+      toolId: 'nansen-tgm-flow-intelligence',
+      test: () =>
+        /(?:nansen\s+)?(?:tgm\s+)?flow\s+intelligence|flow\s+intelligence\s+(?:for\s+)?token/i.test(text),
+    },
+    {
+      toolId: 'nansen-tgm-flows',
+      test: () =>
+        /(?:nansen\s+)?tgm\s+flows?|(?:nansen\s+)?token\s+flows?|flow\s+history\s+(?:for\s+)?token/i.test(text),
+    },
+    {
+      toolId: 'nansen-tgm-dex-trades',
+      test: () =>
+        /(?:nansen\s+)?tgm\s+dex\s*trades?|(?:nansen\s+)?token\s+dex\s*trades?/i.test(text),
+    },
+    {
+      toolId: 'nansen-token-screener',
+      test: () =>
+        /(?:nansen\s+)?token\s+screener|token\s+screener\s+nansen/i.test(text),
+    },
+    {
+      toolId: 'nansen-profiler-counterparties',
+      test: () =>
+        /(?:nansen\s+)?(?:address\s+)?counterparties?|counterparties?\s+(?:for\s+)?(?:wallet|address)/i.test(text),
+    },
+    {
+      toolId: 'nansen-tgm-pnl-leaderboard',
+      test: () =>
+        /(?:nansen\s+)?(?:tgm\s+)?pnl\s+leaderboard|pnl\s+leaderboard\s+(?:for\s+)?token/i.test(text),
     },
     {
       toolId: 'trending-jupiter',

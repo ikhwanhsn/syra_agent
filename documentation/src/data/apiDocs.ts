@@ -35,6 +35,7 @@ export interface ApiDoc {
 }
 
 const BASE_URL = "https://api.syraa.fun/v2";
+const NANSEN_BASE = "https://api.nansen.ai";
 const SUPPORT = "https://t.me/ikhwanhsn";
 
 const standard402 = (price: number) => `{
@@ -655,6 +656,256 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     "analytics": {}
   }
 }`,
+      },
+    ],
+  }),
+
+  "nansen-endpoints": doc({
+    title: "Nansen Endpoints API",
+    overview:
+      "Nansen x402 API is called directly at api.nansen.ai (no Syra proxy). Use POST with JSON body. Basic tier: $0.01/call. Premium/Smart Money tier: $0.05/call. The Syra Agent invokes Nansen tools by calling api.nansen.ai with the user's agent wallet. The API Playground also calls api.nansen.ai directly; pay with your connected wallet when you get 402.",
+    price: "Basic: $0.01/request; Premium/Smart Money: $0.05/request",
+    endpoints: [
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/current-balance",
+        description: "Current token holdings for a wallet or entity. GET or POST. Params: chain (required), address, entity_name, hide_spam_token, filters, pagination, order_by.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "e.g. solana, ethereum" },
+          { name: "address", type: "string", required: "No", description: "Wallet address" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/current-balance?chain=solana&address=YourWallet..."`,
+        responseExample: `{ "pagination": {}, "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/historical-balances",
+        description: "Historical balances for a wallet. GET or POST.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "Chain" },
+          { name: "address", type: "string", required: "No", description: "Wallet address" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/historical-balances?chain=solana&address=..."`,
+        responseExample: `{ "pagination": {}, "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/perp-positions",
+        description: "Profiler perp positions. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/perp-positions"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/transactions",
+        description: "Address transactions. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/transactions"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/perp-trades",
+        description: "Profiler perp trades. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/perp-trades"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/related-wallets",
+        description: "Related wallets for an address. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/related-wallets"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/pnl-summary",
+        description: "PnL summary for an address. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/pnl-summary"`,
+        responseExample: `{ "data": {} }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/pnl",
+        description: "PnL for an address. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/pnl"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/profiler/address/counterparties",
+        description: "Address counterparties (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/profiler/address/counterparties"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/token-screener",
+        description: "Token screener. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/token-screener"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/perp-screener",
+        description: "Perp screener. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/perp-screener"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/perp-leaderboard",
+        description: "Perp leaderboard (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/perp-leaderboard"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/transfers",
+        description: "TGM transfers. GET or POST. Params: chain, token_address, date, filters, pagination, order_by.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "e.g. solana" },
+          { name: "token_address", type: "string", required: "No", description: "Token contract address" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/transfers?chain=solana"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/jup-dca",
+        description: "TGM Jupiter DCA. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/jup-dca"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/flow-intelligence",
+        description: "TGM flow intelligence. GET or POST. Params: chain, token_address, timeframe, filters.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "e.g. solana" },
+          { name: "token_address", type: "string", required: "Yes", description: "Token contract address" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/flow-intelligence?chain=solana&token_address=..."`,
+        responseExample: `{ "data": {} }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/who-bought-sold",
+        description: "TGM who bought/sold. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/who-bought-sold"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/dex-trades",
+        description: "TGM DEX trades. GET or POST. Params: chain, token_address, date, filters.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "e.g. solana" },
+          { name: "token_address", type: "string", required: "No", description: "Token contract address" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/dex-trades?chain=solana"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/flows",
+        description: "TGM flows. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/flows"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/holders",
+        description: "TGM holders (Premium $0.05). GET or POST. Params: chain, token_address, pagination, filters, order_by.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "e.g. solana" },
+          { name: "token_address", type: "string", required: "Yes", description: "Token contract address" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/holders?chain=solana&token_address=..."`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/pnl-leaderboard",
+        description: "TGM PnL leaderboard (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/pnl-leaderboard"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/perp-pnl-leaderboard",
+        description: "TGM perp PnL leaderboard (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/perp-pnl-leaderboard"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/perp-positions",
+        description: "TGM perp positions. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/perp-positions"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/tgm/perp-trades",
+        description: "TGM perp trades. GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/tgm/perp-trades"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/smart-money/netflow",
+        description: "Smart money net flow (Premium $0.05). GET or POST. Params: chains, filters, pagination, order_by.",
+        params: [
+          { name: "chains", type: "string", required: "No", description: "JSON array e.g. [\"solana\"]" },
+          { name: "pagination", type: "string", required: "No", description: "JSON e.g. {\"page\":1,\"per_page\":25}" },
+        ],
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/smart-money/netflow?chains=[\"solana\"]"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/smart-money/holdings",
+        description: "Smart money holdings (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/smart-money/holdings"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/smart-money/dex-trades",
+        description: "Smart money DEX trades (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/smart-money/dex-trades"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/smart-money/historical-holdings",
+        description: "Smart money historical holdings (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/smart-money/historical-holdings"`,
+        responseExample: `{ "data": [] }`,
+      },
+      {
+        method: "POST",
+        path: "https://api.nansen.ai/api/v1/smart-money/dcas",
+        description: "Smart money DCAs (Premium $0.05). GET or POST.",
+        requestExample: `curl -X POST "${NANSEN_BASE}/api/v1/smart-money/dcas"`,
+        responseExample: `{ "data": [] }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Pricing tiers",
+        content:
+          "Basic ($0.01/call): profiler current/historical balance, transactions, perp positions/trades, related wallets, PnL, token screener, perp screener, TGM transfers, jup-dca, flow-intelligence, who-bought-sold, dex-trades, flows, perp-positions, perp-trades. Premium ($0.05/call): profiler counterparties, TGM holders, pnl-leaderboard, perp-pnl-leaderboard, perp-leaderboard, smart-money netflow, holdings, dex-trades, historical-holdings, dcas.",
+      },
+      {
+        title: "Request body (POST)",
+        content:
+          "For POST, send a JSON body with the same parameters expected by the Nansen API (e.g. chain, address, filters, pagination, order_by, date). Nansen API reference: https://docs.nansen.ai/getting-started/x402-payments",
+      },
+      {
+        title: "Direct usage",
+        content:
+          "Call https://api.nansen.ai/api/v1/... (e.g. /api/v1/profiler/address/current-balance) with POST and a JSON body. On 402, pay with x402 (e.g. Solana wallet in the Playground, or agent wallet when using the Syra Agent). Nansen API reference: https://docs.nansen.ai/getting-started/x402-payments",
       },
     ],
   }),

@@ -552,7 +552,7 @@ export const marketplaceApi = {
   },
 };
 
-/** Agent tools API: list x402 v2 resources and call them (balance checked first; pay with agent wallet). */
+/** Agent tools API: list x402 v2 resources and call them (balance checked first; pay with agent wallet). Nansen tools call the real Nansen API (api.nansen.ai) directly. */
 const agentToolsBase = () => getApiBaseUrl() + "/agent/tools";
 
 export interface AgentTool {

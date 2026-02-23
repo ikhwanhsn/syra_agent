@@ -1,10 +1,11 @@
 /**
  * Agent tools: list x402 v2 resources and call them with agent wallet (balance checked first).
- * If user has 0 balance or lower than price, return insufficientBalance and message; otherwise pay and call.
+ * Nansen tools call the real Nansen API (api.nansen.ai) directly; other tools call our v2 API.
  */
 import express from 'express';
 import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../config/agentTools.js';
 import { callX402V2WithAgent, signAndSubmitSwapTransaction } from '../../libs/agentX402Client.js';
+import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { getAgentUsdcBalance, getAgentAddress } from '../../libs/agentWallet.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
@@ -90,6 +91,23 @@ router.post('/call', async (req, res) => {
       if (fromLlm) {
         Object.assign(params, fromLlm);
       }
+    }
+
+    // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
+    if (tool.nansenPath) {
+      const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
+      if (!result.success) {
+        return res.status(502).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
     }
 
     const url = `${resolveAgentBaseUrl(req)}${tool.path}`;

@@ -30,7 +30,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Partner: Nansen",
-    slugs: ["smart-money", "token-god-mode"],
+    slugs: ["smart-money", "token-god-mode", "nansen-endpoints"],
   },
   {
     title: "Partner: DexScreener & Jupiter",

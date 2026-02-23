@@ -25,8 +25,11 @@ export const X402_API_PRICE_NEWS_USD = price(0.01);
 /** Research / deep research endpoints */
 export const X402_API_PRICE_RESEARCH_USD = price(0.01);
 
-/** Nansen (smart-money, token-god-mode) endpoints */
+/** Nansen Basic tier — $0.01/call (profiler current/historical balance, transactions, tgm transfers, flows, etc.) */
 export const X402_API_PRICE_NANSEN_USD = price(0.01);
+
+/** Nansen Premium / Smart Money tier — $0.05/call (counterparties, holders, leaderboards, smart-money netflow/holdings/dex-trades) */
+export const X402_API_PRICE_NANSEN_PREMIUM_USD = price(0.05);
 
 /** DexScreener endpoints */
 export const X402_API_PRICE_DEXSCREENER_USD = price(0.01);
@@ -61,6 +64,7 @@ export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = 0.0001 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NEWS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_RESEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_DEXSCREENER_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;

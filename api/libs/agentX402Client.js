@@ -207,16 +207,32 @@ async function callX402V2WithKeypair(keypair, opts) {
     return { success: false, error: '402 response missing accepts array' };
   }
 
+  return pay402AndRetry(keypair, {
+    url: initialUrl,
+    method,
+    body,
+    accepts,
+    x402Version: firstData.x402Version ?? 2,
+  });
+}
+
+/**
+ * Execute 402 payment with keypair and retry the request. Used by Syra v2 and by Nansen direct calls.
+ * @param {import('@solana/web3.js').Keypair} keypair
+ * @param {{ url: string; method?: string; body?: object; accepts: object[]; x402Version?: number }} opts
+ * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
+ */
+export async function pay402AndRetry(keypair, opts) {
+  const { url, method = 'POST', body, accepts, x402Version = 2 } = opts;
+  const connection = new Connection(RPC_URL, 'confirmed');
+  const agentPubkey = keypair.publicKey;
+
   const rawAccept = accepts[0];
   const accept = normalizeAccept(rawAccept);
   const amountStr = accept.amount;
   const amount = BigInt(amountStr);
   const payTo = accept.payTo;
   const asset = accept.asset;
-  const x402Version = firstData.x402Version ?? 2;
-  // Agent is the payer: we must be the fee payer so our signature is applied. Ignore accept.extra.feePayer
-  // (facilitator may set it to their address), otherwise the message would require a different signer and
-  // our signature would be missing → tx would have zero sig → RPC returns 111...111 and tx never lands.
   const feePayerPubkey = agentPubkey;
   const destinationPubkey = new PublicKey(payTo);
   const mintPubkey = new PublicKey(asset);
@@ -254,7 +270,7 @@ async function callX402V2WithKeypair(keypair, opts) {
   const destAtaInfo = await connection.getAccountInfo(destAta, 'confirmed');
   if (!destAtaInfo) {
     const err =
-      'Recipient token account not found. The API treasury (SOLANA_PAYTO) must have a USDC token account. Create it or set SOLANA_PAYTO to an address that has USDC ATA.';
+      'Recipient token account not found. The API treasury must have a USDC token account.';
     return { success: false, error: err };
   }
 
@@ -289,9 +305,7 @@ async function callX402V2WithKeypair(keypair, opts) {
       'Transaction signing failed: fee payer must be the agent wallet. The payment was not sent.';
     return { success: false, error: err };
   }
-  const signatureFromTx = bs58.encode(Buffer.from(sig0));
 
-  // Submit the transaction to Solana so the agent wallet actually pays (balance decreases).
   let signature;
   try {
     signature = await connection.sendRawTransaction(transaction.serialize(), {
@@ -316,13 +330,7 @@ async function callX402V2WithKeypair(keypair, opts) {
     return { success: false, error: err };
   }
 
-  // Wait for confirmation using HTTP-only polling (no signatureSubscribe) so it works with any RPC.
-  const { confirmed, error: confirmError } = await confirmTransactionByPolling(
-    connection,
-    signature,
-    lastValidBlockHeight
-  );
-  // If confirmation timed out we still proceed; API/facilitator verifies using the payment header.
+  await confirmTransactionByPolling(connection, signature, lastValidBlockHeight);
 
   const paymentHeader = createPaymentHeaderFromTx(transaction, accept, x402Version);
 
@@ -336,7 +344,7 @@ async function callX402V2WithKeypair(keypair, opts) {
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
 
-  const secondRes = await fetch(initialUrl, retryOpts);
+  const secondRes = await fetch(url, retryOpts);
   const secondData = await secondRes.json().catch(() => ({}));
 
   if (!secondRes.ok) {

@@ -26,7 +26,7 @@ The **api-playground** package is a **Syra API testing and exploration UI**. It 
 
 It uses the same **api** backend as the rest of the monorepo and is useful for integration work, debugging, and demos. Built with Vite, TypeScript, React, shadcn-ui, and Tailwind.
 
-**Example flows** include: Correlation matrix, Token risk (Rugcheck stats), **Token risk alerts** (tokens above a risk threshold, e.g. `rugScoreMin=80`), News, Check status, Analytics summary, Signal, and many more — use the Request Builder quick-select or the Examples page.
+**Example flows** include: Correlation matrix, Token risk (Rugcheck stats), **Token risk alerts** (tokens above a risk threshold, e.g. `rugScoreMin=80`), News, Check status, Analytics summary, Signal, **Nansen** (address current balance, smart money netflow, TGM holders, token screener, etc.), and many more — use the Request Builder quick-select or the Examples page. Nansen is called directly at api.nansen.ai (pay with your wallet on 402); the Syra Agent also calls Nansen directly with the user's agent wallet.
 
 ---
 

@@ -32,7 +32,7 @@ export default function AgentGettingStarted() {
       <section id="what-is-syra-agent" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">What is the Syra Agent?</h2>
         <p className="text-muted-foreground mb-4">
-          The Syra Agent is an AI-powered assistant built for traders, analysts, and builders. It combines natural-language chat with on-demand access to real-time data: trading signals, crypto news, market sentiment, deep research, X (Twitter) search, memecoin screens, and partner tools (e.g. Nansen, DexScreener, Jupiter). You ask in plain English; the agent chooses the right tool and returns structured, actionable insights.
+          The Syra Agent is an AI-powered assistant built for traders, analysts, and builders. It combines natural-language chat with on-demand access to real-time data: trading signals, crypto news, market sentiment, deep research, X (Twitter) search, memecoin screens, and partner tools (e.g. Nansen—calling the real Nansen API with your agent wallet—DexScreener, Jupiter). You ask in plain English; the agent chooses the right tool and returns structured, actionable insights.
         </p>
         <p className="text-muted-foreground">
           Syra is designed to <strong className="text-foreground">enhance your decision-making</strong>, not replace it. Use the agent to understand context, levels, and narratives—then apply your own strategy and risk management.

@@ -73,6 +73,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "Smart Money", href: api("smart-money") },
           { title: "Token God Mode", href: api("token-god-mode") },
+          { title: "Nansen Endpoints", href: api("nansen-endpoints") },
         ],
       },
       {

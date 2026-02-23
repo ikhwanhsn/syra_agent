@@ -38,6 +38,21 @@ function getApiHeaders(): Record<string, string> {
   if (!key || typeof key !== 'string') return {};
   return { 'X-API-Key': key };
 }
+
+/** Nansen API base (call directly; x402 payment with wallet). Override via VITE_NANSEN_API_BASE_URL. */
+function getNansenBaseUrl(): string {
+  const base = import.meta.env.VITE_NANSEN_API_BASE_URL as string | undefined;
+  return (base && base.trim()) || 'https://api.nansen.ai';
+}
+
+function isNansenUrl(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    return u.origin === new URL(getNansenBaseUrl()).origin;
+  } catch {
+    return false;
+  }
+}
 /** Example flow preset for quick try (load + send). */
 export interface ExampleFlowPreset {
   id: string;
@@ -240,6 +255,95 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     url: `${base}/v2/pump`,
     params: [],
   },
+  // Nansen (call api.nansen.ai directly; x402 payment with wallet)
+  ...(function nansenFlows(): ExampleFlowPreset[] {
+    const nansenBase = getNansenBaseUrl();
+    return [
+      {
+        id: 'nansen-address-current-balance',
+        label: 'Nansen: address current balance',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/profiler/address/current-balance`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        ],
+      },
+      {
+        id: 'nansen-smart-money-netflow',
+        label: 'Nansen: smart money netflow',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/smart-money/netflow`,
+        params: [
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+        ],
+      },
+      {
+        id: 'nansen-smart-money-holdings',
+        label: 'Nansen: smart money holdings',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/smart-money/holdings`,
+        params: [
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+        ],
+      },
+      {
+        id: 'nansen-tgm-holders',
+        label: 'Nansen: TGM holders',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/tgm/holders`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
+          { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON object' },
+        ],
+      },
+      {
+        id: 'nansen-tgm-flow-intelligence',
+        label: 'Nansen: TGM flow intelligence',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/tgm/flow-intelligence`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
+          { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
+          { key: 'timeframe', value: '1d', enabled: false, description: 'e.g. 1d' },
+        ],
+      },
+      {
+        id: 'nansen-token-screener',
+        label: 'Nansen: token screener',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/token-screener`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+        ],
+      },
+      {
+        id: 'nansen-tgm-dex-trades',
+        label: 'Nansen: TGM DEX trades',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/tgm/dex-trades`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
+          { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
+          { key: 'date', value: '{"from":"2025-01-01","to":"2025-12-31"}', enabled: false, description: 'JSON date range' },
+        ],
+      },
+      {
+        id: 'nansen-perp-screener',
+        label: 'Nansen: perp screener',
+        method: 'POST',
+        url: `${nansenBase}/api/v1/perp-screener`,
+        params: [
+          { key: 'date', value: '{"from":"2025-01-01","to":"2025-12-31"}', enabled: false, description: 'JSON date range' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON object' },
+        ],
+      },
+    ];
+  })(),
   {
     id: 'coingecko-simple-price',
     label: 'CoinGecko simple price',
@@ -377,9 +481,11 @@ const getProxiedUrl = (url: string): string => {
 };
 
 // In production, cross-origin requests hit CORS. Use the API's playground-proxy when we're not in dev and the target is another origin.
+// Nansen is called directly (no proxy) so the user pays x402 with their wallet.
 function useBackendPlaygroundProxy(targetUrl: string): boolean {
   if (USE_PROXY) return false; // Dev proxy handles it
   if (typeof window === 'undefined') return false;
+  if (isNansenUrl(targetUrl)) return false; // Call Nansen directly
   const targetOrigin = getRequestOrigin(targetUrl);
   const pageOrigin = window.location.origin;
   return !!targetOrigin && targetOrigin !== pageOrigin;
@@ -392,9 +498,10 @@ function getPlaygroundProxyUrl(targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
-// V2 API endpoints list (resolved at runtime for dev localhost)
+// V2 API endpoints list (resolved at runtime for dev localhost). Nansen: direct api.nansen.ai.
 function getV2ApiEndpoints(): string[] {
   const base = getApiBaseUrl();
+  const nansenBase = getNansenBaseUrl();
   return [
     `${base}/v2/news`,
     `${base}/v2/signal`,
@@ -410,6 +517,10 @@ function getV2ApiEndpoints(): string[] {
     `${base}/v2/smart-money`,
     `${base}/v2/dexscreener`,
     `${base}/v2/token-god-mode`,
+    `${nansenBase}/api/v1/profiler/address/current-balance`,
+    `${nansenBase}/api/v1/smart-money/netflow`,
+    `${nansenBase}/api/v1/smart-money/holdings`,
+    `${nansenBase}/api/v1/tgm/holders`,
     `${base}/v2/trending-jupiter`,
     `${base}/v2/token-report`,
     `${base}/v2/token-statistic`,
@@ -459,6 +570,39 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/v2/exa-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
       '/v2/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/v2/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
+      '/api/v1/profiler/address/current-balance': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/api/v1/profiler/address/historical-balances': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/api/v1/smart-money/netflow': [
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/api/v1/smart-money/holdings': [
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/api/v1/tgm/holders': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
+        { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/api/v1/tgm/flow-intelligence': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
+      ],
+      '/api/v1/tgm/dex-trades': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
+      ],
+      '/api/v1/token-screener': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      ],
+      '/api/v1/perp-screener': [],
       '/v2/kol': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
       '/v2/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
       '/v2/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'e.g. BTCUSDT, ETHUSDT' }],
@@ -1096,10 +1240,11 @@ export function useApiPlayground() {
     const effectiveHeaders = useOverride ? requestOverride.headers : headers;
     const effectiveBody = useOverride ? requestOverride.body : body;
 
-    // Build URL with params
+    // Build URL with params (Nansen expects POST JSON body, so don't add params to URL)
     let finalUrl = baseUrl;
     const enabledParams = effectiveParams.filter(p => p.enabled && p.key);
-    if (enabledParams.length > 0) {
+    const isNansen = isNansenUrl(baseUrl);
+    if (enabledParams.length > 0 && !isNansen) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach(p => searchParams.append(p.key, p.value));
       finalUrl += (baseUrl.includes('?') ? '&' : '?') + searchParams.toString();
@@ -1136,7 +1281,23 @@ export function useApiPlayground() {
         }
       })();
       const emptyBody = !effectiveBody.trim() || /^\s*\{\s*\}\s*$/.test(effectiveBody.trim()) || /^\s*\{\s*\n?\s*\}\s*$/.test(effectiveBody.trim());
-      if (emptyBody && (pathname === '/v2/exa-search' || pathname === '/v2/browse' || pathname === '/v2/x-search')) {
+      if (emptyBody && isNansen) {
+        // Nansen API expects POST with JSON body; build from params (parse JSON-like values)
+        const bodyObj: Record<string, unknown> = {};
+        enabledParams.forEach(p => {
+          const v = p.value?.trim() ?? '';
+          if (v.startsWith('{') || v.startsWith('[')) {
+            try {
+              bodyObj[p.key] = JSON.parse(v);
+            } catch {
+              bodyObj[p.key] = p.value;
+            }
+          } else {
+            bodyObj[p.key] = p.value;
+          }
+        });
+        bodyToSend = JSON.stringify(bodyObj);
+      } else if (emptyBody && (pathname === '/v2/exa-search' || pathname === '/v2/browse' || pathname === '/v2/x-search')) {
         const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
         bodyToSend = JSON.stringify({ query: queryVal });
       }
@@ -1152,6 +1313,10 @@ export function useApiPlayground() {
     if (paymentHeader) {
       requestHeaders['PAYMENT-SIGNATURE'] = paymentHeader;
       requestHeaders['X-Payment'] = paymentHeader;
+    }
+    // Nansen expects JSON body with Content-Type: application/json
+    if (isNansen && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
+      requestHeaders['Content-Type'] = 'application/json';
     }
 
     // Build request object for comparison (without ID and timestamp)

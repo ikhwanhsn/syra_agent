@@ -81,6 +81,8 @@ export interface X402PaymentOption {
   payTo: string;
   maxTimeoutSeconds: number;
   asset?: string;
+  /** When payTo is a token account (ATA), owner is the wallet that owns it. Lets us create the ATA if it doesn't exist. */
+  owner?: string;
   extra?: Record<string, any>;
 }
 
@@ -139,6 +141,7 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
       : raw.network.startsWith('solana:')
         ? raw.network
         : SOLANA_MAINNET_CAIP2;
+  const owner = raw.owner ?? raw.extra?.owner;
   return {
     scheme: raw.scheme || 'exact',
     network,
@@ -146,6 +149,7 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
     amount,
     asset: raw.asset ?? USDC_MINT_STRING,
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
+    ...(owner ? { owner: String(owner) } : {}),
     ...(raw.extra && typeof raw.extra === 'object' ? { extra: raw.extra } : {}),
   };
 }
@@ -182,7 +186,7 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
     // If accepts array exists, use it directly
     if (Array.isArray(data.accepts) && data.accepts.length > 0) {
       accepts = data.accepts;
-    } 
+    }
     // Try to build from payment object
     else if (data.payment) {
       accepts = [{
@@ -205,7 +209,7 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
         asset: data.asset || data.token || USDC_MINT_STRING,
       }];
     }
-    
+
     if (accepts.length > 0 && accepts[0].payTo) {
       return {
         x402Version: 2,
@@ -214,14 +218,44 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
       };
     }
   }
-  
+
+  // Payment options may be in Payment-Required header (e.g. Nansen / some x402 APIs)
+  if (responseHeaders) {
+    const header =
+      responseHeaders['Payment-Required'] ||
+      responseHeaders['PAYMENT-REQUIRED'] ||
+      responseHeaders['payment-required'];
+    if (header) {
+      try {
+        const decoded = JSON.parse(atob(header));
+        const rawAccepts = Array.isArray(decoded) ? decoded : decoded?.accepts;
+        const version = decoded?.x402Version ?? 2;
+        if (rawAccepts?.length) {
+          const accepts = rawAccepts.map((a: any) =>
+            (version === 1 || a.maxAmountRequired != null) ? normalizeV1Accept(a) : normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
+          );
+          if (accepts.some((a: X402PaymentOption) => a.payTo)) {
+            return {
+              x402Version: version,
+              accepts,
+              ...(version === 1 && rawAccepts.length > 0 ? { _rawV1Accepts: rawAccepts } : {}),
+            };
+          }
+        }
+      } catch {
+        // ignore invalid header
+      }
+    }
+  }
+
   return null;
 }
 
 /** Normalize raw accept from 402 so it has top-level amount and asset (V2 may send price: { asset, amount }). */
-function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: string; amount?: string } }): X402PaymentOption {
+function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: string; amount?: string }; owner?: string; extra?: { owner?: string } }): X402PaymentOption {
   const amount = String(raw.price?.amount ?? raw.amount ?? '0');
   const asset = raw.price?.asset ?? raw.asset ?? USDC_MINT_STRING;
+  const owner = raw.owner ?? raw.extra?.owner;
   return {
     scheme: raw.scheme || 'exact',
     network: raw.network,
@@ -229,6 +263,7 @@ function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: str
     amount,
     asset,
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
+    ...(owner ? { owner: String(owner) } : {}),
     ...(raw.extra && typeof raw.extra === 'object' ? { extra: raw.extra } : {}),
   };
 }
@@ -295,6 +330,20 @@ export interface PaymentTransactionResult {
 }
 
 /**
+ * Parse amount string to BigInt in smallest units.
+ * Supports integer strings (micro units) and decimal strings (e.g. "0.01" for USDC).
+ */
+function parseAmountToSmallestUnits(amountStr: string, decimals: number = 6): bigint {
+  const s = String(amountStr).trim();
+  if (s.includes('.')) {
+    const [whole = '0', frac = ''] = s.split('.');
+    const padded = frac.padEnd(decimals, '0').slice(0, decimals);
+    return BigInt(whole === '-' ? '0' : whole) * BigInt(10 ** decimals) + BigInt(padded || '0');
+  }
+  return BigInt(s || '0');
+}
+
+/**
  * Create a USDC transfer as VersionedTransaction for x402 V2 (server expects VersionedTransaction).
  */
 export async function createPaymentTransaction(
@@ -304,7 +353,12 @@ export async function createPaymentTransaction(
   const { connection, publicKey } = config;
 
   const recipientPubkey = new PublicKey(paymentOption.payTo);
-  const amount = BigInt(paymentOption.amount);
+  const amount = parseAmountToSmallestUnits(paymentOption.amount, 6);
+  if (amount <= BigInt(0)) {
+    throw new Error(
+      `Invalid payment amount: "${paymentOption.amount}". Use micro units (e.g. 10000 for $0.01 USDC) or decimal (e.g. 0.01).`
+    );
+  }
 
   const isUSDC =
     paymentOption.asset === USDC_MINT_STRING ||
@@ -349,19 +403,46 @@ export async function createPaymentTransaction(
 
   const mint = await getMint(connection, usdcMint, 'confirmed', programId);
   const sourceAta = await getAssociatedTokenAddress(usdcMint, publicKey, false, programId);
-  const destAta = await getAssociatedTokenAddress(usdcMint, recipientPubkey, false, programId);
+
+  // payTo can be either (a) wallet address (on-curve) or (b) token account / ATA address (off-curve, PDA).
+  // If off-curve, use payTo as dest. If that account doesn't exist and the API provided owner, derive ATA from owner and create it.
+  let destAta: PublicKey;
+  let ownerForAta: PublicKey | null = null; // used only when we need to create the ATA
+  const payToIsOffCurve = !PublicKey.isOnCurve(recipientPubkey.toBytes());
+  const ownerStr = paymentOption.owner ?? paymentOption.extra?.owner;
+
+  if (payToIsOffCurve) {
+    destAta = recipientPubkey;
+  } else {
+    destAta = await getAssociatedTokenAddress(usdcMint, recipientPubkey, false, programId);
+    ownerForAta = recipientPubkey;
+  }
 
   const instructions: TransactionInstruction[] = [];
 
-  // Ensure destination ATA exists (recipient may never have received this token) — avoids "invalid account data"
+  // Ensure destination ATA exists. Create it if we have the owner (wallet address).
   try {
     await getAccount(connection, destAta, 'confirmed');
   } catch {
+    if (payToIsOffCurve && ownerStr) {
+      const ownerPubkey = new PublicKey(ownerStr);
+      if (!PublicKey.isOnCurve(ownerPubkey.toBytes())) {
+        throw new Error('Payment option "owner" must be a wallet address (on-curve), not a token account.');
+      }
+      const derivedAta = await getAssociatedTokenAddress(usdcMint, ownerPubkey, false, programId);
+      destAta = derivedAta;
+      ownerForAta = ownerPubkey;
+    }
+    if (!ownerForAta) {
+      throw new Error(
+        'Recipient token account does not exist. The API returned a token account address; it must either exist already or the 402 response should include "owner" (wallet address) so we can create it.'
+      );
+    }
     instructions.push(
       createAssociatedTokenAccountInstruction(
         publicKey,
         destAta,
-        recipientPubkey,
+        ownerForAta,
         usdcMint,
         programId
       )
@@ -539,16 +620,16 @@ export async function executePayment(
           }),
     };
   } catch (error: any) {
-    const errorMessage = error.message || 'Payment execution failed';
-    
-    // If we have a signature, include it in the error so user can check it
+    const errMsg = error?.message ?? 'Payment execution failed';
+    const errLog = error?.logs?.join?.(' ') ?? error?.toString?.() ?? '';
+    const errorMessage = errLog && !errMsg.includes(errLog.slice(0, 50)) ? `${errMsg}. ${errLog.slice(0, 200)}` : errMsg;
+
     if (signature) {
       return {
         success: false,
-        error: `${errorMessage}. Transaction signature: ${signature}. Check status on Solana Explorer.`,
+        error: `${errorMessage}. Tx: ${signature}. Check Solana Explorer.`,
       };
     }
-    
     return {
       success: false,
       error: errorMessage,
