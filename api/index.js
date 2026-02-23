@@ -20,6 +20,7 @@ import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createSentimentRouterRegular } from "./routes/sentiment.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
+import { createAnalyticsRouter as createKpiAnalyticsRouter } from "./routes/analytics.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
@@ -559,6 +560,8 @@ app.use("/trending-headline", await createV2TrendingHeadlineRouter());
 app.use("/sundown-digest", await createV2SundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
+// KPI dashboard first so GET /analytics/kpi is served; then V2 handles /analytics/summary
+app.use("/analytics", await createKpiAnalyticsRouter());
 app.use("/analytics", await createV2AnalyticsRouter());
 app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use(
