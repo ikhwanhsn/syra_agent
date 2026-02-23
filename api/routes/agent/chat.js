@@ -19,6 +19,7 @@ import {
   callX402V2WithTreasury,
   signAndSubmitSwapTransaction,
 } from '../../libs/agentX402Client.js';
+import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../v2/lib/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
@@ -67,6 +68,10 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - For the "coingecko-onchain-token" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address from user>"} when the user asks for token data by contract address.
 - For the "coingecko-simple-price" tool set "params": {"symbols": "btc,eth,sol"} or {"ids": "bitcoin,ethereum,solana"} when the user asks for the price of BTC/ETH/SOL or other coins by symbol or name; optionally include_market_cap, include_24hr_vol, include_24hr_change.
 - For the "coingecko-onchain-token-price" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address>"} when the user asks for the price of a token by its contract address (or multiple addresses comma-separated).
+- For Nansen wallet/profiler tools (nansen-address-current-balance, nansen-address-historical-balances, nansen-profiler-counterparties) set "params": {"chain": "solana", "address": "<wallet address from user>"}.
+- For Nansen smart-money tools (nansen-smart-money-netflow, nansen-smart-money-holdings, nansen-smart-money-dex-trades) set "params": {"chains": "[\"solana\"]"} or extract chain from user question.
+- For Nansen TGM/token tools (nansen-tgm-holders, nansen-tgm-flow-intelligence, nansen-tgm-flows, nansen-tgm-dex-trades, nansen-tgm-pnl-leaderboard) set "params": {"chain": "solana", "token_address": "<token contract address from user>"}; add date_from/date_to for flows or pnl-leaderboard if user specifies a date range.
+- For "nansen-token-screener" set "params": {"chain": "solana"} or chain from user.
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.
 - If the question does not match any tool, respond with: {"tools": []}`;
@@ -603,17 +608,26 @@ router.post('/completion', async (req, res) => {
           toolUsages.push({ name: tool.name, status: 'error' });
           continue;
         }
-        const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
-        const method = tool.method || 'GET';
-        const result = useTreasury
-          ? await callToolWithTreasury(url, method, method === 'GET' ? params : {}, method === 'POST' ? params : undefined)
-          : await callToolWithAgentWallet(
-              anonymousId,
-              url,
-              method,
-              method === 'GET' ? params : {},
-              method === 'POST' ? params : undefined
-            );
+        // Nansen x402 tools: call real Nansen API (api.nansen.ai) with agent wallet; no Syra route
+        let result;
+        if (tool.nansenPath) {
+          const nansenResult = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
+          result = nansenResult.success
+            ? { status: 200, data: nansenResult.data }
+            : { status: 502, error: nansenResult.error };
+        } else {
+          const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
+          const method = tool.method || 'GET';
+          result = useTreasury
+            ? await callToolWithTreasury(url, method, method === 'GET' ? params : {}, method === 'POST' ? params : undefined)
+            : await callToolWithAgentWallet(
+                anonymousId,
+                url,
+                method,
+                method === 'GET' ? params : {},
+                method === 'POST' ? params : undefined
+              );
+        }
         if (result.status !== 200) {
           const err = result.error || 'Request failed';
           const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);

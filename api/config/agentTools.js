@@ -915,6 +915,7 @@ export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'exa-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
+  const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
   const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
@@ -930,6 +931,9 @@ export function getCapabilitiesList() {
 
   lines.push('Core:', ...fmt(core), '');
   lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun):', ...fmt(partner), '');
+  if (nansenX402.length) {
+    lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
+  }
   lines.push('Memecoin screens:', ...fmt(memecoin));
 
   return lines;
@@ -966,6 +970,30 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'coingecko-onchain-token') {
       out.paramsHint = 'Params: network (e.g. base, solana, eth), address (token contract address, required)';
+    }
+    if (t.id === 'token-god-mode') {
+      out.paramsHint = 'Params: tokenAddress (Solana token contract address, required)';
+    }
+    if (t.id === 'smart-money') {
+      out.paramsHint = 'Optional params: chains (e.g. ["solana"]), or leave empty for default';
+    }
+    // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
+    if (t.nansenPath) {
+      const nansenHints = {
+        'nansen-address-current-balance': 'Params: chain (e.g. solana), address (wallet address, required)',
+        'nansen-address-historical-balances': 'Params: chain (e.g. solana), address (wallet address, required)',
+        'nansen-smart-money-netflow': 'Params: chains (e.g. ["solana"]); optional filters, pagination',
+        'nansen-smart-money-holdings': 'Params: chains (e.g. ["solana"]); optional filters, pagination',
+        'nansen-smart-money-dex-trades': 'Params: chains (e.g. ["solana"]); optional filters, pagination',
+        'nansen-tgm-holders': 'Params: chain (e.g. solana), token_address (required)',
+        'nansen-tgm-flow-intelligence': 'Params: chain (e.g. solana), token_address (required)',
+        'nansen-tgm-flows': 'Params: chain, token_address; optional date_from, date_to, filters',
+        'nansen-tgm-dex-trades': 'Params: chain (e.g. solana), token_address; optional date, filters',
+        'nansen-token-screener': 'Params: chain (e.g. solana); optional filters, pagination',
+        'nansen-profiler-counterparties': 'Params: chain (e.g. solana), address (wallet address, required)',
+        'nansen-tgm-pnl-leaderboard': 'Params: chain (e.g. solana); optional date_from, date_to, filters',
+      };
+      if (nansenHints[t.id]) out.paramsHint = nansenHints[t.id];
     }
     return out;
   });
