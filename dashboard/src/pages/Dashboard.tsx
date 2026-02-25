@@ -398,16 +398,25 @@ export function DashboardPage() {
   }
 
   if (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const isFailedFetch =
+      msg === "Failed to fetch" ||
+      msg.toLowerCase().includes("network") ||
+      msg.toLowerCase().includes("cors");
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
           <p className="font-semibold">Failed to load dashboard</p>
-          <p className="mt-2 text-sm">
-            {error instanceof Error ? error.message : String(error)}
-          </p>
+          <p className="mt-2 text-sm">{msg}</p>
           <p className="mt-3 text-xs text-gray-400">
             Ensure VITE_API_BASE_URL and VITE_API_KEY are set and the API is reachable.
           </p>
+          {isFailedFetch && (
+            <p className="mt-2 text-xs text-amber-200/90">
+              If the dashboard is on a different domain (e.g. Vercel), add its URL to the API’s{" "}
+              <code className="rounded bg-black/30 px-1">CORS_EXTRA_ORIGINS</code> env and redeploy the API.
+            </p>
+          )}
         </div>
       </div>
     );

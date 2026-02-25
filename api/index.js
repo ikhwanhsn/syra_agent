@@ -104,6 +104,11 @@ if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
 // - extra.feePayer field
 
 // CORS: restrictive origins only for regular (non-x402) APIs; x402 routes allow any origin
+// Add production dashboard origin via CORS_EXTRA_ORIGINS (comma-separated, e.g. https://your-app.vercel.app)
+const CORS_EXTRA = (process.env.CORS_EXTRA_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 const CORS_ALLOWED_ORIGINS = [
   "http://localhost:8080",
   "http://localhost:5174", // internal dashboard
@@ -114,6 +119,7 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.agent.syraa.fun",
   "https://dashboard.syraa.fun",
   "https://www.dashboard.syraa.fun",
+  ...CORS_EXTRA,
 ];
 const CORS_OPTIONS_X402 = {
   origin: "*",
