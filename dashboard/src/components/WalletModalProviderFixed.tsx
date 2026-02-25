@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { WalletReadyState } from "@solana/wallet-adapter-base";
+import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   WalletModalContext,
@@ -68,7 +68,7 @@ function WalletModalInner({
   }, [setVisible]);
 
   const handleClose = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent | React.TouchEvent) => {
       e.preventDefault();
       hideModal();
     },
@@ -78,7 +78,7 @@ function WalletModalInner({
   const handleWalletClick = useCallback(
     (e: React.MouseEvent, walletName: string) => {
       e.stopPropagation();
-      select(walletName);
+      select(walletName as WalletName);
       hideModal();
     },
     [select, hideModal]

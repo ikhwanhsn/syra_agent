@@ -254,7 +254,7 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
     return () => clearInterval(interval);
   }, [publicKey, connected, connection]);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     setVisible(true);
   }, [setVisible]);
 
