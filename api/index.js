@@ -112,6 +112,8 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.syraa.fun",
   "https://agent.syraa.fun",
   "https://www.agent.syraa.fun",
+  "https://dashboard.syraa.fun",
+  "https://www.dashboard.syraa.fun",
 ];
 const CORS_OPTIONS_X402 = {
   origin: "*",
