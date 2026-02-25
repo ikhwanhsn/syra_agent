@@ -21,6 +21,7 @@ import { createSentimentRouterRegular } from "./routes/sentiment.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter as createKpiAnalyticsRouter } from "./routes/analytics.js";
+import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
@@ -105,6 +106,7 @@ if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
 // CORS: restrictive origins only for regular (non-x402) APIs; x402 routes allow any origin
 const CORS_ALLOWED_ORIGINS = [
   "http://localhost:8080",
+  "http://localhost:5174", // internal dashboard
   "https://api.syraa.fun",
   "https://syraa.fun",
   "https://www.syraa.fun",
@@ -209,6 +211,22 @@ app.use((req, res, next) => {
 app.use(securityHeaders);
 app.use(express.json({ limit: "200kb" })); // Prevent large-payload DoS
 app.use(express.static(path.join(__dirname, "public")));
+
+// Request insight tracking (volume, errors, latency) for dashboard – fire-and-forget on response finish
+app.use((req, res, next) => {
+  const start = Date.now();
+  const skip = req.path === "/" || req.path === "/favicon.ico";
+  res.once("finish", () => {
+    if (skip) return;
+    const durationMs = Date.now() - start;
+    import("./utils/recordApiRequest.js").then(({ recordApiRequest }) =>
+      recordApiRequest(req, res, durationMs, {
+        paid: req._requestInsightPaid === true,
+      })
+    ).catch(() => {});
+  });
+  next();
+});
 
 // Favicon explicit route (important for bots)
 app.get("/favicon.ico", (req, res) => {
@@ -560,6 +578,8 @@ app.use("/trending-headline", await createV2TrendingHeadlineRouter());
 app.use("/sundown-digest", await createV2SundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
+// Internal dashboard: research, browse, x-search (API key auth, no x402)
+app.use("/internal", await createInternalResearchRouter());
 // KPI dashboard first so GET /analytics/kpi is served; then V2 handles /analytics/summary
 app.use("/analytics", await createKpiAnalyticsRouter());
 app.use("/analytics", await createV2AnalyticsRouter());

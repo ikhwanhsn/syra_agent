@@ -452,6 +452,7 @@ export async function settlePaymentAndSetResponse(res, req) {
     }
   }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
+  req._requestInsightPaid = true;
   runAfterResponse(() => recordPaidApiCall(req));
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0 && process.env.NODE_ENV === "production") {

@@ -258,6 +258,7 @@ export async function settlePaymentAndRecord(req) {
     req.x402Payment.paymentRequirements
   );
   await recordPaidApiCall(req);
+  req._requestInsightPaid = true;
   const priceUsd = Number(req.x402Payment.amount) / 1_000_000;
   if (priceUsd > 0 && process.env.NODE_ENV === "production") {
     const { buybackAndBurnSYRA } = await import("./buybackAndBurnSYRA.js");

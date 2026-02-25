@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-syra-bg text-gray-100 antialiased;
+  min-height: 100dvh;
+}
+
+/* Improve touch targets and prevent zoom on focus (iOS) */
+@media (max-width: 1023px) {
+  input, select, textarea, button {
+    font-size: 16px;
+  }
+}
