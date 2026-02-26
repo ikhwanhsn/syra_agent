@@ -17,8 +17,12 @@ import {
 import {
   parseX402Response,
   getBestPaymentOption,
+  getPaymentOptionsByChain,
   extractPaymentDetails,
+  extractPaymentDetailsFromOption,
   executePayment,
+  executeBasePayment,
+  isBaseNetwork,
   X402Response,
   X402PaymentOption,
 } from '@/lib/x402Client';
@@ -853,6 +857,17 @@ export function useApiPlayground() {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | undefined>();
   const [x402Response, setX402Response] = useState<X402Response | undefined>();
   const [paymentOption, setPaymentOption] = useState<X402PaymentOption | undefined>();
+  const [paymentOptionsByChain, setPaymentOptionsByChain] = useState<{ solana: X402PaymentOption | null; base: X402PaymentOption | null }>({ solana: null, base: null });
+  const [selectedPaymentChain, setSelectedPaymentChain] = useState<'solana' | 'base'>('solana');
+
+  // Sync selected payment chain with connected wallet: prefer Base when Base is connected, else Solana when Solana is connected (so connecting Base always shows Base even if Solana auto-connected)
+  useEffect(() => {
+    if (walletContext.baseConnected) {
+      setSelectedPaymentChain('base');
+    } else if (walletContext.connected) {
+      setSelectedPaymentChain('solana');
+    }
+  }, [walletContext.baseConnected, walletContext.connected]);
 
   // History state - load from localStorage on mount
   const [history, setHistory] = useState<HistoryItem[]>(() => loadHistoryFromStorage());
@@ -880,6 +895,8 @@ export function useApiPlayground() {
   const actualRequestIdRef = useRef<string>('');
   // When true, skip the next auto-detect fetch (e.g. after clicking an example flow to avoid double request)
   const skipNextAutoDetectRef = useRef<boolean>(false);
+  // When true, URL was just set by an example flow – don't clear params in the URL effect (avoids double entry / wrong request)
+  const exampleFlowJustRanRef = useRef<boolean>(false);
 
   // Response-only schema keys: do not show as query/input params (API expects input/query params only)
   const OUTPUT_SCHEMA_KEY_BLOCKLIST = new Set([
@@ -946,24 +963,18 @@ export function useApiPlayground() {
     const currentBaseUrl = getBaseUrl(url);
     
     // When base URL changes, clear detection result; method will be set after 402/405 probe
-    if (currentBaseUrl !== previousBaseUrlRef.current) {
+    // Skip clearing params/headers when URL was just set by an example flow (avoids wiping params and double history entry)
+    if (currentBaseUrl !== previousBaseUrlRef.current && !exampleFlowJustRanRef.current) {
       setAllowedMethodsFromDetection([]);
       // Clear params except those from URL query string
       setParams(currentParams => {
-        // Keep params that came from URL query string (they have values)
-        return currentParams.filter(p => {
-          // If param has a value and was likely from URL, keep it
-          // Otherwise clear it
-          return false; // Clear all, URL params will be re-extracted if present
-        });
+        return currentParams.filter(() => false);
       });
-      
-      // Reset headers to default (keep Content-Type)
       setHeaders(currentHeaders => {
-        const contentTypeHeader = currentHeaders.find(h => 
+        const contentTypeHeader = currentHeaders.find(h =>
           h.key.toLowerCase() === 'content-type'
         );
-        return contentTypeHeader 
+        return contentTypeHeader
           ? [contentTypeHeader]
           : [{ key: 'Content-Type', value: 'application/json', enabled: true }];
       });
@@ -1139,6 +1150,7 @@ export function useApiPlayground() {
 
   // UI state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUnsupportedApiModalOpen, setIsUnsupportedApiModalOpen] = useState(false);
   const [isV1UnsupportedModalOpen, setIsV1UnsupportedModalOpen] = useState(false);
@@ -1204,14 +1216,10 @@ export function useApiPlayground() {
     network: walletContext.network,
   };
 
-  // Connect wallet
-  const connectWallet = useCallback(async () => {
-    try {
-      await walletContext.connect();
-    } catch {
-      // Ignore connect errors (user may have cancelled)
-    }
-  }, [walletContext]);
+  // Open connect-wallet modal (user chooses Solana or Base, then sees supported wallets)
+  const connectWallet = useCallback(() => {
+    setConnectModalOpen(true);
+  }, []);
 
   // Optional override when running an example flow (use instead of state).
   type RequestOverride = {
@@ -1501,11 +1509,24 @@ export function useApiPlayground() {
             
             if (parsed) {
               setX402Response(parsed);
-              // v1 and v2: both use payment modal; v1 uses different header format (X-PAYMENT with v1 payload)
-              const option = getBestPaymentOption(parsed);
+              const byChain = getPaymentOptionsByChain(parsed);
+              setPaymentOptionsByChain(byChain);
+              // Auto-detect chain from connected wallet: Solana wallet → Solana, Base (e.g. MetaMask) → Base
+              let defaultChain: 'solana' | 'base' = 'solana';
+              if (byChain.solana && byChain.base) {
+                if (walletContext.baseConnected && !walletContext.connected) {
+                  defaultChain = 'base';
+                } else if (walletContext.connected) {
+                  defaultChain = 'solana';
+                }
+                // else neither connected → keep solana as default
+              } else if (byChain.base) {
+                defaultChain = 'base';
+              }
+              setSelectedPaymentChain(defaultChain);
+              const option = byChain[defaultChain] ?? getBestPaymentOption(parsed);
               setPaymentOption(option || undefined);
-              details = extractPaymentDetails(parsed);
-              // Only show v1-unsupported modal when we cannot build a payment option (e.g. missing payTo/amount)
+              details = option ? extractPaymentDetailsFromOption(option) : extractPaymentDetails(parsed);
               if (parsed.x402Version === 1 && !option) {
                 setIsV1UnsupportedModalOpen(true);
               }
@@ -1652,10 +1673,12 @@ export function useApiPlayground() {
     const defaultHeaders: RequestHeader[] = [
       { key: 'Content-Type', value: 'application/json', enabled: true },
     ];
-    // Skip the next auto-detect fetch so we don't send a second request (no double entry / pending)
+    // Skip the next auto-detect fetch and avoid URL effect clearing params (no double entry / pending)
     skipNextAutoDetectRef.current = true;
+    exampleFlowJustRanRef.current = true;
     setTimeout(() => {
       skipNextAutoDetectRef.current = false;
+      exampleFlowJustRanRef.current = false;
     }, 2500);
     // Default to GET for example flow; real method will be detected on 402 when user enters URL
     const defaultMethod = getDefaultMethodForUrl(preset.url);
@@ -1901,10 +1924,28 @@ export function useApiPlayground() {
     });
   }, [selectedHistoryId]);
 
-  // Execute payment and auto-retry (v1 uses X-PAYMENT with v1 payload; v2 uses PAYMENT-SIGNATURE)
+  // Switch selected payment chain and update option + details
+  const selectPaymentChain = useCallback(
+    (chain: 'solana' | 'base') => {
+      setSelectedPaymentChain(chain);
+      const option = chain === 'solana' ? paymentOptionsByChain.solana : paymentOptionsByChain.base;
+      if (option) {
+        setPaymentOption(option);
+        setPaymentDetails(extractPaymentDetailsFromOption(option));
+      }
+    },
+    [paymentOptionsByChain]
+  );
+
+  // Execute payment and auto-retry (Solana or Base)
   const pay = useCallback(async () => {
-    if (!walletContext.connected || !walletContext.publicKey || !paymentOption) {
-      return;
+    if (!paymentOption) return;
+
+    const isBase = isBaseNetwork(paymentOption);
+    if (isBase) {
+      if (!walletContext.baseConnected) return;
+    } else {
+      if (!walletContext.connected || !walletContext.publicKey) return;
     }
 
     setTransactionStatus({ status: 'pending' });
@@ -1915,17 +1956,27 @@ export function useApiPlayground() {
         : undefined;
 
     try {
-      const result = await executePayment(
-        {
-          connection,
-          publicKey: walletContext.publicKey,
-          signTransaction: walletContext.signTransaction,
-        },
-        paymentOption,
-        rawV1Accept
-      );
+      let result: Awaited<ReturnType<typeof executePayment>>;
+      if (isBase) {
+        const signer = await walletContext.getEvmSigner();
+        if (!signer) {
+          setTransactionStatus({ status: 'failed', error: 'Base wallet not available' });
+          return;
+        }
+        result = await executeBasePayment(signer, paymentOption);
+      } else {
+        result = await executePayment(
+            {
+              connection,
+              publicKey: walletContext.publicKey!,
+              signTransaction: walletContext.signTransaction,
+            },
+            paymentOption,
+            rawV1Accept
+          );
+      }
 
-      if (result.success && result.signature && result.paymentHeader) {
+      if (result.success && result.paymentHeader) {
         setTransactionStatus({
           status: 'confirmed',
           hash: result.signature,
@@ -2061,6 +2112,9 @@ export function useApiPlayground() {
     connectWallet,
     pay,
     retryAfterPayment,
+    paymentOptionsByChain,
+    selectedPaymentChain,
+    selectPaymentChain,
 
     // Actions
     sendRequest: () => sendRequest(),
@@ -2070,6 +2124,8 @@ export function useApiPlayground() {
     // UI state
     isSidebarOpen,
     setIsSidebarOpen,
+    connectModalOpen,
+    setConnectModalOpen,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
     isUnsupportedApiModalOpen,

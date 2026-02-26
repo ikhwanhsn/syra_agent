@@ -52,16 +52,17 @@ function normalizeBaseNetwork(raw) {
   return n;
 }
 
+const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const BASE_USDC_MAINNET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+
 // Config from env (same names as payai example + existing api names)
 const facilitatorUrl = envAny(["PAYAI_FACILITATOR_URL", "FACILITATOR_URL_PAYAI", "FACILITATOR_URL"]);
 const baseFacilitatorUrl = envAny(["PAYAI_BASE_FACILITATOR_URL", "BASE_FACILITATOR_URL", "FACILITATOR_URL_PAYAI", "FACILITATOR_URL"]);
 const solanaPayTo = envAny(["SOLANA_PAYTO", "ADDRESS_PAYAI", "ADDRESS"]);
 const basePayTo = envAny(["BASE_PAYTO", "BASE_ADDRESS", "EVM_ADDRESS"]);
 const solanaUsdcMint = envAny(["SOLANA_USDC_MINT", "USDC_MINT", "USDC_DEVNET", "USDC_MAINNET"]);
-const baseUsdcAsset = envAny(["BASE_USDC"]);
-
-const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const BASE_USDC_MAINNET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+// Default Base USDC mainnet when Base payTo is set so Base is supported with only BASE_PAYTO
+const baseUsdcAsset = envAny(["BASE_USDC"]) || (basePayTo ? BASE_USDC_MAINNET : "");
 
 const solanaNetwork = normalizeSolanaNetwork(envAny(["SOLANA_NETWORK", "NETWORK_PAYAI", "NETWORK"]) || DEFAULT_SOLANA_NETWORK);
 const baseNetwork = normalizeBaseNetwork(envAny(["BASE_NETWORK"]) || DEFAULT_BASE_NETWORK);

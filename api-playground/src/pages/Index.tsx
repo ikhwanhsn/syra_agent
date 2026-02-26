@@ -7,6 +7,7 @@ import { ResponseViewer } from '@/components/ResponseViewer';
 import { PaymentModal } from '@/components/PaymentModal';
 import { UnsupportedApiModal } from '@/components/UnsupportedApiModal';
 import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
+import { ConnectWalletModal } from '@/components/ConnectWalletModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { PaymentDetails, RequestParam } from '@/types/api';
 import { GripVertical } from 'lucide-react';
@@ -53,6 +54,11 @@ const Index = () => {
     runExampleFlow,
     isSidebarOpen,
     setIsSidebarOpen,
+    connectModalOpen,
+    setConnectModalOpen,
+    paymentOptionsByChain,
+    selectedPaymentChain,
+    selectPaymentChain,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
     isUnsupportedApiModalOpen,
@@ -73,12 +79,19 @@ const Index = () => {
   const [isResizingPanels, setIsResizingPanels] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const panelsContainerRef = useRef<HTMLDivElement>(null);
+  const lastRunFlowIdRef = useRef<string | null>(null);
 
-  // Run example flow when navigated from /examples with state.runFlowId (and optional runFlowParams)
+  // Run example flow when navigated from /examples with state.runFlowId (and optional runFlowParams).
+  // Only run once per flowId so we don't get double history entries (e.g. React Strict Mode double-invoke).
   useEffect(() => {
     const state = location.state as { runFlowId?: string; runFlowParams?: RequestParam[] } | null;
     const flowId = state?.runFlowId;
-    if (!flowId) return;
+    if (!flowId) {
+      lastRunFlowIdRef.current = null;
+      return;
+    }
+    if (lastRunFlowIdRef.current === flowId) return;
+    lastRunFlowIdRef.current = flowId;
     runExampleFlow(flowId, state?.runFlowParams);
     navigate('/', { replace: true, state: {} }); // Clear state so back doesn't re-run
   }, [location.state, runExampleFlow, navigate]);
@@ -144,6 +157,7 @@ const Index = () => {
         onConnectWallet={connectWallet}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isSidebarOpen={isSidebarOpen}
+        paymentNetwork={selectedPaymentChain}
       />
 
       {/* Main Content - fills viewport below fixed navbar; on mobile panels scroll */}
@@ -244,6 +258,12 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Connect Wallet Modal - choose network (Solana/Base) then see supported wallets */}
+      <ConnectWalletModal
+        open={connectModalOpen}
+        onOpenChange={setConnectModalOpen}
+      />
+
       {/* Payment Modal - Show for any 402 response */}
       {effectivePaymentDetails && (
         <PaymentModal
@@ -255,6 +275,9 @@ const Index = () => {
           onConnectWallet={connectWallet}
           onPay={pay}
           onRetry={retryAfterPayment}
+          paymentOptionsByChain={paymentOptionsByChain}
+          selectedPaymentChain={selectedPaymentChain}
+          onSelectPaymentChain={selectPaymentChain}
         />
       )}
 

@@ -1,9 +1,11 @@
 import { X, Wallet, CheckCircle, XCircle, Loader2, ExternalLink, Zap, ArrowRight, Shield, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PaymentDetails, TransactionStatus, WalletState } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { useWalletContext } from '@/contexts/WalletContext';
+import type { X402PaymentOption } from '@/lib/x402Client';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -14,6 +16,10 @@ interface PaymentModalProps {
   onConnectWallet: () => void;
   onPay: () => void;
   onRetry: () => void;
+  /** When API offers both Solana and Base, show chain selector */
+  paymentOptionsByChain?: { solana: X402PaymentOption | null; base: X402PaymentOption | null };
+  selectedPaymentChain?: 'solana' | 'base';
+  onSelectPaymentChain?: (chain: 'solana' | 'base') => void;
 }
 
 // Step definitions for the payment flow
@@ -28,29 +34,36 @@ export function PaymentModal({
   onConnectWallet,
   onPay,
   onRetry,
+  paymentOptionsByChain,
+  selectedPaymentChain = 'solana',
+  onSelectPaymentChain,
 }: PaymentModalProps) {
   const walletContext = useWalletContext();
-  
+
   if (!isOpen) return null;
 
   const isPending = transactionStatus.status === 'pending';
   const isConfirmed = transactionStatus.status === 'confirmed';
   const isFailed = transactionStatus.status === 'failed';
 
-  // Check if user has enough balance
+  const isBase = paymentDetails.network?.toLowerCase().includes('base');
+  const showChainSelector = paymentOptionsByChain?.solana && paymentOptionsByChain?.base && onSelectPaymentChain;
+
   const paymentAmount = parseFloat(paymentDetails.amount) || 0;
-  const hasEnoughBalance = paymentDetails.token === 'USDC' 
-    ? (walletContext.usdcBalance || 0) >= paymentAmount
-    : (walletContext.solBalance || 0) >= paymentAmount;
+  const hasEnoughBalance = isBase
+    ? (walletContext.baseUsdcBalance ?? 0) >= paymentAmount
+    : paymentDetails.token === 'USDC'
+      ? (walletContext.usdcBalance || 0) >= paymentAmount
+      : (walletContext.solBalance || 0) >= paymentAmount;
+  const walletConnectedForChain = isBase ? walletContext.baseConnected : wallet.connected;
   
   // Check if payment details are valid (has recipient address)
   const hasValidPaymentDetails = paymentDetails.recipient && 
     paymentDetails.recipient !== 'Unknown' && 
     paymentDetails.recipient.length > 10;
 
-  // Determine current step
   const getCurrentStep = (): PaymentStep => {
-    if (!wallet.connected) return 'connect';
+    if (!walletConnectedForChain) return 'connect';
     if (isConfirmed) return 'complete';
     if (isPending) return 'confirm';
     return 'review';
@@ -293,8 +306,16 @@ export function PaymentModal({
 
           {/* Actions */}
           <div className="p-4 sm:p-5 pt-0 space-y-3 shrink-0">
-            {!wallet.connected ? (
-              <Button variant="neon" className="w-full h-11 gap-2 text-sm font-semibold" onClick={onConnectWallet}>
+            {!walletConnectedForChain ? (
+              <Button
+                variant="neon"
+                className="w-full h-11 gap-2 text-sm font-semibold"
+                onClick={() => {
+                  if (isBase) onSelectPaymentChain?.('base');
+                  else onSelectPaymentChain?.('solana');
+                  onConnectWallet();
+                }}
+              >
                 <Wallet className="h-4 w-4" />
                 Connect Wallet
                 <ArrowRight className="h-4 w-4" />
@@ -314,7 +335,7 @@ export function PaymentModal({
                 variant="neon" 
                 className="w-full h-11 gap-2 text-sm font-semibold" 
                 onClick={onPay}
-                disabled={isPending || !hasEnoughBalance || !hasValidPaymentDetails}
+                disabled={isPending || !hasEnoughBalance || !hasValidPaymentDetails || !walletConnectedForChain}
               >
                 {isPending ? (
                   <>

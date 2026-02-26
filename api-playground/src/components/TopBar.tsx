@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WalletState } from '@/types/api';
 import { useWalletContext } from '@/contexts/WalletContext';
+import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import {
   Tooltip,
@@ -24,9 +25,11 @@ interface TopBarProps {
   onConnectWallet: () => void;
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
+  /** Current payment network (used for 402). Shown as status in the bar. */
+  paymentNetwork?: 'solana' | 'base';
 }
 
-export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen }: TopBarProps) {
+export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen, paymentNetwork = 'solana' }: TopBarProps) {
   const walletContext = useWalletContext();
   const { theme, setTheme } = useTheme();
   
@@ -76,8 +79,28 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
             </div>
           </div>
 
-          {/* Right: Wallet connection */}
+          {/* Right: Network status + Wallet connection */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Payment network status */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
+                    paymentNetwork === 'base'
+                      ? "bg-[#0052FF]/10 border-[#0052FF]/30 text-[#0052FF]"
+                      : "bg-primary/10 border-primary/30 text-primary"
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-full bg-current" />
+                  {paymentNetwork === 'base' ? 'Base' : 'Solana'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Payment network: {paymentNetwork === 'base' ? 'Base (EVM)' : 'Solana'}. Change in payment modal when both are available.</p>
+              </TooltipContent>
+            </Tooltip>
+
             {/* Powered by Syra - link to main website */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -133,76 +156,102 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
               </TooltipContent>
             </Tooltip>
 
-            {wallet.connected ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
-                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                  <span className="text-xs font-medium text-success">Connected</span>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="glass" size="sm" className="font-mono text-xs gap-1.5 sm:gap-2 h-9 max-w-[140px] sm:max-w-none min-w-0">
-                      <Coins className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span className="truncate">{wallet.balance || '0 USDC'}</span>
-                      <span className="text-muted-foreground shrink-0 hidden sm:inline">|</span>
-                      <span className="truncate hidden sm:inline">{walletContext.shortAddress}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">Wallet Connected</p>
-                        <p className="text-xs font-mono text-muted-foreground truncate">
-                          {walletContext.address}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="justify-between">
-                      <span className="text-muted-foreground">SOL Balance</span>
-                      <span className="font-mono">{walletContext.solBalance?.toFixed(4) || '0'} SOL</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="justify-between">
-                      <span className="text-muted-foreground">USDC Balance</span>
-                      <span className="font-mono">{walletContext.usdcBalance?.toFixed(2) || '0'} USDC</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => walletContext.disconnect()}
-                      className="text-destructive focus:text-destructive"
+            {(() => {
+              const isBase = paymentNetwork === 'base';
+              const connected = isBase ? walletContext.baseConnected : wallet.connected;
+              const connecting = isBase ? walletContext.baseConnecting : walletContext.connecting;
+              // Single connect flow: always open ConnectWalletModal (user chooses Solana or Base, then sees supported wallets)
+              const handleConnect = onConnectWallet;
+              if (connected) {
+                const balance = isBase
+                  ? `${walletContext.baseUsdcBalance?.toFixed(2) ?? '0'} USDC`
+                  : (wallet.balance || '0 USDC');
+                const shortAddr = isBase ? walletContext.baseShortAddress : walletContext.shortAddress;
+                const fullAddr = isBase ? walletContext.baseAddress : walletContext.address;
+                const handleDisconnect = isBase ? () => walletContext.disconnectBase() : () => walletContext.disconnect();
+                return (
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
+                      <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                      <span className="text-xs font-medium text-success">Connected</span>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="glass" size="sm" className="font-mono text-xs gap-1.5 sm:gap-2 h-9 max-w-[140px] sm:max-w-none min-w-0">
+                          <Coins className="h-3.5 w-3.5 text-accent shrink-0" />
+                          <span className="truncate">{balance}</span>
+                          <span className="text-muted-foreground shrink-0 hidden sm:inline">|</span>
+                          <span className="truncate hidden sm:inline">{shortAddr}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuLabel className="font-normal">
+                          <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium">Wallet Connected ({isBase ? 'Base' : 'Solana'})</p>
+                            <p className="text-xs font-mono text-muted-foreground truncate">
+                              {fullAddr}
+                            </p>
+                          </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {!isBase && (
+                          <>
+                            <DropdownMenuItem className="justify-between">
+                              <span className="text-muted-foreground">SOL Balance</span>
+                              <span className="font-mono">{walletContext.solBalance?.toFixed(4) || '0'} SOL</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="justify-between">
+                              <span className="text-muted-foreground">USDC Balance</span>
+                              <span className="font-mono">{walletContext.usdcBalance?.toFixed(2) || '0'} USDC</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {isBase && (
+                          <DropdownMenuItem className="justify-between">
+                            <span className="text-muted-foreground">USDC (Base)</span>
+                            <span className="font-mono">{walletContext.baseUsdcBalance?.toFixed(2) || '0'} USDC</span>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={handleDisconnect}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Disconnect
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              }
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="neon" 
+                      size="sm" 
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      className="gap-2 h-9"
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Disconnect
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="neon" 
-                    size="sm" 
-                    onClick={onConnectWallet}
-                    disabled={walletContext.connecting}
-                    className="gap-2 h-9"
-                  >
-                    <Wallet className="h-4 w-4" />
-                    {walletContext.connecting ? (
-                      <span className="text-sm">Connecting...</span>
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline text-sm">Connect Wallet</span>
-                        <span className="sm:hidden text-sm">Connect</span>
-                      </>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Connect your Solana wallet to enable payments</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+                      <Wallet className="h-4 w-4" />
+                      {connecting ? (
+                        <span className="text-sm">Connecting...</span>
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline text-sm">Connect Wallet</span>
+                          <span className="sm:hidden text-sm">Connect</span>
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Choose Solana or Base, then connect a supported wallet</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })()}
           </div>
         </div>
       </header>

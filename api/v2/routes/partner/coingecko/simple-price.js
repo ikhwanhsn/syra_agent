@@ -1,6 +1,6 @@
 /**
  * v2 x402 API: CoinGecko x402 simple/price — USD price and market data for coins by symbol or CoinGecko id.
- * Proxies to pro-api.coingecko.com/api/v3/x402/simple/price; pays with Solana/USDC only (not Base).
+ * Proxies to pro-api.coingecko.com/api/v3/x402/simple/price; pays with Solana/USDC or Base/USDC.
  * See https://docs.coingecko.com/docs/x402 and https://docs.coingecko.com/reference/simple-price
  */
 import express from "express";

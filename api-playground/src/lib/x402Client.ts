@@ -28,6 +28,8 @@ const USDC_DEVNET_STRING = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 // CAIP-2 Network identifiers (matching API)
 const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
+const BASE_MAINNET_CAIP2 = 'eip155:8453';
+const BASE_USDC_MAINNET = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 
 // x402 protocol version
 const X402_VERSION = 2;
@@ -268,39 +270,70 @@ function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: str
   };
 }
 
+/** True if option is Base (EVM) network. */
+export function isBaseNetwork(opt: X402PaymentOption): boolean {
+  return String(opt?.network || '').startsWith('eip155:');
+}
+
+/** True if option is Solana network. */
+export function isSolanaNetwork(opt: X402PaymentOption): boolean {
+  return /^solana:/i.test(String(opt?.network || ''));
+}
+
 /**
- * Get the best payment option from x402 response
- * Prioritizes Solana USDC payments. Normalizes so amount/asset are always set (V2 uses price.amount/price.asset).
+ * Get payment options grouped by chain (Solana and/or Base).
+ * Use when the API offers both so the UI can show a chain selector.
  */
-export function getBestPaymentOption(x402Response: X402Response): X402PaymentOption | null {
+export function getPaymentOptionsByChain(x402Response: X402Response): {
+  solana: X402PaymentOption | null;
+  base: X402PaymentOption | null;
+} {
+  const { accepts } = x402Response ?? {};
+  if (!accepts?.length) return { solana: null, base: null };
+  const normalized = accepts.map((a) => normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } }));
+  const solana = normalized.find((opt) => isSolanaNetwork(opt)) ?? null;
+  const base = normalized.find((opt) => isBaseNetwork(opt)) ?? null;
+  return { solana, base };
+}
+
+/**
+ * Get the best payment option from x402 response.
+ * Prefers Solana then Base. Pass preferredChain to force one chain when both are available.
+ */
+export function getBestPaymentOption(
+  x402Response: X402Response,
+  preferredChain?: 'solana' | 'base' | 'auto'
+): X402PaymentOption | null {
   const { accepts } = x402Response;
-  
+
   if (!accepts || accepts.length === 0) {
     return null;
   }
-  
+
+  const normalized = accepts.map((a) =>
+    normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
+  );
+
+  if (preferredChain === 'base') {
+    const baseOpt = normalized.find((opt) => isBaseNetwork(opt));
+    if (baseOpt) return baseOpt;
+  }
+
   // Prefer Solana mainnet with exact scheme
-  const solanaMainnetOption = accepts.find(opt => 
-    opt.network === SOLANA_MAINNET_CAIP2 && 
-    opt.scheme === 'exact'
+  const solanaMainnetOption = normalized.find(
+    (opt) => opt.network === SOLANA_MAINNET_CAIP2 && opt.scheme === 'exact'
   );
-  
-  if (solanaMainnetOption) {
-    return normalizePaymentOption(solanaMainnetOption as X402PaymentOption & { price?: { asset?: string; amount?: string } });
-  }
-  
-  // Fallback: any Solana network (including devnet)
-  const solanaOption = accepts.find(opt => 
-    opt.network?.startsWith('solana:') && 
-    opt.scheme === 'exact'
-  );
-  
-  if (solanaOption) {
-    return normalizePaymentOption(solanaOption as X402PaymentOption & { price?: { asset?: string; amount?: string } });
-  }
-  
-  // Last fallback: first option
-  return normalizePaymentOption(accepts[0] as X402PaymentOption & { price?: { asset?: string; amount?: string } });
+  if (solanaMainnetOption) return solanaMainnetOption;
+
+  // Any Solana network
+  const solanaOption = normalized.find((opt) => isSolanaNetwork(opt) && opt.scheme === 'exact');
+  if (solanaOption) return solanaOption;
+
+  // Base (eip155)
+  const baseOption = normalized.find((opt) => isBaseNetwork(opt) && opt.scheme === 'exact');
+  if (baseOption) return baseOption;
+
+  return normalized[0] ?? null;
 }
 
 /**
@@ -563,6 +596,65 @@ export function createV1PaymentHeader(
   return btoa(JSON.stringify(paymentPayload));
 }
 
+/** EVM signer for Base payments: address + signTypedData (viem-compatible). */
+export interface EvmSigner {
+  address: string;
+  signTypedData: (args: {
+    domain: { name: string; version: string; chainId: number; verifyingContract: string };
+    types: Record<string, Array<{ name: string; type: string }>>;
+    primaryType: string;
+    message: Record<string, unknown>;
+  }) => Promise<string>;
+}
+
+/**
+ * Build PAYMENT-SIGNATURE header for x402 V2 from EVM payload (no transaction, authorization + signature).
+ */
+function createEvmPaymentHeader(
+  payload: { authorization: Record<string, unknown>; signature: string },
+  paymentOption: X402PaymentOption
+): string {
+  const accepted = normalizeAcceptedForHeader(paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } });
+  const paymentPayload = {
+    x402Version: X402_VERSION,
+    accepted,
+    payload,
+  };
+  return btoa(JSON.stringify(paymentPayload));
+}
+
+/**
+ * Execute Base (EVM) payment via EIP-3009 TransferWithAuthorization and return payment header.
+ * Requires EVM signer (e.g. from viem createWalletClient) and payment option with extra.name/version for EIP-712.
+ */
+export async function executeBasePayment(
+  evmSigner: EvmSigner,
+  paymentOption: X402PaymentOption
+): Promise<PaymentResult> {
+  const { ExactEvmScheme } = await import('@x402/evm/exact/client');
+  const raw = paymentOption as X402PaymentOption & { extra?: { name?: string; version?: string; eip712?: { name?: string; version?: string } } };
+  const name = raw.extra?.eip712?.name ?? raw.extra?.name ?? 'USD Coin';
+  const version = raw.extra?.eip712?.version ?? raw.extra?.version ?? '2';
+  const paymentRequirements = {
+    payTo: raw.payTo,
+    amount: String(raw.amount ?? '0'),
+    maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
+    network: raw.network,
+    asset: (raw.asset ?? raw.price?.asset ?? BASE_USDC_MAINNET).toLowerCase().startsWith('0x')
+      ? raw.asset ?? raw.price?.asset ?? BASE_USDC_MAINNET
+      : BASE_USDC_MAINNET,
+    extra: { name, version },
+  };
+  const scheme = new ExactEvmScheme(evmSigner);
+  const result = await scheme.createPaymentPayload(X402_VERSION, paymentRequirements);
+  const paymentHeader = createEvmPaymentHeader(result.payload, paymentOption);
+  return {
+    success: true,
+    paymentHeader,
+    signature: undefined,
+  };
+}
+
 /**
  * Execute payment and create payment header.
  * For v1 APIs pass rawV1Accept (the original accept from 402 body) so the header is built in v1 format (X-PAYMENT).
@@ -681,11 +773,13 @@ export function extractPaymentDetails(x402Response: X402Response): {
   }
   
   // Format network name from CAIP-2 identifier
-  // API returns: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp (mainnet)
-  // or: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1 (devnet)
   let network = 'Solana';
   if (option.network) {
-    if (option.network === SOLANA_MAINNET_CAIP2 || option.network.includes('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')) {
+    if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') {
+      network = 'Base Mainnet';
+    } else if (option.network.startsWith('eip155:')) {
+      network = 'Base';
+    } else if (option.network === SOLANA_MAINNET_CAIP2 || option.network.includes('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')) {
       network = 'Solana Mainnet';
     } else if (option.network === SOLANA_DEVNET_CAIP2 || option.network.includes('EtWTRABZaYq6iMfeYKouRu166VU2xqa1') || option.network.includes('devnet')) {
       network = 'Solana Devnet';
@@ -704,6 +798,39 @@ export function extractPaymentDetails(x402Response: X402Response): {
     network,
     memo: option.extra?.memo,
   };
-  
+
   return details;
+}
+
+/**
+ * Build payment details for display from a single payment option (e.g. when user selects Solana vs Base).
+ */
+export function extractPaymentDetailsFromOption(option: X402PaymentOption): PaymentDetails {
+  const formattedAmount = formatPaymentAmount(option.amount);
+  let token = 'USDC';
+  const asset = option.asset;
+  if (asset) {
+    if (asset === USDC_MINT_STRING || asset === USDC_DEVNET_STRING || asset.toLowerCase() === BASE_USDC_MAINNET.toLowerCase() || asset === 'USDC') {
+      token = 'USDC';
+    } else if (asset === 'SOL' || asset === 'So11111111111111111111111111111111111111112') {
+      token = 'SOL';
+    } else {
+      token = `${String(asset).slice(0, 4)}...${String(asset).slice(-4)}`;
+    }
+  }
+  let network = 'Solana';
+  if (option.network) {
+    if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') network = 'Base Mainnet';
+    else if (option.network.startsWith('eip155:')) network = 'Base';
+    else if (option.network === SOLANA_MAINNET_CAIP2 || String(option.network).includes('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')) network = 'Solana Mainnet';
+    else if (option.network === SOLANA_DEVNET_CAIP2 || String(option.network).includes('devnet')) network = 'Solana Devnet';
+    else if (option.network.startsWith('solana:')) network = 'Solana';
+  }
+  return {
+    amount: formattedAmount,
+    token,
+    recipient: option.payTo ?? '',
+    network,
+    memo: option.extra?.memo,
+  };
 }

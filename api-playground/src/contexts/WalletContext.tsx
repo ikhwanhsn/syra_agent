@@ -1,12 +1,12 @@
 import { FC, ReactNode, useMemo, useCallback, createContext, useContext, useState, useEffect } from 'react';
-import { 
-  ConnectionProvider, 
+import {
+  ConnectionProvider,
   WalletProvider,
   useWallet,
-  useConnection
+  useConnection,
 } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { 
+import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   CoinbaseWalletAdapter,
@@ -14,6 +14,9 @@ import {
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { WalletModalProviderFixed } from '@/components/WalletModalProviderFixed';
+import type { EvmSigner } from '@/lib/x402Client';
+import { createWalletClient, custom, getAddress } from 'viem';
+import { base } from 'viem/chains';
 
 // USDC token mint on mainnet
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -28,6 +31,8 @@ const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 // For production, use a private RPC provider (Helius, QuickNode, Alchemy)
 const MAINNET_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
 
+const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as const;
+
 export interface WalletContextState {
   connected: boolean;
   connecting: boolean;
@@ -41,6 +46,15 @@ export interface WalletContextState {
   signTransaction: (transaction: any) => Promise<any>;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
   publicKey: PublicKey | null;
+  /** Base (EVM) wallet */
+  baseConnected: boolean;
+  baseConnecting: boolean;
+  baseAddress: string | null;
+  baseShortAddress: string | null;
+  baseUsdcBalance: number | null;
+  connectBase: () => Promise<void>;
+  disconnectBase: () => Promise<void>;
+  getEvmSigner: () => Promise<EvmSigner | null>;
 }
 
 const WalletContext = createContext<WalletContextState | null>(null);
@@ -68,6 +82,51 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
   
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [baseAddress, setBaseAddress] = useState<string | null>(() => {
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('x402_playground_base_address') : null;
+      return stored || null;
+    } catch {
+      return null;
+    }
+  });
+  const [baseUsdcBalance, setBaseUsdcBalance] = useState<number | null>(null);
+  const [baseConnecting, setBaseConnecting] = useState(false);
+
+  // Persist Base address
+  useEffect(() => {
+    try {
+      if (baseAddress) localStorage.setItem('x402_playground_base_address', baseAddress);
+      else localStorage.removeItem('x402_playground_base_address');
+    } catch {}
+  }, [baseAddress]);
+
+  // Fetch Base USDC balance when Base wallet is set
+  useEffect(() => {
+    if (!baseAddress || typeof window === 'undefined' || !window.ethereum) {
+      setBaseUsdcBalance(null);
+      return;
+    }
+    const abi = [{ type: 'function', name: 'balanceOf', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint256' }] }] as const;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { createPublicClient, http, formatUnits } = await import('viem');
+        const { base: baseChain } = await import('viem/chains');
+        const client = createPublicClient({ chain: baseChain, transport: http() });
+        const raw = await client.readContract({
+          address: BASE_USDC as `0x${string}`,
+          abi,
+          functionName: 'balanceOf',
+          args: [getAddress(baseAddress)],
+        });
+        if (!cancelled) setBaseUsdcBalance(Number(formatUnits(raw, 6)));
+      } catch {
+        if (!cancelled) setBaseUsdcBalance(0);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [baseAddress]);
 
   // Fetch balances when wallet connects
   useEffect(() => {
@@ -140,35 +199,121 @@ const WalletContextInner: FC<{ children: ReactNode }> = ({ children }) => {
     setUsdcBalance(null);
   }, [walletDisconnect]);
 
+  const connectBase = useCallback(async () => {
+    const eth = (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+    if (!eth) {
+      console.warn('No Ethereum provider (e.g. MetaMask, Coinbase Wallet). Install one to pay with Base.');
+      return;
+    }
+    setBaseConnecting(true);
+    try {
+      const accounts = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
+      if (accounts?.length) {
+        try {
+          await eth.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x2105' }],
+          });
+        } catch {
+          try {
+            await eth.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105',
+                chainName: 'Base Mainnet',
+                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                rpcUrls: ['https://mainnet.base.org'],
+              }],
+            });
+          } catch {}
+        }
+        setBaseAddress(getAddress(accounts[0]));
+      }
+    } finally {
+      setBaseConnecting(false);
+    }
+  }, []);
+
+  const disconnectBase = useCallback(() => {
+    setBaseAddress(null);
+    setBaseUsdcBalance(null);
+  }, []);
+
+  const getEvmSigner = useCallback((): Promise<EvmSigner | null> => {
+    const eth = (window as unknown as { ethereum?: unknown }).ethereum;
+    if (!baseAddress || !eth) return Promise.resolve(null);
+    return (async () => {
+      const { createWalletClient, custom } = await import('viem');
+      const { base: baseChain } = await import('viem/chains');
+      const walletClient = createWalletClient({
+        chain: baseChain,
+        transport: custom(eth as import('viem').EIP1193Provider),
+      });
+      const account = { address: getAddress(baseAddress), type: 'json-rpc' as const };
+      return {
+        address: baseAddress,
+        signTypedData: async (args: Parameters<EvmSigner['signTypedData']>[0]) => {
+          const sig = await walletClient.signTypedData({
+            account,
+            domain: args.domain,
+            types: args.types,
+            primaryType: args.primaryType,
+            message: args.message,
+          });
+          return sig;
+        },
+      };
+    })();
+  }, [baseAddress]);
+
   const address = publicKey?.toBase58() || null;
   const shortAddress = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : null;
+  const baseShortAddress = baseAddress ? `${baseAddress.slice(0, 6)}...${baseAddress.slice(-4)}` : null;
 
-  const contextValue: WalletContextState = useMemo(() => ({
-    connected,
-    connecting,
-    address,
-    shortAddress,
-    solBalance,
-    usdcBalance,
-    network: 'Solana Mainnet',
-    connect,
-    disconnect,
-    signTransaction: signTransaction as any,
-    signMessage: signMessage as any,
-    publicKey,
-  }), [
-    connected, 
-    connecting, 
-    address, 
-    shortAddress, 
-    solBalance, 
-    usdcBalance, 
-    connect, 
-    disconnect,
-    signTransaction,
-    signMessage,
-    publicKey
-  ]);
+  const contextValue: WalletContextState = useMemo(
+    () => ({
+      connected,
+      connecting,
+      address,
+      shortAddress,
+      solBalance,
+      usdcBalance,
+      network: 'Solana Mainnet',
+      connect,
+      disconnect,
+      signTransaction: signTransaction as any,
+      signMessage: signMessage as any,
+      publicKey,
+      baseConnected: !!baseAddress,
+      baseConnecting: baseConnecting,
+      baseAddress,
+      baseShortAddress,
+      baseUsdcBalance,
+      connectBase,
+      disconnectBase,
+      getEvmSigner,
+    }),
+    [
+      connected,
+      connecting,
+      address,
+      shortAddress,
+      solBalance,
+      usdcBalance,
+      connect,
+      disconnect,
+      signTransaction,
+      signMessage,
+      publicKey,
+      baseAddress,
+      baseConnecting,
+      baseShortAddress,
+      baseUsdcBalance,
+      connectBase,
+      disconnectBase,
+      getEvmSigner,
+    ]
+  );
 
   return (
     <WalletContext.Provider value={contextValue}>

@@ -1,6 +1,6 @@
 /**
  * v2 x402 API: CoinGecko x402 onchain endpoints (search pools, trending pools, token by address).
- * Proxies to pro-api.coingecko.com/api/v3/x402/; pays with Solana/USDC only (not Base).
+ * Proxies to pro-api.coingecko.com/api/v3/x402/; pays with Solana/USDC or Base/USDC.
  */
 import express from "express";
 import { X402_API_PRICE_COINGECKO_USD } from "../../../../config/x402Pricing.js";

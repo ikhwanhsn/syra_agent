@@ -124,19 +124,27 @@ async function buildPaymentRequired(resourceServer, req, options, error) {
   const priceUsd = parseFloat(options.price ?? X402_API_PRICE_USD);
   const microUnits = String(Math.round(priceUsd * 1_000_000));
   const resourceUrl = options.resource ? `${BASE_URL}${options.resource}` : adapter.getUrl();
-  const network = options.network === "base" ? config.baseNetwork : config.solanaNetwork;
-  const payTo = options.network === "base" ? config.basePayTo : config.solanaPayTo;
-  const asset = options.network === "base" ? assets.baseUsdc : assets.solanaUsdcMint;
+  const maxTimeout = options.maxTimeoutSeconds ?? 60;
 
+  // Offer both Solana and Base so clients can pay with either network
   const paymentOptions = [
     {
       scheme: "exact",
-      price: { asset, amount: microUnits },
-      network,
-      payTo,
-      maxTimeoutSeconds: options.maxTimeoutSeconds ?? 60,
+      price: { asset: assets.solanaUsdcMint, amount: microUnits },
+      network: config.solanaNetwork,
+      payTo: config.solanaPayTo,
+      maxTimeoutSeconds: maxTimeout,
     },
   ];
+  if (config.basePayTo && assets.baseUsdc) {
+    paymentOptions.push({
+      scheme: "exact",
+      price: { asset: assets.baseUsdc, amount: microUnits },
+      network: config.baseNetwork,
+      payTo: config.basePayTo,
+      maxTimeoutSeconds: maxTimeout,
+    });
+  }
 
   const ctx = {
     adapter,
@@ -146,9 +154,12 @@ async function buildPaymentRequired(resourceServer, req, options, error) {
   };
 
   let requirements = await resourceServer.buildPaymentRequirementsFromOptions(paymentOptions, ctx);
-  if (network && String(network).startsWith("eip155:")) {
-    requirements = ensureEvmEip712Domain(requirements);
-  }
+  requirements = requirements.map((r) => {
+    if (r && typeof r === "object" && String(r.network || "").startsWith("eip155:")) {
+      return ensureEvmEip712Domain([r])[0];
+    }
+    return r;
+  });
 
   const description = options.description || "x402 V2 endpoint";
   const resourceInfo = { url: resourceUrl, description, mimeType: options.mimeType || "application/json" };
@@ -276,26 +287,28 @@ export function requirePayment(options) {
 
       const priceUsd = parseFloat(options.price ?? X402_API_PRICE_USD);
       const expectedMicroUnits = String(Math.round(priceUsd * 1_000_000));
-      const useBase = options.network === "base";
-      const expectedNetwork = useBase ? config.baseNetwork : config.solanaNetwork;
-      const expectedPayTo = useBase ? config.basePayTo : config.solanaPayTo;
-      const expectedAsset = useBase ? assets.baseUsdc : assets.solanaUsdcMint;
-
       const acc = payload.accepted;
-      const payToOk = useBase
-        ? normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(expectedPayTo)
-        : String(acc.payTo) === String(expectedPayTo);
-      const assetOk = useBase
-        ? normalizeEvmAddress(acc.asset) === normalizeEvmAddress(expectedAsset)
-        : String(acc.asset) === String(expectedAsset);
 
-      if (
-        acc.scheme !== "exact" ||
-        acc.network !== expectedNetwork ||
-        !payToOk ||
-        !assetOk ||
-        String(acc.amount) !== expectedMicroUnits
-      ) {
+      // Accept payment from either Solana or Base (must match one of our offered options)
+      const acceptedOptions = [
+        { network: config.solanaNetwork, payTo: config.solanaPayTo, asset: assets.solanaUsdcMint, isBase: false },
+      ];
+      if (config.basePayTo && assets.baseUsdc) {
+        acceptedOptions.push({ network: config.baseNetwork, payTo: config.basePayTo, asset: assets.baseUsdc, isBase: true });
+      }
+
+      const matchingOption = acceptedOptions.find(
+        (opt) =>
+          acc.scheme === "exact" &&
+          acc.network === opt.network &&
+          (opt.isBase
+            ? normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(opt.payTo) &&
+              normalizeEvmAddress(acc.asset) === normalizeEvmAddress(opt.asset)
+            : String(acc.payTo) === String(opt.payTo) && String(acc.asset) === String(opt.asset)) &&
+          String(acc.amount) === expectedMicroUnits
+      );
+
+      if (!matchingOption) {
         const pr = await buildPaymentRequired(resourceServer, req, options, "Payment requirements mismatch");
         json402(res, pr);
         return;
