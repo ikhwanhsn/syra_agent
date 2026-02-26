@@ -7,16 +7,15 @@ import { LiveDashboard } from "@/components/LiveDashboard";
 import { WhySyra } from "@/components/WhySyra";
 import { TokenSection } from "@/components/TokenSection";
 import { Roadmap } from "@/components/Roadmap";
+import { PartnersAndIntegrations } from "@/components/PartnersAndIntegrations";
 import { Testimonials } from "@/components/Testimonials";
 import { ArticlesSection } from "@/components/ArticlesSection";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
-import { VoteSupportModal } from "@/components/VoteSupportModal";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <VoteSupportModal />
       <Navbar />
       <main>
         <HeroSection />
@@ -27,6 +26,7 @@ const Index = () => {
         <WhySyra />
         <TokenSection />
         <Roadmap />
+        <PartnersAndIntegrations />
         <Testimonials />
         <ArticlesSection />
         <FAQ />

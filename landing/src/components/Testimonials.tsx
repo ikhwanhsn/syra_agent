@@ -33,15 +33,6 @@ const testimonials = [
   },
 ];
 
-const partners = [
-  "Solana",
-  "Jupiter",
-  "Raydium",
-  "Pyth",
-  "Helius",
-  "Phantom",
-];
-
 export const Testimonials = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -115,32 +106,6 @@ export const Testimonials = () => {
             </motion.div>
           ))}
         </div>
-
-        {/* Partners */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-center"
-        >
-          <p className="mb-8 text-sm tracking-wider uppercase text-muted-foreground">
-            Integrated With Leading Solana Protocols
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-8 md:gap-12">
-            {partners.map((partner, index) => (
-              <motion.div
-                key={partner}
-                initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
-                className="text-xl font-semibold transition-colors cursor-default text-muted-foreground/50 hover:text-muted-foreground"
-              >
-                {partner}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
       </div>
     </section>
   );
