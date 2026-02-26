@@ -1322,6 +1322,11 @@ export function useApiPlayground() {
       requestHeaders['PAYMENT-SIGNATURE'] = paymentHeader;
       requestHeaders['X-Payment'] = paymentHeader;
     }
+    // So production API can apply playground-dev pricing when this wallet is connected
+    const payerAddress = walletContext.address ?? walletContext.baseAddress ?? null;
+    if (payerAddress) {
+      requestHeaders['X-Payer-Address'] = payerAddress;
+    }
     // Nansen expects JSON body with Content-Type: application/json
     if (isNansen && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
       requestHeaders['Content-Type'] = 'application/json';

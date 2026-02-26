@@ -6,11 +6,46 @@
  * - Local (NODE_ENV !== 'production'): cheap prices for testing
  * - Production: 10x base price (kill 1 zero from previous 100x)
  *
+ * Playground dev wallet: in production, when the connected wallet is this address
+ * (e.g. from X-Payer-Address header), use local-like pricing for API playground testing.
+ *
  * Display/catalog prices: always production (base * 10) so the UI shows real API cost.
  */
 const isProduction = process.env.NODE_ENV === 'production';
 const mult = isProduction ? 10 : 0.01; // production: 10x (kill 1 zero from previous 100x); local: 1/100 (cheap)
 const PRODUCTION_MULT = 10;
+
+/** Solana address: when this wallet is the payer in production, use local (cheap) price. */
+export const X402_PLAYGROUND_DEV_WALLET = 'FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD';
+
+/** Base (EVM) address: same dev pricing in production when this wallet is the payer. */
+export const X402_PLAYGROUND_DEV_WALLET_BASE = '0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734';
+
+/** All playground dev wallet addresses (Solana + Base). Payer matching any gets local-like price in production. */
+const PLAYGROUND_DEV_WALLETS = [X402_PLAYGROUND_DEV_WALLET, X402_PLAYGROUND_DEV_WALLET_BASE];
+
+const LOCAL_MULT = 0.01;
+
+/**
+ * Effective price for a given payer. In production, when payerAddress matches
+ * a playground dev wallet (Solana or Base), returns price as if local (cheap). Otherwise returns priceUsd unchanged.
+ * @param {number} priceUsd - Price in USD (typically the route's production price).
+ * @param {string|null|undefined} payerAddress - Payer wallet (e.g. from X-Payer-Address header).
+ * @returns {number} Effective price in USD.
+ */
+export function getEffectivePriceUsd(priceUsd, payerAddress) {
+  if (priceUsd == null || Number.isNaN(priceUsd)) return priceUsd;
+  if (!isProduction) return priceUsd; // local already uses cheap price
+  const payer = typeof payerAddress === 'string' ? payerAddress.trim() : '';
+  if (!payer) return priceUsd;
+  const payerLower = payer.toLowerCase();
+  const isDevWallet = PLAYGROUND_DEV_WALLETS.some(
+    (dev) => payer === dev || payerLower === dev.toLowerCase()
+  );
+  if (!isDevWallet) return priceUsd;
+  // Production price = base * 10; we want base * 0.01 (local). So effective = priceUsd * (0.01/10) = priceUsd * 0.001
+  return priceUsd * (LOCAL_MULT / PRODUCTION_MULT);
+}
 
 const price = (base) => base * mult;
 

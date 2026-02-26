@@ -18,7 +18,7 @@ import { Connection } from "@solana/web3.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getX402ResourceServer, ensureX402ResourceServerInitialized } from "./x402ResourceServer.js";
-import { X402_API_PRICE_USD } from "../../config/x402Pricing.js";
+import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../../config/x402Pricing.js";
 import { recordPaidApiCall } from "../../utils/recordPaidApiCall.js";
 import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
 import dotenv from "dotenv";
@@ -118,10 +118,15 @@ function normalizeEvmAddress(a) {
  * Uses resourceServer.buildPaymentRequirementsFromOptions, createPaymentRequiredResponse,
  * declareDiscoveryExtension, enrichExtensions.
  */
+function getPayerAddressFromReq(req) {
+  return (req.header("X-Payer-Address") || req.header("x-payer-address") || "").trim() || null;
+}
+
 async function buildPaymentRequired(resourceServer, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { config, assets } = getX402ResourceServer();
-  const priceUsd = parseFloat(options.price ?? X402_API_PRICE_USD);
+  const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
+  const priceUsd = getEffectivePriceUsd(rawPrice, getPayerAddressFromReq(req));
   const microUnits = String(Math.round(priceUsd * 1_000_000));
   const resourceUrl = options.resource ? `${BASE_URL}${options.resource}` : adapter.getUrl();
   const maxTimeout = options.maxTimeoutSeconds ?? 60;
@@ -285,7 +290,8 @@ export function requirePayment(options) {
         return;
       }
 
-      const priceUsd = parseFloat(options.price ?? X402_API_PRICE_USD);
+      const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
+      const priceUsd = getEffectivePriceUsd(rawPrice, getPayerAddressFromReq(req));
       const expectedMicroUnits = String(Math.round(priceUsd * 1_000_000));
       const acc = payload.accepted;
 
