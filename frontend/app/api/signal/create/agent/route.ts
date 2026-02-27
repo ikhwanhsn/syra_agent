@@ -16,21 +16,20 @@ const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 // Devnet USDC
 const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
-// Server's wallet (receives payments) - must be set via env
-const SERVER_WALLET = (() => {
-  const addr = process.env.ADDRESS_PAYAI;
-  if (!addr) throw new Error("ADDRESS_PAYAI env is required");
-  return new PublicKey(addr);
-})();
-
 // Price per signal
 const PRICE_PER_SIGNAL = 100; // 0.0001 USDC
 
-// Agent authentication - no default; must be set via env
-const AGENT_SECRET_KEY = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
+function getServerWallet(): PublicKey {
+  const addr = process.env.ADDRESS_PAYAI;
+  if (!addr) throw new Error("ADDRESS_PAYAI env is required");
+  return new PublicKey(addr);
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const SERVER_WALLET = getServerWallet();
+    const AGENT_SECRET_KEY = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
+
     // 1. Authenticate the agent request
     const authHeader = req.headers.get("Authorization");
     if (!AGENT_SECRET_KEY || !authHeader || authHeader !== `Bearer ${AGENT_SECRET_KEY}`) {

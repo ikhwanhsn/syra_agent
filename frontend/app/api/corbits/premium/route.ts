@@ -3,32 +3,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { express as faremeter } from "@faremeter/middleware";
 import { solana } from "@faremeter/info";
 
-// Create middleware instance once at module level
 const facilitatorURL = "https://facilitator.corbits.dev.solana-devnet";
-const payToAddress = process.env.CORBITS_PAYTO_ADDRESS || process.env.ADDRESS_PAYAI;
-if (!payToAddress) {
-  throw new Error("CORBITS_PAYTO_ADDRESS or ADDRESS_PAYAI env is required for /api/corbits/premium");
-}
 
-const paywalledMiddlewarePromise = faremeter.createMiddleware({
-  facilitatorURL,
-  accepts: [
-    {
-      ...solana.x402Exact({
-        network: "devnet",
-        asset: "USDC",
-        amount: 1000, // $0.01
-        payTo: payToAddress,
-      }),
-      resource: "/api/corbits/premium",
-      description: "Premium API access",
-    },
-  ],
-});
+function getPaywalledMiddleware() {
+  const payToAddress = process.env.CORBITS_PAYTO_ADDRESS || process.env.ADDRESS_PAYAI;
+  if (!payToAddress) {
+    throw new Error("CORBITS_PAYTO_ADDRESS or ADDRESS_PAYAI env is required for /api/corbits/premium");
+  }
+  return faremeter.createMiddleware({
+    facilitatorURL,
+    accepts: [
+      {
+        ...solana.x402Exact({
+          network: "devnet",
+          asset: "USDC",
+          amount: 1000, // $0.01
+          payTo: payToAddress,
+        }),
+        resource: "/api/corbits/premium",
+        description: "Premium API access",
+      },
+    ],
+  });
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const middleware = await paywalledMiddlewarePromise;
+    const middleware = await getPaywalledMiddleware();
 
     // Create mock Express-like objects for the middleware
     const resData: any = {};

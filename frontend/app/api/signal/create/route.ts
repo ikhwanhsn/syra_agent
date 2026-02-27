@@ -20,12 +20,12 @@ const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 // Devnet USDC
 const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
-// Server's wallet (receives payments) - set via ADDRESS_PAYAI env
-const SERVER_WALLET = (() => {
+// Server's wallet (receives payments) - set via ADDRESS_PAYAI env (resolved at request time for build)
+function getServerWallet(): PublicKey {
   const addr = process.env.ADDRESS_PAYAI;
   if (!addr) throw new Error("ADDRESS_PAYAI env is required");
   return new PublicKey(addr);
-})();
+}
 
 // Price per signal creation
 const PRICE_PER_SIGNAL = 100; // 0.0001 USDC (100 = 0.0001 USDC with 6 decimals)
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function createUsingSyraAI(req: NextRequest, body?: any) {
+  const SERVER_WALLET = getServerWallet();
   const xPaymentHeader = req.headers.get("X-Payment");
 
   // Get server's USDC token account
