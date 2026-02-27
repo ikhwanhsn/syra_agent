@@ -1,8 +1,26 @@
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+
 export async function createSignalRouter() {
   const router = express.Router();
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      try {
+        const token = req.query.token || "bitcoin";
+        const signal = await fetch(
+          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
+        ).then((r) => r.json());
+        if (signal) res.json({ signal });
+        else res.status(500).json({ error: "Failed to fetch signal" });
+      } catch (error) {
+        res.status(500).json({ error: "Server error" });
+      }
+    });
+  }
 
   // GET Route Example
   router.get(
@@ -12,8 +30,8 @@ export async function createSignalRouter() {
         price: X402_API_PRICE_USD,
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "GET",
-        discoverable: true, // Make it discoverable on x402scan
-        resource: "/signal",
+        discoverable: true,
+        resource: "/v2/signal",
         inputSchema: {
           queryParams: {
             token: {
@@ -32,14 +50,14 @@ export async function createSignalRouter() {
       })(req, res, next),
     async (req, res) => {
       try {
-        const token = req.query.token || "solana";
+        const token = req.query.token || "bitcoin";
 
         const signal = await fetch(
           `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
         ).then((res) => res.json());
 
         if (signal) {
-          await settlePaymentAndRecord(req);
+          await settlePaymentAndSetResponse(res, req);
           res.json({ signal });
         } else {
           res.status(500).json({ error: "Failed to fetch signal" });
@@ -58,8 +76,8 @@ export async function createSignalRouter() {
         price: X402_API_PRICE_USD,
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "POST",
-        discoverable: true, // Make it discoverable on x402scan
-        resource: "/signal",
+        discoverable: true,
+        resource: "/v2/signal",
         inputSchema: {
           bodyType: "json",
           bodyFields: {
@@ -79,18 +97,15 @@ export async function createSignalRouter() {
       })(req, res, next),
     async (req, res) => {
       try {
-        const { token } = req.body;
-
+        const token = req.body?.token || "bitcoin";
         const signal = await fetch(
-          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token || "bitcoin"}`
-        ).then((res) => res.json());
-
-        if (signal) {
-          await settlePaymentAndRecord(req);
-          res.json({ signal });
-        } else {
-          res.status(500).json({ error: "Failed to fetch signal" });
+          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
+        ).then((r) => r.json());
+        if (!signal) {
+          return res.status(500).json({ error: "Failed to fetch signal" });
         }
+        await settlePaymentAndSetResponse(res, req);
+        res.json({ signal });
       } catch (error) {
         res.status(500).json({ error: "Server error" });
       }

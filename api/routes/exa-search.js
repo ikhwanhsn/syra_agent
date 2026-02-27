@@ -5,7 +5,7 @@
 import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import Exa from "exa-js";
-import { X402_API_PRICE_EXA_SEARCH_USD } from "../../config/x402Pricing.js";
+import { X402_API_PRICE_EXA_SEARCH_USD } from "../config/x402Pricing.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 

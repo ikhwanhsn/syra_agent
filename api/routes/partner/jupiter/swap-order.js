@@ -9,7 +9,7 @@
  */
 import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
-import { X402_API_PRICE_JUPITER_SWAP_USD } from "../../../../config/x402Pricing.js";
+import { X402_API_PRICE_JUPITER_SWAP_USD } from "../../../config/x402Pricing.js";
 import { payer } from "@faremeter/rides";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();

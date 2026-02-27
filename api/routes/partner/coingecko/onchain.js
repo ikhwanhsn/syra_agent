@@ -3,7 +3,7 @@
  * Proxies to pro-api.coingecko.com/api/v3/x402/; pays with Solana/USDC or Base/USDC.
  */
 import express from "express";
-import { X402_API_PRICE_COINGECKO_USD } from "../../../../config/x402Pricing.js";
+import { X402_API_PRICE_COINGECKO_USD } from "../../../config/x402Pricing.js";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { ensurePayer, coinGeckoFetchManual402 } from "./coinGeckoPayer.js";
 

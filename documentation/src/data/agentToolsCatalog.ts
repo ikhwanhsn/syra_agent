@@ -23,6 +23,8 @@ const PRICE = {
   dexscreener: 0.01,
   pump: 0.01,
   tokenRiskAlerts: 0.02,
+  analyticsSummary: 0.01,
+  jupiterSwap: 0.02,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -137,6 +139,14 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Sundown digest and daily summary.",
     priceUsd: PRICE.default,
     examplePrompt: "Sundown digest / Daily digest",
+    category: "core",
+  },
+  {
+    id: "analytics-summary",
+    name: "Analytics summary",
+    description: "Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation, and 9 memecoin screens.",
+    priceUsd: PRICE.analyticsSummary,
+    examplePrompt: "Full analytics summary / Analytics dashboard",
     category: "core",
   },
   // Partner: Nansen (aggregate routes + per-endpoint; agent calls real Nansen API at api.nansen.ai)
@@ -267,6 +277,14 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Trending tokens on Jupiter.",
     priceUsd: PRICE.default,
     examplePrompt: "Trending on Jupiter / Jupiter trending tokens",
+    category: "partner",
+  },
+  {
+    id: "jupiter-swap-order",
+    name: "Jupiter swap order",
+    description: "Get a Jupiter Ultra swap order (buy/sell token on Solana). Requires inputMint, outputMint, amount, and taker wallet.",
+    priceUsd: PRICE.jupiterSwap,
+    examplePrompt: "Jupiter swap order / Get swap quote SOL to USDC",
     category: "partner",
   },
   {

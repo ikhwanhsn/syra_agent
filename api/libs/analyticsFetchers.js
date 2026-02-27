@@ -2,15 +2,15 @@
  * Data fetchers for V2 analytics summary. Each returns the same shape as the
  * corresponding paid endpoint (no params or default params only).
  */
-import { dexscreenerRequests } from "../../request/dexscreener.request.js";
-import { rugcheckRequests } from "../../request/rugcheck.request.js";
-import { smartMoneyRequests } from "../../request/nansen/smart-money.request.js";
+import { dexscreenerRequests } from "../request/dexscreener.request.js";
+import { rugcheckRequests } from "../request/rugcheck.request.js";
+import { smartMoneyRequests } from "../request/nansen/smart-money.request.js";
 import {
   computeCorrelationFromOHLC,
   BINANCE_CORRELATION_TICKER,
 } from "../routes/partner/binance/correlation.js";
 import { fetchBinanceOhlcBatch } from "./binanceOhlcBatch.js";
-import { xLiveSearchService } from "../../libs/atxp/xLiveSearchService.js";
+import { xLiveSearchService } from "./atxp/xLiveSearchService.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import {
   fastestHolderGrowthMemecoins,
@@ -22,7 +22,7 @@ import {
   memecoinsTrendingOnXNotDEX,
   aiMemecoinsOrganicTraction,
   memecoinsSurvivingMarketDumps,
-} from "../../prompts/memecoin.js";
+} from "../prompts/memecoin.js";
 
 const JUPITER_TRENDING_URL =
   "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";

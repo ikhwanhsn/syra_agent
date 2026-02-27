@@ -4,7 +4,7 @@
  */
 import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
-import { X402_API_PRICE_NANSEN_USD, X402_API_PRICE_NANSEN_PREMIUM_USD } from "../../../../config/x402Pricing.js";
+import { X402_API_PRICE_NANSEN_USD, X402_API_PRICE_NANSEN_PREMIUM_USD } from "../../../config/x402Pricing.js";
 import { payer } from "@faremeter/rides";
 import {
   profilerAddressCurrentBalance,
@@ -35,7 +35,7 @@ import {
   smartMoneyDcas,
   tgmPerpPositions,
   tgmPerpTrades,
-} from "../../../../request/nansen/nansenX402.js";
+} from "../../../request/nansen/nansenX402.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 

@@ -66,7 +66,7 @@ export interface ExampleFlowPreset {
   params: RequestParam[];
 }
 
-/** All v2 endpoint example flows (resolved at runtime so dev uses localhost:3000). First N are shown on Request Builder; rest on /examples. */
+/** All API endpoint example flows (unversioned paths; resolved at runtime so dev uses localhost:3000). First N are shown on Request Builder; rest on /examples. */
 export function getExampleFlows(): ExampleFlowPreset[] {
   const base = getApiBaseUrl();
   return [
@@ -75,21 +75,21 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'correlation-matrix',
     label: 'Correlation matrix',
     method: 'GET',
-    url: `${base}/v2/binance/correlation-matrix`,
+    url: `${base}/binance/correlation-matrix`,
     params: [],
   },
   {
     id: 'token-risk',
     label: 'Token risk',
     method: 'GET',
-    url: `${base}/v2/token-statistic`,
+    url: `${base}/token-statistic`,
     params: [],
   },
   {
     id: 'token-risk-alerts',
     label: 'Token risk alerts',
     method: 'GET',
-    url: `${base}/v2/token-risk/alerts`,
+    url: `${base}/token-risk/alerts`,
     params: [
       { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
       { key: 'source', value: 'new_tokens,recent,trending,verified', enabled: false, description: 'new_tokens, recent, trending, verified' },
@@ -100,21 +100,21 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'news',
     label: 'Get news',
     method: 'GET',
-    url: `${base}/v2/news`,
+    url: `${base}/news`,
     params: [{ key: 'ticker', value: 'general', enabled: true }],
   },
   {
     id: 'check-status',
     label: 'Check status',
     method: 'GET',
-    url: `${base}/v2/check-status`,
+    url: `${base}/check-status`,
     params: [],
   },
   {
     id: 'analytics-summary',
     label: 'Analytics summary',
     method: 'GET',
-    url: `${base}/v2/analytics/summary`,
+    url: `${base}/analytics/summary`,
     params: [],
   },
   // Core
@@ -122,84 +122,84 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'signal',
     label: 'Signal',
     method: 'GET',
-    url: `${base}/v2/signal`,
+    url: `${base}/signal`,
     params: [],
   },
   {
     id: 'sentiment',
     label: 'Sentiment',
     method: 'GET',
-    url: `${base}/v2/sentiment`,
+    url: `${base}/sentiment`,
     params: [{ key: 'ticker', value: 'general', enabled: true }],
   },
   {
     id: 'event',
     label: 'Event',
     method: 'GET',
-    url: `${base}/v2/event`,
+    url: `${base}/event`,
     params: [],
   },
   {
     id: 'browse',
     label: 'Browse',
     method: 'GET',
-    url: `${base}/v2/browse`,
+    url: `${base}/browse`,
     params: [],
   },
   {
     id: 'x-search',
     label: 'X search',
     method: 'GET',
-    url: `${base}/v2/x-search`,
+    url: `${base}/x-search`,
     params: [],
   },
   {
     id: 'research',
     label: 'Research',
     method: 'GET',
-    url: `${base}/v2/research`,
+    url: `${base}/research`,
     params: [],
   },
   {
     id: 'exa-search',
     label: 'EXA search',
     method: 'GET',
-    url: `${base}/v2/exa-search`,
+    url: `${base}/exa-search`,
     params: [],
   },
   {
     id: 'gems',
     label: 'Gems',
     method: 'GET',
-    url: `${base}/v2/gems`,
+    url: `${base}/gems`,
     params: [],
   },
   {
     id: 'x-kol',
     label: 'X KOL',
     method: 'GET',
-    url: `${base}/v2/x-kol`,
+    url: `${base}/x-kol`,
     params: [],
   },
   {
     id: 'crypto-kol',
     label: 'Crypto KOL',
     method: 'GET',
-    url: `${base}/v2/crypto-kol`,
+    url: `${base}/crypto-kol`,
     params: [],
   },
   {
     id: 'trending-headline',
     label: 'Trending headline',
     method: 'GET',
-    url: `${base}/v2/trending-headline`,
+    url: `${base}/trending-headline`,
     params: [],
   },
   {
     id: 'sundown-digest',
     label: 'Sundown digest',
     method: 'GET',
-    url: `${base}/v2/sundown-digest`,
+    url: `${base}/sundown-digest`,
     params: [],
   },
   // Partner
@@ -207,57 +207,69 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'smart-money',
     label: 'Smart money',
     method: 'GET',
-    url: `${base}/v2/smart-money`,
+    url: `${base}/smart-money`,
     params: [],
   },
   {
     id: 'token-god-mode',
     label: 'Token god mode',
     method: 'GET',
-    url: `${base}/v2/token-god-mode`,
+    url: `${base}/token-god-mode`,
     params: [],
   },
   {
     id: 'dexscreener',
     label: 'DexScreener',
     method: 'GET',
-    url: `${base}/v2/dexscreener`,
+    url: `${base}/dexscreener`,
     params: [],
   },
   {
     id: 'trending-jupiter',
     label: 'Trending Jupiter',
     method: 'GET',
-    url: `${base}/v2/trending-jupiter`,
+    url: `${base}/trending-jupiter`,
     params: [],
   },
   {
     id: 'token-report',
     label: 'Token report',
     method: 'GET',
-    url: `${base}/v2/token-report`,
+    url: `${base}/token-report`,
     params: [],
   },
   {
     id: 'bubblemaps-maps',
     label: 'Bubblemaps maps',
     method: 'GET',
-    url: `${base}/v2/bubblemaps/maps`,
+    url: `${base}/bubblemaps/maps`,
     params: [],
   },
   {
     id: 'binance-correlation',
     label: 'Binance correlation',
     method: 'GET',
-    url: `${base}/v2/binance/correlation`,
+    url: `${base}/binance/correlation`,
     params: [],
   },
   {
     id: 'pump',
     label: 'Pump',
     method: 'GET',
-    url: `${base}/v2/pump`,
+    url: `${base}/pump`,
     params: [],
+  },
+  {
+    id: 'jupiter-swap-order',
+    label: 'Jupiter swap order',
+    method: 'GET',
+    url: `${base}/jupiter/swap/order`,
+    params: [
+      { key: 'inputMint', value: '', enabled: true, description: 'Input token mint (e.g. SOL wrapped)' },
+      { key: 'outputMint', value: '', enabled: true, description: 'Output token mint (e.g. USDC)' },
+      { key: 'amount', value: '', enabled: true, description: 'Amount in smallest units (e.g. lamports for SOL)' },
+      { key: 'taker', value: '', enabled: true, description: 'Wallet public key executing the swap' },
+    ],
   },
   // Nansen (call api.nansen.ai directly; x402 payment with wallet)
   ...(function nansenFlows(): ExampleFlowPreset[] {
@@ -352,7 +364,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'coingecko-simple-price',
     label: 'CoinGecko simple price',
     method: 'GET',
-    url: `${base}/v2/coingecko/simple-price`,
+    url: `${base}/coingecko/simple-price`,
     params: [
       { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols' },
       { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
@@ -364,7 +376,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'coingecko-onchain-token-price',
     label: 'CoinGecko onchain token price',
     method: 'GET',
-    url: `${base}/v2/coingecko/onchain/token-price`,
+    url: `${base}/coingecko/onchain/token-price`,
     params: [
       { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
       { key: 'address', value: '', enabled: true, description: 'Token contract address (comma for multiple)' },
@@ -374,7 +386,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'coingecko-search-pools',
     label: 'CoinGecko search pools',
     method: 'GET',
-    url: `${base}/v2/coingecko/onchain/search-pools`,
+    url: `${base}/coingecko/onchain/search-pools`,
     params: [
       { key: 'query', value: 'pump', enabled: true, description: 'Search query (name, symbol, or address)' },
       { key: 'network', value: 'solana', enabled: true, description: 'e.g. solana, base' },
@@ -384,7 +396,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'coingecko-trending-pools',
     label: 'CoinGecko trending pools',
     method: 'GET',
-    url: `${base}/v2/coingecko/onchain/trending-pools`,
+    url: `${base}/coingecko/onchain/trending-pools`,
     params: [
       { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana' },
       { key: 'duration', value: '5m', enabled: false, description: 'e.g. 5m' },
@@ -394,7 +406,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'coingecko-onchain-token',
     label: 'CoinGecko onchain token',
     method: 'GET',
-    url: `${base}/v2/coingecko/onchain/token`,
+    url: `${base}/coingecko/onchain/token`,
     params: [
       { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
       { key: 'address', value: '', enabled: true, description: 'Token contract address' },
@@ -405,63 +417,63 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     id: 'memecoin-fastest-holder-growth',
     label: 'Memecoin fastest holder growth',
     method: 'GET',
-    url: `${base}/v2/memecoin/fastest-holder-growth`,
+    url: `${base}/memecoin/fastest-holder-growth`,
     params: [],
   },
   {
     id: 'memecoin-most-mentioned-by-smart-money-x',
     label: 'Memecoin most mentioned (smart money X)',
     method: 'GET',
-    url: `${base}/v2/memecoin/most-mentioned-by-smart-money-x`,
+    url: `${base}/memecoin/most-mentioned-by-smart-money-x`,
     params: [],
   },
   {
     id: 'memecoin-accumulating-before-cex-rumors',
     label: 'Memecoin accumulating before CEX rumors',
     method: 'GET',
-    url: `${base}/v2/memecoin/accumulating-before-CEX-rumors`,
+    url: `${base}/memecoin/accumulating-before-CEX-rumors`,
     params: [],
   },
   {
     id: 'memecoin-strong-narrative-low-market-cap',
     label: 'Memecoin strong narrative low cap',
     method: 'GET',
-    url: `${base}/v2/memecoin/strong-narrative-low-market-cap`,
+    url: `${base}/memecoin/strong-narrative-low-market-cap`,
     params: [],
   },
   {
     id: 'memecoin-by-experienced-devs',
     label: 'Memecoin by experienced devs',
     method: 'GET',
-    url: `${base}/v2/memecoin/by-experienced-devs`,
+    url: `${base}/memecoin/by-experienced-devs`,
     params: [],
   },
   {
     id: 'memecoin-unusual-whale-behavior',
     label: 'Memecoin unusual whale behavior',
     method: 'GET',
-    url: `${base}/v2/memecoin/unusual-whale-behavior`,
+    url: `${base}/memecoin/unusual-whale-behavior`,
     params: [],
   },
   {
     id: 'memecoin-trending-on-x-not-dex',
     label: 'Memecoin trending on X not DEX',
     method: 'GET',
-    url: `${base}/v2/memecoin/trending-on-x-not-dex`,
+    url: `${base}/memecoin/trending-on-x-not-dex`,
     params: [],
   },
   {
     id: 'memecoin-organic-traction',
     label: 'Memecoin organic traction',
     method: 'GET',
-    url: `${base}/v2/memecoin/organic-traction`,
+    url: `${base}/memecoin/organic-traction`,
     params: [],
   },
   {
     id: 'memecoin-surviving-market-dumps',
     label: 'Memecoin surviving market dumps',
     method: 'GET',
-    url: `${base}/v2/memecoin/surviving-market-dumps`,
+    url: `${base}/memecoin/surviving-market-dumps`,
     params: [],
   },
 ];
@@ -502,40 +514,56 @@ function getPlaygroundProxyUrl(targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
-// V2 API endpoints list (resolved at runtime for dev localhost). Nansen: direct api.nansen.ai.
-function getV2ApiEndpoints(): string[] {
+// API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: direct api.nansen.ai.
+function getApiEndpoints(): string[] {
   const base = getApiBaseUrl();
   const nansenBase = getNansenBaseUrl();
   return [
-    `${base}/v2/news`,
-    `${base}/v2/signal`,
-    `${base}/v2/sentiment`,
-    `${base}/v2/event`,
-    `${base}/v2/trending-headline`,
-    `${base}/v2/sundown-digest`,
-    `${base}/v2/check-status`,
-    `${base}/v2/browse`,
-    `${base}/v2/research`,
-    `${base}/v2/exa-search`,
-    `${base}/v2/gems`,
-    `${base}/v2/smart-money`,
-    `${base}/v2/dexscreener`,
-    `${base}/v2/token-god-mode`,
+    `${base}/news`,
+    `${base}/signal`,
+    `${base}/sentiment`,
+    `${base}/event`,
+    `${base}/trending-headline`,
+    `${base}/sundown-digest`,
+    `${base}/check-status`,
+    `${base}/browse`,
+    `${base}/x-search`,
+    `${base}/research`,
+    `${base}/exa-search`,
+    `${base}/gems`,
+    `${base}/x-kol`,
+    `${base}/crypto-kol`,
+    `${base}/analytics/summary`,
+    `${base}/smart-money`,
+    `${base}/dexscreener`,
+    `${base}/token-god-mode`,
+    `${base}/trending-jupiter`,
+    `${base}/jupiter/swap/order`,
+    `${base}/token-report`,
+    `${base}/token-statistic`,
+    `${base}/token-risk/alerts`,
+    `${base}/bubblemaps/maps`,
+    `${base}/binance/correlation`,
+    `${base}/binance/correlation-matrix`,
+    `${base}/pump`,
+    `${base}/coingecko/simple-price`,
+    `${base}/coingecko/onchain/token-price`,
+    `${base}/coingecko/onchain/search-pools`,
+    `${base}/coingecko/onchain/trending-pools`,
+    `${base}/coingecko/onchain/token`,
+    `${base}/memecoin/fastest-holder-growth`,
+    `${base}/memecoin/most-mentioned-by-smart-money-x`,
+    `${base}/memecoin/accumulating-before-CEX-rumors`,
+    `${base}/memecoin/strong-narrative-low-market-cap`,
+    `${base}/memecoin/by-experienced-devs`,
+    `${base}/memecoin/unusual-whale-behavior`,
+    `${base}/memecoin/trending-on-x-not-dex`,
+    `${base}/memecoin/organic-traction`,
+    `${base}/memecoin/surviving-market-dumps`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
     `${nansenBase}/api/v1/tgm/holders`,
-    `${base}/v2/trending-jupiter`,
-    `${base}/v2/token-report`,
-    `${base}/v2/token-statistic`,
-    `${base}/v2/token-risk/alerts`,
-    `${base}/v2/bubblemaps/maps`,
-    `${base}/v2/binance/correlation`,
-    `${base}/v2/coingecko/simple-price`,
-    `${base}/v2/coingecko/onchain/token-price`,
-    `${base}/v2/coingecko/onchain/search-pools`,
-    `${base}/v2/coingecko/onchain/trending-pools`,
-    `${base}/v2/coingecko/onchain/token`,
   ];
 }
 
@@ -547,33 +575,33 @@ export function getDefaultMethodForUrl(_url: string): HttpMethod {
   return 'GET';
 }
 
-/** Known Syra v2 GET query param names and API descriptions by path (for placeholder text) */
+/** Known Syra API GET query param names and API descriptions by path (for placeholder text) */
 function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
   try {
     const path = new URL(baseUrl).pathname.toLowerCase();
     const known: Record<string, RequestParam[]> = {
-      '/v2/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-      '/v2/event': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-      '/v2/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-      '/v2/trending-headline': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-      '/v2/sundown-digest': [],
-      '/v2/check-status': [],
-      '/v2/gems': [],
-      '/v2/token-statistic': [],
-      '/v2/token-risk/alerts': [
+      '/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/event': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/trending-headline': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/sundown-digest': [],
+      '/check-status': [],
+      '/gems': [],
+      '/token-statistic': [],
+      '/token-risk/alerts': [
         { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
         { key: 'source', value: 'new_tokens,recent,trending,verified', enabled: false, description: 'Comma-separated sources' },
         { key: 'limit', value: '20', enabled: false, description: 'Max tokens to check (1-50)' },
       ],
-      '/v2/analytics/summary': [],
-      '/v2/signal': [{ key: 'token', value: '', enabled: false, description: 'e.g. solana, bitcoin' }],
-      '/v2/research': [{ key: 'query', value: '', enabled: true, description: 'e.g. token analysis, market trends' }],
-      '/v2/browse': [{ key: 'query', value: '', enabled: true, description: 'Search query or URL' }],
-      '/v2/x/search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
-      '/v2/x-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
-      '/v2/exa-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
-      '/v2/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
-      '/v2/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
+      '/analytics/summary': [],
+      '/signal': [{ key: 'token', value: '', enabled: false, description: 'e.g. solana, bitcoin' }],
+      '/research': [{ key: 'query', value: '', enabled: true, description: 'e.g. token analysis, market trends' }],
+      '/browse': [{ key: 'query', value: '', enabled: true, description: 'Search query or URL' }],
+      '/x/search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
+      '/x-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
+      '/exa-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
+      '/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
+      '/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
       '/api/v1/profiler/address/current-balance': [
         { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
         { key: 'address', value: '', enabled: true, description: 'Wallet address' },
@@ -607,11 +635,17 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
       ],
       '/api/v1/perp-screener': [],
-      '/v2/kol': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
-      '/v2/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
-      '/v2/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'e.g. BTCUSDT, ETHUSDT' }],
-      '/v2/binance/correlation-matrix': [],
-      '/v2/coingecko/simple-price': [
+      '/x-kol': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
+      '/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
+      '/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'e.g. BTCUSDT, ETHUSDT' }],
+      '/binance/correlation-matrix': [],
+      '/jupiter/swap/order': [
+        { key: 'inputMint', value: '', enabled: true, description: 'Input token mint (e.g. SOL wrapped)' },
+        { key: 'outputMint', value: '', enabled: true, description: 'Output token mint (e.g. USDC)' },
+        { key: 'amount', value: '', enabled: true, description: 'Amount in smallest units (lamports for SOL)' },
+        { key: 'taker', value: '', enabled: true, description: 'Wallet public key executing the swap' },
+      ],
+      '/coingecko/simple-price': [
         { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols (or use ids)' },
         { key: 'ids', value: '', enabled: false, description: 'Comma-separated CoinGecko ids (e.g. bitcoin,ethereum)' },
         { key: 'vs_currencies', value: 'usd', enabled: false, description: 'e.g. usd' },
@@ -619,23 +653,23 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'include_24hr_vol', value: 'true', enabled: false, description: 'true/false' },
         { key: 'include_24hr_change', value: 'true', enabled: false, description: 'true/false' },
       ],
-      '/v2/coingecko/onchain/token-price': [
+      '/coingecko/onchain/token-price': [
         { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
         { key: 'address', value: '', enabled: true, description: 'Token contract address (comma for multiple)' },
         { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
       ],
-      '/v2/coingecko/onchain/search-pools': [
+      '/coingecko/onchain/search-pools': [
         { key: 'query', value: '', enabled: true, description: 'Search query (name, symbol, or contract address)' },
         { key: 'network', value: 'solana', enabled: true, description: 'e.g. solana, base' },
         { key: 'page', value: '1', enabled: false, description: 'Page number' },
         { key: 'include', value: 'base_token,quote_token,dex', enabled: false, description: 'Comma-separated' },
       ],
-      '/v2/coingecko/onchain/trending-pools': [
+      '/coingecko/onchain/trending-pools': [
         { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana' },
         { key: 'duration', value: '5m', enabled: false, description: 'e.g. 5m' },
         { key: 'page', value: '1', enabled: false, description: 'Page number' },
       ],
-      '/v2/coingecko/onchain/token': [
+      '/coingecko/onchain/token': [
         { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
         { key: 'address', value: '', enabled: true, description: 'Token contract address' },
         { key: 'include', value: 'top_pools', enabled: false, description: 'e.g. top_pools' },
@@ -1266,7 +1300,7 @@ export function useApiPlayground() {
         return '';
       }
     })();
-    if (effectiveMethod === 'GET' && (pathname === '/v2/exa-search' || pathname === '/v2/browse' || pathname === '/v2/x-search')) {
+    if (effectiveMethod === 'GET' && (pathname === '/exa-search' || pathname === '/browse' || pathname === '/x-search')) {
       const queryVal = enabledParams.find(p => p.key === 'query')?.value?.trim() ?? '';
       if (!queryVal) {
         toast({
@@ -1305,7 +1339,7 @@ export function useApiPlayground() {
           }
         });
         bodyToSend = JSON.stringify(bodyObj);
-      } else if (emptyBody && (pathname === '/v2/exa-search' || pathname === '/v2/browse' || pathname === '/v2/x-search')) {
+      } else if (emptyBody && (pathname === '/exa-search' || pathname === '/browse' || pathname === '/x-search')) {
         const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
         bodyToSend = JSON.stringify({ query: queryVal });
       }
@@ -1705,7 +1739,7 @@ export function useApiPlayground() {
         return '';
       }
     })();
-    const queryRequiredPaths = ['/v2/exa-search', '/v2/browse', '/v2/x-search'];
+    const queryRequiredPaths = ['/exa-search', '/browse', '/x-search'];
     const queryValue = (effectiveParams.find((p) => p.key === 'query')?.value ?? '').trim();
     const shouldSend = !queryRequiredPaths.includes(pathname) || !!queryValue;
 
@@ -1731,10 +1765,10 @@ export function useApiPlayground() {
     }
   }, [sendRequest, status]);
 
-  // Try demo - randomly pick a v2 API and always create new history
+  // Try demo - randomly pick an API endpoint and always create new history
   const tryDemo = useCallback(() => {
-    // Randomly select a v2 API endpoint
-    const endpoints = getV2ApiEndpoints();
+    // Randomly select an API endpoint
+    const endpoints = getApiEndpoints();
     const randomIndex = Math.floor(Math.random() * endpoints.length);
     const randomEndpoint = endpoints[randomIndex];
     

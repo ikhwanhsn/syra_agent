@@ -1,6 +1,7 @@
 /**
  * API documentation content for each x402 endpoint.
- * Base URL: https://api.syraa.fun/v2
+ * Base URL: https://api.syraa.fun. All x402 endpoints use the /v2 prefix (e.g. /v2/news, /v2/analytics/summary).
+ * The API is implemented under api/routes/ and api/libs/ (refactored from the previous v2 folder structure).
  */
 
 export interface ApiParam {
@@ -467,6 +468,44 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     ],
   }),
 
+  "analytics-summary": doc({
+    title: "Analytics Summary API",
+    overview:
+      "Full analytics summary aggregating dexscreener, token-statistic, trending-jupiter, smart-money, Binance correlation, and 9 memecoin screens in a single paid request. Uses the x402 payment protocol.",
+    price: "See x402 response for current price (typically higher than single-endpoint calls).",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/v2/analytics/summary",
+        description: "Fetch full analytics summary (DEX data, token stats, Jupiter trending, smart money, Binance correlation, memecoin screens).",
+        requestExample: `curl ${BASE_URL}/analytics/summary`,
+        responseExample: `{
+  "dexscreener": {},
+  "tokenStatistic": {},
+  "trendingJupiter": {},
+  "smartMoney": {},
+  "binanceCorrelation": {},
+  "memecoinScreens": {}
+}`,
+      },
+      {
+        method: "POST",
+        path: "/v2/analytics/summary",
+        description: "Fetch analytics summary via POST.",
+        requestExample: `curl -X POST ${BASE_URL}/analytics/summary \\
+  -H "Content-Type: application/json"`,
+        responseExample: `{
+  "dexscreener": {},
+  "tokenStatistic": {},
+  "trendingJupiter": {},
+  "smartMoney": {},
+  "binanceCorrelation": {},
+  "memecoinScreens": {}
+}`,
+      },
+    ],
+  }),
+
   signal: doc({
     title: "Signal API",
     overview:
@@ -568,14 +607,18 @@ curl "${BASE_URL}/event?ticker=BTC"`,
   }),
 
   kol: doc({
-    title: "KOL API (X KOL)",
-    overview: "Get key opinion leader (KOL) insights and mentions for crypto from X/Twitter. Uses the x402 payment protocol.",
+    title: "X KOL API",
+    overview: "Get key opinion leader (KOL) insights and mentions for crypto from X/Twitter. Optional Solana token contract address for KOL analysis. Uses the x402 payment protocol.",
     endpoints: [
       {
         method: "GET",
         path: "/v2/x-kol",
-        description: "Fetch KOL data.",
-        requestExample: `curl ${BASE_URL}/x-kol`,
+        description: "Fetch KOL data. Optionally pass a Solana token contract address for token-specific KOL analysis.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Solana token contract address for KOL mentions and sentiment." },
+        ],
+        requestExample: `curl ${BASE_URL}/x-kol
+curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
         responseExample: `{
   "query": "X KOL crypto insights",
   "result": "Key opinion leaders this week: @influencer1 highlighted Bitcoin ETF flows; @influencer2 discussed Solana DeFi growth. Summary of top mentions and sentiment.",
@@ -962,6 +1005,30 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
+  "jupiter-swap-order": doc({
+    title: "Jupiter Swap Order API",
+    overview:
+      "Get a Jupiter Ultra swap order (buy/sell token on Solana via Corbits). Returns a swap order with a base64 transaction for the client to sign and submit. Requires inputMint, outputMint, amount (smallest units, e.g. lamports), and taker (wallet public key). Uses the x402 payment protocol.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/v2/jupiter/swap/order",
+        description: "Get swap order. All query params are required.",
+        params: [
+          { name: "inputMint", type: "string", required: "Yes", description: "Input token mint address (e.g. wrapped SOL)." },
+          { name: "outputMint", type: "string", required: "Yes", description: "Output token mint address (e.g. USDC)." },
+          { name: "amount", type: "string", required: "Yes", description: "Amount in smallest units (e.g. lamports for SOL)." },
+          { name: "taker", type: "string", required: "Yes", description: "Wallet public key that will execute the swap." },
+        ],
+        requestExample: `curl "${BASE_URL}/jupiter/swap/order?inputMint=So11111111111111111111111111111111111111112&outputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=1000000&taker=YourWalletPubkey"`,
+        responseExample: `{
+  "order": {},
+  "transaction": "base64-encoded-transaction..."
+}`,
+      },
+    ],
+  }),
+
   "token-report": doc({
     title: "Token Report API (Rugcheck)",
     overview: "Partner API with Rugcheck for token safety and report data. Requires a token contract address. Uses the x402 payment protocol.",
@@ -1133,19 +1200,33 @@ curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
 
   "binance-correlation": doc({
     title: "Binance Correlation API",
-    overview: "Binance listing correlation and CEX-related signals. Uses the x402 payment protocol.",
+    overview: "Binance correlation and correlation matrix. Top correlated assets for a symbol (e.g. BTCUSDT) or full correlation matrix. Uses the x402 payment protocol.",
     endpoints: [
       {
         method: "GET",
         path: "/v2/binance/correlation",
-        description: "Fetch Binance correlation data.",
-        requestExample: `curl ${BASE_URL}/binance/correlation`,
+        description: "Fetch top correlated assets for a symbol.",
+        params: [
+          { name: "symbol", type: "string", required: "No", description: "Trading pair (e.g. BTCUSDT, ETHUSDT). Default: BTCUSDT." },
+        ],
+        requestExample: `curl ${BASE_URL}/binance/correlation
+curl "${BASE_URL}/binance/correlation?symbol=ETHUSDT"`,
         responseExample: `{
   "data": {
     "correlations": [],
     "signals": [],
     "listingRumors": []
   }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/v2/binance/correlation-matrix",
+        description: "Fetch full Binance correlation matrix.",
+        requestExample: `curl ${BASE_URL}/binance/correlation-matrix`,
+        responseExample: `{
+  "matrix": {},
+  "symbols": []
 }`,
       },
     ],

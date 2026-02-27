@@ -1,20 +1,58 @@
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { browseService } from "../libs/atxp/browseService.js";
+
 export async function createBrowseRouter() {
   const router = express.Router();
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      const { query } = req.query;
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const client = await atxpClient({
+        mcpServer: browseService.mcpServer,
+        account: new ATXPAccount(process.env.ATXP_CONNECTION),
+      });
+      try {
+        const result = await client.callTool({
+          name: browseService.runTaskToolName,
+          arguments: browseService.getArguments(query),
+        });
+        const taskId = browseService.getRunTaskResult(result);
+        const pollInterval = 5000;
+        while (true) {
+          const taskResult = await client.callTool({
+            name: browseService.getTaskToolName,
+            arguments: { taskId },
+          });
+          const taskData = browseService.getGetTaskResult(taskResult);
+          if (["finished", "stopped", "failed"].includes(taskData.status)) {
+            res.json({ query, result: JSON.stringify(taskData) });
+            break;
+          }
+          await new Promise((r) => setTimeout(r, pollInterval));
+        }
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
 
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
     requirePayment({
-      price: X402_API_PRICE_USD,
       description: "AI-powered web browsing and information extraction from websites",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/browse",
+      resource: "/v2/browse",
       inputSchema: {
         queryParams: {
           query: {
@@ -66,7 +104,8 @@ export async function createBrowseRouter() {
 
           // Check if task is complete
           if (["finished", "stopped", "failed"].includes(taskData.status)) {
-            await settlePaymentAndRecord(req);
+            // Settle payment ONLY on success
+            await settlePaymentAndSetResponse(res, req);
 
             const formatResult = JSON.stringify(taskData);
 
@@ -91,11 +130,10 @@ export async function createBrowseRouter() {
   router.post(
     "/",
     requirePayment({
-      price: X402_API_PRICE_USD,
       description: "AI-powered web browsing and information extraction from websites",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/browse",
+      resource: "/v2/browse",
       inputSchema: {
         bodyType: "json",
         bodyFields: {
@@ -148,7 +186,8 @@ export async function createBrowseRouter() {
 
           // Check if task is complete
           if (["finished", "stopped", "failed"].includes(taskData.status)) {
-            await settlePaymentAndRecord(req);
+            // Settle payment ONLY on success
+            await settlePaymentAndSetResponse(res, req);
 
             const formatResult = JSON.stringify(taskData);
 

@@ -1,7 +1,28 @@
-// routes/weather.js
+// routes/event.js – cache + settle like news API (settlePaymentAndSetResponse handles facilitator errors)
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
-import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+import { resolveTickerFromCoingecko } from "../utils/coingeckoAPI.js";
+
+const CACHE_TTL_MS = 90 * 1000;
+const eventCache = new Map();
+
+function getCacheKey(ticker) {
+  return String(ticker || "general").trim().toLowerCase() || "general";
+}
+
+function getCached(ticker) {
+  const key = getCacheKey(ticker);
+  const entry = eventCache.get(key);
+  if (!entry || Date.now() > entry.expires) return null;
+  return entry.data;
+}
+
+function setCached(ticker, data) {
+  eventCache.set(getCacheKey(ticker), { data, expires: Date.now() + CACHE_TTL_MS });
+}
+
 export async function createEventRouter() {
   const router = express.Router();
 
@@ -21,15 +42,49 @@ export async function createEventRouter() {
     return data.data || [];
   };
 
-  // Apply middleware to routes
+  async function getDataForTicker(ticker) {
+    let cached = getCached(ticker);
+    if (cached !== null) return cached;
+    let result;
+    if (ticker !== "general") {
+      const tickerEvent = await fetchTickerEvent(ticker);
+      result = Object.keys(tickerEvent).map((date) => ({
+        date,
+        ticker: tickerEvent[date],
+      }));
+    } else {
+      const generalEvent = await fetchGeneralEvent();
+      result = Object.keys(generalEvent).map((date) => ({
+        date,
+        general: generalEvent[date],
+      }));
+    }
+    if (Array.isArray(result) && result.length > 0) setCached(ticker, result);
+    return result;
+  }
+
+  /** Dev-only: GET .../dev returns events without payment (for browser/testing). Disabled in production. */
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
+      const event = await getDataForTicker(ticker);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+      res.json({ event });
+    });
+  }
+
   router.get(
     "/",
     requirePayment({
-      price: X402_API_PRICE_USD,
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
-      resource: "/event",
+      discoverable: true,
+      resource: "/v2/event",
       inputSchema: {
         queryParams: {
           ticker: {
@@ -47,46 +102,26 @@ export async function createEventRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.query.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerEvent = await fetchTickerEvent(ticker);
-        result = Object.keys(tickerEvent).map((date) => ({
-          date,
-          ticker: tickerEvent[date],
-        }));
-      } else {
-        const generalEvent = await fetchGeneralEvent();
-        result = Object.keys(generalEvent).map((date) => ({
-          date,
-          general: generalEvent[date],
-        }));
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const event = result;
-      if (!event) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (event?.length > 0) {
-        await settlePaymentAndRecord(req);
-        res.json({
-          event,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch event",
-        });
-      }
+      const event = await getDataForTicker(ticker);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+      await settlePaymentAndSetResponse(res, req);
+      res.json({ event });
     }
   );
 
   router.post(
     "/",
     requirePayment({
-      price: X402_API_PRICE_USD,
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
-      resource: "/event",
+      discoverable: true,
+      resource: "/v2/event",
       inputSchema: {
         bodyType: "json",
         bodyFields: {
@@ -105,35 +140,16 @@ export async function createEventRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.body.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerEvent = await fetchTickerEvent(ticker);
-        result = Object.keys(tickerEvent).map((date) => ({
-          date,
-          ticker: tickerEvent[date],
-        }));
-      } else {
-        const generalEvent = await fetchGeneralEvent();
-        result = Object.keys(generalEvent).map((date) => ({
-          date,
-          general: generalEvent[date],
-        }));
+      let ticker = req.body.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const event = result;
-      if (!event) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (event?.length > 0) {
-        await settlePaymentAndRecord(req);
-        res.json({
-          event,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch event",
-        });
-      }
+      const event = await getDataForTicker(ticker);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+      await settlePaymentAndSetResponse(res, req);
+      res.json({ event });
     }
   );
 

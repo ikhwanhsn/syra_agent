@@ -4,7 +4,7 @@
  * See https://docs.coingecko.com/docs/x402 and https://docs.coingecko.com/reference/simple-price
  */
 import express from "express";
-import { X402_API_PRICE_COINGECKO_USD } from "../../../../config/x402Pricing.js";
+import { X402_API_PRICE_COINGECKO_USD } from "../../../config/x402Pricing.js";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { ensurePayer, coinGeckoFetch } from "./coinGeckoPayer.js";
 

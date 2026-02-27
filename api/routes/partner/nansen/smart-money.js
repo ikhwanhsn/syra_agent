@@ -1,10 +1,51 @@
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../../utils/x402Payment.js";
+import { getV2Payment } from "../../../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_NANSEN_USD } from "../../../config/x402Pricing.js";
 import { payer } from "@faremeter/rides";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
+
 export async function createSmartMoneyRouter() {
   const router = express.Router();
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (_req, res) => {
+      const { PAYER_KEYPAIR } = process.env;
+      if (!PAYER_KEYPAIR) return res.status(500).json({ error: "PAYER_KEYPAIR must be set" });
+      await payer.addLocalWallet(PAYER_KEYPAIR);
+      try {
+        const responses = await Promise.all(
+          smartMoneyRequests.map(({ url, payload }) =>
+            payer.fetch(url, {
+              method: "POST",
+              headers: { Accept: "application/json", "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          )
+        );
+        for (const response of responses) {
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`HTTP ${response.status} ${response.statusText} ${text}`);
+          }
+        }
+        const allData = await Promise.all(responses.map((r) => r.json()));
+        res.status(200).json({
+          "smart-money/netflow": allData[0],
+          "smart-money/holdings": allData[1],
+          "smart-money/historical-holdings": allData[2],
+          "smart-money/dex-trades": allData[3],
+          "smart-money/dcas": allData[4],
+        });
+      } catch (error) {
+        res.status(500).json({
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  }
 
   // GET endpoint with x402scan compatible schema
   router.get(
@@ -79,7 +120,9 @@ export async function createSmartMoneyRouter() {
           "smart-money/dcas": allData[4],
         };
 
-        await settlePaymentAndRecord(req);
+        // Settle payment ONLY on success
+        await settlePaymentAndSetResponse(res, req);
+
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({
@@ -163,7 +206,9 @@ export async function createSmartMoneyRouter() {
           "smart-money/dcas": allData[4],
         };
 
-        await settlePaymentAndRecord(req);
+        // Settle payment ONLY on success
+        await settlePaymentAndSetResponse(res, req);
+
         res.status(200).json(data);
       } catch (error) {
         res.status(500).json({

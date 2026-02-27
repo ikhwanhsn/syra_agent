@@ -1,5 +1,7 @@
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../../../utils/x402Payment.js";
+import { getV2Payment } from "../../../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_PUMP_USD } from "../../../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../../../libs/atxp/researchService.js";
@@ -8,6 +10,31 @@ import { xLiveSearchService } from "../../../libs/atxp/xLiveSearchService.js";
 
 export async function createPumpRouter() {
   const router = express.Router();
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      const { PAYER_KEYPAIR } = process.env;
+      if (!PAYER_KEYPAIR) return res.status(500).json({ error: "PAYER_KEYPAIR must be set" });
+      await payer.addLocalWallet(PAYER_KEYPAIR);
+      try {
+        const { tokenAddress } = req.query;
+        const options = { method: "GET", headers: { "X-API-Key": process.env.TWITTER_API_KEY } };
+        const responses = await fetch(
+          `https://api.twitterapi.io/twitter/tweet/advanced_search?queryType=Latest&query=${tokenAddress}`,
+          options
+        );
+        const data = await responses.json();
+        if (!data.tweets || data.tweets.length === 0) return res.status(404).json({ error: "Token address not found" });
+        const response = await fetch(
+          `https://wurkapi.fun/api/x402/quick/solana/xlikes-10?url=${data.tweets[1].link}`
+        );
+        const likeData = await response.json();
+        res.json({ tokenAddress, likeData });
+      } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+  }
 
   // GET endpoint with x402scan compatible schema
   router.get(
@@ -127,7 +154,7 @@ export async function createPumpRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await settlePaymentAndRecord(req);
+          await settlePaymentAndSetResponse(res, req);
 
           res.json({ status, content, sources });
         }

@@ -1,7 +1,32 @@
-// routes/weather.js
+// routes/sentiment.js – cache + parallel settle for fast response
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
+
+const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader, runBuybackForRequest } = await getV2Payment();
+import { resolveTickerFromCoingecko } from "../utils/coingeckoAPI.js";
+
+const CACHE_TTL_MS = 90 * 1000;
+const sentimentCache = new Map();
+
+function getCacheKey(ticker) {
+  return String(ticker || "general").trim().toLowerCase() || "general";
+}
+
+function getCached(ticker) {
+  const key = getCacheKey(ticker);
+  const entry = sentimentCache.get(key);
+  if (!entry || Date.now() > entry.expires) return null;
+  return entry.data;
+}
+
+function setCached(ticker, data) {
+  sentimentCache.set(getCacheKey(ticker), {
+    data,
+    expires: Date.now() + CACHE_TTL_MS,
+  });
+}
+
 export async function createSentimentRouter() {
   const router = express.Router();
 
@@ -29,15 +54,61 @@ export async function createSentimentRouter() {
     return data.data || [];
   };
 
-  // Apply middleware to routes
+  async function getDataForTicker(ticker) {
+    let cached = getCached(ticker);
+    if (cached !== null) return cached;
+    let result;
+    if (ticker !== "general") {
+      const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(ticker);
+      result = Object.keys(tickerSentimentAnalysis).map((date) => ({
+        date,
+        ticker: tickerSentimentAnalysis[date],
+      }));
+    } else {
+      const [generalSentimentAnalysis, allTickerSentimentAnalysis] = await Promise.all([
+        fetchGeneralSentimentAnalysis(),
+        fetchAllTickerSentimentAnalysis(),
+      ]);
+      result = Object.keys(generalSentimentAnalysis).map((date) => ({
+        date,
+        general: generalSentimentAnalysis[date],
+        allTicker: allTickerSentimentAnalysis[date],
+      }));
+    }
+    if (Array.isArray(result) && result.length > 0) setCached(ticker, result);
+    return result;
+  }
+
+  function setPaymentResponseAndSend(res, data, settle) {
+    const reason = settle?.errorReason || "";
+    const isFacilitatorFailure = /Facilitator|500|Internal server error/i.test(reason);
+    if (!settle?.success && !isFacilitatorFailure) throw new Error(reason || "Settlement failed");
+    const effectiveSettle = settle?.success ? settle : { success: true };
+    res.setHeader("Payment-Response", encodePaymentResponseHeader(effectiveSettle));
+    res.json({ sentimentAnalysis: data });
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
+      }
+      const sentimentAnalysis = await getDataForTicker(ticker);
+      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+      res.json({ sentimentAnalysis });
+    });
+  }
+
   router.get(
     "/",
     requirePayment({
-      price: X402_API_PRICE_USD,
       description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "GET",
-      discoverable: true, // Make it discoverable on x402scan
-      resource: "/sentiment",
+      discoverable: true,
+      resource: "/v2/sentiment",
       inputSchema: {
         queryParams: {
           ticker: {
@@ -55,51 +126,30 @@ export async function createSentimentRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.query.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(
-          ticker
-        );
-        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
-          date,
-          ticker: tickerSentimentAnalysis[date],
-        }));
-      } else {
-        const generalSentimentAnalysis = await fetchGeneralSentimentAnalysis();
-        const allTickerSentimentAnalysis =
-          await fetchAllTickerSentimentAnalysis();
-        result = Object.keys(generalSentimentAnalysis).map((date) => ({
-          date,
-          general: generalSentimentAnalysis[date],
-          allTicker: allTickerSentimentAnalysis[date],
-        }));
+      let ticker = req.query.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const sentimentAnalysis = result;
-      if (!sentimentAnalysis) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (sentimentAnalysis?.length > 0) {
-        await settlePaymentAndRecord(req);
-        res.json({
-          sentimentAnalysis,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch sentiment analysis",
-        });
-      }
+      const { payload, accepted } = req.x402Payment;
+      const [sentimentAnalysis, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        settlePaymentWithFallback(payload, accepted),
+      ]);
+      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+      setPaymentResponseAndSend(res, sentimentAnalysis, settle);
+      runBuybackForRequest(req);
     }
   );
 
   router.post(
     "/",
     requirePayment({
-      price: X402_API_PRICE_USD,
       description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
-      resource: "/sentiment",
+      discoverable: true,
+      resource: "/v2/sentiment",
       inputSchema: {
         bodyType: "json",
         bodyFields: {
@@ -118,40 +168,20 @@ export async function createSentimentRouter() {
       },
     }),
     async (req, res) => {
-      const ticker = req.body.ticker || "general";
-      let result;
-      if (ticker !== "general") {
-        const tickerSentimentAnalysis = await fetchTickerSentimentAnalysis(
-          ticker
-        );
-        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
-          date,
-          ticker: tickerSentimentAnalysis[date],
-        }));
-      } else {
-        const generalSentimentAnalysis = await fetchGeneralSentimentAnalysis();
-        const allTickerSentimentAnalysis =
-          await fetchAllTickerSentimentAnalysis();
-        result = Object.keys(generalSentimentAnalysis).map((date) => ({
-          date,
-          general: generalSentimentAnalysis[date],
-          allTicker: allTickerSentimentAnalysis[date],
-        }));
+      let ticker = req.body.ticker || "general";
+      if (ticker !== "general" && ticker) {
+        const resolved = await resolveTickerFromCoingecko(ticker);
+        ticker = resolved ? resolved.symbol.toUpperCase() : "general";
       }
-      const sentimentAnalysis = result;
-      if (!sentimentAnalysis) {
-        return res.status(404).json({ error: "Sentiment analysis not found" });
-      }
-      if (sentimentAnalysis?.length > 0) {
-        await settlePaymentAndRecord(req);
-        res.json({
-          sentimentAnalysis,
-        });
-      } else {
-        res.status(500).json({
-          error: "Failed to fetch sentiment analysis",
-        });
-      }
+      const { payload, accepted } = req.x402Payment;
+      const [sentimentAnalysis, settle] = await Promise.all([
+        getDataForTicker(ticker),
+        settlePaymentWithFallback(payload, accepted),
+      ]);
+      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+      setPaymentResponseAndSend(res, sentimentAnalysis, settle);
+      runBuybackForRequest(req);
     }
   );
 

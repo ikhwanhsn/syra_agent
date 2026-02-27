@@ -21,7 +21,7 @@ import {
 } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
-import { findVerifiedJupiterToken } from '../../v2/lib/jupiterTokens.js';
+import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
 import { recordAgentChatUsage } from '../../libs/agentLeaderboard.js';
 

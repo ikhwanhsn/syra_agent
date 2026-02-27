@@ -1,10 +1,36 @@
 import express from "express";
-import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
+import { getV2Payment } from "../utils/getV2Payment.js";
+
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_RESEARCH_USD } from "../config/x402Pricing.js";
 import { atxpClient, ATXPAccount } from "@atxp/client";
 import { researchService } from "../libs/atxp/researchService.js";
+
 export async function createResearchRouter() {
   const router = express.Router();
+
+  if (process.env.NODE_ENV !== "production") {
+    router.get("/dev", async (req, res) => {
+      const { query, type } = req.query;
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const client = await atxpClient({
+        mcpServer: researchService.mcpServer,
+        account: new ATXPAccount(process.env.ATXP_CONNECTION),
+      });
+      try {
+        const toolName = type === "deep" ? researchService.deepResearchToolName : researchService.quickResearchToolName;
+        const researchResult = await client.callTool({
+          name: toolName,
+          arguments: type === "deep" ? researchService.getDeepResearchArguments(query) : researchService.getQuickResearchArguments(query),
+        });
+        const { status, content, sources } = type === "deep" ? researchService.getDeepResearchResult(researchResult) : researchService.getQuickResearchResult(researchResult);
+        if (status === "success") res.json({ status, content, sources });
+        else res.status(500).json({ error: "Research failed" });
+      } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+  }
 
   // GET endpoint with x402scan compatible schema
   router.get(
@@ -14,7 +40,7 @@ export async function createResearchRouter() {
       description: "AI-powered deep research on any crypto topic with cited sources",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/research",
+      resource: "/v2/research",
       inputSchema: {
         queryParams: {
           query: {
@@ -74,14 +100,11 @@ export async function createResearchRouter() {
             : researchService.getQuickResearchResult(researchResult);
 
         if (status === "success") {
-          // Settle payment ONLY on success
-          await settlePaymentAndRecord(req);
-
+          await settlePaymentAndSetResponse(res, req);
           res.json({ status, content, sources });
-        }
+        } else res.status(500).json({ error: "Research failed" });
       } catch (error) {
         res.status(500).json({ error: "Internal server error" });
-        process.exit(1);
       }
     }
   );
@@ -94,7 +117,7 @@ export async function createResearchRouter() {
       description: "AI-powered deep research on any crypto topic with cited sources",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/research",
+      resource: "/v2/research",
       inputSchema: {
         bodyType: "json",
         bodyFields: {
@@ -156,7 +179,7 @@ export async function createResearchRouter() {
 
         if (status === "success") {
           // Settle payment ONLY on success
-          await settlePaymentAndRecord(req);
+          await settlePaymentAndSetResponse(res, req);
 
           res.json({ status, content, sources });
         }

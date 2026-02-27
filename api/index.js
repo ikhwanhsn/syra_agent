@@ -20,49 +20,48 @@ import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createSentimentRouterRegular } from "./routes/sentiment.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
-import { createAnalyticsRouter as createKpiAnalyticsRouter } from "./routes/analytics.js";
+import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
-// V2 route imports
-import { createNewsRouter as createV2NewsRouter } from "./v2/routes/news.js";
-import { createSignalRouter as createV2SignalRouter } from "./v2/routes/signal.js";
-import { createSentimentRouter as createV2SentimentRouter } from "./v2/routes/sentiment.js";
-import { createEventRouter as createV2EventRouter } from "./v2/routes/event.js";
-import { createBrowseRouter as createV2BrowseRouter } from "./v2/routes/browse.js";
-import { createXSearchRouter as createV2XSearchRouter } from "./v2/routes/xSearch.js";
-import { createResearchRouter as createV2ResearchRouter } from "./v2/routes/research.js";
-import { createExaSearchRouter as createV2ExaSearchRouter } from "./v2/routes/exa-search.js";
-import { createGemsRouter as createV2GemsRouter } from "./v2/routes/gems.js";
-import { createXKOLRouter as createV2XKOLRouter } from "./v2/routes/kol.js";
-import { createCryptoKOLRouter as createV2CryptoKOLRouter } from "./v2/routes/crypto-kol.js";
-import { createCheckStatusRouter as createV2CheckStatusRouter } from "./v2/routes/check-status.js";
-import { createTrendingHeadlineRouter as createV2TrendingHeadlineRouter } from "./v2/routes/trending-headline.js";
-import { createSundownDigestRouter as createV2SundownDigestRouter } from "./v2/routes/sundown-digest.js";
-import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./v2/routes/partner/nansen/smart-money.js";
-import { createDexscreenerRouter as createV2DexscreenerRouter } from "./v2/routes/partner/dexscreener.js";
-import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./v2/routes/partner/nansen/token-god-mode.js";
-import { createPumpRouter as createV2PumpRouter } from "./v2/routes/partner/workfun/pump.js";
-import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./v2/routes/partner/jupiter/trending.js";
-import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./v2/routes/partner/jupiter/swap-order.js";
-import { createTokenReportRouter as createV2TokenReportRouter } from "./v2/routes/partner/rugcheck/token-report.js";
-import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./v2/routes/partner/rugcheck/token-statistic.js";
-import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./v2/routes/partner/rugcheck/token-risk-alerts.js";
-import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./v2/routes/partner/bubblemaps/maps.js";
-import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./v2/routes/partner/binance/correlation.js";
-import { createV2CoingeckoOnchainRouter } from "./v2/routes/partner/coingecko/onchain.js";
-import { createV2CoingeckoSimplePriceRouter } from "./v2/routes/partner/coingecko/simple-price.js";
-import { createAnalyticsRouter as createV2AnalyticsRouter } from "./v2/routes/analytics.js";
-import { createFastestHolderGrowthMemecoinsRouter as createV2FastestHolderGrowthMemecoinsRouter } from "./v2/routes/memecoin/fastestHolderGrowthMemecoins.js";
-import { createMemecoinsAccumulatingBeforeCEXRumorsRouter as createV2MemecoinsAccumulatingBeforeCEXRumorsRouter } from "./v2/routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
-import { createMemecoinsMostMentionedBySmartMoneyXRouter as createV2MemecoinsMostMentionedBySmartMoneyXRouter } from "./v2/routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
-import { createMemecoinsStrongNarrativeLowMarketCapRouter as createV2MemecoinsStrongNarrativeLowMarketCapRouter } from "./v2/routes/memecoin/memecoinsStrongNarrativeLowMarketCap.js";
-import { createMemecoinsByExperiencedDevsRouter as createV2MemecoinsByExperiencedDevsRouter } from "./v2/routes/memecoin/memecoinsByExperiencedDevs.js";
-import { createMemecoinsUnusualWhaleBehaviorRouter as createV2MemecoinsUnusualWhaleBehaviorRouter } from "./v2/routes/memecoin/memecoinsUnusualWhaleBehavior.js";
-import { createMemecoinsTrendingOnXNotDEXRouter as createV2MemecoinsTrendingOnXNotDEXRouter } from "./v2/routes/memecoin/memecoinsTrendingOnXNotDEX.js";
-import { createMemecoinsOrganicTractionRouter as createV2MemecoinsOrganicTractionRouter } from "./v2/routes/memecoin/aiMemecoinsOrganicTraction.js";
-import { createMemecoinsSurvivingMarketDumpsRouter as createV2MemecoinsSurvivingMarketDumpsRouter } from "./v2/routes/memecoin/memecoinsSurvivingMarketDumps.js";
+// x402 route imports (consolidated from v2 into routes)
+import { createNewsRouter as createV2NewsRouter } from "./routes/news.js";
+import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
+import { createSentimentRouter as createV2SentimentRouter } from "./routes/sentiment.js";
+import { createEventRouter as createV2EventRouter } from "./routes/event.js";
+import { createBrowseRouter as createV2BrowseRouter } from "./routes/browse.js";
+import { createXSearchRouter as createV2XSearchRouter } from "./routes/xSearch.js";
+import { createResearchRouter as createV2ResearchRouter } from "./routes/research.js";
+import { createExaSearchRouter as createV2ExaSearchRouter } from "./routes/exa-search.js";
+import { createGemsRouter as createV2GemsRouter } from "./routes/gems.js";
+import { createXKOLRouter as createV2XKOLRouter } from "./routes/kol.js";
+import { createCryptoKOLRouter as createV2CryptoKOLRouter } from "./routes/crypto-kol.js";
+import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/check-status.js";
+import { createTrendingHeadlineRouter as createV2TrendingHeadlineRouter } from "./routes/trending-headline.js";
+import { createSundownDigestRouter as createV2SundownDigestRouter } from "./routes/sundown-digest.js";
+import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
+import { createDexscreenerRouter as createV2DexscreenerRouter } from "./routes/partner/dexscreener.js";
+import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
+import { createPumpRouter as createV2PumpRouter } from "./routes/partner/workfun/pump.js";
+import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
+import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./routes/partner/jupiter/swap-order.js";
+import { createTokenReportRouter as createV2TokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
+import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
+import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./routes/partner/rugcheck/token-risk-alerts.js";
+import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
+import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
+import { createV2CoingeckoOnchainRouter } from "./routes/partner/coingecko/onchain.js";
+import { createV2CoingeckoSimplePriceRouter } from "./routes/partner/coingecko/simple-price.js";
+import { createFastestHolderGrowthMemecoinsRouter as createV2FastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fastestHolderGrowthMemecoins.js";
+import { createMemecoinsAccumulatingBeforeCEXRumorsRouter as createV2MemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
+import { createMemecoinsMostMentionedBySmartMoneyXRouter as createV2MemecoinsMostMentionedBySmartMoneyXRouter } from "./routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
+import { createMemecoinsStrongNarrativeLowMarketCapRouter as createV2MemecoinsStrongNarrativeLowMarketCapRouter } from "./routes/memecoin/memecoinsStrongNarrativeLowMarketCap.js";
+import { createMemecoinsByExperiencedDevsRouter as createV2MemecoinsByExperiencedDevsRouter } from "./routes/memecoin/memecoinsByExperiencedDevs.js";
+import { createMemecoinsUnusualWhaleBehaviorRouter as createV2MemecoinsUnusualWhaleBehaviorRouter } from "./routes/memecoin/memecoinsUnusualWhaleBehavior.js";
+import { createMemecoinsTrendingOnXNotDEXRouter as createV2MemecoinsTrendingOnXNotDEXRouter } from "./routes/memecoin/memecoinsTrendingOnXNotDEX.js";
+import { createMemecoinsOrganicTractionRouter as createV2MemecoinsOrganicTractionRouter } from "./routes/memecoin/aiMemecoinsOrganicTraction.js";
+import { createMemecoinsSurvivingMarketDumpsRouter as createV2MemecoinsSurvivingMarketDumpsRouter } from "./routes/memecoin/memecoinsSurvivingMarketDumps.js";
 // NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
 // import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 // import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -541,7 +540,7 @@ app.use("/v2/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use("/v2/binance", await createV2BinanceCorrelationRouter());
 app.use("/v2/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
 app.use("/v2/coingecko/onchain", await createV2CoingeckoOnchainRouter());
-app.use("/v2/analytics", await createV2AnalyticsRouter());
+app.use("/v2/analytics", await createAnalyticsRouter());
 app.use("/v2/memecoin/fastest-holder-growth", await createV2FastestHolderGrowthMemecoinsRouter());
 app.use("/v2/memecoin/most-mentioned-by-smart-money-x", await createV2MemecoinsMostMentionedBySmartMoneyXRouter());
 app.use("/v2/memecoin/accumulating-before-CEX-rumors", await createV2MemecoinsAccumulatingBeforeCEXRumorsRouter());
@@ -588,9 +587,8 @@ app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
 // Internal dashboard: research, browse, x-search (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
-// KPI dashboard first so GET /analytics/kpi is served; then V2 handles /analytics/summary
-app.use("/analytics", await createKpiAnalyticsRouter());
-app.use("/analytics", await createV2AnalyticsRouter());
+// Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
+app.use("/analytics", await createAnalyticsRouter());
 app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use(
   "/memecoin/fastest-holder-growth",
@@ -765,7 +763,7 @@ const PORT = process.env.PORT || 3000;
 connectMongoose().then(() => {}).catch(() => {});
 
 // Eager-init x402 V2 resource server so first paid request doesn't wait for facilitator /supported
-import("./v2/utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
+import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
   ensureX402ResourceServerInitialized().catch(() => {});
 });
 

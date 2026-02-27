@@ -5,7 +5,7 @@
  * Swap execution uses Corbits (jupiter.api.corbits.dev) via the swap-order route.
  * Add tokens to STATIC_TOKENS below to support "buy $SYMBOL $amount" in the agent.
  */
-import { SYRA_TOKEN_MINT } from "../../libs/syraToken.js";
+import { SYRA_TOKEN_MINT } from "./syraToken.js";
 
 /** Supported tokens for agent "buy $TOKEN $amount". No fetch — avoids "fetch failed" errors. */
 const STATIC_TOKENS = [
@@ -57,4 +57,3 @@ export async function findVerifiedJupiterToken(symbolOrMint) {
 
   return null;
 }
-

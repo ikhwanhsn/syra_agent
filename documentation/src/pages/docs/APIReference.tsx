@@ -18,7 +18,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Research & Discovery",
-    slugs: ["browse", "research", "x-search", "exa-search", "gems"],
+    slugs: ["browse", "research", "x-search", "exa-search", "gems", "analytics-summary"],
   },
   {
     title: "Trading & Events",
@@ -34,7 +34,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Partner: DexScreener & Jupiter",
-    slugs: ["dexscreener", "trending-jupiter"],
+    slugs: ["dexscreener", "trending-jupiter", "jupiter-swap-order"],
   },
   {
     title: "Partner: Rugcheck",

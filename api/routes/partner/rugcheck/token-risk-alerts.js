@@ -2,8 +2,8 @@ import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
-import { X402_API_PRICE_USD } from "../../../../config/x402Pricing.js";
-import { rugcheckRequests } from "../../../../request/rugcheck.request.js";
+import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
+import { rugcheckRequests } from "../../../request/rugcheck.request.js";
 
 const RUGCHECK_REPORT_BASE = "https://api.rugcheck.xyz/v1/tokens";
 

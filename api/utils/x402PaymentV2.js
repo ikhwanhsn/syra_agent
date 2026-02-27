@@ -18,9 +18,9 @@ import { Connection } from "@solana/web3.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getX402ResourceServer, ensureX402ResourceServerInitialized } from "./x402ResourceServer.js";
-import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../../config/x402Pricing.js";
-import { recordPaidApiCall } from "../../utils/recordPaidApiCall.js";
-import { buybackAndBurnSYRA } from "../../utils/buybackAndBurnSYRA.js";
+import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../config/x402Pricing.js";
+import { recordPaidApiCall } from "./recordPaidApiCall.js";
+import { buybackAndBurnSYRA } from "./buybackAndBurnSYRA.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -527,4 +527,3 @@ export function getX402Handler() {
     },
   };
 }
-

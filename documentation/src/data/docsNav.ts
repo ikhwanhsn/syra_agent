@@ -49,6 +49,7 @@ export const navigation: NavItem[] = [
           { title: "X Search", href: api("x-search") },
           { title: "EXA Search", href: api("exa-search") },
           { title: "Gems", href: api("gems") },
+          { title: "Analytics Summary", href: api("analytics-summary") },
         ],
       },
       {
@@ -63,7 +64,7 @@ export const navigation: NavItem[] = [
         title: "KOL & Influencers",
         defaultCollapsed: false,
         items: [
-          { title: "KOL", href: api("kol") },
+          { title: "X KOL", href: api("kol") },
           { title: "Crypto KOL", href: api("crypto-kol") },
         ],
       },
@@ -82,6 +83,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "DexScreener", href: api("dexscreener") },
           { title: "Trending Jupiter", href: api("trending-jupiter") },
+          { title: "Jupiter Swap Order", href: api("jupiter-swap-order") },
         ],
       },
       {
