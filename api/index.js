@@ -22,6 +22,7 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
+import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
@@ -556,6 +557,8 @@ app.use("/trending-headline", await createV2TrendingHeadlineRouter());
 app.use("/sundown-digest", await createV2SundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
+// Sentinel Dashboard: spend, agents, alerts (API key auth); same storage as wrapWithSentinel
+app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Internal dashboard: research, browse, x-search (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)

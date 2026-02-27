@@ -1,10 +1,13 @@
 /**
  * Sentinel-wrapped payer.fetch for x402 route handlers.
  * Use this so all outbound x402 calls from paid routes (Jupiter, Nansen, etc.) are audited and budget-limited.
+ * Audit records use the same storage as SentinelDashboard for local querying.
  * @see https://sentinel.valeocash.com/docs
+ * @see https://sentinel.valeocash.com/docs/dashboard/overview
  */
 import { payer } from "@faremeter/rides";
 import { wrapWithSentinel, standardPolicy } from "@x402sentinel/x402";
+import { getSentinelStorage } from "./sentinelStorage.js";
 
 let cachedSentinelPayerFetch = null;
 
@@ -18,6 +21,7 @@ export function getSentinelPayerFetch() {
   cachedSentinelPayerFetch = wrapWithSentinel(payer.fetch.bind(payer), {
     agentId: process.env.SENTINEL_AGENT_ID || "x402-api",
     budget: standardPolicy(),
+    audit: { enabled: true, storage: getSentinelStorage() },
   });
   return cachedSentinelPayerFetch;
 }
