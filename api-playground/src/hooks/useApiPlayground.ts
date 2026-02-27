@@ -140,52 +140,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
-    id: 'browse',
-    label: 'Browse',
-    method: 'GET',
-    url: `${base}/browse`,
-    params: [],
-  },
-  {
-    id: 'x-search',
-    label: 'X search',
-    method: 'GET',
-    url: `${base}/x-search`,
-    params: [],
-  },
-  {
-    id: 'research',
-    label: 'Research',
-    method: 'GET',
-    url: `${base}/research`,
-    params: [],
-  },
-  {
     id: 'exa-search',
     label: 'EXA search',
     method: 'GET',
     url: `${base}/exa-search`,
-    params: [],
-  },
-  {
-    id: 'gems',
-    label: 'Gems',
-    method: 'GET',
-    url: `${base}/gems`,
-    params: [],
-  },
-  {
-    id: 'x-kol',
-    label: 'X KOL',
-    method: 'GET',
-    url: `${base}/x-kol`,
-    params: [],
-  },
-  {
-    id: 'crypto-kol',
-    label: 'Crypto KOL',
-    method: 'GET',
-    url: `${base}/crypto-kol`,
     params: [],
   },
   {
@@ -412,70 +370,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'address', value: '', enabled: true, description: 'Token contract address' },
     ],
   },
-  // Memecoin
-  {
-    id: 'memecoin-fastest-holder-growth',
-    label: 'Memecoin fastest holder growth',
-    method: 'GET',
-    url: `${base}/memecoin/fastest-holder-growth`,
-    params: [],
-  },
-  {
-    id: 'memecoin-most-mentioned-by-smart-money-x',
-    label: 'Memecoin most mentioned (smart money X)',
-    method: 'GET',
-    url: `${base}/memecoin/most-mentioned-by-smart-money-x`,
-    params: [],
-  },
-  {
-    id: 'memecoin-accumulating-before-cex-rumors',
-    label: 'Memecoin accumulating before CEX rumors',
-    method: 'GET',
-    url: `${base}/memecoin/accumulating-before-CEX-rumors`,
-    params: [],
-  },
-  {
-    id: 'memecoin-strong-narrative-low-market-cap',
-    label: 'Memecoin strong narrative low cap',
-    method: 'GET',
-    url: `${base}/memecoin/strong-narrative-low-market-cap`,
-    params: [],
-  },
-  {
-    id: 'memecoin-by-experienced-devs',
-    label: 'Memecoin by experienced devs',
-    method: 'GET',
-    url: `${base}/memecoin/by-experienced-devs`,
-    params: [],
-  },
-  {
-    id: 'memecoin-unusual-whale-behavior',
-    label: 'Memecoin unusual whale behavior',
-    method: 'GET',
-    url: `${base}/memecoin/unusual-whale-behavior`,
-    params: [],
-  },
-  {
-    id: 'memecoin-trending-on-x-not-dex',
-    label: 'Memecoin trending on X not DEX',
-    method: 'GET',
-    url: `${base}/memecoin/trending-on-x-not-dex`,
-    params: [],
-  },
-  {
-    id: 'memecoin-organic-traction',
-    label: 'Memecoin organic traction',
-    method: 'GET',
-    url: `${base}/memecoin/organic-traction`,
-    params: [],
-  },
-  {
-    id: 'memecoin-surviving-market-dumps',
-    label: 'Memecoin surviving market dumps',
-    method: 'GET',
-    url: `${base}/memecoin/surviving-market-dumps`,
-    params: [],
-  },
 ];
 };
 
@@ -526,13 +420,7 @@ function getApiEndpoints(): string[] {
     `${base}/trending-headline`,
     `${base}/sundown-digest`,
     `${base}/check-status`,
-    `${base}/browse`,
-    `${base}/x-search`,
-    `${base}/research`,
     `${base}/exa-search`,
-    `${base}/gems`,
-    `${base}/x-kol`,
-    `${base}/crypto-kol`,
     `${base}/analytics/summary`,
     `${base}/smart-money`,
     `${base}/dexscreener`,
@@ -551,15 +439,6 @@ function getApiEndpoints(): string[] {
     `${base}/coingecko/onchain/search-pools`,
     `${base}/coingecko/onchain/trending-pools`,
     `${base}/coingecko/onchain/token`,
-    `${base}/memecoin/fastest-holder-growth`,
-    `${base}/memecoin/most-mentioned-by-smart-money-x`,
-    `${base}/memecoin/accumulating-before-CEX-rumors`,
-    `${base}/memecoin/strong-narrative-low-market-cap`,
-    `${base}/memecoin/by-experienced-devs`,
-    `${base}/memecoin/unusual-whale-behavior`,
-    `${base}/memecoin/trending-on-x-not-dex`,
-    `${base}/memecoin/organic-traction`,
-    `${base}/memecoin/surviving-market-dumps`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
@@ -586,7 +465,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/trending-headline': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/sundown-digest': [],
       '/check-status': [],
-      '/gems': [],
       '/token-statistic': [],
       '/token-risk/alerts': [
         { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
@@ -595,10 +473,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       ],
       '/analytics/summary': [],
       '/signal': [{ key: 'token', value: '', enabled: false, description: 'e.g. solana, bitcoin' }],
-      '/research': [{ key: 'query', value: '', enabled: true, description: 'e.g. token analysis, market trends' }],
-      '/browse': [{ key: 'query', value: '', enabled: true, description: 'Search query or URL' }],
-      '/x/search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
-      '/x-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. token name, topic' }],
       '/exa-search': [{ key: 'query', value: '', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
       '/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
@@ -635,7 +509,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
       ],
       '/api/v1/perp-screener': [],
-      '/x-kol': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
       '/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
       '/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'e.g. BTCUSDT, ETHUSDT' }],
       '/binance/correlation-matrix': [],
@@ -1300,7 +1173,7 @@ export function useApiPlayground() {
         return '';
       }
     })();
-    if (effectiveMethod === 'GET' && (pathname === '/exa-search' || pathname === '/browse' || pathname === '/x-search')) {
+    if (effectiveMethod === 'GET' && pathname === '/exa-search') {
       const queryVal = enabledParams.find(p => p.key === 'query')?.value?.trim() ?? '';
       if (!queryVal) {
         toast({
@@ -1339,7 +1212,7 @@ export function useApiPlayground() {
           }
         });
         bodyToSend = JSON.stringify(bodyObj);
-      } else if (emptyBody && (pathname === '/exa-search' || pathname === '/browse' || pathname === '/x-search')) {
+      } else if (emptyBody && pathname === '/exa-search') {
         const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
         bodyToSend = JSON.stringify({ query: queryVal });
       }
@@ -1739,7 +1612,7 @@ export function useApiPlayground() {
         return '';
       }
     })();
-    const queryRequiredPaths = ['/exa-search', '/browse', '/x-search'];
+    const queryRequiredPaths = ['/exa-search'];
     const queryValue = (effectiveParams.find((p) => p.key === 'query')?.value ?? '').trim();
     const shouldSend = !queryRequiredPaths.includes(pathname) || !!queryValue;
 

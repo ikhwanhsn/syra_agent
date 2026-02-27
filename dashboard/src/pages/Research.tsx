@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  fetchResearch,
-  fetchBrowse,
-  fetchXSearch,
   fetchResearchResume,
   fetchResearchStore,
   saveResearchStore,
@@ -385,59 +382,27 @@ export function ResearchPage() {
     }
   }
 
-  const runPanelXSearch = async (preset: (typeof SYRA_PRESETS)[number]) => {
-    const { id, xSearchQuery } = preset;
-    setLoadingPanelId(id);
-    setPanelResults((prev) => ({ ...prev, [id]: { status: "loading" } }));
-    try {
-      const data = await fetchXSearch(xSearchQuery);
-      setPanelResults((prev) => ({ ...prev, [id]: { status: "success", data } }));
-      const prev = storedPayloadRef.current ?? {};
-      const next: StoredResearchPayload = {
-        ...prev,
-        panels: { ...(prev.panels ?? {}), [id]: { data, lastQuery: xSearchQuery } },
-      };
-      await persistResearch(next);
-    } catch (e) {
-      setPanelResults((prev) => ({
-        ...prev,
-        [id]: { status: "error", error: e instanceof Error ? e.message : String(e) },
-      }));
-    } finally {
-      setLoadingPanelId(null);
-    }
+  /** Live X search / research / browse (ATXP) have been removed. Panels only show stored data or "unavailable". */
+  const runPanelXSearch = async (_preset: (typeof SYRA_PRESETS)[number]) => {
+    const id = _preset.id;
+    setPanelResults((prev) => ({
+      ...prev,
+      [id]: { status: "error", error: "Live X search is no longer available. Only stored research can be viewed." },
+    }));
   };
 
-  const runResearch = async (query: string) => {
-    setLastResearchQuery(query);
-    setDeepResearch({ status: "loading" });
-    try {
-      const data = await fetchResearch(query, "deep");
-      setDeepResearch({ status: "success", data });
-      const prev = storedPayloadRef.current ?? {};
-      await persistResearch({ ...prev, deepResearch: { data, lastQuery: query } });
-    } catch (e) {
-      setDeepResearch({
-        status: "error",
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
+  const runResearch = async (_query: string) => {
+    setDeepResearch({
+      status: "error",
+      error: "Live deep research is no longer available. You can still load saved research and generate a resume.",
+    });
   };
 
-  const runBrowse = async (query: string) => {
-    setLastBrowseQuery(query);
-    setBrowse({ status: "loading" });
-    try {
-      const data = await fetchBrowse(query);
-      setBrowse({ status: "success", data });
-      const prev = storedPayloadRef.current ?? {};
-      await persistResearch({ ...prev, browse: { data, lastQuery: query } });
-    } catch (e) {
-      setBrowse({
-        status: "error",
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
+  const runBrowse = async (_query: string) => {
+    setBrowse({
+      status: "error",
+      error: "Live browse is no longer available. You can still load saved research and generate a resume.",
+    });
   };
 
   const runResume = async () => {
@@ -461,20 +426,11 @@ export function ResearchPage() {
     }
   };
 
-  const runCustomXSearch = async (query: string) => {
-    setLastCustomXSearchQuery(query);
-    setCustomXSearch({ status: "loading" });
-    try {
-      const data = await fetchXSearch(query);
-      setCustomXSearch({ status: "success", data });
-      const prev = storedPayloadRef.current ?? {};
-      await persistResearch({ ...prev, customXSearch: { data, lastQuery: query } });
-    } catch (e) {
-      setCustomXSearch({
-        status: "error",
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
+  const runCustomXSearch = async (_query: string) => {
+    setCustomXSearch({
+      status: "error",
+      error: "Live X search is no longer available. Only stored research can be viewed.",
+    });
   };
 
   const handleCustomRun = (type: "research" | "xsearch" | "browse") => {
@@ -485,17 +441,10 @@ export function ResearchPage() {
     else runBrowse(q);
   };
 
-  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
   const runRefreshAll = async () => {
     if (!canInteract || refreshAllInProgress) return;
     setRefreshAllInProgress(true);
     try {
-      for (let i = 0; i < SYRA_PRESETS.length; i++) {
-        await runPanelXSearch(SYRA_PRESETS[i]);
-        if (i < SYRA_PRESETS.length - 1) await delay(10_000);
-      }
-      await delay(10_000);
       await runResume();
     } finally {
       setRefreshAllInProgress(false);
@@ -508,8 +457,11 @@ export function ResearchPage() {
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Research & insight</h1>
           <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-            X search panels for strategy and growth. Run or refresh any panel for fresh research.
+            View saved research and generate executive summaries. Live X search, deep research, and browse are no longer available.
           </p>
+          <div className="mt-2 rounded-lg border border-amber-800/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+            Only stored research can be loaded and summarized. Use &quot;Refresh&quot; on Resume to generate a summary from your saved panels.
+          </div>
         </div>
         {canInteract && (
           <button
@@ -517,7 +469,7 @@ export function ResearchPage() {
             onClick={runRefreshAll}
             disabled={refreshAllInProgress}
             className="flex items-center gap-2 rounded-lg border border-syra-primary/50 bg-syra-primary/10 px-4 py-2 text-sm font-medium text-syra-primary hover:bg-syra-primary/20 disabled:opacity-50 disabled:pointer-events-none"
-            title="Run all preset panels (10s delay each), then resume"
+            title="Generate resume from current stored research"
           >
             {refreshAllInProgress ? (
               <>

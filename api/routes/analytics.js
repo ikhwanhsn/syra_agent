@@ -17,7 +17,6 @@ import {
   fetchTrendingJupiter,
   fetchSmartMoney,
   fetchBinanceCorrelation,
-  fetchMemecoinScreens,
 } from "../libs/analyticsFetchers.js";
 
 const router = express.Router();
@@ -192,7 +191,7 @@ function wrapRejected(err) {
 const summaryPaymentOptions = {
   price: X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   description:
-    "Analytics summary: full data from dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, and 9 memecoin screens",
+    "Analytics summary: full data from dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation",
   method: "GET",
   discoverable: true,
   resource: "/analytics/summary",
@@ -202,7 +201,7 @@ const summaryPaymentOptions = {
     updatedAt: { type: "string", description: "ISO timestamp" },
     sections: {
       type: "object",
-      description: "Price, volume, correlation, token risk, on-chain, memecoin data",
+      description: "Price, volume, correlation, token risk, on-chain data",
     },
   },
 };
@@ -221,14 +220,12 @@ async function handleSummary(req, res, options = {}) {
       trendingJupiterResult,
       smartMoneyResult,
       binanceCorrelationResult,
-      memecoinScreensResult,
     ] = await Promise.allSettled([
       fetchDexscreener(),
       fetchTokenStatistic(),
       fetchTrendingJupiter(),
       fetchSmartMoney(),
       fetchBinanceCorrelation(),
-      fetchMemecoinScreens(),
     ]);
 
     const dexscreener = dexscreenerResult.status === "fulfilled"
@@ -246,9 +243,6 @@ async function handleSummary(req, res, options = {}) {
     const binanceCorrelation = binanceCorrelationResult.status === "fulfilled"
       ? wrapFulfilled(binanceCorrelationResult.value)
       : wrapRejected(binanceCorrelationResult.reason);
-    const memecoinScreens = memecoinScreensResult.status === "fulfilled"
-      ? wrapFulfilled(memecoinScreensResult.value)
-      : wrapRejected(memecoinScreensResult.reason);
 
     const summary = {
       api: "v2",
@@ -276,10 +270,6 @@ async function handleSummary(req, res, options = {}) {
         onChain: {
           title: "On-chain & flow",
           smartMoney,
-        },
-        memecoin: {
-          title: "Memecoin screens",
-          ...(memecoinScreens.ok ? memecoinScreens.data : { error: memecoinScreens.error }),
         },
       },
     };

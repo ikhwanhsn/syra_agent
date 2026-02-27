@@ -1,15 +1,8 @@
 /**
- * Internal research/browse/x-search for dashboard (API key auth, no x402).
- * Same behavior as /research/dev, /browse/dev, /x-search/dev but available
- * when API is in production so the internal dashboard can run research without payment.
- * Also provides POST /internal/research-resume (Jatevo) to summarize latest research.
- * GET/PUT /internal/research-store persist latest research in DB (replace on save).
+ * Internal dashboard: research-store (persist/load) and research-resume (Jatevo summarize).
+ * API key auth, no x402. ATXP-based research/browse/x-search endpoints have been removed.
  */
 import express from "express";
-import { atxpClient, ATXPAccount } from "@atxp/client";
-import { researchService } from "../libs/atxp/researchService.js";
-import { browseService } from "../libs/atxp/browseService.js";
-import { xLiveSearchService } from "../libs/atxp/xLiveSearchService.js";
 import { callJatevo } from "../libs/jatevo.js";
 import DashboardResearch from "../models/DashboardResearch.js";
 
@@ -18,132 +11,6 @@ const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
 
 export async function createInternalResearchRouter() {
   const router = express.Router();
-
-  function getClient() {
-    const atxpConnectionString = process.env.ATXP_CONNECTION;
-    if (!atxpConnectionString) {
-      throw new Error("ATXP_CONNECTION is not set");
-    }
-    return atxpClient({
-      mcpServer: researchService.mcpServer,
-      account: new ATXPAccount(atxpConnectionString),
-    });
-  }
-
-  async function getBrowseClient() {
-    const atxpConnectionString = process.env.ATXP_CONNECTION;
-    if (!atxpConnectionString) throw new Error("ATXP_CONNECTION is not set");
-    return atxpClient({
-      mcpServer: browseService.mcpServer,
-      account: new ATXPAccount(atxpConnectionString),
-    });
-  }
-
-  async function getXSearchClient() {
-    const atxpConnectionString = process.env.ATXP_CONNECTION;
-    if (!atxpConnectionString) throw new Error("ATXP_CONNECTION is not set");
-    return atxpClient({
-      mcpServer: xLiveSearchService.mcpServer,
-      account: new ATXPAccount(atxpConnectionString),
-    });
-  }
-
-  // GET /internal/research?query=...&type=quick|deep
-  router.get("/research", async (req, res) => {
-    const { query, type } = req.query;
-    if (!query || typeof query !== "string") {
-      return res.status(400).json({ error: "query is required" });
-    }
-    try {
-      const client = await getClient();
-      const toolName =
-        type === "deep"
-          ? researchService.deepResearchToolName
-          : researchService.quickResearchToolName;
-      const researchResult = await client.callTool({
-        name: toolName,
-        arguments:
-          type === "deep"
-            ? researchService.getDeepResearchArguments(query)
-            : researchService.getQuickResearchArguments(query),
-      });
-      const { status, content, sources } =
-        type === "deep"
-          ? researchService.getDeepResearchResult(researchResult)
-          : researchService.getQuickResearchResult(researchResult);
-      if (status === "success") {
-        return res.json({ status, content, sources });
-      }
-      return res.status(500).json({ error: "Research failed" });
-    } catch (error) {
-      return res.status(500).json({
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  // GET /internal/browse?query=...
-  router.get("/browse", async (req, res) => {
-    const { query } = req.query;
-    if (!query || typeof query !== "string") {
-      return res.status(400).json({ error: "query is required" });
-    }
-    try {
-      const client = await getBrowseClient();
-      const result = await client.callTool({
-        name: browseService.runTaskToolName,
-        arguments: browseService.getArguments(query),
-      });
-      const taskId = browseService.getRunTaskResult(result);
-      const pollInterval = 5000;
-      for (;;) {
-        const taskResult = await client.callTool({
-          name: browseService.getTaskToolName,
-          arguments: { taskId },
-        });
-        const taskData = browseService.getGetTaskResult(taskResult);
-        if (["finished", "stopped", "failed"].includes(taskData.status)) {
-          return res.json({ query, result: JSON.stringify(taskData) });
-        }
-        await new Promise((r) => setTimeout(r, pollInterval));
-      }
-    } catch (error) {
-      return res.status(500).json({
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  // GET /internal/x-search?query=...
-  router.get("/x-search", async (req, res) => {
-    const { query } = req.query;
-    if (!query || typeof query !== "string") {
-      return res.status(400).json({ error: "query is required" });
-    }
-    try {
-      const client = await getXSearchClient();
-      const result = await client.callTool({
-        name: xLiveSearchService.toolName,
-        arguments: xLiveSearchService.getArguments({ query }),
-      });
-      const { status, query: q, message, citations, toolCalls, errorMessage } =
-        xLiveSearchService.getResult(result);
-      if (status === "success") {
-        return res.json({ query: q, result: message, citations, toolCalls });
-      }
-      return res.status(500).json({
-        error: "Search failed",
-        message: errorMessage,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
 
   // POST /internal/research-resume — summarize latest research using Jatevo
   // Body: { panels?: Record<id, { data: { result }, lastQuery }>, customXSearch?, deepResearch?, browse? }

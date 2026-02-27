@@ -83,15 +83,14 @@ export const X402_API_PRICE_EXA_SEARCH_USD = price(0.01);
 
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
- * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation + 9 memecoin screens)
+ * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
  */
 export const X402_API_PRICE_ANALYTICS_SUMMARY_USD =
   X402_API_PRICE_DEXSCREENER_USD +
   X402_API_PRICE_USD + // token-statistic
   X402_API_PRICE_USD + // trending-jupiter
   X402_API_PRICE_NANSEN_USD + // smart-money
-  X402_API_PRICE_USD + // binance correlation
-  9 * X402_API_PRICE_USD; // 9 memecoin screens
+  X402_API_PRICE_USD; // binance correlation
 
 /** Display prices: real API cost (production level = base * 10). Use for tools list/catalog so UI matches actual cost. */
 export const X402_DISPLAY_PRICE_USD = 0.01 * PRODUCTION_MULT;
@@ -110,5 +109,4 @@ export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_USD +
   X402_DISPLAY_PRICE_USD +
   X402_DISPLAY_PRICE_NANSEN_USD +
-  X402_DISPLAY_PRICE_USD +
-  9 * X402_DISPLAY_PRICE_USD;
+  X402_DISPLAY_PRICE_USD;

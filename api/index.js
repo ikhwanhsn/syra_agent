@@ -31,13 +31,7 @@ import { createNewsRouter as createV2NewsRouter } from "./routes/news.js";
 import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 import { createSentimentRouter as createV2SentimentRouter } from "./routes/sentiment.js";
 import { createEventRouter as createV2EventRouter } from "./routes/event.js";
-import { createBrowseRouter as createV2BrowseRouter } from "./routes/browse.js";
-import { createXSearchRouter as createV2XSearchRouter } from "./routes/xSearch.js";
-import { createResearchRouter as createV2ResearchRouter } from "./routes/research.js";
 import { createExaSearchRouter as createV2ExaSearchRouter } from "./routes/exa-search.js";
-import { createGemsRouter as createV2GemsRouter } from "./routes/gems.js";
-import { createXKOLRouter as createV2XKOLRouter } from "./routes/kol.js";
-import { createCryptoKOLRouter as createV2CryptoKOLRouter } from "./routes/crypto-kol.js";
 import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/check-status.js";
 import { createTrendingHeadlineRouter as createV2TrendingHeadlineRouter } from "./routes/trending-headline.js";
 import { createSundownDigestRouter as createV2SundownDigestRouter } from "./routes/sundown-digest.js";
@@ -55,15 +49,6 @@ import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./ro
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
 import { createV2CoingeckoOnchainRouter } from "./routes/partner/coingecko/onchain.js";
 import { createV2CoingeckoSimplePriceRouter } from "./routes/partner/coingecko/simple-price.js";
-import { createFastestHolderGrowthMemecoinsRouter as createV2FastestHolderGrowthMemecoinsRouter } from "./routes/memecoin/fastestHolderGrowthMemecoins.js";
-import { createMemecoinsAccumulatingBeforeCEXRumorsRouter as createV2MemecoinsAccumulatingBeforeCEXRumorsRouter } from "./routes/memecoin/memecoinsAccumulatingBeforeCEXRumors.js";
-import { createMemecoinsMostMentionedBySmartMoneyXRouter as createV2MemecoinsMostMentionedBySmartMoneyXRouter } from "./routes/memecoin/memecoinsMostMentionedBySmartMoneyX.js";
-import { createMemecoinsStrongNarrativeLowMarketCapRouter as createV2MemecoinsStrongNarrativeLowMarketCapRouter } from "./routes/memecoin/memecoinsStrongNarrativeLowMarketCap.js";
-import { createMemecoinsByExperiencedDevsRouter as createV2MemecoinsByExperiencedDevsRouter } from "./routes/memecoin/memecoinsByExperiencedDevs.js";
-import { createMemecoinsUnusualWhaleBehaviorRouter as createV2MemecoinsUnusualWhaleBehaviorRouter } from "./routes/memecoin/memecoinsUnusualWhaleBehavior.js";
-import { createMemecoinsTrendingOnXNotDEXRouter as createV2MemecoinsTrendingOnXNotDEXRouter } from "./routes/memecoin/memecoinsTrendingOnXNotDEX.js";
-import { createMemecoinsOrganicTractionRouter as createV2MemecoinsOrganicTractionRouter } from "./routes/memecoin/aiMemecoinsOrganicTraction.js";
-import { createMemecoinsSurvivingMarketDumpsRouter as createV2MemecoinsSurvivingMarketDumpsRouter } from "./routes/memecoin/memecoinsSurvivingMarketDumps.js";
 // NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
 // import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 // import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -170,13 +155,7 @@ function isX402Route(p) {
   if (p.startsWith("/.well-known")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
-  if (p.startsWith("/x-search")) return true;
-  if (p.startsWith("/x-kol")) return true;
-  if (p.startsWith("/browse")) return true;
-  if (p.startsWith("/research")) return true;
   if (p.startsWith("/exa-search")) return true;
-  if (p.startsWith("/gems")) return true;
-  if (p.startsWith("/crypto-kol")) return true;
   if (p.startsWith("/check-status") && !p.startsWith("/check-status-agent")) return true;
   if (p.startsWith("/smart-money")) return true;
   if (p.startsWith("/dexscreener")) return true;
@@ -192,7 +171,6 @@ function isX402Route(p) {
   if (p.startsWith("/trending-headline")) return true;
   if (p.startsWith("/sundown-digest")) return true;
   if (p.startsWith("/bubblemaps")) return true;
-  if (p.startsWith("/memecoin/")) return true;
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
   return false;
 }
@@ -525,13 +503,7 @@ app.use("/v1", (req, res) => {
 
 // x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/signal", await createV2SignalRouter());
-app.use("/x-search", await createV2XSearchRouter());
 app.use("/exa-search", await createV2ExaSearchRouter());
-app.use("/x-kol", await createV2XKOLRouter());
-app.use("/browse", await createV2BrowseRouter());
-app.use("/research", await createV2ResearchRouter());
-app.use("/gems", await createV2GemsRouter());
-app.use("/crypto-kol", await createV2CryptoKOLRouter());
 app.use("/check-status", await createV2CheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/smart-money", await createV2SmartMoneyRouter());
@@ -559,47 +531,11 @@ app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
 // Sentinel Dashboard: spend, agents, alerts (API key auth); same storage as wrapWithSentinel
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
-// Internal dashboard: research, browse, x-search (API key auth, no x402)
+// Internal dashboard: research-store, research-resume (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
 app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
-app.use(
-  "/memecoin/fastest-holder-growth",
-  await createV2FastestHolderGrowthMemecoinsRouter(),
-);
-app.use(
-  "/memecoin/most-mentioned-by-smart-money-x",
-  await createV2MemecoinsMostMentionedBySmartMoneyXRouter(),
-);
-app.use(
-  "/memecoin/accumulating-before-CEX-rumors",
-  await createV2MemecoinsAccumulatingBeforeCEXRumorsRouter(),
-);
-app.use(
-  "/memecoin/strong-narrative-low-market-cap",
-  await createV2MemecoinsStrongNarrativeLowMarketCapRouter(),
-);
-app.use(
-  "/memecoin/by-experienced-devs",
-  await createV2MemecoinsByExperiencedDevsRouter(),
-);
-app.use(
-  "/memecoin/unusual-whale-behavior",
-  await createV2MemecoinsUnusualWhaleBehaviorRouter(),
-);
-app.use(
-  "/memecoin/trending-on-x-not-dex",
-  await createV2MemecoinsTrendingOnXNotDEXRouter(),
-);
-app.use(
-  "/memecoin/organic-traction",
-  await createV2MemecoinsOrganicTractionRouter(),
-);
-app.use(
-  "/memecoin/surviving-market-dumps",
-  await createV2MemecoinsSurvivingMarketDumpsRouter(),
-);
 
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
@@ -636,15 +572,8 @@ app.get("/.well-known/x402", (req, res) => {
     "trending-headline",
     "sundown-digest",
     "check-status",
-    // X/Twitter & search
-    "x-search",
+    // Search
     "exa-search",
-    "x-kol",
-    "crypto-kol",
-    // Research & analysis
-    "browse",
-    "research",
-    "gems",
     // Partner: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Workfun
     "smart-money",
     "dexscreener",
@@ -665,16 +594,6 @@ app.get("/.well-known/x402", (req, res) => {
     "coingecko/onchain/token",
     // Analytics
     "analytics/summary",
-    // Memecoin
-    "memecoin/fastest-holder-growth",
-    "memecoin/most-mentioned-by-smart-money-x",
-    "memecoin/accumulating-before-CEX-rumors",
-    "memecoin/strong-narrative-low-market-cap",
-    "memecoin/by-experienced-devs",
-    "memecoin/unusual-whale-behavior",
-    "memecoin/trending-on-x-not-dex",
-    "memecoin/organic-traction",
-    "memecoin/surviving-market-dumps",
   ];
 
   const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);

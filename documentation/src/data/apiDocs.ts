@@ -301,112 +301,6 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     ],
   }),
 
-  browse: doc({
-    title: "Browse API",
-    overview:
-      "Scrape and extract information from websites using AI-powered browsing. Send a query and receive extracted data. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/browse",
-        description: "Scrape information from websites based on a query.",
-        params: [
-          { name: "query", type: "string", required: "Yes", description: "Search query or URL to browse and extract information from." },
-        ],
-        requestExample: `curl "${BASE_URL}/browse?query=Find%20the%20latest%20Bitcoin%20price%20from%20CoinMarketCap"`,
-        responseExample: `{
-  "query": "Find the latest Bitcoin price from CoinMarketCap",
-  "result": "{\\"status\\":\\"finished\\",\\"data\\":\\"Bitcoin price is $45,230...\\"}"
-}`,
-      },
-      {
-        method: "POST",
-        path: "/browse",
-        description: "Browse via POST.",
-        bodyExample: `{ "query": "Extract product prices from example-shop.com" }`,
-        requestExample: `curl -X POST ${BASE_URL}/browse \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "Extract all product prices from example-shop.com"}'`,
-        responseExample: `{
-  "query": "Extract all product prices from example-shop.com",
-  "result": "{\\"status\\":\\"finished\\",\\"data\\":\\"Product A: $99, Product B: $149...\\"}"
-}`,
-      },
-    ],
-  }),
-
-  research: doc({
-    title: "Research API",
-    overview:
-      "AI-powered research with Quick (30–60s) or Deep (2–5 min) modes. Gathers and synthesizes information from multiple web sources to answer your research queries.",
-    useCases: [
-      "Quick facts and overviews (quick mode)",
-      "In-depth reports with citations (deep mode)",
-      "Market analysis, token research, and trend reports",
-    ],
-    endpoints: [
-      {
-        method: "GET",
-        path: "/research",
-        description: "Perform research on any topic.",
-        params: [
-          { name: "query", type: "string", required: "Yes", description: "Research query (e.g. token analysis, market trends)." },
-          { name: "type", type: "string", required: "No", description: "'quick' or 'deep'. Default: quick." },
-        ],
-        requestExample: `# Quick research (default)
-curl "${BASE_URL}/research?query=What%20is%20Bitcoin%20ETF"
-
-# Deep research
-curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
-        responseExample: `{
-  "status": "success",
-  "content": "# Bitcoin ETF Analysis\\n\\nA Bitcoin ETF tracks the price of Bitcoin...",
-  "sources": [
-    { "url": "https://...", "title": "...", "relevance": "..." }
-  ]
-}`,
-      },
-      {
-        method: "POST",
-        path: "/research",
-        description: "Research via POST.",
-        bodyExample: `{ "query": "Compare L1 vs L2 scaling", "type": "deep" }`,
-        requestExample: `curl -X POST ${BASE_URL}/research \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "Compare Layer 1 vs Layer 2 blockchain scaling", "type": "deep"}'`,
-        responseExample: `{
-  "status": "success",
-  "content": "# Layer 1 vs Layer 2 Scaling\\n\\nLayer 1 blockchains scale by changing consensus or block size...",
-  "sources": [
-    { "url": "https://ethereum.org/scaling", "title": "Ethereum Scaling", "relevance": "high" }
-  ]
-}`,
-      },
-    ],
-  }),
-
-  "x-search": doc({
-    title: "X Search API",
-    overview: "Deep research on X (Twitter) for crypto trends and discussions. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/x-search",
-        description: "Search X for crypto content.",
-        params: [
-          { name: "query", type: "string", required: "Yes", description: "Search query for X/Twitter research (e.g. token name, topic)." },
-        ],
-        requestExample: `curl "${BASE_URL}/x-search?query=bitcoin"`,
-        responseExample: `{
-  "query": "bitcoin",
-  "result": "AI-summarized findings from X/Twitter...",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
   "exa-search": doc({
     title: "EXA Search API",
     overview:
@@ -449,43 +343,23 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     ],
   }),
 
-  gems: doc({
-    title: "Gems API",
-    overview: "Discover hidden gem crypto projects trending on X/Twitter. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/gems",
-        description: "Fetch AI-analyzed hidden gem projects.",
-        requestExample: `curl ${BASE_URL}/gems`,
-        responseExample: `{
-  "query": "...",
-  "result": "AI-analyzed hidden gem projects with potential and risks...",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
   "analytics-summary": doc({
     title: "Analytics Summary API",
     overview:
-      "Full analytics summary aggregating dexscreener, token-statistic, trending-jupiter, smart-money, Binance correlation, and 9 memecoin screens in a single paid request. Uses the x402 payment protocol.",
+      "Full analytics summary aggregating dexscreener, token-statistic, trending-jupiter, smart-money, and Binance correlation in a single paid request. Uses the x402 payment protocol.",
     price: "See x402 response for current price (typically higher than single-endpoint calls).",
     endpoints: [
       {
         method: "GET",
         path: "/analytics/summary",
-        description: "Fetch full analytics summary (DEX data, token stats, Jupiter trending, smart money, Binance correlation, memecoin screens).",
+        description: "Fetch full analytics summary (DEX data, token stats, Jupiter trending, smart money, Binance correlation).",
         requestExample: `curl ${BASE_URL}/analytics/summary`,
         responseExample: `{
   "dexscreener": {},
   "tokenStatistic": {},
   "trendingJupiter": {},
   "smartMoney": {},
-  "binanceCorrelation": {},
-  "memecoinScreens": {}
+  "binanceCorrelation": {}
 }`,
       },
       {
@@ -499,8 +373,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
   "tokenStatistic": {},
   "trendingJupiter": {},
   "smartMoney": {},
-  "binanceCorrelation": {},
-  "memecoinScreens": {}
+  "binanceCorrelation": {}
 }`,
       },
     ],
@@ -599,55 +472,6 @@ curl "${BASE_URL}/event?ticker=BTC"`,
           "time": "09:00 AM EST"
         }
       ]
-    }
-  ]
-}`,
-      },
-    ],
-  }),
-
-  kol: doc({
-    title: "X KOL API",
-    overview: "Get key opinion leader (KOL) insights and mentions for crypto from X/Twitter. Optional Solana token contract address for KOL analysis. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/x-kol",
-        description: "Fetch KOL data. Optionally pass a Solana token contract address for token-specific KOL analysis.",
-        params: [
-          { name: "address", type: "string", required: "No", description: "Solana token contract address for KOL mentions and sentiment." },
-        ],
-        requestExample: `curl ${BASE_URL}/x-kol
-curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
-        responseExample: `{
-  "query": "X KOL crypto insights",
-  "result": "Key opinion leaders this week: @influencer1 highlighted Bitcoin ETF flows; @influencer2 discussed Solana DeFi growth. Summary of top mentions and sentiment.",
-  "citations": [
-    { "url": "https://x.com/...", "title": "Post by @influencer1" }
-  ],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "crypto-kol": doc({
-    title: "Crypto KOL API",
-    overview: "Crypto-specific KOL analysis and sentiment. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/crypto-kol",
-        description: "Fetch crypto KOL data.",
-        requestExample: `curl ${BASE_URL}/crypto-kol`,
-        responseExample: `{
-  "data": [
-    {
-      "kol": "@crypto_analyst",
-      "mentionCount": 42,
-      "sentiment": "bullish",
-      "topics": ["BTC", "ETH"],
-      "lastActive": "2024-01-15T12:00:00Z"
     }
   ]
 }`,
@@ -1395,172 +1219,6 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
         title: "Dev routes (no payment)",
         content:
           "When NODE_ENV is not production, GET /coingecko/simple-price/dev, /coingecko/onchain/token-price/dev, /coingecko/onchain/search-pools/dev, /coingecko/onchain/trending-pools/dev, and /coingecko/onchain/token/dev accept the same query parameters and return the same response shape without x402 payment. PAYER_KEYPAIR must be set for the server to pay CoinGecko x402.",
-      },
-    ],
-  }),
-
-  "memecoin-fastest-holder-growth": doc({
-    title: "Memecoin: Fastest Holder Growth",
-    overview: "Get the fastest growing memecoins by holder growth rate. Uses the x402 payment protocol.",
-    endpoints: [
-      { method: "GET", path: "/memecoin/fastest-holder-growth", description: "Fetch list.", requestExample: `curl ${BASE_URL}/memecoin/fastest-holder-growth`, responseExample: `{
-  "query": "...",
-  "result": "AI-summarized memecoins with fastest holder growth...",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-most-mentioned-smart-money-x": doc({
-    title: "Memecoin: Most Mentioned Smart Money (X)",
-    overview: "Memecoins most mentioned by smart money on X. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/most-mentioned-by-smart-money-x",
-        description: "Fetch memecoins most mentioned by smart money on X.",
-        requestExample: `curl ${BASE_URL}/memecoin/most-mentioned-by-smart-money-x`,
-        responseExample: `{
-  "query": "Memecoins most mentioned by smart money on X",
-  "result": "AI-summarized list with token names, mention counts, and smart money wallet context.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-accumulating-before-cex-rumors": doc({
-    title: "Memecoin: Accumulating Before CEX Rumors",
-    overview: "Memecoins with accumulation signals before CEX listing rumors. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/accumulating-before-CEX-rumors",
-        description: "Fetch memecoins accumulating before CEX rumors.",
-        requestExample: `curl ${BASE_URL}/memecoin/accumulating-before-CEX-rumors`,
-        responseExample: `{
-  "query": "Memecoins accumulating before CEX rumors",
-  "result": "AI-summarized list with tokens showing accumulation and CEX listing speculation.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-strong-narrative-low-market-cap": doc({
-    title: "Memecoin: Strong Narrative, Low Market Cap",
-    overview: "Memecoins with strong narrative and low market cap. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/strong-narrative-low-market-cap",
-        description: "Fetch memecoins with strong narrative and low market cap.",
-        requestExample: `curl ${BASE_URL}/memecoin/strong-narrative-low-market-cap`,
-        responseExample: `{
-  "query": "Memecoins with strong narrative and low market cap",
-  "result": "AI-summarized list with token names, narrative summary, and market cap ranges.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-by-experienced-devs": doc({
-    title: "Memecoin: By Experienced Devs",
-    overview: "Memecoins built by experienced developers. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/by-experienced-devs",
-        description: "Fetch memecoins by experienced developers.",
-        requestExample: `curl ${BASE_URL}/memecoin/by-experienced-devs`,
-        responseExample: `{
-  "query": "Memecoins by experienced developers",
-  "result": "AI-summarized list with token names and dev background context.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-unusual-whale-behavior": doc({
-    title: "Memecoin: Unusual Whale Behavior",
-    overview: "Memecoins with unusual whale accumulation or selling. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/unusual-whale-behavior",
-        description: "Fetch memecoins with unusual whale behavior.",
-        requestExample: `curl ${BASE_URL}/memecoin/unusual-whale-behavior`,
-        responseExample: `{
-  "query": "Memecoins with unusual whale behavior",
-  "result": "AI-summarized list with tokens and whale activity context.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-trending-on-x-not-dex": doc({
-    title: "Memecoin: Trending on X (Not DEX)",
-    overview: "Memecoins trending on X before DEX volume. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/trending-on-x-not-dex",
-        description: "Fetch memecoins trending on X but not yet on DEX.",
-        requestExample: `curl ${BASE_URL}/memecoin/trending-on-x-not-dex`,
-        responseExample: `{
-  "query": "Memecoins trending on X not DEX",
-  "result": "AI-summarized list with tokens trending on X before significant DEX volume.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-organic-traction": doc({
-    title: "Memecoin: Organic Traction",
-    overview: "Memecoins with organic community and traction. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/organic-traction",
-        description: "Fetch memecoins with organic traction.",
-        requestExample: `curl ${BASE_URL}/memecoin/organic-traction`,
-        responseExample: `{
-  "query": "Memecoins with organic traction",
-  "result": "AI-summarized list with tokens showing organic community growth and engagement.",
-  "citations": [],
-  "toolCalls": []
-}`,
-      },
-    ],
-  }),
-
-  "memecoin-surviving-market-dumps": doc({
-    title: "Memecoin: Surviving Market Dumps",
-    overview: "Memecoins that held up during market dumps. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/memecoin/surviving-market-dumps",
-        description: "Fetch memecoins that survived market dumps.",
-        requestExample: `curl ${BASE_URL}/memecoin/surviving-market-dumps`,
-        responseExample: `{
-  "query": "Memecoins surviving market dumps",
-  "result": "AI-summarized list with tokens that held up during recent market dumps.",
-  "citations": [],
-  "toolCalls": []
-}`,
       },
     ],
   }),

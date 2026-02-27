@@ -12,7 +12,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@atxp/client": "^0.8.2",
     "@faremeter/info": "^0.14.0",
     "@faremeter/middleware": "^0.14.0",
     "@faremeter/rides": "^0.14.0",

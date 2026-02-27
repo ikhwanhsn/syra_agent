@@ -6,7 +6,6 @@ import {
   X402_API_PRICE_USD,
   X402_API_PRICE_CHECK_STATUS_USD,
   X402_API_PRICE_NEWS_USD,
-  X402_API_PRICE_RESEARCH_USD,
   X402_API_PRICE_NANSEN_USD,
   X402_API_PRICE_NANSEN_PREMIUM_USD,
   X402_API_PRICE_DEXSCREENER_USD,
@@ -20,7 +19,6 @@ import {
   X402_DISPLAY_PRICE_USD,
   X402_DISPLAY_PRICE_CHECK_STATUS_USD,
   X402_DISPLAY_PRICE_NEWS_USD,
-  X402_DISPLAY_PRICE_RESEARCH_USD,
   X402_DISPLAY_PRICE_NANSEN_USD,
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
   X402_DISPLAY_PRICE_DEXSCREENER_USD,
@@ -86,33 +84,6 @@ export const AGENT_TOOLS = [
     description: 'Event data and updates',
   },
   {
-    id: 'browse',
-    path: '/browse',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Browse',
-    description: 'Browse / discovery data',
-  },
-  {
-    id: 'x-search',
-    path: '/x-search',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'X search',
-    description: 'Search X/Twitter for crypto and market content',
-  },
-  {
-    id: 'research',
-    path: '/research',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_RESEARCH_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_RESEARCH_USD,
-    name: 'Research',
-    description: 'Deep research / analysis',
-  },
-  {
     id: 'exa-search',
     path: '/exa-search',
     method: 'GET',
@@ -120,33 +91,6 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_EXA_SEARCH_USD,
     name: 'EXA search',
     description: 'EXA AI web search – dynamic query only',
-  },
-  {
-    id: 'gems',
-    path: '/gems',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Gems',
-    description: 'Gems / curated insights',
-  },
-  {
-    id: 'x-kol',
-    path: '/x-kol',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'X KOL',
-    description: 'X/Twitter KOL (key opinion leader) data',
-  },
-  {
-    id: 'crypto-kol',
-    path: '/crypto-kol',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Crypto KOL',
-    description: 'Crypto KOL data and insights',
   },
   {
     id: 'trending-headline',
@@ -173,7 +117,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_ANALYTICS_SUMMARY_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
     name: 'Analytics summary',
-    description: 'Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation, and 9 memecoin screens',
+    description: 'Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation',
   },
   // Partner: Nansen
   {
@@ -443,88 +387,6 @@ export const AGENT_TOOLS = [
     name: 'CoinGecko onchain token',
     description: 'Token data by contract address on a network: price, liquidity, top pools (network + address required)',
   },
-  // Memecoin
-  {
-    id: 'memecoin-fastest-holder-growth',
-    path: '/memecoin/fastest-holder-growth',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin fastest holder growth',
-    description: 'Memecoins with fastest holder growth',
-  },
-  {
-    id: 'memecoin-most-mentioned-by-smart-money-x',
-    path: '/memecoin/most-mentioned-by-smart-money-x',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin most mentioned by smart money (X)',
-    description: 'Memecoins most mentioned by smart money on X',
-  },
-  {
-    id: 'memecoin-accumulating-before-cex-rumors',
-    path: '/memecoin/accumulating-before-CEX-rumors',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin accumulating before CEX rumors',
-    description: 'Memecoins accumulating before CEX listing rumors',
-  },
-  {
-    id: 'memecoin-strong-narrative-low-market-cap',
-    path: '/memecoin/strong-narrative-low-market-cap',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin strong narrative low market cap',
-    description: 'Memecoins with strong narrative and low market cap',
-  },
-  {
-    id: 'memecoin-by-experienced-devs',
-    path: '/memecoin/by-experienced-devs',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin by experienced devs',
-    description: 'Memecoins by experienced developers',
-  },
-  {
-    id: 'memecoin-unusual-whale-behavior',
-    path: '/memecoin/unusual-whale-behavior',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin unusual whale behavior',
-    description: 'Memecoins with unusual whale behavior',
-  },
-  {
-    id: 'memecoin-trending-on-x-not-dex',
-    path: '/memecoin/trending-on-x-not-dex',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin trending on X not DEX',
-    description: 'Memecoins trending on X but not yet on DEX',
-  },
-  {
-    id: 'memecoin-organic-traction',
-    path: '/memecoin/organic-traction',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin organic traction',
-    description: 'Memecoins with organic traction (AI)',
-  },
-  {
-    id: 'memecoin-surviving-market-dumps',
-    path: '/memecoin/surviving-market-dumps',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_USD,
-    name: 'Memecoin surviving market dumps',
-    description: 'Memecoins surviving market dumps',
-  },
 ];
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
@@ -603,66 +465,6 @@ export function matchToolFromUserMessage(userMessage) {
 
   // Ordered intent patterns: more specific first. Return first match.
   const intents = [
-    // Memecoin (specific screens)
-    {
-      toolId: 'memecoin-fastest-holder-growth',
-      test: () =>
-        /fastest\s*holder\s*growth|memecoin\s*holder\s*growth|holder\s*growth\s*memecoin/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'memecoin-most-mentioned-by-smart-money-x',
-      test: () =>
-        /most\s*mentioned\s*by\s*smart\s*money|smart\s*money\s*mentioned|mentioned\s*smart\s*money\s*x/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'memecoin-accumulating-before-cex-rumors',
-      test: () =>
-        /accumulating\s*before\s*cex|cex\s*rumors\s*memecoin|before\s*cex\s*rumors/i.test(text),
-    },
-    {
-      toolId: 'memecoin-strong-narrative-low-market-cap',
-      test: () =>
-        /strong\s*narrative\s*low\s*market\s*cap|low\s*market\s*cap\s*narrative|narrative\s*low\s*cap/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'memecoin-by-experienced-devs',
-      test: () =>
-        /memecoin\s*experienced\s*dev|by\s*experienced\s*devs|experienced\s*developers\s*memecoin/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'memecoin-unusual-whale-behavior',
-      test: () =>
-        /unusual\s*whale\s*behavior|whale\s*behavior\s*memecoin|memecoin\s*whale\s*behavior/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'memecoin-trending-on-x-not-dex',
-      test: () =>
-        /trending\s*on\s*x\s*not\s*dex|trending\s*x\s*not\s*dex|memecoin\s*trending\s*x/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'memecoin-organic-traction',
-      test: () =>
-        /organic\s*traction|memecoin\s*organic|organic\s*memecoin/i.test(text),
-    },
-    {
-      toolId: 'memecoin-surviving-market-dumps',
-      test: () =>
-        /surviving\s*market\s*dumps|memecoin\s*surviving\s*dump|market\s*dump\s*survivors/i.test(
-          text
-        ),
-    },
     // Partner: Rugcheck, Bubblemaps, Binance
     {
       toolId: 'token-report',
@@ -808,7 +610,7 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /token\s*price\s*by\s*(?:contract\s*)?address|onchain\s*token\s*price|price\s*of\s*token\s*(?:at|by)\s*address|coingecko\s*token\s*price/i.test(text),
     },
-    // Core: signal, event, browse, x-search, gems, KOL, digest, headline
+    // Core: signal, event, digest, headline
     {
       toolId: 'signal',
       test: () =>
@@ -821,33 +623,6 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'event',
       test: () =>
         /event\s*data|events\s*(please|now)?|crypto\s*events|get\s*events/i.test(text),
-    },
-    {
-      toolId: 'browse',
-      test: () =>
-        /browse|discovery|browse\s*data/i.test(text),
-    },
-    {
-      toolId: 'x-search',
-      test: () =>
-        /x\s*search|search\s*x|twitter\s*search|search\s*twitter|x\s*twitter\s*search/i.test(
-          text
-        ),
-    },
-    {
-      toolId: 'gems',
-      test: () =>
-        /gems|curated\s*insights|gems\s*data/i.test(text),
-    },
-    {
-      toolId: 'x-kol',
-      test: () =>
-        /x\s*kol|kol\s*x|twitter\s*kol|key\s*opinion\s*leader\s*x/i.test(text),
-    },
-    {
-      toolId: 'crypto-kol',
-      test: () =>
-        /crypto\s*kol|kol\s*crypto|key\s*opinion\s*leader\s*crypto/i.test(text),
     },
     {
       toolId: 'trending-headline',
@@ -863,11 +638,6 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'analytics-summary',
       test: () =>
         /analytics\s*summary|full\s*analytics|all\s*analytics|dashboard\s*data|summary\s*analytics/i.test(text),
-    },
-    {
-      toolId: 'research',
-      test: () =>
-        /deep\s*research|research\s*(report|analysis)?|run\s*research|do\s*research/i.test(text),
     },
     {
       toolId: 'sentiment',
@@ -913,10 +683,9 @@ export function matchToolFromUserMessage(userMessage) {
  */
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
-  const core = ['news', 'signal', 'sentiment', 'event', 'browse', 'x-search', 'exa-search', 'research', 'gems', 'x-kol', 'crypto-kol', 'trending-headline', 'sundown-digest', 'analytics-summary'];
+  const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
-  const memecoin = AGENT_TOOLS.filter((t) => t.id.startsWith('memecoin-')).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
 
@@ -934,7 +703,6 @@ export function getCapabilitiesList() {
   if (nansenX402.length) {
     lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
   }
-  lines.push('Memecoin screens:', ...fmt(memecoin));
 
   return lines;
 }

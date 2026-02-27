@@ -1,5 +1,6 @@
 /**
- * Internal research, browse, and X search APIs for the dashboard.
+ * Internal research store and resume APIs for the dashboard.
+ * Live research, browse, and X search (ATXP) have been removed; only store and resume remain.
  * Uses /internal/* endpoints (API key auth, no x402).
  */
 
@@ -20,87 +21,6 @@ function headers(): Record<string, string> {
     "X-API-Key": getApiKey(),
     Accept: "application/json",
   };
-}
-
-export interface ResearchResponse {
-  status: string;
-  content: string;
-  sources?: unknown[];
-}
-
-export interface BrowseResponse {
-  query: string;
-  result: string;
-}
-
-export interface XSearchResponse {
-  query: string;
-  result: string;
-  citations?: unknown[];
-  toolCalls?: unknown[];
-}
-
-export async function fetchResearch(
-  query: string,
-  type: "quick" | "deep" = "deep"
-): Promise<ResearchResponse> {
-  const base = getBaseUrl();
-  const res = await fetch(
-    `${base}/internal/research?${new URLSearchParams({ query, type })}`,
-    { headers: headers() }
-  );
-  if (!res.ok) {
-    const text = await res.text();
-    let err: string;
-    try {
-      const j = JSON.parse(text);
-      err = j.message || j.error || text;
-    } catch {
-      err = text;
-    }
-    throw new Error(err || `Research failed: ${res.status}`);
-  }
-  return res.json() as Promise<ResearchResponse>;
-}
-
-export async function fetchBrowse(query: string): Promise<BrowseResponse> {
-  const base = getBaseUrl();
-  const res = await fetch(
-    `${base}/internal/browse?${new URLSearchParams({ query })}`,
-    { headers: headers() }
-  );
-  if (!res.ok) {
-    const text = await res.text();
-    let err: string;
-    try {
-      const j = JSON.parse(text);
-      err = j.message || j.error || text;
-    } catch {
-      err = text;
-    }
-    throw new Error(err || `Browse failed: ${res.status}`);
-  }
-  return res.json() as Promise<BrowseResponse>;
-}
-
-export async function fetchXSearch(query: string): Promise<XSearchResponse> {
-  const base = getBaseUrl();
-  const res = await fetch(
-    `${base}/internal/x-search?${new URLSearchParams({ query })}`,
-    { headers: headers() }
-  );
-  if (!res.ok) {
-    const text = await res.text();
-    let err: string;
-    try {
-      const j = JSON.parse(text);
-      err = j.message || j.error || text;
-    } catch {
-      err = text;
-    }
-    throw new Error(err || `X search failed: ${res.status}`);
-  }
-  return res.json() as Promise<XSearchResponse>;
 }
 
 /** Payload for research-resume: latest research content from dashboard. */

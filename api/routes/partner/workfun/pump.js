@@ -1,12 +1,5 @@
 import express from "express";
-import { getV2Payment } from "../../../utils/getV2Payment.js";
-
-const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
-import { X402_API_PRICE_PUMP_USD } from "../../../config/x402Pricing.js";
-import { atxpClient, ATXPAccount } from "@atxp/client";
-import { researchService } from "../../../libs/atxp/researchService.js";
 import { payer } from "@faremeter/rides";
-import { xLiveSearchService } from "../../../libs/atxp/xLiveSearchService.js";
 
 export async function createPumpRouter() {
   const router = express.Router();
@@ -93,74 +86,6 @@ export async function createPumpRouter() {
         // }
       } catch (error) {
         res.status(500).json({ error: "Internal server error" });
-      }
-    }
-  );
-
-  // POST endpoint for advanced search
-  router.post(
-    "/",
-    requirePayment({
-      price: X402_API_PRICE_PUMP_USD,
-      description: "Research information from websites",
-      method: "POST",
-      discoverable: true, // Make it discoverable on x402scan
-      resource: "/research",
-      inputSchema: {
-        bodyType: "json",
-        bodyFields: {
-          query: {
-            type: "string",
-            required: false,
-            description: "Query for the research",
-          },
-          type: {
-            type: "enum",
-            required: false,
-            description: "Type of research",
-            enum: ["quick", "deep"],
-          },
-        },
-      },
-    }),
-    async (req, res) => {
-      const { query, type } = req.body;
-
-      // Read the ATXP account details from environment variables
-      const atxpConnectionString = process.env.ATXP_CONNECTION;
-
-      // Create a client using the `atxpClient` function
-      const client = await atxpClient({
-        mcpServer: researchService.mcpServer,
-        account: new ATXPAccount(atxpConnectionString),
-      });
-
-      try {
-        const toolName =
-          type === "deep"
-            ? researchService.deepResearchToolName
-            : researchService.quickResearchToolName;
-        const researchResult = await client.callTool({
-          name: toolName,
-          arguments:
-            type === "deep"
-              ? researchService.getDeepResearchArguments(query)
-              : researchService.getQuickResearchArguments(query),
-        });
-        const { status, content, sources } =
-          type === "deep"
-            ? researchService.getDeepResearchResult(researchResult)
-            : researchService.getQuickResearchResult(researchResult);
-
-        if (status === "success") {
-          // Settle payment ONLY on success
-          await settlePaymentAndSetResponse(res, req);
-
-          res.json({ status, content, sources });
-        }
-      } catch (error) {
-        res.status(500).json({ error: "Internal server error" });
-        process.exit(1);
       }
     }
   );

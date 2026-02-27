@@ -114,13 +114,11 @@ async function main() {
   const noParamTools: Array<{ name: string; path: string; description: string }> = [
     { name: "syra_v2_check_status", path: "/check-status", description: "Health check: verify API server status and connectivity." + PAYMENT_NOTE },
     { name: "syra_v2_sundown_digest", path: "/sundown-digest", description: "Get the daily sundown digest (crypto roundup)." + PAYMENT_NOTE },
-    { name: "syra_v2_gems", path: "/gems", description: "Discover hidden gem crypto projects trending on X/Twitter." + PAYMENT_NOTE },
-    { name: "syra_v2_crypto_kol", path: "/crypto-kol", description: "Get latest insights from top crypto KOLs (e.g. @elonmusk, @VitalikButerin)." + PAYMENT_NOTE },
     { name: "syra_v2_token_statistic", path: "/token-statistic", description: "Token statistic on Rugcheck (new, recent, trending, verified)." + PAYMENT_NOTE },
     { name: "syra_v2_smart_money", path: "/smart-money", description: "Smart money tracking: net flow, holdings, DEX trades, DCA patterns." + PAYMENT_NOTE },
     { name: "syra_v2_dexscreener", path: "/dexscreener", description: "DEXScreener aggregated data: token profiles, community takeovers, ads, boosted tokens." + PAYMENT_NOTE },
     { name: "syra_v2_trending_jupiter", path: "/trending-jupiter", description: "Trending tokens on Jupiter." + PAYMENT_NOTE },
-    { name: "syra_v2_analytics_summary", path: "/analytics/summary", description: "Full analytics summary: dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, memecoin screens." + PAYMENT_NOTE },
+    { name: "syra_v2_analytics_summary", path: "/analytics/summary", description: "Full analytics summary: dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation." + PAYMENT_NOTE },
   ];
 
   for (const { name, path, description } of noParamTools) {
@@ -131,21 +129,6 @@ async function main() {
   }
 
   // --- Query param (required or optional) ---
-  server.tool(
-    "syra_v2_research",
-    "AI-powered deep research on any crypto topic with cited sources. Provide a query; optional type 'quick' or 'deep'." + PAYMENT_NOTE,
-    {
-      query: z.string().describe("Research query (e.g. token analysis, market trends)"),
-      type: z.enum(["quick", "deep"]).optional().describe("'quick' for fast, 'deep' for comprehensive"),
-    },
-    async ({ query, type }) => {
-      const params: Record<string, string> = { query };
-      if (type) params.type = type;
-      const { status, body } = await fetchV2("/research", params);
-      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
-    },
-  );
-
   server.tool(
     "syra_v2_jupiter_swap_order",
     "Get a Jupiter Ultra swap order (buy/sell token on Solana). Returns a transaction to sign and submit. Requires inputMint, outputMint, amount (smallest units), taker (wallet pubkey)." + PAYMENT_NOTE,
@@ -167,30 +150,6 @@ async function main() {
   );
 
   server.tool(
-    "syra_v2_browse",
-    "AI-powered web browsing and information extraction from a URL or search query." + PAYMENT_NOTE,
-    {
-      query: z.string().describe("Search query or URL to browse and extract information from"),
-    },
-    async ({ query }) => {
-      const { status, body } = await fetchV2("/browse", { query });
-      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
-    },
-  );
-
-  server.tool(
-    "syra_v2_x_search",
-    "Deep research on X/Twitter for crypto trends and discussions." + PAYMENT_NOTE,
-    {
-      query: z.string().describe("Search query for X/Twitter (e.g. token name, topic)"),
-    },
-    async ({ query }) => {
-      const { status, body } = await fetchV2("/x-search", { query });
-      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
-    },
-  );
-
-  server.tool(
     "syra_v2_exa_search",
     "EXA AI web search. Only the search query is dynamic (e.g. latest news on Nvidia, crypto market analysis)." + PAYMENT_NOTE,
     {
@@ -203,18 +162,6 @@ async function main() {
   );
 
   // --- Address / token address param ---
-  server.tool(
-    "syra_v2_x_kol",
-    "Analyze KOL/Influencer mentions and sentiment for a token on X/Twitter. Requires Solana token contract address." + PAYMENT_NOTE,
-    {
-      address: z.string().describe("Solana token contract address"),
-    },
-    async ({ address }) => {
-      const { status, body } = await fetchV2("/x-kol", { address });
-      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
-    },
-  );
-
   server.tool(
     "syra_v2_token_report",
     "Get token report from Rugcheck. Requires token contract address." + PAYMENT_NOTE,
@@ -409,26 +356,6 @@ async function main() {
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
-
-  // --- Memecoin screens (all no-param GET) ---
-  const memecoinTools: Array<{ name: string; path: string; description: string }> = [
-    { name: "syra_v2_memecoin_fastest_holder_growth", path: "/memecoin/fastest-holder-growth", description: "Fastest growing memecoins by holder growth rate." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_most_mentioned_smart_money_x", path: "/memecoin/most-mentioned-by-smart-money-x", description: "Memecoins most mentioned by smart money on X." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_accumulating_before_cex_rumors", path: "/memecoin/accumulating-before-CEX-rumors", description: "Memecoins accumulating before CEX listing rumors." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_strong_narrative_low_mcap", path: "/memecoin/strong-narrative-low-market-cap", description: "Strong narrative, low market cap memecoins." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_by_experienced_devs", path: "/memecoin/by-experienced-devs", description: "Memecoins by experienced developers." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_unusual_whale_behavior", path: "/memecoin/unusual-whale-behavior", description: "Unusual whale behavior in memecoins." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_trending_on_x_not_dex", path: "/memecoin/trending-on-x-not-dex", description: "Memecoins trending on X but not yet on DEX." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_organic_traction", path: "/memecoin/organic-traction", description: "Memecoins with organic traction." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_surviving_market_dumps", path: "/memecoin/surviving-market-dumps", description: "Memecoins surviving market dumps." + PAYMENT_NOTE },
-  ];
-
-  for (const { name, path, description } of memecoinTools) {
-    server.tool(name, description, {}, async () => {
-      const { status, body } = await fetchV2(path);
-      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
-    });
-  }
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

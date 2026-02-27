@@ -10,19 +10,6 @@ import {
   BINANCE_CORRELATION_TICKER,
 } from "../routes/partner/binance/correlation.js";
 import { fetchBinanceOhlcBatch } from "./binanceOhlcBatch.js";
-import { xLiveSearchService } from "./atxp/xLiveSearchService.js";
-import { atxpClient, ATXPAccount } from "@atxp/client";
-import {
-  fastestHolderGrowthMemecoins,
-  memecoinsMostMentionedBySmartMoneyX,
-  memecoinsAccumulatingBeforeCEXRumors,
-  memecoinsStrongNarrativeLowMarketCap,
-  memecoinsByExperiencedDevs,
-  memecoinsUnusualWhaleBehavior,
-  memecoinsTrendingOnXNotDEX,
-  aiMemecoinsOrganicTraction,
-  memecoinsSurvivingMarketDumps,
-} from "../prompts/memecoin.js";
 
 const JUPITER_TRENDING_URL =
   "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
@@ -156,54 +143,3 @@ export async function fetchBinanceCorrelation() {
   };
 }
 
-/** Run one memecoin ATXP search. Returns { query, result, citations, toolCalls } or throws. */
-async function runMemecoinSearch(prompt) {
-  const atxpConnectionString = process.env.ATXP_CONNECTION;
-  if (!atxpConnectionString) throw new Error("ATXP_CONNECTION must be set");
-
-  const client = await atxpClient({
-    mcpServer: xLiveSearchService.mcpServer,
-    account: new ATXPAccount(atxpConnectionString),
-  });
-  const result = await client.callTool({
-    name: xLiveSearchService.toolName,
-    arguments: xLiveSearchService.getArguments({ query: prompt }),
-  });
-  const { status, query, message, citations, toolCalls, errorMessage } =
-    xLiveSearchService.getResult(result);
-  if (status !== "success") throw new Error(errorMessage || "ATXP search failed");
-  return { query, result: message, citations, toolCalls };
-}
-
-const MEMECOIN_SCREENS = [
-  { key: "fastestHolderGrowth", prompt: fastestHolderGrowthMemecoins },
-  { key: "mostMentionedBySmartMoneyX", prompt: memecoinsMostMentionedBySmartMoneyX },
-  { key: "accumulatingBeforeCEXRumors", prompt: memecoinsAccumulatingBeforeCEXRumors },
-  { key: "strongNarrativeLowMarketCap", prompt: memecoinsStrongNarrativeLowMarketCap },
-  { key: "byExperiencedDevs", prompt: memecoinsByExperiencedDevs },
-  { key: "unusualWhaleBehavior", prompt: memecoinsUnusualWhaleBehavior },
-  { key: "trendingOnXNotDEX", prompt: memecoinsTrendingOnXNotDEX },
-  { key: "organicTraction", prompt: aiMemecoinsOrganicTraction },
-  { key: "survivingMarketDumps", prompt: memecoinsSurvivingMarketDumps },
-];
-
-/** All memecoin screens (no params). Requires ATXP_CONNECTION. */
-export async function fetchMemecoinScreens() {
-  const results = await Promise.allSettled(
-    MEMECOIN_SCREENS.map(async ({ key, prompt }) => {
-      const data = await runMemecoinSearch(prompt);
-      return [key, data];
-    })
-  );
-  const out = {};
-  for (let i = 0; i < results.length; i++) {
-    const key = MEMECOIN_SCREENS[i].key;
-    const r = results[i];
-    if (r.status === "fulfilled") {
-      out[r.value[0]] = r.value[1];
-    } else {
-      out[key] = { error: r.reason?.message ?? String(r.reason) };
-    }
-  }
-  return out;
-}
