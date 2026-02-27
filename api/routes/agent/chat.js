@@ -20,6 +20,7 @@ import {
   signAndSubmitSwapTransaction,
 } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
+import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
@@ -374,16 +375,17 @@ function condensedAnalyticsSummary(summary) {
 }
 
 /**
- * Call x402 v2 tool with agent wallet (server pays in one shot; agent balance is reduced on-chain).
- * Uses callX402V2WithAgent so payment is always done server-side when a tool is used in chat.
+ * Call x402 tool with agent wallet (server pays in one shot; agent balance is reduced on-chain).
+ * When connectedWalletAddress is set, API may apply dev pricing (same as API playground) for that wallet.
  */
-async function callToolWithAgentWallet(anonymousId, url, method, query, body) {
+async function callToolWithAgentWallet(anonymousId, url, method, query, body, connectedWalletAddress) {
   const result = await callX402V2WithAgent({
     anonymousId,
     url,
     method: method || 'GET',
     query: method === 'GET' ? query || {} : {},
     body: method === 'POST' ? body : undefined,
+    connectedWalletAddress: connectedWalletAddress || undefined,
   });
   if (!result.success) {
     return { status: 502, error: result.error };
@@ -472,7 +474,7 @@ router.post('/completion', async (req, res) => {
       `You are Syra, a smart AI agent for crypto, web3, and blockchain. You can chat naturally and also use paid tools when the user asks for specific data.`
     );
     systemParts.push(
-      `Syra's paid tools (v2 API; user pays from agent wallet when a tool is used):\n${capabilitiesList}`
+      `Syra's paid tools (user pays from agent wallet when a tool is used):\n${capabilitiesList}`
     );
     systemParts.push(
       `When the user is just chatting—greetings (hi, hello), "what can you do", general crypto questions, or casual conversation—respond naturally and helpfully. Do not say "I don't have a tool for that" or list every capability in response to a simple greeting. Briefly mention what you can do only when it fits (e.g. if they ask "what can you do").`
@@ -524,6 +526,7 @@ router.post('/completion', async (req, res) => {
       });
     } else if (anonymousId) {
       const useTreasury = useTreasuryForTools;
+      const connectedWallet = walletConnected ? (await getConnectedWalletAddress(anonymousId)) : null;
       // For swap defaults we need both USDC and SOL balances, regardless of who pays the tool fee.
       const balanceInfoForSwap = await getAgentBalances(anonymousId);
       let usdcBalance = balanceInfoForSwap?.usdcBalance ?? 0;
@@ -598,7 +601,8 @@ router.post('/completion', async (req, res) => {
             continue;
           }
         }
-        const requiredUsdc = tool.priceUsd;
+        const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
+        const requiredUsdc = effectivePrice;
         if (!useTreasury && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
           const msg =
             usdcBalance <= 0
@@ -625,7 +629,8 @@ router.post('/completion', async (req, res) => {
                 url,
                 method,
                 method === 'GET' ? params : {},
-                method === 'POST' ? params : undefined
+                method === 'POST' ? params : undefined,
+                connectedWallet
               );
         }
         if (result.status !== 200) {
@@ -646,8 +651,8 @@ router.post('/completion', async (req, res) => {
           toolErrors.push(instruction);
           toolUsages.push({ name: tool.name, status: 'error' });
         } else {
-          if (!useTreasury) amountChargedUsd += tool.priceUsd;
-          usdcBalance -= tool.priceUsd;
+          if (!useTreasury) amountChargedUsd += effectivePrice;
+          usdcBalance -= effectivePrice;
           toolUsages.push({ name: tool.name, status: 'complete' });
           let toolData = result.data;
           // Jupiter swap: sign and submit the transaction with the agent wallet so the swap executes (agent balance reduced).

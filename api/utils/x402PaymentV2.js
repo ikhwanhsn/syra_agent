@@ -122,11 +122,19 @@ function getPayerAddressFromReq(req) {
   return (req.header("X-Payer-Address") || req.header("x-payer-address") || "").trim() || null;
 }
 
+/** For discount: when agent sends X-Connected-Wallet (dev wallet), use it for effective price. */
+function getPayerOrConnectedWalletForPrice(req) {
+  const connected =
+    (req.header("X-Connected-Wallet") || req.header("x-connected-wallet") || "").trim() || null;
+  if (connected) return connected;
+  return getPayerAddressFromReq(req);
+}
+
 async function buildPaymentRequired(resourceServer, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { config, assets } = getX402ResourceServer();
   const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
-  const priceUsd = getEffectivePriceUsd(rawPrice, getPayerAddressFromReq(req));
+  const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
   const microUnits = String(Math.round(priceUsd * 1_000_000));
   const resourceUrl = options.resource ? `${BASE_URL}${options.resource}` : adapter.getUrl();
   const maxTimeout = options.maxTimeoutSeconds ?? 60;
@@ -291,7 +299,7 @@ export function requirePayment(options) {
       }
 
       const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
-      const priceUsd = getEffectivePriceUsd(rawPrice, getPayerAddressFromReq(req));
+      const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
       const expectedMicroUnits = String(Math.round(priceUsd * 1_000_000));
       const acc = payload.accepted;
 

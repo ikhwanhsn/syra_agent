@@ -1,19 +1,21 @@
 /**
- * Agent tools: list x402 v2 resources and call them with agent wallet (balance checked first).
- * Nansen tools call the real Nansen API (api.nansen.ai) directly; other tools call our v2 API.
+ * Agent tools: list x402 resources and call them with agent wallet (balance checked first).
+ * Nansen tools call the real Nansen API (api.nansen.ai) directly; other tools call our API.
+ * When connected wallet is a dev wallet (e.g. playground), pricing is cheaper (same as API playground).
  */
 import express from 'express';
 import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../config/agentTools.js';
+import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
 import { callX402V2WithAgent, signAndSubmitSwapTransaction } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
-import { getAgentUsdcBalance, getAgentAddress } from '../../libs/agentWallet.js';
+import { getAgentUsdcBalance, getAgentAddress, getConnectedWalletAddress } from '../../libs/agentWallet.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
 
 /**
  * GET /agent/tools
- * List available x402 v2 tools (resources) with id, name, description, priceUsd.
+ * List available x402 tools (resources) with id, name, description, priceUsd.
  */
 router.get('/', async (req, res) => {
   try {
@@ -33,7 +35,7 @@ router.get('/', async (req, res) => {
 
 /**
  * POST /agent/tools/call
- * Call an x402 v2 API using the agent wallet. Always check balance first.
+ * Call an x402 API using the agent wallet. Always check balance first.
  * If balance is 0 or lower than price, return insufficientBalance and a message; otherwise pay and call.
  * Body: { anonymousId: string, toolId: string, params?: Record<string, string> }
  */
@@ -66,8 +68,10 @@ router.post('/call', async (req, res) => {
       });
     }
 
+    const connectedWallet = await getConnectedWalletAddress(anonymousId);
+    const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
     const { usdcBalance } = balanceResult;
-    const requiredUsdc = tool.priceUsd;
+    const requiredUsdc = effectivePrice;
     if (usdcBalance <= 0 || usdcBalance < requiredUsdc) {
       return res.status(402).json({
         success: false,
@@ -121,6 +125,7 @@ router.post('/call', async (req, res) => {
       method,
       query,
       body,
+      connectedWalletAddress: connectedWallet || undefined,
     });
 
     if (!result.success) {

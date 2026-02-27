@@ -136,20 +136,21 @@ function createPaymentHeaderFromTx(signedTx, accepted, x402Version = 2) {
  *
  * @param {object} opts
  * @param {string} opts.anonymousId - Agent wallet anonymousId
- * @param {string} opts.url - Full URL (e.g. BASE_URL + /v2/news)
+ * @param {string} opts.url - Full URL (e.g. BASE_URL + /news)
  * @param {string} opts.method - GET or POST
  * @param {Record<string, string>} [opts.query] - Query params for GET
  * @param {object} [opts.body] - JSON body for POST
+ * @param {string} [opts.connectedWalletAddress] - When set, sent as X-Connected-Wallet so API can apply dev pricing for that wallet
  * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
  */
 export async function callX402V2WithAgent(opts) {
   try {
-    const { anonymousId, url, method = 'GET', query = {}, body } = opts;
+    const { anonymousId, url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
     const keypair = await getAgentKeypair(anonymousId);
     if (!keypair) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
-    return await callX402V2WithKeypair(keypair, { url, method, query, body });
+    return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress });
   } catch (e) {
     const msg = e?.message || String(e);
     return { success: false, error: msg };
@@ -175,7 +176,7 @@ export async function callX402V2WithTreasury(opts) {
 }
 
 async function callX402V2WithKeypair(keypair, opts) {
-  const { url, method = 'GET', query = {}, body } = opts;
+  const { url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
   const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
 
@@ -187,11 +188,15 @@ async function callX402V2WithKeypair(keypair, opts) {
     return u.toString();
   };
 
-  // 1. Initial request to get 402 with accepts
+  // 1. Initial request to get 402 with accepts (X-Connected-Wallet => API applies dev pricing when that wallet is a dev wallet)
   const initialUrl = buildUrl();
+  const initHeaders = { 'Content-Type': 'application/json' };
+  if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
+    initHeaders['X-Connected-Wallet'] = connectedWalletAddress.trim();
+  }
   const initOpts = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: initHeaders,
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
   const firstRes = await fetch(initialUrl, initOpts);

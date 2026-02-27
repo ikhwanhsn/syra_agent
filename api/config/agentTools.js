@@ -34,7 +34,7 @@ import {
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
 
 /**
- * List of agent tools (x402 v2 endpoints). Path is relative to API base (e.g. /v2/news).
+ * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen tools use /v2/nansen/.
  * priceUsd = charged amount (env-based); displayPriceUsd = real API cost shown in UI (production).
  * @type {AgentTool[]}
  */
@@ -42,7 +42,7 @@ export const AGENT_TOOLS = [
   // Core
   {
     id: 'check-status',
-    path: '/v2/check-status',
+    path: '/check-status',
     method: 'GET',
     priceUsd: X402_API_PRICE_CHECK_STATUS_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_CHECK_STATUS_USD,
@@ -51,7 +51,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'news',
-    path: '/v2/news',
+    path: '/news',
     method: 'GET',
     priceUsd: X402_API_PRICE_NEWS_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_NEWS_USD,
@@ -60,7 +60,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'signal',
-    path: '/v2/signal',
+    path: '/signal',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -69,7 +69,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'sentiment',
-    path: '/v2/sentiment',
+    path: '/sentiment',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -78,7 +78,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'event',
-    path: '/v2/event',
+    path: '/event',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -87,7 +87,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'browse',
-    path: '/v2/browse',
+    path: '/browse',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -96,7 +96,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'x-search',
-    path: '/v2/x-search',
+    path: '/x-search',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -105,7 +105,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'research',
-    path: '/v2/research',
+    path: '/research',
     method: 'GET',
     priceUsd: X402_API_PRICE_RESEARCH_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_RESEARCH_USD,
@@ -114,7 +114,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'exa-search',
-    path: '/v2/exa-search',
+    path: '/exa-search',
     method: 'GET',
     priceUsd: X402_API_PRICE_EXA_SEARCH_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_EXA_SEARCH_USD,
@@ -123,7 +123,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'gems',
-    path: '/v2/gems',
+    path: '/gems',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -132,7 +132,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'x-kol',
-    path: '/v2/x-kol',
+    path: '/x-kol',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -141,7 +141,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'crypto-kol',
-    path: '/v2/crypto-kol',
+    path: '/crypto-kol',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -150,7 +150,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'trending-headline',
-    path: '/v2/trending-headline',
+    path: '/trending-headline',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -159,7 +159,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'sundown-digest',
-    path: '/v2/sundown-digest',
+    path: '/sundown-digest',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -168,7 +168,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'analytics-summary',
-    path: '/v2/analytics/summary',
+    path: '/analytics/summary',
     method: 'GET',
     priceUsd: X402_API_PRICE_ANALYTICS_SUMMARY_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
@@ -178,7 +178,7 @@ export const AGENT_TOOLS = [
   // Partner: Nansen
   {
     id: 'smart-money',
-    path: '/v2/smart-money',
+    path: '/smart-money',
     method: 'GET',
     priceUsd: X402_API_PRICE_NANSEN_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
@@ -187,7 +187,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'token-god-mode',
-    path: '/v2/token-god-mode',
+    path: '/token-god-mode',
     method: 'GET',
     priceUsd: X402_API_PRICE_NANSEN_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_USD,
@@ -318,7 +318,7 @@ export const AGENT_TOOLS = [
   // Partner: DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun
   {
     id: 'dexscreener',
-    path: '/v2/dexscreener',
+    path: '/dexscreener',
     method: 'GET',
     priceUsd: X402_API_PRICE_DEXSCREENER_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_DEXSCREENER_USD,
@@ -327,7 +327,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'trending-jupiter',
-    path: '/v2/trending-jupiter',
+    path: '/trending-jupiter',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -336,7 +336,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'jupiter-swap-order',
-    path: '/v2/jupiter/swap/order',
+    path: '/jupiter/swap/order',
     method: 'POST',
     priceUsd: X402_API_PRICE_JUPITER_SWAP_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
@@ -345,7 +345,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'token-report',
-    path: '/v2/token-report',
+    path: '/token-report',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -354,7 +354,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'token-statistic',
-    path: '/v2/token-statistic',
+    path: '/token-statistic',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -363,7 +363,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'token-risk-alerts',
-    path: '/v2/token-risk/alerts',
+    path: '/token-risk/alerts',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD * 2,
     displayPriceUsd: X402_DISPLAY_PRICE_USD * 2,
@@ -372,7 +372,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'bubblemaps-maps',
-    path: '/v2/bubblemaps/maps',
+    path: '/bubblemaps/maps',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -381,7 +381,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'binance-correlation',
-    path: '/v2/binance/correlation',
+    path: '/binance/correlation',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -390,7 +390,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pump',
-    path: '/v2/pump',
+    path: '/pump',
     method: 'GET',
     priceUsd: X402_API_PRICE_PUMP_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_PUMP_USD,
@@ -400,7 +400,7 @@ export const AGENT_TOOLS = [
   // Partner: CoinGecko x402 (simple price + onchain)
   {
     id: 'coingecko-simple-price',
-    path: '/v2/coingecko/simple-price',
+    path: '/coingecko/simple-price',
     method: 'GET',
     priceUsd: X402_API_PRICE_COINGECKO_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_COINGECKO_USD,
@@ -409,7 +409,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'coingecko-onchain-token-price',
-    path: '/v2/coingecko/onchain/token-price',
+    path: '/coingecko/onchain/token-price',
     method: 'GET',
     priceUsd: X402_API_PRICE_COINGECKO_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_COINGECKO_USD,
@@ -418,7 +418,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'coingecko-search-pools',
-    path: '/v2/coingecko/onchain/search-pools',
+    path: '/coingecko/onchain/search-pools',
     method: 'GET',
     priceUsd: X402_API_PRICE_COINGECKO_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_COINGECKO_USD,
@@ -427,7 +427,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'coingecko-trending-pools',
-    path: '/v2/coingecko/onchain/trending-pools',
+    path: '/coingecko/onchain/trending-pools',
     method: 'GET',
     priceUsd: X402_API_PRICE_COINGECKO_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_COINGECKO_USD,
@@ -436,7 +436,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'coingecko-onchain-token',
-    path: '/v2/coingecko/onchain/token',
+    path: '/coingecko/onchain/token',
     method: 'GET',
     priceUsd: X402_API_PRICE_COINGECKO_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_COINGECKO_USD,
@@ -446,7 +446,7 @@ export const AGENT_TOOLS = [
   // Memecoin
   {
     id: 'memecoin-fastest-holder-growth',
-    path: '/v2/memecoin/fastest-holder-growth',
+    path: '/memecoin/fastest-holder-growth',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -455,7 +455,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-most-mentioned-by-smart-money-x',
-    path: '/v2/memecoin/most-mentioned-by-smart-money-x',
+    path: '/memecoin/most-mentioned-by-smart-money-x',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -464,7 +464,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-accumulating-before-cex-rumors',
-    path: '/v2/memecoin/accumulating-before-CEX-rumors',
+    path: '/memecoin/accumulating-before-CEX-rumors',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -473,7 +473,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-strong-narrative-low-market-cap',
-    path: '/v2/memecoin/strong-narrative-low-market-cap',
+    path: '/memecoin/strong-narrative-low-market-cap',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -482,7 +482,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-by-experienced-devs',
-    path: '/v2/memecoin/by-experienced-devs',
+    path: '/memecoin/by-experienced-devs',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -491,7 +491,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-unusual-whale-behavior',
-    path: '/v2/memecoin/unusual-whale-behavior',
+    path: '/memecoin/unusual-whale-behavior',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -500,7 +500,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-trending-on-x-not-dex',
-    path: '/v2/memecoin/trending-on-x-not-dex',
+    path: '/memecoin/trending-on-x-not-dex',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -509,7 +509,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-organic-traction',
-    path: '/v2/memecoin/organic-traction',
+    path: '/memecoin/organic-traction',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
@@ -518,7 +518,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'memecoin-surviving-market-dumps',
-    path: '/v2/memecoin/surviving-market-dumps',
+    path: '/memecoin/surviving-market-dumps',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
