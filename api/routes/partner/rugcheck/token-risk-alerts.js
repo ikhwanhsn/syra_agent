@@ -173,7 +173,7 @@ export async function createTokenRiskAlertsRouter() {
     });
   }
 
-  // GET /v2/token-risk/alerts?rugScoreMin=80&source=new,trending&limit=20
+  // GET /token-risk/alerts?rugScoreMin=80&source=new,trending&limit=20
   router.get(
     "/",
     requirePayment({

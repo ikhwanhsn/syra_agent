@@ -62,7 +62,7 @@ export async function createSundownDigestRouter() {
       description: "Daily end-of-day summary of key crypto market events and movements",
       method: "GET",
       discoverable: true,
-      resource: "/v2/sundown-digest",
+      resource: "/sundown-digest",
       outputSchema: {
         sundownDigest: {
           type: "array",
@@ -89,7 +89,7 @@ export async function createSundownDigestRouter() {
       description: "Daily end-of-day summary of key crypto market events and movements",
       method: "POST",
       discoverable: true,
-      resource: "/v2/sundown-digest",
+      resource: "/sundown-digest",
       outputSchema: {
         sundownDigest: {
           type: "array",

@@ -52,7 +52,7 @@ export async function createBrowseRouter() {
       description: "AI-powered web browsing and information extraction from websites",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/browse",
+      resource: "/browse",
       inputSchema: {
         queryParams: {
           query: {
@@ -133,7 +133,7 @@ export async function createBrowseRouter() {
       description: "AI-powered web browsing and information extraction from websites",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/browse",
+      resource: "/browse",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

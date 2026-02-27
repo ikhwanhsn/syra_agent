@@ -82,7 +82,7 @@ export const X402_API_PRICE_COINGECKO_USD = price(0.01);
 export const X402_API_PRICE_EXA_SEARCH_USD = price(0.01);
 
 /**
- * Analytics summary: sum of all tools included in GET/POST /v2/analytics/summary.
+ * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation + 9 memecoin screens)
  */
 export const X402_API_PRICE_ANALYTICS_SUMMARY_USD =

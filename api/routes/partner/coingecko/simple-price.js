@@ -141,7 +141,7 @@ export async function createV2CoingeckoSimplePriceRouter() {
       description: "CoinGecko x402 simple price (USD and market data by symbol or id)",
       method: "GET",
       discoverable: true,
-      resource: "/v2/coingecko/simple-price",
+      resource: "/coingecko/simple-price",
       inputSchema: {
         queryParams: {
           vs_currencies: { type: "string", description: "e.g. usd (default)" },

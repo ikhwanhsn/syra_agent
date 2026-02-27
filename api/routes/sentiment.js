@@ -108,7 +108,7 @@ export async function createSentimentRouter() {
       description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "GET",
       discoverable: true,
-      resource: "/v2/sentiment",
+      resource: "/sentiment",
       inputSchema: {
         queryParams: {
           ticker: {
@@ -149,7 +149,7 @@ export async function createSentimentRouter() {
       description: "Get market sentiment analysis for crypto assets over last 30 days",
       method: "POST",
       discoverable: true,
-      resource: "/v2/sentiment",
+      resource: "/sentiment",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

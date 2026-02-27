@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 
 const paidApiCallSchema = new mongoose.Schema(
   {
-    /** API path that was paid (e.g. /v2/core/news, /v2/core/signal). */
+    /** API path that was paid (e.g. /news, /signal). */
     path: { type: String, required: true },
     /** Optional: 'api' | 'agent' when known (e.g. from agent tools). */
     source: { type: String, default: 'api' },

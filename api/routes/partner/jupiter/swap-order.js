@@ -52,7 +52,7 @@ export async function createJupiterSwapOrderRouter() {
     description: "Jupiter swap order (buy/sell token on Solana)",
     method: "GET",
     discoverable: true,
-    resource: "/v2/jupiter/swap/order",
+    resource: "/jupiter/swap/order",
     price: X402_API_PRICE_JUPITER_SWAP_USD,
     inputSchema: {
       type: "object",

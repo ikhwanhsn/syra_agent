@@ -106,7 +106,7 @@ export async function createNewsRouter() {
     });
   }
 
-  // GET endpoint with V2 x402 format (resource omitted so 402 uses request URL: /news or /v2/news)
+  // GET endpoint with x402 format (resource omitted so 402 uses request URL: /news)
   router.get(
     "/",
     requirePayment({

@@ -41,7 +41,7 @@ export async function createBubblemapsMapsRouter() {
       description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/bubblemaps/maps",
+      resource: "/bubblemaps/maps",
       inputSchema: {
         queryParams: {
           address: {
@@ -100,7 +100,7 @@ export async function createBubblemapsMapsRouter() {
       description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/bubblemaps/maps",
+      resource: "/bubblemaps/maps",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

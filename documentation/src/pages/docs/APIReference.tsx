@@ -4,7 +4,7 @@ import { CodeBlock } from "@/components/docs/CodeBlock";
 import { apiDocs } from "@/data/apiDocs";
 import { ArrowRight, ExternalLink } from "lucide-react";
 
-const BASE_URL = "https://api.syraa.fun/v2";
+const BASE_URL = "https://api.syraa.fun";
 
 // Group slugs by category for the overview (matches Sidebar structure)
 const API_CATEGORIES: { title: string; slugs: string[] }[] = [
@@ -72,7 +72,7 @@ const tocItems = [
   { id: "overview", title: "Overview", level: 2 },
   { id: "base-url", title: "Base URL", level: 2 },
   { id: "authentication", title: "Authentication (x402)", level: 2 },
-  { id: "all-endpoints", title: "All v2 Endpoints", level: 2 },
+  { id: "all-endpoints", title: "All Endpoints", level: 2 },
   ...API_CATEGORIES.map((c) => ({ id: `cat-${c.slugs[0]}`, title: c.title, level: 3 })),
   { id: "payment-flow", title: "Payment Flow", level: 2 },
   { id: "errors", title: "Error Handling", level: 2 },
@@ -83,16 +83,16 @@ export default function APIReference() {
     <DocsLayout toc={tocItems}>
       <div className="mb-8">
         <div className="text-sm text-primary font-medium mb-2">API Reference</div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">v2 API Overview</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">x402 API Overview</h1>
         <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-          Syra x402 v2 API reference. All endpoints use the x402 payment protocol for research, sentiment, signals, news, memecoin screens, and partner data.
+          Syra x402 API reference. All endpoints use the x402 payment protocol for research, sentiment, signals, news, memecoin screens, and partner data.
         </p>
       </div>
 
       <section id="overview" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Overview</h2>
         <p className="text-muted-foreground mb-4">
-          Every paid API uses the <code className="text-sm font-mono bg-muted px-1 rounded">/v2</code> path prefix.
+          Paid endpoints use unversioned paths (e.g. <code className="text-sm font-mono bg-muted px-1 rounded">/news</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/signal</code>).
           On first request without payment you receive <strong>402 Payment Required</strong> with payment instructions; after completing payment you retry with the payment proof to receive data.
         </p>
       </section>
@@ -105,7 +105,7 @@ export default function APIReference() {
             <span className="text-muted-foreground">{BASE_URL}</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            All v2 API requests should be made to this base URL. The API uses JSON for requests and responses.
+            All API requests should be made to this base URL. The API uses JSON for requests and responses.
           </p>
         </div>
         <a
@@ -138,7 +138,7 @@ curl "${BASE_URL}/news?ticker=BTC" \\
       </section>
 
       <section id="all-endpoints" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-6">All v2 Endpoints</h2>
+        <h2 className="text-2xl font-semibold mb-6">All Endpoints</h2>
         <p className="text-muted-foreground mb-6">
           Each endpoint has full documentation (parameters, examples, payment flow). Click the endpoint name to open its doc page.
         </p>

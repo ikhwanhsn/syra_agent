@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Syra MCP Server – exposes all Syra v2 API endpoints as MCP tools.
+ * Syra MCP Server – exposes Syra x402 API endpoints as MCP tools.
  *
- * The v2 API uses x402 payment; without a valid payment header the API returns 402.
+ * The API uses x402 payment; without a valid payment header the API returns 402.
  * For local testing: set SYRA_API_BASE_URL (e.g. http://localhost:3000) and
- * SYRA_USE_DEV_ROUTES=true to call /v2/.../dev for all endpoints (no payment).
+ * SYRA_USE_DEV_ROUTES=true to call /.../dev for all endpoints (no payment).
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -18,7 +18,7 @@ const SYRA_USE_DEV_ROUTES =
 const PAYMENT_NOTE =
   " Note: production API requires x402 payment; you may get 402 if payment is not provided.";
 
-/** GET request to v2 path with optional query params. When SYRA_USE_DEV_ROUTES, appends /dev to path. */
+/** GET request to API path with optional query params. When SYRA_USE_DEV_ROUTES, appends /dev to path. */
 async function fetchV2(
   path: string,
   params: Record<string, string> = {}
@@ -50,12 +50,12 @@ async function main() {
   // --- News & event (with optional dev path) ---
   server.tool(
     "syra_v2_news",
-    "Fetch latest crypto news from Syra v2 API. Optional ticker (e.g. BTC, ETH) or 'general' for all news." + PAYMENT_NOTE,
+    "Fetch latest crypto news from Syra API. Optional ticker (e.g. BTC, ETH) or 'general' for all news." + PAYMENT_NOTE,
     {
       ticker: z.string().optional().default("general").describe("Ticker (e.g. BTC, ETH) or 'general'"),
     },
     async ({ ticker }) => {
-      const { status, body } = await fetchV2("/v2/news", { ticker: ticker ?? "general" });
+      const { status, body } = await fetchV2("/news", { ticker: ticker ?? "general" });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -67,7 +67,7 @@ async function main() {
       ticker: z.string().optional().default("general").describe("Ticker (e.g. BTC, ETH) or 'general'"),
     },
     async ({ ticker }) => {
-      const { status, body } = await fetchV2("/v2/event", { ticker: ticker ?? "general" });
+      const { status, body } = await fetchV2("/event", { ticker: ticker ?? "general" });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -80,7 +80,7 @@ async function main() {
       ticker: z.string().optional().default("general").describe("Ticker (e.g. BTC, ETH) or 'general'"),
     },
     async ({ ticker }) => {
-      const { status, body } = await fetchV2("/v2/sentiment", { ticker: ticker ?? "general" });
+      const { status, body } = await fetchV2("/sentiment", { ticker: ticker ?? "general" });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -92,7 +92,7 @@ async function main() {
       ticker: z.string().optional().default("general").describe("Ticker (e.g. BTC, ETH) or 'general'"),
     },
     async ({ ticker }) => {
-      const { status, body } = await fetchV2("/v2/trending-headline", { ticker: ticker ?? "general" });
+      const { status, body } = await fetchV2("/trending-headline", { ticker: ticker ?? "general" });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -105,22 +105,22 @@ async function main() {
       token: z.string().optional().default("bitcoin").describe("Token name (e.g. solana, bitcoin)"),
     },
     async ({ token }) => {
-      const { status, body } = await fetchV2("/v2/signal", { token: token ?? "bitcoin" });
+      const { status, body } = await fetchV2("/signal", { token: token ?? "bitcoin" });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
 
   // --- No-param GET endpoints ---
   const noParamTools: Array<{ name: string; path: string; description: string }> = [
-    { name: "syra_v2_check_status", path: "/v2/check-status", description: "Health check: verify API server status and connectivity." + PAYMENT_NOTE },
-    { name: "syra_v2_sundown_digest", path: "/v2/sundown-digest", description: "Get the daily sundown digest (crypto roundup)." + PAYMENT_NOTE },
-    { name: "syra_v2_gems", path: "/v2/gems", description: "Discover hidden gem crypto projects trending on X/Twitter." + PAYMENT_NOTE },
-    { name: "syra_v2_crypto_kol", path: "/v2/crypto-kol", description: "Get latest insights from top crypto KOLs (e.g. @elonmusk, @VitalikButerin)." + PAYMENT_NOTE },
-    { name: "syra_v2_token_statistic", path: "/v2/token-statistic", description: "Token statistic on Rugcheck (new, recent, trending, verified)." + PAYMENT_NOTE },
-    { name: "syra_v2_smart_money", path: "/v2/smart-money", description: "Smart money tracking: net flow, holdings, DEX trades, DCA patterns." + PAYMENT_NOTE },
-    { name: "syra_v2_dexscreener", path: "/v2/dexscreener", description: "DEXScreener aggregated data: token profiles, community takeovers, ads, boosted tokens." + PAYMENT_NOTE },
-    { name: "syra_v2_trending_jupiter", path: "/v2/trending-jupiter", description: "Trending tokens on Jupiter." + PAYMENT_NOTE },
-    { name: "syra_v2_analytics_summary", path: "/v2/analytics/summary", description: "Full analytics summary: dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, memecoin screens." + PAYMENT_NOTE },
+    { name: "syra_v2_check_status", path: "/check-status", description: "Health check: verify API server status and connectivity." + PAYMENT_NOTE },
+    { name: "syra_v2_sundown_digest", path: "/sundown-digest", description: "Get the daily sundown digest (crypto roundup)." + PAYMENT_NOTE },
+    { name: "syra_v2_gems", path: "/gems", description: "Discover hidden gem crypto projects trending on X/Twitter." + PAYMENT_NOTE },
+    { name: "syra_v2_crypto_kol", path: "/crypto-kol", description: "Get latest insights from top crypto KOLs (e.g. @elonmusk, @VitalikButerin)." + PAYMENT_NOTE },
+    { name: "syra_v2_token_statistic", path: "/token-statistic", description: "Token statistic on Rugcheck (new, recent, trending, verified)." + PAYMENT_NOTE },
+    { name: "syra_v2_smart_money", path: "/smart-money", description: "Smart money tracking: net flow, holdings, DEX trades, DCA patterns." + PAYMENT_NOTE },
+    { name: "syra_v2_dexscreener", path: "/dexscreener", description: "DEXScreener aggregated data: token profiles, community takeovers, ads, boosted tokens." + PAYMENT_NOTE },
+    { name: "syra_v2_trending_jupiter", path: "/trending-jupiter", description: "Trending tokens on Jupiter." + PAYMENT_NOTE },
+    { name: "syra_v2_analytics_summary", path: "/analytics/summary", description: "Full analytics summary: dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, memecoin screens." + PAYMENT_NOTE },
   ];
 
   for (const { name, path, description } of noParamTools) {
@@ -141,7 +141,7 @@ async function main() {
     async ({ query, type }) => {
       const params: Record<string, string> = { query };
       if (type) params.type = type;
-      const { status, body } = await fetchV2("/v2/research", params);
+      const { status, body } = await fetchV2("/research", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -156,7 +156,7 @@ async function main() {
       taker: z.string().describe("Wallet public key that will execute the swap"),
     },
     async ({ inputMint, outputMint, amount, taker }) => {
-      const { status, body } = await fetchV2("/v2/jupiter/swap/order", {
+      const { status, body } = await fetchV2("/jupiter/swap/order", {
         inputMint,
         outputMint,
         amount,
@@ -173,7 +173,7 @@ async function main() {
       query: z.string().describe("Search query or URL to browse and extract information from"),
     },
     async ({ query }) => {
-      const { status, body } = await fetchV2("/v2/browse", { query });
+      const { status, body } = await fetchV2("/browse", { query });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -185,7 +185,7 @@ async function main() {
       query: z.string().describe("Search query for X/Twitter (e.g. token name, topic)"),
     },
     async ({ query }) => {
-      const { status, body } = await fetchV2("/v2/x-search", { query });
+      const { status, body } = await fetchV2("/x-search", { query });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -197,7 +197,7 @@ async function main() {
       query: z.string().describe("Search query (e.g. latest news on Nvidia, crypto market analysis)"),
     },
     async ({ query }) => {
-      const { status, body } = await fetchV2("/v2/exa-search", { query });
+      const { status, body } = await fetchV2("/exa-search", { query });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -210,7 +210,7 @@ async function main() {
       address: z.string().describe("Solana token contract address"),
     },
     async ({ address }) => {
-      const { status, body } = await fetchV2("/v2/x-kol", { address });
+      const { status, body } = await fetchV2("/x-kol", { address });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -222,7 +222,7 @@ async function main() {
       address: z.string().describe("Token contract address"),
     },
     async ({ address }) => {
-      const { status, body } = await fetchV2("/v2/token-report", { address });
+      const { status, body } = await fetchV2("/token-report", { address });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -240,7 +240,7 @@ async function main() {
       if (rugScoreMin != null) params.rugScoreMin = String(rugScoreMin);
       if (source) params.source = source;
       if (limit != null) params.limit = String(limit);
-      const { status, body } = await fetchV2("/v2/token-risk/alerts", params);
+      const { status, body } = await fetchV2("/token-risk/alerts", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -252,7 +252,7 @@ async function main() {
       tokenAddress: z.string().describe("Token address for research"),
     },
     async ({ tokenAddress }) => {
-      const { status, body } = await fetchV2("/v2/token-god-mode", { tokenAddress });
+      const { status, body } = await fetchV2("/token-god-mode", { tokenAddress });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -264,7 +264,7 @@ async function main() {
       address: z.string().describe("Solana token contract address"),
     },
     async ({ address }) => {
-      const { status, body } = await fetchV2("/v2/bubblemaps/maps", { address });
+      const { status, body } = await fetchV2("/bubblemaps/maps", { address });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -277,7 +277,7 @@ async function main() {
       symbol: z.string().optional().default("BTCUSDT").describe("Symbol (e.g. BTCUSDT, ETHUSDT)"),
     },
     async ({ symbol }) => {
-      const { status, body } = await fetchV2("/v2/binance/correlation", { symbol: symbol ?? "BTCUSDT" });
+      const { status, body } = await fetchV2("/binance/correlation", { symbol: symbol ?? "BTCUSDT" });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -291,7 +291,7 @@ async function main() {
     async ({ symbol }) => {
       const params: Record<string, string> = {};
       if (symbol) params.symbol = symbol;
-      const { status, body } = await fetchV2("/v2/binance/correlation-matrix", params);
+      const { status, body } = await fetchV2("/binance/correlation-matrix", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -302,7 +302,7 @@ async function main() {
     "Pump.fun / Workfun data (trending, etc.)." + PAYMENT_NOTE,
     {},
     async () => {
-      const { status, body } = await fetchV2("/v2/pump");
+      const { status, body } = await fetchV2("/pump");
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -328,7 +328,7 @@ async function main() {
       if (include_market_cap) params.include_market_cap = include_market_cap;
       if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
       if (include_24hr_change) params.include_24hr_change = include_24hr_change;
-      const { status, body } = await fetchV2("/v2/coingecko/simple-price", params);
+      const { status, body } = await fetchV2("/coingecko/simple-price", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -348,7 +348,7 @@ async function main() {
       if (include_market_cap) params.include_market_cap = include_market_cap;
       if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
       if (include_24hr_price_change) params.include_24hr_price_change = include_24hr_price_change;
-      const { status, body } = await fetchV2("/v2/coingecko/onchain/token-price", params);
+      const { status, body } = await fetchV2("/coingecko/onchain/token-price", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -367,7 +367,7 @@ async function main() {
       const params: Record<string, string> = { query: query ?? "", network: network ?? "solana" };
       if (page) params.page = page;
       if (include) params.include = include;
-      const { status, body } = await fetchV2("/v2/coingecko/onchain/search-pools", params);
+      const { status, body } = await fetchV2("/coingecko/onchain/search-pools", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -387,7 +387,7 @@ async function main() {
       if (page) params.page = page;
       if (include_gt_community_data) params.include_gt_community_data = include_gt_community_data;
       if (include) params.include = include;
-      const { status, body } = await fetchV2("/v2/coingecko/onchain/trending-pools", params);
+      const { status, body } = await fetchV2("/coingecko/onchain/trending-pools", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
@@ -405,22 +405,22 @@ async function main() {
       const params: Record<string, string> = { network: network ?? "", address: address ?? "" };
       if (include) params.include = include;
       if (include_composition) params.include_composition = include_composition;
-      const { status, body } = await fetchV2("/v2/coingecko/onchain/token", params);
+      const { status, body } = await fetchV2("/coingecko/onchain/token", params);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
 
   // --- Memecoin screens (all no-param GET) ---
   const memecoinTools: Array<{ name: string; path: string; description: string }> = [
-    { name: "syra_v2_memecoin_fastest_holder_growth", path: "/v2/memecoin/fastest-holder-growth", description: "Fastest growing memecoins by holder growth rate." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_most_mentioned_smart_money_x", path: "/v2/memecoin/most-mentioned-by-smart-money-x", description: "Memecoins most mentioned by smart money on X." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_accumulating_before_cex_rumors", path: "/v2/memecoin/accumulating-before-CEX-rumors", description: "Memecoins accumulating before CEX listing rumors." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_strong_narrative_low_mcap", path: "/v2/memecoin/strong-narrative-low-market-cap", description: "Strong narrative, low market cap memecoins." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_by_experienced_devs", path: "/v2/memecoin/by-experienced-devs", description: "Memecoins by experienced developers." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_unusual_whale_behavior", path: "/v2/memecoin/unusual-whale-behavior", description: "Unusual whale behavior in memecoins." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_trending_on_x_not_dex", path: "/v2/memecoin/trending-on-x-not-dex", description: "Memecoins trending on X but not yet on DEX." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_organic_traction", path: "/v2/memecoin/organic-traction", description: "Memecoins with organic traction." + PAYMENT_NOTE },
-    { name: "syra_v2_memecoin_surviving_market_dumps", path: "/v2/memecoin/surviving-market-dumps", description: "Memecoins surviving market dumps." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_fastest_holder_growth", path: "/memecoin/fastest-holder-growth", description: "Fastest growing memecoins by holder growth rate." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_most_mentioned_smart_money_x", path: "/memecoin/most-mentioned-by-smart-money-x", description: "Memecoins most mentioned by smart money on X." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_accumulating_before_cex_rumors", path: "/memecoin/accumulating-before-CEX-rumors", description: "Memecoins accumulating before CEX listing rumors." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_strong_narrative_low_mcap", path: "/memecoin/strong-narrative-low-market-cap", description: "Strong narrative, low market cap memecoins." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_by_experienced_devs", path: "/memecoin/by-experienced-devs", description: "Memecoins by experienced developers." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_unusual_whale_behavior", path: "/memecoin/unusual-whale-behavior", description: "Unusual whale behavior in memecoins." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_trending_on_x_not_dex", path: "/memecoin/trending-on-x-not-dex", description: "Memecoins trending on X but not yet on DEX." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_organic_traction", path: "/memecoin/organic-traction", description: "Memecoins with organic traction." + PAYMENT_NOTE },
+    { name: "syra_v2_memecoin_surviving_market_dumps", path: "/memecoin/surviving-market-dumps", description: "Memecoins surviving market dumps." + PAYMENT_NOTE },
   ];
 
   for (const { name, path, description } of memecoinTools) {

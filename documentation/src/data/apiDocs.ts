@@ -1,6 +1,6 @@
 /**
  * API documentation content for each x402 endpoint.
- * Base URL: https://api.syraa.fun. All x402 endpoints use the /v2 prefix (e.g. /v2/news, /v2/analytics/summary).
+ * Base URL: https://api.syraa.fun. All x402 endpoints use unversioned paths (e.g. /news, /analytics/summary).
  * The API is implemented under api/routes/ and api/libs/ (refactored from the previous v2 folder structure).
  */
 
@@ -35,7 +35,7 @@ export interface ApiDoc {
   extraSections?: { title: string; content: string }[];
 }
 
-const BASE_URL = "https://api.syraa.fun/v2";
+const BASE_URL = "https://api.syraa.fun";
 const NANSEN_BASE = "https://api.nansen.ai";
 const SUPPORT = "https://t.me/ikhwanhsn";
 
@@ -77,12 +77,12 @@ export const apiDocs: Record<string, ApiDoc> = {
   "x402-api-standard": doc({
     title: "x402 API Documentation Standard",
     overview:
-      "This document defines the standard structure and conventions for all Syra x402 API documentation. Every paid API uses the v2 path prefix and requires payment via the x402 protocol before returning data.",
+      "This document defines the standard structure and conventions for all Syra x402 API documentation. Every paid API uses unversioned paths and requires payment via the x402 protocol before returning data.",
     endpoints: [
       {
         method: "GET",
-        path: "/v2/check-status",
-        description: "Health check example. All v2 endpoints follow the same payment flow.",
+        path: "/check-status",
+        description: "Health check example. All x402 endpoints follow the same payment flow.",
         requestExample: `curl ${BASE_URL}/check-status`,
         responseExample: `{
   "status": "ok",
@@ -106,7 +106,7 @@ export const apiDocs: Record<string, ApiDoc> = {
     endpoints: [
       {
         method: "GET",
-        path: "/v2/check-status",
+        path: "/check-status",
         description: "Health check.",
         requestExample: `curl ${BASE_URL}/check-status`,
         responseExample: `{
@@ -116,7 +116,7 @@ export const apiDocs: Record<string, ApiDoc> = {
       },
       {
         method: "POST",
-        path: "/v2/check-status",
+        path: "/check-status",
         description: "Health check via POST.",
         requestExample: `curl -X POST ${BASE_URL}/check-status \\
   -H "Content-Type: application/json"`,
@@ -145,7 +145,7 @@ export const apiDocs: Record<string, ApiDoc> = {
     endpoints: [
       {
         method: "GET",
-        path: "/v2/news",
+        path: "/news",
         description: "Fetch cryptocurrency news.",
         params: [
           { name: "ticker", type: "string", required: "No", description: "Ticker (e.g. BTC, ETH). Omit or use 'general' for all news." },
@@ -169,7 +169,7 @@ curl "${BASE_URL}/news?ticker=BTC"`,
       },
       {
         method: "POST",
-        path: "/v2/news",
+        path: "/news",
         description: "Fetch news via POST.",
         bodyExample: `{ "ticker": "ETH" }`,
         requestExample: `curl -X POST ${BASE_URL}/news \\
@@ -197,7 +197,7 @@ curl "${BASE_URL}/news?ticker=BTC"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/sentiment",
+        path: "/sentiment",
         description: "Fetch sentiment analysis.",
         params: [
           { name: "ticker", type: "string", required: "No", description: "Ticker (e.g. BTC, ETH) or 'general'. Default: general." },
@@ -215,7 +215,7 @@ curl "${BASE_URL}/sentiment?ticker=BTC"`,
       },
       {
         method: "POST",
-        path: "/v2/sentiment",
+        path: "/sentiment",
         description: "Fetch sentiment via POST.",
         bodyExample: `{ "ticker": "ETH" }`,
         requestExample: `curl -X POST ${BASE_URL}/sentiment \\
@@ -239,7 +239,7 @@ curl "${BASE_URL}/sentiment?ticker=BTC"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/trending-headline",
+        path: "/trending-headline",
         description: "Fetch trending headlines.",
         params: [
           { name: "ticker", type: "string", required: "No", description: "Ticker (e.g. BTC, ETH) or 'general'. Default: general." },
@@ -259,7 +259,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
       },
       {
         method: "POST",
-        path: "/v2/trending-headline",
+        path: "/trending-headline",
         description: "Fetch trending headlines via POST.",
         bodyExample: `{ "ticker": "ETH" }`,
         requestExample: `curl -X POST ${BASE_URL}/trending-headline \\
@@ -285,7 +285,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/sundown-digest",
+        path: "/sundown-digest",
         description: "Fetch the sundown digest.",
         requestExample: `curl ${BASE_URL}/sundown-digest`,
         responseExample: `{
@@ -308,7 +308,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/browse",
+        path: "/browse",
         description: "Scrape information from websites based on a query.",
         params: [
           { name: "query", type: "string", required: "Yes", description: "Search query or URL to browse and extract information from." },
@@ -321,7 +321,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
       },
       {
         method: "POST",
-        path: "/v2/browse",
+        path: "/browse",
         description: "Browse via POST.",
         bodyExample: `{ "query": "Extract product prices from example-shop.com" }`,
         requestExample: `curl -X POST ${BASE_URL}/browse \\
@@ -347,7 +347,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/research",
+        path: "/research",
         description: "Perform research on any topic.",
         params: [
           { name: "query", type: "string", required: "Yes", description: "Research query (e.g. token analysis, market trends)." },
@@ -368,7 +368,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
       },
       {
         method: "POST",
-        path: "/v2/research",
+        path: "/research",
         description: "Research via POST.",
         bodyExample: `{ "query": "Compare L1 vs L2 scaling", "type": "deep" }`,
         requestExample: `curl -X POST ${BASE_URL}/research \\
@@ -391,7 +391,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/x-search",
+        path: "/x-search",
         description: "Search X for crypto content.",
         params: [
           { name: "query", type: "string", required: "Yes", description: "Search query for X/Twitter research (e.g. token name, topic)." },
@@ -418,7 +418,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/exa-search",
+        path: "/exa-search",
         description: "Run an EXA search. Only the query parameter is accepted.",
         params: [
           { name: "query", type: "string", required: "Yes", description: "Search query (e.g. latest news on Nvidia, crypto market analysis)." },
@@ -434,7 +434,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
       },
       {
         method: "POST",
-        path: "/v2/exa-search",
+        path: "/exa-search",
         description: "EXA search via POST. Body must include query only.",
         bodyExample: `{ "query": "Latest news on Nvidia" }`,
         requestExample: `curl -X POST ${BASE_URL}/exa-search \\
@@ -455,7 +455,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/gems",
+        path: "/gems",
         description: "Fetch AI-analyzed hidden gem projects.",
         requestExample: `curl ${BASE_URL}/gems`,
         responseExample: `{
@@ -476,7 +476,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/analytics/summary",
+        path: "/analytics/summary",
         description: "Fetch full analytics summary (DEX data, token stats, Jupiter trending, smart money, Binance correlation, memecoin screens).",
         requestExample: `curl ${BASE_URL}/analytics/summary`,
         responseExample: `{
@@ -490,7 +490,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
       },
       {
         method: "POST",
-        path: "/v2/analytics/summary",
+        path: "/analytics/summary",
         description: "Fetch analytics summary via POST.",
         requestExample: `curl -X POST ${BASE_URL}/analytics/summary \\
   -H "Content-Type: application/json"`,
@@ -513,7 +513,7 @@ curl "${BASE_URL}/research?query=Analyze%20Bitcoin%20ETFs%20impact&type=deep"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/signal",
+        path: "/signal",
         description: "Get a trading signal for a token.",
         params: [
           { name: "token", type: "string", required: "No", description: "Token name (e.g. solana, bitcoin). Default: bitcoin." },
@@ -531,7 +531,7 @@ curl "${BASE_URL}/signal?token=solana"`,
       },
       {
         method: "POST",
-        path: "/v2/signal",
+        path: "/signal",
         description: "Get signal via POST.",
         bodyExample: `{ "token": "solana" }`,
         requestExample: `curl -X POST ${BASE_URL}/signal \\
@@ -556,7 +556,7 @@ curl "${BASE_URL}/signal?token=solana"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/event",
+        path: "/event",
         description: "Fetch cryptocurrency events.",
         params: [
           { name: "ticker", type: "string", required: "No", description: "Ticker (e.g. BTC, ETH) or 'general'. Default: general." },
@@ -581,7 +581,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
       },
       {
         method: "POST",
-        path: "/v2/event",
+        path: "/event",
         description: "Fetch events via POST.",
         bodyExample: `{ "ticker": "ETH" }`,
         requestExample: `curl -X POST ${BASE_URL}/event \\
@@ -612,7 +612,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/x-kol",
+        path: "/x-kol",
         description: "Fetch KOL data. Optionally pass a Solana token contract address for token-specific KOL analysis.",
         params: [
           { name: "address", type: "string", required: "No", description: "Solana token contract address for KOL mentions and sentiment." },
@@ -637,7 +637,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/crypto-kol",
+        path: "/crypto-kol",
         description: "Fetch crypto KOL data.",
         requestExample: `curl ${BASE_URL}/crypto-kol`,
         responseExample: `{
@@ -661,7 +661,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/smart-money",
+        path: "/smart-money",
         description: "Fetch smart money data.",
         requestExample: `curl ${BASE_URL}/smart-money`,
         responseExample: `{
@@ -687,7 +687,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/token-god-mode",
+        path: "/token-god-mode",
         description: "Fetch token god mode data.",
         requestExample: `curl ${BASE_URL}/token-god-mode`,
         responseExample: `{
@@ -959,7 +959,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/dexscreener",
+        path: "/dexscreener",
         description: "Fetch DexScreener data.",
         requestExample: `curl ${BASE_URL}/dexscreener`,
         responseExample: `{
@@ -987,7 +987,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/trending-jupiter",
+        path: "/trending-jupiter",
         description: "Fetch trending Jupiter tokens.",
         requestExample: `curl ${BASE_URL}/trending-jupiter`,
         responseExample: `{
@@ -1012,7 +1012,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/jupiter/swap/order",
+        path: "/jupiter/swap/order",
         description: "Get swap order. All query params are required.",
         params: [
           { name: "inputMint", type: "string", required: "Yes", description: "Input token mint address (e.g. wrapped SOL)." },
@@ -1035,7 +1035,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/token-report",
+        path: "/token-report",
         description: "Fetch token report for a given token contract address.",
         params: [
           { name: "address", type: "string", required: "Yes", description: "Token contract address (e.g. Solana token mint address)." },
@@ -1063,7 +1063,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/token-statistic",
+        path: "/token-statistic",
         description: "Fetch token statistics (new, recent, trending, verified).",
         requestExample: `curl ${BASE_URL}/token-statistic`,
         responseExample: `{
@@ -1095,7 +1095,7 @@ curl "${BASE_URL}/x-kol?address=So11111111111111111111111111111111111111112"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/token-risk/alerts",
+        path: "/token-risk/alerts",
         description:
           "Fetch tokens from Rugcheck stats (new_tokens, recent, trending, verified) whose normalised risk score is at or above rugScoreMin. The API checks up to limit tokens (each triggers one Rugcheck report call) and returns only those passing the threshold. Response includes score range of checked tokens (max_score_normalised_checked, min_score_normalised_checked) to interpret empty alerts.",
         params: [
@@ -1173,7 +1173,7 @@ curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
       {
         title: "Dev route (no payment)",
         content:
-          "When NODE_ENV is not production, GET /v2/token-risk/alerts/dev accepts the same query parameters and returns the same response shape without x402 payment. Use for local testing.",
+          "When NODE_ENV is not production, GET /token-risk/alerts/dev accepts the same query parameters and returns the same response shape without x402 payment. Use for local testing.",
       },
     ],
   }),
@@ -1184,7 +1184,7 @@ curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/bubblemaps/maps",
+        path: "/bubblemaps/maps",
         description: "Fetch Bubblemaps data.",
         requestExample: `curl ${BASE_URL}/bubblemaps/maps`,
         responseExample: `{
@@ -1204,7 +1204,7 @@ curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/binance/correlation",
+        path: "/binance/correlation",
         description: "Fetch top correlated assets for a symbol.",
         params: [
           { name: "symbol", type: "string", required: "No", description: "Trading pair (e.g. BTCUSDT, ETHUSDT). Default: BTCUSDT." },
@@ -1221,7 +1221,7 @@ curl "${BASE_URL}/binance/correlation?symbol=ETHUSDT"`,
       },
       {
         method: "GET",
-        path: "/v2/binance/correlation-matrix",
+        path: "/binance/correlation-matrix",
         description: "Fetch full Binance correlation matrix.",
         requestExample: `curl ${BASE_URL}/binance/correlation-matrix`,
         responseExample: `{
@@ -1238,7 +1238,7 @@ curl "${BASE_URL}/binance/correlation?symbol=ETHUSDT"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/pump",
+        path: "/pump",
         description: "Fetch pump.fun token data.",
         requestExample: `curl ${BASE_URL}/pump`,
         responseExample: `{
@@ -1267,7 +1267,7 @@ curl "${BASE_URL}/binance/correlation?symbol=ETHUSDT"`,
     endpoints: [
       {
         method: "GET",
-        path: "/v2/coingecko/simple-price",
+        path: "/coingecko/simple-price",
         description: "USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum). Requires either symbols or ids.",
         params: [
           { name: "symbols", type: "string", required: "No*", description: "Comma-separated symbols (e.g. btc,eth,sol). *Required if ids omitted." },
@@ -1290,7 +1290,7 @@ curl "${BASE_URL}/coingecko/simple-price?ids=bitcoin,ethereum,solana&vs_currenci
       },
       {
         method: "GET",
-        path: "/v2/coingecko/onchain/token-price",
+        path: "/coingecko/onchain/token-price",
         description: "Token price(s) by contract address on a network. Address can be comma-separated for multiple tokens.",
         params: [
           { name: "network", type: "string", required: "Yes", description: "Network id (e.g. base, solana, eth)." },
@@ -1310,7 +1310,7 @@ curl "${BASE_URL}/coingecko/onchain/token-price?network=base&address=0x...,0x...
       },
       {
         method: "GET",
-        path: "/v2/coingecko/onchain/search-pools",
+        path: "/coingecko/onchain/search-pools",
         description: "Search pools and tokens by query (name, symbol, or contract address) on a network.",
         params: [
           { name: "query", type: "string", required: "Yes", description: "Search query: token name, symbol, or contract address." },
@@ -1330,7 +1330,7 @@ curl "${BASE_URL}/coingecko/onchain/search-pools?query=WETH&network=base&include
       },
       {
         method: "GET",
-        path: "/v2/coingecko/onchain/trending-pools",
+        path: "/coingecko/onchain/trending-pools",
         description: "Get trending pools and tokens on a network (e.g. last 5 minutes).",
         params: [
           { name: "network", type: "string", required: "No", description: "Network id (e.g. base, solana). Default: base." },
@@ -1351,7 +1351,7 @@ curl "${BASE_URL}/coingecko/onchain/trending-pools?network=solana&duration=5m"`,
       },
       {
         method: "GET",
-        path: "/v2/coingecko/onchain/token",
+        path: "/coingecko/onchain/token",
         description: "Get token data by contract address on a network: price, liquidity, FDV, volume, top pools.",
         params: [
           { name: "network", type: "string", required: "Yes", description: "Network id (e.g. base, solana, eth)." },
@@ -1394,7 +1394,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
       {
         title: "Dev routes (no payment)",
         content:
-          "When NODE_ENV is not production, GET /v2/coingecko/simple-price/dev, /v2/coingecko/onchain/token-price/dev, /v2/coingecko/onchain/search-pools/dev, /v2/coingecko/onchain/trending-pools/dev, and /v2/coingecko/onchain/token/dev accept the same query parameters and return the same response shape without x402 payment. PAYER_KEYPAIR must be set for the server to pay CoinGecko x402.",
+          "When NODE_ENV is not production, GET /coingecko/simple-price/dev, /coingecko/onchain/token-price/dev, /coingecko/onchain/search-pools/dev, /coingecko/onchain/trending-pools/dev, and /coingecko/onchain/token/dev accept the same query parameters and return the same response shape without x402 payment. PAYER_KEYPAIR must be set for the server to pay CoinGecko x402.",
       },
     ],
   }),
@@ -1403,7 +1403,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     title: "Memecoin: Fastest Holder Growth",
     overview: "Get the fastest growing memecoins by holder growth rate. Uses the x402 payment protocol.",
     endpoints: [
-      { method: "GET", path: "/v2/memecoin/fastest-holder-growth", description: "Fetch list.", requestExample: `curl ${BASE_URL}/memecoin/fastest-holder-growth`, responseExample: `{
+      { method: "GET", path: "/memecoin/fastest-holder-growth", description: "Fetch list.", requestExample: `curl ${BASE_URL}/memecoin/fastest-holder-growth`, responseExample: `{
   "query": "...",
   "result": "AI-summarized memecoins with fastest holder growth...",
   "citations": [],
@@ -1419,7 +1419,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/most-mentioned-by-smart-money-x",
+        path: "/memecoin/most-mentioned-by-smart-money-x",
         description: "Fetch memecoins most mentioned by smart money on X.",
         requestExample: `curl ${BASE_URL}/memecoin/most-mentioned-by-smart-money-x`,
         responseExample: `{
@@ -1438,7 +1438,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/accumulating-before-CEX-rumors",
+        path: "/memecoin/accumulating-before-CEX-rumors",
         description: "Fetch memecoins accumulating before CEX rumors.",
         requestExample: `curl ${BASE_URL}/memecoin/accumulating-before-CEX-rumors`,
         responseExample: `{
@@ -1457,7 +1457,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/strong-narrative-low-market-cap",
+        path: "/memecoin/strong-narrative-low-market-cap",
         description: "Fetch memecoins with strong narrative and low market cap.",
         requestExample: `curl ${BASE_URL}/memecoin/strong-narrative-low-market-cap`,
         responseExample: `{
@@ -1476,7 +1476,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/by-experienced-devs",
+        path: "/memecoin/by-experienced-devs",
         description: "Fetch memecoins by experienced developers.",
         requestExample: `curl ${BASE_URL}/memecoin/by-experienced-devs`,
         responseExample: `{
@@ -1495,7 +1495,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/unusual-whale-behavior",
+        path: "/memecoin/unusual-whale-behavior",
         description: "Fetch memecoins with unusual whale behavior.",
         requestExample: `curl ${BASE_URL}/memecoin/unusual-whale-behavior`,
         responseExample: `{
@@ -1514,7 +1514,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/trending-on-x-not-dex",
+        path: "/memecoin/trending-on-x-not-dex",
         description: "Fetch memecoins trending on X but not yet on DEX.",
         requestExample: `curl ${BASE_URL}/memecoin/trending-on-x-not-dex`,
         responseExample: `{
@@ -1533,7 +1533,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/organic-traction",
+        path: "/memecoin/organic-traction",
         description: "Fetch memecoins with organic traction.",
         requestExample: `curl ${BASE_URL}/memecoin/organic-traction`,
         responseExample: `{
@@ -1552,7 +1552,7 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
     endpoints: [
       {
         method: "GET",
-        path: "/v2/memecoin/surviving-market-dumps",
+        path: "/memecoin/surviving-market-dumps",
         description: "Fetch memecoins that survived market dumps.",
         requestExample: `curl ${BASE_URL}/memecoin/surviving-market-dumps`,
         responseExample: `{

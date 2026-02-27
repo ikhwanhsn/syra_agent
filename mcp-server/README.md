@@ -53,7 +53,7 @@ The Syra MCP server **translates MCP tool calls into HTTP GET requests** to the 
 2. Builds the corresponding API URL (e.g. `GET https://api.syraa.fun/news?ticker=BTC`).
 3. Fetches the URL and returns the response body (or status + body on error) back to the client.
 
-Each MCP tool maps to exactly one API path (endpoints are available at both `/path` and `/v2/path` for compatibility). The server does **not** add authentication or payment headers—it only proxies requests. For production, x402 payment must be handled by your API client or another layer.
+Each MCP tool maps to exactly one API path (unversioned paths, e.g. `/news`, `/signal`). The server does **not** add authentication or payment headers—it only proxies requests. For production, x402 payment must be handled by your API client or another layer.
 
 ### Transport: stdio
 
@@ -394,45 +394,45 @@ All of these require a **token or contract address** (Solana where noted).
 
 ## API Endpoint Mapping
 
-Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to the path (e.g. `/news` → `/news/dev`). Query parameters are passed as given by the tool schema. The API serves the same endpoints at both `/path` and `/v2/path`; the table shows the path used by the MCP server.
+Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to the path (e.g. `/news` → `/news/dev`). Query parameters are passed as given by the tool schema. The API uses unversioned paths; the table shows the path used by the MCP server.
 
 | MCP Tool | API Path |
 |----------|----------|
-| `syra_v2_news` | `/v2/news` |
-| `syra_v2_event` | `/v2/event` |
-| `syra_v2_sentiment` | `/v2/sentiment` |
-| `syra_v2_trending_headline` | `/v2/trending-headline` |
-| `syra_v2_signal` | `/v2/signal` |
-| `syra_v2_check_status` | `/v2/check-status` |
-| `syra_v2_sundown_digest` | `/v2/sundown-digest` |
-| `syra_v2_gems` | `/v2/gems` |
-| `syra_v2_crypto_kol` | `/v2/crypto-kol` |
-| `syra_v2_token_statistic` | `/v2/token-statistic` |
-| `syra_v2_smart_money` | `/v2/smart-money` |
-| `syra_v2_dexscreener` | `/v2/dexscreener` |
-| `syra_v2_trending_jupiter` | `/v2/trending-jupiter` |
-| `syra_v2_analytics_summary` | `/v2/analytics/summary` |
-| `syra_v2_research` | `/v2/research` |
-| `syra_v2_browse` | `/v2/browse` |
-| `syra_v2_x_search` | `/v2/x-search` |
-| `syra_v2_exa_search` | `/v2/exa-search` |
-| `syra_v2_x_kol` | `/v2/x-kol` |
-| `syra_v2_token_report` | `/v2/token-report` |
-| `syra_v2_token_risk_alerts` | `/v2/token-risk/alerts` |
-| `syra_v2_token_god_mode` | `/v2/token-god-mode` |
-| `syra_v2_bubblemaps_maps` | `/v2/bubblemaps/maps` |
-| `syra_v2_binance_correlation` | `/v2/binance/correlation` |
-| `syra_v2_binance_correlation_matrix` | `/v2/binance/correlation-matrix` |
-| `syra_v2_pump` | `/v2/pump` |
-| `syra_v2_memecoin_fastest_holder_growth` | `/v2/memecoin/fastest-holder-growth` |
-| `syra_v2_memecoin_most_mentioned_smart_money_x` | `/v2/memecoin/most-mentioned-by-smart-money-x` |
-| `syra_v2_memecoin_accumulating_before_cex_rumors` | `/v2/memecoin/accumulating-before-CEX-rumors` |
-| `syra_v2_memecoin_strong_narrative_low_mcap` | `/v2/memecoin/strong-narrative-low-market-cap` |
-| `syra_v2_memecoin_by_experienced_devs` | `/v2/memecoin/by-experienced-devs` |
-| `syra_v2_memecoin_unusual_whale_behavior` | `/v2/memecoin/unusual-whale-behavior` |
-| `syra_v2_memecoin_trending_on_x_not_dex` | `/v2/memecoin/trending-on-x-not-dex` |
-| `syra_v2_memecoin_organic_traction` | `/v2/memecoin/organic-traction` |
-| `syra_v2_memecoin_surviving_market_dumps` | `/v2/memecoin/surviving-market-dumps` |
+| `syra_v2_news` | `/news` |
+| `syra_v2_event` | `/event` |
+| `syra_v2_sentiment` | `/sentiment` |
+| `syra_v2_trending_headline` | `/trending-headline` |
+| `syra_v2_signal` | `/signal` |
+| `syra_v2_check_status` | `/check-status` |
+| `syra_v2_sundown_digest` | `/sundown-digest` |
+| `syra_v2_gems` | `/gems` |
+| `syra_v2_crypto_kol` | `/crypto-kol` |
+| `syra_v2_token_statistic` | `/token-statistic` |
+| `syra_v2_smart_money` | `/smart-money` |
+| `syra_v2_dexscreener` | `/dexscreener` |
+| `syra_v2_trending_jupiter` | `/trending-jupiter` |
+| `syra_v2_analytics_summary` | `/analytics/summary` |
+| `syra_v2_research` | `/research` |
+| `syra_v2_browse` | `/browse` |
+| `syra_v2_x_search` | `/x-search` |
+| `syra_v2_exa_search` | `/exa-search` |
+| `syra_v2_x_kol` | `/x-kol` |
+| `syra_v2_token_report` | `/token-report` |
+| `syra_v2_token_risk_alerts` | `/token-risk/alerts` |
+| `syra_v2_token_god_mode` | `/token-god-mode` |
+| `syra_v2_bubblemaps_maps` | `/bubblemaps/maps` |
+| `syra_v2_binance_correlation` | `/binance/correlation` |
+| `syra_v2_binance_correlation_matrix` | `/binance/correlation-matrix` |
+| `syra_v2_pump` | `/pump` |
+| `syra_v2_memecoin_fastest_holder_growth` | `/memecoin/fastest-holder-growth` |
+| `syra_v2_memecoin_most_mentioned_smart_money_x` | `/memecoin/most-mentioned-by-smart-money-x` |
+| `syra_v2_memecoin_accumulating_before_cex_rumors` | `/memecoin/accumulating-before-CEX-rumors` |
+| `syra_v2_memecoin_strong_narrative_low_mcap` | `/memecoin/strong-narrative-low-market-cap` |
+| `syra_v2_memecoin_by_experienced_devs` | `/memecoin/by-experienced-devs` |
+| `syra_v2_memecoin_unusual_whale_behavior` | `/memecoin/unusual-whale-behavior` |
+| `syra_v2_memecoin_trending_on_x_not_dex` | `/memecoin/trending-on-x-not-dex` |
+| `syra_v2_memecoin_organic_traction` | `/memecoin/organic-traction` |
+| `syra_v2_memecoin_surviving_market_dumps` | `/memecoin/surviving-market-dumps` |
 
 ---
 
@@ -466,7 +466,7 @@ Whether the API actually skips payment for a given path depends on how your **AP
 1. **Start the Syra API** (e.g. from the monorepo `api` folder: `npm run dev`) so endpoints are available at `http://localhost:3000` (or your configured port).
 2. **Configure the MCP server** with `SYRA_API_BASE_URL=http://localhost:3000` and `SYRA_USE_DEV_ROUTES=true` (in `.env` or in the MCP client’s `env` for this server).
 3. **Add the MCP server** in Cursor (or Claude Desktop) as described above and restart/reload MCP.
-4. **In chat**, ask for “crypto news” or “Syra events for ETH.” The assistant should call `syra_v2_news` or `syra_v2_event` and return data (or a 402 body if the API still requires payment for that route). Tool names keep the `syra_v2_*` prefix for backward compatibility; they call the same Syra API (endpoints at `/path` and `/v2/path`).
+4. **In chat**, ask for “crypto news” or “Syra events for ETH.” The assistant should call `syra_v2_news` or `syra_v2_event` and return data (or a 402 body if the API still requires payment for that route). Tool names keep the `syra_v2_*` prefix for backward compatibility; they call the Syra API at unversioned paths (e.g. `/news`, `/signal`).
 
 If you get **402**, the tool result will include the response body so you can see the API’s payment requirements. For 200 without payment, ensure your local API exposes the `/dev` variants and the server is using dev routes.
 

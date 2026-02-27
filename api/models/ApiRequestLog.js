@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 
 const apiRequestLogSchema = new mongoose.Schema(
   {
-    /** Normalized path (e.g. /v2/news, /analytics/kpi). */
+    /** Normalized path (e.g. /news, /analytics/kpi). */
     path: { type: String, required: true },
     /** HTTP method. */
     method: { type: String, required: true },

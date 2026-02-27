@@ -50,7 +50,7 @@ export async function createGemsRouter() {
       description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/gems",
+      resource: "/gems",
       outputSchema: {
         query: {
           type: "string",
@@ -89,7 +89,7 @@ export async function createGemsRouter() {
       description: "Discover hidden gem crypto projects trending on X/Twitter",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/gems",
+      resource: "/gems",
       outputSchema: {
         query: {
           type: "string",

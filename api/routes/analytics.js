@@ -195,7 +195,7 @@ const summaryPaymentOptions = {
     "Analytics summary: full data from dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, and 9 memecoin screens",
   method: "GET",
   discoverable: true,
-  resource: "/v2/analytics/summary",
+  resource: "/analytics/summary",
   outputSchema: {
     api: { type: "string", description: "API version" },
     name: { type: "string", description: "Summary name" },

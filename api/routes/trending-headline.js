@@ -83,7 +83,7 @@ export async function createTrendingHeadlineRouter() {
       description: "Get trending headlines and top stories in the crypto market",
       method: "GET",
       discoverable: true,
-      resource: "/v2/trending-headline",
+      resource: "/trending-headline",
       inputSchema: {
         queryParams: {
           ticker: {
@@ -124,7 +124,7 @@ export async function createTrendingHeadlineRouter() {
       description: "Get trending headlines and top stories in the crypto market",
       method: "POST",
       discoverable: true,
-      resource: "/v2/trending-headline",
+      resource: "/trending-headline",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

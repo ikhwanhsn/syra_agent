@@ -335,7 +335,7 @@ function formatToolResultForLlm(data, toolId) {
 
 /**
  * Build a condensed text summary of analytics-summary payload for the LLM (sections + key counts/top items).
- * @param {Record<string, unknown>} summary - Response from /v2/analytics/summary
+ * @param {Record<string, unknown>} summary - Response from /analytics/summary
  * @returns {string}
  */
 function condensedAnalyticsSummary(summary) {

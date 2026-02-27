@@ -162,12 +162,11 @@ const CORS_OPTIONS_REGULAR = {
   ],
 };
 
-// COMMAND: x402 API — only v2 is used for other websites; v1 is not x402.
-// All v1 API (e.g. /v1/regular/*) is internal/free preview; only v2 endpoints get x402 CORS and skip rate limit.
+// COMMAND: x402 API — unversioned paths (e.g. /news, /signal); v1 is not x402.
+// All v1 API (e.g. /v1/regular/*) is internal/free preview; x402 routes get permissive CORS and skip rate limit.
 function isX402Route(p) {
   if (!p) return false;
   if (p.startsWith("/.well-known")) return true;
-  if (p.startsWith("/v2/")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
   if (p.startsWith("/x-search")) return true;
@@ -499,7 +498,7 @@ app.get("/", (req, res) => {
   `);
 });
 
-// Unversioned x402 routes (use V2 format from v2 folder; /v2/* routes remain in v2 section below)
+// x402 routes (unversioned paths only; single canonical URL per endpoint)
 app.use("/info", await createInfoRouter());
 app.use("/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
 app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
@@ -513,56 +512,17 @@ app.use("/v1/regular/news", await createNewsRouterRegular());
   app.use("/v1/regular/signal", await createSignalRouterRegular());
   app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
   app.use("/v1/regular/binance-ticker", await createBinanceTickerPriceRouter());
-// Block other /v1/* (non-regular) with 410; use /v2/* for x402
+// Block other /v1/* (non-regular) with 410; use unversioned x402 paths (e.g. /news, /signal)
 app.use("/v1", (req, res) => {
   res.status(410).json({
     success: false,
-    error: "v1 API is no longer available. Please use v2.",
-    migration: "https://api.syraa.fun/v2/",
+    error: "v1 API is no longer available. Please use the x402 API.",
+    migration: "https://api.syraa.fun",
     docs: "https://docs.syraa.fun",
   });
 });
 
-// x402 V2 routes (V2 format - CAIP-2, PAYMENT-SIGNATURE header)
-app.use("/v2/news", await createV2NewsRouter());
-app.use("/v2/signal", await createV2SignalRouter());
-app.use("/v2/sentiment", await createV2SentimentRouter());
-app.use("/v2/event", await createV2EventRouter());
-app.use("/v2/browse", await createV2BrowseRouter());
-app.use("/v2/x-search", await createV2XSearchRouter());
-app.use("/v2/research", await createV2ResearchRouter());
-app.use("/v2/exa-search", await createV2ExaSearchRouter());
-app.use("/v2/gems", await createV2GemsRouter());
-app.use("/v2/x-kol", await createV2XKOLRouter());
-app.use("/v2/crypto-kol", await createV2CryptoKOLRouter());
-app.use("/v2/check-status", await createV2CheckStatusRouter());
-app.use("/v2/trending-headline", await createV2TrendingHeadlineRouter());
-app.use("/v2/sundown-digest", await createV2SundownDigestRouter());
-app.use("/v2/smart-money", await createV2SmartMoneyRouter());
-app.use("/v2/dexscreener", await createV2DexscreenerRouter());
-app.use("/v2/token-god-mode", await createV2TokenGodModeRouter());
-app.use("/v2/pump", await createV2PumpRouter());
-app.use("/v2/trending-jupiter", await createV2TrendingJupiterRouter());
-app.use("/v2/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
-app.use("/v2/token-report", await createV2TokenReportRouter());
-app.use("/v2/token-statistic", await createV2TokenStatisticRouter());
-app.use("/v2/token-risk/alerts", await createV2TokenRiskAlertsRouter());
-app.use("/v2/bubblemaps/maps", await createV2BubblemapsMapsRouter());
-app.use("/v2/binance", await createV2BinanceCorrelationRouter());
-app.use("/v2/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
-app.use("/v2/coingecko/onchain", await createV2CoingeckoOnchainRouter());
-app.use("/v2/analytics", await createAnalyticsRouter());
-app.use("/v2/memecoin/fastest-holder-growth", await createV2FastestHolderGrowthMemecoinsRouter());
-app.use("/v2/memecoin/most-mentioned-by-smart-money-x", await createV2MemecoinsMostMentionedBySmartMoneyXRouter());
-app.use("/v2/memecoin/accumulating-before-CEX-rumors", await createV2MemecoinsAccumulatingBeforeCEXRumorsRouter());
-app.use("/v2/memecoin/strong-narrative-low-market-cap", await createV2MemecoinsStrongNarrativeLowMarketCapRouter());
-app.use("/v2/memecoin/by-experienced-devs", await createV2MemecoinsByExperiencedDevsRouter());
-app.use("/v2/memecoin/unusual-whale-behavior", await createV2MemecoinsUnusualWhaleBehaviorRouter());
-app.use("/v2/memecoin/trending-on-x-not-dex", await createV2MemecoinsTrendingOnXNotDEXRouter());
-app.use("/v2/memecoin/organic-traction", await createV2MemecoinsOrganicTractionRouter());
-app.use("/v2/memecoin/surviving-market-dumps", await createV2MemecoinsSurvivingMarketDumpsRouter());
-// app.use("/test", await createTestRouter());
-// Unversioned x402 routes — same V2 handlers as /v2/* (CAIP-2, PAYMENT-SIGNATURE)
+// x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/signal", await createV2SignalRouter());
 app.use("/x-search", await createV2XSearchRouter());
 app.use("/exa-search", await createV2ExaSearchRouter());
@@ -647,8 +607,7 @@ app.get("/.well-known/x402-verification.json", (req, res) => {
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)
-// Lists all x402 APIs (V2 format); available under both /v2/* and unversioned paths.
-// Discovery document version is 1, but 402 responses use x402Version: 2
+// Lists all x402 APIs (unversioned paths only).
 const X402_BASE = "https://api.syraa.fun";
 app.get("/.well-known/x402", (req, res) => {
   // Collect ownership proofs for both EVM and Solana addresses
@@ -664,7 +623,7 @@ app.get("/.well-known/x402", (req, res) => {
     ownershipProofs.push(process.env.X402_OWNERSHIP_PROOF);
   }
 
-  // All x402 API paths (V2 payment); exposed as both /v2/* and unversioned
+  // All x402 API paths (unversioned)
   const x402Paths = [
     // Core
     "news",
@@ -715,10 +674,7 @@ app.get("/.well-known/x402", (req, res) => {
     "memecoin/surviving-market-dumps",
   ];
 
-  const resources = [
-    ...x402Paths.map((p) => `${X402_BASE}/v2/${p}`),
-    ...x402Paths.map((p) => `${X402_BASE}/${p}`),
-  ];
+  const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);
 
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)

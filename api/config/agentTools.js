@@ -34,7 +34,7 @@ import {
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
 
 /**
- * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen tools use /v2/nansen/.
+ * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen tools call api.nansen.ai directly.
  * priceUsd = charged amount (env-based); displayPriceUsd = real API cost shown in UI (production).
  * @type {AgentTool[]}
  */
@@ -197,7 +197,7 @@ export const AGENT_TOOLS = [
   // Nansen x402 endpoints — agent calls real Nansen API (api.nansen.ai), not our route
   {
     id: 'nansen-address-current-balance',
-    path: '/v2/nansen/profiler/address/current-balance',
+    path: '/nansen/profiler/address/current-balance',
     nansenPath: '/api/v1/profiler/address/current-balance',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -207,7 +207,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-address-historical-balances',
-    path: '/v2/nansen/profiler/address/historical-balances',
+    path: '/nansen/profiler/address/historical-balances',
     nansenPath: '/api/v1/profiler/address/historical-balances',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -217,7 +217,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-smart-money-netflow',
-    path: '/v2/nansen/smart-money/netflow',
+    path: '/nansen/smart-money/netflow',
     nansenPath: '/api/v1/smart-money/netflow',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
@@ -227,7 +227,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-smart-money-holdings',
-    path: '/v2/nansen/smart-money/holdings',
+    path: '/nansen/smart-money/holdings',
     nansenPath: '/api/v1/smart-money/holdings',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
@@ -237,7 +237,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-smart-money-dex-trades',
-    path: '/v2/nansen/smart-money/dex-trades',
+    path: '/nansen/smart-money/dex-trades',
     nansenPath: '/api/v1/smart-money/dex-trades',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
@@ -247,7 +247,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-tgm-holders',
-    path: '/v2/nansen/tgm/holders',
+    path: '/nansen/tgm/holders',
     nansenPath: '/api/v1/tgm/holders',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
@@ -257,7 +257,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-tgm-flow-intelligence',
-    path: '/v2/nansen/tgm/flow-intelligence',
+    path: '/nansen/tgm/flow-intelligence',
     nansenPath: '/api/v1/tgm/flow-intelligence',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -267,7 +267,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-tgm-flows',
-    path: '/v2/nansen/tgm/flows',
+    path: '/nansen/tgm/flows',
     nansenPath: '/api/v1/tgm/flows',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -277,7 +277,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-tgm-dex-trades',
-    path: '/v2/nansen/tgm/dex-trades',
+    path: '/nansen/tgm/dex-trades',
     nansenPath: '/api/v1/tgm/dex-trades',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -287,7 +287,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-token-screener',
-    path: '/v2/nansen/token-screener',
+    path: '/nansen/token-screener',
     nansenPath: '/api/v1/token-screener',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -297,7 +297,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-profiler-counterparties',
-    path: '/v2/nansen/profiler/address/counterparties',
+    path: '/nansen/profiler/address/counterparties',
     nansenPath: '/api/v1/profiler/address/counterparties',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,
@@ -307,7 +307,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'nansen-tgm-pnl-leaderboard',
-    path: '/v2/nansen/tgm/pnl-leaderboard',
+    path: '/nansen/tgm/pnl-leaderboard',
     nansenPath: '/api/v1/tgm/pnl-leaderboard',
     method: 'POST',
     priceUsd: X402_API_PRICE_NANSEN_PREMIUM_USD,

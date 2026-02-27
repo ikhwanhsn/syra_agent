@@ -391,7 +391,7 @@ export async function createV2CoingeckoOnchainRouter() {
     "/search-pools",
     requirePayment({
       ...paymentOptions,
-      resource: "/v2/coingecko/onchain/search-pools",
+      resource: "/coingecko/onchain/search-pools",
       inputSchema: {
         queryParams: {
           query: { type: "string", required: true, description: "Search query (name, symbol, or contract address)" },
@@ -413,7 +413,7 @@ export async function createV2CoingeckoOnchainRouter() {
     "/trending-pools",
     requirePayment({
       ...paymentOptions,
-      resource: "/v2/coingecko/onchain/trending-pools",
+      resource: "/coingecko/onchain/trending-pools",
       inputSchema: {
         queryParams: {
           network: { type: "string", description: "Network id (e.g. base, solana)" },
@@ -436,7 +436,7 @@ export async function createV2CoingeckoOnchainRouter() {
     "/token",
     requirePayment({
       ...paymentOptions,
-      resource: "/v2/coingecko/onchain/token",
+      resource: "/coingecko/onchain/token",
       inputSchema: {
         queryParams: {
           network: { type: "string", description: "Network id (e.g. base, solana, eth)" },
@@ -458,7 +458,7 @@ export async function createV2CoingeckoOnchainRouter() {
     "/token-price",
     requirePayment({
       ...paymentOptions,
-      resource: "/v2/coingecko/onchain/token-price",
+      resource: "/coingecko/onchain/token-price",
       inputSchema: {
         queryParams: {
           network: { type: "string", description: "Network id (e.g. base, solana, eth)" },

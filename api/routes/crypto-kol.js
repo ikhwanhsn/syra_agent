@@ -52,7 +52,7 @@ export async function createCryptoKOLRouter() {
       description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.)",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/x/crypto-kol",
+      resource: "/crypto-kol",
       outputSchema: {
         query: {
           type: "string",
@@ -91,7 +91,7 @@ export async function createCryptoKOLRouter() {
       description: "Get latest insights from top crypto KOLs (@elonmusk, @VitalikButerin, @cz_binance, etc.)",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/x/crypto-kol",
+      resource: "/crypto-kol",
       outputSchema: {
         query: {
           type: "string",

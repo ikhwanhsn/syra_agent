@@ -31,7 +31,7 @@ export async function createSignalRouter() {
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "GET",
         discoverable: true,
-        resource: "/v2/signal",
+        resource: "/signal",
         inputSchema: {
           queryParams: {
             token: {
@@ -77,7 +77,7 @@ export async function createSignalRouter() {
         description: "Get AI-generated trading signals with entry/exit recommendations",
         method: "POST",
         discoverable: true,
-        resource: "/v2/signal",
+        resource: "/signal",
         inputSchema: {
           bodyType: "json",
           bodyFields: {

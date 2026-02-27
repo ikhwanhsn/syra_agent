@@ -211,7 +211,7 @@ export async function createBinanceCorrelationRouter() {
     });
   }
 
-  // GET /v2/binance and GET /v2/binance?symbol=X (same as /correlation)
+  // GET /binance and GET /binance?symbol=X (same as /correlation)
   router.get(
     "/",
     requirePayment({
@@ -219,7 +219,7 @@ export async function createBinanceCorrelationRouter() {
       description: "Correlation for a symbol (default BTCUSDT)",
       method: "GET",
       discoverable: true,
-      resource: "/v2/binance/correlation",
+      resource: "/binance/correlation",
       inputSchema: {
         queryParams: {
           symbol: { type: "string", required: false, description: "Symbol for correlation" },
@@ -310,7 +310,7 @@ export async function createBinanceCorrelationRouter() {
       description: "Correlation matrix for a symbol",
       method: "GET",
       discoverable: true,
-      resource: "/v2/binance/correlation",
+      resource: "/binance/correlation",
       inputSchema: {
         queryParams: {
           symbol: { type: "string", required: false, description: "Symbol name for the correlation" },

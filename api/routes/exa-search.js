@@ -36,7 +36,7 @@ export async function createExaSearchRouter() {
     description: "EXA AI web search – dynamic query only (e.g. latest news on Nvidia, crypto market analysis)",
     method: "GET",
     discoverable: true,
-    resource: "/v2/exa-search",
+    resource: "/exa-search",
     inputSchema: {
       queryParams: {
         query: {
@@ -53,7 +53,7 @@ export async function createExaSearchRouter() {
     },
   };
 
-  // GET /v2/exa-search?query=...
+  // GET /exa-search?query=...
   router.get(
     "/",
     requirePayment(paymentOptions),
@@ -87,7 +87,7 @@ export async function createExaSearchRouter() {
     }
   );
 
-  // POST /v2/exa-search – body: { query } (only query is dynamic)
+  // POST /exa-search – body: { query } (only query is dynamic)
   const postPaymentOptions = {
     ...paymentOptions,
     method: "POST",

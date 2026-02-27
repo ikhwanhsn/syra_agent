@@ -13,7 +13,7 @@ export async function createCheckStatusRouter() {
     price: X402_API_PRICE_CHECK_STATUS_USD,
     description: "Health check endpoint to verify API server status and connectivity",
     discoverable: true,
-    resource: "/v2/check-status",
+    resource: "/check-status",
     outputSchema: {
       status: { type: "string", description: "Server status (ok or error)" },
       message: { type: "string", description: "Status message" },

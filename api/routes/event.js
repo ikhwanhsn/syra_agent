@@ -84,7 +84,7 @@ export async function createEventRouter() {
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "GET",
       discoverable: true,
-      resource: "/v2/event",
+      resource: "/event",
       inputSchema: {
         queryParams: {
           ticker: {
@@ -121,7 +121,7 @@ export async function createEventRouter() {
       description: "Get upcoming and recent crypto events, conferences, and launches",
       method: "POST",
       discoverable: true,
-      resource: "/v2/event",
+      resource: "/event",
       inputSchema: {
         bodyType: "json",
         bodyFields: {

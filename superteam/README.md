@@ -278,7 +278,7 @@ You can track success using the following.
 
 ### Where tracking is implemented
 
-- **Paid calls:** Every successful x402 settlement (v1 and v2) is recorded in `api/models/PaidApiCall.js` (see `api/utils/recordPaidApiCall.js` and usage in `api/v2/utils/x402Payment.js` and v1 routes).
+- **Paid calls:** Every successful x402 settlement is recorded in `api/models/PaidApiCall.js` (see `api/utils/recordPaidApiCall.js` and usage in `api/utils/x402Payment.js` and route handlers).
 - **Agent usage:** Derived from `api/models/agent/Chat.js` (messages with `toolUsage.status === 'complete'`).
 
 ---

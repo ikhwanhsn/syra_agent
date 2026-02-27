@@ -1,6 +1,6 @@
 /**
  * v2 routes for each Nansen x402 endpoint. GET and POST; body from JSON (POST) or query params (GET).
- * Mount under /v2/nansen (e.g. GET/POST /v2/nansen/profiler/address/current-balance).
+ * Nansen endpoints are called at api.nansen.ai directly by the agent; not mounted on Syra API.
  */
 import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";

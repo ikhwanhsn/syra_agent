@@ -1,6 +1,6 @@
 /**
  * Internal research/browse/x-search for dashboard (API key auth, no x402).
- * Same behavior as /v2/research/dev, /v2/browse/dev, /v2/x-search/dev but available
+ * Same behavior as /research/dev, /browse/dev, /x-search/dev but available
  * when API is in production so the internal dashboard can run research without payment.
  * Also provides POST /internal/research-resume (Jatevo) to summarize latest research.
  * GET/PUT /internal/research-store persist latest research in DB (replace on save).

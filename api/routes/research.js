@@ -40,7 +40,7 @@ export async function createResearchRouter() {
       description: "AI-powered deep research on any crypto topic with cited sources",
       method: "GET",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/research",
+      resource: "/research",
       inputSchema: {
         queryParams: {
           query: {
@@ -117,7 +117,7 @@ export async function createResearchRouter() {
       description: "AI-powered deep research on any crypto topic with cited sources",
       method: "POST",
       discoverable: true, // Make it discoverable on x402scan
-      resource: "/v2/research",
+      resource: "/research",
       inputSchema: {
         bodyType: "json",
         bodyFields: {
