@@ -1,6 +1,6 @@
 # Token risk alerts endpoint – MCP test results
 
-**Goal:** Verify if `/v2/token-risk/alerts?rugScoreMin=80` is feasible using current `/v2/token-report` and `/v2/token-statistic` (via Syra v2 MCP).
+**Goal:** Verify if `/token-risk/alerts?rugScoreMin=80` is feasible using current `/token-report` and `/token-statistic` (via Syra API / MCP).
 
 **Date:** 2026-02-09
 
@@ -36,12 +36,12 @@ Per-token report includes:
 
 ---
 
-## 3. Feasibility for `/v2/token-risk/alerts?rugScoreMin=80`
+## 3. Feasibility for `/token-risk/alerts?rugScoreMin=80`
 
 **Yes, it is possible**, with this approach:
 
 1. **Source of mints:** Call the same Rugcheck stats as token-statistic (e.g. `new_tokens`, `recent`, `trending`, or a subset). Take a bounded list of mint addresses (e.g. top 50–100).
-2. **Get risk scores:** For each mint, call Rugcheck token report (your existing `/v2/token-report` or Rugcheck `GET /v1/tokens/{id}/report`). Alternatively, if Rugcheck supports it, use **bulk** report/summary to reduce calls.
+2. **Get risk scores:** For each mint, call Rugcheck token report (your existing `/token-report` or Rugcheck `GET /v1/tokens/{id}/report`). Alternatively, if Rugcheck supports it, use **bulk** report/summary to reduce calls.
 3. **Filter:** Keep tokens where `data.score_normalised >= rugScoreMin` (e.g. 80). Optionally also filter by `data.rugged === true` or by `data.risks.length > 0`.
 4. **Response:** Return the filtered list as “alerts” (e.g. array of `{ mint, score, score_normalised, risks, ... }` or minimal `{ mint, score_normalised }`).
 

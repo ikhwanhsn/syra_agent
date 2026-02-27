@@ -4,11 +4,11 @@
 
 # **Syra MCP Server**
 
-### Expose the Syra v2 API as MCP tools for Cursor, Claude Desktop, and other AI assistants
+### Expose the Syra API as MCP tools for Cursor, Claude Desktop, and other AI assistants
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
-[![API](https://img.shields.io/badge/API-v2-26a5e4)](https://api.syraa.fun)
+[![API](https://img.shields.io/badge/API-Syra-26a5e4)](https://api.syraa.fun)
 
 **[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)**
 
@@ -16,7 +16,7 @@
 
 ---
 
-A **Model Context Protocol (MCP)** server that exposes the **Syra v2 API** as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, or any other MCP-compatible client to fetch crypto news, events, sentiment, signals, research, token reports, memecoin screens, and more—all from inside your AI chat.
+A **Model Context Protocol (MCP)** server that exposes the **Syra API** as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, or any other MCP-compatible client to fetch crypto news, events, sentiment, signals, research, token reports, memecoin screens, and more—all from inside your AI chat.
 
 ---
 
@@ -47,13 +47,13 @@ A **Model Context Protocol (MCP)** server that exposes the **Syra v2 API** as to
 
 ### What it does
 
-The Syra MCP server **translates MCP tool calls into HTTP GET requests** to the Syra v2 API. When an AI assistant (e.g. in Cursor) calls a tool like `syra_v2_news`, the server:
+The Syra MCP server **translates MCP tool calls into HTTP GET requests** to the Syra API. When an AI assistant (e.g. in Cursor) calls a tool like `syra_v2_news`, the server:
 
 1. Receives the tool name and parameters over **stdio**.
-2. Builds the corresponding v2 URL (e.g. `GET https://api.syraa.fun/v2/news?ticker=BTC`).
+2. Builds the corresponding API URL (e.g. `GET https://api.syraa.fun/news?ticker=BTC`).
 3. Fetches the URL and returns the response body (or status + body on error) back to the client.
 
-Each MCP tool maps to exactly one v2 API path. The server does **not** add authentication or payment headers—it only proxies requests. For production, x402 payment must be handled by your API client or another layer.
+Each MCP tool maps to exactly one API path (endpoints are available at both `/path` and `/v2/path` for compatibility). The server does **not** add authentication or payment headers—it only proxies requests. For production, x402 payment must be handled by your API client or another layer.
 
 ### Transport: stdio
 
@@ -67,7 +67,7 @@ The server uses **stdio** (standard input/output) as the transport. The MCP clie
 
 ### Payment (high level)
 
-The **production** Syra v2 API at `https://api.syraa.fun` uses **x402** for many endpoints. Without a valid payment header, those endpoints return **402 Payment Required**. This MCP server only forwards requests; it does **not** inject payment. For **local testing**, you can point the server at your own API and use **dev routes** (see [Configuration](#configuration) and [Payment (x402) and Dev Routes](#payment-x402-and-dev-routes)) to avoid payment.
+The **production** Syra API at `https://api.syraa.fun` uses **x402** for many endpoints. Without a valid payment header, those endpoints return **402 Payment Required**. This MCP server only forwards requests; it does **not** inject payment. For **local testing**, you can point the server at your own API and use **dev routes** (see [Configuration](#configuration) and [Payment (x402) and Dev Routes](#payment-x402-and-dev-routes)) to avoid payment.
 
 ---
 
@@ -86,7 +86,7 @@ The **production** Syra v2 API at `https://api.syraa.fun` uses **x402** for many
 
 ## Features
 
-- **30+ MCP tools** covering the full Syra v2 API:
+- **30+ MCP tools** covering the full Syra API:
   - **News & events** — Latest crypto news and upcoming/recent events (optional ticker: BTC, ETH, or `general`).
   - **Sentiment & headlines** — Market sentiment (30 days) and trending crypto headlines (optional ticker).
   - **Signals** — AI-generated trading signals with entry/exit (optional token name).
@@ -98,7 +98,7 @@ The **production** Syra v2 API at `https://api.syraa.fun` uses **x402** for many
   - **Memecoin screens** — Fastest holder growth, smart money mentions, pre-CEX accumulation, strong narrative + low mcap, by experienced devs, unusual whale behavior, trending on X not DEX, organic traction, surviving market dumps.
 
 - **Configurable base URL** — Point to production (`https://api.syraa.fun`) or your local API (e.g. `http://localhost:3000`).
-- **Optional dev routes** — When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to **every** v2 path (e.g. `/v2/news/dev`). Use with a local API that implements `/dev` routes to skip x402 payment during development.
+- **Optional dev routes** — When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to each API path (e.g. `/news/dev`). Use with a local API that implements `/dev` routes to skip x402 payment during development.
 
 ---
 
@@ -107,8 +107,8 @@ The **production** Syra v2 API at `https://api.syraa.fun` uses **x402** for many
 | Requirement | Details |
 |-------------|---------|
 | **Node.js** | Version **18 or higher**. Check with `node -v`. |
-| **Syra v2 API** | Either the **production** API at `https://api.syraa.fun` or your **local** API (e.g. `http://localhost:3000`). The MCP server only works if this API is reachable from the machine running the server. |
-| **Payment (production)** | Production v2 endpoints use **x402**. Without a valid payment header you will get **402** responses. For local testing, use your local API and set `SYRA_USE_DEV_ROUTES=true` to call `/dev` routes (no payment), if your API supports them. |
+| **Syra API** | Either the **production** API at `https://api.syraa.fun` or your **local** API (e.g. `http://localhost:3000`). The MCP server only works if this API is reachable from the machine running the server. |
+| **Payment (production)** | Production endpoints use **x402**. Without a valid payment header you will get **402** responses. For local testing, use your local API and set `SYRA_USE_DEV_ROUTES=true` to call `/dev` routes (no payment), if your API supports them. |
 | **MCP client** | An application that supports MCP with stdio (e.g. Cursor, Claude Desktop). |
 
 ---
@@ -163,8 +163,8 @@ Configuration is done via **environment variables**. Copy `.env.example` to `.en
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `SYRA_API_BASE_URL` | Base URL of the Syra v2 API. No trailing slash. | `https://api.syraa.fun` | `http://localhost:3000` |
-| `SYRA_USE_DEV_ROUTES` | If set to `true` or `1`, the server appends `/dev` to every v2 path (e.g. `/v2/news` → `/v2/news/dev`). Use **only** with a local API that implements these routes; do not use in production. | not set (false) | `true` |
+| `SYRA_API_BASE_URL` | Base URL of the Syra API. No trailing slash. | `https://api.syraa.fun` | `http://localhost:3000` |
+| `SYRA_USE_DEV_ROUTES` | If set to `true` or `1`, the server appends `/dev` to each API path (e.g. `/news` → `/news/dev`). Use **only** with a local API that implements these routes; do not use in production. | not set (false) | `true` |
 
 ### Example `.env` for local testing (no payment)
 
@@ -394,7 +394,7 @@ All of these require a **token or contract address** (Solana where noted).
 
 ## API Endpoint Mapping
 
-Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to the path (e.g. `/v2/news` → `/v2/news/dev`). Query parameters are passed as given by the tool schema.
+Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to the path (e.g. `/news` → `/news/dev`). Query parameters are passed as given by the tool schema. The API serves the same endpoints at both `/path` and `/v2/path`; the table shows the path used by the MCP server.
 
 | MCP Tool | API Path |
 |----------|----------|
@@ -440,17 +440,17 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 
 ### Production API (https://api.syraa.fun)
 
-Many v2 endpoints require **x402 payment**. If the request does not include a valid payment header, the API responds with **402 Payment Required**. This MCP server **does not add** payment headers; it only forwards the request. To get **200** in production, payment must be handled elsewhere (e.g. API playground, gateway, or a client that sends x402 headers).
+Many endpoints require **x402 payment**. If the request does not include a valid payment header, the API responds with **402 Payment Required**. This MCP server **does not add** payment headers; it only forwards the request. To get **200** in production, payment must be handled elsewhere (e.g. API playground, gateway, or a client that sends x402 headers).
 
 ### Dev routes (local testing)
 
-When **`SYRA_USE_DEV_ROUTES=true`** and **`SYRA_API_BASE_URL`** points to your **local** API, the server appends **`/dev`** to every v2 path it calls. For example:
+When **`SYRA_USE_DEV_ROUTES=true`** and **`SYRA_API_BASE_URL`** points to your **local** API, the server appends **`/dev`** to each path it calls. For example:
 
-- `/v2/news` → `/v2/news/dev`
-- `/v2/event` → `/v2/event/dev`
-- `/v2/check-status` → `/v2/check-status/dev`
+- `/news` → `/news/dev`
+- `/event` → `/event/dev`
+- `/check-status` → `/check-status/dev`
 
-Whether the API actually skips payment for a given path depends on how your **API** implements the `/dev` routes. Commonly, at least `/v2/news/dev` and `/v2/event/dev` are implemented to return data without payment. Use dev routes **only** with a local or non-production API.
+Whether the API actually skips payment for a given path depends on how your **API** implements the `/dev` routes. Use dev routes **only** with a local or non-production API.
 
 ### Summary
 
@@ -463,10 +463,10 @@ Whether the API actually skips payment for a given path depends on how your **AP
 
 ## Testing Against Local API
 
-1. **Start the Syra API** (e.g. from the monorepo `api` folder: `npm run dev`) so v2 endpoints are available at `http://localhost:3000` (or your configured port).
+1. **Start the Syra API** (e.g. from the monorepo `api` folder: `npm run dev`) so endpoints are available at `http://localhost:3000` (or your configured port).
 2. **Configure the MCP server** with `SYRA_API_BASE_URL=http://localhost:3000` and `SYRA_USE_DEV_ROUTES=true` (in `.env` or in the MCP client’s `env` for this server).
 3. **Add the MCP server** in Cursor (or Claude Desktop) as described above and restart/reload MCP.
-4. **In chat**, ask for “crypto news” or “Syra events for ETH.” The assistant should call `syra_v2_news` or `syra_v2_event` and return data (or a 402 body if the API still requires payment for that route).
+4. **In chat**, ask for “crypto news” or “Syra events for ETH.” The assistant should call `syra_v2_news` or `syra_v2_event` and return data (or a 402 body if the API still requires payment for that route). Tool names keep the `syra_v2_*` prefix for backward compatibility; they call the same Syra API (endpoints at `/path` and `/v2/path`).
 
 If you get **402**, the tool result will include the response body so you can see the API’s payment requirements. For 200 without payment, ensure your local API exposes the `/dev` variants and the server is using dev routes.
 

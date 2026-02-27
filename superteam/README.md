@@ -39,7 +39,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 | `api/` | Backend (Express). All paid routes, analytics, agent tools. |
 | `api/models/PaidApiCall.js` | Stores each paid API call for KPI. |
 | `api/routes/analytics.js` | `GET /analytics/kpi` — dashboard data. |
-| `api/config/agentTools.js` | List of agent tools (v2 paths, prices). |
+| `api/config/agentTools.js` | List of agent tools (API paths, prices). |
 | `ai-agent/` | AI research agent UI (chat, prompts, tools). |
 | `api-playground/` | Live API demo (request builder, payment, history). |
 | `landing/` | Marketing site + **Analytics** page + Leaderboard. |
@@ -65,16 +65,16 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 
 **What already exists (API):**
 
-- **Price/volume:** DexScreener (`/v2/dexscreener`), Binance OHLC (if mounted).
-- **Correlation:** `api/routes/partner/binance/correlation.js` → `/v2/binance/correlation`.
+- **Price/volume:** DexScreener (`/dexscreener`), Binance OHLC (if mounted).
+- **Correlation:** `api/routes/partner/binance/correlation.js` → `/binance/correlation`.
 - **Liquidity / DEX data:** DexScreener, Jupiter trending, RugCheck token stats.
 
 **What you need to do:**
 
 - [ ] **Document** all analytics-related endpoints in one place.
   - Suggested file: `docs/docs/api documentation/analytics.md` (or new “Analytics API” section).
-  - List: `/v2/dexscreener`, `/v2/binance/correlation`, `/v2/token-report`, `/v2/token-statistic`, `/v2/trending-jupiter`, etc., with short description and example.
-- [ ] **(Optional)** Add one **summary endpoint** e.g. `GET /v2/analytics/summary` that returns a single JSON with links or counts to price, volume, correlation, token risk — so reviewers see “one analytics API” in one call. If you skip this, the doc alone is enough.
+  - List: `/dexscreener`, `/binance/correlation`, `/token-report`, `/token-statistic`, `/trending-jupiter`, etc., with short description and example.
+- [ ] **(Optional)** Add one **summary endpoint** e.g. `GET /analytics/summary` that returns a single JSON with links or counts to price, volume, correlation, token risk — so reviewers see “one analytics API” in one call. If you skip this, the doc alone is enough.
 
 **Deliverable:** One consolidated **Analytics API** doc (and optionally one summary endpoint).
 
@@ -85,7 +85,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 **What already exists:**
 
 - **Agent app:** `ai-agent/` — chat UI, agent selector, system prompts, wallet, shareable chats.
-- **Backend:** `api/routes/agent/chat.js`, `api/routes/agent/tools.js`, `api/config/agentTools.js` — tools call v2 paid APIs (news, signal, research, sentiment, DexScreener, RugCheck, correlation, etc.).
+- **Backend:** `api/routes/agent/chat.js`, `api/routes/agent/tools.js`, `api/config/agentTools.js` — tools call paid APIs (news, signal, research, sentiment, DexScreener, RugCheck, correlation, etc.).
 
 **What you need to do:**
 
@@ -158,7 +158,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 **Option B — Lighter:**
 
 - [ ] Document **“How to use Syra API from an MCP client”** (e.g. how to call your API from a custom MCP tool).
-- [ ] Provide **one example** (e.g. a minimal MCP tool that calls `GET /v2/news` or `/v2/binance/correlation`).
+- [ ] Provide **one example** (e.g. a minimal MCP tool that calls `GET /news` or `/binance/correlation`).
 
 **Deliverable:** Either Syra MCP server + doc, or doc + one MCP usage example.
 
@@ -168,12 +168,12 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 
 **What already exists:**
 
-- RugCheck: `api/routes/partner/rugcheck/token-report.js`, `token-statistic.js` → `/v2/token-report`, `/v2/token-statistic`.
+- RugCheck: `api/routes/partner/rugcheck/token-report.js`, `token-statistic.js` → `/token-report`, `/token-statistic`.
 
 **What you need to do:**
 
-- [ ] **Document** these as the **“Token risk API”** in API docs (e.g. new page or section `token-risk.md` describing `/v2/token-report`, `/v2/token-statistic`, query params, response shape).
-- [ ] **One anomaly/alert endpoint** (optional but valuable): e.g. `GET /v2/token-risk/alerts?rugScoreMin=80` or “tokens with unusual volume” using existing data. Implement one such endpoint and document it.
+- [ ] **Document** these as the **“Token risk API”** in API docs (e.g. new page or section `token-risk.md` describing `/token-report`, `/token-statistic`, query params, response shape).
+- [ ] **One anomaly/alert endpoint** (optional but valuable): e.g. `GET /token-risk/alerts?rugScoreMin=80` or “tokens with unusual volume” using existing data. Implement one such endpoint and document it.
 
 **Deliverable:** Token risk API doc + (optional) one anomaly/alert endpoint.
 

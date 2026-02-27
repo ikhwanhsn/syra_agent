@@ -4,7 +4,7 @@
 
 # **Syra API Playground**
 
-### API testing and exploration UI for the Syra v2 API
+### API testing and exploration UI for the Syra API
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)

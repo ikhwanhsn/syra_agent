@@ -94,7 +94,7 @@ Syra runs as an autonomous research agent on **x402scan** (ranked **#1**), for a
 | **`api-playground`** | API testing and exploration UI |
 | **`prediction-game`** | Prediction game app and server |
 | **`payai-x402-example`** | PayAI x402 v2 example server |
-| **`mcp-server`** | MCP server exposing Syra v2 API tools |
+| **`mcp-server`** | MCP server exposing Syra API tools |
 
 ---
 
