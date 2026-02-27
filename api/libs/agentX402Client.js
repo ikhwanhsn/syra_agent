@@ -18,6 +18,7 @@ import {
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { getAgentKeypair } from './agentWallet.js';
+import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
 
 /**
  * Get treasury keypair from AGENT_PRIVATE_KEY (base58). Used to pay for tool calls when user is a 1M+ SYRA holder.
@@ -150,9 +151,13 @@ export async function callX402V2WithAgent(opts) {
     if (!keypair) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
-    return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress });
+    const sentinelFetch = getSentinelFetch(anonymousId);
+    return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress }, sentinelFetch);
   } catch (e) {
     const msg = e?.message || String(e);
+    if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
+      return { success: false, error: msg, budgetExceeded: true };
+    }
     return { success: false, error: msg };
   }
 }
@@ -168,14 +173,18 @@ export async function callX402V2WithTreasury(opts) {
     if (!keypair) {
       return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
     }
-    return await callX402V2WithKeypair(keypair, opts);
+    const sentinelFetch = getSentinelFetch('treasury');
+    return await callX402V2WithKeypair(keypair, opts, sentinelFetch);
   } catch (e) {
     const msg = e?.message || String(e);
+    if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
+      return { success: false, error: msg, budgetExceeded: true };
+    }
     return { success: false, error: msg };
   }
 }
 
-async function callX402V2WithKeypair(keypair, opts) {
+async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) {
   const { url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
   const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
@@ -199,7 +208,7 @@ async function callX402V2WithKeypair(keypair, opts) {
     headers: initHeaders,
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
-  const firstRes = await fetch(initialUrl, initOpts);
+  const firstRes = await fetchFn(initialUrl, initOpts);
   const firstData = await firstRes.json().catch(() => ({}));
 
   // Payment only happens when the API returns 402. If 200/other, we return data without paying (balance unchanged).
@@ -219,7 +228,7 @@ async function callX402V2WithKeypair(keypair, opts) {
     accepts,
     x402Version: firstData.x402Version ?? 2,
     connectedWalletAddress,
-  });
+  }, fetchFn);
 }
 
 /**
@@ -228,7 +237,7 @@ async function callX402V2WithKeypair(keypair, opts) {
  * @param {{ url: string; method?: string; body?: object; accepts: object[]; x402Version?: number; connectedWalletAddress?: string }} opts
  * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
  */
-export async function pay402AndRetry(keypair, opts) {
+export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) {
   const { url, method = 'POST', body, accepts, x402Version = 2, connectedWalletAddress } = opts;
   const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
@@ -355,7 +364,7 @@ export async function pay402AndRetry(keypair, opts) {
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
 
-  const secondRes = await fetch(url, retryOpts);
+  const secondRes = await fetchFn(url, retryOpts);
   const secondData = await secondRes.json().catch(() => ({}));
 
   if (!secondRes.ok) {

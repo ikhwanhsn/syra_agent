@@ -100,41 +100,45 @@ router.post('/call', async (req, res) => {
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
     if (tool.nansenPath) {
       const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
-      if (!result.success) {
-        return res.status(502).json({
-          success: false,
-          error: result.error,
-          toolId: tool.id,
-        });
-      }
-      return res.json({
-        success: true,
-        toolId: tool.id,
-        data: result.data,
-      });
-    }
-
-    const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
-    const method = tool.method || 'GET';
-    const query = method === 'GET' ? params : {};
-    const body = method === 'POST' ? params : undefined;
-
-    const result = await callX402V2WithAgent({
-      anonymousId,
-      url,
-      method,
-      query,
-      body,
-      connectedWalletAddress: connectedWallet || undefined,
-    });
-
     if (!result.success) {
-      return res.status(502).json({
+      const status = result.budgetExceeded ? 402 : 502;
+      return res.status(status).json({
         success: false,
         error: result.error,
         toolId: tool.id,
+        ...(result.budgetExceeded && { budgetExceeded: true }),
       });
     }
+    return res.json({
+      success: true,
+      toolId: tool.id,
+      data: result.data,
+    });
+  }
+
+  const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
+  const method = tool.method || 'GET';
+  const query = method === 'GET' ? params : {};
+  const body = method === 'POST' ? params : undefined;
+
+  const result = await callX402V2WithAgent({
+    anonymousId,
+    url,
+    method,
+    query,
+    body,
+    connectedWalletAddress: connectedWallet || undefined,
+  });
+
+  if (!result.success) {
+    const status = result.budgetExceeded ? 402 : 502;
+    return res.status(status).json({
+      success: false,
+      error: result.error,
+      toolId: tool.id,
+      ...(result.budgetExceeded && { budgetExceeded: true }),
+    });
+  }
 
     let data = result.data;
     // Jupiter swap: sign and submit the transaction with the agent wallet so the swap executes (agent balance reduced).

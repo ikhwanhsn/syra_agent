@@ -4,6 +4,7 @@
  */
 import { getAgentKeypair } from './agentWallet.js';
 import { pay402AndRetry } from './agentX402Client.js';
+import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
 
 const NANSEN_BASE = process.env.NANSEN_API_BASE_URL || 'https://api.nansen.ai';
 
@@ -68,47 +69,56 @@ function paramsToBody(params) {
  * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
  */
 export async function callNansenWithAgent(anonymousId, nansenPath, params) {
-  const keypair = await getAgentKeypair(anonymousId);
-  if (!keypair) {
-    return { success: false, error: 'Agent wallet not found for this user' };
-  }
-
-  const url = `${NANSEN_BASE.replace(/\/$/, '')}${nansenPath}`;
-  const body = paramsToBody(params);
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (res.status !== 402) {
-    if (!res.ok) {
-      return {
-        success: false,
-        error: data?.detail || data?.error || data?.message || res.statusText || `Nansen API ${res.status}`,
-      };
+  try {
+    const keypair = await getAgentKeypair(anonymousId);
+    if (!keypair) {
+      return { success: false, error: 'Agent wallet not found for this user' };
     }
-    return { success: true, data };
+
+    const url = `${NANSEN_BASE.replace(/\/$/, '')}${nansenPath}`;
+    const body = paramsToBody(params);
+    const sentinelFetch = getSentinelFetch(anonymousId);
+
+    const res = await sentinelFetch(url, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status !== 402) {
+      if (!res.ok) {
+        return {
+          success: false,
+          error: data?.detail || data?.error || data?.message || res.statusText || `Nansen API ${res.status}`,
+        };
+      }
+      return { success: true, data };
+    }
+
+    const parsed = parse402FromNansen(res, data);
+    if (!parsed) {
+      return { success: false, error: '402 response missing payment options (accepts or Payment-Required header)' };
+    }
+
+    // Prefer Solana accept if multiple (agent wallet is Solana)
+    let accepts = parsed.accepts;
+    const solana = accepts.filter((a) => (a.network || '').toLowerCase().includes('solana'));
+    if (solana.length) accepts = solana;
+
+    return pay402AndRetry(keypair, {
+      url,
+      method: 'POST',
+      body,
+      accepts,
+      x402Version: parsed.x402Version ?? 2,
+    }, sentinelFetch);
+  } catch (e) {
+    const msg = e?.message || String(e);
+    if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
+      return { success: false, error: msg, budgetExceeded: true };
+    }
+    return { success: false, error: msg };
   }
-
-  const parsed = parse402FromNansen(res, data);
-  if (!parsed) {
-    return { success: false, error: '402 response missing payment options (accepts or Payment-Required header)' };
-  }
-
-  // Prefer Solana accept if multiple (agent wallet is Solana)
-  let accepts = parsed.accepts;
-  const solana = accepts.filter((a) => (a.network || '').toLowerCase().includes('solana'));
-  if (solana.length) accepts = solana;
-
-  return pay402AndRetry(keypair, {
-    url,
-    method: 'POST',
-    body,
-    accepts,
-    x402Version: parsed.x402Version ?? 2,
-  });
 }
