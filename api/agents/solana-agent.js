@@ -2,7 +2,7 @@ import express from "express";
 import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils/x402Payment.js";
 import { X402_API_PRICE_NANSEN_USD } from "../config/x402Pricing.js";
 import { tokenGodModePerpRequests } from "../request/nansen/token-god-mode-perp.js";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../libs/sentinelPayer.js";
 
 export async function createSolanaAgentRouter() {
   const router = express.Router();
@@ -43,7 +43,7 @@ export async function createSolanaAgentRouter() {
       try {
         const responses = await Promise.all(
           tokenGodModePerpRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: {
                 Accept: "application/json",
@@ -123,7 +123,7 @@ export async function createSolanaAgentRouter() {
       try {
         const responses = await Promise.all(
           tokenGodModePerpRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: {
                 Accept: "application/json",

@@ -48,6 +48,7 @@ import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./
 import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./routes/partner/jupiter/swap-order.js";
 import { createTokenReportRouter as createV2TokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
 import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
+import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
 import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./routes/partner/rugcheck/token-risk-alerts.js";
 import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
@@ -240,7 +241,8 @@ app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "favicon.ico"));
 });
 
-// Playground CORS proxy: forward requests to external x402 APIs so the playground can call them from the browser
+// Playground CORS proxy: forward requests to external x402 APIs so the playground can call them from the browser.
+// Uses Sentinel-wrapped fetch so playground x402 calls are audited and budget-limited (agent id: "playground").
 app.post("/api/playground-proxy", async (req, res) => {
   const { url: targetUrl, method = "GET", body: forwardBody, headers: forwardHeaders = {} } = req.body || {};
   if (!targetUrl || typeof targetUrl !== "string") {
@@ -253,6 +255,7 @@ app.post("/api/playground-proxy", async (req, res) => {
     res.status(400).json({ error: "Method not allowed. Use GET or POST." });
     return;
   }
+  const sentinelFetch = getSentinelFetch("playground");
   try {
     const fetchOpts = {
       method: forwardMethod,
@@ -261,7 +264,7 @@ app.post("/api/playground-proxy", async (req, res) => {
     if (forwardBody != null && forwardBody !== "" && forwardMethod !== "GET" && forwardMethod !== "HEAD") {
       fetchOpts.body = typeof forwardBody === "string" ? forwardBody : JSON.stringify(forwardBody);
     }
-    const proxyRes = await fetch(targetUrl, fetchOpts);
+    const proxyRes = await sentinelFetch(targetUrl, fetchOpts);
     const responseText = await proxyRes.text();
     // Forward safe response headers (exclude hop-by-hop and encoding)
     const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
@@ -272,6 +275,14 @@ app.post("/api/playground-proxy", async (req, res) => {
     });
     res.status(proxyRes.status).send(responseText);
   } catch (err) {
+    if (err && (err.name === "SentinelBudgetError" || err instanceof SentinelBudgetError)) {
+      res.status(402).json({
+        error: "Playground spend limit exceeded",
+        message: err.message || String(err),
+        budgetExceeded: true,
+      });
+      return;
+    }
     res.status(502).json({
       error: "Proxy fetch failed",
       message: err.message || String(err),

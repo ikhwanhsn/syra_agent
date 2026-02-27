@@ -10,7 +10,7 @@
 import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { X402_API_PRICE_JUPITER_SWAP_USD } from "../../../config/x402Pricing.js";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../../../libs/sentinelPayer.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -34,7 +34,7 @@ async function fetchJupiterOrder(inputMint, outputMint, amount, taker) {
 
   const params = buildOrderParams(inputMint, outputMint, amount, taker);
   const url = `${JUPITER_ULTRA_ORDER_URL}?${params}`;
-  const response = await payer.fetch(url, {
+  const response = await getSentinelPayerFetch()(url, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });

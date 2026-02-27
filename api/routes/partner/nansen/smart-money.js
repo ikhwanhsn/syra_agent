@@ -3,7 +3,7 @@ import { getV2Payment } from "../../../utils/getV2Payment.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_NANSEN_USD } from "../../../config/x402Pricing.js";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../../../libs/sentinelPayer.js";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
 
 export async function createSmartMoneyRouter() {
@@ -17,7 +17,7 @@ export async function createSmartMoneyRouter() {
       try {
         const responses = await Promise.all(
           smartMoneyRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: { Accept: "application/json", "Content-Type": "application/json" },
               body: JSON.stringify(payload),
@@ -88,7 +88,7 @@ export async function createSmartMoneyRouter() {
       try {
         const responses = await Promise.all(
           smartMoneyRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: {
                 Accept: "application/json",
@@ -174,7 +174,7 @@ export async function createSmartMoneyRouter() {
       try {
         const responses = await Promise.all(
           smartMoneyRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: {
                 Accept: "application/json",

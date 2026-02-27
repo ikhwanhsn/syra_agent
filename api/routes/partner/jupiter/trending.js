@@ -3,7 +3,7 @@ import { getV2Payment } from "../../../utils/getV2Payment.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../../../libs/sentinelPayer.js";
 import { smartMoneyRequests } from "../../../request/nansen/smart-money.request.js";
 
 export async function createTrendingJupiterRouter() {
@@ -16,7 +16,7 @@ export async function createTrendingJupiterRouter() {
       await payer.addLocalWallet(PAYER_KEYPAIR);
       try {
         const url = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
-        const response = await payer.fetch(url, {
+        const response = await getSentinelPayerFetch()(url, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -57,7 +57,7 @@ export async function createTrendingJupiterRouter() {
       try {
         const url = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
 
-        const response = await payer.fetch(`${url}`, {
+        const response = await getSentinelPayerFetch()(`${url}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -114,7 +114,7 @@ export async function createTrendingJupiterRouter() {
       try {
         const url = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
 
-        const response = await payer.fetch(`${url}`, {
+        const response = await getSentinelPayerFetch()(`${url}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

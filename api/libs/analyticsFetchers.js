@@ -72,12 +72,12 @@ export async function fetchTokenStatistic() {
 
 /** Jupiter trending tokens (no params). Requires PAYER_KEYPAIR. */
 export async function fetchTrendingJupiter() {
-  const { payer } = await import("@faremeter/rides");
+  const { payer, getSentinelPayerFetch } = await import("./sentinelPayer.js");
   const PAYER_KEYPAIR = process.env.PAYER_KEYPAIR;
   if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
   await payer.addLocalWallet(PAYER_KEYPAIR);
 
-  const response = await payer.fetch(JUPITER_TRENDING_URL, {
+  const response = await getSentinelPayerFetch()(JUPITER_TRENDING_URL, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
@@ -98,14 +98,14 @@ export async function fetchTrendingJupiter() {
 
 /** Nansen smart money (no params). Requires PAYER_KEYPAIR. */
 export async function fetchSmartMoney() {
-  const { payer } = await import("@faremeter/rides");
+  const { payer, getSentinelPayerFetch } = await import("./sentinelPayer.js");
   const PAYER_KEYPAIR = process.env.PAYER_KEYPAIR;
   if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
   await payer.addLocalWallet(PAYER_KEYPAIR);
 
   const responses = await Promise.all(
     smartMoneyRequests.map(({ url, payload }) =>
-      payer.fetch(url, {
+      getSentinelPayerFetch()(url, {
         method: "POST",
         headers: {
           Accept: "application/json",

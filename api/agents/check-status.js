@@ -1,5 +1,5 @@
 import express from "express";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../libs/sentinelPayer.js";
 
 export async function createCheckStatusAgentRouter() {
   const router = express.Router();
@@ -15,7 +15,7 @@ export async function createCheckStatusAgentRouter() {
       const { BASE_URL } = process.env;
       const url = `${BASE_URL}/check-status`;
 
-      const response = await payer.fetch(url, {
+      const response = await getSentinelPayerFetch()(url, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -50,7 +50,7 @@ export async function createCheckStatusAgentRouter() {
       const { BASE_URL } = process.env;
       const url = `${BASE_URL}/check-status`;
 
-      const response = await payer.fetch(url, {
+      const response = await getSentinelPayerFetch()(url, {
         method: "POST",
         headers: {
           Accept: "application/json",

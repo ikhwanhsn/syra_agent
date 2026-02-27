@@ -3,7 +3,7 @@ import { getV2Payment } from "../../../utils/getV2Payment.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import { X402_API_PRICE_NANSEN_USD } from "../../../config/x402Pricing.js";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../../../libs/sentinelPayer.js";
 import { tokenGodModeRequests } from "../../../request/nansen/token-god-mode.js";
 
 export async function createTokenGodModeRouter() {
@@ -19,7 +19,7 @@ export async function createTokenGodModeRouter() {
       try {
         const responses = await Promise.all(
           tokenGodModeRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: { Accept: "application/json", "Content-Type": "application/json" },
               body: JSON.stringify({ token_address: tokenAddress, ...payload }),
@@ -83,7 +83,7 @@ export async function createTokenGodModeRouter() {
       try {
         const responses = await Promise.all(
           tokenGodModeRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: {
                 Accept: "application/json",
@@ -162,7 +162,7 @@ export async function createTokenGodModeRouter() {
       try {
         const responses = await Promise.all(
           tokenGodModeRequests.map(({ url, payload }) =>
-            payer.fetch(url, {
+            getSentinelPayerFetch()(url, {
               method: "POST",
               headers: {
                 Accept: "application/json",

@@ -5,7 +5,7 @@
 import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { X402_API_PRICE_NANSEN_USD, X402_API_PRICE_NANSEN_PREMIUM_USD } from "../../../config/x402Pricing.js";
-import { payer } from "@faremeter/rides";
+import { payer, getSentinelPayerFetch } from "../../../libs/sentinelPayer.js";
 import {
   profilerAddressCurrentBalance,
   profilerAddressHistoricalBalances,
@@ -39,10 +39,10 @@ import {
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
-/** Build options for Nansen calls: payer.fetch and optional baseUrl from env */
+/** Build options for Nansen calls: Sentinel-wrapped payer.fetch and optional baseUrl from env */
 function nansenOptions() {
   return {
-    fetch: payer.fetch,
+    fetch: getSentinelPayerFetch(),
     ...(process.env.NANSEN_API_BASE_URL ? { baseUrl: process.env.NANSEN_API_BASE_URL } : {}),
   };
 }
