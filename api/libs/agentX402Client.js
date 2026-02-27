@@ -218,17 +218,18 @@ async function callX402V2WithKeypair(keypair, opts) {
     body,
     accepts,
     x402Version: firstData.x402Version ?? 2,
+    connectedWalletAddress,
   });
 }
 
 /**
  * Execute 402 payment with keypair and retry the request. Used by Syra v2 and by Nansen direct calls.
  * @param {import('@solana/web3.js').Keypair} keypair
- * @param {{ url: string; method?: string; body?: object; accepts: object[]; x402Version?: number }} opts
+ * @param {{ url: string; method?: string; body?: object; accepts: object[]; x402Version?: number; connectedWalletAddress?: string }} opts
  * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
  */
 export async function pay402AndRetry(keypair, opts) {
-  const { url, method = 'POST', body, accepts, x402Version = 2 } = opts;
+  const { url, method = 'POST', body, accepts, x402Version = 2, connectedWalletAddress } = opts;
   const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
 
@@ -339,13 +340,18 @@ export async function pay402AndRetry(keypair, opts) {
 
   const paymentHeader = createPaymentHeaderFromTx(transaction, accept, x402Version);
 
+  const retryHeaders = {
+    'Content-Type': 'application/json',
+    'PAYMENT-SIGNATURE': paymentHeader,
+    ...(x402Version === 1 && { 'X-PAYMENT': paymentHeader }),
+  };
+  if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
+    retryHeaders['X-Connected-Wallet'] = connectedWalletAddress.trim();
+  }
+
   const retryOpts = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      'PAYMENT-SIGNATURE': paymentHeader,
-      ...(x402Version === 1 && { 'X-PAYMENT': paymentHeader }),
-    },
+    headers: retryHeaders,
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
 
