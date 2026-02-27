@@ -1,6 +1,7 @@
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { componentTagger } from "lovable-tagger";
 
 // CORS Proxy Plugin - proxies requests to external APIs to avoid CORS issues
@@ -110,9 +111,10 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [
+    nodePolyfills(),
     corsProxyPlugin(),
-    react(), 
-    mode === "development" && componentTagger()
+    react(),
+    mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
