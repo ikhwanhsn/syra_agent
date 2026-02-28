@@ -13,7 +13,9 @@ interface PaymentModalProps {
   paymentDetails: PaymentDetails;
   wallet: WalletState;
   transactionStatus: TransactionStatus;
-  onConnectWallet: () => void;
+  /** Connect for the given chain when called with arg; otherwise uses app's selected chain. Pass chain so modal connects for the correct network (Base vs Solana). */
+  /** Open the chain-picker modal (user picks Solana or Base), then Privy connect modal opens. */
+  onOpenConnectModal: () => void;
   onPay: () => void;
   onRetry: () => void;
   /** When API offers both Solana and Base, show chain selector */
@@ -31,7 +33,7 @@ export function PaymentModal({
   paymentDetails,
   wallet,
   transactionStatus,
-  onConnectWallet,
+  onOpenConnectModal,
   onPay,
   onRetry,
   paymentOptionsByChain,
@@ -310,11 +312,7 @@ export function PaymentModal({
               <Button
                 variant="neon"
                 className="w-full h-11 gap-2 text-sm font-semibold"
-                onClick={() => {
-                  if (isBase) onSelectPaymentChain?.('base');
-                  else onSelectPaymentChain?.('solana');
-                  onConnectWallet();
-                }}
+                onClick={() => onOpenConnectModal()}
               >
                 <Wallet className="h-4 w-4" />
                 Connect Wallet

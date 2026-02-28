@@ -5,10 +5,11 @@ import { HistoryPanel } from '@/components/HistoryPanel';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { PaymentModal } from '@/components/PaymentModal';
+import { ConnectChainModal, type ConnectOption } from '@/components/ConnectChainModal';
 import { UnsupportedApiModal } from '@/components/UnsupportedApiModal';
 import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
-import { ConnectWalletModal } from '@/components/ConnectWalletModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
+import { useWalletContext } from '@/contexts/WalletContext';
 import { PaymentDetails, RequestParam } from '@/types/api';
 import { GripVertical } from 'lucide-react';
 
@@ -54,8 +55,6 @@ const Index = () => {
     runExampleFlow,
     isSidebarOpen,
     setIsSidebarOpen,
-    connectModalOpen,
-    setConnectModalOpen,
     paymentOptionsByChain,
     selectedPaymentChain,
     selectPaymentChain,
@@ -74,6 +73,10 @@ const Index = () => {
     isAutoDetecting,
     allowedMethods,
   } = useApiPlayground();
+  const { setConnectChainOverride, openLoginModal } = useWalletContext();
+
+  // Chain picker modal: user picks Solana or Base first, then Privy modal opens for that chain
+  const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
 
   // Panel resize state
   const [isResizingPanels, setIsResizingPanels] = useState(false);
@@ -154,7 +157,7 @@ const Index = () => {
       {/* Top Bar */}
       <TopBar
         wallet={wallet}
-        onConnectWallet={connectWallet}
+        onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isSidebarOpen={isSidebarOpen}
         paymentNetwork={selectedPaymentChain}
@@ -258,12 +261,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Connect Wallet Modal - choose network (Solana/Base) then see supported wallets */}
-      <ConnectWalletModal
-        open={connectModalOpen}
-        onOpenChange={setConnectModalOpen}
-      />
-
       {/* Payment Modal - Show for any 402 response */}
       {effectivePaymentDetails && (
         <PaymentModal
@@ -272,7 +269,7 @@ const Index = () => {
           paymentDetails={effectivePaymentDetails}
           wallet={wallet}
           transactionStatus={transactionStatus}
-          onConnectWallet={connectWallet}
+          onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
           onPay={pay}
           onRetry={retryAfterPayment}
           paymentOptionsByChain={paymentOptionsByChain}
@@ -280,6 +277,29 @@ const Index = () => {
           onSelectPaymentChain={selectPaymentChain}
         />
       )}
+
+      {/* Chain picker: user picks Solana or Base, then Privy connect modal opens for that chain */}
+      <ConnectChainModal
+        isOpen={isConnectChainModalOpen}
+        onClose={() => setIsConnectChainModalOpen(false)}
+        onPick={(option) => {
+          if (option === 'email') {
+            setIsConnectChainModalOpen(false);
+            openLoginModal();
+            return;
+          }
+          selectPaymentChain(option);
+          setIsConnectChainModalOpen(false);
+          const override = option === 'base' ? 'ethereum-only' : 'solana-only';
+          setConnectChainOverride(override);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              connectWallet(option);
+              setTimeout(() => setConnectChainOverride(null), 5000);
+            });
+          });
+        }}
+      />
 
       {/* Unsupported API Modal (invalid URL) */}
       <UnsupportedApiModal

@@ -4,16 +4,20 @@ import { Play, ArrowLeft, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getExampleFlows, EXAMPLE_FLOWS_VISIBLE_COUNT, getParamsForExampleFlow, type ExampleFlowPreset } from '@/hooks/useApiPlayground';
 import { TopBar } from '@/components/TopBar';
+import { ConnectChainModal } from '@/components/ConnectChainModal';
 import { QueryParamsModal } from '@/components/QueryParamsModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
+import { useWalletContext } from '@/contexts/WalletContext';
 import type { RequestParam } from '@/types/api';
 
 const Examples = () => {
   const navigate = useNavigate();
-  const { wallet, connectWallet } = useApiPlayground();
+  const { wallet, connectWallet, selectPaymentChain } = useApiPlayground();
+  const { setConnectChainOverride, openLoginModal } = useWalletContext();
   const featuredFlows = getExampleFlows().slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT);
   const restFlows = getExampleFlows().slice(EXAMPLE_FLOWS_VISIBLE_COUNT);
 
+  const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
   const [paramsModalFlow, setParamsModalFlow] = useState<ExampleFlowPreset | null>(null);
   const [paramsModalInitialParams, setParamsModalInitialParams] = useState<RequestParam[]>([]);
 
@@ -38,9 +42,30 @@ const Examples = () => {
     <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
       <TopBar
         wallet={wallet}
-        onConnectWallet={connectWallet}
+        onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
         onToggleSidebar={() => {}}
         isSidebarOpen={false}
+      />
+      <ConnectChainModal
+        isOpen={isConnectChainModalOpen}
+        onClose={() => setIsConnectChainModalOpen(false)}
+        onPick={(option) => {
+          if (option === 'email') {
+            setIsConnectChainModalOpen(false);
+            openLoginModal();
+            return;
+          }
+          selectPaymentChain(option);
+          setIsConnectChainModalOpen(false);
+          const override = option === 'base' ? 'ethereum-only' : 'solana-only';
+          setConnectChainOverride(override);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              connectWallet(option);
+              setTimeout(() => setConnectChainOverride(null), 5000);
+            });
+          });
+        }}
       />
       <div className="flex-1 pt-14 sm:pt-16 p-3 sm:p-6 max-w-5xl mx-auto w-full min-w-0">
         <div className="flex items-center gap-4 mb-6 pt-4 pb-2">

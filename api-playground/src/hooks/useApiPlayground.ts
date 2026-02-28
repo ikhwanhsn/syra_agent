@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useConnection } from '@solana/wallet-adapter-react';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { toast } from '@/hooks/use-toast';
 import { 
@@ -746,8 +745,8 @@ function getBaseUrl(url: string): string {
 }
 
 export function useApiPlayground() {
-  const { connection } = useConnection();
   const walletContext = useWalletContext();
+  const connection = walletContext.connection;
   
   // Request state
   const [method, setMethod] = useState<HttpMethod>('GET');
@@ -766,15 +765,6 @@ export function useApiPlayground() {
   const [paymentOption, setPaymentOption] = useState<X402PaymentOption | undefined>();
   const [paymentOptionsByChain, setPaymentOptionsByChain] = useState<{ solana: X402PaymentOption | null; base: X402PaymentOption | null }>({ solana: null, base: null });
   const [selectedPaymentChain, setSelectedPaymentChain] = useState<'solana' | 'base'>('solana');
-
-  // Sync selected payment chain with connected wallet: prefer Base when Base is connected, else Solana when Solana is connected (so connecting Base always shows Base even if Solana auto-connected)
-  useEffect(() => {
-    if (walletContext.baseConnected) {
-      setSelectedPaymentChain('base');
-    } else if (walletContext.connected) {
-      setSelectedPaymentChain('solana');
-    }
-  }, [walletContext.baseConnected, walletContext.connected]);
 
   // History state - load from localStorage on mount
   const [history, setHistory] = useState<HistoryItem[]>(() => loadHistoryFromStorage());
@@ -1057,7 +1047,6 @@ export function useApiPlayground() {
 
   // UI state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUnsupportedApiModalOpen, setIsUnsupportedApiModalOpen] = useState(false);
   const [isV1UnsupportedModalOpen, setIsV1UnsupportedModalOpen] = useState(false);
@@ -1123,10 +1112,14 @@ export function useApiPlayground() {
     network: walletContext.network,
   };
 
-  // Open connect-wallet modal (user chooses Solana or Base, then sees supported wallets)
-  const connectWallet = useCallback(() => {
-    setConnectModalOpen(true);
-  }, []);
+  // Open Privy's login/connect modal; use chain-aware connect so Phantom is requested for Solana (not Ethereum), avoiding "Unsupported account" when Phantom has Solana selected
+  /** Connect wallet for the given chain (or current selected chain). Use the chain the UI is showing so Phantom/multi-chain wallets connect for the right network. */
+  const connectWallet = useCallback(
+    (chain?: 'solana' | 'base') => {
+      walletContext.connectForChain(chain ?? selectedPaymentChain);
+    },
+    [walletContext, selectedPaymentChain]
+  );
 
   // Optional override when running an example flow (use instead of state).
   type RequestOverride = {
@@ -2036,8 +2029,6 @@ export function useApiPlayground() {
     // UI state
     isSidebarOpen,
     setIsSidebarOpen,
-    connectModalOpen,
-    setConnectModalOpen,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
     isUnsupportedApiModalOpen,

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Wallet, Zap, Menu, Coins, ExternalLink, LogOut, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,20 +23,24 @@ import {
 
 interface TopBarProps {
   wallet: WalletState;
-  onConnectWallet: () => void;
+  /** Open the chain-picker modal first (user picks Solana or Base), then Privy modal opens for that chain. */
+  onOpenConnectModal: () => void;
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
   /** Current payment network (used for 402). Shown as status in the bar. */
   paymentNetwork?: 'solana' | 'base';
 }
 
-export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen, paymentNetwork = 'solana' }: TopBarProps) {
+export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarOpen, paymentNetwork = 'solana' }: TopBarProps) {
   const walletContext = useWalletContext();
   const { theme, setTheme } = useTheme();
-  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const resolvedTheme = mounted ? (theme ?? 'dark') : 'dark';
+
   return (
     <TooltipProvider>
-      <header className="min-h-14 sm:min-h-16 border-b border-border bg-card/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 safe-area-inset-top flex flex-col justify-center max-w-[100vw] overflow-hidden">
+      <header className="min-h-14 sm:min-h-16 border-b border-border bg-card/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-[100] safe-area-inset-top flex flex-col justify-center max-w-[100vw]">
         <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 gap-2 min-w-0 overflow-hidden">
           {/* Left: Logo and menu */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
@@ -81,25 +86,27 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
 
           {/* Right: Network status + Wallet connection */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {/* Payment network status */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
-                    paymentNetwork === 'base'
-                      ? "bg-[#0052FF]/10 border-[#0052FF]/30 text-[#0052FF]"
-                      : "bg-primary/10 border-primary/30 text-primary"
-                  )}
-                >
-                  <span className="w-2 h-2 rounded-full bg-current" />
-                  {paymentNetwork === 'base' ? 'Base' : 'Solana'}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Payment network: {paymentNetwork === 'base' ? 'Base (EVM)' : 'Solana'}. Change in payment modal when both are available.</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Payment network status — only show when a wallet is connected */}
+            {(wallet.connected || walletContext.baseConnected) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
+                      paymentNetwork === 'base'
+                        ? "bg-[#0052FF]/10 border-[#0052FF]/30 text-[#0052FF]"
+                        : "bg-primary/10 border-primary/30 text-primary"
+                    )}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-current" />
+                    {paymentNetwork === 'base' ? 'Base' : 'Solana'}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Payment network: {paymentNetwork === 'base' ? 'Base (EVM)' : 'Solana'}. Change in payment modal when both are available.</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Powered by Syra - link to main website */}
             <Tooltip>
@@ -143,7 +150,7 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                   className="h-9 w-9 relative"
                 >
                   <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -152,7 +159,7 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">Toggle {theme === 'dark' ? 'light' : 'dark'} mode</p>
+                <p className="text-xs">Toggle {resolvedTheme === 'dark' ? 'light' : 'dark'} mode</p>
               </TooltipContent>
             </Tooltip>
 
@@ -160,8 +167,7 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
               const isBase = paymentNetwork === 'base';
               const connected = isBase ? walletContext.baseConnected : wallet.connected;
               const connecting = isBase ? walletContext.baseConnecting : walletContext.connecting;
-              // Single connect flow: always open ConnectWalletModal (user chooses Solana or Base, then sees supported wallets)
-              const handleConnect = onConnectWallet;
+              const handleConnect = () => onOpenConnectModal();
               if (connected) {
                 const balance = isBase
                   ? `${walletContext.baseUsdcBalance?.toFixed(2) ?? '0'} USDC`
@@ -247,7 +253,7 @@ export function TopBar({ wallet, onConnectWallet, onToggleSidebar, isSidebarOpen
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs">Choose Solana or Base, then connect a supported wallet</p>
+                    <p className="text-xs">Connect with Email, Solana, or Base</p>
                   </TooltipContent>
                 </Tooltip>
               );
