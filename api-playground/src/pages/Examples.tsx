@@ -13,7 +13,7 @@ import type { RequestParam } from '@/types/api';
 const Examples = () => {
   const navigate = useNavigate();
   const { wallet, connectWallet, selectPaymentChain } = useApiPlayground();
-  const { setConnectChainOverride, openLoginModal } = useWalletContext();
+  const { setConnectChainOverride, openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
   const featuredFlows = getExampleFlows().slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT);
   const restFlows = getExampleFlows().slice(EXAMPLE_FLOWS_VISIBLE_COUNT);
 
@@ -50,21 +50,18 @@ const Examples = () => {
         isOpen={isConnectChainModalOpen}
         onClose={() => setIsConnectChainModalOpen(false)}
         onPick={(option) => {
+          setIsConnectChainModalOpen(false);
+          if (!isPrivyMounted) {
+            requestConnect(option);
+            if (option !== 'email') selectPaymentChain(option);
+            return;
+          }
           if (option === 'email') {
-            setIsConnectChainModalOpen(false);
             openLoginModal();
             return;
           }
           selectPaymentChain(option);
-          setIsConnectChainModalOpen(false);
-          const override = option === 'base' ? 'ethereum-only' : 'solana-only';
-          setConnectChainOverride(override);
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              connectWallet(option);
-              setTimeout(() => setConnectChainOverride(null), 5000);
-            });
-          });
+          connectWallet(option);
         }}
       />
       <div className="flex-1 pt-14 sm:pt-16 p-3 sm:p-6 max-w-5xl mx-auto w-full min-w-0">

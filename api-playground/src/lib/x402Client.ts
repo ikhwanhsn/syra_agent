@@ -655,9 +655,19 @@ export async function executeBasePayment(
   };
 }
 
+/** Detect blockhash-expired / blockhash-not-found errors (RPC or simulation). */
+function isBlockhashExpiredError(error: any): boolean {
+  const msg = String(error?.message ?? error?.toString?.() ?? '').toLowerCase();
+  return (
+    /blockhash not found|block hash not found|blockhash expired|block hash expired/i.test(msg) ||
+    (msg.includes('simulation') && msg.includes('blockhash'))
+  );
+}
+
 /**
  * Execute payment and create payment header.
  * For v1 APIs pass rawV1Accept (the original accept from 402 body) so the header is built in v1 format (X-PAYMENT).
+ * On "Blockhash not found", retries send once with skipPreflight (same signed tx, no second wallet confirmation).
  */
 export async function executePayment(
   config: X402ClientConfig,
@@ -666,17 +676,26 @@ export async function executePayment(
 ): Promise<PaymentResult> {
   let signature: string | undefined;
   let signedTransaction: VersionedTransaction | undefined;
+  const { connection, signTransaction } = config;
 
   try {
-    const { connection, signTransaction } = config;
-
     const { transaction, lastValidBlockHeight } = await createPaymentTransaction(config, paymentOption);
-
     signedTransaction = (await signTransaction(transaction as any)) as unknown as VersionedTransaction;
 
-    signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-      skipPreflight: false,
-    });
+    try {
+      signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: false,
+      });
+    } catch (sendError: any) {
+      if (isBlockhashExpiredError(sendError) && signedTransaction) {
+        // Retry send only, with same signed tx; no second wallet confirmation
+        signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+          skipPreflight: true,
+        });
+      } else {
+        throw sendError;
+      }
+    }
 
     const { confirmed: confirmationSuccess, err: confirmErr } = await confirmTransactionByPolling(
       connection,

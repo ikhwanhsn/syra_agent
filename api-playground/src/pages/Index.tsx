@@ -73,7 +73,7 @@ const Index = () => {
     isAutoDetecting,
     allowedMethods,
   } = useApiPlayground();
-  const { setConnectChainOverride, openLoginModal } = useWalletContext();
+  const { setConnectChainOverride, openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
 
   // Chain picker modal: user picks Solana or Base first, then Privy modal opens for that chain
   const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
@@ -283,21 +283,19 @@ const Index = () => {
         isOpen={isConnectChainModalOpen}
         onClose={() => setIsConnectChainModalOpen(false)}
         onPick={(option) => {
+          setIsConnectChainModalOpen(false);
+          if (!isPrivyMounted) {
+            requestConnect(option);
+            if (option !== 'email') selectPaymentChain(option);
+            return;
+          }
           if (option === 'email') {
-            setIsConnectChainModalOpen(false);
             openLoginModal();
             return;
           }
           selectPaymentChain(option);
-          setIsConnectChainModalOpen(false);
-          const override = option === 'base' ? 'ethereum-only' : 'solana-only';
-          setConnectChainOverride(override);
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              connectWallet(option);
-              setTimeout(() => setConnectChainOverride(null), 5000);
-            });
-          });
+          // Don't set connectChainOverride here so the provider doesn't re-render with solana-only before the modal; connectForChain passes walletChainType in the call so the modal shows the right wallets. That way Phantom doesn't open until the user clicks it in the modal.
+          connectWallet(option);
         }}
       />
 
