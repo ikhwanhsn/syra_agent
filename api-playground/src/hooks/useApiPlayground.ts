@@ -1494,7 +1494,7 @@ export function useApiPlayground() {
           setPaymentDetails(details);
         }
 
-        // Auto-open payment modal for initial 402 (v1 and v2). If we already sent a payment header (retry), do not open again.
+        // On 402: show toast and set payment details; do not auto-open payment modal so first visit never opens a modal. User opens it by clicking "Pay and retry" or "Connect Wallet".
         if (!paymentHeader) {
           if (details) {
             toast({
@@ -1507,7 +1507,7 @@ export function useApiPlayground() {
               description: "This API requires payment. Check the response body for payment details.",
             });
           }
-          setIsPaymentModalOpen(true);
+          // Do not auto-open: setIsPaymentModalOpen(true);
         } else if (paymentHeader) {
           const apiError = jsonData?.error && typeof jsonData.error === 'string' ? jsonData.error : null;
           toast({

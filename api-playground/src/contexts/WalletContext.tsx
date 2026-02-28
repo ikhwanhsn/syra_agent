@@ -238,6 +238,7 @@ const WalletContextInner: FC<{ children: ReactNode; connectChainOverride: Wallet
     };
   }, [privyReady, authenticated, solanaWallets, generateSiwsMessage, loginWithSiws, privySignMessage]);
 
+  // Only open wallet/login when user explicitly triggers (e.g. Connect Wallet button). Never call login() or connectWallet() on mount.
   const connect = useCallback(async () => {
     if (!privyReady) return;
     if (!authenticated) {
