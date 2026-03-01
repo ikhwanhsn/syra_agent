@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SyraLogo } from "./SyraLogo";
 import { Twitter, Github, MessageCircle, FileText, Mail } from "lucide-react";
@@ -5,33 +6,31 @@ import {
   EMAIL_SUPPORT,
   LINK_AGENT,
   LINK_DOCS,
+  LINK_PLAYGROUND,
   // LINK_TELEGRAM, // hidden: focus on website
   LINK_X,
 } from "../../config/global";
 
 const footerLinks = {
   product: [
-    { label: "Dashboard", href: "#" },
-    { label: "API Docs", href: "#" },
-    { label: "Pricing", href: "#" },
-    { label: "Changelog", href: "#" },
+    { label: "Agent", href: LINK_AGENT },
+    { label: "API Docs", href: LINK_DOCS },
+    { label: "Playground", href: LINK_PLAYGROUND },
+    { label: "Analytics", href: "/analytics", internal: true },
+    { label: "Leaderboard", href: "/leaderboard", internal: true },
   ],
   resources: [
-    { label: "Documentation", href: "#" },
-    { label: "Tutorials", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Status", href: "#" },
+    { label: "Documentation", href: LINK_DOCS },
+    { label: "Articles", href: "/articles", internal: true },
   ],
   company: [
-    { label: "About", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Press Kit", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "About", href: "/#product", internal: true },
+    { label: "Contact", href: `mailto:${EMAIL_SUPPORT}` },
   ],
   legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Cookie Policy", href: "#" },
+    { label: "Privacy Policy", href: "/privacy", internal: true },
+    { label: "Terms of Service", href: "/terms", internal: true },
+    { label: "Cookie Policy", href: "/cookies", internal: true },
   ],
 };
 
@@ -112,12 +111,21 @@ export const Footer = () => {
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-sm transition-colors text-muted-foreground hover:text-primary"
-                    >
-                      {link.label}
-                    </a>
+                    {"internal" in link && link.internal ? (
+                      <Link
+                        to={link.href}
+                        className="text-sm transition-colors text-muted-foreground hover:text-primary"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-sm transition-colors text-muted-foreground hover:text-primary"
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -131,7 +139,7 @@ export const Footer = () => {
             © 2025 Syra AI Labs. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
-            Built from Trader to Trader
+            Autonomous Intelligence Since 2024
           </p>
         </div>
       </div>

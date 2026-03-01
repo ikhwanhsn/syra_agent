@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import {
@@ -84,9 +85,9 @@ export default function Analytics() {
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
               <p className="text-destructive">{error}</p>
-              <a href="/" className="text-sm text-primary hover:underline">
+              <Link to="/" className="text-sm text-primary hover:underline">
                 ← Back to Home
-              </a>
+              </Link>
             </div>
           </div>
         </main>
@@ -140,13 +141,13 @@ export default function Analytics() {
             transition={{ delay: 0.05 }}
             className="flex flex-wrap items-center justify-center gap-4 mb-8"
           >
-            <a
-              href="/"
+            <Link
+              to="/"
               className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all rounded-xl btn-secondary"
             >
               <ChevronLeft className="w-4 h-4" />
               Back to Home
-            </a>
+            </Link>
             <a
               href={LINK_AGENT}
               target="_blank"
