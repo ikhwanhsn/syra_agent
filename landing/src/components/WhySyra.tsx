@@ -82,7 +82,7 @@ const comparisonData = [
   },
   {
     feature: "Multi-Chain Support",
-    syra: false,
+    syra: true,
     arkham: true,
     nansen: true,
     dexscreener: true,

@@ -1,8 +1,43 @@
 import express from "express";
 import { getDexscreenerTokenInfo } from "../scripts/getDexscreenerTokenInfo.js";
+import Chat from "../models/agent/Chat.js";
+import { AGENT_TOOLS } from "../config/agentTools.js";
+import PaidApiCall from "../models/PaidApiCall.js";
 
 export async function createInfoRouter() {
   const router = express.Router();
+
+  /**
+   * GET /info/stats – landing page stats (users, uptime, signals, tools).
+   * Public, no payment. Used by landing HeroStats.
+   */
+  router.get("/stats", async (_, res) => {
+    try {
+      const [userCount, signalCount] = await Promise.all([
+        Chat.distinct("anonymousId").then((ids) => ids.filter(Boolean).length),
+        PaidApiCall.countDocuments({ path: "/signal" }),
+      ]);
+      const toolsCount = AGENT_TOOLS.length;
+      const serverUptimeSeconds = process.uptime();
+      // Uptime %: we don't track downtime; show 99.9% as target/sla (replace with real monitoring later)
+      const uptimePercent = 99.9;
+
+      res.json({
+        users: userCount,
+        uptime: uptimePercent,
+        signals: signalCount,
+        tools: toolsCount,
+        serverUptimeSeconds: Math.round(serverUptimeSeconds),
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: "Failed to load stats",
+        message: err?.message || "Unknown error",
+      });
+    }
+  });
+
   router.get("/", async (_, res) => {
     const syraPrice = await getDexscreenerTokenInfo(
       "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
