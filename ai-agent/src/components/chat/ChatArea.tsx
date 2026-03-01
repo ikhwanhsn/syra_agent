@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { Menu, Moon, Sun } from "lucide-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "./WalletNav";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,7 +80,7 @@ export function ChatArea({
   onSelectModel,
   userAvatarUrl = null,
 }: ChatAreaProps) {
-  const { setVisible: setWalletModalVisible } = useWalletModal();
+  const { openConnectModal } = useConnectModal();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [shouldFollowScroll, setShouldFollowScroll] = useState(true);
   const lastMessageCountRef = useRef(0);
@@ -174,7 +174,7 @@ export function ChatArea({
         <ScrollArea className="flex-1 min-h-0 min-w-0">
           <ConnectWalletPrompt
             variant="center"
-            onConnectClick={() => setWalletModalVisible(true)}
+            onConnectClick={openConnectModal}
           />
         </ScrollArea>
       ) : messages.length === 0 ? (
@@ -217,6 +217,18 @@ export function ChatArea({
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Banner: connect wallet to use tools (when chatting without wallet) */}
+      {sessionReady && !walletConnected && (
+        <div className="shrink-0 px-3 py-2 sm:px-4 border-t border-border bg-muted/40 flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-sm text-muted-foreground">
+            Connect your wallet to use tools and realtime data, and to save chat history.
+          </p>
+          <Button variant="outline" size="sm" onClick={openConnectModal}>
+            Connect wallet
+          </Button>
         </div>
       )}
 

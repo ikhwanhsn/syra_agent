@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWalletContext } from "@/contexts/WalletContext";
 import {
   PublicKey,
   Transaction,
@@ -40,8 +40,7 @@ export interface FuelAgentModalProps {
 }
 
 export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
-  const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { connection, publicKey, sendTransaction } = useWalletContext();
   const { agentAddress, refetchBalance } = useAgentWallet();
   const { toast } = useToast();
   const [selectedPreset, setSelectedPreset] = useState<number | null>(1);
@@ -167,7 +166,7 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
       }
 
       const tx = new Transaction().add(...instructions);
-      const signature = await sendTransaction(tx, connection, {
+      const signature = await sendTransaction(tx, {
         skipPreflight: false,
         maxRetries: 3,
       });
@@ -193,7 +192,6 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
     publicKey,
     agentAddress,
     sendTransaction,
-    connection,
     toast,
     refetchBalance,
     onOpenChange,

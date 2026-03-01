@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { PublicKey } from "@solana/web3.js";
+import { useWalletContext } from "@/contexts/WalletContext";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,16 +14,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Copy, ChevronDown, Wallet, Loader2, Zap, RefreshCw, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { FuelAgentModal } from "./FuelAgentModal";
 import { ProfileModal } from "./ProfileModal";
+import { cn } from "@/lib/utils";
 
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 export function WalletNav() {
-  const { connection } = useConnection();
-  const { publicKey, disconnect } = useWallet();
-  const { setVisible: setWalletModalVisible } = useWalletModal();
+  const {
+    connection,
+    publicKey,
+    disconnect,
+    requestConnect,
+    isPrivyMounted,
+    connectForChain,
+    openLoginModal,
+    baseConnected,
+    baseAddress,
+    baseShortAddress,
+    baseUsdcBalance,
+    baseEthBalance,
+    effectiveChain,
+  } = useWalletContext();
+  const { openConnectModal } = useConnectModal();
   const {
     ready,
     agentAddress,
@@ -31,9 +50,15 @@ export function WalletNav() {
     connectedWalletShort,
     agentUsdcBalance,
     agentSolBalance,
+    agentBaseEthBalance,
+    agentBaseUsdcBalance,
     lastDebitUsd,
     refetchBalance,
   } = useAgentWallet();
+  /** Which chain to show when both are connected; use effectiveChain so Base (MetaMask) shows when user connected with Base */
+  const hasAnyWallet = !!publicKey || baseConnected;
+  const displaySolana = effectiveChain === "solana";
+  const displayBase = effectiveChain === "base";
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
@@ -41,6 +66,7 @@ export function WalletNav() {
   const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   const fetchUserBalance = useCallback(async () => {
     if (!publicKey) return;
@@ -76,14 +102,16 @@ export function WalletNav() {
   const handleRefreshBalances = useCallback(async () => {
     setBalanceRefreshing(true);
     try {
-      await Promise.all([refetchBalance(), fetchUserBalance()]);
+      const tasks = [refetchBalance()];
+      if (publicKey) tasks.push(fetchUserBalance());
+      await Promise.all(tasks);
       toast({ title: "Balances updated", description: "Latest balances loaded." });
     } catch {
       toast({ title: "Refresh failed", variant: "destructive" });
     } finally {
       setBalanceRefreshing(false);
     }
-  }, [refetchBalance, fetchUserBalance, toast]);
+  }, [refetchBalance, fetchUserBalance, publicKey, toast]);
 
   const copyToClipboard = useCallback(
     (text: string, label: string) => {
@@ -97,6 +125,7 @@ export function WalletNav() {
 
   const handleCopyWallet = () => {
     if (publicKey) copyToClipboard(publicKey.toBase58(), "Wallet address");
+    else if (baseAddress) copyToClipboard(baseAddress, "Wallet address");
     setOpen(false);
   };
 
@@ -106,18 +135,25 @@ export function WalletNav() {
   };
 
   const handleChangeWallet = () => {
-    setWalletModalVisible(true);
     setOpen(false);
+    openConnectModal();
   };
 
-  const handleDisconnect = () => {
-    disconnect();
-    setOpen(false);
-  };
+  const handleDisconnect = useCallback(async () => {
+    setDisconnecting(true);
+    try {
+      await disconnect();
+      setOpen(false);
+    } catch (e) {
+      toast({ title: "Disconnect failed", description: String(e), variant: "destructive" });
+    } finally {
+      setDisconnecting(false);
+    }
+  }, [disconnect, toast]);
 
-  const connected = !!publicKey;
-  const agentLoading = connected && !ready;
+  const agentLoading = hasAnyWallet && !ready;
   const hasUsdc = agentUsdcBalance != null && agentUsdcBalance > 0;
+  const displayShortAddress = displaySolana ? connectedWalletShort : baseShortAddress;
 
   function formatUsdc(value: number | null | undefined): string {
     if (value == null) return "—";
@@ -126,11 +162,11 @@ export function WalletNav() {
     return value.toFixed(2);
   }
 
-  if (!connected) {
+  if (!hasAnyWallet) {
     return (
       <Button
         className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm px-3 sm:px-3 touch-manipulation shrink-0"
-        onClick={() => setWalletModalVisible(true)}
+        onClick={openConnectModal}
       >
         <Wallet className="w-4 h-4 mr-1.5 sm:mr-2 shrink-0" />
         Connect Wallet
@@ -142,11 +178,36 @@ export function WalletNav() {
     "h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg border border-border bg-background px-2.5 sm:px-3 gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm inline-flex items-center min-w-0 touch-manipulation";
 
   const balanceJustReduced = lastDebitUsd != null && lastDebitUsd > 0;
+  const agentUsdcDisplay = displayBase ? agentBaseUsdcBalance : agentUsdcBalance;
+  const hasUsdcAgent = agentUsdcDisplay != null && agentUsdcDisplay > 0;
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-      {/* Fuel the agent – open top-up modal */}
-      {connected && (
+      {/* Chain badge – show the chain used for this session (one chain only) */}
+      {hasAnyWallet && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
+                "bg-primary/10 border-primary/30 text-primary"
+              )}
+            >
+              <span className="w-2 h-2 rounded-full bg-current" />
+              {displaySolana ? "Solana" : "Base"}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              {displaySolana
+                ? "Connected with Solana. Agent wallet and paid tools use Solana."
+                : "Connected with Base. Connect Solana to create an agent wallet for paid tools."}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+      {/* Fuel the agent – open top-up modal (Solana agent wallet only) */}
+      {displaySolana && (
         <Button
           variant="outline"
           size="sm"
@@ -179,13 +240,13 @@ export function WalletNav() {
           ) : (
             <span className="text-xs text-muted-foreground truncate">—</span>
           )}
-          {agentUsdcBalance != null && (
+          {agentUsdcDisplay != null && (
             <span
               key={balanceJustReduced ? "blink" : "normal"}
-              className={`shrink-0 text-xs tabular-nums rounded px-0.5 ${hasUsdc ? "font-semibold text-emerald-500" : "text-muted-foreground"} ${balanceJustReduced ? "balance-blink-red" : ""}`}
+              className={`shrink-0 text-xs tabular-nums rounded px-0.5 ${hasUsdcAgent ? "font-semibold text-emerald-500" : "text-muted-foreground"} ${balanceJustReduced ? "balance-blink-red" : ""}`}
               title="USDC balance"
             >
-              ${formatUsdc(agentUsdcBalance)}
+              ${formatUsdc(agentUsdcDisplay)}
             </span>
           )}
         </div>
@@ -196,7 +257,7 @@ export function WalletNav() {
             variant="outline"
             className={`${navItemClass} min-w-0 max-w-[130px] sm:max-w-[180px] justify-between`}
           >
-            <span className="truncate">{connectedWalletShort ?? "…"}</span>
+            <span className="truncate">{displayShortAddress ?? "…"}</span>
             <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
@@ -222,10 +283,10 @@ export function WalletNav() {
           </div>
 
           <div className="p-3 space-y-3">
-            {/* Agent wallet card */}
+            {/* Agent wallet card – on Base show ETH/USDC (Base); on Solana show SOL/USDC */}
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Agent wallet
+                Agent wallet {displayBase ? "(Base)" : "(Solana)"}
               </p>
               {agentLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
@@ -244,43 +305,72 @@ export function WalletNav() {
                     </span>
                     <Copy className="h-3 w-3 shrink-0 opacity-50 group-hover:opacity-80" />
                   </button>
-                  <div className="flex items-center gap-4 text-xs pt-0.5">
-                    {agentUsdcBalance != null && (
-                      <span className={hasUsdc ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
-                        ${formatUsdc(agentUsdcBalance)} USDC
-                      </span>
-                    )}
-                    {agentSolBalance != null && (
-                      <span className="text-muted-foreground tabular-nums">{agentSolBalance.toFixed(4)} SOL</span>
-                    )}
-                  </div>
+                  {displayBase ? (
+                    <div className="flex items-center gap-4 text-xs pt-0.5">
+                      {agentBaseUsdcBalance != null && (
+                        <span className={(agentBaseUsdcBalance > 0 ? "font-medium text-emerald-600 dark:text-emerald-400" : "text-muted-foreground") + " tabular-nums"}>
+                          ${agentBaseUsdcBalance.toFixed(2)} USDC
+                        </span>
+                      )}
+                      {agentBaseEthBalance != null && (
+                        <span className="text-muted-foreground tabular-nums">{agentBaseEthBalance.toFixed(4)} ETH</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 text-xs pt-0.5">
+                      {agentUsdcBalance != null && (
+                        <span className={hasUsdc ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
+                          ${formatUsdc(agentUsdcBalance)} USDC
+                        </span>
+                      )}
+                      {agentSolBalance != null && (
+                        <span className="text-muted-foreground tabular-nums">{agentSolBalance.toFixed(4)} SOL</span>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground py-1">Failed to load</p>
               )}
             </div>
 
-            {/* Connected wallet card */}
+            {/* Connected wallet card – Solana or Base depending on what is connected */}
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Connected wallet
+                Connected wallet {displaySolana ? "(Solana)" : "(Base)"}
               </p>
               <button
                 type="button"
                 onClick={() => handleCopyWallet()}
                 className="flex items-center justify-between gap-2 w-full rounded px-1.5 py-0.5 -mx-1.5 -my-0.5 hover:bg-muted/50 transition-colors text-left group"
               >
-                <span className="truncate font-mono text-xs text-foreground" title={publicKey?.toBase58()}>
-                  {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
+                <span className="truncate font-mono text-xs text-foreground" title={publicKey?.toBase58() ?? baseAddress ?? undefined}>
+                  {displaySolana && publicKey
+                    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+                    : baseAddress
+                      ? `${baseAddress.slice(0, 6)}...${baseAddress.slice(-4)}`
+                      : "…"}
                 </span>
                 <Copy className="h-3 w-3 shrink-0 opacity-50 group-hover:opacity-80" />
               </button>
-              {userUsdcBalance != null && userSolBalance != null && (
+              {displaySolana && userUsdcBalance != null && userSolBalance != null && (
                 <div className="flex items-center gap-4 text-xs pt-0.5">
                   <span className={userUsdcBalance > 0 ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
                     ${userUsdcBalance.toFixed(2)} USDC
                   </span>
                   <span className="text-muted-foreground tabular-nums">{userSolBalance.toFixed(4)} SOL</span>
+                </div>
+              )}
+              {displayBase && (baseUsdcBalance != null || baseEthBalance != null) && (
+                <div className="flex items-center gap-4 text-xs pt-0.5">
+                  {baseUsdcBalance != null && (
+                    <span className={baseUsdcBalance > 0 ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
+                      ${baseUsdcBalance.toFixed(2)} USDC
+                    </span>
+                  )}
+                  {baseEthBalance != null && (
+                    <span className="text-muted-foreground tabular-nums">{baseEthBalance.toFixed(4)} ETH</span>
+                  )}
                 </div>
               )}
             </div>
@@ -303,9 +393,20 @@ export function WalletNav() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer py-2.5 text-sm text-destructive focus:text-destructive focus:bg-destructive/10 rounded-none"
-              onSelect={handleDisconnect}
+              onSelect={(e) => {
+                e.preventDefault();
+                handleDisconnect();
+              }}
+              disabled={disconnecting}
             >
-              Disconnect
+              {disconnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />
+                  Disconnecting…
+                </>
+              ) : (
+                "Disconnect"
+              )}
             </DropdownMenuItem>
           </div>
       </DropdownMenuContent>

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Trophy, Share2, Lock, Globe, Twitter, Send, BookOpen, ExternalLink } from "lucide-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -93,7 +93,7 @@ export function Sidebar({
   onToggleShareVisibility,
   onLogoClick,
 }: SidebarProps) {
-  const { setVisible: setWalletModalVisible } = useWalletModal();
+  const { openConnectModal } = useConnectModal();
   /** Chat for which the share modal is open; null when closed */
   const [shareModalChat, setShareModalChat] = useState<Chat | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -322,7 +322,7 @@ export function Sidebar({
           {!sessionReady ? (
             <ConnectWalletPrompt
               variant="compact"
-              onConnectClick={() => setWalletModalVisible(true)}
+              onConnectClick={openConnectModal}
             />
           ) : sessionReady && !walletConnected ? (
             <div className="mx-2 mt-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-4">

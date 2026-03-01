@@ -202,6 +202,8 @@ export const chatApi = {
     anonymousId?: string | null;
     /** When false, do not attempt pay-402 on 402; throw WALLET_REQUIRED_FOR_TOOLS instead */
     walletConnected?: boolean;
+    /** Agent wallet balances from client (same as dropdown); API uses these so chat matches UI */
+    agentWalletBalances?: { usdcBalance: number; solBalance: number } | null;
     /** Optional: request a paid x402 v2 tool */
     toolRequest?: { toolId: string; params?: Record<string, string> } | null;
     /** Internal: payment header for retry after 402 (set by completion wrapper) */
@@ -223,6 +225,12 @@ export const chatApi = {
         anonymousId: params.anonymousId ?? undefined,
         toolRequest: params.toolRequest ?? undefined,
         walletConnected: params.walletConnected,
+        agentWalletBalances:
+          params.agentWalletBalances &&
+          typeof params.agentWalletBalances.usdcBalance === "number" &&
+          typeof params.agentWalletBalances.solBalance === "number"
+            ? params.agentWalletBalances
+            : undefined,
       }),
     });
 
@@ -281,21 +289,24 @@ export const chatApi = {
 
 /** Agent wallet API: get/create agent wallet by anonymousId or by connected wallet. Private key stored on server for permissionless x402. */
 export const agentWalletApi = {
-  /** Get or create agent wallet by connected wallet address (checks database first). */
-  async getOrCreateByWallet(walletAddress: string): Promise<{
+  /** Get or create agent wallet by connected wallet address and chain (checks database first). */
+  async getOrCreateByWallet(
+    walletAddress: string,
+    chain: "solana" | "base" = "solana"
+  ): Promise<{
     anonymousId: string;
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
     fundingSuccess?: boolean;
     fundingError?: string;
-    /** True when funding runs in background; show welcome toast when balance appears */
     fundingPending?: boolean;
+    chain?: "solana" | "base";
   }> {
     const res = await fetch(`${agentWalletBase()}/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      body: JSON.stringify({ walletAddress }),
+      body: JSON.stringify({ walletAddress, chain }),
     });
     const data = await handleRes<{
       success: boolean;
@@ -306,6 +317,7 @@ export const agentWalletApi = {
       fundingSuccess?: boolean;
       fundingError?: string;
       fundingPending?: boolean;
+      chain?: "solana" | "base";
     }>(res);
     return {
       anonymousId: data.anonymousId,
@@ -315,6 +327,7 @@ export const agentWalletApi = {
       fundingSuccess: data.fundingSuccess,
       fundingError: data.fundingError,
       fundingPending: data.fundingPending,
+      chain: data.chain,
     };
   },
 

@@ -101,7 +101,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit, avatarUrl } = useAgentWallet();
+  const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit, avatarUrl, getAgentWalletBalances, agentUsdcBalance, agentSolBalance } = useAgentWallet();
   const walletConnected = !!connectedWalletAddress;
   /** Can chat (anonymous or wallet session); when false, show connect-wallet gate. When true but !walletConnected, prompt to connect for tools. */
   const sessionReady = ready && !!anonymousId;
@@ -646,12 +646,18 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       currentChat?.modelId?.trim() || DEFAULT_MODEL_ID || undefined;
 
     try {
+      let agentWalletBalances = await getAgentWalletBalances();
+      // If fresh fetch failed but navbar has balance, send displayed values so API matches UI
+      if (agentWalletBalances == null && typeof agentUsdcBalance === "number" && typeof agentSolBalance === "number") {
+        agentWalletBalances = { usdcBalance: agentUsdcBalance, solBalance: agentSolBalance };
+      }
       const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         model: effectiveModelId || undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
+        agentWalletBalances: agentWalletBalances ?? undefined,
       });
 
       if (amountChargedUsd != null && amountChargedUsd > 0) {
@@ -783,12 +789,17 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
     setIsLoading(true);
     try {
+      let agentWalletBalances = await getAgentWalletBalances();
+      if (agentWalletBalances == null && typeof agentUsdcBalance === "number" && typeof agentSolBalance === "number") {
+        agentWalletBalances = { usdcBalance: agentUsdcBalance, solBalance: agentSolBalance };
+      }
       const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         model: effectiveModelId || undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
+        agentWalletBalances: agentWalletBalances ?? undefined,
       });
 
       if (amountChargedUsd != null && amountChargedUsd > 0) {

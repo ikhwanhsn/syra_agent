@@ -35,7 +35,7 @@ It uses the **api** backend and integrates with the x402 agent ecosystem (e.g. x
 |-------|------------|
 | **Build** | Vite, TypeScript |
 | **UI** | React, shadcn-ui, Tailwind CSS, Radix UI |
-| **Wallet** | Solana wallet adapters |
+| **Wallet** | Privy (Solana + Base + email/social), same as API playground |
 | **Testing** | Vitest, Testing Library |
 | **Deploy** | Vercel (vercel.json) |
 
