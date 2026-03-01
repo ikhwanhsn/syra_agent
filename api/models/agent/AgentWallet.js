@@ -4,11 +4,13 @@ const agentWalletSchema = new mongoose.Schema(
   {
     /** Anonymous user id (stored in client localStorage); no wallet connect required */
     anonymousId: { type: String, required: true, unique: true },
-    /** Connected wallet public key (Solana); when set, agent wallet is linked to this user wallet */
-    walletAddress: { type: String, required: false, unique: true, sparse: true },
-    /** Agent wallet public key (user deposits here; backend pays x402 with this) */
+    /** Connected wallet public key (Solana base58 or EVM 0x); when set, agent wallet is linked to this user wallet */
+    walletAddress: { type: String, required: false },
+    /** Chain for this agent wallet: "solana" | "base". Enables one agent per chain per user. */
+    chain: { type: String, required: false, default: 'solana', enum: ['solana', 'base'] },
+    /** Agent wallet public key (Solana base58 or EVM 0x); user deposits here */
     agentAddress: { type: String, required: true },
-    /** Agent wallet secret key (base58) - stored in DB so backend can pay permissionlessly */
+    /** Agent wallet secret: Solana = base58, Base = hex private key */
     agentSecretKey: { type: String, required: true },
     /** User avatar URL generated when wallet is first created */
     avatarUrl: { type: String, required: false },
@@ -16,7 +18,8 @@ const agentWalletSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes are created automatically by unique: true on anonymousId and walletAddress
+// One agent wallet per (walletAddress + chain)
+agentWalletSchema.index({ walletAddress: 1, chain: 1 }, { unique: true, sparse: true });
 
 const AgentWallet = mongoose.model('AgentWallet', agentWalletSchema);
 export default AgentWallet;

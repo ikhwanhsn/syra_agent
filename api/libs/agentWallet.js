@@ -85,24 +85,31 @@ export async function getAgentUsdcBalance(anonymousId) {
 export async function getAgentBalances(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
-  if (!doc) return null;
+  if (!doc || !doc.agentAddress) return null;
   try {
     const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
     const agentPubkey = new PublicKey(doc.agentAddress);
-    const [solLamports, tokenAccounts] = await Promise.all([
+    const [solLamports, tokenAccountsResponse] = await Promise.all([
       connection.getBalance(agentPubkey, 'confirmed'),
       connection.getParsedTokenAccountsByOwner(agentPubkey, { mint: USDC_MAINNET }),
     ]);
     const solBalance = solLamports / LAMPORTS_PER_SOL;
-    const usdcBalance = tokenAccounts.value.reduce((sum, acc) => {
-      const amt = acc.account.data?.parsed?.info?.tokenAmount?.uiAmount;
-      return sum + (Number(amt) || 0);
+    const accounts = Array.isArray(tokenAccountsResponse)
+      ? tokenAccountsResponse
+      : tokenAccountsResponse?.value ?? [];
+    const usdcBalance = accounts.reduce((sum, acc) => {
+      const tokenAmount = acc?.account?.data?.parsed?.info?.tokenAmount;
+      const ui = tokenAmount?.uiAmount;
+      const raw = tokenAmount?.amount;
+      if (Number.isFinite(ui)) return sum + ui;
+      if (raw != null) return sum + Number(raw) / 1e6;
+      return sum;
     }, 0);
     return { usdcBalance, solBalance, agentAddress: doc.agentAddress };
   } catch (e) {
     const isRpcUnavailable =
       e?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
       /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT/i.test(e?.message || '');
-    return isRpcUnavailable ? { usdcBalance: 0, solBalance: 0 } : null;
+    return isRpcUnavailable ? { usdcBalance: 0, solBalance: 0, agentAddress: doc.agentAddress } : null;
   }
 }

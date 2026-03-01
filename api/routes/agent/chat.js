@@ -430,8 +430,16 @@ router.get('/models', async (_req, res) => {
 router.post('/completion', async (req, res) => {
   const completionStart = Date.now();
   try {
-    const { messages: bodyMessages, systemPrompt, anonymousId, toolRequest: clientToolRequest, walletConnected, model: modelId } =
-      req.body || {};
+    const {
+      messages: bodyMessages,
+      systemPrompt,
+      anonymousId,
+      toolRequest: clientToolRequest,
+      walletConnected,
+      model: modelId,
+      /** Client-provided agent wallet balances (same source as UI dropdown); use when present so chat matches what user sees */
+      agentWalletBalances,
+    } = req.body || {};
     if (!Array.isArray(bodyMessages) || bodyMessages.length === 0) {
       return res.status(400).json({ success: false, error: 'messages array is required' });
     }
@@ -488,10 +496,23 @@ router.post('/completion', async (req, res) => {
       `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). Do not include raw JSON, code blocks showing tool calls, or blocks like {"tool": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
     );
     if (anonymousId) {
-      const balanceResult = await getAgentBalances(anonymousId);
-      const usdcBalance = balanceResult?.usdcBalance ?? 0;
-      const solBalance = balanceResult?.solBalance ?? 0;
-      const agentAddr = balanceResult?.agentAddress ?? '';
+      let usdcBalance = 0;
+      let solBalance = 0;
+      let agentAddr = '';
+      const useClientBalances =
+        agentWalletBalances &&
+        typeof agentWalletBalances.usdcBalance === 'number' &&
+        typeof agentWalletBalances.solBalance === 'number';
+      if (useClientBalances) {
+        usdcBalance = agentWalletBalances.usdcBalance;
+        solBalance = agentWalletBalances.solBalance;
+        agentAddr = (await getAgentAddress(anonymousId)) ?? '';
+      } else {
+        const balanceResult = await getAgentBalances(anonymousId);
+        usdcBalance = balanceResult?.usdcBalance ?? 0;
+        solBalance = balanceResult?.solBalance ?? 0;
+        agentAddr = balanceResult?.agentAddress ?? '';
+      }
       systemParts.push(
         `User's agent wallet balances: USDC $${usdcBalance.toFixed(4)}, SOL ${solBalance.toFixed(4)}. Agent wallet address: ${agentAddr || 'unknown'}.`
       );
@@ -529,10 +550,21 @@ router.post('/completion', async (req, res) => {
     } else if (anonymousId) {
       const useTreasury = useTreasuryForTools;
       const connectedWallet = walletConnected ? (await getConnectedWalletAddress(anonymousId)) : null;
-      // For swap defaults we need both USDC and SOL balances, regardless of who pays the tool fee.
-      const balanceInfoForSwap = await getAgentBalances(anonymousId);
-      let usdcBalance = balanceInfoForSwap?.usdcBalance ?? 0;
-      let solBalanceForSwap = balanceInfoForSwap?.solBalance ?? 0;
+      // Use same balance source as system prompt (client-provided when present) so tool execution matches navbar.
+      const useClientBalancesForTools =
+        agentWalletBalances &&
+        typeof agentWalletBalances.usdcBalance === 'number' &&
+        typeof agentWalletBalances.solBalance === 'number';
+      let usdcBalance;
+      let solBalanceForSwap;
+      if (useClientBalancesForTools) {
+        usdcBalance = agentWalletBalances.usdcBalance;
+        solBalanceForSwap = agentWalletBalances.solBalance;
+      } else {
+        const balanceInfoForSwap = await getAgentBalances(anonymousId);
+        usdcBalance = balanceInfoForSwap?.usdcBalance ?? 0;
+        solBalanceForSwap = balanceInfoForSwap?.solBalance ?? 0;
+      }
       if (useTreasury) {
         // Treasury pays the x402 fee but swaps still use the agent wallet; don't cap balances,
         // just use the actual USDC/SOL values for choosing default from_token.

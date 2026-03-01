@@ -33,46 +33,90 @@ function generateAnonymousId() {
   return crypto.randomUUID?.() ?? crypto.randomBytes(16).toString('hex');
 }
 
+/** Decode :anonymousId param (may be URL-encoded, e.g. wallet%3A... from Privy wallet connect). */
+function decodeAnonymousId(param) {
+  if (param == null || param === '') return param;
+  try {
+    return decodeURIComponent(String(param));
+  } catch {
+    return param;
+  }
+}
+
 /**
  * GET /agent/wallet/:anonymousId/balance
  * Returns SOL and USDC balance for the agent wallet.
  */
 router.get('/:anonymousId/balance', async (req, res) => {
+  let anonymousId;
+  let doc;
   try {
-    const { anonymousId } = req.params;
+    anonymousId = decodeAnonymousId(req.params.anonymousId);
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
-    const doc = await AgentWallet.findOne({ anonymousId }).lean();
+    doc = await AgentWallet.findOne({ anonymousId }).lean();
     if (!doc) {
       return res.status(404).json({ success: false, error: 'Agent wallet not found' });
     }
-    const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
-    const agentPubkey = new PublicKey(doc.agentAddress);
-    const [solLamports, tokenAccounts] = await Promise.all([
+    if (!doc.agentAddress) {
+      return res.status(500).json({ success: false, error: 'Agent wallet missing agentAddress' });
+    }
+  } catch (err) {
+    console.error('[agent/wallet] balance lookup error:', err?.message || err);
+    return res.status(500).json({ success: false, error: err?.message || 'Failed to lookup agent wallet' });
+  }
+
+  let agentPubkey;
+  try {
+    agentPubkey = new PublicKey(doc.agentAddress);
+  } catch (err) {
+    console.error('[agent/wallet] invalid agentAddress:', doc.agentAddress, err?.message);
+    return res.status(500).json({ success: false, error: 'Invalid agent wallet address' });
+  }
+
+  const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
+  let solLamports;
+  let tokenAccounts;
+  try {
+    [solLamports, tokenAccounts] = await Promise.all([
       connection.getBalance(agentPubkey, 'confirmed'),
       connection.getParsedTokenAccountsByOwner(agentPubkey, { mint: USDC_MAINNET }),
     ]);
-    const solBalance = solLamports / LAMPORTS_PER_SOL;
-    const usdcBalance = tokenAccounts.value.reduce((sum, acc) => {
-      const amt = acc.account.data?.parsed?.info?.tokenAmount?.uiAmount;
-      return sum + (Number(amt) || 0);
-    }, 0);
-    return res.json({
-      success: true,
-      agentAddress: doc.agentAddress,
-      solBalance,
-      usdcBalance,
-    });
-  } catch (error) {
+  } catch (err) {
     const isRpcUnavailable =
-      error?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-      /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT/i.test(error?.message || '');
+      err?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+      err?.code === 'ECONNREFUSED' ||
+      err?.code === 'ETIMEDOUT' ||
+      /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT|timeout|network/i.test(String(err?.message || ''));
+    console.error('[agent/wallet] Solana RPC error:', err?.message || err);
     const message = isRpcUnavailable
       ? 'Solana RPC unavailable. Check SOLANA_RPC_URL in api/.env and network connectivity.'
-      : error?.message || 'Failed to fetch balance';
+      : (err?.message || 'Failed to fetch balance');
     return res.status(isRpcUnavailable ? 503 : 500).json({ success: false, error: message });
   }
+
+  const solBalance = Number(solLamports) / LAMPORTS_PER_SOL;
+  const accounts = tokenAccounts?.value ?? (Array.isArray(tokenAccounts) ? tokenAccounts : []);
+  let usdcBalance = 0;
+  try {
+    for (const acc of accounts) {
+      const parsed = acc?.account?.data?.parsed ?? acc?.account?.data;
+      const info = parsed?.info ?? parsed;
+      const tokenAmount = info?.tokenAmount ?? info;
+      const ui = tokenAmount?.uiAmount ?? tokenAmount?.uiAmountString;
+      usdcBalance += Number(ui) || 0;
+    }
+  } catch (err) {
+    console.error('[agent/wallet] USDC parse error:', err?.message || err);
+  }
+
+  return res.json({
+    success: true,
+    agentAddress: doc.agentAddress,
+    solBalance,
+    usdcBalance,
+  });
 });
 
 /**
@@ -81,7 +125,7 @@ router.get('/:anonymousId/balance', async (req, res) => {
  */
 router.get('/:anonymousId', async (req, res) => {
   try {
-    const { anonymousId } = req.params;
+    const anonymousId = decodeAnonymousId(req.params.anonymousId);
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
@@ -101,11 +145,11 @@ router.get('/:anonymousId', async (req, res) => {
 
 /**
  * POST /agent/wallet/connect
- * Get or create agent wallet by connected wallet address (check database first).
- * On first connect (new wallet): funds agent with $0.5 SOL + $0.5 USDC from PayAI treasury.
- * Free $1 is only sent when this wallet address has never been used before (new DB record).
- * Body: { walletAddress: string }
- * Returns: { anonymousId, agentAddress, avatarUrl?, isNewWallet?, fundingSuccess?, fundingError? }
+ * Get or create agent wallet by connected wallet address and chain.
+ * Body: { walletAddress: string, chain?: "solana" | "base" }
+ * - chain "solana" (default): creates Solana agent keypair, funds with $1 on first create.
+ * - chain "base": creates EVM/Base agent wallet (new address on Base). No auto-fund.
+ * Returns: { anonymousId, agentAddress, avatarUrl?, isNewWallet?, fundingPending? (Solana only) }
  */
 router.post('/connect', async (req, res) => {
   try {
@@ -115,8 +159,12 @@ router.post('/connect', async (req, res) => {
     if (!walletAddress) {
       return res.status(400).json({ success: false, error: 'walletAddress is required' });
     }
+    const chain = req.body?.chain === 'base' ? 'base' : 'solana';
 
-    let doc = await AgentWallet.findOne({ walletAddress }).lean();
+    const findQuery = chain === 'base'
+      ? { walletAddress, chain: 'base' }
+      : { walletAddress, $or: [{ chain: 'solana' }, { chain: { $exists: false } }] };
+    let doc = await AgentWallet.findOne(findQuery).lean();
     if (doc) {
       return res.json({
         success: true,
@@ -124,25 +172,55 @@ router.post('/connect', async (req, res) => {
         agentAddress: doc.agentAddress,
         avatarUrl: doc.avatarUrl || null,
         isNewWallet: false,
+        chain: doc.chain || 'solana',
       });
     }
 
+    const avatarUrl = avatarGenerator.generateRandomAvatar(walletAddress);
+
+    if (chain === 'base') {
+      // Create EVM/Base agent wallet (new private key, derive address)
+      const { generatePrivateKey, privateKeyToAccount } = await import('viem/accounts');
+      const privateKey = generatePrivateKey();
+      const account = privateKeyToAccount(privateKey);
+      const agentAddress = account.address;
+      const agentSecretKey = privateKey; // hex string
+      const anonymousId = `wallet:${walletAddress}:base`;
+
+      await AgentWallet.create({
+        anonymousId,
+        walletAddress,
+        chain: 'base',
+        agentAddress,
+        agentSecretKey,
+        avatarUrl,
+      });
+
+      return res.status(201).json({
+        success: true,
+        anonymousId,
+        agentAddress,
+        avatarUrl,
+        isNewWallet: true,
+        chain: 'base',
+      });
+    }
+
+    // Solana: create keypair and optionally fund
     const anonymousId = `wallet:${walletAddress}`;
     const keypair = Keypair.generate();
     const agentAddress = keypair.publicKey.toBase58();
     const agentSecretKey = bs58.encode(keypair.secretKey);
-    // Generate unique avatar based on wallet address
-    const avatarUrl = avatarGenerator.generateRandomAvatar(walletAddress);
 
     await AgentWallet.create({
       anonymousId,
       walletAddress,
+      chain: 'solana',
       agentAddress,
       agentSecretKey,
       avatarUrl,
     });
 
-    // Return immediately for better UX; fund in background (~20–60s on-chain)
     res.status(201).json({
       success: true,
       anonymousId,
@@ -155,9 +233,11 @@ router.post('/connect', async (req, res) => {
     fundNewAgentWallet(agentAddress).catch(() => {});
     return;
   } catch (error) {
+    const walletAddress = req.body?.walletAddress?.trim();
+    const chain = req.body?.chain === 'base' ? 'base' : 'solana';
     if (error.code === 11000) {
-      const existing = await AgentWallet.findOne({ walletAddress: req.body?.walletAddress?.trim() })
-        .select('anonymousId agentAddress avatarUrl')
+      const existing = await AgentWallet.findOne({ walletAddress, chain })
+        .select('anonymousId agentAddress avatarUrl chain')
         .lean();
       if (existing) {
         return res.json({
@@ -166,6 +246,7 @@ router.post('/connect', async (req, res) => {
           agentAddress: existing.agentAddress,
           avatarUrl: existing.avatarUrl || null,
           isNewWallet: false,
+          chain: existing.chain || 'solana',
         });
       }
     }
@@ -315,7 +396,7 @@ router.put('/:anonymousId/avatar', async (req, res) => {
  */
 router.post('/:anonymousId/avatar/generate', async (req, res) => {
   try {
-    const { anonymousId } = req.params;
+    const anonymousId = decodeAnonymousId(req.params.anonymousId);
     
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });

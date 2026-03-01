@@ -40,6 +40,7 @@
     "p-limit": "^7.2.0",
     "random-avatar-generator": "^2.0.0",
     "tweetnacl": "^1.0.3",
+    "viem": "^2.46.3",
     "x402-express": "^0.7.3",
     "x402-solana": "^0.1.4"
   },
