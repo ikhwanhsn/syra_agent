@@ -1,4 +1,22 @@
-# OpenClaw × SYRA x402 API
+<div align="center">
+
+<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+
+# **OpenClaw × SYRA x402 API**
+
+### Pay-per-request API for OpenClaw and x402-capable agents
+
+[![x402](https://img.shields.io/badge/x402-API-0ea5e9)](https://api.syraa.fun/.well-known/x402)
+[![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-http__request-26a5e4)](https://openclawdoc.com/docs/agents/tools/)
+
+**[Documentation](https://docs.syraa.fun)** · **[x402 Discovery](https://api.syraa.fun/.well-known/x402)** · **[OpenClaw Tools](https://openclawdoc.com/docs/agents/tools/)** · **[Agent](https://agent.syraa.fun)**
+
+</div>
+
+---
+
+## Overview
 
 This folder contains everything needed for **OpenClaw** (or any x402-capable agent) to call the **SYRA x402 API** on your system. Pay per request with USDC on Solana or Base—no API keys.
 
