@@ -159,6 +159,8 @@ function isX402Route(p) {
   if (p.startsWith("/token-god-mode")) return true;
   if (p.startsWith("/solana-agent")) return true;
   if (p.startsWith("/trending-jupiter")) return true;
+  if (p.startsWith("/jupiter")) return true;
+  if (p.startsWith("/analytics/summary")) return true;
   if (p.startsWith("/token-report")) return true;
   if (p.startsWith("/token-statistic")) return true;
   if (p.startsWith("/token-risk")) return true;
