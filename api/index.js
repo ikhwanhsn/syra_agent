@@ -169,6 +169,7 @@ function isX402Route(p) {
   if (p.startsWith("/trending-headline")) return true;
   if (p.startsWith("/sundown-digest")) return true;
   if (p.startsWith("/bubblemaps")) return true;
+  if (p.startsWith("/coingecko")) return true;
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
   return false;
 }
