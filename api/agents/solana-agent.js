@@ -3,6 +3,7 @@ import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils
 import { X402_API_PRICE_NANSEN_USD } from "../config/x402Pricing.js";
 import { tokenGodModePerpRequests } from "../request/nansen/token-god-mode-perp.js";
 import { payer, getSentinelPayerFetch } from "../libs/sentinelPayer.js";
+import { fetchCryptoNewsApi } from "../libs/cryptonewsApi.js";
 
 export async function createSolanaAgentRouter() {
   const router = express.Router();
@@ -24,21 +25,14 @@ export async function createSolanaAgentRouter() {
 
       await payer.addLocalWallet(PAYER_KEYPAIR);
 
-      const solanaTickerNews = await fetch(
-        `https://cryptonews-api.com/api/v1?tickers=SOL&items=25&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaTickerNewsAdvance = await fetch(
-        `https://cryptonews-api.com/api/v1?tickers-only=SOL&items=25&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaSentimentAnalysis = await fetch(
-        `https://cryptonews-api.com/api/v1/stat?&tickers=SOL&date=last7days&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaEvent = await fetch(
-        `https://cryptonews-api.com/api/v1/events?&tickers=SOL&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaTrendingHeadlines = await fetch(
-        `https://cryptonews-api.com/api/v1/trending-headlines?&page=1&ticker=SOL&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
+      const [solanaTickerNews, solanaTickerNewsAdvance, solanaSentimentAnalysis, solanaEvent, solanaTrendingHeadlines] =
+        await Promise.all([
+          fetchCryptoNewsApi("", { tickers: "SOL", items: 25 }),
+          fetchCryptoNewsApi("", { "tickers-only": "SOL", items: 25 }),
+          fetchCryptoNewsApi("/stat", { tickers: "SOL", date: "last7days" }),
+          fetchCryptoNewsApi("/events", { tickers: "SOL" }),
+          fetchCryptoNewsApi("/trending-headlines", { ticker: "SOL" }),
+        ]);
 
       try {
         const responses = await Promise.all(
@@ -104,21 +98,14 @@ export async function createSolanaAgentRouter() {
 
       await payer.addLocalWallet(PAYER_KEYPAIR);
 
-      const solanaTickerNews = await fetch(
-        `https://cryptonews-api.com/api/v1?tickers=SOL&items=25&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaTickerNewsAdvance = await fetch(
-        `https://cryptonews-api.com/api/v1?tickers-only=SOL&items=25&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaSentimentAnalysis = await fetch(
-        `https://cryptonews-api.com/api/v1/stat?&tickers=SOL&date=last7days&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaEvent = await fetch(
-        `https://cryptonews-api.com/api/v1/events?&tickers=SOL&page=1&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
-      const solanaTrendingHeadlines = await fetch(
-        `https://cryptonews-api.com/api/v1/trending-headlines?&page=1&ticker=SOL&token=${process.env.CRYPTO_NEWS_API_TOKEN}`
-      ).then((res) => res.json());
+      const [solanaTickerNews, solanaTickerNewsAdvance, solanaSentimentAnalysis, solanaEvent, solanaTrendingHeadlines] =
+        await Promise.all([
+          fetchCryptoNewsApi("", { tickers: "SOL", items: 25 }),
+          fetchCryptoNewsApi("", { "tickers-only": "SOL", items: 25 }),
+          fetchCryptoNewsApi("/stat", { tickers: "SOL", date: "last7days" }),
+          fetchCryptoNewsApi("/events", { tickers: "SOL" }),
+          fetchCryptoNewsApi("/trending-headlines", { ticker: "SOL" }),
+        ]);
 
       try {
         const responses = await Promise.all(

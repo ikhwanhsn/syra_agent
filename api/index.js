@@ -5,7 +5,6 @@ import { securityHeaders } from "./utils/security.js";
 import { requireApiKey } from "./utils/apiKeyAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createNewsRouterRegular } from "./routes/news.js";
 import { createSignalRouterRegular } from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createJatevoRouter } from "./routes/jatevo.js";
@@ -17,7 +16,6 @@ import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
 import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
 import { createInfoRouter } from "./routes/info.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
-import { createSentimentRouterRegular } from "./routes/sentiment.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
@@ -27,14 +25,14 @@ import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.j
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 // x402 route imports (consolidated from v2 into routes)
-import { createNewsRouter as createV2NewsRouter } from "./routes/news.js";
+import {
+  createCryptonewsRouter,
+  createNewsRouterRegular,
+  createSentimentRouterRegular,
+} from "./routes/partner/cryptonews.js";
 import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
-import { createSentimentRouter as createV2SentimentRouter } from "./routes/sentiment.js";
-import { createEventRouter as createV2EventRouter } from "./routes/event.js";
 import { createExaSearchRouter as createV2ExaSearchRouter } from "./routes/exa-search.js";
 import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/check-status.js";
-import { createTrendingHeadlineRouter as createV2TrendingHeadlineRouter } from "./routes/trending-headline.js";
-import { createSundownDigestRouter as createV2SundownDigestRouter } from "./routes/sundown-digest.js";
 import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
 import { createDexscreenerRouter as createV2DexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
@@ -483,7 +481,7 @@ app.use("/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
 app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
-app.use("/news", await createV2NewsRouter());
+app.use("/", await createCryptonewsRouter());
 
 // v1/regular (no x402) – used by landing page (LiveDashboard, DashboardPreview); must be mounted before /v1 block
 app.use("/v1/regular/news", await createNewsRouterRegular());
@@ -523,10 +521,6 @@ app.use("/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
 app.use("/token-report", await createV2TokenReportRouter());
 app.use("/token-statistic", await createV2TokenStatisticRouter());
 app.use("/token-risk/alerts", await createV2TokenRiskAlertsRouter());
-app.use("/sentiment", await createV2SentimentRouter());
-app.use("/event", await createV2EventRouter());
-app.use("/trending-headline", await createV2TrendingHeadlineRouter());
-app.use("/sundown-digest", await createV2SundownDigestRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
 // Sentinel Dashboard: spend, agents, alerts (API key auth); same storage as wrapWithSentinel
