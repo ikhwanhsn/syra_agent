@@ -601,7 +601,6 @@ const WalletContextInner: FC<{
               variant: "destructive",
             });
           }
-          console.warn("[Privy] SIWS login failed:", e);
         }
       }
     })();
@@ -642,13 +641,7 @@ const WalletContextInner: FC<{
     async (chain: "solana" | "base") => {
       setPreferredChain(chain);
       setStoredPreferredChain(chain);
-      if (!privyReady) {
-        if (import.meta.env.DEV)
-          console.warn(
-            "[Privy] Connect skipped: SDK not ready yet. Wait a moment and try again."
-          );
-        return;
-      }
+      if (!privyReady) return;
       const walletList = getWalletListForChain(chain, installedWallets);
 
       if (!authenticated) {
@@ -693,7 +686,6 @@ const WalletContextInner: FC<{
       clearPrivySessionStorage();
       setTimeout(clearPrivySessionStorage, 100);
     } catch (e) {
-      console.error("Logout failed:", e);
       setForceDisconnected(false);
       throw e;
     } finally {
@@ -905,21 +897,6 @@ const WalletContextInner: FC<{
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || "";
 const PRIVY_CLIENT_ID = import.meta.env.VITE_PRIVY_CLIENT_ID || "";
 
-if (
-  import.meta.env.DEV &&
-  typeof window !== "undefined"
-) {
-  const origin = window.location.origin;
-  if (
-    origin.startsWith("http://localhost") ||
-    origin.startsWith("http://127.0.0.1")
-  ) {
-    console.info(
-      `[Privy] To fix Phantom login 403, add this origin in Privy Dashboard → Domains → Allowed origins: ${origin}`
-    );
-  }
-}
-
 const FALLBACK_WALLET_STATE: WalletContextState = {
   connection,
   connected: false,
@@ -929,18 +906,8 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   solBalance: null,
   usdcBalance: null,
   network: "Solana Mainnet",
-  connect: async () => {
-    if (import.meta.env.DEV)
-      console.warn(
-        "[Privy] Set VITE_PRIVY_APP_ID in .env to connect wallets."
-      );
-  },
-  connectForChain: async () => {
-    if (import.meta.env.DEV)
-      console.warn(
-        "[Privy] Set VITE_PRIVY_APP_ID in .env to connect wallets."
-      );
-  },
+  connect: async () => {},
+  connectForChain: async () => {},
   disconnect: async () => {},
   signTransaction: async () => {
     throw new Error("Wallet not configured");
@@ -994,11 +961,6 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
   }, []);
 
   if (!PRIVY_APP_ID?.trim()) {
-    if (import.meta.env.DEV) {
-      console.warn(
-        "VITE_PRIVY_APP_ID is not set. Set it in ai-agent/.env to use Privy."
-      );
-    }
     return (
       <WalletContext.Provider value={FALLBACK_WALLET_STATE}>
         {children}

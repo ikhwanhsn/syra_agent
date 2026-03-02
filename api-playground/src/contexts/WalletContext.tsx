@@ -248,7 +248,6 @@ const WalletContextInner: FC<{
               variant: 'destructive',
             });
           }
-          console.warn('[Privy] SIWS login failed:', e);
         }
       }
     })();
@@ -281,10 +280,7 @@ const WalletContextInner: FC<{
   /** Open connect/login. When unauthenticated call login() so the modal opens (connectWallet alone can error). When authenticated, open Privy's wallet-list modal only (explicit wallet names, no detected_* so the extension does not open until user clicks a wallet). */
   const connectForChain = useCallback(
     async (chain: 'solana' | 'base') => {
-      if (!privyReady) {
-        if (import.meta.env.DEV) console.warn('[Privy] Connect skipped: SDK not ready yet. Wait a moment and try again.');
-        return;
-      }
+      if (!privyReady) return;
       // Explicit names only: no 'detected_solana_wallets' / 'detected_ethereum_wallets' so no discovery runs and Phantom (or other extension) does not open until the user clicks it in the modal
       const solanaList = ['phantom', 'solflare', 'coinbase_wallet'];
       const evmList = ['metamask', 'coinbase_wallet', 'rainbow'];
@@ -326,7 +322,7 @@ const WalletContextInner: FC<{
     try {
       await logout();
     } catch (e) {
-      console.error('Logout failed:', e);
+      // Logout error not exposed to client
     } finally {
       // Stop skipping SIWS after a short delay so future connect flows still run SIWS
       setTimeout(() => {
@@ -467,16 +463,6 @@ const WalletContextInner: FC<{
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || '';
 const PRIVY_CLIENT_ID = import.meta.env.VITE_PRIVY_CLIENT_ID || '';
 
-// In dev, remind to add this exact origin in Privy Dashboard so Phantom (SIWS) login works
-if (import.meta.env.DEV && typeof window !== 'undefined') {
-  const origin = window.location.origin;
-  if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
-    console.info(
-      `[Privy] To fix Phantom login 403, add this EXACT origin in Privy Dashboard → Domains → Allowed origins:\n  ${origin}\n(127.0.0.1 and localhost are different — add both if you use both.) See api-playground/PRIVY_SETUP.md`
-    );
-  }
-}
-
 /** Fallback context when VITE_PRIVY_APP_ID is not set — avoids Privy SDK errors and allows app to load. */
 const FALLBACK_WALLET_STATE: WalletContextState = {
   connection,
@@ -487,12 +473,8 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   solBalance: null,
   usdcBalance: null,
   network: 'Solana Mainnet',
-  connect: async () => {
-    if (import.meta.env.DEV) console.warn('[Privy] Set VITE_PRIVY_APP_ID in .env to connect wallets.');
-  },
-  connectForChain: async () => {
-    if (import.meta.env.DEV) console.warn('[Privy] Set VITE_PRIVY_APP_ID in .env to connect wallets.');
-  },
+  connect: async () => {},
+  connectForChain: async () => {},
   disconnect: async () => {},
   signTransaction: async () => { throw new Error('Wallet not configured'); },
   signMessage: async () => { throw new Error('Wallet not configured'); },
@@ -524,9 +506,6 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   if (!PRIVY_APP_ID?.trim()) {
-    if (import.meta.env.DEV) {
-      console.warn('VITE_PRIVY_APP_ID is not set. Set it in api-playground/.env to use Privy (Solana + Base).');
-    }
     return (
       <WalletContext.Provider value={FALLBACK_WALLET_STATE}>
         {children}
