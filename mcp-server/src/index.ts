@@ -179,7 +179,11 @@ async function main() {
     "Token risk alerts: tokens from Rugcheck (new/recent/trending/verified) with risk score at or above threshold. Use from dev with SYRA_USE_DEV_ROUTES=true and SYRA_API_BASE_URL to skip payment." + PAYMENT_NOTE,
     {
       rugScoreMin: z.number().optional().default(80).describe("Minimum normalised risk score 0-100 (default 80)"),
-      source: z.string().optional().describe("Comma-separated: new_tokens, recent, trending, verified (default all)"),
+      source: z
+        .string()
+        .optional()
+        .default("new_tokens,recent,trending,verified")
+        .describe("Comma-separated: new_tokens, recent, trending, verified (default all)"),
       limit: z.number().optional().default(20).describe("Max tokens to check 1-50 (default 20)"),
     },
     async ({ rugScoreMin, source, limit }) => {
@@ -231,9 +235,9 @@ async function main() {
 
   server.tool(
     "syra_v2_binance_correlation_matrix",
-    "Get full Binance correlation matrix. Optional symbol." + PAYMENT_NOTE,
+    "Get full Binance correlation matrix. Optional symbol (API returns full matrix; symbol is ignored)." + PAYMENT_NOTE,
     {
-      symbol: z.string().optional().describe("Symbol (e.g. BTCUSDT)"),
+      symbol: z.string().optional().default("").describe("Symbol (e.g. BTCUSDT); default empty, API returns full matrix"),
     },
     async ({ symbol }) => {
       const params: Record<string, string> = {};
@@ -249,7 +253,11 @@ async function main() {
     "CoinGecko x402: USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum). Provide either symbols or ids." + PAYMENT_NOTE,
     {
       symbols: z.string().optional().describe("Comma-separated symbols (e.g. btc,eth,sol)"),
-      ids: z.string().optional().describe("Comma-separated CoinGecko ids (e.g. bitcoin,ethereum,solana)"),
+      ids: z
+        .string()
+        .optional()
+        .default("bitcoin")
+        .describe("Comma-separated CoinGecko ids (e.g. bitcoin,ethereum,solana); default bitcoin when neither symbols nor ids provided"),
       vs_currencies: z.string().optional().default("usd").describe("e.g. usd"),
       include_market_cap: z.string().optional().describe("true/false"),
       include_24hr_vol: z.string().optional().describe("true/false"),
@@ -259,8 +267,8 @@ async function main() {
       const params: Record<string, string> = { vs_currencies: vs_currencies ?? "usd" };
       if (symbols) params.symbols = symbols;
       if (ids) params.ids = ids;
-      // API requires either symbols or ids; default to bitcoin when agent omits both
-      if (!params.symbols && !params.ids) params.ids = "bitcoin";
+      // API requires either symbols or ids; schema default is bitcoin when both omitted
+      if (!params.symbols && !params.ids) params.ids = ids ?? "bitcoin";
       if (include_market_cap) params.include_market_cap = include_market_cap;
       if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
       if (include_24hr_change) params.include_24hr_change = include_24hr_change;
@@ -271,16 +279,16 @@ async function main() {
 
   server.tool(
     "syra_v2_coingecko_onchain_token_price",
-    "CoinGecko x402: token price(s) by contract address on a network. Supports multiple addresses comma-separated. Requires network and address." + PAYMENT_NOTE,
+    "CoinGecko x402: token price(s) by contract address on a network. Supports multiple addresses comma-separated. Requires address; network defaults to base." + PAYMENT_NOTE,
     {
-      network: z.string().describe("Network id (e.g. base, solana, eth)"),
+      network: z.string().optional().default("base").describe("Network id (e.g. base, solana, eth); default base"),
       address: z.string().describe("Token contract address (comma-separated for multiple)"),
       include_market_cap: z.string().optional().describe("true/false"),
       include_24hr_vol: z.string().optional().describe("true/false"),
       include_24hr_price_change: z.string().optional().describe("true/false"),
     },
     async ({ network, address, include_market_cap, include_24hr_vol, include_24hr_price_change }) => {
-      const params: Record<string, string> = { network: network ?? "", address: address ?? "" };
+      const params: Record<string, string> = { network: network ?? "base", address: address ?? "" };
       if (include_market_cap) params.include_market_cap = include_market_cap;
       if (include_24hr_vol) params.include_24hr_vol = include_24hr_vol;
       if (include_24hr_price_change) params.include_24hr_price_change = include_24hr_price_change;
@@ -330,15 +338,15 @@ async function main() {
 
   server.tool(
     "syra_v2_coingecko_onchain_token",
-    "CoinGecko x402: token data by contract address on a network (price, liquidity, top pools). Requires network and address." + PAYMENT_NOTE,
+    "CoinGecko x402: token data by contract address on a network (price, liquidity, top pools). Requires address; network defaults to base." + PAYMENT_NOTE,
     {
-      network: z.string().describe("Network id (e.g. base, solana, eth)"),
+      network: z.string().optional().default("base").describe("Network id (e.g. base, solana, eth); default base"),
       address: z.string().describe("Token contract address"),
       include: z.string().optional().describe("e.g. top_pools"),
       include_composition: z.string().optional().describe("true/false"),
     },
     async ({ network, address, include, include_composition }) => {
-      const params: Record<string, string> = { network: network ?? "", address: address ?? "" };
+      const params: Record<string, string> = { network: network ?? "base", address: address ?? "" };
       if (include) params.include = include;
       if (include_composition) params.include_composition = include_composition;
       const { status, body } = await fetchV2("/coingecko/onchain/token", params);

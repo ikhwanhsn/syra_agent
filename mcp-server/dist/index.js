@@ -113,7 +113,11 @@ async function main() {
     });
     server.tool("syra_v2_token_risk_alerts", "Token risk alerts: tokens from Rugcheck (new/recent/trending/verified) with risk score at or above threshold. Use from dev with SYRA_USE_DEV_ROUTES=true and SYRA_API_BASE_URL to skip payment." + PAYMENT_NOTE, {
         rugScoreMin: z.number().optional().default(80).describe("Minimum normalised risk score 0-100 (default 80)"),
-        source: z.string().optional().describe("Comma-separated: new_tokens, recent, trending, verified (default all)"),
+        source: z
+            .string()
+            .optional()
+            .default("new_tokens,recent,trending,verified")
+            .describe("Comma-separated: new_tokens, recent, trending, verified (default all)"),
         limit: z.number().optional().default(20).describe("Max tokens to check 1-50 (default 20)"),
     }, async ({ rugScoreMin, source, limit }) => {
         const params = {};
@@ -157,7 +161,11 @@ async function main() {
     // --- CoinGecko x402 simple price & onchain token price ---
     server.tool("syra_v2_coingecko_simple_price", "CoinGecko x402: USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum). Provide either symbols or ids." + PAYMENT_NOTE, {
         symbols: z.string().optional().describe("Comma-separated symbols (e.g. btc,eth,sol)"),
-        ids: z.string().optional().describe("Comma-separated CoinGecko ids (e.g. bitcoin,ethereum,solana)"),
+        ids: z
+            .string()
+            .optional()
+            .default("bitcoin")
+            .describe("Comma-separated CoinGecko ids (e.g. bitcoin,ethereum,solana); default bitcoin when neither symbols nor ids provided"),
         vs_currencies: z.string().optional().default("usd").describe("e.g. usd"),
         include_market_cap: z.string().optional().describe("true/false"),
         include_24hr_vol: z.string().optional().describe("true/false"),
@@ -168,9 +176,9 @@ async function main() {
             params.symbols = symbols;
         if (ids)
             params.ids = ids;
-        // API requires either symbols or ids; default to bitcoin when agent omits both
+        // API requires either symbols or ids; schema default is bitcoin when both omitted
         if (!params.symbols && !params.ids)
-            params.ids = "bitcoin";
+            params.ids = ids ?? "bitcoin";
         if (include_market_cap)
             params.include_market_cap = include_market_cap;
         if (include_24hr_vol)
