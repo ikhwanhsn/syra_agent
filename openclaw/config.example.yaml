@@ -1,0 +1,32 @@
+# Example OpenClaw agent config for using the SYRA x402 API
+#
+# 1. Enable the http_request tool so the agent can call external APIs.
+# 2. Use tools.json in this folder to build full URLs (baseUrl + path + query).
+# 3. Handle 402: when a request returns 402, parse the response body for payment
+#    details, sign the payment (Solana/Base USDC), then retry the same request
+#    with header X-Payment or PAYMENT-SIGNATURE set to the payment proof.
+#
+# For full x402 flow you may need a small wrapper or use an x402 client (e.g.
+# @x402/fetch or openclaw-x402) that does 402 → pay → retry automatically.
+
+agents:
+  syra-api-agent:
+    tools:
+      - http_request
+      # - web_search   # optional
+      # - calculator   # optional
+    # Optional: system prompt hint so the agent knows to use the SYRA API
+    # system_prompt: |
+    #   When the user asks for crypto news, signals, prices, or analytics,
+    #   use the SYRA x402 API. Base URL: https://api.syraa.fun
+    #   Endpoints are listed in openclaw/tools.json. If a request returns
+    #   402 Payment Required, payment must be completed and the request
+    #   retried with the X-Payment header.
+
+# Example http_request usage (conceptual):
+#
+# 1. GET https://api.syraa.fun/news?ticker=BTC
+#    → If 402: parse body, sign payment, then:
+# 2. GET https://api.syraa.fun/news?ticker=BTC
+#    Headers: { "X-Payment": "<signed_payment_proof>" }
+#    → 200 + JSON response

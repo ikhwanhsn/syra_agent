@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "baseUrl": "https://api.syraa.fun",
+  "description": "SYRA x402 API tools for OpenClaw. All endpoints require x402 payment (402 → pay → retry with X-Payment header).",
+  "tools": [
+    {
+      "id": "check-status",
+      "name": "Check API status",
+      "description": "Health check for API server status and connectivity.",
+      "method": "GET",
+      "path": "/check-status",
+      "parameters": [],
+      "priceUsd": 0.0001
+    },
+    {
+      "id": "news",
+      "name": "Crypto news",
+      "description": "Get latest crypto news (optional ticker: BTC, ETH, SOL, or general).",
+      "method": "GET",
+      "path": "/news",
+      "parameters": [
+        { "name": "ticker", "in": "query", "required": false, "description": "Ticker e.g. BTC, ETH, or general" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "signal",
+      "name": "Trading signal",
+      "description": "Trading signal / signal data.",
+      "method": "GET",
+      "path": "/signal",
+      "parameters": [
+        { "name": "token", "in": "query", "required": false, "description": "Token e.g. bitcoin, ethereum, solana" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "sentiment",
+      "name": "Sentiment analysis",
+      "description": "Get market sentiment analysis.",
+      "method": "GET",
+      "path": "/sentiment",
+      "parameters": [
+        { "name": "ticker", "in": "query", "required": false, "description": "Ticker or general" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "event",
+      "name": "Event",
+      "description": "Crypto events and updates.",
+      "method": "GET",
+      "path": "/event",
+      "parameters": [
+        { "name": "ticker", "in": "query", "required": false, "description": "Ticker or general" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "exa-search",
+      "name": "EXA search",
+      "description": "EXA AI web search – dynamic query.",
+      "method": "GET",
+      "path": "/exa-search",
+      "parameters": [
+        { "name": "query", "in": "query", "required": true, "description": "Search query e.g. latest Nvidia news" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "trending-headline",
+      "name": "Trending headline",
+      "description": "Trending crypto headlines.",
+      "method": "GET",
+      "path": "/trending-headline",
+      "parameters": [
+        { "name": "ticker", "in": "query", "required": false, "description": "Ticker or general" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "sundown-digest",
+      "name": "Sundown digest",
+      "description": "Daily sundown digest / crypto roundup.",
+      "method": "GET",
+      "path": "/sundown-digest",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "analytics-summary",
+      "name": "Analytics summary",
+      "description": "Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation.",
+      "method": "GET",
+      "path": "/analytics/summary",
+      "parameters": [],
+      "priceUsd": 0.05
+    },
+    {
+      "id": "smart-money",
+      "name": "Smart money (Nansen)",
+      "description": "Smart money data from Nansen.",
+      "method": "GET",
+      "path": "/smart-money",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "token-god-mode",
+      "name": "Token god mode (Nansen)",
+      "description": "Nansen token god mode insights. Requires tokenAddress.",
+      "method": "GET",
+      "path": "/token-god-mode",
+      "parameters": [
+        { "name": "tokenAddress", "in": "query", "required": true, "description": "Solana token contract address" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "dexscreener",
+      "name": "DexScreener",
+      "description": "DexScreener aggregated data.",
+      "method": "GET",
+      "path": "/dexscreener",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "trending-jupiter",
+      "name": "Trending on Jupiter",
+      "description": "Trending tokens on Jupiter.",
+      "method": "GET",
+      "path": "/trending-jupiter",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "jupiter-swap-order",
+      "name": "Jupiter swap order",
+      "description": "Get Jupiter Ultra swap order (buy/sell on Solana). Returns transaction to sign.",
+      "method": "POST",
+      "path": "/jupiter/swap/order",
+      "parameters": [
+        { "name": "inputMint", "in": "body", "required": true, "description": "Input token mint (e.g. SOL mint)" },
+        { "name": "outputMint", "in": "body", "required": true, "description": "Output token mint (e.g. USDC mint)" },
+        { "name": "amount", "in": "body", "required": true, "description": "Amount in smallest units (lamports for SOL)" },
+        { "name": "taker", "in": "body", "required": true, "description": "Wallet public key executing the swap" }
+      ],
+      "priceUsd": 0.02
+    },
+    {
+      "id": "token-report",
+      "name": "Token report (Rugcheck)",
+      "description": "Token report from Rugcheck by contract address.",
+      "method": "GET",
+      "path": "/token-report",
+      "parameters": [
+        { "name": "address", "in": "query", "required": true, "description": "Token contract address" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "token-statistic",
+      "name": "Token statistic (Rugcheck)",
+      "description": "Token statistics from Rugcheck (new, recent, trending, verified).",
+      "method": "GET",
+      "path": "/token-statistic",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "token-risk-alerts",
+      "name": "Token risk alerts (Rugcheck)",
+      "description": "Tokens with risk score at or above threshold.",
+      "method": "GET",
+      "path": "/token-risk/alerts",
+      "parameters": [
+        { "name": "rugScoreMin", "in": "query", "required": false, "description": "Min risk score 0-100 (default 80)" },
+        { "name": "source", "in": "query", "required": false, "description": "Comma-separated: new_tokens, recent, trending, verified" },
+        { "name": "limit", "in": "query", "required": false, "description": "Max tokens 1-50 (default 20)" }
+      ],
+      "priceUsd": 0.02
+    },
+    {
+      "id": "bubblemaps-maps",
+      "name": "Bubblemaps maps",
+      "description": "Bubblemaps holder/concentration map for a Solana token.",
+      "method": "GET",
+      "path": "/bubblemaps/maps",
+      "parameters": [
+        { "name": "address", "in": "query", "required": true, "description": "Solana token contract address" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "binance-correlation",
+      "name": "Binance correlation",
+      "description": "Binance correlation for a symbol (top correlated assets).",
+      "method": "GET",
+      "path": "/binance/correlation",
+      "parameters": [
+        { "name": "symbol", "in": "query", "required": false, "description": "e.g. BTCUSDT, ETHUSDT (default BTCUSDT)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "pump",
+      "name": "Pump (Workfun)",
+      "description": "Pump.fun / Workfun data (trending, etc.).",
+      "method": "GET",
+      "path": "/pump",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "coingecko-simple-price",
+      "name": "CoinGecko simple price",
+      "description": "USD price and market data by symbol (btc,eth,sol) or CoinGecko id.",
+      "method": "GET",
+      "path": "/coingecko/simple-price",
+      "parameters": [
+        { "name": "symbols", "in": "query", "required": false, "description": "Comma-separated e.g. btc,eth,sol" },
+        { "name": "ids", "in": "query", "required": false, "description": "Comma-separated CoinGecko ids e.g. bitcoin,ethereum" },
+        { "name": "include_market_cap", "in": "query", "required": false, "description": "true/false" },
+        { "name": "include_24hr_vol", "in": "query", "required": false, "description": "true/false" },
+        { "name": "include_24hr_change", "in": "query", "required": false, "description": "true/false" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "coingecko-onchain-token-price",
+      "name": "CoinGecko onchain token price",
+      "description": "Token price(s) by contract address on a network (comma-separated for multiple).",
+      "method": "GET",
+      "path": "/coingecko/onchain/token-price",
+      "parameters": [
+        { "name": "network", "in": "query", "required": true, "description": "e.g. base, solana, eth" },
+        { "name": "address", "in": "query", "required": true, "description": "Contract address (comma-separated for multiple)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "coingecko-search-pools",
+      "name": "CoinGecko search pools",
+      "description": "Search pools and tokens by name, symbol, or contract address on a network.",
+      "method": "GET",
+      "path": "/coingecko/onchain/search-pools",
+      "parameters": [
+        { "name": "query", "in": "query", "required": true, "description": "Search query" },
+        { "name": "network", "in": "query", "required": false, "description": "e.g. solana, base (default solana)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "coingecko-trending-pools",
+      "name": "CoinGecko trending pools",
+      "description": "Trending pools and tokens by network.",
+      "method": "GET",
+      "path": "/coingecko/onchain/trending-pools",
+      "parameters": [
+        { "name": "network", "in": "query", "required": false, "description": "e.g. base, solana (default base)" },
+        { "name": "duration", "in": "query", "required": false, "description": "e.g. 5m (default 5m)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "coingecko-onchain-token",
+      "name": "CoinGecko onchain token",
+      "description": "Token data by contract address: price, liquidity, top pools.",
+      "method": "GET",
+      "path": "/coingecko/onchain/token",
+      "parameters": [
+        { "name": "network", "in": "query", "required": true, "description": "e.g. base, solana, eth" },
+        { "name": "address", "in": "query", "required": true, "description": "Token contract address" }
+      ],
+      "priceUsd": 0.01
+    }
+  ]
+}

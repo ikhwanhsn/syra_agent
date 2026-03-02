@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "baseUrl": "https://api.syraa.fun",
+  "resources": [
+    "https://api.syraa.fun/news",
+    "https://api.syraa.fun/signal",
+    "https://api.syraa.fun/sentiment",
+    "https://api.syraa.fun/event",
+    "https://api.syraa.fun/trending-headline",
+    "https://api.syraa.fun/sundown-digest",
+    "https://api.syraa.fun/check-status",
+    "https://api.syraa.fun/exa-search",
+    "https://api.syraa.fun/smart-money",
+    "https://api.syraa.fun/dexscreener",
+    "https://api.syraa.fun/token-god-mode",
+    "https://api.syraa.fun/pump",
+    "https://api.syraa.fun/trending-jupiter",
+    "https://api.syraa.fun/jupiter/swap/order",
+    "https://api.syraa.fun/token-report",
+    "https://api.syraa.fun/token-statistic",
+    "https://api.syraa.fun/token-risk/alerts",
+    "https://api.syraa.fun/bubblemaps/maps",
+    "https://api.syraa.fun/binance/correlation",
+    "https://api.syraa.fun/coingecko/simple-price",
+    "https://api.syraa.fun/coingecko/onchain/token-price",
+    "https://api.syraa.fun/coingecko/onchain/search-pools",
+    "https://api.syraa.fun/coingecko/onchain/trending-pools",
+    "https://api.syraa.fun/coingecko/onchain/token",
+    "https://api.syraa.fun/analytics/summary"
+  ],
+  "instructions": "Live discovery: GET https://api.syraa.fun/.well-known/x402 for ownershipProofs and full instructions. Payment: USDC on Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) or Base (eip155:8453). On 402, retry with X-Payment or PAYMENT-SIGNATURE header.",
+  "networks": {
+    "solana": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+    "base": "eip155:8453"
+  }
+}

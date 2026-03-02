@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: SYRA x402 API
+  description: |
+    Payment-gated API for crypto news, signals, sentiment, analytics, and partner data (Nansen, DexScreener, Jupiter, Rugcheck, CoinGecko, etc.).
+    All endpoints use the x402 protocol: first request may return **402 Payment Required** with payment details;
+    client signs payment (USDC on Solana or Base) and retries with `X-Payment` or `PAYMENT-SIGNATURE` header.
+  version: 2.0.0
+  contact:
+    name: SYRA API
+    url: https://docs.syraa.fun
+
+servers:
+  - url: https://api.syraa.fun
+    description: Production
+
+security: []
+
+tags:
+  - name: Core
+    description: News, signals, sentiment, events, search
+  - name: Analytics
+    description: Summary, status
+  - name: Partner
+    description: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, CoinGecko, Pump
+
+paths:
+  /check-status:
+    get:
+      tags: [Core]
+      summary: Health check
+      operationId: checkStatus
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /news:
+    get:
+      tags: [Core]
+      summary: Crypto news
+      operationId: news
+      parameters:
+        - name: ticker
+          in: query
+          schema: { type: string }
+          description: Optional ticker (BTC, ETH, SOL) or general
+      responses:
+        "200": { description: News list }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /signal:
+    get:
+      tags: [Core]
+      summary: Trading signal
+      parameters:
+        - name: token
+          in: query
+          schema: { type: string }
+          description: Optional token (bitcoin, ethereum, solana)
+      responses:
+        "200": { description: Signal data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /sentiment:
+    get:
+      tags: [Core]
+      summary: Market sentiment
+      parameters:
+        - name: ticker
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Sentiment data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /event:
+    get:
+      tags: [Core]
+      summary: Crypto events
+      parameters:
+        - name: ticker
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Events }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /exa-search:
+    get:
+      tags: [Core]
+      summary: EXA AI web search
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Search results }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /trending-headline:
+    get:
+      tags: [Core]
+      summary: Trending headlines
+      parameters:
+        - name: ticker
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Headlines }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /sundown-digest:
+    get:
+      tags: [Core]
+      summary: Daily sundown digest
+      responses:
+        "200": { description: Digest }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /analytics/summary:
+    get:
+      tags: [Analytics]
+      summary: Full analytics summary
+      responses:
+        "200": { description: Aggregated analytics }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /smart-money:
+    get:
+      tags: [Partner]
+      summary: Nansen smart money
+      responses:
+        "200": { description: Smart money data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /token-god-mode:
+    get:
+      tags: [Partner]
+      summary: Nansen token god mode
+      parameters:
+        - name: tokenAddress
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Token god mode data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /dexscreener:
+    get:
+      tags: [Partner]
+      summary: DexScreener data
+      responses:
+        "200": { description: DexScreener data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /trending-jupiter:
+    get:
+      tags: [Partner]
+      summary: Trending on Jupiter
+      responses:
+        "200": { description: Trending tokens }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /jupiter/swap/order:
+    post:
+      tags: [Partner]
+      summary: Jupiter swap order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inputMint, outputMint, amount, taker]
+              properties:
+                inputMint: { type: string }
+                outputMint: { type: string }
+                amount: { type: string }
+                taker: { type: string }
+      responses:
+        "200": { description: Swap transaction to sign }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /token-report:
+    get:
+      tags: [Partner]
+      summary: Rugcheck token report
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Token report }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /token-statistic:
+    get:
+      tags: [Partner]
+      summary: Rugcheck token statistic
+      responses:
+        "200": { description: Token statistics }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /token-risk/alerts:
+    get:
+      tags: [Partner]
+      summary: Rugcheck token risk alerts
+      parameters:
+        - name: rugScoreMin
+          in: query
+          schema: { type: number }
+        - name: source
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200": { description: Risk alerts }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /bubblemaps/maps:
+    get:
+      tags: [Partner]
+      summary: Bubblemaps holder map
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Map data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /binance/correlation:
+    get:
+      tags: [Partner]
+      summary: Binance correlation
+      parameters:
+        - name: symbol
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Correlation data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /pump:
+    get:
+      tags: [Partner]
+      summary: Pump.fun / Workfun data
+      responses:
+        "200": { description: Pump data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /coingecko/simple-price:
+    get:
+      tags: [Partner]
+      summary: CoinGecko simple price
+      parameters:
+        - name: symbols
+          in: query
+          schema: { type: string }
+        - name: ids
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Price data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /coingecko/onchain/token-price:
+    get:
+      tags: [Partner]
+      summary: CoinGecko onchain token price
+      parameters:
+        - name: network
+          in: query
+          required: true
+          schema: { type: string }
+        - name: address
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Token price(s) }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /coingecko/onchain/search-pools:
+    get:
+      tags: [Partner]
+      summary: CoinGecko search pools
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+        - name: network
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Pools/tokens }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /coingecko/onchain/trending-pools:
+    get:
+      tags: [Partner]
+      summary: CoinGecko trending pools
+      parameters:
+        - name: network
+          in: query
+          schema: { type: string }
+        - name: duration
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Trending pools }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /coingecko/onchain/token:
+    get:
+      tags: [Partner]
+      summary: CoinGecko onchain token
+      parameters:
+        - name: network
+          in: query
+          required: true
+          schema: { type: string }
+        - name: address
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Token data }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+components:
+  responses:
+    PaymentRequired:
+      description: Payment required (x402). Body contains payment details (network, amount, payTo, etc.). Sign payment and retry with X-Payment or PAYMENT-SIGNATURE header.
+      content:
+        application/json:
+          schema:
+            type: object
+            description: x402 payment requirement (structure may include paymentRequired, accepts, x402Version, etc.)
