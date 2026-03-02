@@ -94,7 +94,6 @@ The **production** Syra API at `https://api.syraa.fun` uses **x402** for many en
   - **Token & chain data** — Rugcheck token report and statistics, Nansen token god mode, Bubblemaps holder/concentration maps, X KOL analysis (by Solana token address).
   - **Analytics** — Health check, daily sundown digest, hidden gems (X), crypto KOL insights, smart money tracking, DEXScreener, Jupiter trending, full analytics summary.
   - **Binance** — Correlation for a symbol (default BTCUSDT) and full correlation matrix.
-  - **Pump.fun** — Workfun/pump data (trending, etc.).
   - **Memecoin screens** — Fastest holder growth, smart money mentions, pre-CEX accumulation, strong narrative + low mcap, by experienced devs, unusual whale behavior, trending on X not DEX, organic traction, surviving market dumps.
 
 - **Configurable base URL** — Point to production (`https://api.syraa.fun`) or your local API (e.g. `http://localhost:3000`).
@@ -370,12 +369,6 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_binance_correlation` | `symbol` (optional, default: `"BTCUSDT"`) — e.g. `ETHUSDT` | Top correlated assets for a symbol. |
 | `syra_v2_binance_correlation_matrix` | `symbol` (optional) | Full Binance correlation matrix. |
 
-### Pump / Workfun
-
-| Tool | Parameters | Description |
-|------|------------|-------------|
-| `syra_v2_pump` | — | Pump.fun / Workfun data (trending, etc.). |
-
 ### Memecoin screens (all no-parameter)
 
 | Tool | Description |
@@ -423,7 +416,6 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_bubblemaps_maps` | `/bubblemaps/maps` |
 | `syra_v2_binance_correlation` | `/binance/correlation` |
 | `syra_v2_binance_correlation_matrix` | `/binance/correlation-matrix` |
-| `syra_v2_pump` | `/pump` |
 | `syra_v2_memecoin_fastest_holder_growth` | `/memecoin/fastest-holder-growth` |
 | `syra_v2_memecoin_most_mentioned_smart_money_x` | `/memecoin/most-mentioned-by-smart-money-x` |
 | `syra_v2_memecoin_accumulating_before_cex_rumors` | `/memecoin/accumulating-before-CEX-rumors` |

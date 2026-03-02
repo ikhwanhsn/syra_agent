@@ -210,13 +210,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
-    id: 'pump',
-    label: 'Pump',
-    method: 'GET',
-    url: `${base}/pump`,
-    params: [],
-  },
-  {
     id: 'jupiter-swap-order',
     label: 'Jupiter swap order',
     method: 'GET',
@@ -432,7 +425,6 @@ function getApiEndpoints(): string[] {
     `${base}/bubblemaps/maps`,
     `${base}/binance/correlation`,
     `${base}/binance/correlation-matrix`,
-    `${base}/pump`,
     `${base}/coingecko/simple-price`,
     `${base}/coingecko/onchain/token-price`,
     `${base}/coingecko/onchain/search-pools`,

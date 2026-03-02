@@ -154,11 +154,6 @@ async function main() {
         const { status, body } = await fetchV2("/binance/correlation-matrix", params);
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
-    // --- Pump (workfun) - GET may have params, check route ---
-    server.tool("syra_v2_pump", "Pump.fun / Workfun data (trending, etc.)." + PAYMENT_NOTE, {}, async () => {
-        const { status, body } = await fetchV2("/pump");
-        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
-    });
     // --- CoinGecko x402 simple price & onchain token price ---
     server.tool("syra_v2_coingecko_simple_price", "CoinGecko x402: USD price and market data for coins by symbol (e.g. btc,eth,sol) or CoinGecko id (e.g. bitcoin,ethereum). Provide either symbols or ids." + PAYMENT_NOTE, {
         symbols: z.string().optional().describe("Comma-separated symbols (e.g. btc,eth,sol)"),

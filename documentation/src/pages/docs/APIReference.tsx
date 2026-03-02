@@ -45,10 +45,6 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["bubblemaps-maps", "binance-correlation"],
   },
   {
-    title: "Partner: Workfun",
-    slugs: ["pump"],
-  },
-  {
     title: "Partner: CoinGecko",
     slugs: ["coingecko-onchain"],
   },

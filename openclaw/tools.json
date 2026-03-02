@@ -204,15 +204,6 @@
       "priceUsd": 0.01
     },
     {
-      "id": "pump",
-      "name": "Pump (Workfun)",
-      "description": "Pump.fun / Workfun data (trending, etc.).",
-      "method": "GET",
-      "path": "/pump",
-      "parameters": [],
-      "priceUsd": 0.01
-    },
-    {
       "id": "coingecko-simple-price",
       "name": "CoinGecko simple price",
       "description": "USD price and market data by symbol (btc,eth,sol) or CoinGecko id.",

@@ -22,7 +22,7 @@ tags:
   - name: Analytics
     description: Summary, status
   - name: Partner
-    description: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, CoinGecko, Pump
+    description: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, CoinGecko
 
 paths:
   /check-status:
@@ -245,14 +245,6 @@ paths:
           schema: { type: string }
       responses:
         "200": { description: Correlation data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /pump:
-    get:
-      tags: [Partner]
-      summary: Pump.fun / Workfun data
-      responses:
-        "200": { description: Pump data }
         "402": { $ref: "#/components/responses/PaymentRequired" }
 
   /coingecko/simple-price:

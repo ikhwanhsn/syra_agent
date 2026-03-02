@@ -9,7 +9,6 @@ import {
   X402_API_PRICE_NANSEN_USD,
   X402_API_PRICE_NANSEN_PREMIUM_USD,
   X402_API_PRICE_DEXSCREENER_USD,
-  X402_API_PRICE_PUMP_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_COINGECKO_USD,
@@ -22,7 +21,6 @@ import {
   X402_DISPLAY_PRICE_NANSEN_USD,
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
   X402_DISPLAY_PRICE_DEXSCREENER_USD,
-  X402_DISPLAY_PRICE_PUMP_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_COINGECKO_USD,
@@ -332,15 +330,6 @@ export const AGENT_TOOLS = [
     name: 'Binance correlation',
     description: 'Binance correlation data',
   },
-  {
-    id: 'pump',
-    path: '/pump',
-    method: 'GET',
-    priceUsd: X402_API_PRICE_PUMP_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_USD,
-    name: 'Pump (Workfun)',
-    description: 'Pump data from Workfun',
-  },
   // Partner: CoinGecko x402 (simple price + onchain)
   {
     id: 'coingecko-simple-price',
@@ -486,7 +475,7 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /binance\s*correlation|correlation\s*binance|binance\s*correl/i.test(text),
     },
-    // Partner: Nansen, Jupiter, DexScreener, Pump
+    // Partner: Nansen, Jupiter, DexScreener
     {
       toolId: 'token-god-mode',
       test: () =>
@@ -578,11 +567,6 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'dexscreener',
       test: () =>
         /dexscreener|dex\s*screener|dex\s*data|dex\s*screen/i.test(text),
-    },
-    {
-      toolId: 'pump',
-      test: () =>
-        /pump\.fun|pump\s*fun|pump\s*data|workfun\s*pump/i.test(text),
     },
     // Partner: CoinGecko x402 onchain
     {
@@ -684,7 +668,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'pump', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];

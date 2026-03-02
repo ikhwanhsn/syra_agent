@@ -1056,26 +1056,6 @@ curl "${BASE_URL}/binance/correlation?symbol=ETHUSDT"`,
     ],
   }),
 
-  pump: doc({
-    title: "Pump API (Workfun)",
-    overview: "Partner API with Workfun for pump.fun token data. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/pump",
-        description: "Fetch pump.fun token data.",
-        requestExample: `curl ${BASE_URL}/pump`,
-        responseExample: `{
-  "data": {
-    "tokens": [],
-    "trending": [],
-    "recent": []
-  }
-}`,
-      },
-    ],
-  }),
-
   "coingecko-onchain": doc({
     title: "CoinGecko API (x402)",
     overview:

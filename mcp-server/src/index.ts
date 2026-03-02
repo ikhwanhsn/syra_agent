@@ -243,17 +243,6 @@ async function main() {
     },
   );
 
-  // --- Pump (workfun) - GET may have params, check route ---
-  server.tool(
-    "syra_v2_pump",
-    "Pump.fun / Workfun data (trending, etc.)." + PAYMENT_NOTE,
-    {},
-    async () => {
-      const { status, body } = await fetchV2("/pump");
-      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
-    },
-  );
-
   // --- CoinGecko x402 simple price & onchain token price ---
   server.tool(
     "syra_v2_coingecko_simple_price",

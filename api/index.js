@@ -36,7 +36,6 @@ import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/c
 import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
 import { createDexscreenerRouter as createV2DexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
-import { createPumpRouter as createV2PumpRouter } from "./routes/partner/workfun/pump.js";
 import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
 import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./routes/partner/jupiter/swap-order.js";
 import { createTokenReportRouter as createV2TokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
@@ -159,7 +158,6 @@ function isX402Route(p) {
   if (p.startsWith("/dexscreener")) return true;
   if (p.startsWith("/token-god-mode")) return true;
   if (p.startsWith("/solana-agent")) return true;
-  if (p.startsWith("/pump")) return true;
   if (p.startsWith("/trending-jupiter")) return true;
   if (p.startsWith("/token-report")) return true;
   if (p.startsWith("/token-statistic")) return true;
@@ -517,7 +515,6 @@ app.use("/agent/leaderboard", await createAgentLeaderboardRouter());
 app.use("/dexscreener", await createV2DexscreenerRouter());
 app.use("/token-god-mode", await createV2TokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
-app.use("/pump", await createV2PumpRouter());
 app.use("/trending-jupiter", await createV2TrendingJupiterRouter());
 app.use("/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
 app.use("/token-report", await createV2TokenReportRouter());
@@ -570,11 +567,10 @@ app.get("/.well-known/x402", (req, res) => {
     "check-status",
     // Search
     "exa-search",
-    // Partner: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Workfun
+    // Partner: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps
     "smart-money",
     "dexscreener",
     "token-god-mode",
-    "pump",
     "trending-jupiter",
     "jupiter/swap/order",
     "token-report",

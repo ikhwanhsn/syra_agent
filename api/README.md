@@ -22,7 +22,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 
 - **Exposes Syra's data and intelligence** — signals, research, news, sentiment, gems, KOL/crypto-KOL, browse, events, leaderboard, and sundown digest.
 - **Integrates with x402 & FareMeter** — pay-per-use and Solana payment flows for API access.
-- **Connects to external data** — Binance (OHLC, correlation), DexScreener, Nansen (smart money, token god mode), RugCheck, Bubblemaps, Jupiter (trending), WorkFun (pump), and others.
+- **Connects to external data** — Binance (OHLC, correlation), DexScreener, Nansen (smart money, token god mode), RugCheck, Bubblemaps, Jupiter (trending), and others.
 - **Runs Syra agents** — Solana agent, check-status, and create-signal for on-chain verified signals.
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.

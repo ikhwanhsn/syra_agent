@@ -100,11 +100,6 @@ export const navigation: NavItem[] = [
         ],
       },
       {
-        title: "Partner: Workfun",
-        defaultCollapsed: false,
-        items: [{ title: "Pump", href: api("pump") }],
-      },
-      {
         title: "Partner: CoinGecko",
         defaultCollapsed: false,
         items: [{ title: "CoinGecko API", href: api("coingecko-onchain") }],

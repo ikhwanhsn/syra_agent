@@ -114,7 +114,6 @@ const partnerRoutes = [
   { file: 'dexscreener.js', depth: 1 },
   { file: 'smart-money.js', subdir: 'nansen', depth: 2 },
   { file: 'token-god-mode.js', subdir: 'nansen', depth: 2 },
-  { file: 'pump.js', subdir: 'workfun', depth: 2 },
   { file: 'trending.js', subdir: 'jupiter', depth: 2 },
   { file: 'token-report.js', subdir: 'rugcheck', depth: 2 },
   { file: 'token-statistic.js', subdir: 'rugcheck', depth: 2 },

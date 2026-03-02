@@ -21,7 +21,6 @@ const PRICE = {
   nansen: 0.01,
   nansenPremium: 0.05,
   dexscreener: 0.01,
-  pump: 0.01,
   tokenRiskAlerts: 0.02,
   analyticsSummary: 0.01,
   jupiterSwap: 0.02,
@@ -301,14 +300,6 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Binance correlation data.",
     priceUsd: PRICE.default,
     examplePrompt: "Binance correlation / Correlation Binance",
-    category: "partner",
-  },
-  {
-    id: "pump",
-    name: "Pump (Workfun)",
-    description: "Pump data from Workfun.",
-    priceUsd: PRICE.pump,
-    examplePrompt: "Pump.fun data / Pump data",
     category: "partner",
   },
   {
