@@ -107,6 +107,13 @@ export const HeroStats = () => {
             <div className="mb-1 text-2xl font-bold md:text-3xl neon-text">
               {loading ? (
                 <span>—</span>
+              ) : key === "users" && (stats.users ?? 0) < 100 ? (
+                <AnimatedNumber
+                  value={100}
+                  prefix=""
+                  suffix={suffix}
+                  decimals={decimals}
+                />
               ) : key === "signals" && (stats.signals ?? 0) < 1000 ? (
                 <AnimatedNumber
                   value={1000}

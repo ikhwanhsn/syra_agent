@@ -286,7 +286,8 @@ app.use(
       isX402Route(req.path) ||
       req.path === "/" ||
       req.path === "/favicon.ico" ||
-      req.path.startsWith("/og"),
+      req.path.startsWith("/og") ||
+      req.path.startsWith("/info"),
   ),
 );
 
