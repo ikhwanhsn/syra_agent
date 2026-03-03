@@ -1,6 +1,10 @@
 /**
  * CoinMarketCap x402 API utilities.
  * CMC x402 uses Base (eip155:8453) and PAYMENT-SIGNATURE (v2).
+ *
+ * 402 Response Format (no valid PAYMENT-SIGNATURE):
+ * - Payment-Required header: base64-encoded JSON with x402Version, error, resource, accepts[].
+ * - Body may contain the same structure: { x402Version: 2, error, resource: { url, description }, accepts: [{ scheme, network, asset, amount, payTo, maxTimeoutSeconds, extra }] }.
  * See https://coinmarketcap.com/api/x402/ and https://pro.coinmarketcap.com/api/documentation/v1/#tag/x402-(beta)
  */
 import https from "node:https";
@@ -52,7 +56,8 @@ let cmcX402Client = null;
 
 /**
  * Normalize a possible payment-required payload to { x402Version, accepts }.
- * Handles top-level or nested (data, paymentRequired, payment_required) and missing x402Version (default 2 for CMC).
+ * Supports CMC 402 body format: x402Version, error, resource (object), accepts[] (scheme, network, asset, amount, payTo, maxTimeoutSeconds, extra).
+ * Also handles nested (data, paymentRequired, payment_required) and missing x402Version (default 2 for CMC).
  */
 function normalizePaymentRequired(obj) {
   if (!obj || typeof obj !== "object") return null;
@@ -198,8 +203,13 @@ export async function cmcX402Fetch(input, init = {}) {
   }
 
   if (!paymentRequired) {
-    const bodyKeys = body && typeof body === "object" ? Object.keys(body).join(", ") : "";
     const cmcError = body && typeof body === "object" && typeof body.error === "string" ? body.error : "";
+    if (cmcError && /path not configured for x402 payment/i.test(cmcError)) {
+      throw new Error(
+        "CoinMarketCap does not support x402 payment for this endpoint. Use quotes-latest, dex-search, or mcp (see https://coinmarketcap.com/api/x402/)."
+      );
+    }
+    const bodyKeys = body && typeof body === "object" ? Object.keys(body).join(", ") : "";
     const headerPresent = !!paymentRequiredHeader;
     let msg =
       "CoinMarketCap returned 402 but no parseable payment requirements (need Payment-Required header or body with x402Version 1 or 2 and accepts[]).";

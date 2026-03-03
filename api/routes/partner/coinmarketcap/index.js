@@ -48,6 +48,15 @@ function upstreamErrorMessage(status, text) {
   if (!t) return status >= 500 ? "CoinMarketCap temporarily unavailable." : "Request failed.";
   if (t.length > 500 || /<\s*!?\s*DOCTYPE\s+html|<\s*html\s/i.test(t))
     return status >= 500 ? "CoinMarketCap temporarily unavailable." : "Upstream request failed.";
+  if (status === 400) {
+    try {
+      const j = JSON.parse(t);
+      const msg = j?.status?.error_message ?? j?.error_message ?? j?.error;
+      if (msg) return typeof msg === "string" ? msg : t;
+    } catch {
+      // ignore
+    }
+  }
   return t;
 }
 
@@ -70,7 +79,7 @@ const ENDPOINT_DEFAULTS = {
   "quotes-latest": { id: "1", convert: "USD" },
   "listing-latest": { start: "1", limit: "10", convert: "USD" },
   "dex-search": { q: "pepe" },
-  "dex-pairs-quotes-latest": { chain_id: "8453" },
+  "dex-pairs-quotes-latest": {}, // requires pair_address + chain_id from caller
   mcp: {},
 };
 
@@ -133,6 +142,9 @@ async function handleCmcProxy(req, res) {
     });
   }
 
+  const endpoint = String(
+    req.query.endpoint ?? req.body?.endpoint ?? "quotes-latest"
+  ).toLowerCase();
   const url = buildUrlFromRequest(req);
   if (!url) {
     return res.status(400).json({
@@ -141,7 +153,18 @@ async function handleCmcProxy(req, res) {
         "Set endpoint to one of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp. Use query params (GET) or body (POST) for id, slug, symbol, start, limit, convert, q, chain_id, pair_address, etc.",
     });
   }
-
+  if (endpoint === "dex-pairs-quotes-latest") {
+    const source = req.method === "POST" && req.body && typeof req.body === "object" ? req.body : req.query;
+    const hasPair = source && (source.pair_address || source.pair_addresses);
+    const hasChainId = source && source.chain_id;
+    if (!hasPair || !hasChainId) {
+      return res.status(400).json({
+        error: "Missing required parameter for dex-pairs-quotes-latest",
+        message:
+          "pair_address (or pair_addresses) and chain_id are required. Example: endpoint=dex-pairs-quotes-latest&chain_id=8453&pair_address=0x...",
+      });
+    }
+  }
   const method = req.method === "POST" ? "POST" : "GET";
   let response;
   try {
