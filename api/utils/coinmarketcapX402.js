@@ -3,12 +3,49 @@
  * CMC x402 uses Base (eip155:8453) and PAYMENT-SIGNATURE (v2).
  * See https://coinmarketcap.com/api/x402/ and https://pro.coinmarketcap.com/api/documentation/v1/#tag/x402-(beta)
  */
+import https from "node:https";
 import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from "@x402/core/http";
 import { x402Client } from "@x402/core/client";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const CMC_X402_BASE = "https://pro-api.coinmarketcap.com/x402";
+
+/**
+ * Fetch 402 response using Node's native https to read raw response headers.
+ * Some environments (e.g. fetch/undici) may not expose the Payment-Required header.
+ * @param {string} url - Full CMC x402 URL
+ * @returns {Promise<{ statusCode: number; headers: Record<string, string | string[] | undefined>; body: string }>}
+ */
+function cmc402ViaHttps(url) {
+  const u = new URL(url);
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        path: u.pathname + u.search,
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Syra-API/1.0 (https://syraa.fun; server)",
+        },
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () =>
+          resolve({
+            statusCode: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString("utf8"),
+          })
+        );
+      }
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 /** Lazy-built x402 client for CMC (Base/EVM only). */
 let cmcX402Client = null;
@@ -139,19 +176,41 @@ export async function cmcX402Fetch(input, init = {}) {
   } catch {
     // ignore
   }
-  const paymentRequired = parsePaymentRequiredFrom402(paymentRequiredHeader, body);
+  let paymentRequired = parsePaymentRequiredFrom402(paymentRequiredHeader, body);
+
+  // Fallback: fetch with Node https to read raw headers (fetch/undici may not expose Payment-Required)
+  if (!paymentRequired) {
+    const raw = await cmc402ViaHttps(url);
+    if (raw.statusCode === 402 && raw.body) {
+      let rawBody = null;
+      try {
+        rawBody = JSON.parse(raw.body);
+      } catch {
+        // ignore
+      }
+      const h = raw.headers;
+      const rawHeaderValue =
+        (typeof h === "object" && h && (h["payment-required"] ?? h["Payment-Required"] ?? h["PAYMENT-REQUIRED"])) ?? null;
+      const singleHeader = Array.isArray(rawHeaderValue) ? rawHeaderValue[0] : rawHeaderValue;
+      paymentRequired = parsePaymentRequiredFrom402(singleHeader ?? null, rawBody ?? body);
+      if (rawBody && !body) body = rawBody;
+    }
+  }
+
   if (!paymentRequired) {
     const bodyKeys = body && typeof body === "object" ? Object.keys(body).join(", ") : "";
+    const cmcError = body && typeof body === "object" && typeof body.error === "string" ? body.error : "";
     const headerPresent = !!paymentRequiredHeader;
     let msg =
       "CoinMarketCap returned 402 but no parseable payment requirements (need Payment-Required header or body with x402Version 1 or 2 and accepts[]).";
     if (bodyKeys) msg += ` Body keys: ${bodyKeys}.`;
+    if (cmcError) msg += ` CMC message: "${cmcError}".`;
     if (headerPresent) {
       msg += " Payment-Required header was present but could not be decoded.";
     } else {
-      msg += " Payment-Required header was missing.";
+      msg += " Payment-Required header was missing (tried both fetch and native https).";
     }
-    msg += " If this is a credit or rate-limit error, ensure your CMC x402 account has credits (see https://coinmarketcap.com/api/x402/).";
+    msg += " Ensure your CMC x402 account has credits and the payer wallet has USDC on Base (see https://coinmarketcap.com/api/x402/).";
     throw new Error(msg);
   }
 
