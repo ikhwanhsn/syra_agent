@@ -342,6 +342,15 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     examplePrompt: "Token data for this address on Base / CoinGecko token by address",
     category: "partner",
   },
+  {
+    id: "coinmarketcap",
+    name: "CoinMarketCap x402",
+    description:
+      "Cryptocurrency quotes latest, listing latest, DEX pairs quotes, DEX search, or MCP. Set endpoint to quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, or mcp.",
+    priceUsd: PRICE.default,
+    examplePrompt: "CMC quotes for Bitcoin / CoinMarketCap listing latest / DEX search",
+    category: "partner",
+  },
 ];
 
 function formatPrice(usd: number): string {

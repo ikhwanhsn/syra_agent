@@ -354,6 +354,53 @@ async function main() {
     },
   );
 
+  // --- CoinMarketCap x402 (single proxy: endpoint + params; all params have defaults for easy testing) ---
+  server.tool(
+    "syra_v2_coinmarketcap",
+    "CoinMarketCap x402: cryptocurrency quotes latest, listing latest, DEX pairs quotes, DEX search, or MCP. Set endpoint to one of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp. All params have defaults so you can call with no args to get Bitcoin quote." + PAYMENT_NOTE,
+    {
+      endpoint: z
+        .string()
+        .optional()
+        .default("quotes-latest")
+        .describe("One of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp"),
+      id: z.string().optional().default("1").describe("CMC id (default 1 = Bitcoin) for quotes/listing"),
+      slug: z.string().optional().default("").describe("Slug for quotes/listing (e.g. bitcoin)"),
+      symbol: z.string().optional().default("").describe("Symbol(s) for quotes/listing (e.g. BTC,ETH)"),
+      start: z.string().optional().default("1").describe("Start rank for listing (default 1)"),
+      limit: z.string().optional().default("10").describe("Limit for listing (default 10)"),
+      convert: z.string().optional().default("USD").describe("Convert to (default USD)"),
+      q: z.string().optional().default("pepe").describe("Search query for dex-search (default pepe)"),
+      chain_id: z.string().optional().default("8453").describe("Chain id for DEX (default 8453 = Base)"),
+      pair_address: z.string().optional().default("").describe("Pair address for DEX pairs quotes"),
+    },
+    async ({
+      endpoint,
+      id,
+      slug,
+      symbol,
+      start,
+      limit,
+      convert,
+      q,
+      chain_id,
+      pair_address,
+    }) => {
+      const params: Record<string, string> = { endpoint: endpoint ?? "quotes-latest" };
+      if (id != null && id !== "") params.id = id;
+      if (slug != null && slug !== "") params.slug = slug;
+      if (symbol != null && symbol !== "") params.symbol = symbol;
+      if (start != null && start !== "") params.start = start;
+      if (limit != null && limit !== "") params.limit = limit;
+      if (convert != null && convert !== "") params.convert = convert;
+      if (q != null && q !== "") params.q = q;
+      if (chain_id != null && chain_id !== "") params.chain_id = chain_id;
+      if (pair_address != null && pair_address !== "") params.pair_address = pair_address;
+      const { status, body } = await fetchV2("/coinmarketcap", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

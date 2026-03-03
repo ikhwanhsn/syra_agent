@@ -364,6 +364,50 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'address', value: '', enabled: true, description: 'Token contract address' },
     ],
   },
+  {
+    id: 'coinmarketcap-quotes',
+    label: 'CoinMarketCap quotes latest',
+    method: 'GET',
+    url: `${base}/coinmarketcap`,
+    params: [
+      { key: 'endpoint', value: 'quotes-latest', enabled: true, description: 'quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp' },
+      { key: 'id', value: '1', enabled: true, description: 'CMC id (e.g. 1 for Bitcoin, 1027 for Ethereum)' },
+      { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
+    ],
+  },
+  {
+    id: 'coinmarketcap-listing',
+    label: 'CoinMarketCap listing latest',
+    method: 'GET',
+    url: `${base}/coinmarketcap`,
+    params: [
+      { key: 'endpoint', value: 'listing-latest', enabled: true, description: 'listing-latest' },
+      { key: 'start', value: '1', enabled: true, description: 'Start rank (default 1)' },
+      { key: 'limit', value: '10', enabled: true, description: 'Limit (default 10)' },
+      { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
+    ],
+  },
+  {
+    id: 'coinmarketcap-dex-search',
+    label: 'CoinMarketCap DEX search',
+    method: 'GET',
+    url: `${base}/coinmarketcap`,
+    params: [
+      { key: 'endpoint', value: 'dex-search', enabled: true, description: 'dex-search' },
+      { key: 'q', value: 'pepe', enabled: true, description: 'Search keyword (name, symbol, or contract address)' },
+    ],
+  },
+  {
+    id: 'coinmarketcap-dex-pairs',
+    label: 'CoinMarketCap DEX pairs quotes',
+    method: 'GET',
+    url: `${base}/coinmarketcap`,
+    params: [
+      { key: 'endpoint', value: 'dex-pairs-quotes-latest', enabled: true, description: 'dex-pairs-quotes-latest' },
+      { key: 'chain_id', value: '8453', enabled: true, description: 'Chain id (e.g. 8453 for Base)' },
+      { key: 'pair_address', value: '', enabled: true, description: 'Pair address (optional)' },
+    ],
+  },
 ];
 };
 
@@ -432,6 +476,7 @@ function getApiEndpoints(): string[] {
     `${base}/coingecko/onchain/search-pools`,
     `${base}/coingecko/onchain/trending-pools`,
     `${base}/coingecko/onchain/token`,
+    `${base}/coinmarketcap`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
@@ -540,6 +585,18 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'address', value: '', enabled: true, description: 'Token contract address' },
         { key: 'include', value: 'top_pools', enabled: false, description: 'e.g. top_pools' },
         { key: 'include_composition', value: 'true', enabled: false, description: 'true/false' },
+      ],
+      '/coinmarketcap': [
+        { key: 'endpoint', value: 'quotes-latest', enabled: true, description: 'quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp' },
+        { key: 'id', value: '1', enabled: true, description: 'CMC id (e.g. 1 for Bitcoin, 1027 for Ethereum)' },
+        { key: 'slug', value: 'bitcoin', enabled: false, description: 'Slug for quotes/listing (e.g. bitcoin)' },
+        { key: 'symbol', value: 'BTC', enabled: false, description: 'Symbol(s) for quotes/listing (e.g. BTC,ETH)' },
+        { key: 'start', value: '1', enabled: true, description: 'Start rank for listing (default 1)' },
+        { key: 'limit', value: '10', enabled: true, description: 'Limit for listing (default 10)' },
+        { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
+        { key: 'q', value: 'pepe', enabled: true, description: 'Search query for dex-search (e.g. pepe, sol)' },
+        { key: 'chain_id', value: '8453', enabled: false, description: 'Chain id for DEX (e.g. 8453 for Base)' },
+        { key: 'pair_address', value: '', enabled: false, description: 'Pair address for DEX pairs quotes' },
       ],
     };
     const exact = known[path];

@@ -1202,6 +1202,94 @@ curl "${BASE_URL}/coingecko/onchain/token?network=solana&address=So1111111111111
       },
     ],
   }),
+
+  coinmarketcap: doc({
+    title: "CoinMarketCap API (x402)",
+    overview:
+      "Partner API with CoinMarketCap x402. Single proxy endpoint for cryptocurrency quotes latest, listing latest, DEX pairs quotes latest, DEX search, and MCP. Data is sourced from CoinMarketCap's pay-per-use x402 API (Base/EVM). Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    useCases: [
+      "Get latest quotes for one or more cryptocurrencies by CMC id, slug, or symbol",
+      "Get latest listing with optional start/limit and convert",
+      "DEX pairs quotes and DEX search by chain and query",
+      "MCP endpoint for model context",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/coinmarketcap",
+        description:
+          "Proxy to CoinMarketCap x402. Set endpoint (required) to one of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp. Pass id, slug, symbol, start, limit, convert, q, chain_id, pair_address as needed.",
+        params: [
+          {
+            name: "endpoint",
+            type: "string",
+            required: "Yes",
+            description:
+              "One of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp",
+          },
+          { name: "id", type: "string", required: "No", description: "CMC id (e.g. 1 for Bitcoin) for quotes/listing" },
+          { name: "slug", type: "string", required: "No", description: "Slug for quotes/listing" },
+          { name: "symbol", type: "string", required: "No", description: "Symbol(s) for quotes/listing" },
+          { name: "start", type: "string", required: "No", description: "Start rank for listing" },
+          { name: "limit", type: "string", required: "No", description: "Limit for listing" },
+          { name: "convert", type: "string", required: "No", description: "Convert to (e.g. USD)" },
+          { name: "q", type: "string", required: "No", description: "Search query for dex-search" },
+          { name: "chain_id", type: "string", required: "No", description: "Chain id for DEX endpoints" },
+          { name: "pair_address", type: "string", required: "No", description: "Pair address for DEX" },
+        ],
+        requestExample: `# Quotes for Bitcoin (id=1)
+curl "${BASE_URL}/coinmarketcap?endpoint=quotes-latest&id=1&convert=USD"
+
+# Listing latest (first 10)
+curl "${BASE_URL}/coinmarketcap?endpoint=listing-latest&start=1&limit=10&convert=USD"
+
+# DEX search
+curl "${BASE_URL}/coinmarketcap?endpoint=dex-search&q=SOL"`,
+        responseExample: `{
+  "data": {
+    "1": {
+      "id": 1,
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "quote": { "USD": { "price": 97234.5, "volume_24h": 25000000000 } }
+    }
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/coinmarketcap",
+        description: "Same as GET; send endpoint and other params in JSON body.",
+        bodyExample: `{ "endpoint": "quotes-latest", "id": "1", "convert": "USD" }`,
+        requestExample: `curl -X POST ${BASE_URL}/coinmarketcap \\
+  -H "Content-Type: application/json" \\
+  -d '{"endpoint":"quotes-latest","id":"1","convert":"USD"}'`,
+        responseExample: `{
+  "data": {
+    "1": {
+      "id": 1,
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "quote": { "USD": { "price": 97234.5 } }
+    }
+  }
+}`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Reference",
+        content:
+          "CoinMarketCap x402: https://coinmarketcap.com/api/x402/ and https://pro.coinmarketcap.com/api/documentation/v1/#tag/x402-(beta). CMC uses Base (eip155:8453) and PAYMENT-SIGNATURE (v2).",
+      },
+      {
+        title: "Dev route (no payment)",
+        content:
+          "When NODE_ENV is not production, GET /coinmarketcap/dev accepts the same query/body and returns the same response without x402 payment. CMC_PAYER_PRIVATE_KEY or BASE_PAYER_PRIVATE_KEY must be set for the server to pay CoinMarketCap x402.",
+      },
+    ],
+  }),
 };
 
 export function getApiDoc(slug: string): ApiDoc | null {

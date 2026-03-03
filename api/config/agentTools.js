@@ -13,6 +13,7 @@ import {
   X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_COINGECKO_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
+  X402_API_PRICE_COINMARKETCAP_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -25,6 +26,7 @@ import {
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_COINGECKO_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
+  X402_DISPLAY_PRICE_COINMARKETCAP_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -376,6 +378,16 @@ export const AGENT_TOOLS = [
     name: 'CoinGecko onchain token',
     description: 'Token data by contract address on a network: price, liquidity, top pools (network + address required)',
   },
+  // Partner: CoinMarketCap x402 (quotes, listing, DEX pairs quotes, DEX search, MCP)
+  {
+    id: 'coinmarketcap',
+    path: '/coinmarketcap',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINMARKETCAP_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_COINMARKETCAP_USD,
+    name: 'CoinMarketCap x402',
+    description: 'Cryptocurrency quotes latest, listing latest, DEX pairs quotes, DEX search, or MCP (endpoint param: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp)',
+  },
 ];
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
@@ -568,6 +580,12 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /dexscreener|dex\s*screener|dex\s*data|dex\s*screen/i.test(text),
     },
+    // Partner: CoinMarketCap x402
+    {
+      toolId: 'coinmarketcap',
+      test: () =>
+        /coinmarketcap|cmc\s*(quotes|listing|dex)|quotes\s*latest\s*cmc|listing\s*latest\s*cmc|dex\s*pairs?\s*quotes?|dex\s*search\s*cmc/i.test(text),
+    },
     // Partner: CoinGecko x402 onchain
     {
       toolId: 'coingecko-search-pools',
@@ -668,7 +686,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
@@ -722,6 +740,9 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'coingecko-onchain-token') {
       out.paramsHint = 'Params: network (e.g. base, solana, eth), address (token contract address, required)';
+    }
+    if (t.id === 'coinmarketcap') {
+      out.paramsHint = 'Params: endpoint (quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp); optional id, slug, symbol, start, limit, convert, q, chain_id, pair_address';
     }
     if (t.id === 'token-god-mode') {
       out.paramsHint = 'Params: tokenAddress (Solana token contract address, required)';

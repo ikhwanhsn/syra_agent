@@ -46,6 +46,7 @@ import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./ro
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
 import { createV2CoingeckoOnchainRouter } from "./routes/partner/coingecko/onchain.js";
 import { createV2CoingeckoSimplePriceRouter } from "./routes/partner/coingecko/simple-price.js";
+import { createCoinmarketcapRouter } from "./routes/partner/coinmarketcap/index.js";
 // NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
 // import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 // import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -171,6 +172,7 @@ function isX402Route(p) {
   if (p.startsWith("/bubblemaps")) return true;
   if (p.startsWith("/coingecko")) return true;
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
+  if (p.startsWith("/coinmarketcap")) return true;
   return false;
 }
 
@@ -481,6 +483,7 @@ app.get("/", (req, res) => {
 app.use("/info", await createInfoRouter());
 app.use("/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
 app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
+app.use("/coinmarketcap", await createCoinmarketcapRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
 app.use("/", await createCryptonewsRouter());
@@ -586,6 +589,8 @@ app.get("/.well-known/x402", (req, res) => {
     "coingecko/onchain/search-pools",
     "coingecko/onchain/trending-pools",
     "coingecko/onchain/token",
+    // CoinMarketCap x402
+    "coinmarketcap",
     // Analytics
     "analytics/summary",
   ];

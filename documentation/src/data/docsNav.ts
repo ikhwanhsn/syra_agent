@@ -104,6 +104,11 @@ export const navigation: NavItem[] = [
         defaultCollapsed: false,
         items: [{ title: "CoinGecko API", href: api("coingecko-onchain") }],
       },
+      {
+        title: "Partner: CoinMarketCap",
+        defaultCollapsed: false,
+        items: [{ title: "CoinMarketCap API", href: api("coinmarketcap") }],
+      },
     ],
   },
   {

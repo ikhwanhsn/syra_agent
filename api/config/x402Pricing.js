@@ -78,6 +78,9 @@ export const X402_API_PRICE_COINGECKO_USD = price(0.01);
 /** EXA search (dynamic web search via Exa AI) */
 export const X402_API_PRICE_EXA_SEARCH_USD = price(0.01);
 
+/** CoinMarketCap x402 (quotes latest, listing latest, DEX pairs quotes, DEX search, MCP) — $0.01/request per CMC docs */
+export const X402_API_PRICE_COINMARKETCAP_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -100,6 +103,7 @@ export const X402_DISPLAY_PRICE_DEXSCREENER_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_COINGECKO_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_COINMARKETCAP_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +

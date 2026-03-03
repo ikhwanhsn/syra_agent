@@ -416,6 +416,12 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_bubblemaps_maps` | `/bubblemaps/maps` |
 | `syra_v2_binance_correlation` | `/binance/correlation` |
 | `syra_v2_binance_correlation_matrix` | `/binance/correlation-matrix` |
+| `syra_v2_coingecko_simple_price` | `/coingecko/simple-price` |
+| `syra_v2_coingecko_onchain_token_price` | `/coingecko/onchain/token-price` |
+| `syra_v2_coingecko_search_pools` | `/coingecko/onchain/search-pools` |
+| `syra_v2_coingecko_trending_pools` | `/coingecko/onchain/trending-pools` |
+| `syra_v2_coingecko_onchain_token` | `/coingecko/onchain/token` |
+| `syra_v2_coinmarketcap` | `/coinmarketcap` |
 | `syra_v2_memecoin_fastest_holder_growth` | `/memecoin/fastest-holder-growth` |
 | `syra_v2_memecoin_most_mentioned_smart_money_x` | `/memecoin/most-mentioned-by-smart-money-x` |
 | `syra_v2_memecoin_accumulating_before_cex_rumors` | `/memecoin/accumulating-before-CEX-rumors` |
