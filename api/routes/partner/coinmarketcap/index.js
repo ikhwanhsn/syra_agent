@@ -129,9 +129,10 @@ function buildUrlFromRequest(req) {
       params[k] = v;
     }
   }
-  // CMC v4 dex pairs quotes/latest expects pair_addresses (plural); map pair_address for callers
-  if (endpoint.toLowerCase() === "dex-pairs-quotes-latest" && params.pair_address && !params.pair_addresses) {
-    params.pair_addresses = params.pair_address;
+  // CMC v4 dex pairs quotes/latest expects pair_addresses only; map pair_address for callers, then omit pair_address so CMC doesn't get an invalid param
+  if (endpoint.toLowerCase() === "dex-pairs-quotes-latest") {
+    if (params.pair_address && !params.pair_addresses) params.pair_addresses = params.pair_address;
+    delete params.pair_address;
   }
   return buildCmcX402Url(path, params);
 }
