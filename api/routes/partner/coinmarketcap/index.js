@@ -79,7 +79,10 @@ const ENDPOINT_DEFAULTS = {
   "quotes-latest": { id: "1", convert: "USD" },
   "listing-latest": { start: "1", limit: "10", convert: "USD" },
   "dex-search": { q: "pepe" },
-  "dex-pairs-quotes-latest": {}, // requires pair_address + chain_id from caller
+  "dex-pairs-quotes-latest": {
+    chain_id: "8453",
+    pair_address: "0xc71f10fcb03e95f7a624da72dc6f1f8936e15025", // Uniswap v3 Base example (Ed/USDC)
+  },
   mcp: {},
 };
 
@@ -152,18 +155,6 @@ async function handleCmcProxy(req, res) {
       message:
         "Set endpoint to one of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp. Use query params (GET) or body (POST) for id, slug, symbol, start, limit, convert, q, chain_id, pair_address, etc.",
     });
-  }
-  if (endpoint === "dex-pairs-quotes-latest") {
-    const source = req.method === "POST" && req.body && typeof req.body === "object" ? req.body : req.query;
-    const hasPair = source && (source.pair_address || source.pair_addresses);
-    const hasChainId = source && source.chain_id;
-    if (!hasPair || !hasChainId) {
-      return res.status(400).json({
-        error: "Missing required parameter for dex-pairs-quotes-latest",
-        message:
-          "pair_address (or pair_addresses) and chain_id are required. Example: endpoint=dex-pairs-quotes-latest&chain_id=8453&pair_address=0x...",
-      });
-    }
   }
   const method = req.method === "POST" ? "POST" : "GET";
   let response;
