@@ -10,7 +10,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "register-8004": "node scripts/register-8004-agent.js"
+    "register-8004": "node scripts/register-8004-agent.js",
+    "create-8004-collection": "node scripts/create-8004-collection.js",
+    "register-8004-with-collection": "node scripts/register-8004-agent-with-collection.js"
   },
   "dependencies": {
     "@faremeter/info": "^0.14.0",

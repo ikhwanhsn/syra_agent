@@ -84,6 +84,9 @@ export const X402_API_PRICE_COINMARKETCAP_USD = price(0.01);
 /** 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection) */
 export const X402_API_PRICE_8004_USD = price(0.01);
 
+/** 8004 register-agent (write: create agent + attach to collection) */
+export const X402_API_PRICE_8004_REGISTER_AGENT_USD = price(0.05);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -108,6 +111,7 @@ export const X402_DISPLAY_PRICE_COINGECKO_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_COINMARKETCAP_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +

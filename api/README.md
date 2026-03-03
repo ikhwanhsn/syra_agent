@@ -79,6 +79,58 @@ npm run register-8004
 
 The script uploads agent metadata to IPFS and registers the agent on-chain. It prints the **agent asset (NFT) address** and **transaction signature**. Keep these for future updates (e.g. `setAgentUri`, `giveFeedback`).
 
+### Create Syra Agent collection (after registration)
+
+After registering the agent, you can create a **Syra Agents** collection and attach it to your agent:
+
+```bash
+cd api
+npm run create-8004-collection
+```
+
+- Uses the same `.env` (e.g. `SOLANA_PRIVATE_KEY`, `PINATA_JWT`).
+- By default uses agent asset `8aJwH76QsQe5uEAxbFXha24toSUKjHxsdCk4BRuKERYx`. Override with `SYRA_AGENT_ASSET=<base58>` if you re-registered.
+- Optional: set `SYRA_COLLECTION_IMAGE_URI`, `SYRA_COLLECTION_EXTERNAL_URL`, `SYRA_COLLECTION_X_URL` (and optionally `SYRA_COLLECTION_BANNER_URI`) in `.env` so the collection card shows your image, website link, and X/Twitter link.
+
+### New agent + collection in one run
+
+To register a **new** Syra agent and attach it to a collection in one run:
+
+```bash
+cd api
+npm run register-8004-with-collection
+```
+
+- **Add to existing Syra collection:** set `SYRA_COLLECTION_POINTER` in `.env` to your existing pointer (e.g. `c1:bafkreid3g6kogo55n5iob7pi36xppcycynn7m64pds7wshnankxjo52mfm`). The script will register the new agent and attach this pointer (no new collection created).
+- **Create new collection:** leave `SYRA_COLLECTION_POINTER` unset; optionally set `SYRA_COLLECTION_IMAGE_URI`, `SYRA_COLLECTION_EXTERNAL_URL`, `SYRA_COLLECTION_X_URL` for the collection card. The script will create the collection and attach it to the new agent.
+
+Prints the new agent asset at the end — save it as `SYRA_AGENT_ASSET` if needed.
+
+### API: create many agents and add to collection
+
+**POST /8004/register-agent** (x402 payment required)
+
+Creates a new 8004 agent with dynamic input and optionally attaches it to an existing collection. Call repeatedly to create many agents in the same collection. Requires x402 payment (e.g. PAYMENT-SIGNATURE or X-Payment header); without payment the API returns **402 Payment Required** with payment details.
+
+**Request body (JSON):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Agent name |
+| `description` | string | Yes | Agent description |
+| `image` | string | No | Image URL (default: env `SYRA_AGENT_IMAGE_URI` or syraa.fun logo) |
+| `services` | array | No | `[{ "type": "MCP", "value": "https://..." }]` (default: MCP api.syraa.fun) |
+| `skills` | string[] | No | OASF skill slugs (default: Syra skills) |
+| `domains` | string[] | No | OASF domain slugs (default: finance) |
+| `x402Support` | boolean | No | Default true |
+| `collectionPointer` | string | No | Existing collection pointer `c1:...` to attach agent to |
+
+**Response (201):** `{ "asset": "<base58>", "registerSignature": "<tx>", "tokenUri": "ipfs://...", "setCollectionSignature": "<tx>" }` (last field only if `collectionPointer` was set).
+
+**Example (add agent to existing Syra collection):** First request without payment returns **402** with payment details; then pay (e.g. with wallet via API Playground or x402 client) and retry with the payment header.
+
+**Dev (no payment):** `POST /8004/dev/register-agent` when `NODE_ENV !== "production"`.
+
 ---
 
 ## License

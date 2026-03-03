@@ -1,10 +1,11 @@
 /**
- * 8004 Trustless Agent Registry (Solana) – read-only API (x402).
+ * 8004 Trustless Agent Registry (Solana) – read-only API (x402) + write (register-agent, x402).
  * Liveness, integrity, discovery, introspection. Uses libs/agentRegistry8004.js.
+ * POST /register-agent creates a new agent and optionally attaches to a collection (x402 payment required).
  */
 import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
-import { X402_API_PRICE_8004_USD } from "../config/x402Pricing.js";
+import { X402_API_PRICE_8004_USD, X402_API_PRICE_8004_REGISTER_AGENT_USD } from "../config/x402Pricing.js";
 import {
   getLiveness,
   getIntegrity,
@@ -23,6 +24,7 @@ import {
   getProgramIds,
   getBaseCollection,
 } from "../libs/agentRegistry8004.js";
+import { registerAgentAndAttachToCollection } from "../libs/register8004Agent.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -233,6 +235,55 @@ export async function create8004Router() {
   router.post("/base-collection", ...withPayment(baseCollectionHandler, "POST"));
   router.get("/dev/base-collection", devOnly(baseCollectionHandler));
   router.post("/dev/base-collection", devOnly(baseCollectionHandler));
+
+  // --- Write: register new agent and optionally attach to collection (x402 payment required) ---
+  const registerAgentHandler = async (req) => {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    return registerAgentAndAttachToCollection({
+      name: body.name,
+      description: body.description,
+      image: body.image,
+      services: body.services,
+      skills: body.skills,
+      domains: body.domains,
+      x402Support: body.x402Support,
+      collectionPointer: body.collectionPointer,
+    });
+  };
+  const registerAgentPaymentOptions = {
+    price: X402_API_PRICE_8004_REGISTER_AGENT_USD,
+    description: "8004 register-agent: create a new agent and optionally attach to a collection (Solana)",
+    discoverable: true,
+    resource: "/8004/register-agent",
+    method: "POST",
+    outputSchema: {
+      type: "object",
+      description: "Created agent asset, register tx signature, tokenUri, and optional setCollectionSignature",
+      properties: {
+        asset: { type: "string", description: "Agent NFT address (base58)" },
+        registerSignature: { type: "string", description: "Registration transaction signature" },
+        tokenUri: { type: "string", description: "Agent metadata URI (ipfs://...)" },
+        setCollectionSignature: { type: "string", description: "Set collection pointer tx (if collectionPointer was provided)" },
+      },
+    },
+  };
+  router.post(
+    "/register-agent",
+    requirePayment(registerAgentPaymentOptions),
+    async (req, res, next) => {
+      try {
+        const data = await registerAgentHandler(req);
+        if (res.headersSent) return;
+        await settlePaymentAndSetResponse(res, req);
+        res.status(201).json(data);
+      } catch (e) {
+        if (!res.headersSent) {
+          res.status(e.status ?? 400).json({ error: e.message ?? String(e) });
+        } else next(e);
+      }
+    }
+  );
+  router.post("/dev/register-agent", devOnly(registerAgentHandler));
 
   return router;
 }

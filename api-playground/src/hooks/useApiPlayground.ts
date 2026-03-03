@@ -63,6 +63,8 @@ export interface ExampleFlowPreset {
   method: HttpMethod;
   url: string;
   params: RequestParam[];
+  /** Optional default JSON body for POST (e.g. 8004 register-agent). */
+  body?: string;
 }
 
 /** All API endpoint example flows (unversioned paths; resolved at runtime so dev uses localhost:3000). First N are shown on Request Builder; rest on /examples. */
@@ -125,6 +127,32 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'minTier', value: '2', enabled: false, description: 'Min trust tier (0-4, e.g. 2 = Silver+)' },
       { key: 'limit', value: '20', enabled: true, description: 'Max results (default 50)' },
     ],
+  },
+  {
+    id: '8004-register-agent',
+    label: '8004 register agent',
+    method: 'POST',
+    url: `${base}/8004/register-agent`,
+    params: [],
+    body: JSON.stringify(
+      {
+        name: 'Syra',
+        description: 'AI Trading Intelligence Agent for Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API.',
+        image: 'https://syraa.fun/images/logo.jpg',
+        services: [{ type: 'MCP', value: 'https://api.syraa.fun' }],
+        skills: [
+          'natural_language_processing/text_classification/sentiment_analysis',
+          'natural_language_processing/information_retrieval_synthesis/knowledge_synthesis',
+          'natural_language_processing/analytical_reasoning/problem_solving',
+          'tool_interaction/tool_use_planning',
+        ],
+        domains: ['finance_and_business/finance'],
+        x402Support: true,
+        collectionPointer: 'c1:bafkreid3g6kogo55n5iob7pi36xppcycynn7m64pds7wshnankxjo52mfm',
+      },
+      null,
+      2
+    ),
   },
   {
     id: 'analytics-summary',
@@ -1671,11 +1699,12 @@ export function useApiPlayground() {
     }, 2500);
     // Default to GET for example flow; real method will be detected on 402 when user enters URL
     const defaultMethod = getDefaultMethodForUrl(preset.url);
+    const defaultBody = preset.body ?? '{\n  \n}';
     setMethod(defaultMethod);
     setUrl(preset.url);
     setParams(effectiveParams.map((p) => ({ ...p })));
     setHeaders(defaultHeaders);
-    setBody('{\n  \n}');
+    setBody(defaultBody);
     setResponse(undefined);
     setPaymentDetails(undefined);
     setX402Response(undefined);
@@ -1702,7 +1731,7 @@ export function useApiPlayground() {
         url: preset.url,
         params: effectiveParams.map((p) => ({ ...p })),
         headers: defaultHeaders,
-        body: '{\n  \n}',
+        body: defaultBody,
       };
       sendRequest(undefined, override);
       setSelectedHistoryId(newId);
