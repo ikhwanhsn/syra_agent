@@ -81,7 +81,7 @@ const ENDPOINT_DEFAULTS = {
   "dex-search": { q: "pepe" },
   "dex-pairs-quotes-latest": {
     chain_id: "8453",
-    pair_address: "0xc71f10fcb03e95f7a624da72dc6f1f8936e15025", // Uniswap v3 Base example (Ed/USDC)
+    pair_addresses: "0x3548029694fbb241d45fb24ba0cd9c9d4e745f16", // WETH/USDC on Base (CMC DEXScan)
   },
   mcp: {},
 };
@@ -128,6 +128,10 @@ function buildUrlFromRequest(req) {
     if (params[k] === undefined || params[k] === "" || params[k] === null) {
       params[k] = v;
     }
+  }
+  // CMC v4 dex pairs quotes/latest expects pair_addresses (plural); map pair_address for callers
+  if (endpoint.toLowerCase() === "dex-pairs-quotes-latest" && params.pair_address && !params.pair_addresses) {
+    params.pair_addresses = params.pair_address;
   }
   return buildCmcX402Url(path, params);
 }

@@ -422,7 +422,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [
       { key: 'endpoint', value: 'dex-pairs-quotes-latest', enabled: true, description: 'dex-pairs-quotes-latest' },
       { key: 'chain_id', value: '8453', enabled: true, description: 'Chain id (e.g. 8453 for Base)' },
-      { key: 'pair_address', value: '', enabled: true, description: 'Pair address (optional)' },
+      { key: 'pair_address', value: '0x3548029694fbb241d45fb24ba0cd9c9d4e745f16', enabled: true, description: 'Pair address (WETH/USDC on Base by default)' },
     ],
   },
 ];
@@ -628,8 +628,8 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'limit', value: '10', enabled: true, description: 'Limit for listing (default 10)' },
         { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
         { key: 'q', value: 'pepe', enabled: true, description: 'Search query for dex-search (e.g. pepe, sol)' },
-        { key: 'chain_id', value: '8453', enabled: false, description: 'Chain id for DEX (e.g. 8453 for Base)' },
-        { key: 'pair_address', value: '', enabled: false, description: 'Pair address for DEX pairs quotes' },
+        { key: 'chain_id', value: '8453', enabled: true, description: 'Chain id for DEX (e.g. 8453 for Base)' },
+        { key: 'pair_address', value: '0x3548029694fbb241d45fb24ba0cd9c9d4e745f16', enabled: true, description: 'Pair address for DEX pairs quotes (WETH/USDC on Base)' },
       ],
     };
     const exact = known[path];
