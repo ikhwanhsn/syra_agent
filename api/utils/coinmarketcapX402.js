@@ -26,8 +26,31 @@ function normalizePaymentRequired(obj) {
 }
 
 /**
+ * Decode Payment-Required header manually (base64 JSON). CMC sends full payment terms here;
+ * body may only contain { resource, error } without accepts[].
+ * @param {string} rawHeader - Raw header value (base64)
+ * @returns {{ x402Version: number; accepts: object[] } | null}
+ */
+function decodePaymentRequiredHeaderManual(rawHeader) {
+  if (!rawHeader || typeof rawHeader !== "string") return null;
+  try {
+    const json = Buffer.from(rawHeader.trim(), "base64").toString("utf8");
+    const obj = JSON.parse(json);
+    if (!obj || typeof obj !== "object") return null;
+    const version = obj.x402Version === 1 ? 1 : 2;
+    if (Array.isArray(obj.accepts) && obj.accepts.length > 0) {
+      return { ...obj, x402Version: version, accepts: obj.accepts };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parse PaymentRequired from a 402 response (header base64 or body with x402Version 1 or 2).
- * Tries: Payment-Required header (all casings), then body top-level, then body.data / body.paymentRequired.
+ * Tries: Payment-Required header via @x402/core, then manual base64 decode, then body top-level / body.data / body.paymentRequired.
+ * CMC often sends full payment terms only in the header; body may be { resource, error } only.
  */
 function parsePaymentRequiredFrom402(headerValue, body) {
   const rawHeader = (typeof headerValue === "string" && headerValue.trim()) ? headerValue.trim() : null;
@@ -38,8 +61,10 @@ function parsePaymentRequiredFrom402(headerValue, body) {
         return decoded;
       }
     } catch {
-      // header present but not valid base64 / wrong format; fall through to body
+      // library decode failed; try manual base64 + JSON
     }
+    const manual = decodePaymentRequiredHeaderManual(rawHeader);
+    if (manual) return manual;
   }
   if (body && typeof body === "object") {
     const top = normalizePaymentRequired(body);
@@ -94,11 +119,19 @@ export async function cmcX402Fetch(input, init = {}) {
   });
   if (first.status !== 402) return first;
 
-  // Header name is case-insensitive per HTTP; some gateways send different casings
-  const paymentRequiredHeader =
+  // Header name is case-insensitive per HTTP; read by name first, then by iterating in case of casing quirks
+  let paymentRequiredHeader =
     first.headers.get("Payment-Required") ||
     first.headers.get("payment-required") ||
     first.headers.get("PAYMENT-REQUIRED");
+  if (!paymentRequiredHeader && typeof first.headers.entries === "function") {
+    for (const [name, value] of first.headers.entries()) {
+      if (name.toLowerCase() === "payment-required" && value) {
+        paymentRequiredHeader = value;
+        break;
+      }
+    }
+  }
   let body = null;
   try {
     const text = await first.text();
@@ -108,15 +141,18 @@ export async function cmcX402Fetch(input, init = {}) {
   }
   const paymentRequired = parsePaymentRequiredFrom402(paymentRequiredHeader, body);
   if (!paymentRequired) {
-    const bodyHint =
-      body && typeof body === "object"
-        ? ` Body keys: ${Object.keys(body).join(", ")}.`
-        : "";
-    throw new Error(
-      "CoinMarketCap returned 402 but no parseable payment requirements (need Payment-Required header or body with x402Version 1 or 2 and accepts[])." +
-        bodyHint +
-        " If CMC returned a credit/limit error, ensure your CMC x402 account has credits (see https://coinmarketcap.com/api/x402/)."
-    );
+    const bodyKeys = body && typeof body === "object" ? Object.keys(body).join(", ") : "";
+    const headerPresent = !!paymentRequiredHeader;
+    let msg =
+      "CoinMarketCap returned 402 but no parseable payment requirements (need Payment-Required header or body with x402Version 1 or 2 and accepts[]).";
+    if (bodyKeys) msg += ` Body keys: ${bodyKeys}.`;
+    if (headerPresent) {
+      msg += " Payment-Required header was present but could not be decoded.";
+    } else {
+      msg += " Payment-Required header was missing.";
+    }
+    msg += " If this is a credit or rate-limit error, ensure your CMC x402 account has credits (see https://coinmarketcap.com/api/x402/).";
+    throw new Error(msg);
   }
 
   const payload = await cmcX402Client.createPaymentPayload(paymentRequired);
