@@ -284,15 +284,21 @@ app.use(
   }),
 );
 
-// API key / Bearer auth for non-x402 routes when API_KEY or API_KEYS is set in env
+// API key / Bearer auth for non-x402 routes when API_KEY or API_KEYS is set in env.
+// Skip auth for x402 routes (including /8004 Trustless Agent Registry) and public paths.
 app.use(
   requireApiKey(
-    (req) =>
-      isX402Route(req.path) ||
-      req.path === "/" ||
-      req.path === "/favicon.ico" ||
-      req.path.startsWith("/og") ||
-      req.path.startsWith("/info"),
+    (req) => {
+      const p = req.path || "";
+      return (
+        p.startsWith("/8004") ||
+        isX402Route(p) ||
+        p === "/" ||
+        p === "/favicon.ico" ||
+        p.startsWith("/og") ||
+        p.startsWith("/info")
+      );
+    },
   ),
 );
 
