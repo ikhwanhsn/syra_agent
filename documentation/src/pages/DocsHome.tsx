@@ -28,7 +28,7 @@ const features = [
   {
     icon: MessageCircle,
     title: "x402 Autonomous Agent",
-    description: "Ranked #1 on x402scan. Automated research, news & narrative monitoring, signal pipelines.",
+    description: "Automated research, news & narrative monitoring, signal pipelines on x402scan.",
     href: "/docs/x402-agent/getting-started",
   },
   {
@@ -75,7 +75,7 @@ export default function DocsHome() {
             Syra helps traders, analysts, and builders make smarter, data-based decisions
             with real-time market data, on-chain signals, narrative & sentiment intelligence,
             and structured AI-driven research. Try the{" "}
-            <strong className="text-foreground">Syra Agent</strong> at agent.syraa.fun, or use the API and #1 x402 Agent on x402scan.
+            <strong className="text-foreground">Syra Agent</strong> at agent.syraa.fun, or use the API and x402 Agent on x402scan.
           </p>
 
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 animate-fade-in animation-delay-200">

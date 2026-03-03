@@ -25,7 +25,7 @@
 - **Narrative & sentiment intelligence** — News, trends, and market mood
 - **Structured AI-driven research** — Clear, actionable insights with reasoning
 
-Syra is used across **Telegram**, **API workflows**, and autonomous agents—including the **x402 Agent (Rank #1 on x402scan)**.
+Syra is used across **Telegram**, **API workflows**, and autonomous agents—including the **x402 Agent** on x402scan.
 
 Syra is designed as **an intelligence layer**, not just a signal bot: it enhances understanding with structured research, risk-aware perspectives, and learning-oriented explanations.
 
@@ -47,7 +47,7 @@ Syra is designed as **an intelligence layer**, not just a signal bot: it enhance
 
 | Platform | Description |
 |----------|-------------|
-| **x402 Autonomous Agent** | Ranked #1 on x402scan — research & insights workflows |
+| **x402 Autonomous Agent** | Research & insights workflows on x402scan |
 | **Telegram Bot** | Chat-based access to market analysis and insights |
 | **API & Workflows** | Integrates with n8n and automation pipelines |
 | **Data & Signal Engine** | Indicators, trends, and on-chain movements |
@@ -78,7 +78,7 @@ Syra is designed as **an intelligence layer**, not just a signal bot: it enhance
 
 ### x402 Autonomous Agent
 
-Syra runs as an autonomous research agent on **x402scan** (ranked **#1**), for automated research cycles, news and narrative monitoring, and signal interpretation pipelines.
+Syra runs as an autonomous research agent on **x402scan** for automated research cycles, news and narrative monitoring, and signal interpretation pipelines.
 
 ---
 

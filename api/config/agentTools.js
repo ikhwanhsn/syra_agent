@@ -14,6 +14,7 @@ import {
   X402_API_PRICE_COINGECKO_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
   X402_API_PRICE_COINMARKETCAP_USD,
+  X402_API_PRICE_8004_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -27,6 +28,7 @@ import {
   X402_DISPLAY_PRICE_COINGECKO_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
   X402_DISPLAY_PRICE_COINMARKETCAP_USD,
+  X402_DISPLAY_PRICE_8004_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -118,6 +120,34 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
     name: 'Analytics summary',
     description: 'Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation',
+  },
+  // 8004 Trustless Agent Registry (Solana)
+  {
+    id: '8004-stats',
+    path: '/8004/stats',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004_USD,
+    name: '8004 global stats',
+    description: '8004 registry global stats: total agents, feedbacks, trust tiers',
+  },
+  {
+    id: '8004-leaderboard',
+    path: '/8004/leaderboard',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004_USD,
+    name: '8004 leaderboard',
+    description: '8004 agent leaderboard by trust tier (optional minTier, limit)',
+  },
+  {
+    id: '8004-agents-search',
+    path: '/8004/agents/search',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004_USD,
+    name: '8004 search agents',
+    description: '8004 search agents by owner, creator, collection (optional limit, offset)',
   },
   // Partner: Nansen
   {

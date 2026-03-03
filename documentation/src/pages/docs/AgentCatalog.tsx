@@ -14,7 +14,7 @@ export default function AgentCatalog() {
       </div>
 
       <div className="p-5 rounded-xl border border-border bg-card text-muted-foreground mb-8">
-        <p>Syra is ranked <strong className="text-primary">#1</strong> on x402scan. Use the x402 platform to run market analysis, research synthesis, and narrative & sentiment workflows. For the full catalog and task list, see the x402scan platform.</p>
+        <p>Use the x402 platform to run market analysis, research synthesis, and narrative & sentiment workflows. For the full catalog and task list, see the x402scan platform.</p>
       </div>
 
       <Button variant="outline" asChild>

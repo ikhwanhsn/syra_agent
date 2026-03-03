@@ -55,6 +55,7 @@ import { createCoinmarketcapRouter } from "./routes/partner/coinmarketcap/index.
 import dotenv from "dotenv";
 import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
+import { create8004Router } from "./routes/8004.js";
 import connectMongoose from "./config/mongoose.js";
 
 dotenv.config();
@@ -173,6 +174,7 @@ function isX402Route(p) {
   if (p.startsWith("/coingecko")) return true;
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
   if (p.startsWith("/coinmarketcap")) return true;
+  if (p.startsWith("/8004")) return true;
   return false;
 }
 
@@ -535,6 +537,9 @@ app.use("/internal", await createInternalResearchRouter());
 app.use("/analytics", await createAnalyticsRouter());
 app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 
+// 8004 Trustless Agent Registry (read-only: liveness, integrity, discovery, introspection)
+app.use("/8004", await create8004Router());
+
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
 
@@ -593,6 +598,8 @@ app.get("/.well-known/x402", (req, res) => {
     "coinmarketcap",
     // Analytics
     "analytics/summary",
+    // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)
+    "8004",
   ];
 
   const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);

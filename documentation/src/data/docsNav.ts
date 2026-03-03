@@ -109,6 +109,11 @@ export const navigation: NavItem[] = [
         defaultCollapsed: false,
         items: [{ title: "CoinMarketCap API", href: api("coinmarketcap") }],
       },
+      {
+        title: "8004 Agent Registry",
+        defaultCollapsed: false,
+        items: [{ title: "8004 Trustless Agent Registry", href: api("8004") }],
+      },
     ],
   },
   {

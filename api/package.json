@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "register-8004": "node scripts/register-8004-agent.js"
   },
   "dependencies": {
     "@faremeter/info": "^0.14.0",
@@ -42,7 +43,8 @@
     "tweetnacl": "^1.0.3",
     "viem": "^2.46.3",
     "x402-express": "^0.7.3",
-    "x402-solana": "^0.1.4"
+    "x402-solana": "^0.1.4",
+    "8004-solana": "^0.7.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

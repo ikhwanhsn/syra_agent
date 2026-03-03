@@ -27,6 +27,22 @@ async function fetchV2(path, params = {}) {
     const body = await res.text();
     return { status: res.status, body };
 }
+/** 8004 API: path is /8004/... or /8004/dev/... when SYRA_USE_DEV_ROUTES (no trailing /dev from fetchV2). */
+async function fetch8004(pathSuffix, params = {}) {
+    const base = SYRA_USE_DEV_ROUTES ? "/8004/dev" : "/8004";
+    const path = `${base}${pathSuffix.startsWith("/") ? pathSuffix : `/${pathSuffix}`}`;
+    const url = new URL(path, SYRA_API_BASE_URL);
+    for (const [key, value] of Object.entries(params)) {
+        if (value != null && value !== "")
+            url.searchParams.set(key, value);
+    }
+    const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+    });
+    const body = await res.text();
+    return { status: res.status, body };
+}
 function formatToolResult(status, body) {
     if (status === 200)
         return body;
@@ -149,8 +165,8 @@ async function main() {
         const { status, body } = await fetchV2("/binance/correlation", { symbol: symbol ?? "BTCUSDT" });
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
-    server.tool("syra_v2_binance_correlation_matrix", "Get full Binance correlation matrix. Optional symbol." + PAYMENT_NOTE, {
-        symbol: z.string().optional().describe("Symbol (e.g. BTCUSDT)"),
+    server.tool("syra_v2_binance_correlation_matrix", "Get full Binance correlation matrix. Optional symbol (API returns full matrix; symbol is ignored)." + PAYMENT_NOTE, {
+        symbol: z.string().optional().default("").describe("Symbol (e.g. BTCUSDT); default empty, API returns full matrix"),
     }, async ({ symbol }) => {
         const params = {};
         if (symbol)
@@ -188,14 +204,14 @@ async function main() {
         const { status, body } = await fetchV2("/coingecko/simple-price", params);
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
-    server.tool("syra_v2_coingecko_onchain_token_price", "CoinGecko x402: token price(s) by contract address on a network. Supports multiple addresses comma-separated. Requires network and address." + PAYMENT_NOTE, {
-        network: z.string().describe("Network id (e.g. base, solana, eth)"),
+    server.tool("syra_v2_coingecko_onchain_token_price", "CoinGecko x402: token price(s) by contract address on a network. Supports multiple addresses comma-separated. Requires address; network defaults to base." + PAYMENT_NOTE, {
+        network: z.string().optional().default("base").describe("Network id (e.g. base, solana, eth); default base"),
         address: z.string().describe("Token contract address (comma-separated for multiple)"),
         include_market_cap: z.string().optional().describe("true/false"),
         include_24hr_vol: z.string().optional().describe("true/false"),
         include_24hr_price_change: z.string().optional().describe("true/false"),
     }, async ({ network, address, include_market_cap, include_24hr_vol, include_24hr_price_change }) => {
-        const params = { network: network ?? "", address: address ?? "" };
+        const params = { network: network ?? "base", address: address ?? "" };
         if (include_market_cap)
             params.include_market_cap = include_market_cap;
         if (include_24hr_vol)
@@ -237,18 +253,113 @@ async function main() {
         const { status, body } = await fetchV2("/coingecko/onchain/trending-pools", params);
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
-    server.tool("syra_v2_coingecko_onchain_token", "CoinGecko x402: token data by contract address on a network (price, liquidity, top pools). Requires network and address." + PAYMENT_NOTE, {
-        network: z.string().describe("Network id (e.g. base, solana, eth)"),
+    server.tool("syra_v2_coingecko_onchain_token", "CoinGecko x402: token data by contract address on a network (price, liquidity, top pools). Requires address; network defaults to base." + PAYMENT_NOTE, {
+        network: z.string().optional().default("base").describe("Network id (e.g. base, solana, eth); default base"),
         address: z.string().describe("Token contract address"),
         include: z.string().optional().describe("e.g. top_pools"),
         include_composition: z.string().optional().describe("true/false"),
     }, async ({ network, address, include, include_composition }) => {
-        const params = { network: network ?? "", address: address ?? "" };
+        const params = { network: network ?? "base", address: address ?? "" };
         if (include)
             params.include = include;
         if (include_composition)
             params.include_composition = include_composition;
         const { status, body } = await fetchV2("/coingecko/onchain/token", params);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    // --- CoinMarketCap x402 (single proxy: endpoint + params; all params have defaults for easy testing) ---
+    server.tool("syra_v2_coinmarketcap", "CoinMarketCap x402: cryptocurrency quotes latest, listing latest, DEX pairs quotes, DEX search, or MCP. Set endpoint to one of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp. All params have defaults so you can call with no args to get Bitcoin quote." + PAYMENT_NOTE, {
+        endpoint: z
+            .string()
+            .optional()
+            .default("quotes-latest")
+            .describe("One of: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp"),
+        id: z.string().optional().default("1").describe("CMC id (default 1 = Bitcoin) for quotes/listing"),
+        slug: z.string().optional().default("").describe("Slug for quotes/listing (e.g. bitcoin)"),
+        symbol: z.string().optional().default("").describe("Symbol(s) for quotes/listing (e.g. BTC,ETH)"),
+        start: z.string().optional().default("1").describe("Start rank for listing (default 1)"),
+        limit: z.string().optional().default("10").describe("Limit for listing (default 10)"),
+        convert: z.string().optional().default("USD").describe("Convert to (default USD)"),
+        q: z.string().optional().default("pepe").describe("Search query for dex-search (default pepe)"),
+        chain_id: z.string().optional().default("8453").describe("Chain id for DEX (default 8453 = Base)"),
+        pair_address: z.string().optional().default("").describe("Pair address for DEX pairs quotes"),
+    }, async ({ endpoint, id, slug, symbol, start, limit, convert, q, chain_id, pair_address, }) => {
+        const params = { endpoint: endpoint ?? "quotes-latest" };
+        if (id != null && id !== "")
+            params.id = id;
+        if (slug != null && slug !== "")
+            params.slug = slug;
+        if (symbol != null && symbol !== "")
+            params.symbol = symbol;
+        if (start != null && start !== "")
+            params.start = start;
+        if (limit != null && limit !== "")
+            params.limit = limit;
+        if (convert != null && convert !== "")
+            params.convert = convert;
+        if (q != null && q !== "")
+            params.q = q;
+        if (chain_id != null && chain_id !== "")
+            params.chain_id = chain_id;
+        if (pair_address != null && pair_address !== "")
+            params.pair_address = pair_address;
+        const { status, body } = await fetchV2("/coinmarketcap", params);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    // --- 8004 Trustless Agent Registry (Solana) ---
+    server.tool("syra_v2_8004_stats", "8004 global stats: total agents, feedbacks, trust tiers." + PAYMENT_NOTE, {}, async () => {
+        const { status, body } = await fetch8004("/stats");
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_v2_8004_leaderboard", "8004 leaderboard by trust tier. Optional minTier (0-4), limit, collection." + PAYMENT_NOTE, {
+        minTier: z.number().optional().describe("Min trust tier (0-4, e.g. 2 = Silver+)"),
+        limit: z.number().optional().default(20).describe("Max results"),
+    }, async ({ minTier, limit }) => {
+        const params = {};
+        if (minTier != null)
+            params.minTier = String(minTier);
+        if (limit != null)
+            params.limit = String(limit);
+        const { status, body } = await fetch8004("/leaderboard", params);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_v2_8004_agents_search", "8004 search agents by owner, creator, collection. Optional limit, offset." + PAYMENT_NOTE, {
+        owner: z.string().optional().describe("Owner public key"),
+        creator: z.string().optional().describe("Creator public key"),
+        collection: z.string().optional().describe("Collection public key"),
+        limit: z.number().optional().default(20).describe("Max results"),
+        offset: z.number().optional().default(0).describe("Offset"),
+    }, async ({ owner, creator, collection, limit, offset }) => {
+        const params = {};
+        if (owner)
+            params.owner = owner;
+        if (creator)
+            params.creator = creator;
+        if (collection)
+            params.collection = collection;
+        if (limit != null)
+            params.limit = String(limit);
+        if (offset != null)
+            params.offset = String(offset);
+        const { status, body } = await fetch8004("/agents/search", params);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_v2_8004_agent_liveness", "8004 liveness check for an agent: reachability of MCP/A2A endpoints. Requires agent asset (NFT) public key." + PAYMENT_NOTE, {
+        asset: z.string().describe("Agent asset (NFT) public key (base58)"),
+    }, async ({ asset }) => {
+        const { status, body } = await fetch8004(`/agent/${asset}/liveness`);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_v2_8004_agent_integrity", "8004 integrity check for an agent: indexer vs on-chain consistency. Requires agent asset public key." + PAYMENT_NOTE, {
+        asset: z.string().describe("Agent asset (NFT) public key (base58)"),
+    }, async ({ asset }) => {
+        const { status, body } = await fetch8004(`/agent/${asset}/integrity`);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_v2_8004_agent_by_wallet", "8004 resolve agent by operational wallet public key." + PAYMENT_NOTE, {
+        wallet: z.string().describe("Operational wallet public key (base58)"),
+    }, async ({ wallet }) => {
+        const { status, body } = await fetch8004(`/agent-by-wallet/${wallet}`);
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
     const transport = new StdioServerTransport();

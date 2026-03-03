@@ -36,6 +36,25 @@ async function fetchV2(
   return { status: res.status, body };
 }
 
+/** 8004 API: path is /8004/... or /8004/dev/... when SYRA_USE_DEV_ROUTES (no trailing /dev from fetchV2). */
+async function fetch8004(
+  pathSuffix: string,
+  params: Record<string, string> = {}
+): Promise<{ status: number; body: string }> {
+  const base = SYRA_USE_DEV_ROUTES ? "/8004/dev" : "/8004";
+  const path = `${base}${pathSuffix.startsWith("/") ? pathSuffix : `/${pathSuffix}`}`;
+  const url = new URL(path, SYRA_API_BASE_URL);
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null && value !== "") url.searchParams.set(key, value);
+  }
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  const body = await res.text();
+  return { status: res.status, body };
+}
+
 function formatToolResult(status: number, body: string): string {
   if (status === 200) return body;
   return `API returned ${status}. Body:\n${body}`;
@@ -397,6 +416,91 @@ async function main() {
       if (chain_id != null && chain_id !== "") params.chain_id = chain_id;
       if (pair_address != null && pair_address !== "") params.pair_address = pair_address;
       const { status, body } = await fetchV2("/coinmarketcap", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  // --- 8004 Trustless Agent Registry (Solana) ---
+  server.tool(
+    "syra_v2_8004_stats",
+    "8004 global stats: total agents, feedbacks, trust tiers." + PAYMENT_NOTE,
+    {},
+    async () => {
+      const { status, body } = await fetch8004("/stats");
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_8004_leaderboard",
+    "8004 leaderboard by trust tier. Optional minTier (0-4), limit, collection." + PAYMENT_NOTE,
+    {
+      minTier: z.number().optional().describe("Min trust tier (0-4, e.g. 2 = Silver+)"),
+      limit: z.number().optional().default(20).describe("Max results"),
+    },
+    async ({ minTier, limit }) => {
+      const params: Record<string, string> = {};
+      if (minTier != null) params.minTier = String(minTier);
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetch8004("/leaderboard", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_8004_agents_search",
+    "8004 search agents by owner, creator, collection. Optional limit, offset." + PAYMENT_NOTE,
+    {
+      owner: z.string().optional().describe("Owner public key"),
+      creator: z.string().optional().describe("Creator public key"),
+      collection: z.string().optional().describe("Collection public key"),
+      limit: z.number().optional().default(20).describe("Max results"),
+      offset: z.number().optional().default(0).describe("Offset"),
+    },
+    async ({ owner, creator, collection, limit, offset }) => {
+      const params: Record<string, string> = {};
+      if (owner) params.owner = owner;
+      if (creator) params.creator = creator;
+      if (collection) params.collection = collection;
+      if (limit != null) params.limit = String(limit);
+      if (offset != null) params.offset = String(offset);
+      const { status, body } = await fetch8004("/agents/search", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_8004_agent_liveness",
+    "8004 liveness check for an agent: reachability of MCP/A2A endpoints. Requires agent asset (NFT) public key." + PAYMENT_NOTE,
+    {
+      asset: z.string().describe("Agent asset (NFT) public key (base58)"),
+    },
+    async ({ asset }) => {
+      const { status, body } = await fetch8004(`/agent/${asset}/liveness`);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_8004_agent_integrity",
+    "8004 integrity check for an agent: indexer vs on-chain consistency. Requires agent asset public key." + PAYMENT_NOTE,
+    {
+      asset: z.string().describe("Agent asset (NFT) public key (base58)"),
+    },
+    async ({ asset }) => {
+      const { status, body } = await fetch8004(`/agent/${asset}/integrity`);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_8004_agent_by_wallet",
+    "8004 resolve agent by operational wallet public key." + PAYMENT_NOTE,
+    {
+      wallet: z.string().describe("Operational wallet public key (base58)"),
+    },
+    async ({ wallet }) => {
+      const { status, body } = await fetch8004(`/agent-by-wallet/${wallet}`);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );

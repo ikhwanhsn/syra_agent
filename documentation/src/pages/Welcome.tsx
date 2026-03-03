@@ -24,7 +24,7 @@ export default function Welcome() {
       </div>
 
       <p className="text-muted-foreground leading-relaxed mb-8">
-        Syra helps traders, analysts, and builders make smarter, data-based decisions by combining real-time market data, on-chain activity signals, narrative & sentiment intelligence, and structured AI-driven research insights. Use the <strong className="text-foreground">Syra Agent</strong> at <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, or integrate via API and autonomous agents such as <strong className="text-foreground">x402 Agent (Rank #1 on x402scan)</strong>.
+        Syra helps traders, analysts, and builders make smarter, data-based decisions by combining real-time market data, on-chain activity signals, narrative & sentiment intelligence, and structured AI-driven research insights. Use the <strong className="text-foreground">Syra Agent</strong> at <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, or integrate via API and autonomous agents such as <strong className="text-foreground">x402 Agent on x402scan</strong>.
       </p>
 
       <section id="what-is-syra" className="mb-12 scroll-mt-24">
@@ -57,7 +57,7 @@ export default function Welcome() {
             </thead>
             <tbody className="text-muted-foreground">
               <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🤖 Syra Agent</td><td className="p-2 sm:p-3">Chat at <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a> for market analysis, signals & insights</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🔗 x402 Autonomous Agent</td><td className="p-2 sm:p-3">Ranked #1 on x402scan; executes research & insights workflows</td></tr>
+              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🔗 x402 Autonomous Agent</td><td className="p-2 sm:p-3">Executes research & insights workflows on x402scan</td></tr>
               <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🧩 API & Workflows</td><td className="p-2 sm:p-3">Integrates with tools like n8n & automation pipelines</td></tr>
               <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🛠️ API Playground</td><td className="p-2 sm:p-3">Try the API at <a href="https://playground.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">playground.syraa.fun</a></td></tr>
               <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">📡 Data & Signal Engine</td><td className="p-2 sm:p-3">Processes indicators, trends, & on-chain movements</td></tr>
@@ -123,7 +123,7 @@ export default function Welcome() {
               x402 Autonomous Agent
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Syra runs as an autonomous research agent on <strong className="text-foreground">x402scan</strong>, currently ranked <strong className="text-primary">#1</strong>. It is designed for automated research cycles, news & narrative monitoring, and signal interpretation pipelines.
+              Syra runs as an autonomous research agent on <strong className="text-foreground">x402scan</strong>. It is designed for automated research cycles, news & narrative monitoring, and signal interpretation pipelines.
             </p>
             <Button size="sm" variant="outline" asChild>
               <Link to="/docs/x402-agent/getting-started">x402 Agent Docs <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>

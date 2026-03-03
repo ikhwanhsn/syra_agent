@@ -62,6 +62,10 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
       "memecoin-surviving-market-dumps",
     ],
   },
+  {
+    title: "8004 Agent Registry",
+    slugs: ["8004"],
+  },
 ];
 
 const tocItems = [

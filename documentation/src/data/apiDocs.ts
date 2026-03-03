@@ -1290,6 +1290,88 @@ curl "${BASE_URL}/coinmarketcap?endpoint=dex-search&q=SOL"`,
       },
     ],
   }),
+
+  "8004": doc({
+    title: "8004 Trustless Agent Registry API",
+    overview:
+      "Read-only API for the 8004 Trustless Agent Registry on Solana: liveness checks, integrity verification, agent discovery, leaderboard, and introspection. All endpoints support GET and POST; use x402 payment in production.",
+    price: "$0.01 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/8004/stats",
+        description: "Global stats: total agents, feedbacks, trust tiers.",
+        requestExample: `curl ${BASE_URL}/8004/stats`,
+        responseExample: `{ "total_agents": 100, "total_feedbacks": 500, ... }`,
+      },
+      {
+        method: "POST",
+        path: "/8004/stats",
+        description: "Same as GET (POST supported).",
+        requestExample: `curl -X POST ${BASE_URL}/8004/stats -H "Content-Type: application/json"`,
+        responseExample: `{ "total_agents": 100, ... }`,
+      },
+      {
+        method: "GET",
+        path: "/8004/leaderboard",
+        description: "Agent leaderboard by trust tier. Query: minTier (0-4), limit, collection.",
+        params: [
+          { name: "minTier", type: "number", required: "optional", description: "Min trust tier (e.g. 2 = Silver+)" },
+          { name: "limit", type: "number", required: "optional", description: "Max results (default 50)" },
+        ],
+        requestExample: `curl "${BASE_URL}/8004/leaderboard?minTier=2&limit=20"`,
+        responseExample: `[ { "asset": "...", "quality_score": 8500, ... }, ... ]`,
+      },
+      {
+        method: "GET",
+        path: "/8004/agent/:asset/liveness",
+        description: "Liveness report for an agent (MCP/A2A endpoint reachability).",
+        params: [{ name: "asset", type: "string", required: "required", description: "Agent asset (NFT) public key (base58)" }],
+        requestExample: `curl "${BASE_URL}/8004/agent/GGQfKNpXq8HchNxecLfXi8D7xz9PDppdPAPgr5Fx4Nvd/liveness"`,
+        responseExample: `{ "status": "live", "okCount": 1, "totalPinged": 1, "liveServices": [...], "deadServices": [] }`,
+      },
+      {
+        method: "GET",
+        path: "/8004/agent/:asset/integrity",
+        description: "Integrity check: indexer vs on-chain consistency for an agent.",
+        params: [{ name: "asset", type: "string", required: "required", description: "Agent asset public key" }],
+        requestExample: `curl "${BASE_URL}/8004/agent/<ASSET>/integrity"`,
+        responseExample: `{ "valid": true, "status": "valid", "trustworthy": true, "chains": { "feedback": {...}, ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/8004/agents/search",
+        description: "Search agents by owner, creator, collection. Query: owner, creator, collection, limit, offset.",
+        params: [
+          { name: "owner", type: "string", required: "optional", description: "Owner public key" },
+          { name: "creator", type: "string", required: "optional", description: "Creator public key" },
+          { name: "limit", type: "number", required: "optional", description: "Max results (default 20)" },
+          { name: "offset", type: "number", required: "optional", description: "Offset (default 0)" },
+        ],
+        requestExample: `curl "${BASE_URL}/8004/agents/search?limit=10"`,
+        responseExample: `[ { "asset": "...", "owner": "...", ... }, ... ]`,
+      },
+      {
+        method: "GET",
+        path: "/8004/agent-by-wallet/:wallet",
+        description: "Resolve agent by operational wallet public key.",
+        params: [{ name: "wallet", type: "string", required: "required", description: "Operational wallet public key (base58)" }],
+        requestExample: `curl "${BASE_URL}/8004/agent-by-wallet/<WALLET>"`,
+        responseExample: `{ "asset": "...", "owner": "...", ... }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Dev routes (no payment)",
+        content:
+          "When NODE_ENV is not production, paths under /8004/dev/ (e.g. GET /8004/dev/stats, /8004/dev/leaderboard) return the same data without x402 payment.",
+      },
+      {
+        title: "Reference",
+        content: "8004 Trustless Agent Registry: https://8004.qnt.sh/skill.md. Syra registers its agent on 8004 for discoverability and reputation.",
+      },
+    ],
+  }),
 };
 
 export function getApiDoc(slug: string): ApiDoc | null {

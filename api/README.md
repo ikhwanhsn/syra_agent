@@ -55,6 +55,32 @@ See the [root README](../README.md) and [Syra docs](https://docs.syraa.fun) for 
 
 ---
 
+## Register Syra on 8004 (Solana Agent Registry)
+
+The [8004 Trustless Agent Registry](https://8004.qnt.sh/skill.md) lets you register Syra as a discoverable agent on Solana.
+
+### Prerequisites
+
+1. **Solana signer** — In `.env`, set one of:
+   - `SOLANA_PRIVATE_KEY` — JSON array of 64 bytes, e.g. `"[1,2,...,64]"` (quote the value)
+   - `PAYER_KEYPAIR` — same format (if you already use it for Solana)
+   - `AGENT_PRIVATE_KEY` or `ZAUTH_SOLANA_PRIVATE_KEY` — base58-encoded secret key
+2. **Pinata** — [Create an API key](https://app.pinata.cloud) and set `PINATA_JWT` in `.env` (used to pin registration metadata to IPFS).
+3. **Optional:** `SYRA_AGENT_IMAGE_URI` — IPFS or HTTPS URL for the agent image; defaults to Syra logo.
+4. **Optional:** `SOLANA_CLUSTER=devnet` to register on devnet first; default is `mainnet-beta`.
+5. **Optional:** `8004_ATOM_ENABLED=true` to enable the ATOM reputation engine at registration (irreversible).
+
+### Run registration
+
+```bash
+cd api
+npm run register-8004
+```
+
+The script uploads agent metadata to IPFS and registers the agent on-chain. It prints the **agent asset (NFT) address** and **transaction signature**. Keep these for future updates (e.g. `setAgentUri`, `giveFeedback`).
+
+---
+
 ## License
 
 MIT — see [LICENSE](../LICENSE) at repo root.

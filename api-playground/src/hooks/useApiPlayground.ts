@@ -110,6 +110,23 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
+    id: '8004-stats',
+    label: '8004 global stats',
+    method: 'GET',
+    url: `${base}/8004/stats`,
+    params: [],
+  },
+  {
+    id: '8004-leaderboard',
+    label: '8004 leaderboard',
+    method: 'GET',
+    url: `${base}/8004/leaderboard`,
+    params: [
+      { key: 'minTier', value: '2', enabled: false, description: 'Min trust tier (0-4, e.g. 2 = Silver+)' },
+      { key: 'limit', value: '20', enabled: true, description: 'Max results (default 50)' },
+    ],
+  },
+  {
     id: 'analytics-summary',
     label: 'Analytics summary',
     method: 'GET',
@@ -477,6 +494,9 @@ function getApiEndpoints(): string[] {
     `${base}/coingecko/onchain/trending-pools`,
     `${base}/coingecko/onchain/token`,
     `${base}/coinmarketcap`,
+    `${base}/8004/stats`,
+    `${base}/8004/leaderboard`,
+    `${base}/8004/agents/search`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
@@ -586,6 +606,19 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'include', value: 'top_pools', enabled: false, description: 'e.g. top_pools' },
         { key: 'include_composition', value: 'true', enabled: false, description: 'true/false' },
       ],
+      '/8004/stats': [],
+      '/8004/leaderboard': [
+        { key: 'minTier', value: '2', enabled: false, description: 'Min trust tier (0-4)' },
+        { key: 'limit', value: '50', enabled: true, description: 'Max results' },
+        { key: 'collection', value: '', enabled: false, description: 'Collection pubkey (optional)' },
+      ],
+      '/8004/agents/search': [
+        { key: 'owner', value: '', enabled: false, description: 'Owner pubkey' },
+        { key: 'creator', value: '', enabled: false, description: 'Creator pubkey' },
+        { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+        { key: 'offset', value: '0', enabled: false, description: 'Offset' },
+      ],
+      '/8004/agent-by-wallet': [],
       '/coinmarketcap': [
         { key: 'endpoint', value: 'quotes-latest', enabled: true, description: 'quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp' },
         { key: 'id', value: '1', enabled: true, description: 'CMC id (e.g. 1 for Bitcoin, 1027 for Ethereum)' },

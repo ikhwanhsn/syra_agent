@@ -24,6 +24,7 @@ const PRICE = {
   tokenRiskAlerts: 0.02,
   analyticsSummary: 0.01,
   jupiterSwap: 0.02,
+  "8004": 0.01,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -122,6 +123,30 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Full analytics: dexscreener, token stats, Jupiter trending, smart money, Binance correlation.",
     priceUsd: PRICE.analyticsSummary,
     examplePrompt: "Full analytics summary / Analytics dashboard",
+    category: "core",
+  },
+  {
+    id: "8004-stats",
+    name: "8004 global stats",
+    description: "8004 Trustless Agent Registry: global stats (total agents, feedbacks, trust tiers).",
+    priceUsd: PRICE["8004"],
+    examplePrompt: "8004 registry stats / How many agents on 8004?",
+    category: "core",
+  },
+  {
+    id: "8004-leaderboard",
+    name: "8004 leaderboard",
+    description: "8004 agent leaderboard by trust tier (optional minTier, limit).",
+    priceUsd: PRICE["8004"],
+    examplePrompt: "8004 leaderboard / Top agents by trust tier",
+    category: "core",
+  },
+  {
+    id: "8004-agents-search",
+    name: "8004 search agents",
+    description: "8004 search agents by owner, creator, collection (optional limit, offset).",
+    priceUsd: PRICE["8004"],
+    examplePrompt: "Search 8004 agents / Find agents by owner",
     category: "core",
   },
   // Partner: Nansen (aggregate routes + per-endpoint; agent calls real Nansen API at api.nansen.ai)
