@@ -8,27 +8,36 @@ import { SolanaSDK } from "8004-solana";
 
 let sdkInstance = null;
 
-const IPFS_GATEWAY_TIMEOUT_MS = 10000;
 const IPFS_GATEWAY_MAX_BYTES = 512 * 1024; // 512 KB
+
+/** IPFS gateway base URL (no trailing slash). Same in local and production when IPFS_GATEWAY is set. */
+function getIpfsGatewayBase() {
+  const base = process.env.IPFS_GATEWAY && String(process.env.IPFS_GATEWAY).trim();
+  if (base) return base.replace(/\/$/, "");
+  return "https://ipfs.io";
+}
 
 /**
  * Minimal IPFS read-only client that resolves ipfs:// URIs via public HTTP gateway.
- * Used so liveness (and other read paths) can load agent metadata without a full IPFS node.
+ * Uses IPFS_GATEWAY env when set so local and production behave the same.
  * Only getJson(uri) is used by the SDK for liveness; addJson/upload are not needed for read-only.
  */
-const gatewayIpfsReader = {
-  async getJson(uri) {
-    const trimmed = String(uri).trim();
-    let cid = trimmed;
-    if (cid.startsWith("ipfs://")) cid = cid.slice(7).replace(/^\/+/, "");
-    else if (cid.startsWith("/ipfs/")) cid = cid.slice(6).replace(/^\/+/, "");
-    else throw new Error("Gateway IPFS reader only supports ipfs:// or /ipfs/ URIs");
-    const cidOnly = cid.split("/")[0];
-    const url = `https://ipfs.io/ipfs/${encodeURIComponent(cidOnly)}`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(IPFS_GATEWAY_TIMEOUT_MS),
-      redirect: "follow",
-    });
+function createGatewayIpfsReader() {
+  const timeoutMs = Number(process.env.IPFS_GATEWAY_TIMEOUT_MS) || 10000;
+  const gateway = getIpfsGatewayBase();
+  return {
+    async getJson(uri) {
+      const trimmed = String(uri).trim();
+      let cid = trimmed;
+      if (cid.startsWith("ipfs://")) cid = cid.slice(7).replace(/^\/+/, "");
+      else if (cid.startsWith("/ipfs/")) cid = cid.slice(6).replace(/^\/+/, "");
+      else throw new Error("Gateway IPFS reader only supports ipfs:// or /ipfs/ URIs");
+      const cidOnly = cid.split("/")[0];
+      const url = `${gateway}/ipfs/${encodeURIComponent(cidOnly)}`;
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(timeoutMs),
+        redirect: "follow",
+      });
     if (!res.ok) throw new Error(`IPFS gateway error: HTTP ${res.status}`);
     const contentLength = res.headers.get("content-length");
     if (contentLength && parseInt(contentLength, 10) > IPFS_GATEWAY_MAX_BYTES) {
@@ -43,6 +52,7 @@ const gatewayIpfsReader = {
     return data;
   },
 };
+}
 
 /**
  * Get a read-only SolanaSDK instance (no signer). Uses SOLANA_CLUSTER and SOLANA_RPC_URL from env.
@@ -57,7 +67,7 @@ function getReadOnlySDK() {
     sdkInstance = new SolanaSDK({
       cluster,
       ...(rpcUrl && { rpcUrl }),
-      ipfsClient: gatewayIpfsReader,
+      ipfsClient: createGatewayIpfsReader(),
       // no signer = read-only
     });
   }
@@ -230,15 +240,17 @@ export async function getAgentRegistrationMetadata(assetBase58) {
   const agent = await loadAgent(assetBase58);
   if (!agent?.agent_uri) return null;
   const uri = String(agent.agent_uri).trim();
+  const gateway = getIpfsGatewayBase();
   let url = uri;
   if (uri.startsWith("ipfs://")) {
     const cid = uri.slice(7).replace(/^\/+/, "");
-    url = `https://ipfs.io/ipfs/${cid}`;
+    url = `${gateway}/ipfs/${cid}`;
   } else if (uri.startsWith("/ipfs/")) {
-    url = `https://ipfs.io${uri}`;
+    url = `${gateway}${uri}`;
   }
   if (!url.startsWith("http")) return null;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  const timeoutMs = Number(process.env.IPFS_GATEWAY_TIMEOUT_MS) || 10000;
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) return null;
   const json = await res.json();
   if (!json || typeof json !== "object") return null;
@@ -248,9 +260,9 @@ export async function getAgentRegistrationMetadata(assetBase58) {
     image = image.trim();
     if (image.startsWith("ipfs://")) {
       const cid = image.slice(7).replace(/^\/+/, "");
-      image = `https://ipfs.io/ipfs/${cid}`;
+      image = `${gateway}/ipfs/${cid}`;
     } else if (image.startsWith("/ipfs/")) {
-      image = `https://ipfs.io${image}`;
+      image = `${gateway}${image}`;
     }
   }
 

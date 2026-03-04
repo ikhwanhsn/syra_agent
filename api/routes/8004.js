@@ -28,8 +28,12 @@ import {
 import { registerAgentAndAttachToCollection } from "../libs/register8004Agent.js";
 import { getSolanaAgentKeypair } from "../libs/agentWallet.js";
 import User8004Agent, { MAX_AGENTS_PER_USER } from "../models/agent/User8004Agent.js";
+import pLimit from "p-limit";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+
+/** Concurrency limit when enriching agent list with registration metadata (name). */
+const REGISTRATION_METADATA_LIMIT = pLimit(6);
 
 const PAYMENT_OPTIONS_BASE = {
   price: X402_API_PRICE_8004_USD,
@@ -125,6 +129,27 @@ export async function create8004Router() {
   router.post("/dev/agent/:asset/integrity/full", devOnly(integrityFullHandler));
 
   // --- Discovery & search ---
+  /** Enrich agent list with name from registration metadata (agent_uri/IPFS). Indexer often returns nft_name: null; this fixes local vs production name display. */
+  async function enrichAgentsWithRegistrationNames(agents) {
+    if (!Array.isArray(agents) || agents.length === 0) return agents;
+    const results = await Promise.all(
+      agents.map((a) => {
+        const asset = typeof a?.asset === "string" ? a.asset.trim() : "";
+        if (!asset) return { ...a };
+        return REGISTRATION_METADATA_LIMIT(async () => {
+          try {
+            const meta = await getAgentRegistrationMetadata(asset);
+            const name = meta?.name?.trim() || null;
+            return name ? { ...a, nft_name: name } : { ...a };
+          } catch {
+            return { ...a };
+          }
+        });
+      })
+    );
+    return results;
+  }
+
   const searchHandler = async (req) => {
     const q = params(req);
     const collectionParam = q.collection && String(q.collection).trim();
@@ -140,7 +165,8 @@ export async function create8004Router() {
       else searchParams.collection = collectionParam;
     }
     const list = await searchAgents(searchParams);
-    const agents = Array.isArray(list) ? list : [];
+    const raw = Array.isArray(list) ? list : [];
+    const agents = await enrichAgentsWithRegistrationNames(raw);
     return { agents, total: agents.length };
   };
   // Agents search is free so the Syra marketplace can load "All Agents" without 402
@@ -239,14 +265,10 @@ export async function create8004Router() {
   router.get("/dev/agent/:asset/metadata/:key", devOnly(metadataHandler));
   router.post("/dev/agent/:asset/metadata/:key", devOnly(metadataHandler));
 
+  /** Always returns { name, description, image } (nulls when unavailable). Same shape in local and production so success/failure behavior is identical. */
   const registrationMetadataHandler = async (req) => {
     const meta = await getAgentRegistrationMetadata(req.params.asset);
-    if (meta == null) {
-      const err = new Error("Agent not found or metadata unavailable");
-      err.status = 404;
-      throw err;
-    }
-    return meta;
+    return meta ?? { name: null, description: null, image: null };
   };
   // Registration metadata (name, description, image) is free so marketplace agent cards can display without 402
   router.get("/agent/:asset/registration-metadata", async (req, res, next) => {
