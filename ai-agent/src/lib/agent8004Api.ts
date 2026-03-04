@@ -177,11 +177,16 @@ export const agent8004Api = {
     return handleRes(res);
   },
 
-  /** Register a new agent and optionally attach to collection (e.g. Syra). Returns server-signed result or prepared tx for user to sign. */
+  /** Register a new agent and optionally attach to collection (e.g. Syra). Uses marketplace route when anonymousId is set so the backend pays x402 from the user's agent wallet (no payment popup). */
   async registerAgent(
     payload: RegisterAgentPayload
   ): Promise<RegisterAgentResponse | RegisterAgentResponseUserSigned> {
-    const res = await fetch(`${apiBase()}/register-agent`, {
+    const base = getApiBaseUrl();
+    const url =
+      payload.anonymousId && payload.anonymousId.trim()
+        ? `${base}/agent/marketplace/register-agent`
+        : `${apiBase()}/register-agent`;
+    const res = await fetch(url, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(payload),

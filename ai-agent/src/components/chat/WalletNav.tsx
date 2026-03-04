@@ -201,19 +201,19 @@ export function WalletNav() {
             <p className="text-xs">
               {displaySolana
                 ? "Connected with Solana. Agent wallet and paid tools use Solana."
-                : "Connected with Base. Connect Solana to create an agent wallet for paid tools."}
+                : "Connected with Base. Agent wallet and paid tools use Base. Use Fuel to add USDC and ETH."}
             </p>
           </TooltipContent>
         </Tooltip>
       )}
-      {/* Fuel the agent – open top-up modal (Solana agent wallet only) */}
-      {displaySolana && (
+      {/* Fuel the agent – open top-up modal (Solana or Base depending on connected chain) */}
+      {(displaySolana || displayBase) && (
         <Button
           variant="outline"
           size="sm"
           className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg font-medium text-xs sm:text-sm px-2.5 sm:px-3 gap-1.5 shrink-0 touch-manipulation"
           onClick={() => setFuelModalOpen(true)}
-          title="Add USDC and SOL to agent wallet"
+          title={displayBase ? "Add USDC and ETH to agent wallet on Base" : "Add USDC and SOL to agent wallet"}
           aria-label="Fuel the agent"
         >
           <Zap className="w-4 h-4 shrink-0" />

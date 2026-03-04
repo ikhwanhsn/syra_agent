@@ -24,7 +24,7 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import { Connection } from "@solana/web3.js";
-import { createWalletClient, custom, getAddress } from "viem";
+import { createWalletClient, custom, getAddress, encodeFunctionData, parseUnits } from "viem";
 import { base } from "viem/chains";
 import { toast } from "@/hooks/use-toast";
 
@@ -132,6 +132,12 @@ export interface WalletContextState {
   requestConnect: (option: "email" | "solana" | "base") => void;
   /** Which chain to show/use when both Solana and Base are connected (set when user picks in connect modal) */
   effectiveChain: "solana" | "base" | null;
+  /** Send USDC + ETH to agent wallet on Base. Only available when Base wallet is connected. */
+  sendBaseFuelTransaction: (
+    agentAddress: string,
+    usdcAmountUsd: number,
+    ethAmountUsd: number
+  ) => Promise<string> | null;
 }
 
 const WalletContext = createContext<WalletContextState | null>(null);
@@ -744,7 +750,11 @@ const WalletContextInner: FC<{
       transaction: Transaction,
       options?: { skipPreflight?: boolean; maxRetries?: number }
     ) => {
-      if (!solanaWallet) throw new Error("No Solana wallet connected");
+      if (!solanaWallet || !publicKey) throw new Error("No Solana wallet connected");
+      // Solana requires recentBlockhash (and feePayer) before serializing/signing
+      const { blockhash } = await connection.getLatestBlockhash("confirmed");
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
       const serialized = transaction.serialize({
         requireAllSignatures: false,
         verifySignatures: false,
@@ -762,7 +772,7 @@ const WalletContextInner: FC<{
       );
       return sig;
     },
-    [solanaWallet, privySignTransaction, connection]
+    [solanaWallet, publicKey, privySignTransaction, connection]
   );
 
   const signMessage = useCallback(
@@ -805,6 +815,67 @@ const WalletContextInner: FC<{
       };
     })();
   }, [baseAddress, evmWallet]);
+
+  /** Send USDC (ERC-20) and ETH to agent address on Base. Returns last tx hash. */
+  const sendBaseFuelTransaction = useCallback(
+    async (
+      agentAddress: string,
+      usdcAmountUsd: number,
+      ethAmountUsd: number
+    ): Promise<string> => {
+      if (!baseAddress || !evmWallet) throw new Error("No Base wallet connected");
+      const provider = await evmWallet.getEthereumProvider();
+      const walletClient = createWalletClient({
+        chain: base,
+        transport: custom(provider as import("viem").EIP1193Provider),
+        account: getAddress(baseAddress) as import("viem").Address,
+      });
+      if (!walletClient?.account) throw new Error("Wallet client not ready");
+      const toAddress = getAddress(agentAddress) as `0x${string}`;
+      const USDC_DECIMALS = 6;
+      let lastHash: string | null = null;
+      if (usdcAmountUsd > 0) {
+        const rawAmount = parseUnits(usdcAmountUsd.toFixed(USDC_DECIMALS), USDC_DECIMALS);
+        const data = encodeFunctionData({
+          abi: [
+            {
+              type: "function",
+              name: "transfer",
+              inputs: [
+                { name: "to", type: "address" },
+                { name: "amount", type: "uint256" },
+              ],
+              outputs: [{ type: "bool" }],
+            },
+          ],
+          functionName: "transfer",
+          args: [toAddress, rawAmount],
+        });
+        const hash = await walletClient.sendTransaction({
+          to: BASE_USDC as `0x${string}`,
+          data,
+          value: 0n,
+          account: walletClient.account,
+        });
+        lastHash = hash;
+      }
+      if (ethAmountUsd > 0) {
+        const ethWei = parseUnits(
+          ethAmountUsd.toFixed(18),
+          18
+        );
+        const hash = await walletClient.sendTransaction({
+          to: toAddress,
+          value: ethWei,
+          account: walletClient.account,
+        });
+        lastHash = hash;
+      }
+      if (!lastHash) throw new Error("No transfer sent");
+      return lastHash;
+    },
+    [baseAddress, evmWallet]
+  );
 
   const effectivelyDisconnected = forceDisconnected || (noPrivyTokenOnLoad && !noTokenOverriddenByConnect);
   const effectiveChain: "solana" | "base" | null = (() => {
@@ -851,6 +922,7 @@ const WalletContextInner: FC<{
       isPrivyMounted: true,
       requestConnect: () => {},
       effectiveChain,
+      sendBaseFuelTransaction: baseAddress && evmWallet ? sendBaseFuelTransaction : null,
     }),
     [
       forceDisconnected,
@@ -884,6 +956,9 @@ const WalletContextInner: FC<{
       setConnectChainOverride,
       openLoginModal,
       effectiveChain,
+      sendBaseFuelTransaction,
+      baseAddress,
+      evmWallet,
     ]
   );
 
@@ -934,6 +1009,7 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   isPrivyMounted: false,
   requestConnect: () => {},
   effectiveChain: null,
+  sendBaseFuelTransaction: null,
 };
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({

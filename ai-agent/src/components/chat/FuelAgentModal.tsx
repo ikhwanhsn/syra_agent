@@ -33,6 +33,8 @@ const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwy
 const USDC_DECIMALS = 6;
 /** Rough SOL per USD for "same value in SOL" (e.g. ~$200/SOL => 0.005 SOL per $1). */
 const SOL_PER_USD_APPROX = 0.005;
+/** Rough ETH per USD for Base (e.g. ~$3000/ETH => 0.00033 ETH per $1). */
+const ETH_PER_USD_APPROX = 0.00033;
 
 export interface FuelAgentModalProps {
   open: boolean;
@@ -40,8 +42,16 @@ export interface FuelAgentModalProps {
 }
 
 export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
-  const { connection, publicKey, sendTransaction } = useWalletContext();
-  const { agentAddress, refetchBalance } = useAgentWallet();
+  const {
+    connection,
+    publicKey,
+    sendTransaction,
+    baseAddress,
+    baseUsdcBalance,
+    baseEthBalance,
+    sendBaseFuelTransaction,
+  } = useWalletContext();
+  const { agentAddress, refetchBalance, connectedChain } = useAgentWallet();
   const { toast } = useToast();
   const [selectedPreset, setSelectedPreset] = useState<number | null>(1);
   const [customAmount, setCustomAmount] = useState("");
@@ -50,13 +60,18 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const isSolana = connectedChain === "solana";
+  const isBase = connectedChain === "base";
   const amountUsd =
     selectedPreset != null ? selectedPreset : (parseFloat(customAmount) || 0);
 
+  // Load Solana balances when modal opens and chain is Solana
   useEffect(() => {
-    if (!open || !publicKey) {
-      setUserSolBalance(null);
-      setUserUsdcBalance(null);
+    if (!open || !isSolana || !publicKey) {
+      if (!isSolana) {
+        setUserSolBalance(null);
+        setUserUsdcBalance(null);
+      }
       return;
     }
     let cancelled = false;
@@ -91,7 +106,7 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
     return () => {
       cancelled = true;
     };
-  }, [open, publicKey, connection]);
+  }, [open, isSolana, publicKey, connection]);
 
   const handlePreset = useCallback((value: number) => {
     setSelectedPreset(value);
@@ -108,75 +123,92 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
   }, [selectedPreset]);
 
   const handleFuelSubmit = useCallback(async () => {
-    if (amountUsd <= 0 || !publicKey || !agentAddress || !sendTransaction) return;
+    if (amountUsd <= 0 || !agentAddress) return;
     setSubmitting(true);
     try {
-      const agentPubkey = new PublicKey(agentAddress);
-      const usdcRaw = BigInt(Math.floor(amountUsd * 10 ** USDC_DECIMALS));
-      const solLamports = BigInt(Math.floor(amountUsd * SOL_PER_USD_APPROX * LAMPORTS_PER_SOL));
-
-      const userUsdcAta = await getAssociatedTokenAddress(
-        USDC_MINT_MAINNET,
-        publicKey,
-        false,
-        TOKEN_PROGRAM_ID
-      );
-      const agentUsdcAta = await getAssociatedTokenAddress(
-        USDC_MINT_MAINNET,
-        agentPubkey,
-        false,
-        TOKEN_PROGRAM_ID
-      );
-
-      const instructions: Parameters<Transaction["add"]>[0][] = [];
-
-      const agentAtaInfo = await connection.getAccountInfo(agentUsdcAta, "confirmed");
-      if (!agentAtaInfo) {
-        instructions.push(
-          createAssociatedTokenAccountInstruction(
-            publicKey,
-            agentUsdcAta,
-            agentPubkey,
-            USDC_MINT_MAINNET
-          )
+      if (isBase && sendBaseFuelTransaction) {
+        const txHash = await sendBaseFuelTransaction(
+          agentAddress,
+          amountUsd,
+          amountUsd
         );
+        toast({
+          title: "Transfer sent",
+          description: `USDC and ETH sent to agent wallet on Base. Tx: ${txHash.slice(0, 10)}…`,
+        });
+        refetchBalance();
+        onOpenChange(false);
+        return;
       }
 
-      if (usdcRaw > 0n) {
-        instructions.push(
-          createTransferInstruction(
-            userUsdcAta,
-            agentUsdcAta,
-            publicKey,
-            usdcRaw,
-            [],
-            TOKEN_PROGRAM_ID
-          )
+      if (isSolana && publicKey && sendTransaction) {
+        const agentPubkey = new PublicKey(agentAddress);
+        const usdcRaw = BigInt(Math.floor(amountUsd * 10 ** USDC_DECIMALS));
+        const solLamports = BigInt(Math.floor(amountUsd * SOL_PER_USD_APPROX * LAMPORTS_PER_SOL));
+
+        const userUsdcAta = await getAssociatedTokenAddress(
+          USDC_MINT_MAINNET,
+          publicKey,
+          false,
+          TOKEN_PROGRAM_ID
         );
-      }
-
-      if (solLamports > 0n) {
-        instructions.push(
-          SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: agentPubkey,
-            lamports: solLamports,
-          })
+        const agentUsdcAta = await getAssociatedTokenAddress(
+          USDC_MINT_MAINNET,
+          agentPubkey,
+          false,
+          TOKEN_PROGRAM_ID
         );
+
+        const instructions: Parameters<Transaction["add"]>[0][] = [];
+
+        const agentAtaInfo = await connection.getAccountInfo(agentUsdcAta, "confirmed");
+        if (!agentAtaInfo) {
+          instructions.push(
+            createAssociatedTokenAccountInstruction(
+              publicKey,
+              agentUsdcAta,
+              agentPubkey,
+              USDC_MINT_MAINNET
+            )
+          );
+        }
+
+        if (usdcRaw > 0n) {
+          instructions.push(
+            createTransferInstruction(
+              userUsdcAta,
+              agentUsdcAta,
+              publicKey,
+              usdcRaw,
+              [],
+              TOKEN_PROGRAM_ID
+            )
+          );
+        }
+
+        if (solLamports > 0n) {
+          instructions.push(
+            SystemProgram.transfer({
+              fromPubkey: publicKey,
+              toPubkey: agentPubkey,
+              lamports: solLamports,
+            })
+          );
+        }
+
+        const tx = new Transaction().add(...instructions);
+        const signature = await sendTransaction(tx, {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+
+        toast({
+          title: "Transfer sent",
+          description: `USDC and SOL sent to agent wallet. Signature: ${signature.slice(0, 8)}…`,
+        });
+        refetchBalance();
+        onOpenChange(false);
       }
-
-      const tx = new Transaction().add(...instructions);
-      const signature = await sendTransaction(tx, {
-        skipPreflight: false,
-        maxRetries: 3,
-      });
-
-      toast({
-        title: "Transfer sent",
-        description: `USDC and SOL sent to agent wallet. Signature: ${signature.slice(0, 8)}…`,
-      });
-      refetchBalance();
-      onOpenChange(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       toast({
@@ -189,19 +221,32 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
     }
   }, [
     amountUsd,
-    publicKey,
     agentAddress,
+    isBase,
+    isSolana,
+    publicKey,
     sendTransaction,
+    sendBaseFuelTransaction,
+    connection,
     toast,
     refetchBalance,
     onOpenChange,
   ]);
 
   const hasAmount = amountUsd > 0;
-  const canSubmit = hasAmount && !!publicKey && !!agentAddress && !!sendTransaction && !submitting;
+  const canSubmit =
+    hasAmount &&
+    !!agentAddress &&
+    !submitting &&
+    (isBase ? !!baseAddress && !!sendBaseFuelTransaction : !!publicKey && !!sendTransaction);
 
   const formatBalance = (v: number | null | undefined) =>
     v == null ? "—" : v.toFixed(4);
+
+  const nativeLabel = isBase ? "ETH" : "SOL";
+  const nativeBalance = isBase ? baseEthBalance : userSolBalance;
+  const usdcBalanceDisplay = isBase ? baseUsdcBalance : userUsdcBalance;
+  const balanceLoadingDisplay = isSolana ? balanceLoading : false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,7 +254,9 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
         <DialogHeader className="px-6 pt-6 pb-4 space-y-1.5">
           <DialogTitle>Fuel the agent</DialogTitle>
           <DialogDescription>
-            Add USDC (for paid tools) and SOL (for fees) to your agent wallet. Choose an amount—you’ll deposit the same dollar amount in USDC and in SOL.
+            {isBase
+              ? "Add USDC (for paid tools) and ETH (for fees) to your agent wallet on Base. Choose an amount—you'll deposit the same dollar amount in USDC and in ETH."
+              : "Add USDC (for paid tools) and SOL (for fees) to your agent wallet. Choose an amount—you'll deposit the same dollar amount in USDC and in SOL."}
           </DialogDescription>
         </DialogHeader>
 
@@ -217,17 +264,17 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
           {/* Your wallet balance */}
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1.5">
             <p className="font-medium text-foreground">Your wallet balance</p>
-            {balanceLoading ? (
+            {balanceLoadingDisplay ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                 <span>Loading…</span>
               </div>
             ) : (
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
-                <span className={cn(userUsdcBalance != null && userUsdcBalance > 0 && "font-medium text-emerald-600 dark:text-emerald-400")}>
-                  USDC: ${userUsdcBalance != null ? userUsdcBalance.toFixed(2) : "—"}
+                <span className={cn(usdcBalanceDisplay != null && usdcBalanceDisplay > 0 && "font-medium text-emerald-600 dark:text-emerald-400")}>
+                  USDC: ${usdcBalanceDisplay != null ? usdcBalanceDisplay.toFixed(2) : "—"}
                 </span>
-                <span>SOL: {formatBalance(userSolBalance)}</span>
+                <span>{nativeLabel}: {formatBalance(nativeBalance)}</span>
               </div>
             )}
           </div>
@@ -275,9 +322,9 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
                 </span>
                 {" + "}
                 <span className="font-medium text-foreground">
-                  ${amountUsd.toFixed(2)} SOL
+                  ${amountUsd.toFixed(2)} {nativeLabel}
                 </span>
-                <span className="text-muted-foreground"> (same value in SOL for network fees)</span>
+                <span className="text-muted-foreground"> (same value in {nativeLabel} for network fees)</span>
               </p>
             </div>
           )}
