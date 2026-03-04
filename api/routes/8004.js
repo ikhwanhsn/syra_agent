@@ -248,7 +248,16 @@ export async function create8004Router() {
     }
     return meta;
   };
-  router.get("/agent/:asset/registration-metadata", ...withPayment(registrationMetadataHandler, "GET"));
+  // Registration metadata (name, description, image) is free so marketplace agent cards can display without 402
+  router.get("/agent/:asset/registration-metadata", async (req, res, next) => {
+    try {
+      const data = await registrationMetadataHandler(req);
+      if (!res.headersSent) res.json(data);
+    } catch (e) {
+      if (!res.headersSent) res.status(e.status ?? 404).json({ error: e.message });
+      else next(e);
+    }
+  });
   router.get("/dev/agent/:asset/registration-metadata", devOnly(registrationMetadataHandler));
 
   const byOwnerHandler = async (req) => getAgentsByOwner(req.params.owner);
