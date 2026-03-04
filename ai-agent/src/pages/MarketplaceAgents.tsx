@@ -67,6 +67,9 @@ const MAX_AGENTS_PER_USER = 3;
 /** Agents per page for pagination. */
 const AGENTS_PER_PAGE = 12;
 
+/** Generate image in create-agent dialog; set to true when ready. */
+const GENERATE_IMAGE_AVAILABLE = false;
+
 /** Resolve ipfs:// or /ipfs/ image URLs to HTTPS gateway so <img> can load. */
 function imageUrlForDisplay(url: string): string {
   const u = url.trim();
@@ -384,17 +387,22 @@ function CreateAgentDialog({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleGenerateImage}
-                disabled={!anonymousId || submitting || generatingImage}
+                onClick={GENERATE_IMAGE_AVAILABLE ? handleGenerateImage : undefined}
+                disabled={!GENERATE_IMAGE_AVAILABLE || !anonymousId || submitting || generatingImage}
                 className="shrink-0"
-                title={!anonymousId ? "Connect your agent wallet to generate image (x402, ~$0.04)" : "Generate unique image with Xona (paid from your wallet)"}
+                title={GENERATE_IMAGE_AVAILABLE ? (!anonymousId ? "Connect your agent wallet to generate image (x402, ~$0.04)" : "Generate unique image with Xona (paid from your wallet)") : "Coming soon"}
               >
                 {generatingImage ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
+                ) : GENERATE_IMAGE_AVAILABLE ? (
                   <>
                     <Sparkles className="w-4 h-4 mr-1" />
                     Generate image
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-1" />
+                    Available soon
                   </>
                 )}
               </Button>
