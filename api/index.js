@@ -519,6 +519,7 @@ app.use("/check-status", await createV2CheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/smart-money", await createV2SmartMoneyRouter());
 app.use("/jatevo", await createJatevoRouter());
+// Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());

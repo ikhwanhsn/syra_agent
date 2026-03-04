@@ -801,6 +801,93 @@ router.post('/completion', async (req, res) => {
   }
 });
 
+const JATEVO_DESC_SYSTEM = `You are a copywriter for Syra, an AI agent ecosystem and MCP (Model Context Protocol) platform.
+Generate exactly one short, unique description (1-2 sentences, under 200 characters) for an AI agent.
+The description must be professional and clearly related to Syra or the agent ecosystem: MCP tools, AI agents, crypto/data tools, or Syra's marketplace. Do not use generic phrases; mention Syra, agents, or the ecosystem. Output only the description, no quotes or preamble.`;
+
+// POST /generate-description - Generate agent description using Jatevo; requires user's agent wallet (anonymousId) so payment uses user wallet not system.
+router.post('/generate-description', async (req, res) => {
+  try {
+    const { anonymousId, agentName } = req.body || {};
+    if (!anonymousId || typeof anonymousId !== 'string' || !anonymousId.trim()) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required. Connect your agent wallet so payment uses your wallet, not the system.' });
+    }
+    const name = (typeof agentName === 'string' && agentName.trim()) ? agentName.trim() : 'this agent';
+    const apiMessages = [
+      { role: 'system', content: JATEVO_DESC_SYSTEM },
+      { role: 'user', content: `Generate a short, unique description for an AI agent named "${name}".` },
+    ];
+    const result = await callJatevo(apiMessages, { anonymousId });
+    let text = typeof result.response === 'string' ? result.response.trim() : '';
+    if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+    return res.json({ response: text });
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      error: error.message || 'Failed to generate description',
+      ...(error.raw && { raw: error.raw }),
+    });
+  }
+});
+
+// Xona Agent – Grok Imagine: https://xona-agent.com/docs ($0.04 USDC per image, x402 on Solana)
+const XONA_GROK_IMAGINE_URL = 'https://api.xona-agent.com/image/grok-imagine';
+
+// POST /generate-agent-image - Generate unique agent image using Xona Grok Imagine; payment from user's agent wallet (x402).
+router.post('/generate-agent-image', async (req, res) => {
+  try {
+    const { anonymousId, agentName, agentDescription } = req.body || {};
+    if (!anonymousId || typeof anonymousId !== 'string' || !anonymousId.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'anonymousId is required. Connect your agent wallet so image generation is paid from your wallet (x402).',
+      });
+    }
+    const name = (typeof agentName === 'string' && agentName.trim()) ? agentName.trim() : 'AI agent';
+    const desc = (typeof agentDescription === 'string' && agentDescription.trim()) ? agentDescription.trim() : '';
+    const prompt = desc
+      ? `Professional avatar or logo for an AI agent named "${name}". ${desc} Style: clean, modern, suitable for a marketplace listing. No text in the image.`
+      : `Professional avatar or logo for an AI agent named "${name}". Clean, modern, suitable for a marketplace listing. No text in the image.`;
+    const result = await callX402V2WithAgent({
+      anonymousId: anonymousId.trim(),
+      url: XONA_GROK_IMAGINE_URL,
+      method: 'POST',
+      body: { prompt },
+    });
+    if (!result.success) {
+      const status = result.budgetExceeded ? 402 : 400;
+      let errMsg = result.error || 'Image generation failed';
+      if (errMsg.includes('403') || errMsg.includes('blockchain') || errMsg.includes('not allowed to access')) {
+        errMsg = 'Solana RPC blocked: set SOLANA_RPC_URL in API .env to an RPC that allows blockchain access (e.g. Helius, Triton, or Ankr paid). ' + errMsg;
+      }
+      return res.status(status).json({ success: false, error: errMsg });
+    }
+    const imageUrl = result.data?.image_url;
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return res.status(502).json({
+        success: false,
+        error: 'Xona did not return an image URL',
+        ...(result.data && { raw: result.data }),
+      });
+    }
+    return res.json({
+      image_url: imageUrl,
+      ...(result.data?.image_description && { image_description: result.data.image_description }),
+      ...(result.data?.metadata && { metadata: result.data.metadata }),
+    });
+  } catch (error) {
+    let errMsg = error.message || 'Failed to generate image';
+    if (errMsg.includes('403') || errMsg.includes('blockchain') || errMsg.includes('not allowed to access') || errMsg.includes('get info about account')) {
+      errMsg = 'Solana RPC blocked. In API .env set SOLANA_RPC_URL to an RPC with blockchain access (e.g. https://mainnet.helius-rpc.com/?api_key=YOUR_KEY or paid Ankr). ' + errMsg;
+    }
+    return res.status(500).json({
+      success: false,
+      error: errMsg,
+    });
+  }
+});
+
 // GET /share/:shareId - Get chat by share link. Optional query anonymousId for owner check.
 // If anonymousId matches owner: 200 with full chat + isOwner: true (owner can always access).
 // If chat is public and not owner: 200 with read-only payload + isOwner: false.

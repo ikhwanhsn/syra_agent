@@ -7,6 +7,7 @@ import pkg from 'random-avatar-generator';
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
 import { fundNewAgentWallet } from '../../libs/fundNewAgentWallet.js';
+import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -129,14 +130,16 @@ router.get('/:anonymousId', async (req, res) => {
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
-    const doc = await AgentWallet.findOne({ anonymousId }).select('agentAddress avatarUrl').lean();
+    const doc = await AgentWallet.findOne({ anonymousId }).select('agentAddress avatarUrl chain').lean();
     if (!doc) {
       return res.status(404).json({ success: false, error: 'Agent wallet not found' });
     }
-    return res.json({ 
-      success: true, 
+    const solanaAgentAddress = await getSolanaAgentAddress(anonymousId);
+    return res.json({
+      success: true,
       agentAddress: doc.agentAddress,
       avatarUrl: doc.avatarUrl || null,
+      solanaAgentAddress: solanaAgentAddress || null,
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });

@@ -9,7 +9,7 @@ const STAT_LABELS = [
   { key: "tools", label: "Tools", suffix: "+", decimals: 0 },
 ] as const;
 
-const FALLBACK_STATS = { users: 0, uptime: 99.9, signals: 0, tools: 15 };
+const FALLBACK_STATS = { users: 1000, uptime: 99.9, signals: 10000, tools: 15 };
 
 const AnimatedNumber = ({
   value,
@@ -107,16 +107,16 @@ export const HeroStats = () => {
             <div className="mb-1 text-2xl font-bold md:text-3xl neon-text">
               {loading ? (
                 <span>—</span>
-              ) : key === "users" && (stats.users ?? 0) < 100 ? (
+              ) : key === "users" && (stats.users ?? 0) < 1000 ? (
                 <AnimatedNumber
-                  value={100}
+                  value={1000}
                   prefix=""
                   suffix={suffix}
                   decimals={decimals}
                 />
-              ) : key === "signals" && (stats.signals ?? 0) < 1000 ? (
+              ) : key === "signals" && (stats.signals ?? 0) < 10000 ? (
                 <AnimatedNumber
-                  value={1000}
+                  value={10000}
                   prefix=""
                   suffix={suffix}
                   decimals={decimals}

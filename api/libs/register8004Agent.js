@@ -1,9 +1,10 @@
 /**
  * Register a new 8004 agent (with dynamic input) and optionally attach to an existing collection.
- * Uses SOLANA_PRIVATE_KEY (or PAYER_KEYPAIR / AGENT_PRIVATE_KEY) and PINATA_JWT from env.
+ * - If feePayer + agentAssetPubkey are provided: builds serialized tx for the user to sign (no server signer).
+ * - Otherwise uses SOLANA_PRIVATE_KEY (or PAYER_KEYPAIR / AGENT_PRIVATE_KEY) and PINATA_JWT from env.
  * @see https://8004.qnt.sh/skill.md
  */
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import {
   SolanaSDK,
   IPFSClient,
@@ -30,6 +31,11 @@ function getSigner() {
   );
 }
 
+function toPublicKey(base58) {
+  if (!base58 || typeof base58 !== "string") throw new Error("Invalid public key");
+  return new PublicKey(base58.trim());
+}
+
 const SERVICE_TYPES = new Set(["MCP", "A2A", "ENS", "DID", "WALLET", "OASF"]);
 
 function normalizeService(s) {
@@ -52,11 +58,13 @@ function normalizeService(s) {
  *   domains?: string[];
  *   x402Support?: boolean;
  *   collectionPointer?: string;
+ *   feePayer?: string;       // User wallet (base58) – when set with agentAssetPubkey, returns serialized tx for client to sign
+ *   agentAssetPubkey?: string; // New agent mint pubkey (base58) – must be provided with feePayer
+ *   signerKeypair?: Keypair;  // When set (e.g. user's agent wallet), use this signer instead of env; agent is owned by this key
  * }} input - Agent metadata and optional collection pointer (c1:...).
- * @returns {Promise<{ asset: string; registerSignature: string; setCollectionSignature?: string; tokenUri: string }>}
+ * @returns {Promise<{ asset: string; registerSignature?: string; setCollectionSignature?: string; tokenUri: string } | { asset: string; tokenUri: string; registerTransaction: object; setCollectionTransaction?: object }>}
  */
 export async function registerAgentAndAttachToCollection(input) {
-  const signer = getSigner();
   const pinataJwt = process.env.PINATA_JWT;
   if (!pinataJwt) {
     throw new Error("Missing PINATA_JWT in env");
@@ -96,8 +104,11 @@ export async function registerAgentAndAttachToCollection(input) {
 
   const x402Support = input.x402Support !== false;
 
-  const collectionPointer =
+  let collectionPointer =
     input.collectionPointer && String(input.collectionPointer).trim();
+  if (!collectionPointer && process.env.SYRA_COLLECTION_POINTER) {
+    collectionPointer = String(process.env.SYRA_COLLECTION_POINTER).trim();
+  }
   if (collectionPointer && !collectionPointer.startsWith("c1:")) {
     throw new Error("collectionPointer must start with c1:");
   }
@@ -109,13 +120,6 @@ export async function registerAgentAndAttachToCollection(input) {
 
   const cluster = process.env.SOLANA_CLUSTER || "mainnet-beta";
   const rpcUrl = process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_FALLBACK_URL;
-
-  const sdk = new SolanaSDK({
-    cluster,
-    rpcUrl,
-    signer,
-    ipfsClient: ipfs,
-  });
 
   const metadata = buildRegistrationFileJson({
     name,
@@ -130,12 +134,83 @@ export async function registerAgentAndAttachToCollection(input) {
   const cid = await ipfs.addJson(metadata);
   const tokenUri = `ipfs://${cid}`;
 
-  const result = await sdk.registerAgent(tokenUri, {
+  const feePayerRaw = input.feePayer && String(input.feePayer).trim();
+  const agentAssetPubkeyRaw = input.agentAssetPubkey && String(input.agentAssetPubkey).trim();
+
+  // User-signed path: build serialized transaction(s) for the client to sign with their wallet + agent keypair
+  if (feePayerRaw && agentAssetPubkeyRaw) {
+    const userPubkey = toPublicKey(feePayerRaw);
+    const assetPubkey = toPublicKey(agentAssetPubkeyRaw);
+    const sdk = new SolanaSDK({ cluster, ...(rpcUrl && { rpcUrl }) });
+
+    const registerOptions = {
+      skipSend: true,
+      signer: userPubkey,
+      assetPubkey,
+      atomEnabled: process.env["8004_ATOM_ENABLED"] === "true",
+    };
+    const registerResult = await sdk.registerAgent(tokenUri, registerOptions);
+
+    if (!registerResult?.asset) {
+      await ipfs.close();
+      const err = registerResult?.error && String(registerResult.error).trim();
+      throw new Error(err ? `Registration build failed: ${err}` : "Registration did not return an agent asset");
+    }
+
+    const out = {
+      asset: registerResult.asset.toBase58(),
+      tokenUri,
+      registerTransaction: {
+        transaction: registerResult.transaction,
+        blockhash: registerResult.blockhash,
+        lastValidBlockHeight: registerResult.lastValidBlockHeight,
+        signer: registerResult.signer,
+      },
+    };
+
+    if (collectionPointer) {
+      const pointerResult = await sdk.setCollectionPointer(registerResult.asset, collectionPointer, {
+        lock: true,
+        skipSend: true,
+        signer: userPubkey,
+      });
+      if (pointerResult?.transaction != null) {
+        out.setCollectionTransaction = {
+          transaction: pointerResult.transaction,
+          blockhash: pointerResult.blockhash,
+          lastValidBlockHeight: pointerResult.lastValidBlockHeight,
+          signer: pointerResult.signer,
+        };
+      }
+    }
+
+    await ipfs.close();
+    return out;
+  }
+
+  // Server-signed path: use provided signer (e.g. user's agent wallet) or env keypair
+  const signer = input.signerKeypair || getSigner();
+  const serverSdk = new SolanaSDK({
+    cluster,
+    rpcUrl,
+    signer,
+    ipfsClient: ipfs,
+  });
+
+  const result = await serverSdk.registerAgent(tokenUri, {
     atomEnabled: process.env["8004_ATOM_ENABLED"] === "true",
   });
 
   if (!result?.asset) {
     await ipfs.close();
+    const underlying = result?.error && String(result.error).trim();
+    if (underlying) {
+      const hint =
+        /insufficient lamports|insufficient funds|not enough sol/i.test(underlying)
+          ? " Fund the agent wallet (SOLANA_PRIVATE_KEY / AGENT_PRIVATE_KEY in api/.env) with SOL for fees and rent."
+          : "";
+      throw new Error(`Registration failed: ${underlying}.${hint}`);
+    }
     throw new Error("Registration did not return an agent asset");
   }
 
@@ -147,16 +222,19 @@ export async function registerAgentAndAttachToCollection(input) {
   };
 
   if (collectionPointer) {
-    const txResult = await sdk.setCollectionPointer(asset, collectionPointer, {
+    const txResult = await serverSdk.setCollectionPointer(asset, collectionPointer, {
       lock: true,
     });
     if (txResult?.success && txResult?.signature) {
       out.setCollectionSignature = txResult.signature;
     } else {
       await ipfs.close();
-      throw new Error(
-        "setCollectionPointer failed: " + (txResult?.error ?? "no signature")
-      );
+      const err = txResult?.error ?? "no signature";
+      const hint =
+        /insufficient lamports|insufficient funds|not enough sol/i.test(String(err))
+          ? " Fund the agent wallet (SOLANA_PRIVATE_KEY / AGENT_PRIVATE_KEY in api/.env) with SOL."
+          : "";
+      throw new Error(`setCollectionPointer failed: ${err}.${hint}`);
     }
   }
 

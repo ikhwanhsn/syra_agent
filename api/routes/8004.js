@@ -23,8 +23,11 @@ import {
   getChainId,
   getProgramIds,
   getBaseCollection,
+  getAgentRegistrationMetadata,
 } from "../libs/agentRegistry8004.js";
 import { registerAgentAndAttachToCollection } from "../libs/register8004Agent.js";
+import { getSolanaAgentKeypair } from "../libs/agentWallet.js";
+import User8004Agent, { MAX_AGENTS_PER_USER } from "../models/agent/User8004Agent.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -124,13 +127,21 @@ export async function create8004Router() {
   // --- Discovery & search ---
   const searchHandler = async (req) => {
     const q = params(req);
-    return searchAgents({
+    const collectionParam = q.collection && String(q.collection).trim();
+    const isPointer = collectionParam && collectionParam.startsWith("c1:");
+    const searchParams = {
       owner: q.owner || undefined,
       creator: q.creator || undefined,
-      collection: q.collection || undefined,
       limit: q.limit ? Number(q.limit) : 20,
       offset: q.offset ? Number(q.offset) : 0,
-    });
+    };
+    if (collectionParam) {
+      if (isPointer) searchParams.collectionPointer = collectionParam;
+      else searchParams.collection = collectionParam;
+    }
+    const list = await searchAgents(searchParams);
+    const agents = Array.isArray(list) ? list : [];
+    return { agents, total: agents.length };
   };
   router.get("/agents/search", ...withPayment(searchHandler, "GET"));
   router.post("/agents/search", ...withPayment(searchHandler, "POST"));
@@ -211,6 +222,18 @@ export async function create8004Router() {
   router.get("/dev/agent/:asset/metadata/:key", devOnly(metadataHandler));
   router.post("/dev/agent/:asset/metadata/:key", devOnly(metadataHandler));
 
+  const registrationMetadataHandler = async (req) => {
+    const meta = await getAgentRegistrationMetadata(req.params.asset);
+    if (meta == null) {
+      const err = new Error("Agent not found or metadata unavailable");
+      err.status = 404;
+      throw err;
+    }
+    return meta;
+  };
+  router.get("/agent/:asset/registration-metadata", ...withPayment(registrationMetadataHandler, "GET"));
+  router.get("/dev/agent/:asset/registration-metadata", devOnly(registrationMetadataHandler));
+
   const byOwnerHandler = async (req) => getAgentsByOwner(req.params.owner);
   router.get("/agents/by-owner/:owner", ...withPayment(byOwnerHandler, "GET"));
   router.post("/agents/by-owner/:owner", ...withPayment(byOwnerHandler, "POST"));
@@ -236,10 +259,68 @@ export async function create8004Router() {
   router.get("/dev/base-collection", devOnly(baseCollectionHandler));
   router.post("/dev/base-collection", devOnly(baseCollectionHandler));
 
+  // Syra collection pointer (for marketplace UI: list agents in same collection as script; create uses backend env).
+  const syraCollectionHandler = async () => ({
+    syraCollectionPointer: process.env.SYRA_COLLECTION_POINTER?.trim() || null,
+  });
+  // Production: return pointer so website uses same as script (no payment; public collection id).
+  router.get("/syra-collection", async (req, res, next) => {
+    try {
+      const data = await syraCollectionHandler();
+      res.json(data);
+    } catch (e) {
+      if (!res.headersSent) res.status(e.status ?? 400).json({ error: e.message });
+      else next(e);
+    }
+  });
+  router.get("/dev/syra-collection", devOnly(syraCollectionHandler));
+  router.post("/dev/syra-collection", devOnly(syraCollectionHandler));
+
+  // --- My agents (from MongoDB; used by "Your Agents" tab) ---
+  const myAgentsHandler = async (req) => {
+    const anonymousId = (req.query?.anonymousId ?? req.body?.anonymousId) && String(req.query?.anonymousId ?? req.body?.anonymousId).trim();
+    if (!anonymousId) {
+      const err = new Error("anonymousId is required");
+      err.status = 400;
+      throw err;
+    }
+    const list = await User8004Agent.find({ anonymousId })
+      .sort({ createdAt: -1 })
+      .select("asset name description image createdAt")
+      .lean();
+    return { agents: list, total: list.length };
+  };
+  router.get("/my-agents", async (req, res, next) => {
+    try {
+      const data = await myAgentsHandler(req);
+      res.json(data);
+    } catch (e) {
+      if (!res.headersSent) res.status(e.status ?? 400).json({ error: e.message });
+      else next(e);
+    }
+  });
+  router.get("/dev/my-agents", devOnly(myAgentsHandler));
+
   // --- Write: register new agent and optionally attach to collection (x402 payment required) ---
   const registerAgentHandler = async (req) => {
     const body = req.body && typeof req.body === "object" ? req.body : {};
-    return registerAgentAndAttachToCollection({
+    const anonymousId = body.anonymousId && String(body.anonymousId).trim() ? body.anonymousId.trim() : null;
+    if (!anonymousId) {
+      const err = new Error("anonymousId is required to create an agent (max 3 per user).");
+      err.status = 400;
+      throw err;
+    }
+    const signerKeypair = await getSolanaAgentKeypair(anonymousId);
+
+    // Enforce max 3 agents per user and save to DB for "Your Agents"
+    const count = await User8004Agent.countDocuments({ anonymousId });
+    if (count >= MAX_AGENTS_PER_USER) {
+      const err = new Error(`Maximum ${MAX_AGENTS_PER_USER} agents per user. You have ${count}.`);
+      err.status = 400;
+      throw err;
+    }
+
+    const result = await registerAgentAndAttachToCollection({
       name: body.name,
       description: body.description,
       image: body.image,
@@ -248,7 +329,30 @@ export async function create8004Router() {
       domains: body.domains,
       x402Support: body.x402Support,
       collectionPointer: body.collectionPointer,
+      feePayer: body.feePayer,
+      agentAssetPubkey: body.agentAssetPubkey,
+      signerKeypair: signerKeypair || undefined,
     });
+
+    // Save to DB for "Your Agents" (so list is reliable and not dependent on 8004 indexer)
+    if (result && result.asset) {
+      const name = (body.name && String(body.name).trim()) || "8004 Agent";
+      const description = (body.description && String(body.description).trim()) || "";
+      // Use same effective image as registration so card displays correctly (default when user omitted image)
+      const image =
+        (body.image && String(body.image).trim()) ||
+        process.env.SYRA_AGENT_IMAGE_URI ||
+        "https://syraa.fun/images/logo.jpg";
+      await User8004Agent.create({
+        anonymousId,
+        asset: result.asset,
+        name,
+        description,
+        image,
+      });
+    }
+
+    return result;
   };
   const registerAgentPaymentOptions = {
     price: X402_API_PRICE_8004_REGISTER_AGENT_USD,

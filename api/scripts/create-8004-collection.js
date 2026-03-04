@@ -78,12 +78,17 @@ async function main() {
 
   const imageUri = process.env.SYRA_COLLECTION_IMAGE_URI?.trim() || undefined;
   const bannerUri = process.env.SYRA_COLLECTION_BANNER_URI?.trim() || undefined;
-  const externalUrl = process.env.SYRA_COLLECTION_EXTERNAL_URL?.trim() || undefined;
-  const xUrl = process.env.SYRA_COLLECTION_X_URL?.trim() || process.env.SYRA_COLLECTION_TWITTER_URL?.trim() || undefined;
+  const externalUrl =
+    process.env.SYRA_COLLECTION_EXTERNAL_URL?.trim() || "https://syraa.fun";
+  const xUrl =
+    process.env.SYRA_COLLECTION_X_URL?.trim() ||
+    process.env.SYRA_COLLECTION_TWITTER_URL?.trim() ||
+    "https://x.com/syraa";
 
-  const socials = {};
-  if (externalUrl) socials.website = externalUrl;
-  if (xUrl) socials.x = xUrl;
+  const socials = {
+    website: externalUrl,
+    x: xUrl,
+  };
 
   const collectionData = {
     name: "Syra Agents",
@@ -92,8 +97,8 @@ async function main() {
       "AI Trading Intelligence Agents for Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
     ...(imageUri && { image: imageUri }),
     ...(bannerUri && { banner_image: bannerUri }),
-    ...(externalUrl && { external_url: externalUrl }),
-    ...(Object.keys(socials).length > 0 && { socials }),
+    external_url: externalUrl,
+    socials,
   };
 
   console.log("Creating Syra collection metadata and uploading to IPFS...");

@@ -25,6 +25,53 @@ export async function getAgentKeypair(anonymousId) {
 }
 
 /**
+ * Get Solana agent public key (base58) for an anonymous user. Used so frontend can filter "Your Agents" by owner.
+ * @param {string} anonymousId - Client's anonymous id
+ * @returns {Promise<string | null>} Solana agent address or null
+ */
+export async function getSolanaAgentAddress(anonymousId) {
+  if (!anonymousId || typeof anonymousId !== 'string') return null;
+  let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).select('agentAddress chain walletAddress').lean();
+  if (!doc) return null;
+  if (doc.chain === 'solana' && doc.agentAddress) return doc.agentAddress;
+  if (doc.walletAddress) {
+    const solanaDoc = await AgentWallet.findOne({ walletAddress: doc.walletAddress, chain: 'solana' }).select('agentAddress').lean();
+    return solanaDoc?.agentAddress ?? null;
+  }
+  return null;
+}
+
+/**
+ * Get Solana agent keypair for 8004 registration (agent must be on Solana).
+ * Prefers doc with this anonymousId and chain 'solana'; else finds by same walletAddress + chain 'solana'.
+ * @param {string} anonymousId - Client's anonymous id
+ * @returns {Promise<Keypair | null>} Solana agent keypair or null
+ */
+export async function getSolanaAgentKeypair(anonymousId) {
+  if (!anonymousId || typeof anonymousId !== 'string') return null;
+  let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
+  if (!doc) return null;
+  if (doc.chain === 'solana' && doc.agentSecretKey) {
+    try {
+      return Keypair.fromSecretKey(bs58.decode(doc.agentSecretKey));
+    } catch {
+      return null;
+    }
+  }
+  if (doc.walletAddress) {
+    doc = await AgentWallet.findOne({ walletAddress: doc.walletAddress, chain: 'solana' }).lean();
+    if (doc?.agentSecretKey) {
+      try {
+        return Keypair.fromSecretKey(bs58.decode(doc.agentSecretKey));
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Get agent public key for an anonymous user.
  * @param {string} anonymousId - Client's anonymous id
  * @returns {Promise<string | null>} Agent address or null

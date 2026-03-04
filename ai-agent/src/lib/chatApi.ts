@@ -367,8 +367,8 @@ export const agentWalletApi = {
     };
   },
 
-  /** Get agent wallet address by anonymousId (404 if not created yet). */
-  async get(anonymousId: string): Promise<{ agentAddress: string; avatarUrl?: string | null }> {
+  /** Get agent wallet address by anonymousId (404 if not created yet). Includes solanaAgentAddress for 8004 "Your Agents" filter. */
+  async get(anonymousId: string): Promise<{ agentAddress: string; avatarUrl?: string | null; solanaAgentAddress?: string | null }> {
     const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
@@ -666,3 +666,58 @@ export const agentLeaderboardApi = {
     return handleRes(res);
   },
 };
+
+/**
+ * Generate a unique agent description using Jatevo based on the agent name.
+ * Uses the user's agent wallet (anonymousId) so any payment is charged to the user, not the system.
+ * @param agentName - Name of the agent to describe
+ * @param anonymousId - User's agent wallet id (required; connect wallet first)
+ */
+export async function generateAgentDescription(agentName: string, anonymousId: string | null | undefined): Promise<string> {
+  if (!anonymousId || typeof anonymousId !== "string" || !anonymousId.trim()) {
+    throw new Error("Connect your agent wallet first. Description generation uses your wallet, not the system.");
+  }
+  const res = await fetch(`${base()}/generate-description`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getApiHeaders() },
+    body: JSON.stringify({ anonymousId: anonymousId.trim(), agentName: (agentName || "").trim() || "this agent" }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data as { error?: string })?.error || res.statusText || "Failed to generate description");
+  }
+  const raw = (data as { response?: string })?.response;
+  if (typeof raw !== "string" || !raw.trim()) return "";
+  let text = raw.trim();
+  if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+  return text;
+}
+
+/**
+ * Generate a unique agent image using Xona Grok Imagine (x402, paid from user's agent wallet).
+ * @see https://xona-agent.com/docs
+ */
+export async function generateAgentImage(
+  agentName: string,
+  agentDescription: string,
+  anonymousId: string | null | undefined
+): Promise<string> {
+  if (!anonymousId || typeof anonymousId !== "string" || !anonymousId.trim()) {
+    throw new Error("Connect your agent wallet first. Image generation uses your wallet (x402).");
+  }
+  const res = await fetch(`${base()}/generate-agent-image`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getApiHeaders() },
+    body: JSON.stringify({
+      anonymousId: anonymousId.trim(),
+      agentName: (agentName || "").trim() || "AI agent",
+      agentDescription: (agentDescription || "").trim(),
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data as { error?: string })?.error || res.statusText || "Failed to generate image");
+  }
+  const url = (data as { image_url?: string })?.image_url;
+  return typeof url === "string" && url.trim() ? url.trim() : "";
+}

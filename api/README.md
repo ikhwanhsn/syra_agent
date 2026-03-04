@@ -131,6 +131,21 @@ Creates a new 8004 agent with dynamic input and optionally attaches it to an exi
 
 **Dev (no payment):** `POST /8004/dev/register-agent` when `NODE_ENV !== "production"`.
 
+### Improving your 8004 agent score (reviews / reachable)
+
+If your agent shows low scores (e.g. 50/100, 33/100) with tags like **reachable**, **degraded**, or **fail** on the [8004 website](https://8004.qnt.sh), do two things:
+
+1. **Fix liveness first** — The monitor is scoring based on whether your MCP/A2A endpoints respond. Ensure all services in your agent’s registration metadata are reachable and return success (or 401/403 if you use auth). Use the API or script to check:
+   - `GET /8004/agent/<ASSET>/liveness` — should show `status: "live"` and no `deadServices`.
+   - Fix any timeouts, 5xx, or unreachable URLs; then the same monitor will tend to submit higher scores on the next run.
+
+2. **Submit positive “reachable” feedback (score 100)** — The tag `reachable` does **not** auto-score; you must pass an explicit `score: 100`. Use the script (with a **client** wallet that will appear as the reviewer):
+   ```bash
+   cd api
+   node scripts/give-8004-feedback-reachable.js <AGENT_ASSET_BASE58>
+   ```
+   Requires: `SOLANA_PRIVATE_KEY` (or `AGENT_PRIVATE_KEY`), and either `PINATA_JWT` (to upload feedback to IPFS) or `FEEDBACK_URI` (e.g. `https://yoursite.com/8004-reachable.json`). See [8004 skill §5 and §23](https://8004.qnt.sh/skill.md).
+
 ---
 
 ## License

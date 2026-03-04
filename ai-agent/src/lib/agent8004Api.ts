@@ -1,0 +1,197 @@
+/**
+ * 8004 Trustless Agent Registry API client for the AI agent marketplace.
+ * Uses /8004/dev/* in development to skip x402 payment; production uses /8004 with payment.
+ */
+import { getApiBaseUrl } from "./chatApi";
+
+const useDevRoutes = (): boolean => {
+  const v = import.meta.env?.VITE_8004_USE_DEV_ROUTES;
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0") return false;
+  return import.meta.env?.DEV === true;
+};
+
+function apiBase(): string {
+  const base = getApiBaseUrl();
+  const prefix = useDevRoutes() ? "/8004/dev" : "/8004";
+  return `${base}${prefix}`;
+}
+
+function getHeaders(): Record<string, string> {
+  const key = import.meta.env?.VITE_API_KEY as string | undefined;
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (key && typeof key === "string") h["X-API-Key"] = key;
+  return h;
+}
+
+async function handleRes<T>(res: Response): Promise<T> {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = (data as { error?: string })?.error || res.statusText || "Request failed";
+    throw new Error(msg);
+  }
+  return data as T;
+}
+
+export interface Agent8004SearchResult {
+  agents?: Array<{
+    asset?: string;
+    owner?: string;
+    agentWallet?: string;
+    agent_uri?: string;
+    [key: string]: unknown;
+  }>;
+  total?: number;
+}
+
+export interface Agent8004LeaderboardEntry {
+  asset?: string;
+  owner?: string;
+  tier?: number;
+  [key: string]: unknown;
+}
+
+export interface Agent8004Detail {
+  asset: string;
+  owner: string | null;
+  agentWallet: string | null;
+  agent_uri: string | null;
+  col_locked?: boolean | null;
+  parent_locked?: boolean | null;
+}
+
+export interface LivenessReport {
+  alive?: boolean;
+  mcp?: { reachable?: boolean; [key: string]: unknown };
+  a2a?: { reachable?: boolean; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+export interface IntegrityResult {
+  valid?: boolean;
+  [key: string]: unknown;
+}
+
+export interface RegisterAgentPayload {
+  name: string;
+  description: string;
+  image?: string;
+  services?: Array<{ type: string; value: string }>;
+  skills?: string[];
+  domains?: string[];
+  x402Support?: boolean;
+  /** Optional. If omitted and API has SYRA_COLLECTION_POINTER set, Syra collection is used. */
+  collectionPointer?: string;
+  /** When set, backend uses this user's Solana agent wallet to sign (agent owned by them, no browser popup). */
+  anonymousId?: string;
+  /** User wallet (base58). When set with agentAssetPubkey, API returns serialized tx for client to sign. */
+  feePayer?: string;
+  /** New agent mint pubkey (base58). Must be provided with feePayer for user-signed registration. */
+  agentAssetPubkey?: string;
+}
+
+/** Server-signed response (backend sends the tx). */
+export interface RegisterAgentResponse {
+  asset: string;
+  registerSignature: string;
+  tokenUri: string;
+  setCollectionSignature?: string;
+}
+
+/** Prepared transaction for client to sign (base64 serialized). */
+export interface PreparedTransaction {
+  transaction: string;
+  blockhash: string;
+  lastValidBlockHeight: number;
+  signer: string;
+}
+
+/** User-signed response (API returns serialized tx; client signs and submits). */
+export interface RegisterAgentResponseUserSigned {
+  asset: string;
+  tokenUri: string;
+  registerTransaction: PreparedTransaction;
+  setCollectionTransaction?: PreparedTransaction;
+}
+
+export const agent8004Api = {
+  /** Get Syra collection pointer (dev only). Use for listing agents in Syra collection. */
+  async getSyraCollectionPointer(): Promise<string | null> {
+    const res = await fetch(`${apiBase()}/syra-collection`, { method: "GET", headers: getHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return null;
+    return (data as { syraCollectionPointer?: string | null }).syraCollectionPointer ?? null;
+  },
+
+  /** List agents created by this user (from MongoDB). Used by "Your Agents" tab. Max 3 per user. */
+  async getMyAgents(anonymousId: string): Promise<{ agents: Array<{ asset: string; name: string; description?: string; image?: string | null; createdAt?: string }>; total: number }> {
+    const q = new URLSearchParams({ anonymousId });
+    const res = await fetch(`${apiBase()}/my-agents?${q}`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Search agents (optional collection = c1:... or collection address). */
+  async search(params: { collection?: string; owner?: string; creator?: string; limit?: number; offset?: number }): Promise<Agent8004SearchResult> {
+    const q = new URLSearchParams();
+    if (params.collection) q.set("collection", params.collection);
+    if (params.owner) q.set("owner", params.owner);
+    if (params.creator) q.set("creator", params.creator);
+    if (params.limit != null) q.set("limit", String(params.limit));
+    if (params.offset != null) q.set("offset", String(params.offset));
+    const res = await fetch(`${apiBase()}/agents/search?${q}`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Leaderboard (optional collection, minTier, limit). */
+  async leaderboard(params?: { collection?: string; minTier?: number; limit?: number }): Promise<{ entries?: Agent8004LeaderboardEntry[] }> {
+    const q = new URLSearchParams();
+    if (params?.collection) q.set("collection", params.collection);
+    if (params?.minTier != null) q.set("minTier", String(params.minTier));
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    const res = await fetch(`${apiBase()}/leaderboard?${q}`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Get single agent by asset (base58). */
+  async getAgent(asset: string): Promise<Agent8004Detail> {
+    const res = await fetch(`${apiBase()}/agent/${encodeURIComponent(asset)}`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Get agent registration metadata (name, description, image) from agent_uri for display. */
+  async getAgentRegistrationMetadata(asset: string): Promise<{ name: string | null; description: string | null; image: string | null }> {
+    const res = await fetch(`${apiBase()}/agent/${encodeURIComponent(asset)}/registration-metadata`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Liveness check for an agent. */
+  async liveness(asset: string, timeoutMs?: number): Promise<LivenessReport> {
+    const q = timeoutMs != null ? `?timeoutMs=${timeoutMs}` : "";
+    const res = await fetch(`${apiBase()}/agent/${encodeURIComponent(asset)}/liveness${q}`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Integrity check for an agent. */
+  async integrity(asset: string): Promise<IntegrityResult> {
+    const res = await fetch(`${apiBase()}/agent/${encodeURIComponent(asset)}/integrity`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Register a new agent and optionally attach to collection (e.g. Syra). Returns server-signed result or prepared tx for user to sign. */
+  async registerAgent(
+    payload: RegisterAgentPayload
+  ): Promise<RegisterAgentResponse | RegisterAgentResponseUserSigned> {
+    const res = await fetch(`${apiBase()}/register-agent`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleRes(res);
+  },
+
+  /** Global stats (total agents, etc.). */
+  async stats(): Promise<{ totalAgents?: number; [key: string]: unknown }> {
+    const res = await fetch(`${apiBase()}/stats`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+};
