@@ -849,6 +849,12 @@ router.post('/generate-agent-image', async (req, res) => {
     const prompt = desc
       ? `Professional avatar or logo for an AI agent named "${name}". ${desc} Style: clean, modern, suitable for a marketplace listing. No text in the image.`
       : `Professional avatar or logo for an AI agent named "${name}". Clean, modern, suitable for a marketplace listing. No text in the image.`;
+    if (!prompt || prompt.length > 4000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Prompt is required and must be under 4000 characters.',
+      });
+    }
     const result = await callX402V2WithAgent({
       anonymousId: anonymousId.trim(),
       url: XONA_GROK_IMAGINE_URL,
@@ -860,6 +866,9 @@ router.post('/generate-agent-image', async (req, res) => {
       let errMsg = result.error || 'Image generation failed';
       if (errMsg.includes('403') || errMsg.includes('blockchain') || errMsg.includes('not allowed to access')) {
         errMsg = 'Solana RPC blocked: set SOLANA_RPC_URL in API .env to an RPC that allows blockchain access (e.g. Helius, Triton, or Ankr paid). ' + errMsg;
+      }
+      if (errMsg.includes('Agent wallet not found')) {
+        return res.status(401).json({ success: false, error: errMsg });
       }
       return res.status(status).json({ success: false, error: errMsg });
     }

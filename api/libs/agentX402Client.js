@@ -211,24 +211,28 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
   const firstRes = await fetchFn(initialUrl, initOpts);
   const firstData = await firstRes.json().catch(() => ({}));
 
-  // Payment only happens when the API returns 402. If 200/other, we return data without paying (balance unchanged).
-  if (firstRes.status !== 402) {
+  // Success without payment (e.g. free tier or cached)
+  if (firstRes.ok) {
     return { success: true, data: firstData };
   }
-
-  const accepts = firstData?.accepts;
-  if (!accepts?.length) {
-    return { success: false, error: '402 response missing accepts array' };
+  // Payment required: proceed to pay and retry
+  if (firstRes.status === 402) {
+    const accepts = firstData?.accepts;
+    if (!accepts?.length) {
+      return { success: false, error: '402 response missing accepts array' };
+    }
+    return pay402AndRetry(keypair, {
+      url: initialUrl,
+      method,
+      body,
+      accepts,
+      x402Version: firstData.x402Version ?? 2,
+      connectedWalletAddress,
+    }, fetchFn);
   }
-
-  return pay402AndRetry(keypair, {
-    url: initialUrl,
-    method,
-    body,
-    accepts,
-    x402Version: firstData.x402Version ?? 2,
-    connectedWalletAddress,
-  }, fetchFn);
+  // Upstream returned 4xx/5xx (e.g. Xona 400 Bad Request) – surface error to caller
+  const errMsg = firstData?.error || firstData?.message || firstRes.statusText || `Request failed: ${firstRes.status}`;
+  return { success: false, error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg) };
 }
 
 /**
