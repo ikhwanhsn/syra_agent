@@ -143,8 +143,25 @@ export async function create8004Router() {
     const agents = Array.isArray(list) ? list : [];
     return { agents, total: agents.length };
   };
-  router.get("/agents/search", ...withPayment(searchHandler, "GET"));
-  router.post("/agents/search", ...withPayment(searchHandler, "POST"));
+  // Agents search is free so the Syra marketplace can load "All Agents" without 402
+  router.get("/agents/search", async (req, res, next) => {
+    try {
+      const data = await searchHandler(req);
+      if (!res.headersSent) res.json(data);
+    } catch (e) {
+      if (!res.headersSent) res.status(e.status ?? 400).json({ error: e.message });
+      else next(e);
+    }
+  });
+  router.post("/agents/search", async (req, res, next) => {
+    try {
+      const data = await searchHandler(req);
+      if (!res.headersSent) res.json(data);
+    } catch (e) {
+      if (!res.headersSent) res.status(e.status ?? 400).json({ error: e.message });
+      else next(e);
+    }
+  });
   router.get("/dev/agents/search", devOnly(searchHandler));
   router.post("/dev/agents/search", devOnly(searchHandler));
 
