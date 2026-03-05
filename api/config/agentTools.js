@@ -15,6 +15,7 @@ import {
   X402_API_PRICE_EXA_SEARCH_USD,
   X402_API_PRICE_COINMARKETCAP_USD,
   X402_API_PRICE_8004_USD,
+  X402_API_PRICE_8004SCAN_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -29,6 +30,7 @@ import {
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
   X402_DISPLAY_PRICE_COINMARKETCAP_USD,
   X402_DISPLAY_PRICE_8004_USD,
+  X402_DISPLAY_PRICE_8004SCAN_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -148,6 +150,70 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_8004_USD,
     name: '8004 search agents',
     description: '8004 search agents by owner, creator, collection (optional limit, offset)',
+  },
+  // 8004scan.io Public API (ERC-8004 agent discovery; 8004scan.io)
+  {
+    id: '8004scan-stats',
+    path: '/8004scan/stats',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan platform stats',
+    description: '8004scan.io platform statistics: total agents, users, feedbacks, validations',
+  },
+  {
+    id: '8004scan-chains',
+    path: '/8004scan/chains',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan supported chains',
+    description: '8004scan.io list of supported blockchain networks',
+  },
+  {
+    id: '8004scan-agents',
+    path: '/8004scan/agents',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan list agents',
+    description: '8004scan.io paginated list of ERC-8004 agents (optional page, limit, chainId, ownerAddress, search, protocol, sortBy, sortOrder)',
+  },
+  {
+    id: '8004scan-agents-search',
+    path: '/8004scan/agents/search',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan semantic search agents',
+    description: '8004scan.io semantic search for agents by query (q required; optional limit, chainId, semanticWeight)',
+  },
+  {
+    id: '8004scan-agent',
+    path: '/8004scan/agent',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan get agent by ID',
+    description: '8004scan.io get a single agent by chainId and tokenId (chainId and tokenId required)',
+  },
+  {
+    id: '8004scan-account-agents',
+    path: '/8004scan/account-agents',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan agents by owner',
+    description: '8004scan.io list agents owned by an address (address required; optional page, limit, sortBy, sortOrder)',
+  },
+  {
+    id: '8004scan-feedbacks',
+    path: '/8004scan/feedbacks',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_8004SCAN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_8004SCAN_USD,
+    name: '8004scan list feedbacks',
+    description: '8004scan.io paginated agent feedbacks (optional page, limit, chainId, tokenId, minScore, maxScore)',
   },
   // Partner: Nansen
   {
@@ -610,6 +676,42 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /dexscreener|dex\s*screener|dex\s*data|dex\s*screen/i.test(text),
     },
+    // 8004scan.io Public API (ERC-8004 discovery)
+    {
+      toolId: '8004scan-stats',
+      test: () =>
+        /8004scan\s*stats|8004scan\.io\s*stats|platform\s*stats\s*8004scan|erc-8004\s*stats/i.test(text),
+    },
+    {
+      toolId: '8004scan-chains',
+      test: () =>
+        /8004scan\s*chains|8004scan\.io\s*chains|supported\s*chains\s*8004scan|8004\s*supported\s*chains/i.test(text),
+    },
+    {
+      toolId: '8004scan-agents',
+      test: () =>
+        /8004scan\s*agents?|8004scan\.io\s*list\s*agents?|list\s*(?:erc-8004\s*)?agents?\s*(?:on\s*8004scan)?|8004scan\s*list/i.test(text),
+    },
+    {
+      toolId: '8004scan-agents-search',
+      test: () =>
+        /8004scan\s*search|search\s*(?:agents?|erc-8004)\s*(?:on\s*)?8004scan|8004scan\.io\s*search|semantic\s*search\s*agents?/i.test(text),
+    },
+    {
+      toolId: '8004scan-agent',
+      test: () =>
+        /8004scan\s*agent\s*(?:by\s*)?id|get\s*agent\s*(?:on\s*)?8004scan|8004scan\s*get\s*agent|agent\s*by\s*chainId\s*tokenId/i.test(text),
+    },
+    {
+      toolId: '8004scan-account-agents',
+      test: () =>
+        /8004scan\s*agents?\s*by\s*owner|8004scan\s*account\s*agents?|agents?\s*owned\s*by\s*(?:address|wallet)|8004scan\.io\s*owner/i.test(text),
+    },
+    {
+      toolId: '8004scan-feedbacks',
+      test: () =>
+        /8004scan\s*feedbacks?|8004scan\.io\s*feedbacks?|agent\s*feedbacks?\s*8004scan|8004\s*feedback/i.test(text),
+    },
     // Partner: CoinMarketCap x402
     {
       toolId: 'coinmarketcap',
@@ -717,6 +819,7 @@ export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
+  const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
@@ -732,6 +835,7 @@ export function getCapabilitiesList() {
 
   lines.push('Core:', ...fmt(core), '');
   lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun):', ...fmt(partner), '');
+  lines.push('8004scan.io (ERC-8004 agent discovery):', ...fmt(eight004scan), '');
   if (nansenX402.length) {
     lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
   }
@@ -773,6 +877,15 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'coinmarketcap') {
       out.paramsHint = 'Params: endpoint (quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp); optional id, slug, symbol, start, limit, convert, q, chain_id, pair_address';
+    }
+    if (t.id === '8004scan-agents-search') {
+      out.paramsHint = 'Params: q (required) – search query for semantic agent search; optional limit, chainId, semanticWeight';
+    }
+    if (t.id === '8004scan-agent') {
+      out.paramsHint = 'Params: chainId (required), tokenId (required) – blockchain chain ID and agent token ID';
+    }
+    if (t.id === '8004scan-account-agents') {
+      out.paramsHint = 'Params: address (required) – owner wallet address (EVM 0x...); optional page, limit, sortBy, sortOrder';
     }
     if (t.id === 'token-god-mode') {
       out.paramsHint = 'Params: tokenAddress (Solana token contract address, required)';

@@ -56,6 +56,7 @@ import dotenv from "dotenv";
 import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
+import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
 import connectMongoose from "./config/mongoose.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -176,6 +177,7 @@ function isX402Route(p) {
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
   if (p.startsWith("/coinmarketcap")) return true;
   if (p.startsWith("/8004")) return true;
+  if (p.startsWith("/8004scan")) return true;
   return false;
 }
 
@@ -546,6 +548,8 @@ app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 
 // 8004 Trustless Agent Registry (read-only: liveness, integrity, discovery, introspection)
 app.use("/8004", await create8004Router());
+// 8004scan.io Public API proxy (x402) – agents, stats, search, feedbacks, chains
+app.use("/8004scan", await create8004scanRouter());
 
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
@@ -607,6 +611,8 @@ app.get("/.well-known/x402", (req, res) => {
     "analytics/summary",
     // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)
     "8004",
+    // 8004scan.io Public API (x402)
+    "8004scan",
   ];
 
   const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);

@@ -25,6 +25,7 @@ const PRICE = {
   analyticsSummary: 0.01,
   jupiterSwap: 0.02,
   "8004": 0.01,
+  "8004scan": 0.01,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -148,6 +149,63 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     priceUsd: PRICE["8004"],
     examplePrompt: "Search 8004 agents / Find agents by owner",
     category: "core",
+  },
+  // 8004scan.io Public API (ERC-8004 agent discovery)
+  {
+    id: "8004scan-stats",
+    name: "8004scan platform stats",
+    description: "8004scan.io platform statistics: total agents, users, feedbacks, validations.",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "8004scan stats / ERC-8004 platform statistics",
+    category: "partner",
+  },
+  {
+    id: "8004scan-chains",
+    name: "8004scan supported chains",
+    description: "8004scan.io list of supported blockchain networks.",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "8004scan chains / Which chains does 8004scan support?",
+    category: "partner",
+  },
+  {
+    id: "8004scan-agents",
+    name: "8004scan list agents",
+    description: "8004scan.io paginated list of ERC-8004 agents (optional filters).",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "List agents on 8004scan / 8004scan agents",
+    category: "partner",
+  },
+  {
+    id: "8004scan-agents-search",
+    name: "8004scan semantic search agents",
+    description: "8004scan.io semantic search for agents by query (q required).",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "Search 8004scan for code review assistant / 8004scan semantic search",
+    category: "partner",
+  },
+  {
+    id: "8004scan-agent",
+    name: "8004scan get agent by ID",
+    description: "8004scan.io get a single agent by chainId and tokenId.",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "Get agent by ID on 8004scan / 8004scan agent chainId 1 tokenId 123",
+    category: "partner",
+  },
+  {
+    id: "8004scan-account-agents",
+    name: "8004scan agents by owner",
+    description: "8004scan.io list agents owned by an address (address required).",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "8004scan agents by owner 0x... / Agents owned by wallet",
+    category: "partner",
+  },
+  {
+    id: "8004scan-feedbacks",
+    name: "8004scan list feedbacks",
+    description: "8004scan.io paginated agent feedbacks (optional filters).",
+    priceUsd: PRICE["8004scan"],
+    examplePrompt: "8004scan feedbacks / Agent feedback list",
+    category: "partner",
   },
   // Partner: Nansen (aggregate routes + per-endpoint; agent calls real Nansen API at api.nansen.ai)
   {
