@@ -1,11 +1,9 @@
 /**
- * 8004 Trustless Agent Registry (Solana) – read-only API (x402) + write (register-agent, x402).
+ * 8004 Trustless Agent Registry (Solana) – API key protected (no x402).
  * Liveness, integrity, discovery, introspection. Uses libs/agentRegistry8004.js.
- * POST /register-agent creates a new agent and optionally attaches to a collection (x402 payment required).
+ * All /8004 routes require X-API-Key (or Authorization: Bearer) when API_KEY/API_KEYS is set in env.
  */
 import express from "express";
-import { getV2Payment } from "../utils/getV2Payment.js";
-import { X402_API_PRICE_8004_USD, X402_API_PRICE_8004_REGISTER_AGENT_USD } from "../config/x402Pricing.js";
 import {
   getLiveness,
   getIntegrity,
@@ -24,28 +22,86 @@ import {
   getProgramIds,
   getBaseCollection,
   getAgentRegistrationMetadata,
+  getRegistrationMetadataFromUri,
 } from "../libs/agentRegistry8004.js";
 import { registerAgentAndAttachToCollection } from "../libs/register8004Agent.js";
-import { getSolanaAgentKeypair } from "../libs/agentWallet.js";
+import { getSolanaAgentKeypair, getAgentBalances } from "../libs/agentWallet.js";
 import User8004Agent, { MAX_AGENTS_PER_USER } from "../models/agent/User8004Agent.js";
 import pLimit from "p-limit";
 
-const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+/**
+ * Perform 8004 agent registration (same logic as POST /8004/register-agent).
+ * Used by the marketplace route so it can call in-process and avoid BASE_URL/self-fetch issues.
+ * @param {object} body - Request body (name, description, image, services, skills, domains, anonymousId, etc.)
+ * @returns {Promise<{ asset: string; registerSignature?: string; tokenUri: string; ... }>}
+ * @throws Error with .status (400, etc.)
+ */
+const MIN_SOL_FOR_REGISTRATION = 0.01;
+
+export async function performRegisterAgent(body) {
+  const anonymousId = body?.anonymousId && String(body.anonymousId).trim() ? body.anonymousId.trim() : null;
+  if (!anonymousId) {
+    const err = new Error("anonymousId is required to create an agent (max 3 per user).");
+    err.status = 400;
+    throw err;
+  }
+  const signerKeypair = await getSolanaAgentKeypair(anonymousId);
+  if (!signerKeypair) {
+    const err = new Error(
+      "Solana agent wallet required. Create or connect your agent wallet on Solana first (e.g. in chat)."
+    );
+    err.status = 400;
+    throw err;
+  }
+  const balances = await getAgentBalances(anonymousId);
+  const solBalance = balances?.solBalance ?? 0;
+  if (solBalance < MIN_SOL_FOR_REGISTRATION) {
+    const err = new Error(
+      `Top up your agent wallet first. Registration requires at least ${MIN_SOL_FOR_REGISTRATION} SOL; your balance is ${solBalance.toFixed(4)} SOL. Send SOL to: ${balances?.agentAddress ?? "your agent wallet"}.`
+    );
+    err.status = 400;
+    err.code = "INSUFFICIENT_SOL";
+    throw err;
+  }
+  const count = await User8004Agent.countDocuments({ anonymousId });
+  if (count >= MAX_AGENTS_PER_USER) {
+    const err = new Error(`Maximum ${MAX_AGENTS_PER_USER} agents per user. You have ${count}.`);
+    err.status = 400;
+    throw err;
+  }
+  const result = await registerAgentAndAttachToCollection({
+    name: body.name,
+    description: body.description,
+    image: body.image,
+    services: body.services,
+    skills: body.skills,
+    domains: body.domains,
+    x402Support: body.x402Support,
+    collectionPointer: body.collectionPointer,
+    feePayer: body.feePayer,
+    agentAssetPubkey: body.agentAssetPubkey,
+    signerKeypair,
+  });
+  if (result && result.asset) {
+    const name = (body.name && String(body.name).trim()) || "8004 Agent";
+    const description = (body.description && String(body.description).trim()) || "";
+    const image =
+      (body.image && String(body.image).trim()) ||
+      process.env.SYRA_AGENT_IMAGE_URI ||
+      "https://syraa.fun/images/logo.jpg";
+    await User8004Agent.create({
+      anonymousId,
+      asset: result.asset,
+      name,
+      description,
+      image,
+    });
+  }
+  return result;
+}
 
 /** Concurrency limit when enriching agent list with registration metadata (name). */
 const REGISTRATION_METADATA_LIMIT = pLimit(6);
-
-const PAYMENT_OPTIONS_BASE = {
-  price: X402_API_PRICE_8004_USD,
-  description:
-    "8004 Trustless Agent Registry: liveness, integrity, discovery, introspection (Solana)",
-  discoverable: true,
-  resource: "/8004",
-  outputSchema: {
-    type: "object",
-    description: "Response varies by endpoint (liveness report, integrity, agents, stats, etc.)",
-  },
-};
 
 /** Merge query and body so GET and POST can pass params (POST body overrides for overlapping keys). */
 function params(req) {
@@ -53,31 +109,9 @@ function params(req) {
   return { ...req.query, ...body };
 }
 
-function withPayment(handler, method = "GET") {
-  const paymentOptions = { ...PAYMENT_OPTIONS_BASE, method };
-  return [
-    requirePayment(paymentOptions),
-    async (req, res, next) => {
-      try {
-        const data = await handler(req, res);
-        if (res.headersSent) return;
-        await settlePaymentAndSetResponse(res, req);
-        res.json(data);
-      } catch (e) {
-        if (!res.headersSent) {
-          const status = e.status ?? 400;
-          res.status(status).json({ error: e.message });
-        } else next(e);
-      }
-    },
-  ];
-}
-
-function devOnly(handler) {
-  return async (req, res) => {
-    if (process.env.NODE_ENV === "production") {
-      return res.status(404).json({ error: "Not found" });
-    }
+/** Run handler and send JSON; 8004 uses API key auth at app level, no x402. */
+function withHandler(handler) {
+  return async (req, res, next) => {
     try {
       const data = await handler(req, res);
       if (res.headersSent) return;
@@ -86,7 +120,7 @@ function devOnly(handler) {
       if (!res.headersSent) {
         const status = e.status ?? 400;
         res.status(status).json({ error: e.message });
-      }
+      } else next(e);
     }
   };
 }
@@ -101,46 +135,50 @@ export async function create8004Router() {
       timeoutMs: q.timeoutMs ? Number(q.timeoutMs) : undefined,
     });
   };
-  router.get("/agent/:asset/liveness", ...withPayment(livenessHandler, "GET"));
-  router.post("/agent/:asset/liveness", ...withPayment(livenessHandler, "POST"));
-  router.get("/dev/agent/:asset/liveness", devOnly(async (req) => getLiveness(req.params.asset, {})));
-  router.post("/dev/agent/:asset/liveness", devOnly(async (req) => getLiveness(req.params.asset, {})));
+  router.get("/agent/:asset/liveness", withHandler(livenessHandler));
+  router.post("/agent/:asset/liveness", withHandler(livenessHandler));
 
   const integrityHandler = async (req) => getIntegrity(req.params.asset);
-  router.get("/agent/:asset/integrity", ...withPayment(integrityHandler, "GET"));
-  router.post("/agent/:asset/integrity", ...withPayment(integrityHandler, "POST"));
-  router.get("/dev/agent/:asset/integrity", devOnly(integrityHandler));
-  router.post("/dev/agent/:asset/integrity", devOnly(integrityHandler));
+  router.get("/agent/:asset/integrity", withHandler(integrityHandler));
+  router.post("/agent/:asset/integrity", withHandler(integrityHandler));
 
   const integrityDeepHandler = async (req) => {
     const q = params(req);
     const spotChecks = q.spotChecks ? Number(q.spotChecks) : 5;
     return getIntegrityDeep(req.params.asset, { spotChecks });
   };
-  router.get("/agent/:asset/integrity/deep", ...withPayment(integrityDeepHandler, "GET"));
-  router.post("/agent/:asset/integrity/deep", ...withPayment(integrityDeepHandler, "POST"));
-  router.get("/dev/agent/:asset/integrity/deep", devOnly(integrityDeepHandler));
-  router.post("/dev/agent/:asset/integrity/deep", devOnly(integrityDeepHandler));
+  router.get("/agent/:asset/integrity/deep", withHandler(integrityDeepHandler));
+  router.post("/agent/:asset/integrity/deep", withHandler(integrityDeepHandler));
 
   const integrityFullHandler = async (req) => getIntegrityFull(req.params.asset);
-  router.get("/agent/:asset/integrity/full", ...withPayment(integrityFullHandler, "GET"));
-  router.post("/agent/:asset/integrity/full", ...withPayment(integrityFullHandler, "POST"));
-  router.get("/dev/agent/:asset/integrity/full", devOnly(integrityFullHandler));
-  router.post("/dev/agent/:asset/integrity/full", devOnly(integrityFullHandler));
+  router.get("/agent/:asset/integrity/full", withHandler(integrityFullHandler));
+  router.post("/agent/:asset/integrity/full", withHandler(integrityFullHandler));
 
   // --- Discovery & search ---
-  /** Enrich agent list with name from registration metadata (agent_uri/IPFS). Indexer often returns nft_name: null; this fixes local vs production name display. */
+  /** Enrich agent list with name from registration metadata. Prefer indexer agent_uri + IPFS (no RPC) so names show even when RPC returns 403; fall back to getAgentRegistrationMetadata (RPC) when agent_uri is missing. See 8004-solana skill §11 Search. */
   async function enrichAgentsWithRegistrationNames(agents) {
     if (!Array.isArray(agents) || agents.length === 0) return agents;
     const results = await Promise.all(
       agents.map((a) => {
         const asset = typeof a?.asset === "string" ? a.asset.trim() : "";
+        const agentUri = typeof a?.agent_uri === "string" ? a.agent_uri.trim() : null;
         if (!asset) return { ...a };
         return REGISTRATION_METADATA_LIMIT(async () => {
           try {
-            const meta = await getAgentRegistrationMetadata(asset);
-            const name = meta?.name?.trim() || null;
-            return name ? { ...a, nft_name: name } : { ...a };
+            const meta = agentUri
+              ? await getRegistrationMetadataFromUri(agentUri)
+              : await getAgentRegistrationMetadata(asset);
+            const name =
+              meta?.name?.trim() ||
+              (typeof a?.nft_name === "string" ? a.nft_name.trim() : null) ||
+              (typeof a?.name === "string" ? a.name.trim() : null) ||
+              null;
+            const description = meta?.description?.trim() || null;
+            const image = meta?.image?.trim() || null;
+            if (name || description || image) {
+              return { ...a, nft_name: name || a.nft_name, description: description ?? a.description, image: image ?? a.image };
+            }
+            return { ...a };
           } catch {
             return { ...a };
           }
@@ -188,9 +226,6 @@ export async function create8004Router() {
       else next(e);
     }
   });
-  router.get("/dev/agents/search", devOnly(searchHandler));
-  router.post("/dev/agents/search", devOnly(searchHandler));
-
   const leaderboardHandler = async (req) => {
     const q = params(req);
     return getLeaderboard({
@@ -199,43 +234,79 @@ export async function create8004Router() {
       collection: q.collection || undefined,
     });
   };
-  router.get("/leaderboard", ...withPayment(leaderboardHandler, "GET"));
-  router.post("/leaderboard", ...withPayment(leaderboardHandler, "POST"));
-  router.get("/dev/leaderboard", devOnly(leaderboardHandler));
-  router.post("/dev/leaderboard", devOnly(leaderboardHandler));
+  router.get("/leaderboard", withHandler(leaderboardHandler));
+  router.post("/leaderboard", withHandler(leaderboardHandler));
 
   const statsHandler = async () => getGlobalStats();
-  router.get("/stats", ...withPayment(statsHandler, "GET"));
-  router.post("/stats", ...withPayment(statsHandler, "POST"));
-  router.get("/dev/stats", devOnly(statsHandler));
-  router.post("/dev/stats", devOnly(statsHandler));
+  router.get("/stats", withHandler(statsHandler));
+  router.post("/stats", withHandler(statsHandler));
 
   const agentByWalletHandler = async (req) => getAgentByWallet(req.params.wallet);
-  router.get("/agent-by-wallet/:wallet", ...withPayment(agentByWalletHandler, "GET"));
-  router.post("/agent-by-wallet/:wallet", ...withPayment(agentByWalletHandler, "POST"));
-  router.get("/dev/agent-by-wallet/:wallet", devOnly(agentByWalletHandler));
-  router.post("/dev/agent-by-wallet/:wallet", devOnly(agentByWalletHandler));
+  router.get("/agent-by-wallet/:wallet", withHandler(agentByWalletHandler));
+  router.post("/agent-by-wallet/:wallet", withHandler(agentByWalletHandler));
 
   // --- Read-only / introspection ---
   const loadAgentHandler = async (req) => {
-    const agent = await loadAgent(req.params.asset);
-    if (agent == null) {
-      const err = new Error("Agent not found");
+    try {
+      const agent = await loadAgent(req.params.asset);
+      if (agent == null) {
+        const err = new Error("Agent not found");
+        err.status = 404;
+        throw err;
+      }
+      return agent;
+    } catch (e) {
+      // When RPC blocks getAccountInfo (e.g. 403), return partial data so the UI does not show an error toast
+      const msg = e?.message || String(e);
+      const isRpcRestricted =
+        msg.includes("403") ||
+        /not allowed to access blockchain|get info about account|getAccountInfo/i.test(msg);
+      if (isRpcRestricted) {
+        return {
+          asset: req.params.asset,
+          owner: null,
+          agentWallet: null,
+          agent_uri: null,
+          col_locked: null,
+          parent_locked: null,
+          _rpcUnavailable: true,
+        };
+      }
+      throw e;
+    }
+  };
+  /** Resolve 8004market token ID for an asset (so frontend can build .../agent/solana/mainnet-beta/{tokenId}). */
+  const eight004MarketUrlHandler = async (req) => {
+    const asset = req.params.asset && String(req.params.asset).trim();
+    if (!asset) {
+      const err = new Error("asset is required");
+      err.status = 400;
+      throw err;
+    }
+    const collectionPointer =
+      process.env.SYRA_COLLECTION_POINTER?.trim() ||
+      "c1:bafkreid3g6kogo55n5iob7pi36xppcycynn7m64pds7wshnankxjo52mfm";
+    const list = await searchAgents({ collectionPointer, limit: 500 });
+    const agents = Array.isArray(list) ? list : [];
+    const found = agents.find((a) => (a?.asset && String(a.asset).trim()) === asset);
+    if (!found || !found.agent_id) {
+      const err = new Error("Agent not found in 8004 index or no token ID");
       err.status = 404;
       throw err;
     }
-    return agent;
+    const tokenId = String(found.agent_id).trim();
+    const url = `https://8004market.io/agent/solana/mainnet-beta/${encodeURIComponent(tokenId)}`;
+    return { tokenId, url };
   };
-  router.get("/agent/:asset", ...withPayment(loadAgentHandler, "GET"));
-  router.post("/agent/:asset", ...withPayment(loadAgentHandler, "POST"));
-  router.get("/dev/agent/:asset", devOnly(loadAgentHandler));
-  router.post("/dev/agent/:asset", devOnly(loadAgentHandler));
+  router.get("/agent/:asset/8004market-url", withHandler(eight004MarketUrlHandler));
+  router.post("/agent/:asset/8004market-url", withHandler(eight004MarketUrlHandler));
+
+  router.get("/agent/:asset", withHandler(loadAgentHandler));
+  router.post("/agent/:asset", withHandler(loadAgentHandler));
 
   const existsHandler = async (req) => ({ exists: await agentExists(req.params.asset) });
-  router.get("/agent/:asset/exists", ...withPayment(existsHandler, "GET"));
-  router.post("/agent/:asset/exists", ...withPayment(existsHandler, "POST"));
-  router.get("/dev/agent/:asset/exists", devOnly(existsHandler));
-  router.post("/dev/agent/:asset/exists", devOnly(existsHandler));
+  router.get("/agent/:asset/exists", withHandler(existsHandler));
+  router.post("/agent/:asset/exists", withHandler(existsHandler));
 
   const ownerHandler = async (req) => {
     const owner = await getAgentOwner(req.params.asset);
@@ -246,10 +317,8 @@ export async function create8004Router() {
     }
     return { owner };
   };
-  router.get("/agent/:asset/owner", ...withPayment(ownerHandler, "GET"));
-  router.post("/agent/:asset/owner", ...withPayment(ownerHandler, "POST"));
-  router.get("/dev/agent/:asset/owner", devOnly(ownerHandler));
-  router.post("/dev/agent/:asset/owner", devOnly(ownerHandler));
+  router.get("/agent/:asset/owner", withHandler(ownerHandler));
+  router.post("/agent/:asset/owner", withHandler(ownerHandler));
 
   const metadataHandler = async (req) => {
     const value = await getMetadata(req.params.asset, req.params.key);
@@ -260,10 +329,8 @@ export async function create8004Router() {
     }
     return { key: req.params.key, value };
   };
-  router.get("/agent/:asset/metadata/:key", ...withPayment(metadataHandler, "GET"));
-  router.post("/agent/:asset/metadata/:key", ...withPayment(metadataHandler, "POST"));
-  router.get("/dev/agent/:asset/metadata/:key", devOnly(metadataHandler));
-  router.post("/dev/agent/:asset/metadata/:key", devOnly(metadataHandler));
+  router.get("/agent/:asset/metadata/:key", withHandler(metadataHandler));
+  router.post("/agent/:asset/metadata/:key", withHandler(metadataHandler));
 
   /** Always returns { name, description, image } (nulls when unavailable). Same shape in local and production so success/failure behavior is identical. */
   const registrationMetadataHandler = async (req) => {
@@ -280,32 +347,23 @@ export async function create8004Router() {
       else next(e);
     }
   });
-  router.get("/dev/agent/:asset/registration-metadata", devOnly(registrationMetadataHandler));
 
   const byOwnerHandler = async (req) => getAgentsByOwner(req.params.owner);
-  router.get("/agents/by-owner/:owner", ...withPayment(byOwnerHandler, "GET"));
-  router.post("/agents/by-owner/:owner", ...withPayment(byOwnerHandler, "POST"));
-  router.get("/dev/agents/by-owner/:owner", devOnly(byOwnerHandler));
-  router.post("/dev/agents/by-owner/:owner", devOnly(byOwnerHandler));
+  router.get("/agents/by-owner/:owner", withHandler(byOwnerHandler));
+  router.post("/agents/by-owner/:owner", withHandler(byOwnerHandler));
 
   // --- SDK introspection ---
   const chainIdHandler = async () => ({ chainId: await getChainId() });
-  router.get("/chain-id", ...withPayment(chainIdHandler, "GET"));
-  router.post("/chain-id", ...withPayment(chainIdHandler, "POST"));
-  router.get("/dev/chain-id", devOnly(chainIdHandler));
-  router.post("/dev/chain-id", devOnly(chainIdHandler));
+  router.get("/chain-id", withHandler(chainIdHandler));
+  router.post("/chain-id", withHandler(chainIdHandler));
 
   const programIdsHandler = async () => getProgramIds();
-  router.get("/program-ids", ...withPayment(programIdsHandler, "GET"));
-  router.post("/program-ids", ...withPayment(programIdsHandler, "POST"));
-  router.get("/dev/program-ids", devOnly(programIdsHandler));
-  router.post("/dev/program-ids", devOnly(programIdsHandler));
+  router.get("/program-ids", withHandler(programIdsHandler));
+  router.post("/program-ids", withHandler(programIdsHandler));
 
   const baseCollectionHandler = async () => ({ baseCollection: await getBaseCollection() });
-  router.get("/base-collection", ...withPayment(baseCollectionHandler, "GET"));
-  router.post("/base-collection", ...withPayment(baseCollectionHandler, "POST"));
-  router.get("/dev/base-collection", devOnly(baseCollectionHandler));
-  router.post("/dev/base-collection", devOnly(baseCollectionHandler));
+  router.get("/base-collection", withHandler(baseCollectionHandler));
+  router.post("/base-collection", withHandler(baseCollectionHandler));
 
   // Syra collection pointer (for marketplace UI: list agents in same collection as script; create uses backend env).
   const syraCollectionHandler = async () => ({
@@ -318,11 +376,18 @@ export async function create8004Router() {
       res.json(data);
     } catch (e) {
       if (!res.headersSent) res.status(e.status ?? 400).json({ error: e.message });
+      else       next(e);
+    }
+  });
+  router.post("/syra-collection", async (req, res, next) => {
+    try {
+      const data = await syraCollectionHandler();
+      res.json(data);
+    } catch (e) {
+      if (!res.headersSent) res.status(e.status ?? 400).json({ error: e.message });
       else next(e);
     }
   });
-  router.get("/dev/syra-collection", devOnly(syraCollectionHandler));
-  router.post("/dev/syra-collection", devOnly(syraCollectionHandler));
 
   // --- My agents (from MongoDB; used by "Your Agents" tab) ---
   const myAgentsHandler = async (req) => {
@@ -347,95 +412,28 @@ export async function create8004Router() {
       else next(e);
     }
   });
-  router.get("/dev/my-agents", devOnly(myAgentsHandler));
 
   // --- Write: register new agent and optionally attach to collection (x402 payment required) ---
   const registerAgentHandler = async (req) => {
     const body = req.body && typeof req.body === "object" ? req.body : {};
-    const anonymousId = body.anonymousId && String(body.anonymousId).trim() ? body.anonymousId.trim() : null;
-    if (!anonymousId) {
-      const err = new Error("anonymousId is required to create an agent (max 3 per user).");
-      err.status = 400;
-      throw err;
-    }
-    const signerKeypair = await getSolanaAgentKeypair(anonymousId);
-
-    // Enforce max 3 agents per user and save to DB for "Your Agents"
-    const count = await User8004Agent.countDocuments({ anonymousId });
-    if (count >= MAX_AGENTS_PER_USER) {
-      const err = new Error(`Maximum ${MAX_AGENTS_PER_USER} agents per user. You have ${count}.`);
-      err.status = 400;
-      throw err;
-    }
-
-    const result = await registerAgentAndAttachToCollection({
-      name: body.name,
-      description: body.description,
-      image: body.image,
-      services: body.services,
-      skills: body.skills,
-      domains: body.domains,
-      x402Support: body.x402Support,
-      collectionPointer: body.collectionPointer,
-      feePayer: body.feePayer,
-      agentAssetPubkey: body.agentAssetPubkey,
-      signerKeypair: signerKeypair || undefined,
-    });
-
-    // Save to DB for "Your Agents" (so list is reliable and not dependent on 8004 indexer)
-    if (result && result.asset) {
-      const name = (body.name && String(body.name).trim()) || "8004 Agent";
-      const description = (body.description && String(body.description).trim()) || "";
-      // Use same effective image as registration so card displays correctly (default when user omitted image)
-      const image =
-        (body.image && String(body.image).trim()) ||
-        process.env.SYRA_AGENT_IMAGE_URI ||
-        "https://syraa.fun/images/logo.jpg";
-      await User8004Agent.create({
-        anonymousId,
-        asset: result.asset,
-        name,
-        description,
-        image,
-      });
-    }
-
-    return result;
+    return performRegisterAgent(body);
   };
-  const registerAgentPaymentOptions = {
-    price: X402_API_PRICE_8004_REGISTER_AGENT_USD,
-    description: "8004 register-agent: create a new agent and optionally attach to a collection (Solana)",
-    discoverable: true,
-    resource: "/8004/register-agent",
-    method: "POST",
-    outputSchema: {
-      type: "object",
-      description: "Created agent asset, register tx signature, tokenUri, and optional setCollectionSignature",
-      properties: {
-        asset: { type: "string", description: "Agent NFT address (base58)" },
-        registerSignature: { type: "string", description: "Registration transaction signature" },
-        tokenUri: { type: "string", description: "Agent metadata URI (ipfs://...)" },
-        setCollectionSignature: { type: "string", description: "Set collection pointer tx (if collectionPointer was provided)" },
-      },
-    },
-  };
-  router.post(
-    "/register-agent",
-    requirePayment(registerAgentPaymentOptions),
-    async (req, res, next) => {
-      try {
-        const data = await registerAgentHandler(req);
-        if (res.headersSent) return;
-        await settlePaymentAndSetResponse(res, req);
-        res.status(201).json(data);
-      } catch (e) {
-        if (!res.headersSent) {
-          res.status(e.status ?? 400).json({ error: e.message ?? String(e) });
-        } else next(e);
-      }
+  router.post("/register-agent", async (req, res, next) => {
+    try {
+      const data = await registerAgentHandler(req);
+      if (res.headersSent) return;
+      res.status(201).json(data);
+    } catch (e) {
+      if (!res.headersSent) {
+        let msg = e.message ?? String(e);
+        if (/Root config not initialized|Registry not initialized|initialize the registry first/i.test(msg)) {
+          msg =
+            "Solana RPC cannot read the 8004 registry (getAccountInfo is blocked). In API .env set SOLANA_RPC_URL to an RPC that allows blockchain access (e.g. https://rpc.ankr.com/solana or Helius).";
+        }
+        res.status(e.status ?? 400).json({ error: msg });
+      } else next(e);
     }
-  );
-  router.post("/dev/register-agent", devOnly(registerAgentHandler));
+  });
 
   return router;
 }

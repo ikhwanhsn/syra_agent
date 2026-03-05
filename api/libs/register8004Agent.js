@@ -119,7 +119,7 @@ export async function registerAgentAndAttachToCollection(input) {
   });
 
   const cluster = process.env.SOLANA_CLUSTER || "mainnet-beta";
-  const rpcUrl = process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_FALLBACK_URL;
+  const rpcUrl = process.env.SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
   const metadata = buildRegistrationFileJson({
     name,
@@ -190,25 +190,53 @@ export async function registerAgentAndAttachToCollection(input) {
 
   // Server-signed path: use provided signer (e.g. user's agent wallet) or env keypair
   const signer = input.signerKeypair || getSigner();
-  const serverSdk = new SolanaSDK({
+  const atomEnabled = process.env["8004_ATOM_ENABLED"] === "true";
+
+  /** Public RPC used when SOLANA_RPC_URL blocks getAccountInfo (403). */
+  const FALLBACK_RPC_8004 = "https://rpc.ankr.com/solana";
+
+  const runRegister = (sdk) =>
+    sdk.registerAgent(tokenUri, { atomEnabled });
+
+  let serverSdk = new SolanaSDK({
     cluster,
     rpcUrl,
     signer,
     ipfsClient: ipfs,
   });
 
-  const result = await serverSdk.registerAgent(tokenUri, {
-    atomEnabled: process.env["8004_ATOM_ENABLED"] === "true",
-  });
+  let result;
+  try {
+    result = await runRegister(serverSdk);
+  } catch (firstErr) {
+    const msg = firstErr?.message || String(firstErr);
+    const isRootConfigError =
+      /Root config not initialized|Registry not initialized|initialize the registry first/i.test(msg) ||
+      /403|not allowed to access blockchain|getAccountInfo/i.test(msg);
+    if (isRootConfigError && rpcUrl !== FALLBACK_RPC_8004) {
+      serverSdk = new SolanaSDK({
+        cluster,
+        rpcUrl: FALLBACK_RPC_8004,
+        signer,
+        ipfsClient: ipfs,
+      });
+      result = await runRegister(serverSdk);
+    } else {
+      throw firstErr;
+    }
+  }
 
   if (!result?.asset) {
     await ipfs.close();
     const underlying = result?.error && String(result.error).trim();
     if (underlying) {
-      const hint =
-        /insufficient lamports|insufficient funds|not enough sol/i.test(underlying)
-          ? " Fund the agent wallet (SOLANA_PRIVATE_KEY / AGENT_PRIVATE_KEY in api/.env) with SOL for fees and rent."
-          : "";
+      const isUserWallet = !!input.signerKeypair;
+      const walletAddr = signer?.publicKey?.toBase58?.();
+      const hint = /insufficient lamports|insufficient funds|not enough sol/i.test(underlying)
+        ? isUserWallet
+          ? ` Fund your agent wallet with more SOL (needs ~0.006+ SOL for registration).${walletAddr ? ` Send SOL to: ${walletAddr}` : ""}`
+          : " Fund the agent wallet (SOLANA_PRIVATE_KEY / AGENT_PRIVATE_KEY in api/.env) with SOL for fees and rent."
+        : "";
       throw new Error(`Registration failed: ${underlying}.${hint}`);
     }
     throw new Error("Registration did not return an agent asset");
@@ -230,10 +258,13 @@ export async function registerAgentAndAttachToCollection(input) {
     } else {
       await ipfs.close();
       const err = txResult?.error ?? "no signature";
-      const hint =
-        /insufficient lamports|insufficient funds|not enough sol/i.test(String(err))
-          ? " Fund the agent wallet (SOLANA_PRIVATE_KEY / AGENT_PRIVATE_KEY in api/.env) with SOL."
-          : "";
+      const isUserWallet = !!input.signerKeypair;
+      const walletAddr = signer?.publicKey?.toBase58?.();
+      const hint = /insufficient lamports|insufficient funds|not enough sol/i.test(String(err))
+        ? isUserWallet
+          ? ` Fund your agent wallet with more SOL.${walletAddr ? ` Send SOL to: ${walletAddr}` : ""}`
+          : " Fund the agent wallet (SOLANA_PRIVATE_KEY / AGENT_PRIVATE_KEY in api/.env) with SOL."
+        : "";
       throw new Error(`setCollectionPointer failed: ${err}.${hint}`);
     }
   }

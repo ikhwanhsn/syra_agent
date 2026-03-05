@@ -39,7 +39,13 @@ function getTreasuryKeypair() {
 const ZERO_SIG_BASE58 = '1'.repeat(64);
 
 const USDC_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
+// Prefer RPC that allows blockchain access (getAccountInfo, etc.). Some keys (e.g. Alchemy free) return 403 for blockchain.
+const RPC_URL =
+  process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
+  process.env.SOLANA_RPC_READ_ONLY_URL ||
+  process.env.SOLANA_RPC_URL ||
+  process.env.VITE_SOLANA_RPC_URL ||
+  'https://rpc.ankr.com/solana';
 
 /** Poll interval for confirmation (ms). */
 const CONFIRM_POLL_MS = 1500;

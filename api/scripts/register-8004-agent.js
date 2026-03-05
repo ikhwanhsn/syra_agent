@@ -84,7 +84,7 @@ async function main() {
 
   const sdk = new SolanaSDK({
     cluster: process.env.SOLANA_CLUSTER || "mainnet-beta",
-    rpcUrl: process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_FALLBACK_URL,
+    rpcUrl: process.env.SOLANA_RPC_URL || "https://rpc.ankr.com/solana",
     signer,
   });
 

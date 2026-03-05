@@ -1,20 +1,12 @@
 /**
  * 8004 Trustless Agent Registry API client for the AI agent marketplace.
- * Uses /8004/dev/* in development to skip x402 payment; production uses /8004 with payment.
+ * All /8004 routes use API key (X-API-Key or Authorization: Bearer), not x402.
  */
 import { getApiBaseUrl } from "./chatApi";
 
-const useDevRoutes = (): boolean => {
-  const v = import.meta.env?.VITE_8004_USE_DEV_ROUTES;
-  if (v === "true" || v === "1") return true;
-  if (v === "false" || v === "0") return false;
-  return import.meta.env?.DEV === true;
-};
-
 function apiBase(): string {
   const base = getApiBaseUrl();
-  const prefix = useDevRoutes() ? "/8004/dev" : "/8004";
-  return `${base}${prefix}`;
+  return `${base}/8004`;
 }
 
 function getHeaders(): Record<string, string> {
@@ -24,11 +16,21 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
+export class AgentApiError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "AgentApiError";
+    this.code = code;
+  }
+}
+
 async function handleRes<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = (data as { error?: string })?.error || res.statusText || "Request failed";
-    throw new Error(msg);
+    const payload = data as { error?: string; code?: string };
+    const msg = payload?.error || res.statusText || "Request failed";
+    throw new AgentApiError(msg, payload?.code);
   }
   return data as T;
 }
@@ -58,6 +60,8 @@ export interface Agent8004Detail {
   agent_uri: string | null;
   col_locked?: boolean | null;
   parent_locked?: boolean | null;
+  /** Set when RPC is restricted (e.g. 403); only asset is reliable. */
+  _rpcUnavailable?: boolean;
 }
 
 export interface LivenessReport {
@@ -67,8 +71,15 @@ export interface LivenessReport {
   [key: string]: unknown;
 }
 
+/** Status from 8004-solana verifyIntegrity: valid | syncing | corrupted | error */
 export interface IntegrityResult {
   valid?: boolean;
+  /** 'valid' | 'syncing' | 'corrupted' | 'error' */
+  status?: string;
+  /** When status is not valid, may contain message and recommendation */
+  error?: { message?: string; recommendation?: string };
+  /** When status is 'syncing', true if lag is small and data is still trustworthy */
+  trustworthy?: boolean;
   [key: string]: unknown;
 }
 
@@ -161,6 +172,12 @@ export const agent8004Api = {
   /** Get agent registration metadata (name, description, image) from agent_uri for display. */
   async getAgentRegistrationMetadata(asset: string): Promise<{ name: string | null; description: string | null; image: string | null }> {
     const res = await fetch(`${apiBase()}/agent/${encodeURIComponent(asset)}/registration-metadata`, { headers: getHeaders() });
+    return handleRes(res);
+  },
+
+  /** Resolve 8004market detail URL (token ID) for an asset. Used when list item has no agent_id (e.g. Your Agents). */
+  async get8004MarketUrl(asset: string): Promise<{ tokenId: string; url: string }> {
+    const res = await fetch(`${apiBase()}/agent/${encodeURIComponent(asset)}/8004market-url`, { headers: getHeaders() });
     return handleRes(res);
   },
 

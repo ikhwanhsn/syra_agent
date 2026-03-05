@@ -58,10 +58,11 @@ import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import connectMongoose from "./config/mongoose.js";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Always load api/.env first (so SOLANA_RPC_URL etc. are set even when run from monorepo root)
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 // x402 Payment Configuration
 // NOTE: Individual routes use requirePayment() from utils/x402Payment.js
@@ -284,14 +285,13 @@ app.use(
   }),
 );
 
-// API key / Bearer auth for non-x402 routes when API_KEY or API_KEYS is set in env.
-// Skip auth for x402 routes (including /8004 Trustless Agent Registry) and public paths.
+// API key / Bearer auth when API_KEY or API_KEYS is set in env.
+// Skip auth for x402 routes and public paths. /8004 is protected by API key (same as other non-x402 APIs).
 app.use(
   requireApiKey(
     (req) => {
       const p = req.path || "";
       return (
-        p.startsWith("/8004") ||
         isX402Route(p) ||
         p === "/" ||
         p === "/favicon.ico" ||

@@ -15,6 +15,8 @@ import {
   Search,
   CheckCircle2,
   XCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +63,11 @@ const FALLBACK_SYRA_COLLECTION = "c1:bafkreid3g6kogo55n5iob7pi36xppcycynn7m64pds
 const SYRA_8004_MARKET_URL =
   "https://8004market.io/collection/solana/mainnet-beta/bafkreid3g6kogo55n5iob7pi36xppcycynn7m64pds7wshnankxjo52mfm?creator=53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t";
 
+/** 8004market agent detail page uses token ID (agent_id from 8004 index), not asset address. */
+function get8004MarketAgentUrl(tokenId: string): string {
+  return `https://8004market.io/agent/solana/mainnet-beta/${encodeURIComponent(String(tokenId).trim())}`;
+}
+
 /** Max agents a user can create (enforced in API). */
 const MAX_AGENTS_PER_USER = 3;
 
@@ -83,6 +90,10 @@ export interface AgentListItem {
   owner?: string;
   agent_uri?: string | null;
   nft_name?: string | null;
+  description?: string | null;
+  image?: string | null;
+  /** 8004 index token ID (used by 8004market URL). */
+  agent_id?: string | null;
   [key: string]: unknown;
 }
 
@@ -90,6 +101,12 @@ export interface AgentRegistrationMeta {
   name: string | null;
   description: string | null;
   image: string | null;
+}
+
+/** Truncate base58 address for display (first 8 + … + last 8). */
+function truncateAddress(addr: string, head = 8, tail = 8): string {
+  if (!addr || addr.length <= head + tail) return addr;
+  return `${addr.slice(0, head)}…${addr.slice(-tail)}`;
 }
 
 function AgentCard({
@@ -109,70 +126,112 @@ function AgentCard({
   const displayName =
     metadata?.name?.trim() ||
     agent.nft_name?.trim() ||
-    (asset ? "8004 Agent" : "");
-  const description = metadata?.description?.trim() || "";
-  const rawImage = metadata?.image?.trim() || "";
+    (asset ? truncateAddress(asset) : "") ||
+    "8004 Agent";
+  const description =
+    metadata?.description?.trim() || (typeof agent.description === "string" ? agent.description.trim() : "") || "";
+  const rawImage = metadata?.image?.trim() || (typeof agent.image === "string" ? agent.image.trim() : "") || "";
   const imageUrl = rawImage ? imageUrlForDisplay(rawImage) : "";
   const [imageError, setImageError] = useState(false);
   const showImage = imageUrl && !imageError;
+  const hasCustomName = !!(metadata?.name?.trim() || agent.nft_name?.trim());
 
-  // Load from 8004 when missing metadata or image. Skip if we already have an image (e.g. from DB for Your Agents) so we don't overwrite with failed 8004 for new agents.
+  // Load from 8004 when missing name, image, or description.
   useEffect(() => {
     if (!asset) return;
-    const hasImage = metadata?.image?.trim();
-    if (hasImage) return;
+    const hasName = !!(metadata?.name?.trim() || agent.nft_name?.trim());
+    const hasImage = !!(metadata?.image?.trim() || (typeof agent.image === "string" && agent.image.trim()));
+    const hasDescription = !!(metadata?.description?.trim() || (typeof agent.description === "string" && agent.description.trim()));
+    if (hasName && hasImage && hasDescription) return;
     onLoadMetadata(asset);
-  }, [asset, metadata?.image, onLoadMetadata]);
+  }, [asset, metadata?.name, metadata?.image, metadata?.description, agent.nft_name, agent.image, agent.description, onLoadMetadata]);
 
   return (
     <Card
-      className="group cursor-pointer transition-all hover:border-primary/30 hover:shadow-md flex flex-col h-full"
+      className="group cursor-pointer flex flex-col h-full overflow-hidden rounded-2xl border border-border/80 bg-card/95 shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
       onClick={onManage}
     >
-      <CardHeader className="pb-2 flex-1 flex flex-col min-h-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-14 h-14 rounded-lg bg-muted shrink-0 overflow-hidden flex items-center justify-center">
-              {showImage ? (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <CardTitle className="text-sm font-medium truncate">{displayName}</CardTitle>
-              <CardDescription className="text-xs font-mono truncate" title={asset}>
-                {asset ? `${asset.slice(0, 8)}…${asset.slice(-6)}` : ""}
-              </CardDescription>
-            </div>
+      {/* Hero image – square */}
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-gradient-to-br from-muted/80 to-muted/40">
+        {showImage ? (
+          <img
+            src={imageUrl}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 via-primary/10 to-transparent">
+            <Bot className="h-12 w-12 text-primary/50" />
           </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="absolute top-2 right-2 flex items-center gap-1.5">
+          <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 bg-background/80 backdrop-blur-sm border-0">
+            8004
+          </Badge>
+          {agent.agent_id && (
+            <span className="text-[10px] font-mono text-muted-foreground/90 bg-background/80 backdrop-blur-sm rounded px-1.5 py-0.5">
+              #{agent.agent_id}
+            </span>
+          )}
         </div>
-        {description ? (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{description}</p>
-        ) : null}
+      </div>
+
+      <CardHeader className="pb-3 pt-4 px-4 flex-1 flex flex-col min-h-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base font-bold tracking-tight truncate leading-tight text-foreground">
+              {displayName}
+            </CardTitle>
+            {asset && (
+              <CardDescription className="text-[11px] font-mono truncate mt-1 text-muted-foreground/80" title={asset}>
+                {hasCustomName ? truncateAddress(asset) : "8004 Agent"}
+              </CardDescription>
+            )}
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/70 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200 mt-0.5" />
+        </div>
+        <div className="mt-3 min-h-[3rem]">
+          <p
+            className={`text-xs text-muted-foreground line-clamp-3 leading-relaxed ${!description ? "italic text-muted-foreground/70" : ""}`}
+          >
+            {description || "No description"}
+          </p>
+        </div>
       </CardHeader>
-      <CardContent className="pt-0 shrink-0">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-full"
-          disabled={!canManage}
-          title={!canManage ? "Connect wallet to manage agents" : undefined}
-          onClick={(e) => {
-            e.stopPropagation();
-            onManage();
-          }}
-        >
-          <Settings2 className="w-3.5 h-3.5 mr-1.5" />
-          Manage
-        </Button>
+
+      <CardContent className="pt-0 px-4 pb-4 shrink-0">
+        <div className="flex gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="flex-1 rounded-xl font-medium shadow-sm"
+            disabled={!canManage}
+            title={!canManage ? "Connect wallet to manage agents" : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              onManage();
+            }}
+          >
+            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+            Manage
+          </Button>
+          {asset && agent.agent_id && (
+            <Button variant="outline" size="sm" asChild className="shrink-0 rounded-xl border-border/80">
+              <a
+                href={get8004MarketAgentUrl(agent.agent_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on 8004market"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -319,7 +378,13 @@ function CreateAgentDialog({
       onSuccess(result.asset);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to create agent";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      const code = err && typeof err === "object" && "code" in err ? (err as { code?: string }).code : undefined;
+      const isTopUpRequired = code === "INSUFFICIENT_SOL" || /top up|insufficient.*sol/i.test(msg);
+      toast({
+        title: isTopUpRequired ? "Top up required" : "Error",
+        description: msg,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -458,42 +523,104 @@ function CreateAgentDialog({
 
 function AgentDetailSheet({
   asset,
+  fallbackAgent,
+  agentsMetadata = {},
   open,
   onOpenChange,
 }: {
   asset: string | null;
+  fallbackAgent?: AgentListItem | null;
+  agentsMetadata?: Record<string, AgentRegistrationMeta | null>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const { toast } = useToast();
   const [detail, setDetail] = useState<Agent8004Detail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [sheetMeta, setSheetMeta] = useState<AgentRegistrationMeta | null>(null);
   const [liveness, setLiveness] = useState<LivenessReport | null>(null);
   const [livenessLoading, setLivenessLoading] = useState(false);
   const [integrity, setIntegrity] = useState<IntegrityResult | null>(null);
   const [integrityLoading, setIntegrityLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [heroImageError, setHeroImageError] = useState(false);
+  const [sheet8004MarketUrl, setSheet8004MarketUrl] = useState<string | null>(null);
+
+  const meta = asset ? agentsMetadata[asset] : null;
+  const displayMeta = meta || sheetMeta;
+  const displayName =
+    displayMeta?.name?.trim() ||
+    fallbackAgent?.nft_name?.trim() ||
+    (asset ? truncateAddress(asset) : "") ||
+    "8004 Agent";
+  const displayDescription =
+    displayMeta?.description?.trim() ||
+    fallbackAgent?.description?.trim() ||
+    "";
+  const displayImageRaw =
+    displayMeta?.image?.trim() ||
+    (typeof fallbackAgent?.image === "string" ? fallbackAgent.image.trim() : "") ||
+    "";
+  const displayImageUrl = displayImageRaw ? imageUrlForDisplay(displayImageRaw) : "";
+  const fallbackUri =
+    typeof fallbackAgent?.agent_uri === "string"
+      ? fallbackAgent.agent_uri.trim()
+      : detail?.agent_uri?.trim() ||
+        null;
+  const hasFallback = !detail && (loadFailed || !!displayName || !!displayDescription || !!fallbackUri);
+
+  const copyToClipboard = useCallback(
+    (text: string, label: string, id: string) => {
+      navigator.clipboard?.writeText(text).then(
+        () => {
+          toast({ title: "Copied", description: `${label} copied to clipboard.` });
+          setCopiedId(id);
+          setTimeout(() => setCopiedId(null), 2000);
+        },
+        () => toast({ title: "Copy failed", variant: "destructive" })
+      );
+    },
+    [toast]
+  );
 
   const loadDetail = useCallback(async () => {
     if (!asset) return;
     setLoadingDetail(true);
+    setLoadFailed(false);
     try {
       const d = await agent8004Api.getAgent(asset);
       setDetail(d);
     } catch {
       setDetail(null);
-      toast({ title: "Failed to load agent", variant: "destructive" });
+      setLoadFailed(true);
+      toast({
+        title: "Full agent details unavailable",
+        description: "Showing info from list. If RPC returns 403, set SOLANA_RPC_8004_URL in the API .env. Liveness and Integrity may still work.",
+        variant: "default",
+      });
     } finally {
       setLoadingDetail(false);
     }
   }, [asset, toast]);
+
+  const tokenIdFromList = fallbackAgent?.agent_id && String(fallbackAgent.agent_id).trim() ? String(fallbackAgent.agent_id).trim() : null;
+  const resolved8004MarketUrl = tokenIdFromList ? get8004MarketAgentUrl(tokenIdFromList) : sheet8004MarketUrl;
 
   useEffect(() => {
     if (open && asset) {
       loadDetail();
       setLiveness(null);
       setIntegrity(null);
+      setSheetMeta(null);
+      setSheet8004MarketUrl(null);
+      setHeroImageError(false);
+      agent8004Api.getAgentRegistrationMetadata(asset).then(setSheetMeta).catch(() => setSheetMeta(null));
+      if (!tokenIdFromList) {
+        agent8004Api.get8004MarketUrl(asset).then((r) => setSheet8004MarketUrl(r.url)).catch(() => setSheet8004MarketUrl(null));
+      }
     }
-  }, [open, asset, loadDetail]);
+  }, [open, asset, loadDetail, tokenIdFromList]);
 
   const runLiveness = async () => {
     if (!asset) return;
@@ -532,66 +659,157 @@ function AgentDetailSheet({
     ? `https://explorer.solana.com/address/${asset}`
     : "";
 
+  const owner = detail?.owner ?? fallbackAgent?.owner;
+  const assetDisplay = asset ?? detail?.asset ?? "";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col">
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+        <SheetHeader className="px-6 pt-6 pb-4 space-y-1">
           <SheetTitle className="flex items-center gap-2">
-            <Bot className="w-5 h-5" />
+            <Bot className="w-5 h-5 text-primary" />
             Agent details
           </SheetTitle>
           <SheetDescription>
-            View and maintain your 8004 agent: liveness and integrity checks.
+            View and maintain your 8004 agent: identity, on-chain data, and health checks.
           </SheetDescription>
         </SheetHeader>
         {!asset ? (
-          <p className="text-sm text-muted-foreground">No agent selected.</p>
+          <div className="px-6 pb-6">
+            <p className="text-sm text-muted-foreground">No agent selected.</p>
+          </div>
         ) : (
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="space-y-4 pb-6">
-              {loadingDetail ? (
-                <Skeleton className="h-24 w-full" />
-              ) : detail ? (
-                <>
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">Asset (NFT)</p>
-                    <p className="text-sm font-mono break-all">{detail.asset}</p>
-                    {detail.owner && (
-                      <>
-                        <p className="text-xs font-medium text-muted-foreground mt-2">Owner</p>
-                        <p className="text-sm font-mono break-all">{detail.owner}</p>
-                      </>
-                    )}
-                    {detail.agent_uri && (
-                      <>
-                        <p className="text-xs font-medium text-muted-foreground mt-2">Metadata URI</p>
-                        <p className="text-xs font-mono break-all">{detail.agent_uri}</p>
-                      </>
+          <ScrollArea className="flex-1">
+            <div className="space-y-6 px-6 pb-8">
+              {/* Hero: image, name, description */}
+              <div className="rounded-2xl border bg-gradient-to-b from-muted/60 to-muted/20 p-5 overflow-hidden">
+                <div className="flex gap-4">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-muted shrink-0 overflow-hidden ring-2 ring-border/50 flex items-center justify-center">
+                    {displayImageUrl && !heroImageError ? (
+                      <img
+                        src={displayImageUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={() => setHeroImageError(true)}
+                      />
+                    ) : (
+                      <Bot className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={explorerUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                        View on Explorer
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={loadDetail}>
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                      Refresh
-                    </Button>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <h3 className="text-xl font-bold tracking-tight truncate">{displayName}</h3>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3 leading-relaxed">
+                      {displayDescription || "No description."}
+                    </p>
                   </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Could not load agent.</p>
-              )}
+                </div>
+              </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Maintenance</Label>
+              {loadingDetail && !detail && !hasFallback ? (
+                <Skeleton className="h-32 w-full rounded-xl" />
+              ) : (
+                <>
+                  {(
+                    <>
+                      {detail?._rpcUnavailable && (
+                        <p className="text-xs text-muted-foreground rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                          On-chain details temporarily unavailable (RPC restricted). Identity and list info are still shown.
+                        </p>
+                      )}
+                      {/* On-chain: copyable Asset & Owner */}
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-foreground">On-chain</h4>
+                        <div className="rounded-xl border bg-card p-4 space-y-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Asset (NFT)</p>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(assetDisplay, "Asset", "asset")}
+                              className="flex items-center gap-2 w-full text-left font-mono text-sm rounded-lg px-3 py-2 bg-muted/50 hover:bg-muted transition-colors group"
+                            >
+                              <span className="truncate">{truncateAddress(assetDisplay)}</span>
+                              {copiedId === "asset" ? (
+                                <Check className="w-4 h-4 shrink-0 text-green-600" />
+                              ) : (
+                                <Copy className="w-4 h-4 shrink-0 opacity-60 group-hover:opacity-100" />
+                              )}
+                            </button>
+                          </div>
+                          {owner && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Owner</p>
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(owner, "Owner", "owner")}
+                                className="flex items-center gap-2 w-full text-left font-mono text-sm rounded-lg px-3 py-2 bg-muted/50 hover:bg-muted transition-colors group"
+                              >
+                                <span className="truncate">{truncateAddress(owner)}</span>
+                                {copiedId === "owner" ? (
+                                  <Check className="w-4 h-4 shrink-0 text-green-600" />
+                                ) : (
+                                  <Copy className="w-4 h-4 shrink-0 opacity-60 group-hover:opacity-100" />
+                                )}
+                              </button>
+                            </div>
+                          )}
+                          {fallbackUri && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Metadata</p>
+                              <a
+                                href={
+                                  fallbackUri.startsWith("ipfs://")
+                                    ? `https://ipfs.io/ipfs/${fallbackUri.slice(7).replace(/^\/+/, "")}`
+                                    : fallbackUri
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-mono"
+                              >
+                                {truncateAddress(fallbackUri.replace(/^ipfs:\/\//, ""), 12, 12)}
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        {resolved8004MarketUrl && (
+                          <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                            <a href={resolved8004MarketUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                              View on 8004market
+                            </a>
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                          <a href={explorerUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                            View on Explorer
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="rounded-lg" onClick={loadDetail}>
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                          Refresh
+                        </Button>
+                      </div>
+                      {loadFailed && !hasFallback && (
+                        <p className="text-xs text-muted-foreground">
+                          Full on-chain details could not be loaded. You can still run Liveness or Integrity below.
+                        </p>
+                      )}
+                    </>
+                  )}
+
+              {/* Maintenance */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-foreground">Maintenance</h4>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
+                    className="rounded-lg"
                     onClick={runLiveness}
                     disabled={livenessLoading || !asset}
                   >
@@ -605,6 +823,7 @@ function AgentDetailSheet({
                   <Button
                     variant="secondary"
                     size="sm"
+                    className="rounded-lg"
                     onClick={runIntegrity}
                     disabled={integrityLoading || !asset}
                   >
@@ -668,25 +887,50 @@ function AgentDetailSheet({
               })()}
 
               {integrity != null && (() => {
-                const isValid = integrity.valid === true || (integrity.status && String(integrity.status).toLowerCase() === "valid");
+                const status = integrity.status ? String(integrity.status).toLowerCase() : "";
+                const isValid = integrity.valid === true || status === "valid";
+                const isSyncing = status === "syncing";
+                const err = integrity.error as { message?: string; recommendation?: string } | undefined;
+                const errMsg = err?.message ?? "";
+                const isRpc403 = /403|not allowed to access blockchain/i.test(errMsg);
+                const title = isValid
+                  ? "Integrity verified"
+                  : isSyncing
+                    ? "Indexer syncing"
+                    : "Integrity check failed";
+                const description = isValid
+                  ? "Indexer and on-chain data are consistent."
+                  : errMsg
+                    ? errMsg
+                    : isSyncing
+                      ? "The indexer is slightly behind chain. You can try again in a moment."
+                      : "There may be a mismatch between indexer and chain.";
+                const recommendation = !isValid
+                  ? isRpc403
+                    ? "The API's Solana RPC key cannot access the blockchain. In the API server .env set SOLANA_RPC_8004_URL (or SOLANA_RPC_BLOCKCHAIN_URL) to an RPC URL that allows getAccountInfo (e.g. Helius, Ankr paid, or https://rpc.ankr.com/solana)."
+                    : err?.recommendation ?? null
+                  : null;
                 return (
-                  <div className={`rounded-xl border-2 overflow-hidden ${isValid ? "border-primary/50 bg-primary/5" : "border-destructive/50 bg-destructive/5"}`}>
+                  <div className={`rounded-xl border-2 overflow-hidden ${isValid ? "border-primary/50 bg-primary/5" : isSyncing ? "border-amber-500/50 bg-amber-500/5" : "border-destructive/50 bg-destructive/5"}`}>
                     <div className="p-4 flex items-start gap-3">
-                      <div className={`rounded-full p-2 shrink-0 ${isValid ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"}`}>
+                      <div className={`rounded-full p-2 shrink-0 ${isValid ? "bg-primary/20 text-primary" : isSyncing ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" : "bg-destructive/20 text-destructive"}`}>
                         {isValid ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-foreground">
-                          {isValid ? "Integrity verified" : "Integrity check failed"}
+                          {title}
                         </p>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          {isValid
-                            ? "Indexer and on-chain data are consistent."
-                            : "There may be a mismatch between indexer and chain."}
+                          {description}
                         </p>
+                        {recommendation && (
+                          <p className="text-xs text-muted-foreground mt-2 italic">
+                            {recommendation}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant={isValid ? "default" : "destructive"} className="shrink-0">
-                        {isValid ? "Valid" : "Invalid"}
+                      <Badge variant={isValid ? "default" : isSyncing ? "secondary" : "destructive"} className="shrink-0">
+                        {isValid ? "Valid" : isSyncing ? "Syncing" : "Invalid"}
                       </Badge>
                     </div>
                     <Collapsible defaultOpen={false}>
@@ -705,6 +949,8 @@ function AgentDetailSheet({
                   </div>
                 );
               })()}
+            </>
+              )}
             </div>
           </ScrollArea>
         )}
@@ -725,6 +971,7 @@ export default function MarketplaceAgents() {
   const [loadingList, setLoadingList] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [detailAsset, setDetailAsset] = useState<string | null>(null);
+  const [detailAgentFromList, setDetailAgentFromList] = useState<AgentListItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -869,13 +1116,16 @@ export default function MarketplaceAgents() {
     }
   }, [syraCollection, activeTab, anonymousId, fetchAgents, fetchMyAgents]);
 
-  const openDetail = (asset: string) => {
+  const agentList = agents?.agents ?? [];
+
+  const openDetail = useCallback((asset: string, agentFromList?: AgentListItem | null) => {
     setDetailAsset(asset);
+    setDetailAgentFromList(agentFromList ?? agentList.find((a) => (typeof a.asset === "string" ? a.asset : "") === asset) ?? null);
     setDetailOpen(true);
-  };
+  }, [agentList]);
 
   const handleManageAgent = useCallback(
-    (asset: string) => {
+    (asset: string, agentFromList?: AgentListItem | null) => {
       if (!isWalletConnected) {
         toast({
           title: "Wallet required",
@@ -884,12 +1134,11 @@ export default function MarketplaceAgents() {
         });
         return;
       }
-      openDetail(asset);
+      openDetail(asset, agentFromList);
     },
-    [isWalletConnected, toast]
+    [isWalletConnected, toast, openDetail]
   );
 
-  const agentList = agents?.agents ?? [];
   const hasAgents = agentList.length > 0;
   const refreshCurrentTab = () => (activeTab === "your" ? fetchMyAgents() : fetchAgents());
 
@@ -899,8 +1148,8 @@ export default function MarketplaceAgents() {
     return agentList.filter((a) => {
       const asset = typeof a.asset === "string" ? a.asset : "";
       const meta = agentsMetadata[asset];
-      const name = (meta?.name?.trim() || (a as AgentListItem).nft_name?.trim() || (asset ? "8004 Agent" : "")).toLowerCase();
-      const desc = (meta?.description?.trim() || "").toLowerCase();
+      const name = (meta?.name?.trim() || (a as AgentListItem).nft_name?.trim() || (asset ? `${asset.slice(0, 8)}…${asset.slice(-6)}` : "")).toLowerCase();
+      const desc = (meta?.description?.trim() || (typeof (a as AgentListItem).description === "string" ? (a as AgentListItem).description?.trim() : "") || "").toLowerCase();
       const assetLower = asset.toLowerCase();
       return name.includes(q) || desc.includes(q) || assetLower.includes(q);
     });
@@ -920,9 +1169,9 @@ export default function MarketplaceAgents() {
   const renderListContent = () => {
     if (loadingList) {
       return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: AGENTS_PER_PAGE }, (_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
+            <Skeleton key={i} className="h-72 rounded-2xl" />
           ))}
         </div>
       );
@@ -999,7 +1248,7 @@ export default function MarketplaceAgents() {
 
     return (
       <>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {paginatedAgents.map((a) => {
             const agentItem: AgentListItem = a as AgentListItem;
             const asset = typeof agentItem.asset === "string" ? agentItem.asset : "";
@@ -1009,7 +1258,7 @@ export default function MarketplaceAgents() {
                 key={asset}
                 agent={agentItem}
                 metadata={agentsMetadata[asset]}
-                onManage={() => handleManageAgent(asset)}
+                onManage={() => handleManageAgent(asset, agentItem)}
                 onLoadMetadata={loadAgentMetadata}
                 canManage={isWalletConnected}
               />
@@ -1147,6 +1396,8 @@ export default function MarketplaceAgents() {
       />
       <AgentDetailSheet
         asset={detailAsset}
+        fallbackAgent={detailAgentFromList}
+        agentsMetadata={agentsMetadata}
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />

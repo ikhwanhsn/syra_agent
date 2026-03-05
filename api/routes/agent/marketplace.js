@@ -1,18 +1,15 @@
 import express from 'express';
 import MarketplacePreferences from '../../models/agent/MarketplacePreferences.js';
-import { callX402V2WithAgent } from '../../libs/agentX402Client.js';
+import { performRegisterAgent } from '../8004.js';
 
 const router = express.Router();
 const MAX_RECENT = 10;
 
-/** Base URL for self-calls to 8004 (x402 pay with agent wallet). */
-const API_BASE = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
-
 /**
  * POST /agent/marketplace/register-agent
- * Create an 8004 agent in the Syra collection. Payment is taken from the user's agent wallet (x402) on the backend.
+ * Create an 8004 agent in the Syra collection. Uses the user's Solana agent wallet to sign (no x402 payment popup).
  * Body: same as POST /8004/register-agent (name, description, image, services, skills, domains, anonymousId, etc.).
- * Requires anonymousId so the backend can pay with the agent's wallet — no browser payment popup.
+ * Requires anonymousId and a Solana agent wallet (create/connect in chat first).
  */
 router.post('/register-agent', async (req, res) => {
   try {
@@ -23,25 +20,22 @@ router.post('/register-agent', async (req, res) => {
         error: 'anonymousId is required to create an agent. Connect your agent wallet first.',
       });
     }
-    const registerUrl = `${API_BASE}/8004/register-agent`;
-    const result = await callX402V2WithAgent({
-      anonymousId,
-      url: registerUrl,
-      method: 'POST',
-      body,
-    });
-    if (!result.success) {
-      const status = result.budgetExceeded ? 402 : 400;
-      const msg = result.error || 'Failed to create agent';
-      if (msg.includes('Agent wallet not found')) {
-        return res.status(401).json({ error: msg });
-      }
-      return res.status(status).json({ error: msg });
-    }
-    return res.status(201).json(result.data);
+    const data = await performRegisterAgent(body);
+    return res.status(201).json(data);
   } catch (error) {
-    const msg = error?.message || String(error);
-    return res.status(500).json({ error: msg });
+    const status = error?.status ?? 500;
+    let msg = error?.message || String(error);
+    const isRpcBlocked =
+      msg.includes('403') ||
+      msg.includes('blockchain') ||
+      msg.includes('not allowed to access') ||
+      msg.includes('get info about account') ||
+      /Root config not initialized|Registry not initialized|initialize the registry first/i.test(msg);
+    if (isRpcBlocked) {
+      msg =
+        'Solana RPC cannot read the 8004 registry (getAccountInfo is blocked). In API .env set SOLANA_RPC_URL to an RPC that allows blockchain access (e.g. https://rpc.ankr.com/solana or Helius).';
+    }
+    return res.status(status).json({ error: msg, ...(error?.code && { code: error.code }) });
   }
 });
 

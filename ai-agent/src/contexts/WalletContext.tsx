@@ -751,8 +751,8 @@ const WalletContextInner: FC<{
       options?: { skipPreflight?: boolean; maxRetries?: number }
     ) => {
       if (!solanaWallet || !publicKey) throw new Error("No Solana wallet connected");
-      // Solana requires recentBlockhash (and feePayer) before serializing/signing
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
+      // Use "finalized" so the blockhash is on all RPC nodes (avoids "Blockhash not found" when load-balanced)
+      const { blockhash } = await connection.getLatestBlockhash("finalized");
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
       const serialized = transaction.serialize({
@@ -768,6 +768,7 @@ const WalletContextInner: FC<{
         {
           skipPreflight: options?.skipPreflight ?? false,
           maxRetries: options?.maxRetries ?? 3,
+          preflightCommitment: "finalized",
         }
       );
       return sig;

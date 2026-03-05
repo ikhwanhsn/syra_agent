@@ -122,6 +122,65 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
     if (selectedPreset != null) setSelectedPreset(null);
   }, [selectedPreset]);
 
+  const buildSolanaTx = useCallback(async () => {
+    if (!publicKey || !agentAddress) return null;
+    const agentPubkey = new PublicKey(agentAddress);
+    const usdcRaw = BigInt(Math.floor(amountUsd * 10 ** USDC_DECIMALS));
+    const solLamports = BigInt(Math.floor(amountUsd * SOL_PER_USD_APPROX * LAMPORTS_PER_SOL));
+
+    const userUsdcAta = await getAssociatedTokenAddress(
+      USDC_MINT_MAINNET,
+      publicKey,
+      false,
+      TOKEN_PROGRAM_ID
+    );
+    const agentUsdcAta = await getAssociatedTokenAddress(
+      USDC_MINT_MAINNET,
+      agentPubkey,
+      false,
+      TOKEN_PROGRAM_ID
+    );
+
+    const instructions: Parameters<Transaction["add"]>[0][] = [];
+
+    const agentAtaInfo = await connection.getAccountInfo(agentUsdcAta, "confirmed");
+    if (!agentAtaInfo) {
+      instructions.push(
+        createAssociatedTokenAccountInstruction(
+          publicKey,
+          agentUsdcAta,
+          agentPubkey,
+          USDC_MINT_MAINNET
+        )
+      );
+    }
+
+    if (usdcRaw > 0n) {
+      instructions.push(
+        createTransferInstruction(
+          userUsdcAta,
+          agentUsdcAta,
+          publicKey,
+          usdcRaw,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+    }
+
+    if (solLamports > 0n) {
+      instructions.push(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: agentPubkey,
+          lamports: solLamports,
+        })
+      );
+    }
+
+    return new Transaction().add(...instructions);
+  }, [amountUsd, agentAddress, publicKey, connection]);
+
   const handleFuelSubmit = useCallback(async () => {
     if (amountUsd <= 0 || !agentAddress) return;
     setSubmitting(true);
@@ -142,72 +201,28 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
       }
 
       if (isSolana && publicKey && sendTransaction) {
-        const agentPubkey = new PublicKey(agentAddress);
-        const usdcRaw = BigInt(Math.floor(amountUsd * 10 ** USDC_DECIMALS));
-        const solLamports = BigInt(Math.floor(amountUsd * SOL_PER_USD_APPROX * LAMPORTS_PER_SOL));
-
-        const userUsdcAta = await getAssociatedTokenAddress(
-          USDC_MINT_MAINNET,
-          publicKey,
-          false,
-          TOKEN_PROGRAM_ID
-        );
-        const agentUsdcAta = await getAssociatedTokenAddress(
-          USDC_MINT_MAINNET,
-          agentPubkey,
-          false,
-          TOKEN_PROGRAM_ID
-        );
-
-        const instructions: Parameters<Transaction["add"]>[0][] = [];
-
-        const agentAtaInfo = await connection.getAccountInfo(agentUsdcAta, "confirmed");
-        if (!agentAtaInfo) {
-          instructions.push(
-            createAssociatedTokenAccountInstruction(
-              publicKey,
-              agentUsdcAta,
-              agentPubkey,
-              USDC_MINT_MAINNET
-            )
-          );
+        const sendOpts = { skipPreflight: false, maxRetries: 3 };
+        let lastErr: unknown;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const tx = await buildSolanaTx();
+            if (!tx) break;
+            const signature = await sendTransaction(tx, sendOpts);
+            toast({
+              title: "Transfer sent",
+              description: `USDC and SOL sent to agent wallet. Signature: ${signature.slice(0, 8)}…`,
+            });
+            refetchBalance();
+            onOpenChange(false);
+            return;
+          } catch (e) {
+            lastErr = e;
+            const msg = e instanceof Error ? e.message : String(e);
+            const isBlockhashError = /blockhash not found|block hash not found/i.test(msg);
+            if (!isBlockhashError || attempt === 1) throw e;
+          }
         }
-
-        if (usdcRaw > 0n) {
-          instructions.push(
-            createTransferInstruction(
-              userUsdcAta,
-              agentUsdcAta,
-              publicKey,
-              usdcRaw,
-              [],
-              TOKEN_PROGRAM_ID
-            )
-          );
-        }
-
-        if (solLamports > 0n) {
-          instructions.push(
-            SystemProgram.transfer({
-              fromPubkey: publicKey,
-              toPubkey: agentPubkey,
-              lamports: solLamports,
-            })
-          );
-        }
-
-        const tx = new Transaction().add(...instructions);
-        const signature = await sendTransaction(tx, {
-          skipPreflight: false,
-          maxRetries: 3,
-        });
-
-        toast({
-          title: "Transfer sent",
-          description: `USDC and SOL sent to agent wallet. Signature: ${signature.slice(0, 8)}…`,
-        });
-        refetchBalance();
-        onOpenChange(false);
+        throw lastErr;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -227,7 +242,7 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
     publicKey,
     sendTransaction,
     sendBaseFuelTransaction,
-    connection,
+    buildSolanaTx,
     toast,
     refetchBalance,
     onOpenChange,

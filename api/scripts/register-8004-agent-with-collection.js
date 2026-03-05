@@ -67,7 +67,7 @@ async function main() {
   });
 
   const cluster = process.env.SOLANA_CLUSTER || "mainnet-beta";
-  const rpcUrl = process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_FALLBACK_URL;
+  const rpcUrl = process.env.SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
   const sdk = new SolanaSDK({
     cluster,

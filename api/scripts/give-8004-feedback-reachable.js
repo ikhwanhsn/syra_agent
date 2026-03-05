@@ -69,7 +69,7 @@ async function main() {
   const assetBase58 = asset.toBase58();
 
   const cluster = process.env.SOLANA_CLUSTER || "mainnet-beta";
-  const rpcUrl = process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_FALLBACK_URL;
+  const rpcUrl = process.env.SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
   console.log("Agent asset:", assetBase58);
   console.log("Client (feedback signer):", signer.publicKey.toBase58());

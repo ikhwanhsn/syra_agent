@@ -56,14 +56,13 @@ function createGatewayIpfsReader() {
 
 /**
  * Get a read-only SolanaSDK instance (no signer). Uses SOLANA_CLUSTER and SOLANA_RPC_URL from env.
- * Includes a gateway-based IPFS reader so liveness can load ipfs:// agent metadata.
- * @returns {SolanaSDK}
  */
+const DEFAULT_SOLANA_RPC = "https://rpc.ankr.com/solana";
+
 function getReadOnlySDK() {
   if (!sdkInstance) {
     const cluster = process.env.SOLANA_CLUSTER || "mainnet-beta";
-    const rpcUrl =
-      process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_FALLBACK_URL;
+    const rpcUrl = process.env.SOLANA_RPC_URL || DEFAULT_SOLANA_RPC;
     sdkInstance = new SolanaSDK({
       cluster,
       ...(rpcUrl && { rpcUrl }),
@@ -235,40 +234,58 @@ export async function getBaseCollection() {
   return pk ? pk.toBase58() : null;
 }
 
-/** Resolve agent registration JSON (name, description, image) from agent_uri. For marketplace cards. */
-export async function getAgentRegistrationMetadata(assetBase58) {
-  const agent = await loadAgent(assetBase58);
-  if (!agent?.agent_uri) return null;
-  const uri = String(agent.agent_uri).trim();
-  const gateway = getIpfsGatewayBase();
-  let url = uri;
-  if (uri.startsWith("ipfs://")) {
-    const cid = uri.slice(7).replace(/^\/+/, "");
-    url = `${gateway}/ipfs/${cid}`;
-  } else if (uri.startsWith("/ipfs/")) {
-    url = `${gateway}${uri}`;
-  }
-  if (!url.startsWith("http")) return null;
-  const timeoutMs = Number(process.env.IPFS_GATEWAY_TIMEOUT_MS) || 10000;
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (!json || typeof json !== "object") return null;
-
-  let image = json.image ?? null;
-  if (image && typeof image === "string") {
-    image = image.trim();
-    if (image.startsWith("ipfs://")) {
-      const cid = image.slice(7).replace(/^\/+/, "");
-      image = `${gateway}/ipfs/${cid}`;
-    } else if (image.startsWith("/ipfs/")) {
-      image = `${gateway}${image}`;
+/**
+ * Fetch registration JSON (name, description, image) from a URI (ipfs:// or https).
+ * No RPC required – use when indexer already provides agent_uri (per 8004-solana skill §11 Search).
+ * Never throws; returns null on any error.
+ */
+export async function getRegistrationMetadataFromUri(uri) {
+  if (!uri || typeof uri !== "string") return null;
+  try {
+    const trimmed = String(uri).trim();
+    const gateway = getIpfsGatewayBase();
+    let url = trimmed;
+    if (trimmed.startsWith("ipfs://")) {
+      const cid = trimmed.slice(7).replace(/^\/+/, "");
+      url = `${gateway}/ipfs/${cid}`;
+    } else if (trimmed.startsWith("/ipfs/")) {
+      url = `${gateway}${trimmed}`;
     }
-  }
+    if (!url.startsWith("http")) return null;
+    const timeoutMs = Number(process.env.IPFS_GATEWAY_TIMEOUT_MS) || 10000;
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || typeof json !== "object") return null;
 
-  return {
-    name: json.name ?? null,
-    description: json.description ?? null,
-    image: image || null,
-  };
+    let image = json.image ?? null;
+    if (image && typeof image === "string") {
+      image = image.trim();
+      if (image.startsWith("ipfs://")) {
+        const cid = image.slice(7).replace(/^\/+/, "");
+        image = `${gateway}/ipfs/${cid}`;
+      } else if (image.startsWith("/ipfs/")) {
+        image = `${gateway}${image}`;
+      }
+    }
+
+    return {
+      name: json.name ?? null,
+      description: json.description ?? null,
+      image: image || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve agent registration JSON (name, description, image) from agent_uri. For marketplace cards. Uses RPC (loadAgent); when indexer gives agent_uri use getRegistrationMetadataFromUri instead. Never throws; returns null on any error. */
+export async function getAgentRegistrationMetadata(assetBase58) {
+  try {
+    const agent = await loadAgent(assetBase58);
+    if (!agent?.agent_uri) return null;
+    return await getRegistrationMetadataFromUri(agent.agent_uri);
+  } catch {
+    return null;
+  }
 }
