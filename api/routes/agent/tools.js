@@ -97,6 +97,11 @@ router.post('/call', async (req, res) => {
       }
     }
 
+    // hey.lol tools: backend must send anonymousId so the heylol route can resolve the agent wallet
+    if (tool.path && tool.path.startsWith('/heylol')) {
+      params = { ...params, anonymousId };
+    }
+
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
     if (tool.nansenPath) {
       const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);

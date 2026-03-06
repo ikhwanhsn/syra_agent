@@ -90,6 +90,9 @@ export const X402_API_PRICE_8004_REGISTER_AGENT_USD = price(0.05);
 /** 8004scan.io Public API (list agents, get agent, search, stats, feedbacks, chains) */
 export const X402_API_PRICE_8004SCAN_USD = price(0.01);
 
+/** hey.lol agent API proxy (profile, posts, feed, DMs, services, token) — per request */
+export const X402_API_PRICE_HEYLOL_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -116,6 +119,7 @@ export const X402_DISPLAY_PRICE_COINMARKETCAP_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_HEYLOL_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +

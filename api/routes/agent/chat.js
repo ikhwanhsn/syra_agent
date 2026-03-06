@@ -646,6 +646,10 @@ router.post('/completion', async (req, res) => {
           toolUsages.push({ name: tool.name, status: 'error' });
           continue;
         }
+        // hey.lol tools: backend must send anonymousId so the heylol route can resolve the agent wallet
+        if (tool.path && tool.path.startsWith('/heylol')) {
+          params = { ...params, anonymousId };
+        }
         // Nansen x402 tools: call real Nansen API (api.nansen.ai) with agent wallet; no Syra route
         let result;
         if (tool.nansenPath) {

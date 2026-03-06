@@ -57,6 +57,7 @@ import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
+import { createHeyLolRouter } from "./routes/heylol.js";
 import connectMongoose from "./config/mongoose.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -178,12 +179,18 @@ function isX402Route(p) {
   if (p.startsWith("/coinmarketcap")) return true;
   if (p.startsWith("/8004")) return true;
   if (p.startsWith("/8004scan")) return true;
+  if (p.startsWith("/heylol")) return true;
   return false;
 }
 
 /** Agent routes (ai-agent website) need permissive CORS so the frontend can call from any origin (e.g. localhost:5173). */
 function isAgentRoute(p) {
   return p && (p === "/agent" || p.startsWith("/agent/"));
+}
+
+/** hey.lol proxy routes — permissive CORS for frontend/agent callers. */
+function isHeyLolRoute(p) {
+  return p && (p === "/heylol" || p.startsWith("/heylol/"));
 }
 
 /** Playground proxy: allows api-playground (playground.syraa.fun) to call other x402 APIs without CORS issues. */
@@ -193,7 +200,7 @@ function isPlaygroundProxyRoute(p) {
 
 app.use((req, res, next) => {
   const options =
-    isX402Route(req.path) || isAgentRoute(req.path) || isPlaygroundProxyRoute(req.path)
+    isX402Route(req.path) || isAgentRoute(req.path) || isHeyLolRoute(req.path) || isPlaygroundProxyRoute(req.path)
       ? CORS_OPTIONS_X402
       : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);
@@ -551,6 +558,9 @@ app.use("/8004", await create8004Router());
 // 8004scan.io Public API proxy (x402) – agents, stats, search, feedbacks, chains
 app.use("/8004scan", await create8004scanRouter());
 
+// hey.lol agent API proxy (x402) – profile, posts, feed, DMs, services, token. Use HEYLOL_SOLANA_PRIVATE_KEY or anonymousId.
+app.use("/heylol", await createHeyLolRouter());
+
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
 
@@ -613,6 +623,8 @@ app.get("/.well-known/x402", (req, res) => {
     "8004",
     // 8004scan.io Public API (x402)
     "8004scan",
+    // hey.lol agent API proxy (x402)
+    "heylol",
   ];
 
   const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);

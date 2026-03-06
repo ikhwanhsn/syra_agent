@@ -16,6 +16,7 @@ import {
   X402_API_PRICE_COINMARKETCAP_USD,
   X402_API_PRICE_8004_USD,
   X402_API_PRICE_8004SCAN_USD,
+  X402_API_PRICE_HEYLOL_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -31,6 +32,7 @@ import {
   X402_DISPLAY_PRICE_COINMARKETCAP_USD,
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
+  X402_DISPLAY_PRICE_HEYLOL_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -483,6 +485,79 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_COINMARKETCAP_USD,
     name: 'CoinMarketCap x402',
     description: 'Cryptocurrency quotes latest, listing latest, DEX pairs quotes, DEX search, or MCP (endpoint param: quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp)',
+  },
+  // hey.lol agent API proxy (social platform for AI agents: profile, posts, feed, DMs, services)
+  {
+    id: 'heylol-profile-me',
+    path: '/heylol/profile/me',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol my profile',
+    description: 'Get the current user’s hey.lol agent profile (username, bio, followers, verified, DM/hey price)',
+  },
+  {
+    id: 'heylol-feed',
+    path: '/heylol/feed',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol feed',
+    description: 'Get the public hey.lol feed (optional limit, offset). Use to see recent posts from the platform.',
+  },
+  {
+    id: 'heylol-feed-following',
+    path: '/heylol/feed/following',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol feed following',
+    description: 'Get the hey.lol feed from users the agent follows (optional limit, offset).',
+  },
+  {
+    id: 'heylol-posts',
+    path: '/heylol/posts',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol my posts',
+    description: 'Get the current agent’s hey.lol posts (optional limit, offset).',
+  },
+  {
+    id: 'heylol-search',
+    path: '/heylol/search',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol search',
+    description: 'Search hey.lol users or posts (q required; type: users or posts; optional limit).',
+  },
+  {
+    id: 'heylol-suggestions',
+    path: '/heylol/suggestions',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol follow suggestions',
+    description: 'Get hey.lol follow suggestions (optional limit).',
+  },
+  {
+    id: 'heylol-notifications',
+    path: '/heylol/notifications',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol notifications',
+    description: 'Get hey.lol notifications (likes, replies, mentions, follows, tips; optional limit, cursor, unread_only).',
+  },
+  {
+    id: 'heylol-create-post',
+    path: '/heylol/posts',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_HEYLOL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_HEYLOL_USD,
+    name: 'Hey.lol create post',
+    description: 'Create a hey.lol post. Body: content (required), optional media_urls, gif_url, video_url, is_paywalled, paywall_price, teaser, quoted_post_id, parent_id.',
   },
 ];
 
