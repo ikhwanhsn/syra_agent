@@ -6,8 +6,7 @@ Internal dashboard for Syra usage and growth statistics. Displays paid API calls
 
 1. Copy `.env.example` to `.env` and set:
 
-   - **VITE_API_BASE_URL** – Syra API base URL (e.g. `https://api.syraa.fun` or `http://localhost:3000`).
-   - **VITE_API_KEY** – API key that matches the API server’s `API_KEY` or `API_KEYS` (required for `GET /analytics/kpi`).
+   - **VITE_API_BASE_URL** – Syra API base URL (e.g. `https://api.syraa.fun` or `http://localhost:3000`). The API injects auth for trusted origins (e.g. `https://dashboard.syraa.fun`); do not embed API keys in the client.
 
 2. Install and run:
 

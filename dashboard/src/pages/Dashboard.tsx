@@ -409,7 +409,7 @@ export function DashboardPage() {
           <p className="font-semibold">Failed to load dashboard</p>
           <p className="mt-2 text-sm">{msg}</p>
           <p className="mt-3 text-xs text-gray-400">
-            Ensure VITE_API_BASE_URL and VITE_API_KEY are set and the API is reachable.
+            Ensure VITE_API_BASE_URL is set and the API is reachable. The API injects auth for trusted origins (e.g. dashboard.syraa.fun).
           </p>
           {isFailedFetch && (
             <p className="mt-2 text-xs text-amber-200/90">

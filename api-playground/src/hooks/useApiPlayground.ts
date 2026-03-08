@@ -35,11 +35,9 @@ function getApiBaseUrl(): string {
   return 'https://api.syraa.fun';
 }
 
-/** Headers for Syra API (playground-proxy and other non-x402). Set VITE_API_KEY in .env to match the API's API_KEY. */
+/** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (playground.syraa.fun). */
 function getApiHeaders(): Record<string, string> {
-  const key = import.meta.env.VITE_API_KEY as string | undefined;
-  if (!key || typeof key !== 'string') return {};
-  return { 'X-API-Key': key };
+  return {};
 }
 
 /** Nansen API base (call directly; x402 payment with wallet). Override via VITE_NANSEN_API_BASE_URL. */

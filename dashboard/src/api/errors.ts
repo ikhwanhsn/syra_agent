@@ -1,6 +1,6 @@
 /**
  * Fetches API error request details from GET /analytics/errors.
- * Requires VITE_API_BASE_URL and VITE_API_KEY (same as KPI).
+ * Requires VITE_API_BASE_URL. API key is injected by the server for trusted origins.
  */
 
 export interface ApiErrorEntry {
@@ -28,22 +28,10 @@ const getBaseUrl = (): string => {
   return url.replace(/\/$/, "");
 };
 
-const getApiKey = (): string => {
-  const key = import.meta.env.VITE_API_KEY;
-  if (!key || typeof key !== "string") {
-    throw new Error("VITE_API_KEY is not set");
-  }
-  return key;
-};
-
 export async function fetchApiErrors(days: 7 | 30 = 30): Promise<ApiErrorsResponse> {
   const base = getBaseUrl();
-  const apiKey = getApiKey();
   const res = await fetch(`${base}/analytics/errors?days=${days}`, {
-    headers: {
-      "X-API-Key": apiKey,
-      Accept: "application/json",
-    },
+    headers: { Accept: "application/json" },
   });
   if (!res.ok) {
     const text = await res.text();

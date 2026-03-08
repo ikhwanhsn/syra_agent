@@ -55,14 +55,12 @@ npm run dev
 
 ---
 
-## Production build (API key)
+## Production build
 
-The dashboard preview and analytics page call `api.syraa.fun` (v1/regular/*, /analytics/kpi). The production API requires an API key for those routes. When building the landing for production (e.g. on Vercel), set:
+The dashboard preview and analytics page call `api.syraa.fun` (v1/regular/*, /analytics/kpi). **Do not embed API keys in the client.** The API injects authentication for requests from trusted origins (e.g. `https://syraa.fun`). When building for production (e.g. on Vercel):
 
-- **`VITE_API_KEY`** — same value as the production API’s `API_KEY` (or one of `API_KEYS`). This is baked into the client bundle and sent as `X-API-Key` on each request.
 - **`VITE_SYRA_API_URL`** — leave unset or set to `https://api.syraa.fun/` so the app targets the production API. (Do not use `http://localhost:3000/` for production builds.)
-
-If the production build is missing a valid `VITE_API_KEY`, requests to the API will return **401 Unauthorized**.
+- Ensure the API’s `CORS_EXTRA_ORIGINS` (or default allowlist) includes your deployment origin so the server can treat it as trusted.
 
 ---
 

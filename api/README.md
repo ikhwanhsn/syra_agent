@@ -148,6 +148,13 @@ If your agent shows low scores (e.g. 50/100, 33/100) with tags like **reachable*
 
 ---
 
+## API key and trusted origins
+
+- **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, playground) so frontends do not need to send it.
+- If an API key was ever exposed in a client bundle (e.g. in a built JS file), **rotate it immediately**: generate a new key, set it in the API’s `.env` as `API_KEY` or in `API_KEYS`, redeploy, and stop using the old key.
+
+---
+
 ## License
 
 MIT — see [LICENSE](../LICENSE) at repo root.

@@ -4,11 +4,9 @@ export const getApiBaseUrl = () => {
   return "http://localhost:3000";
 };
 
-/** Headers for Syra API (X-API-Key). Set VITE_API_KEY in .env to match the API's API_KEY. */
+/** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (agent.syraa.fun). */
 function getApiHeaders(): Record<string, string> {
-  const key = import.meta.env?.VITE_API_KEY as string | undefined;
-  if (!key || typeof key !== "string") return {};
-  return { "X-API-Key": key };
+  return {};
 }
 
 const base = () => getApiBaseUrl() + "/agent/chat";

@@ -9,11 +9,9 @@ function apiBase(): string {
   return `${base}/8004`;
 }
 
+/** API injects auth for trusted origins (agent.syraa.fun); do not embed keys in client. */
 function getHeaders(): Record<string, string> {
-  const key = import.meta.env?.VITE_API_KEY as string | undefined;
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (key && typeof key === "string") h["X-API-Key"] = key;
-  return h;
+  return { "Content-Type": "application/json" };
 }
 
 export class AgentApiError extends Error {

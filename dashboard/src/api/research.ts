@@ -10,17 +10,9 @@ const getBaseUrl = (): string => {
   return url.replace(/\/$/, "");
 };
 
-const getApiKey = (): string => {
-  const key = import.meta.env.VITE_API_KEY;
-  if (!key || typeof key !== "string") throw new Error("VITE_API_KEY is not set");
-  return key;
-};
-
+/** API injects auth for trusted origins (e.g. dashboard.syraa.fun); do not embed keys in client. */
 function headers(): Record<string, string> {
-  return {
-    "X-API-Key": getApiKey(),
-    Accept: "application/json",
-  };
+  return { Accept: "application/json" };
 }
 
 /** Payload for research-resume: latest research content from dashboard. */

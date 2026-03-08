@@ -3,6 +3,7 @@ import express from "express";
 import rateLimit from "./utils/rateLimit.js";
 import { securityHeaders } from "./utils/security.js";
 import { requireApiKey } from "./utils/apiKeyAuth.js";
+import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createSignalRouterRegular } from "./routes/signal.js";
@@ -101,7 +102,9 @@ const CORS_EXTRA = (process.env.CORS_EXTRA_ORIGINS || "")
   .filter(Boolean);
 const CORS_ALLOWED_ORIGINS = [
   "http://localhost:8080",
+  "http://localhost:5173",
   "http://localhost:5174", // internal dashboard
+  "http://localhost:5175",
   "https://api.syraa.fun",
   "https://syraa.fun",
   "https://www.syraa.fun",
@@ -109,6 +112,8 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.agent.syraa.fun",
   "https://dashboard.syraa.fun",
   "https://www.dashboard.syraa.fun",
+  "https://playground.syraa.fun",
+  "https://www.playground.syraa.fun",
   ...CORS_EXTRA,
 ];
 const CORS_OPTIONS_X402 = {
@@ -297,6 +302,10 @@ app.use(
     skip: (req) => isX402Route(req.path),
   }),
 );
+
+// For requests from trusted browser origins (syraa.fun, dashboard, agent, playground), inject
+// server API key so frontends never need to embed it in client bundles (security fix).
+app.use(injectTrustedOriginApiKey);
 
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for x402 routes and public paths. /8004 is protected by API key (same as other non-x402 APIs).

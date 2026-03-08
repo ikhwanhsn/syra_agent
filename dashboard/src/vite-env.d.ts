@@ -2,7 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
-  readonly VITE_API_KEY: string;
+  /** Not used in client; API injects auth for trusted origins. Kept optional for legacy env. */
+  readonly VITE_API_KEY?: string;
 }
 
 interface ImportMeta {
