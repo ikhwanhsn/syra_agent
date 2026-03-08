@@ -617,6 +617,7 @@ app.get("/.well-known/x402", (req, res) => {
     "bubblemaps/maps",
     // Binance & CoinGecko
     "binance/correlation",
+    "binance/correlation-matrix",
     "coingecko/simple-price",
     "coingecko/onchain/token-price",
     "coingecko/onchain/search-pools",

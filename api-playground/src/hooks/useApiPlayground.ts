@@ -155,6 +155,44 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     ),
   },
   {
+    id: '8004scan-stats',
+    label: '8004scan stats',
+    method: 'GET',
+    url: `${base}/8004scan/stats`,
+    params: [],
+  },
+  {
+    id: '8004scan-chains',
+    label: '8004scan chains',
+    method: 'GET',
+    url: `${base}/8004scan/chains`,
+    params: [],
+  },
+  {
+    id: '8004scan-agents',
+    label: '8004scan list agents',
+    method: 'GET',
+    url: `${base}/8004scan/agents`,
+    params: [
+      { key: 'page', value: '1', enabled: false, description: 'Page number' },
+      { key: 'limit', value: '25', enabled: false, description: 'Per page' },
+    ],
+  },
+  {
+    id: '8004scan-agents-search',
+    label: '8004scan search agents',
+    method: 'GET',
+    url: `${base}/8004scan/agents/search`,
+    params: [{ key: 'q', value: 'trading', enabled: true, description: 'Search query (required)' }],
+  },
+  {
+    id: 'heylol-feed',
+    label: 'hey.lol feed',
+    method: 'GET',
+    url: `${base}/heylol/feed`,
+    params: [],
+  },
+  {
     id: 'analytics-summary',
     label: 'Analytics summary',
     method: 'GET',
@@ -204,6 +242,13 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     url: `${base}/sundown-digest`,
     params: [],
   },
+  {
+    id: 'brain',
+    label: 'Brain (single-question AI)',
+    method: 'GET',
+    url: `${base}/brain`,
+    params: [{ key: 'question', value: 'What is the latest BTC news?', enabled: true, description: 'Natural language question (e.g. trending pools on Solana, BTC price)' }],
+  },
   // Partner
   {
     id: 'smart-money',
@@ -217,7 +262,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     label: 'Token god mode',
     method: 'GET',
     url: `${base}/token-god-mode`,
-    params: [],
+    params: [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for Nansen research' }],
   },
   {
     id: 'dexscreener',
@@ -238,14 +283,14 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     label: 'Token report',
     method: 'GET',
     url: `${base}/token-report`,
-    params: [],
+    params: [{ key: 'address', value: '', enabled: true, description: 'Token contract address (Rugcheck)' }],
   },
   {
     id: 'bubblemaps-maps',
     label: 'Bubblemaps maps',
     method: 'GET',
     url: `${base}/bubblemaps/maps`,
-    params: [],
+    params: [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
   },
   {
     id: 'binance-correlation',
@@ -543,6 +588,7 @@ function getPlaygroundProxyUrl(targetUrl: string): string {
 }
 
 // API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: direct api.nansen.ai.
+// Aligned with api/index.js x402Paths and /.well-known/x402 discovery.
 function getApiEndpoints(): string[] {
   const base = getApiBaseUrl();
   const nansenBase = getNansenBaseUrl();
@@ -583,6 +629,17 @@ function getApiEndpoints(): string[] {
     `${base}/8004/stats`,
     `${base}/8004/leaderboard`,
     `${base}/8004/agents/search`,
+    `${base}/8004/register-agent`,
+    `${base}/8004/agent-by-wallet`,
+    `${base}/8004scan/stats`,
+    `${base}/8004scan/chains`,
+    `${base}/8004scan/agents`,
+    `${base}/8004scan/agents/search`,
+    `${base}/8004scan/agent`,
+    `${base}/8004scan/feedbacks`,
+    `${base}/heylol/feed`,
+    `${base}/heylol/profile/me`,
+    `${base}/heylol/search`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
@@ -727,6 +784,28 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'offset', value: '0', enabled: false, description: 'Offset' },
       ],
       '/8004/agent-by-wallet': [],
+      '/8004scan/stats': [],
+      '/8004scan/chains': [],
+      '/8004scan/agents': [
+        { key: 'page', value: '1', enabled: false, description: 'Page number' },
+        { key: 'limit', value: '25', enabled: false, description: 'Per page' },
+        { key: 'chainId', value: '', enabled: false, description: 'Chain ID filter' },
+        { key: 'ownerAddress', value: '', enabled: false, description: 'Owner address' },
+        { key: 'search', value: '', enabled: false, description: 'Search text' },
+      ],
+      '/8004scan/agents/search': [
+        { key: 'q', value: 'trading', enabled: true, description: 'Search query (required)' },
+        { key: 'limit', value: '20', enabled: false, description: 'Max results' },
+        { key: 'chainId', value: '', enabled: false, description: 'Chain ID filter' },
+      ],
+      '/8004scan/agent': [
+        { key: 'chainId', value: '', enabled: true, description: 'Chain ID (required)' },
+        { key: 'tokenId', value: '', enabled: true, description: 'Token ID (required)' },
+      ],
+      '/8004scan/feedbacks': [],
+      '/heylol/feed': [],
+      '/heylol/profile/me': [],
+      '/heylol/search': [{ key: 'q', value: '', enabled: true, description: 'Search query' }],
       '/coinmarketcap': [
         { key: 'endpoint', value: 'quotes-latest', enabled: true, description: 'quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp' },
         { key: 'id', value: '1', enabled: true, description: 'CMC id (e.g. 1 for Bitcoin, 1027 for Ethereum)' },
