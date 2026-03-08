@@ -36,6 +36,19 @@ async function fetchV2(
   return { status: res.status, body };
 }
 
+/** POST request to API path with JSON body. When SYRA_USE_DEV_ROUTES, appends /dev to path. */
+async function fetchPost(path: string, bodyObj: Record<string, unknown>): Promise<{ status: number; body: string }> {
+  const resolvedPath = SYRA_USE_DEV_ROUTES ? `${path}/dev` : path;
+  const url = new URL(resolvedPath, SYRA_API_BASE_URL);
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(bodyObj),
+  });
+  const body = await res.text();
+  return { status: res.status, body };
+}
+
 /** 8004 API: path is /8004/... or /8004/dev/... when SYRA_USE_DEV_ROUTES (no trailing /dev from fetchV2). */
 async function fetch8004(
   pathSuffix: string,
@@ -146,6 +159,20 @@ async function main() {
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     });
   }
+
+  // --- Syra Brain (POST: single question → tools + LLM answer) ---
+  server.tool(
+    "syra_v2_brain",
+    "Syra Brain: single-question API. Send a natural language question; Syra selects and runs relevant tools (news, sentiment, trending pools, etc.) and returns one synthesized answer. Ideal for integrating Syra chat in one call. Swap execution not supported (use agent chat for swaps)." +
+      PAYMENT_NOTE,
+    {
+      question: z.string().describe("Natural language question (e.g. What is the latest BTC news?, Give me trending pools on Solana)"),
+    },
+    async ({ question }) => {
+      const { status, body } = await fetchPost("/brain", { question: question ?? "" });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
 
   // --- Query param (required or optional) ---
   server.tool(

@@ -87,6 +87,7 @@ The **production** Syra API at `https://api.syraa.fun` uses **x402** for many en
 ## Features
 
 - **30+ MCP tools** covering the full Syra API:
+  - **Syra Brain** — Single-question API: ask in natural language; Syra runs tools and returns one answer (POST `/brain`).
   - **News & events** — Latest crypto news and upcoming/recent events (optional ticker: BTC, ETH, or `general`).
   - **Sentiment & headlines** — Market sentiment (30 days) and trending crypto headlines (optional ticker).
   - **Signals** — AI-generated trading signals with entry/exit (optional token name).
@@ -348,6 +349,12 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_token_god_mode` | `tokenAddress` (required) | Nansen token god mode: deep research for a token. |
 | `syra_v2_bubblemaps_maps` | `address` (required) — Solana token contract address | Bubblemaps holder/concentration map data. |
 
+### Syra Brain (POST)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_brain` | `question` (required) — natural language question | Single-question API: Syra selects tools, runs them, and returns one synthesized answer (e.g. latest BTC news, trending pools). |
+
 ### No-parameter (GET only)
 
 | Tool | Description |
@@ -391,6 +398,7 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 
 | MCP Tool | API Path |
 |----------|----------|
+| `syra_v2_brain` | `POST /brain` (body: `{ "question": "..." }`) |
 | `syra_v2_news` | `/news` |
 | `syra_v2_event` | `/event` |
 | `syra_v2_sentiment` | `/sentiment` |
@@ -487,7 +495,7 @@ Once the server is connected, you can try prompts like these in Cursor or Claude
 - “Binance correlation for ETHUSDT.”
 - “Memecoins with fastest holder growth.”
 
-The model will choose the appropriate tool(s) and parameters.
+The model will choose the appropriate tool(s) and parameters. For a single natural-language question that runs multiple Syra tools and returns one answer, use **Syra Brain**: e.g. "Ask Syra Brain: what is the latest BTC news?" (uses `syra_v2_brain`).
 
 ---
 

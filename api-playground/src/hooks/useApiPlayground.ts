@@ -496,6 +496,7 @@ function getApiEndpoints(): string[] {
   const base = getApiBaseUrl();
   const nansenBase = getNansenBaseUrl();
   return [
+    `${base}/brain`,
     `${base}/news`,
     `${base}/signal`,
     `${base}/sentiment`,
@@ -536,7 +537,13 @@ function getApiEndpoints(): string[] {
 const SUPPORTED_METHODS: HttpMethod[] = ['GET', 'POST'];
 
 /** Default method when detection hasn't run yet (e.g. example flow). Detection uses 402/405 from actual requests. */
-export function getDefaultMethodForUrl(_url: string): HttpMethod {
+export function getDefaultMethodForUrl(url: string): HttpMethod {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    if (path === '/brain') return 'POST'; // Brain supports GET (query) and POST (body); default POST
+  } catch {
+    // ignore
+  }
   return 'GET';
 }
 
@@ -551,6 +558,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/trending-headline': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/sundown-digest': [],
       '/check-status': [],
+      '/brain': [{ key: 'question', value: 'What is the latest BTC news?', enabled: true, description: 'Natural language question (e.g. trending pools on Solana, BTC price)' }],
       '/token-statistic': [],
       '/token-risk/alerts': [
         { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
@@ -1264,7 +1272,16 @@ export function useApiPlayground() {
     let finalUrl = baseUrl;
     const enabledParams = effectiveParams.filter(p => p.enabled && p.key);
     const isNansen = isNansenUrl(baseUrl);
-    if (enabledParams.length > 0 && !isNansen) {
+    // pathname for URL building: brain and Nansen use POST body only, not query params
+    const pathnameForUrl = (() => {
+      try {
+        return new URL(baseUrl).pathname.toLowerCase();
+      } catch {
+        return '';
+      }
+    })();
+    // For GET, add query params to URL; for /brain with POST, question goes in body only (handled below)
+    if (enabledParams.length > 0 && !isNansen && !(pathnameForUrl === '/brain' && effectiveMethod === 'POST')) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach(p => searchParams.append(p.key, p.value));
       finalUrl += (baseUrl.includes('?') ? '&' : '?') + searchParams.toString();
@@ -1320,6 +1337,9 @@ export function useApiPlayground() {
       } else if (emptyBody && pathname === '/exa-search') {
         const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
         bodyToSend = JSON.stringify({ query: queryVal });
+      } else if (emptyBody && pathname === '/brain') {
+        const questionVal = enabledParams.find(p => p.key === 'question')?.value ?? '';
+        bodyToSend = JSON.stringify({ question: questionVal });
       }
     }
 
@@ -1339,8 +1359,8 @@ export function useApiPlayground() {
     if (payerAddress) {
       requestHeaders['X-Payer-Address'] = payerAddress;
     }
-    // Nansen expects JSON body with Content-Type: application/json
-    if (isNansen && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
+    // Nansen and Brain expect JSON body with Content-Type: application/json
+    if ((isNansen || pathname === '/brain') && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
       requestHeaders['Content-Type'] = 'application/json';
     }
 

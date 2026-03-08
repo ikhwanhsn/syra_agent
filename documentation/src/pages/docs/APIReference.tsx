@@ -10,7 +10,7 @@ const BASE_URL = "https://api.syraa.fun";
 const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   {
     title: "Overview & Standards",
-    slugs: ["x402-api-standard", "check-status"],
+    slugs: ["x402-api-standard", "check-status", "brain"],
   },
   {
     title: "News & Sentiment",

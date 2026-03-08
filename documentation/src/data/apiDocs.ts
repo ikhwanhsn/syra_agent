@@ -301,6 +301,67 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     ],
   }),
 
+  brain: doc({
+    title: "Syra Brain API",
+    overview:
+      "Single-question API that runs Syra's AI brain: the service selects relevant tools from your question, runs them (news, sentiment, trending pools, etc.), and returns one synthesized answer. Ideal for integrating Syra chat into your app with one x402-paid request. Tools are run server-side (treasury-paid); swap execution is not supported (use agent chat with a connected wallet for swaps). Supports both GET (question in query) and POST (question in body).",
+    price: "$0.05 USD per request",
+    useCases: [
+      "Integrate Syra Q&A into your app or bot with one API call",
+      "Ask natural language questions (e.g. latest BTC news, trending pools on Solana)",
+      "Get a single text answer with optional tool usage details",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/brain",
+        description: "Send a natural language question as a query parameter. Syra selects tools, runs them, and returns one answer.",
+        params: [
+          { name: "question", type: "string", required: "Yes", description: "Natural language question (e.g. What is the latest BTC news?, Give me trending pools on Solana)." },
+        ],
+        requestExample: `curl "${BASE_URL}/brain?question=What%20is%20the%20latest%20BTC%20news"`,
+        responseExample: `{
+  "success": true,
+  "response": "Here are the latest headlines affecting Bitcoin...",
+  "toolUsages": [
+    { "name": "Crypto news", "status": "complete" }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/brain",
+        description: "Send a natural language question in the request body. Syra selects tools, runs them, and returns one answer.",
+        params: [
+          { name: "question", type: "string", required: "Yes", description: "Natural language question (e.g. What is the latest BTC news?, Give me trending pools on Solana)." },
+        ],
+        bodyExample: `{ "question": "What is the latest BTC news?" }`,
+        requestExample: `curl -X POST ${BASE_URL}/brain \\
+  -H "Content-Type: application/json" \\
+  -d '{"question": "What is the latest BTC news?"}'`,
+        responseExample: `{
+  "success": true,
+  "response": "Here are the latest headlines affecting Bitcoin...",
+  "toolUsages": [
+    { "name": "Crypto news", "status": "complete" }
+  ]
+}`,
+      },
+    ],
+    paymentFlow: {
+      step1: "POST without payment returns 402 with payment instructions.",
+      step2: "Complete payment (x402), then retry with PAYMENT-SIGNATURE (or X-Payment) header.",
+      step3: "Retry POST with the same body and payment header to receive the answer.",
+      response402: standard402(0.05),
+    },
+    responseCodes: [
+      { code: "200", description: "Success — response and optional toolUsages returned" },
+      { code: "400", description: "Bad Request — question is required" },
+      { code: "402", description: "Payment Required — complete payment first" },
+      { code: "5xx", description: "Server error — retry later" },
+    ],
+  }),
+
   "exa-search": doc({
     title: "EXA Search API",
     overview:

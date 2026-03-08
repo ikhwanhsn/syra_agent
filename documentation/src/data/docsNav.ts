@@ -28,6 +28,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "x402 API Standard", href: api("x402-api-standard") },
           { title: "Check Status", href: api("check-status") },
+          { title: "Syra Brain", href: api("brain") },
         ],
       },
       {

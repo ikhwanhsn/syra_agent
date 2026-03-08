@@ -58,6 +58,7 @@ import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
 import { createHeyLolRouter } from "./routes/heylol.js";
+import { createBrainRouter } from "./routes/brain.js";
 import connectMongoose from "./config/mongoose.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -526,6 +527,7 @@ app.use("/signal", await createV2SignalRouter());
 app.use("/exa-search", await createV2ExaSearchRouter());
 app.use("/check-status", await createV2CheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
+app.use("/brain", await createBrainRouter());
 app.use("/smart-money", await createV2SmartMoneyRouter());
 app.use("/jatevo", await createJatevoRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
@@ -589,6 +591,7 @@ app.get("/.well-known/x402", (req, res) => {
   // All x402 API paths (unversioned)
   const x402Paths = [
     // Core
+    "brain",
     "news",
     "signal",
     "sentiment",

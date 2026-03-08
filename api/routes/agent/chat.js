@@ -41,7 +41,7 @@ const MAX_TOKENS_DEFAULT = 2000;
  * @param {string} userMessage - Last user message
  * @returns {Promise<Array<{ toolId: string; params?: Record<string, string> }>>}
  */
-async function selectToolsWithLlm(userMessage) {
+export async function selectToolsWithLlm(userMessage) {
   if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) return [];
 
   const tools = getToolsForLlmSelection();
@@ -295,7 +295,7 @@ async function normalizeJupiterAmountToBaseUnits(params) {
  * @param {string} toolId - Tool id (e.g. 'analytics-summary')
  * @returns {string} - String to inject into the user message for the LLM
  */
-function formatToolResultForLlm(data, toolId) {
+export function formatToolResultForLlm(data, toolId) {
   if (toolId === 'analytics-summary' && data && typeof data === 'object' && !Array.isArray(data)) {
     try {
       return condensedAnalyticsSummary(data);
@@ -397,7 +397,7 @@ async function callToolWithAgentWallet(anonymousId, url, method, query, body, co
 /**
  * Call x402 v2 tool with treasury wallet (AGENT_PRIVATE_KEY). Used for 1M+ SYRA holders (free tools).
  */
-async function callToolWithTreasury(url, method, query, body) {
+export async function callToolWithTreasury(url, method, query, body) {
   const result = await callX402V2WithTreasury({
     url,
     method: method || 'GET',
