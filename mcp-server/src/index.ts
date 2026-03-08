@@ -293,6 +293,89 @@ async function main() {
     },
   );
 
+  // --- Kraken market (ticker, orderbook, ohlc, trades, status, server-time) ---
+  server.tool(
+    "syra_v2_kraken_ticker",
+    "Kraken ticker (market data, no auth). Optional pair (default BTCUSD), comma-separated for multiple." + PAYMENT_NOTE,
+    {
+      pair: z.string().optional().default("BTCUSD").describe("Pair(s) comma-separated (e.g. BTCUSD, ETHUSD)"),
+    },
+    async ({ pair }) => {
+      const params: Record<string, string> = {};
+      if (pair) params.pair = pair;
+      const { status, body } = await fetchV2("/kraken/ticker", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_kraken_orderbook",
+    "Kraken order book (market data, no auth). Optional pair (default BTCUSD), count (default 25)." + PAYMENT_NOTE,
+    {
+      pair: z.string().optional().default("BTCUSD").describe("Pair (e.g. BTCUSD, ETHUSD)"),
+      count: z.number().optional().default(25).describe("Depth (default 25, max 500)"),
+    },
+    async ({ pair, count }) => {
+      const params: Record<string, string> = {};
+      if (pair) params.pair = pair;
+      if (count != null) params.count = String(count);
+      const { status, body } = await fetchV2("/kraken/orderbook", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_kraken_ohlc",
+    "Kraken OHLC candles (market data, no auth). Optional pair (default BTCUSD), interval (default 60)." + PAYMENT_NOTE,
+    {
+      pair: z.string().optional().default("BTCUSD").describe("Pair (e.g. BTCUSD)"),
+      interval: z.number().optional().default(60).describe("Interval in minutes (default 60)"),
+    },
+    async ({ pair, interval }) => {
+      const params: Record<string, string> = {};
+      if (pair) params.pair = pair;
+      if (interval != null) params.interval = String(interval);
+      const { status, body } = await fetchV2("/kraken/ohlc", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_kraken_trades",
+    "Kraken recent trades (market data, no auth). Optional pair (default BTCUSD), count (default 100)." + PAYMENT_NOTE,
+    {
+      pair: z.string().optional().default("BTCUSD").describe("Pair (e.g. BTCUSD)"),
+      count: z.number().optional().default(100).describe("Number of trades (default 100, max 1000)"),
+    },
+    async ({ pair, count }) => {
+      const params: Record<string, string> = {};
+      if (pair) params.pair = pair;
+      if (count != null) params.count = String(count);
+      const { status, body } = await fetchV2("/kraken/trades", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_kraken_status",
+    "Kraken system status (market data, no auth)." + PAYMENT_NOTE,
+    {},
+    async () => {
+      const { status, body } = await fetchV2("/kraken/status");
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_kraken_server_time",
+    "Kraken server time (market data, no auth)." + PAYMENT_NOTE,
+    {},
+    async () => {
+      const { status, body } = await fetchV2("/kraken/server-time");
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   // --- CoinGecko x402 simple price & onchain token price ---
   server.tool(
     "syra_v2_coingecko_simple_price",

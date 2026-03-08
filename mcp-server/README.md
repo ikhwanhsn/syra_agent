@@ -376,6 +376,17 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_binance_correlation` | `symbol` (optional, default: `"BTCUSDT"`) — e.g. `ETHUSDT` | Top correlated assets for a symbol. |
 | `syra_v2_binance_correlation_matrix` | `symbol` (optional) | Full Binance correlation matrix. |
 
+### Kraken market (no auth)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_kraken_ticker` | `pair` (optional, default: `"BTCUSD"`) — comma-separated for multiple | Kraken spot ticker. |
+| `syra_v2_kraken_orderbook` | `pair` (optional), `count` (optional, default: 25) | Kraken order book. |
+| `syra_v2_kraken_ohlc` | `pair` (optional), `interval` (optional, default: 60) | Kraken OHLC candles. |
+| `syra_v2_kraken_trades` | `pair` (optional), `count` (optional, default: 100) | Kraken recent trades. |
+| `syra_v2_kraken_status` | — | Kraken system status. |
+| `syra_v2_kraken_server_time` | — | Kraken server time. |
+
 ### Memecoin screens (all no-parameter)
 
 | Tool | Description |
@@ -424,6 +435,12 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_bubblemaps_maps` | `/bubblemaps/maps` |
 | `syra_v2_binance_correlation` | `/binance/correlation` |
 | `syra_v2_binance_correlation_matrix` | `/binance/correlation-matrix` |
+| `syra_v2_kraken_ticker` | `/kraken/ticker` |
+| `syra_v2_kraken_orderbook` | `/kraken/orderbook` |
+| `syra_v2_kraken_ohlc` | `/kraken/ohlc` |
+| `syra_v2_kraken_trades` | `/kraken/trades` |
+| `syra_v2_kraken_status` | `/kraken/status` |
+| `syra_v2_kraken_server_time` | `/kraken/server-time` |
 | `syra_v2_coingecko_simple_price` | `/coingecko/simple-price` |
 | `syra_v2_coingecko_onchain_token_price` | `/coingecko/onchain/token-price` |
 | `syra_v2_coingecko_search_pools` | `/coingecko/onchain/search-pools` |

@@ -93,6 +93,11 @@ export const navigation: NavItem[] = [
         ],
       },
       {
+        title: "Partner: Kraken",
+        defaultCollapsed: false,
+        items: [{ title: "Kraken Market", href: api("kraken-market") }],
+      },
+      {
         title: "Partner: Bubblemaps & Binance",
         defaultCollapsed: false,
         items: [

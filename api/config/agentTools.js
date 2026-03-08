@@ -17,6 +17,7 @@ import {
   X402_API_PRICE_8004_USD,
   X402_API_PRICE_8004SCAN_USD,
   X402_API_PRICE_HEYLOL_USD,
+  X402_API_PRICE_KRAKEN_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -33,6 +34,7 @@ import {
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
+  X402_DISPLAY_PRICE_KRAKEN_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -430,6 +432,61 @@ export const AGENT_TOOLS = [
     name: 'Binance correlation',
     description: 'Binance correlation data',
   },
+  // Partner: Kraken market (ticker, orderbook, ohlc, trades, status, server-time via kraken-cli)
+  {
+    id: 'kraken-ticker',
+    path: '/kraken/ticker',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KRAKEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KRAKEN_USD,
+    name: 'Kraken ticker',
+    description: 'Kraken ticker (market data). Optional pair (default BTCUSD), comma-separated for multiple.',
+  },
+  {
+    id: 'kraken-orderbook',
+    path: '/kraken/orderbook',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KRAKEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KRAKEN_USD,
+    name: 'Kraken orderbook',
+    description: 'Kraken order book. Optional pair (default BTCUSD), count (default 25).',
+  },
+  {
+    id: 'kraken-ohlc',
+    path: '/kraken/ohlc',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KRAKEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KRAKEN_USD,
+    name: 'Kraken OHLC',
+    description: 'Kraken OHLC candles. Optional pair (default BTCUSD), interval (default 60).',
+  },
+  {
+    id: 'kraken-trades',
+    path: '/kraken/trades',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KRAKEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KRAKEN_USD,
+    name: 'Kraken trades',
+    description: 'Kraken recent trades. Optional pair (default BTCUSD), count (default 100).',
+  },
+  {
+    id: 'kraken-status',
+    path: '/kraken/status',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KRAKEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KRAKEN_USD,
+    name: 'Kraken status',
+    description: 'Kraken system status',
+  },
+  {
+    id: 'kraken-server-time',
+    path: '/kraken/server-time',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KRAKEN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KRAKEN_USD,
+    name: 'Kraken server time',
+    description: 'Kraken server time',
+  },
   // Partner: CoinGecko x402 (simple price + onchain)
   {
     id: 'coingecko-simple-price',
@@ -657,6 +714,30 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'binance-correlation',
       test: () =>
         /binance\s*correlation|correlation\s*binance|binance\s*correl/i.test(text),
+    },
+    {
+      toolId: 'kraken-ticker',
+      test: () => /kraken\s*ticker|ticker\s*kraken|kraken\s*price|kraken\s*btc/i.test(text),
+    },
+    {
+      toolId: 'kraken-orderbook',
+      test: () => /kraken\s*orderbook|orderbook\s*kraken|kraken\s*order\s*book/i.test(text),
+    },
+    {
+      toolId: 'kraken-ohlc',
+      test: () => /kraken\s*ohlc|kraken\s*candles|ohlc\s*kraken/i.test(text),
+    },
+    {
+      toolId: 'kraken-trades',
+      test: () => /kraken\s*trades|trades\s*kraken|kraken\s*recent\s*trades/i.test(text),
+    },
+    {
+      toolId: 'kraken-status',
+      test: () => /kraken\s*status|status\s*kraken|kraken\s*system/i.test(text),
+    },
+    {
+      toolId: 'kraken-server-time',
+      test: () => /kraken\s*server\s*time|kraken\s*time/i.test(text),
     },
     // Partner: Nansen, Jupiter, DexScreener
     {
@@ -893,7 +974,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 

@@ -24,6 +24,7 @@ import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
+import { createKrakenMarketRouter } from "./routes/partner/kraken/market.js";
 // x402 route imports (consolidated from v2 into routes)
 import {
   createCryptonewsRouter,
@@ -178,9 +179,11 @@ function isX402Route(p) {
   if (p.startsWith("/coingecko")) return true;
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
   if (p.startsWith("/coinmarketcap")) return true;
+  if (p.startsWith("/kraken")) return true;
   if (p.startsWith("/8004")) return true;
   if (p.startsWith("/8004scan")) return true;
   if (p.startsWith("/heylol")) return true;
+  if (p.startsWith("/brain")) return true;
   return false;
 }
 
@@ -504,6 +507,7 @@ app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
 app.use("/coinmarketcap", await createCoinmarketcapRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
+app.use("/kraken", await createKrakenMarketRouter());
 app.use("/", await createCryptonewsRouter());
 
 // v1/regular (no x402) – used by landing page (LiveDashboard, DashboardPreview); must be mounted before /v1 block
@@ -620,6 +624,13 @@ app.get("/.well-known/x402", (req, res) => {
     "coingecko/onchain/token",
     // CoinMarketCap x402
     "coinmarketcap",
+    // Kraken market (ticker, orderbook, ohlc, trades, status, server-time)
+    "kraken/ticker",
+    "kraken/orderbook",
+    "kraken/ohlc",
+    "kraken/trades",
+    "kraken/status",
+    "kraken/server-time",
     // Analytics
     "analytics/summary",
     // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)

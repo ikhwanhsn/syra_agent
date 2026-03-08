@@ -81,6 +81,9 @@ export const X402_API_PRICE_EXA_SEARCH_USD = price(0.01);
 /** CoinMarketCap x402 (quotes latest, listing latest, DEX pairs quotes, DEX search, MCP) — $0.01/request per CMC docs */
 export const X402_API_PRICE_COINMARKETCAP_USD = price(0.01);
 
+/** Kraken market (ticker, orderbook, ohlc, trades, status, server-time) via kraken-cli — no auth */
+export const X402_API_PRICE_KRAKEN_USD = price(0.01);
+
 /** 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection) */
 export const X402_API_PRICE_8004_USD = price(0.01);
 
@@ -119,6 +122,7 @@ export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_COINGECKO_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_COINMARKETCAP_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_KRAKEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;

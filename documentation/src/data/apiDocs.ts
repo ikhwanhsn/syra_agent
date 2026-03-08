@@ -1083,6 +1083,99 @@ curl "${BASE_URL}/token-risk/alerts?rugScoreMin=40&source=new_tokens&limit=15"`,
     ],
   }),
 
+  "kraken-market": doc({
+    title: "Kraken Market API",
+    overview:
+      "Kraken market data via kraken-cli (no auth): ticker, orderbook, OHLC, recent trades, system status, and server time. All endpoints support GET and POST; all params have defaults. Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    useCases: [
+      "Get Kraken spot ticker for one or more pairs (e.g. BTCUSD, ETHUSD)",
+      "Fetch order book depth and OHLC candles",
+      "Recent trades and system status for monitoring",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/kraken/ticker",
+        description: "Ticker for one or more pairs. Default pair: BTCUSD.",
+        params: [
+          { name: "pair", type: "string", required: "No", description: "Pair(s) comma-separated (default BTCUSD)." },
+        ],
+        requestExample: `curl ${BASE_URL}/kraken/ticker
+curl "${BASE_URL}/kraken/ticker?pair=BTCUSD,ETHUSD"`,
+        responseExample: `{ "BTCUSD": { "a": ["67234.10","1","1.000"], "b": ["67234.00","1","1.000"], ... } }`,
+      },
+      {
+        method: "POST",
+        path: "/kraken/ticker",
+        description: "Same via POST; body: { \"pair\": \"BTCUSD\" }.",
+        bodyExample: `{ "pair": "BTCUSD,ETHUSD" }`,
+        requestExample: `curl -X POST ${BASE_URL}/kraken/ticker -H "Content-Type: application/json" -d '{"pair":"BTCUSD"}'`,
+        responseExample: `{ "BTCUSD": { ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/kraken/orderbook",
+        description: "Order book for a pair. Default pair: BTCUSD, count: 25.",
+        params: [
+          { name: "pair", type: "string", required: "No", description: "Pair (default BTCUSD)." },
+          { name: "count", type: "number", required: "No", description: "Depth (default 25, max 500)." },
+        ],
+        requestExample: `curl ${BASE_URL}/kraken/orderbook
+curl "${BASE_URL}/kraken/orderbook?pair=ETHUSD&count=50"`,
+        responseExample: `{ "asks": [...], "bids": [...] }`,
+      },
+      {
+        method: "GET",
+        path: "/kraken/ohlc",
+        description: "OHLC candles. Default pair: BTCUSD, interval: 60.",
+        params: [
+          { name: "pair", type: "string", required: "No", description: "Pair (default BTCUSD)." },
+          { name: "interval", type: "number", required: "No", description: "Minutes (default 60)." },
+        ],
+        requestExample: `curl ${BASE_URL}/kraken/ohlc`,
+        responseExample: `{ "BTCUSD": { "last": 1234567890, "candles": [...] } }`,
+      },
+      {
+        method: "GET",
+        path: "/kraken/trades",
+        description: "Recent trades. Default pair: BTCUSD, count: 100.",
+        params: [
+          { name: "pair", type: "string", required: "No", description: "Pair (default BTCUSD)." },
+          { name: "count", type: "number", required: "No", description: "Number of trades (default 100, max 1000)." },
+        ],
+        requestExample: `curl ${BASE_URL}/kraken/trades`,
+        responseExample: `{ "trades": [...] }`,
+      },
+      {
+        method: "GET",
+        path: "/kraken/status",
+        description: "Kraken system status.",
+        requestExample: `curl ${BASE_URL}/kraken/status`,
+        responseExample: `{ "result": { "status": "online", ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/kraken/server-time",
+        description: "Kraken server time.",
+        requestExample: `curl ${BASE_URL}/kraken/server-time`,
+        responseExample: `{ "result": { "unixtime": 1234567890, "rfc1123": "..." } }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Reference",
+        content:
+          "Data is provided via kraken-cli (https://github.com/krakenfx/kraken-cli). Market endpoints require no API key; the Syra API uses x402 for payment only.",
+      },
+      {
+        title: "Dev routes (no payment)",
+        content:
+          "When NODE_ENV is not production, GET/POST /kraken/ticker/dev, /kraken/orderbook/dev, /kraken/ohlc/dev, /kraken/trades/dev, /kraken/status/dev, and /kraken/server-time/dev return the same data without x402 payment.",
+      },
+    ],
+  }),
+
   "binance-correlation": doc({
     title: "Binance Correlation API",
     overview: "Binance correlation and correlation matrix. Top correlated assets for a symbol (e.g. BTCUSDT) or full correlation matrix. Uses the x402 payment protocol.",
