@@ -218,9 +218,18 @@ function isPlaygroundProxyRoute(p) {
   return p === "/api/playground-proxy";
 }
 
+/** v1/regular (landing preview): allow any origin so dev/staging landings (e.g. dev-landing-syra.vercel.app) work without allowlist. */
+function isV1RegularRoute(p) {
+  return p && p.startsWith("/v1/regular");
+}
+
 app.use((req, res, next) => {
   const options =
-    isX402Route(req.path) || isAgentRoute(req.path) || isHeyLolRoute(req.path) || isPlaygroundProxyRoute(req.path)
+    isX402Route(req.path) ||
+    isAgentRoute(req.path) ||
+    isHeyLolRoute(req.path) ||
+    isPlaygroundProxyRoute(req.path) ||
+    isV1RegularRoute(req.path)
       ? CORS_OPTIONS_X402
       : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);
