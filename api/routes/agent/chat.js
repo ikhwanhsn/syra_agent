@@ -676,13 +676,18 @@ router.post('/completion', async (req, res) => {
           const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
           const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
           const budgetExceeded = result.budgetExceeded === true;
+          const isBackendError = /Kraken request failed|timeout|CLI|502|503|request failed/i.test(err);
           let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
           if (budgetExceeded) {
             instruction += ` This was blocked by the agent's spend limit (Sentinel budget). Tell the user their agent has hit its hourly/daily budget cap; they can try again later or adjust limits in settings.`;
+          } else if (isBackendError) {
+            instruction += ` This was a temporary service or data-provider issue, not a wallet balance problem. Tell the user the tool could not fetch data right now and they can try again in a moment.`;
           } else if (useTreasury) {
             instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
           } else if (needsUsdc) {
             instruction += ` Tell the user they need to deposit USDC to their agent wallet to pay for this tool.`;
+          } else if (needsSol) {
+            instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
           } else {
             instruction += ` Suggest they check their agent wallet has both USDC (for the tool) and SOL (for fees), or try again later.`;
           }
