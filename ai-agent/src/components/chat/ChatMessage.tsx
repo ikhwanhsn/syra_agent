@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle } from "lucide-react";
+import { User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -94,6 +94,8 @@ interface ChatMessageProps {
   isRegenerateDisabled?: boolean;
   /** User avatar URL for user messages */
   userAvatarUrl?: string | null;
+  /** When user saves an edited user message: (messageId, newContent) => update in place */
+  onUpdateUserMessage?: (messageId: string, content: string) => void;
 }
 
 /** Generate a cute, unique avatar for user messages */
@@ -119,8 +121,11 @@ function getUserAvatar(messageId: string) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "/logo.jpg", onRegenerate, isRegenerateDisabled, userAvatarUrl = null }: ChatMessageProps) {
+export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "/logo.jpg", onRegenerate, isRegenerateDisabled, userAvatarUrl = null, onUpdateUserMessage }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState("");
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const isUser = message.role === "user";
   // Use provided avatarUrl or fallback to generated avatar
   const userAvatar = useMemo(() => {
@@ -134,6 +139,32 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
     await navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const startEditing = () => {
+    setEditDraft(message.content);
+    setIsEditing(true);
+  };
+
+  useEffect(() => {
+    if (isEditing && isUser) {
+      editTextareaRef.current?.focus();
+      const len = message.content.length;
+      editTextareaRef.current?.setSelectionRange(len, len);
+    }
+  }, [isEditing, isUser, message.content.length]);
+
+  const saveEdit = () => {
+    const trimmed = editDraft.trim();
+    if (trimmed && onUpdateUserMessage) {
+      onUpdateUserMessage(message.id, trimmed);
+      setIsEditing(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditDraft("");
   };
 
   const markdownComponents: Components = {
@@ -390,19 +421,88 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
 
         {/* Message Content - auto-detects markdown (tables, code, headings, lists) and renders rich UI */}
         <div className="text-foreground leading-relaxed break-words min-w-0">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-            {message.content}
-          </ReactMarkdown>
-          {message.isStreaming && (
-            <span className="inline-flex gap-1 ml-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
-            </span>
+          {isUser && isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                ref={editTextareaRef}
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    saveEdit();
+                  }
+                  if (e.key === "Escape") cancelEdit();
+                }}
+                rows={3}
+                className="w-full min-h-[72px] px-3 py-2 rounded-lg border border-border bg-background text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                placeholder="Your message..."
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 gap-1.5"
+                  onClick={saveEdit}
+                  disabled={!editDraft.trim()}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Save
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : isUser ? (
+            <p className="my-0 whitespace-pre-wrap break-words min-w-0">{message.content}</p>
+          ) : (
+            <>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {message.content}
+              </ReactMarkdown>
+              {message.isStreaming && (
+                <span className="inline-flex gap-1 ml-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
+                </span>
+              )}
+            </>
           )}
         </div>
 
-        {/* Actions — always visible on touch for mobile */}
+        {/* User message actions: Copy, Edit (hidden while editing) */}
+        {isUser && !isEditing && (
+          <div className="flex flex-wrap items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
+              onClick={copyToClipboard}
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+            {onUpdateUserMessage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
+                onClick={startEditing}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Assistant message actions: Copy, Regenerate */}
         {!isUser && !message.isStreaming && (
           <div className="flex flex-wrap items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity pt-2">
             <Button

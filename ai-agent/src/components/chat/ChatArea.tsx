@@ -57,6 +57,8 @@ interface ChatAreaProps {
   onSelectModel?: (modelId: string) => void;
   /** User avatar URL for user messages */
   userAvatarUrl?: string | null;
+  /** When user saves an edited user message in place: (messageId, newContent) => update */
+  onUpdateUserMessage?: (messageId: string, content: string) => void;
 }
 
 export function ChatArea({
@@ -79,6 +81,7 @@ export function ChatArea({
   selectedModelId = "",
   onSelectModel,
   userAvatarUrl = null,
+  onUpdateUserMessage,
 }: ChatAreaProps) {
   const { openConnectModal } = useConnectModal();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -212,6 +215,7 @@ export function ChatArea({
                     onRegenerate={onRegenerate}
                     isRegenerateDisabled={isLoading}
                     userAvatarUrl={userAvatarUrl}
+                    onUpdateUserMessage={onUpdateUserMessage}
                   />
                 );
               })}
