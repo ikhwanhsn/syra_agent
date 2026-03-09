@@ -141,7 +141,14 @@ const CORS_OPTIONS_X402 = {
   ],
 };
 const CORS_OPTIONS_REGULAR = {
-  origin: CORS_ALLOWED_ORIGINS,
+  origin: (origin, cb) => {
+    // Allow requests with no origin (e.g. same-origin, Postman, server-side)
+    if (!origin) return cb(null, true);
+    const allowed = new Set(CORS_ALLOWED_ORIGINS);
+    const normalized = origin.replace(/\/$/, ""); // strip trailing slash
+    if (allowed.has(origin) || allowed.has(normalized)) return cb(null, true);
+    return cb(null, false);
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
