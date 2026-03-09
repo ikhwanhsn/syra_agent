@@ -42,7 +42,7 @@ export const DashboardPreview = () => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
       }),
-    refetchInterval: 1000,
+    refetchInterval: 15_000, // 15s to avoid Binance request weight limit / IP ban (-1003)
   });
 
   const {
