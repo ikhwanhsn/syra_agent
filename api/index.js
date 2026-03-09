@@ -114,6 +114,10 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.dashboard.syraa.fun",
   "https://playground.syraa.fun",
   "https://www.playground.syraa.fun",
+  "https://dev-landing-syra.vercel.app",
+  "https://dev-dashboard-syra.vercel.app",
+  "https://dev-playground-syra.vercel.app",
+  "https://dev-ai-agent-syra.vercel.app",
   ...CORS_EXTRA,
 ];
 const CORS_OPTIONS_X402 = {
