@@ -60,7 +60,12 @@ If you see **`POST https://auth.privy.io/api/v1/siws/init 403 (Forbidden)`**, yo
 3. Under **Allowed origins**, select **Web & mobile web**.
 4. Add:
    - **Local:** `http://localhost:8080` (use your real port; include port).
-   - **Production:** `https://your-domain.com` (no trailing slash).
+   - **Production:** `https://playground.syraa.fun`, `https://agent.syraa.fun` (and other prod domains as needed; no trailing slash).
+   - **Vercel dev previews (for Privy to work on dev deployments):**
+     - `https://dev-landing-syra.vercel.app`
+     - `https://dev-dashboard-syra.vercel.app`
+     - `https://dev-playground-syra.vercel.app`
+     - `https://dev-ai-agent-syra.vercel.app`
 5. Save.
 
 ### 2. If you use an App Client (e.g. `VITE_PRIVY_CLIENT_ID`)
@@ -70,7 +75,7 @@ If you see **`POST https://auth.privy.io/api/v1/siws/init 403 (Forbidden)`**, yo
 1. **Configuration** → **App settings** → **Clients** tab.  
    [Direct link](https://dashboard.privy.io/apps?setting=clients&page=settings).
 2. Open the **client** you use (the one whose ID is in `.env`).
-3. Set **Allowed origins** for that client (same values: `http://localhost:8080`, `https://your-domain.com`, etc.).
+3. Set **Allowed origins** for that client (same values: localhost, production domains, and the four `https://dev-*-syra.vercel.app` URLs above if you use dev previews).
 4. Save.
 
 ### 3. Rules

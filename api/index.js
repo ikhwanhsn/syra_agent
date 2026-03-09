@@ -114,6 +114,10 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.dashboard.syraa.fun",
   "https://playground.syraa.fun",
   "https://www.playground.syraa.fun",
+  "https://dev-landing-syra.vercel.app",
+  "https://dev-dashboard-syra.vercel.app",
+  "https://dev-playground-syra.vercel.app",
+  "https://dev-ai-agent-syra.vercel.app",
   ...CORS_EXTRA,
 ];
 const CORS_OPTIONS_X402 = {
@@ -137,7 +141,14 @@ const CORS_OPTIONS_X402 = {
   ],
 };
 const CORS_OPTIONS_REGULAR = {
-  origin: CORS_ALLOWED_ORIGINS,
+  origin: (origin, cb) => {
+    // Allow requests with no origin (e.g. same-origin, Postman, server-side)
+    if (!origin) return cb(null, true);
+    const allowed = new Set(CORS_ALLOWED_ORIGINS);
+    const normalized = origin.replace(/\/$/, ""); // strip trailing slash
+    if (allowed.has(origin) || allowed.has(normalized)) return cb(null, true);
+    return cb(null, false);
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
@@ -207,9 +218,18 @@ function isPlaygroundProxyRoute(p) {
   return p === "/api/playground-proxy";
 }
 
+/** v1/regular (landing preview): allow any origin so dev/staging landings (e.g. dev-landing-syra.vercel.app) work without allowlist. */
+function isV1RegularRoute(p) {
+  return p && p.startsWith("/v1/regular");
+}
+
 app.use((req, res, next) => {
   const options =
-    isX402Route(req.path) || isAgentRoute(req.path) || isHeyLolRoute(req.path) || isPlaygroundProxyRoute(req.path)
+    isX402Route(req.path) ||
+    isAgentRoute(req.path) ||
+    isHeyLolRoute(req.path) ||
+    isPlaygroundProxyRoute(req.path) ||
+    isV1RegularRoute(req.path)
       ? CORS_OPTIONS_X402
       : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);

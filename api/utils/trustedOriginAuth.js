@@ -26,6 +26,10 @@ const TRUSTED_ORIGINS = [
   "https://www.dashboard.syraa.fun",
   "https://playground.syraa.fun",
   "https://www.playground.syraa.fun",
+  "https://dev-landing-syra.vercel.app",
+  "https://dev-dashboard-syra.vercel.app",
+  "https://dev-playground-syra.vercel.app",
+  "https://dev-ai-agent-syra.vercel.app",
   ...(process.env.CORS_EXTRA_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
