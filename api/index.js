@@ -27,6 +27,7 @@ import { createXApiRouter } from "./routes/partner/x-api/index.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 import { createKrakenMarketRouter } from "./routes/partner/kraken/market.js";
+import { createOkxMarketRouter } from "./routes/partner/okx/market.js";
 // x402 route imports (consolidated from v2 into routes)
 import {
   createCryptonewsRouter,
@@ -197,6 +198,7 @@ function isX402Route(p) {
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
   if (p.startsWith("/coinmarketcap")) return true;
   if (p.startsWith("/kraken")) return true;
+  if (p.startsWith("/okx")) return true;
   if (p.startsWith("/8004")) return true;
   if (p.startsWith("/8004scan")) return true;
   if (p.startsWith("/heylol")) return true;
@@ -543,6 +545,7 @@ app.use("/coinmarketcap", await createCoinmarketcapRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
 app.use("/kraken", await createKrakenMarketRouter());
+app.use("/okx", await createOkxMarketRouter());
 app.use("/", await createCryptonewsRouter());
 
 // Preview/landing routes (no x402) – dashboard-summary, binance-ticker, preview/news|sentiment|signal
@@ -669,6 +672,22 @@ app.get("/.well-known/x402", (req, res) => {
     "kraken/trades",
     "kraken/status",
     "kraken/server-time",
+    // OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.)
+    "okx/ticker",
+    "okx/tickers",
+    "okx/books",
+    "okx/candles",
+    "okx/history-candles",
+    "okx/trades",
+    "okx/history-trades",
+    "okx/index-tickers",
+    "okx/funding-rate",
+    "okx/funding-rate-history",
+    "okx/open-interest",
+    "okx/history-open-interest",
+    "okx/mark-price",
+    "okx/instruments",
+    "okx/time",
     // Analytics
     "analytics/summary",
     // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)

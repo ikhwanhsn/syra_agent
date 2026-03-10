@@ -18,6 +18,7 @@ import {
   X402_API_PRICE_8004SCAN_USD,
   X402_API_PRICE_HEYLOL_USD,
   X402_API_PRICE_KRAKEN_USD,
+  X402_API_PRICE_OKX_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -35,6 +36,7 @@ import {
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
   X402_DISPLAY_PRICE_KRAKEN_USD,
+  X402_DISPLAY_PRICE_OKX_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -487,6 +489,88 @@ export const AGENT_TOOLS = [
     name: 'Kraken server time',
     description: 'Kraken server time',
   },
+  // Partner: OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.)
+  {
+    id: 'okx-ticker',
+    path: '/okx/ticker',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX ticker',
+    description: 'OKX single ticker (instId default BTC-USDT). Supports spot and swap.',
+  },
+  {
+    id: 'okx-tickers',
+    path: '/okx/tickers',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX tickers',
+    description: 'OKX all tickers by type (instType: SPOT, SWAP, FUTURES, OPTION).',
+  },
+  {
+    id: 'okx-books',
+    path: '/okx/books',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX order book',
+    description: 'OKX order book (instId default BTC-USDT, sz depth default 20).',
+  },
+  {
+    id: 'okx-candles',
+    path: '/okx/candles',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX candles',
+    description: 'OKX OHLC candles (instId, bar: 1m,1H,1D, etc., limit default 100).',
+  },
+  {
+    id: 'okx-trades',
+    path: '/okx/trades',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX trades',
+    description: 'OKX recent trades (instId default BTC-USDT, limit default 100).',
+  },
+  {
+    id: 'okx-funding-rate',
+    path: '/okx/funding-rate',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX funding rate',
+    description: 'OKX perpetual funding rate (instId default BTC-USDT-SWAP).',
+  },
+  {
+    id: 'okx-open-interest',
+    path: '/okx/open-interest',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX open interest',
+    description: 'OKX open interest for derivatives (instId default BTC-USDT-SWAP).',
+  },
+  {
+    id: 'okx-mark-price',
+    path: '/okx/mark-price',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX mark price',
+    description: 'OKX mark price for derivatives (instId default BTC-USDT-SWAP).',
+  },
+  {
+    id: 'okx-time',
+    path: '/okx/time',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX server time',
+    description: 'OKX server time.',
+  },
   // Partner: CoinGecko x402 (simple price + onchain)
   {
     id: 'coingecko-simple-price',
@@ -739,6 +823,43 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'kraken-server-time',
       test: () => /kraken\s*server\s*time|kraken\s*time/i.test(text),
     },
+    // Partner: OKX market
+    {
+      toolId: 'okx-ticker',
+      test: () => /okx\s*ticker|ticker\s*okx|okx\s*price|okx\s*btc|okx\s*eth/i.test(text),
+    },
+    {
+      toolId: 'okx-tickers',
+      test: () => /okx\s*tickers?|okx\s*all\s*tickers?|okx\s*spot|okx\s*swap\s*tickers?/i.test(text),
+    },
+    {
+      toolId: 'okx-books',
+      test: () => /okx\s*order\s*book|okx\s*books?|okx\s*orderbook|order\s*book\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-candles',
+      test: () => /okx\s*candles?|okx\s*ohlc|okx\s*kline| candles\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-trades',
+      test: () => /okx\s*trades?|okx\s*recent\s*trades?|trades?\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-funding-rate',
+      test: () => /okx\s*funding\s*rate|funding\s*rate\s*okx|okx\s*perp\s*funding/i.test(text),
+    },
+    {
+      toolId: 'okx-open-interest',
+      test: () => /okx\s*open\s*interest|open\s*interest\s*okx|okx\s*oi/i.test(text),
+    },
+    {
+      toolId: 'okx-mark-price',
+      test: () => /okx\s*mark\s*price|mark\s*price\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-time',
+      test: () => /okx\s*server\s*time|okx\s*time/i.test(text),
+    },
     // Partner: Nansen, Jupiter, DexScreener
     {
       toolId: 'token-god-mode',
@@ -974,7 +1095,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
@@ -1048,6 +1169,25 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'smart-money') {
       out.paramsHint = 'Optional params: chains (e.g. ["solana"]), or leave empty for default';
+    }
+    // OKX market tools
+    if (t.id === 'okx-ticker') {
+      out.paramsHint = 'Params: instId (e.g. BTC-USDT, ETH-USDT-SWAP; default BTC-USDT)';
+    }
+    if (t.id === 'okx-tickers') {
+      out.paramsHint = 'Params: instType (SPOT, SWAP, FUTURES, OPTION, MARGIN; default SPOT)';
+    }
+    if (t.id === 'okx-books') {
+      out.paramsHint = 'Params: instId (default BTC-USDT), sz (depth, default 20, max 400)';
+    }
+    if (t.id === 'okx-candles') {
+      out.paramsHint = 'Params: instId (default BTC-USDT), bar (1m,1H,1D, etc.), limit (default 100)';
+    }
+    if (t.id === 'okx-trades') {
+      out.paramsHint = 'Params: instId (default BTC-USDT), limit (default 100, max 500)';
+    }
+    if (t.id === 'okx-funding-rate' || t.id === 'okx-open-interest' || t.id === 'okx-mark-price') {
+      out.paramsHint = 'Params: instId (default BTC-USDT-SWAP for perpetual swap)';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

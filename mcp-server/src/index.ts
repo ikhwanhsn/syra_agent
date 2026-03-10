@@ -376,6 +376,137 @@ async function main() {
     },
   );
 
+  // --- OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, mark-price, time) ---
+  server.tool(
+    "syra_v2_okx_ticker",
+    "OKX ticker (market data, no auth). Optional instId (default BTC-USDT). Spot or swap (e.g. ETH-USDT-SWAP)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT").describe("Instrument ID (e.g. BTC-USDT, ETH-USDT-SWAP)"),
+    },
+    async ({ instId }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      const { status, body } = await fetchV2("/okx/ticker", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_tickers",
+    "OKX all tickers by instrument type. Optional instType (default SPOT)." + PAYMENT_NOTE,
+    {
+      instType: z.string().optional().default("SPOT").describe("SPOT, SWAP, FUTURES, OPTION, MARGIN"),
+    },
+    async ({ instType }) => {
+      const params: Record<string, string> = {};
+      if (instType) params.instType = instType;
+      const { status, body } = await fetchV2("/okx/tickers", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_books",
+    "OKX order book snapshot. Optional instId (default BTC-USDT), sz (depth, default 20, max 400)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT").describe("Instrument ID"),
+      sz: z.number().optional().default(20).describe("Depth (default 20, max 400)"),
+    },
+    async ({ instId, sz }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      if (sz != null) params.sz = String(sz);
+      const { status, body } = await fetchV2("/okx/books", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_candles",
+    "OKX OHLC candles. Optional instId (default BTC-USDT), bar (1m,1H,1D, etc.), limit (default 100)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT").describe("Instrument ID"),
+      bar: z.string().optional().default("1H").describe("Candle interval: 1m,3m,5m,15m,30m,1H,2H,4H,6H,12H,1D,1W,1M"),
+      limit: z.number().optional().default(100).describe("Candles (default 100, max 300)"),
+    },
+    async ({ instId, bar, limit }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      if (bar) params.bar = bar;
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/okx/candles", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_trades",
+    "OKX recent trades. Optional instId (default BTC-USDT), limit (default 100, max 500)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT").describe("Instrument ID"),
+      limit: z.number().optional().default(100).describe("Trades (default 100, max 500)"),
+    },
+    async ({ instId, limit }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/okx/trades", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_funding_rate",
+    "OKX funding rate for perpetual swap. Optional instId (default BTC-USDT-SWAP)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT-SWAP").describe("Perpetual swap instId"),
+    },
+    async ({ instId }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      const { status, body } = await fetchV2("/okx/funding-rate", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_open_interest",
+    "OKX open interest for perpetual swap. Optional instId (default BTC-USDT-SWAP)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT-SWAP").describe("Perpetual swap instId"),
+    },
+    async ({ instId }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      const { status, body } = await fetchV2("/okx/open-interest", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_mark_price",
+    "OKX mark price for derivatives. Optional instId (default BTC-USDT-SWAP)." + PAYMENT_NOTE,
+    {
+      instId: z.string().optional().default("BTC-USDT-SWAP").describe("Derivatives instId"),
+    },
+    async ({ instId }) => {
+      const params: Record<string, string> = {};
+      if (instId) params.instId = instId;
+      const { status, body } = await fetchV2("/okx/mark-price", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_time",
+    "OKX server time (market data, no auth)." + PAYMENT_NOTE,
+    {},
+    async () => {
+      const { status, body } = await fetchV2("/okx/time");
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   // --- CoinGecko x402 simple price & onchain token price ---
   server.tool(
     "syra_v2_coingecko_simple_price",

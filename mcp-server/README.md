@@ -387,6 +387,20 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_kraken_status` | — | Kraken system status. |
 | `syra_v2_kraken_server_time` | — | Kraken server time. |
 
+### OKX market (no auth)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_okx_ticker` | `instId` (optional, default: `"BTC-USDT"`) | OKX single ticker (spot or swap). |
+| `syra_v2_okx_tickers` | `instType` (optional, default: `"SPOT"`) — SPOT, SWAP, FUTURES, OPTION, MARGIN | OKX all tickers by type. |
+| `syra_v2_okx_books` | `instId` (optional), `sz` (optional, default: 20, max 400) | OKX order book snapshot. |
+| `syra_v2_okx_candles` | `instId` (optional), `bar` (optional, default: 1H), `limit` (optional, default: 100) | OKX OHLC candles. |
+| `syra_v2_okx_trades` | `instId` (optional), `limit` (optional, default: 100, max 500) | OKX recent trades. |
+| `syra_v2_okx_funding_rate` | `instId` (optional, default: `"BTC-USDT-SWAP"`) | OKX funding rate for perpetual swap. |
+| `syra_v2_okx_open_interest` | `instId` (optional, default: `"BTC-USDT-SWAP"`) | OKX open interest. |
+| `syra_v2_okx_mark_price` | `instId` (optional, default: `"BTC-USDT-SWAP"`) | OKX mark price for derivatives. |
+| `syra_v2_okx_time` | — | OKX server time. |
+
 ### Memecoin screens (all no-parameter)
 
 | Tool | Description |
@@ -441,6 +455,15 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_kraken_trades` | `/kraken/trades` |
 | `syra_v2_kraken_status` | `/kraken/status` |
 | `syra_v2_kraken_server_time` | `/kraken/server-time` |
+| `syra_v2_okx_ticker` | `/okx/ticker` |
+| `syra_v2_okx_tickers` | `/okx/tickers` |
+| `syra_v2_okx_books` | `/okx/books` |
+| `syra_v2_okx_candles` | `/okx/candles` |
+| `syra_v2_okx_trades` | `/okx/trades` |
+| `syra_v2_okx_funding_rate` | `/okx/funding-rate` |
+| `syra_v2_okx_open_interest` | `/okx/open-interest` |
+| `syra_v2_okx_mark_price` | `/okx/mark-price` |
+| `syra_v2_okx_time` | `/okx/time` |
 | `syra_v2_coingecko_simple_price` | `/coingecko/simple-price` |
 | `syra_v2_coingecko_onchain_token_price` | `/coingecko/onchain/token-price` |
 | `syra_v2_coingecko_search_pools` | `/coingecko/onchain/search-pools` |

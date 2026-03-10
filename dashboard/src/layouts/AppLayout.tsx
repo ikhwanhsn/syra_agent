@@ -17,7 +17,9 @@ import { cn } from "../lib/utils";
 
 const navItems = [
   { to: "/", label: "Overview", icon: "📊" },
+  { to: "/insights", label: "Insights", icon: "📈" },
   { to: "/research", label: "Research", icon: "🔬" },
+  { to: "/api-errors", label: "API errors", icon: "⚠️" },
 ];
 
 function MenuIcon({ className }: { className?: string }) {
@@ -216,7 +218,13 @@ export function AppLayout() {
             <MenuIcon className="h-5 w-5" />
           </button>
           <span className="truncate text-base font-semibold text-white">
-            {location.pathname === "/research" ? "Research" : "Overview"}
+            {location.pathname === "/research"
+              ? "Research"
+              : location.pathname === "/insights"
+                ? "Insights"
+                : location.pathname === "/api-errors"
+                  ? "API errors"
+                  : "Overview"}
           </span>
         </div>
         <ConnectWalletButton />
