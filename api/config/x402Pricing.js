@@ -99,6 +99,9 @@ export const X402_API_PRICE_HEYLOL_USD = price(0.01);
 /** Syra Brain: single-question API (tool selection + tool calls + LLM); treasury pays sub-tools */
 export const X402_API_PRICE_BRAIN_USD = price(0.05);
 
+/** X (Twitter) API proxy — user lookup, search recent, user tweets, feed */
+export const X402_API_PRICE_X_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -128,6 +131,7 @@ export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT
 export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_HEYLOL_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BRAIN_USD = 0.05 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_X_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +

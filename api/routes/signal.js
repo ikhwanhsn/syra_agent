@@ -115,7 +115,7 @@ export async function createSignalRouter() {
   return router;
 }
 
-/** Regular (no x402) signal router for landing/dashboard – same data, no payment. */
+/** Preview (no x402) signal router for /preview/signal – same data, no payment. */
 export async function createSignalRouterRegular() {
   const router = express.Router();
 

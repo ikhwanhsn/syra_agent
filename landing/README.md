@@ -57,7 +57,7 @@ npm run dev
 
 ## Production build
 
-The dashboard preview and analytics page call `api.syraa.fun` (v1/regular/*, /analytics/kpi). **Do not embed API keys in the client.** The API injects authentication for requests from trusted origins (e.g. `https://syraa.fun`). When building for production (e.g. on Vercel):
+The dashboard preview and analytics page call `api.syraa.fun` (`/dashboard-summary`, `/preview/*`, `/binance-ticker`, `/x`, `/analytics/kpi`). **Do not embed API keys in the client.** The API injects authentication for requests from trusted origins (e.g. `https://syraa.fun`). When building for production (e.g. on Vercel):
 
 - **`VITE_SYRA_API_URL`** — leave unset or set to `https://api.syraa.fun/` so the app targets the production API. (Do not use `http://localhost:3000/` for production builds.)
 - Ensure the API’s `CORS_EXTRA_ORIGINS` (or default allowlist) includes your deployment origin so the server can treat it as trusted.
