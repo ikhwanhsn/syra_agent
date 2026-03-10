@@ -4,6 +4,7 @@ import { AppLayout } from "./layouts/AppLayout";
 import { DashboardPage } from "./pages/Dashboard";
 import { ApiErrorsPage } from "./pages/ApiErrors";
 import { ResearchPage } from "./pages/Research";
+import { InsightsPage } from "./pages/Insights";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
+            <Route path="insights" element={<InsightsPage />} />
             <Route path="api-errors" element={<ApiErrorsPage />} />
             <Route path="research" element={<ResearchPage />} />
           </Route>

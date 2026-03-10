@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -12,6 +13,8 @@ import {
 import { fetchKpi, type KpiResponse } from "../api/kpi";
 import { LoadingState } from "../components/LoadingState";
 import { cn } from "../lib/utils";
+
+type OverviewTab = "summary" | "usage" | "requests";
 
 function useKpi() {
   return useQuery({
@@ -86,7 +89,14 @@ const defaultInsights: KpiResponse["insights"] = {
   dailyRequests: [],
 };
 
+const OVERVIEW_TABS: { id: OverviewTab; label: string; icon: string }[] = [
+  { id: "summary", label: "Summary", icon: "📊" },
+  { id: "usage", label: "Usage", icon: "📈" },
+  { id: "requests", label: "Requests", icon: "🔌" },
+];
+
 function DashboardContent({ data }: { data: KpiResponse }) {
+  const [tab, setTab] = useState<OverviewTab>("summary");
   const {
     totalPaidApiCalls,
     paidApiCallsLast7Days,
@@ -109,17 +119,51 @@ function DashboardContent({ data }: { data: KpiResponse }) {
       ? Math.min(100, (chatsWithPaidToolUse / kpiTargets.agentSessions) * 100)
       : 0;
 
+  const showRequests = tab === "summary" || tab === "requests";
+  const showUsage = tab === "summary" || tab === "usage";
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 sm:space-y-8 sm:p-6">
-      <header className="flex flex-col gap-2 border-b border-gray-800 pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:pb-6">
-        <h1 className="text-xl font-bold text-white sm:text-2xl">Overview</h1>
-        <p className="text-xs text-gray-500 sm:text-sm">
-          Last updated: {new Date(updatedAt).toLocaleString()}
-        </p>
+      <header className="flex flex-col gap-3 border-b border-gray-800 pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:pb-6">
+        <div>
+          <h1 className="text-xl font-bold text-white sm:text-2xl">Overview</h1>
+          <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
+            Last updated: {new Date(updatedAt).toLocaleString()}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+        <Link
+          to="/insights"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-600 bg-gray-800/60 px-3 py-2 text-sm font-medium text-gray-300 hover:border-syra-primary/50 hover:bg-gray-800 hover:text-white"
+        >
+          Growth insights →
+        </Link>
+        <nav
+          className="flex rounded-lg border border-gray-700 bg-gray-800/40 p-0.5"
+          aria-label="Overview tabs"
+        >
+          {OVERVIEW_TABS.map(({ id, label, icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                tab === id
+                  ? "bg-syra-primary/20 text-syra-primary"
+                  : "text-gray-400 hover:text-gray-200"
+              )}
+            >
+              <span aria-hidden>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </nav>
+        </div>
       </header>
 
       {/* API request insights (volume, errors) — includes x402 and non-x402 */}
-      {insights && (
+      {insights && showRequests && (
         <section>
           <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
             API request insights
@@ -238,6 +282,7 @@ function DashboardContent({ data }: { data: KpiResponse }) {
       )}
 
       {/* Usage: summary cards (x402 API) */}
+      {showUsage && (
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
           Usage (paid){" "}
@@ -270,8 +315,10 @@ function DashboardContent({ data }: { data: KpiResponse }) {
           </Card>
         </div>
       </section>
+      )}
 
       {/* Daily paid calls chart (x402) */}
+      {showUsage && (
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
           Paid API calls (last 30 days){" "}
@@ -316,8 +363,10 @@ function DashboardContent({ data }: { data: KpiResponse }) {
           </div>
         </Card>
       </section>
+      )}
 
       {/* Top endpoints (byPath) — all x402 */}
+      {showUsage && (
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
           Top endpoints by paid calls{" "}
@@ -349,8 +398,10 @@ function DashboardContent({ data }: { data: KpiResponse }) {
           </div>
         </Card>
       </section>
+      )}
 
       {/* Growth: KPI targets */}
+      {(tab === "summary" || tab === "usage") && (
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">Growth vs KPI targets</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -382,6 +433,7 @@ function DashboardContent({ data }: { data: KpiResponse }) {
           </Card>
         </div>
       </section>
+      )}
     </div>
   );
 }

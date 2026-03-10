@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   fetchResearchResume,
   fetchResearchStore,
   saveResearchStore,
   type StoredResearchPayload,
 } from "../api/research";
+import { fetchXSearchRecent, formatTweetsAsMarkdown } from "../api/xSearch";
 import { LoadingState, LoadingStateInline } from "../components/LoadingState";
 import { useWalletContext } from "../contexts/WalletContext";
 import { cn } from "../lib/utils";
@@ -322,6 +324,8 @@ function panelResultsFromPayload(payload: StoredResearchPayload | null): Record<
 
 export function ResearchPage() {
   const { canInteract } = useWalletContext();
+  const { connection } = useConnection();
+  const { publicKey, signTransaction } = useWallet();
   const [customQuery, setCustomQuery] = useState("");
   const [panelResults, setPanelResults] = useState<Record<string, PanelState<XSearchData>>>({});
   const [loadingPanelId, setLoadingPanelId] = useState<string | null>(null);
@@ -382,13 +386,46 @@ export function ResearchPage() {
     }
   }
 
-  /** Live X search / research / browse (ATXP) have been removed. Panels only show stored data or "unavailable". */
-  const runPanelXSearch = async (_preset: (typeof SYRA_PRESETS)[number]) => {
-    const id = _preset.id;
-    setPanelResults((prev) => ({
-      ...prev,
-      [id]: { status: "error", error: "Live X search is no longer available. Only stored research can be viewed." },
-    }));
+  /** Live X search via new X API (/x/search/recent, x402). Requires connected wallet to pay. */
+  const runPanelXSearch = async (preset: (typeof SYRA_PRESETS)[number]) => {
+    const id = preset.id;
+    if (!connection || !publicKey || !signTransaction) {
+      setPanelResults((prev) => ({
+        ...prev,
+        [id]: {
+          status: "error",
+          error: "Connect your wallet to run live X search (payment required).",
+        },
+      }));
+      return;
+    }
+    setLoadingPanelId(id);
+    try {
+      const result = await fetchXSearchRecent(preset.xSearchQuery, 10, {
+        connection,
+        publicKey,
+        signTransaction,
+      });
+      const resultText = formatTweetsAsMarkdown(result);
+      const panelData: XSearchData = { result: resultText, query: preset.xSearchQuery };
+      setPanelResults((prev) => ({
+        ...prev,
+        [id]: { status: "success", data: panelData },
+      }));
+      const prev = storedPayloadRef.current ?? {};
+      const nextPanels = { ...prev.panels, [id]: { data: panelData, lastQuery: preset.xSearchQuery } };
+      await persistResearch({ ...prev, panels: nextPanels });
+    } catch (e) {
+      setPanelResults((prev) => ({
+        ...prev,
+        [id]: {
+          status: "error",
+          error: e instanceof Error ? e.message : String(e),
+        },
+      }));
+    } finally {
+      setLoadingPanelId(null);
+    }
   };
 
   const runResearch = async (_query: string) => {
@@ -428,9 +465,8 @@ export function ResearchPage() {
 
   const runCustomXSearch = async (_query: string) => {
     setCustomXSearch({
-      status: "error",
-      error: "Live X search is no longer available. Only stored research can be viewed.",
-    });
+      status: "idle",
+    } as PanelState<XSearchData>);
   };
 
   const handleCustomRun = (type: "research" | "xsearch" | "browse") => {
@@ -457,10 +493,10 @@ export function ResearchPage() {
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Research & insight</h1>
           <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-            View saved research and generate executive summaries. Live X search, deep research, and browse are no longer available.
+            View saved research and generate executive summaries. Strategy panels use live X search (new X API); deep research and browse are not available.
           </p>
           <div className="mt-2 rounded-lg border border-amber-800/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
-            Only stored research can be loaded and summarized. Use &quot;Refresh&quot; on Resume to generate a summary from your saved panels.
+            Connect your wallet to run live X search on strategy panels (x402 payment). Use &quot;Refresh&quot; on Resume to generate a summary from your saved panels.
           </div>
         </div>
         {canInteract && (
@@ -529,7 +565,7 @@ export function ResearchPage() {
                 subtitle={preset.description}
                 icon="𝕏"
                 onRefresh={() => runPanelXSearch(preset)}
-                showRefresh={canInteract}
+                showRefresh={canInteract && !!connection && !!publicKey && !!signTransaction}
               >
                 {isLoading ? (
                   <LoadingStateInline message="Running X search…" />
@@ -543,7 +579,9 @@ export function ResearchPage() {
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-gray-700 bg-gray-900/30 p-6 text-center">
-                    <p className="text-sm text-gray-500">Click Refresh to run X search.</p>
+                    <p className="text-sm text-gray-500">
+                      Click Refresh to run live X search (paid via wallet). Stored results shown when available.
+                    </p>
                   </div>
                 )}
               </Panel>
