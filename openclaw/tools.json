@@ -204,6 +204,107 @@
       "priceUsd": 0.01
     },
     {
+      "id": "okx-ticker",
+      "name": "OKX ticker",
+      "description": "OKX single ticker. Default instId BTC-USDT (spot or swap e.g. ETH-USDT-SWAP).",
+      "method": "GET",
+      "path": "/okx/ticker",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Instrument ID (default BTC-USDT)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-tickers",
+      "name": "OKX tickers",
+      "description": "OKX all tickers by instrument type (SPOT, SWAP, FUTURES, etc.).",
+      "method": "GET",
+      "path": "/okx/tickers",
+      "parameters": [
+        { "name": "instType", "in": "query", "required": false, "description": "SPOT, SWAP, FUTURES, OPTION, MARGIN (default SPOT)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-books",
+      "name": "OKX order book",
+      "description": "OKX order book snapshot. Default instId BTC-USDT, sz 20.",
+      "method": "GET",
+      "path": "/okx/books",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Instrument ID (default BTC-USDT)" },
+        { "name": "sz", "in": "query", "required": false, "description": "Depth (default 20, max 400)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-candles",
+      "name": "OKX candles",
+      "description": "OKX OHLC candles. Bar: 1m, 1H, 1D, etc.",
+      "method": "GET",
+      "path": "/okx/candles",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Instrument ID (default BTC-USDT)" },
+        { "name": "bar", "in": "query", "required": false, "description": "Candle interval (default 1H)" },
+        { "name": "limit", "in": "query", "required": false, "description": "Candles (default 100, max 300)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-trades",
+      "name": "OKX trades",
+      "description": "OKX recent trades. Default instId BTC-USDT, limit 100.",
+      "method": "GET",
+      "path": "/okx/trades",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Instrument ID (default BTC-USDT)" },
+        { "name": "limit", "in": "query", "required": false, "description": "Trades (default 100, max 500)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-funding-rate",
+      "name": "OKX funding rate",
+      "description": "OKX funding rate for perpetual swap. Default BTC-USDT-SWAP.",
+      "method": "GET",
+      "path": "/okx/funding-rate",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Perpetual swap instId (default BTC-USDT-SWAP)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-open-interest",
+      "name": "OKX open interest",
+      "description": "OKX open interest for perpetual swap.",
+      "method": "GET",
+      "path": "/okx/open-interest",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Perpetual swap instId (default BTC-USDT-SWAP)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-mark-price",
+      "name": "OKX mark price",
+      "description": "OKX mark price for derivatives.",
+      "method": "GET",
+      "path": "/okx/mark-price",
+      "parameters": [
+        { "name": "instId", "in": "query", "required": false, "description": "Derivatives instId (default BTC-USDT-SWAP)" }
+      ],
+      "priceUsd": 0.01
+    },
+    {
+      "id": "okx-time",
+      "name": "OKX server time",
+      "description": "OKX server time.",
+      "method": "GET",
+      "path": "/okx/time",
+      "parameters": [],
+      "priceUsd": 0.01
+    },
+    {
       "id": "coingecko-simple-price",
       "name": "CoinGecko simple price",
       "description": "USD price and market data by symbol (btc,eth,sol) or CoinGecko id.",

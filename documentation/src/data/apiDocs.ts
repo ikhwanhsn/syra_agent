@@ -1176,6 +1176,116 @@ curl "${BASE_URL}/kraken/orderbook?pair=ETHUSD&count=50"`,
     ],
   }),
 
+  "okx-market": doc({
+    title: "OKX Market API",
+    overview:
+      "OKX market data via OKX API v5 (no auth): ticker, tickers, order book, candles, trades, funding rate, open interest, mark price, and server time. All endpoints support GET and POST; all params have defaults. Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    useCases: [
+      "Get OKX ticker for spot (BTC-USDT) or swap (BTC-USDT-SWAP)",
+      "Fetch order book depth and OHLC candles in multiple timeframes",
+      "Funding rate, open interest, and mark price for perpetual swaps",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/okx/ticker",
+        description: "Single ticker. Default instId: BTC-USDT.",
+        params: [{ name: "instId", type: "string", required: "No", description: "Instrument ID (e.g. BTC-USDT, ETH-USDT-SWAP)." }],
+        requestExample: `curl ${BASE_URL}/okx/ticker
+curl "${BASE_URL}/okx/ticker?instId=ETH-USDT"`,
+        responseExample: `{ "result": { "instId": "BTC-USDT", "last": "97234.5", "vol24h": "12345.67", ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/tickers",
+        description: "All tickers by instrument type. Default instType: SPOT.",
+        params: [{ name: "instType", type: "string", required: "No", description: "SPOT, SWAP, FUTURES, OPTION, MARGIN." }],
+        requestExample: `curl ${BASE_URL}/okx/tickers
+curl "${BASE_URL}/okx/tickers?instType=SWAP"`,
+        responseExample: `{ "result": [ { "instId": "BTC-USDT", "last": "...", ... }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/books",
+        description: "Order book snapshot. Default instId: BTC-USDT, sz: 20.",
+        params: [
+          { name: "instId", type: "string", required: "No", description: "Instrument ID (default BTC-USDT)." },
+          { name: "sz", type: "number", required: "No", description: "Depth (default 20, max 400)." },
+        ],
+        requestExample: `curl ${BASE_URL}/okx/books
+curl "${BASE_URL}/okx/books?instId=ETH-USDT&sz=50"`,
+        responseExample: `{ "result": [ { "bids": [...], "asks": [...] }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/candles",
+        description: "OHLC candles. Bar: 1m, 3m, 5m, 15m, 30m, 1H, 2H, 4H, 6H, 12H, 1D, 1W, 1M.",
+        params: [
+          { name: "instId", type: "string", required: "No", description: "Instrument ID (default BTC-USDT)." },
+          { name: "bar", type: "string", required: "No", description: "Candle interval (default 1H)." },
+          { name: "limit", type: "number", required: "No", description: "Candles to return (default 100, max 300)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/candles?instId=BTC-USDT&bar=1H&limit=100"`,
+        responseExample: `{ "result": [ ["1704876900000","97234.5","97300","97100","97250","1234.56"], ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/trades",
+        description: "Recent trades. Default instId: BTC-USDT, limit: 100.",
+        params: [
+          { name: "instId", type: "string", required: "No", description: "Instrument ID (default BTC-USDT)." },
+          { name: "limit", type: "number", required: "No", description: "Trades (default 100, max 500)." },
+        ],
+        requestExample: `curl ${BASE_URL}/okx/trades`,
+        responseExample: `{ "result": [ { "instId": "BTC-USDT", "tradeId": "...", "px": "97234.5", ... }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/funding-rate",
+        description: "Funding rate for perpetual swap. Default instId: BTC-USDT-SWAP.",
+        params: [{ name: "instId", type: "string", required: "No", description: "Perpetual swap instId (e.g. BTC-USDT-SWAP)." }],
+        requestExample: `curl ${BASE_URL}/okx/funding-rate`,
+        responseExample: `{ "result": { "instId": "BTC-USDT-SWAP", "fundingRate": "0.0001", ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/open-interest",
+        description: "Open interest for perpetual swap.",
+        params: [{ name: "instId", type: "string", required: "No", description: "Perpetual swap instId." }],
+        requestExample: `curl ${BASE_URL}/okx/open-interest`,
+        responseExample: `{ "result": { "instId": "BTC-USDT-SWAP", "oi": "123456", ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/mark-price",
+        description: "Mark price for derivatives.",
+        params: [{ name: "instId", type: "string", required: "No", description: "Derivatives instId." }],
+        requestExample: `curl ${BASE_URL}/okx/mark-price`,
+        responseExample: `{ "result": { "instId": "BTC-USDT-SWAP", "markPx": "97250.5", ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/time",
+        description: "OKX server time.",
+        requestExample: `curl ${BASE_URL}/okx/time`,
+        responseExample: `{ "result": { "ts": "1704876900000" } }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Reference",
+        content:
+          "Data is provided via OKX API v5 (https://www.okx.com/docs-v5). Market endpoints require no API key; the Syra API uses x402 for payment only.",
+      },
+      {
+        title: "Dev routes (no payment)",
+        content:
+          "When NODE_ENV is not production, GET/POST /okx/ticker/dev, /okx/tickers/dev, /okx/books/dev, /okx/candles/dev, /okx/trades/dev, /okx/funding-rate/dev, /okx/open-interest/dev, /okx/mark-price/dev, and /okx/time/dev return the same data without x402 payment.",
+      },
+    ],
+  }),
+
   "binance-correlation": doc({
     title: "Binance Correlation API",
     overview: "Binance correlation and correlation matrix. Top correlated assets for a symbol (e.g. BTCUSDT) or full correlation matrix. Uses the x402 payment protocol.",
