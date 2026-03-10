@@ -1,6 +1,6 @@
 /**
  * Single cryptonews (cryptonews-api.com) route file – news, sentiment, event, trending-headline, sundown-digest.
- * All x402 and v1/regular cryptonews endpoints live here for easy maintenance.
+ * All x402 and preview cryptonews endpoints live here for easy maintenance.
  */
 import express from "express";
 import { getV2Payment } from "../../utils/getV2Payment.js";
@@ -521,7 +521,7 @@ export async function createCryptonewsRouter() {
   return router;
 }
 
-/** Regular (no x402) news router for /v1/regular/news */
+/** Preview (no x402) news router for /preview/news */
 export async function createNewsRouterRegular() {
   const router = express.Router();
   router.get("/", async (req, res) => {
@@ -543,7 +543,7 @@ export async function createNewsRouterRegular() {
   return router;
 }
 
-/** Regular (no x402) sentiment router for /v1/regular/sentiment */
+/** Preview (no x402) sentiment router for /preview/sentiment */
 export async function createSentimentRouterRegular() {
   const router = express.Router();
 

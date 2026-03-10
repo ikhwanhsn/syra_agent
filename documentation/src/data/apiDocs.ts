@@ -1526,6 +1526,122 @@ curl "${BASE_URL}/coinmarketcap?endpoint=dex-search&q=SOL"`,
       },
     ],
   }),
+
+  "preview-dashboard": {
+    title: "Preview & Dashboard Endpoints (no x402)",
+    overview:
+      "These endpoints do not use the x402 payment protocol. They are used by the landing page, dashboard, and internal tools. API key is injected by the server for trusted origins (e.g. syraa.fun, dashboard.syraa.fun). Use the paths below; do not use deprecated /v1/regular/* paths.",
+    baseUrl: BASE_URL,
+    price: "Free (no payment required when called from trusted origins)",
+    authNote:
+      "When called from a trusted origin (syraa.fun, dashboard.syraa.fun, agent.syraa.fun, playground.syraa.fun, or localhost), the API injects the key. Do not embed API keys in client bundles.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/dashboard-summary",
+        description: "Market metrics and flow chart for the landing Live Dashboard. Query: period=1H|4H|1D|1W.",
+        params: [{ name: "period", type: "string", required: "No", description: "1H, 4H, 1D, or 1W (default 1D)" }],
+        requestExample: `curl "${BASE_URL}/dashboard-summary?period=1D"`,
+        responseExample: `{ "period": "1D", "metrics": { "volume24h": "$3.6M", "activeTraders": 8901, ... }, "flowIndex": [...], "updatedAt": "..." }`,
+      },
+      {
+        method: "GET",
+        path: "/binance-ticker",
+        description: "Binance ticker prices (proxy). Same response as Binance GET /api/v3/ticker/price.",
+        requestExample: `curl "${BASE_URL}/binance-ticker"`,
+        responseExample: `[ { "symbol": "BTCUSDT", "price": "..." }, ... ]`,
+      },
+      {
+        method: "GET",
+        path: "/preview/news",
+        description: "Free news preview (same data as x402 /news, no payment).",
+        params: [{ name: "ticker", type: "string", required: "No", description: "e.g. BTC, ETH, general" }],
+        requestExample: `curl "${BASE_URL}/preview/news?ticker=general"`,
+        responseExample: `[ { "title": "...", "url": "...", ... }, ... ]`,
+      },
+      {
+        method: "GET",
+        path: "/preview/sentiment",
+        description: "Free sentiment preview (same data as x402 /sentiment, no payment).",
+        params: [{ name: "ticker", type: "string", required: "No", description: "e.g. BTC, ETH, general" }],
+        requestExample: `curl "${BASE_URL}/preview/sentiment?ticker=general"`,
+        responseExample: `{ "sentiment": { "data": { ... } } }`,
+      },
+      {
+        method: "GET",
+        path: "/preview/signal",
+        description: "Free signal preview (same data as x402 /signal, no payment).",
+        params: [{ name: "token", type: "string", required: "No", description: "e.g. bitcoin, solana" }],
+        requestExample: `curl "${BASE_URL}/preview/signal?token=bitcoin"`,
+        responseExample: `{ "signal": { ... }, "token": "bitcoin" }`,
+      },
+    ],
+    paymentFlow: {
+      step1: "Not applicable — these endpoints do not require x402 payment.",
+      step2: "Call with GET from a trusted origin; API key is injected by the server.",
+      step3: "Response returns JSON data directly.",
+      response402: "N/A",
+    },
+    responseCodes: [
+      { code: "200", description: "Success — data returned" },
+      { code: "400", description: "Bad request — check query parameters" },
+      { code: "5xx", description: "Server error — retry later" },
+    ],
+    supportLink: SUPPORT,
+    extraSections: [
+      {
+        title: "X (Twitter) API",
+        content: "X API endpoints (/x/user, /x/feed, /x/search/recent, /x/user/:username/tweets) are x402 paid. Use the x402 payment protocol; GET and POST are supported. See the X API doc for details.",
+      },
+      {
+        title: "Deprecated paths",
+        content: "Do not use /v1/regular/*. Free paths: /dashboard-summary, /binance-ticker, /preview/news, /preview/sentiment, /preview/signal.",
+      },
+    ],
+  },
+
+  "x-api": doc({
+    title: "X (Twitter) API",
+    overview:
+      "X API proxy with x402 payment. User lookup, recent tweet search, user tweets, and combined feed. Both GET (query params) and POST (JSON body) are supported for each endpoint.",
+    price: "$0.01 USD per request (production); lower in non-production.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/x/user",
+        description: "User lookup by username. Params: username (required). POST body: { username }.",
+        requestExample: `curl "${BASE_URL}/x/user?username=syra_agent"`,
+        responseExample: `{ "data": { "id": "...", "name": "...", "username": "syra_agent", "public_metrics": { ... } } }`,
+      },
+      {
+        method: "GET",
+        path: "/x/search/recent",
+        description: "Search recent tweets (last 7 days). Params: query (required), max_results (10–100). POST body: { query, max_results }.",
+        requestExample: `curl "${BASE_URL}/x/search/recent?query=crypto%20lang:en&max_results=10"`,
+        responseExample: `{ "data": [ { "id": "...", "text": "...", "created_at": "..." }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/x/user/:username/tweets",
+        description: "Recent tweets from a user. Path: username. Params: max_results (5–100). POST body: { max_results }.",
+        requestExample: `curl "${BASE_URL}/x/user/syra_agent/tweets?max_results=10"`,
+        responseExample: `{ "data": [ { "id": "...", "text": "...", "created_at": "..." }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/x/feed",
+        description: "Profile + recent tweets in one response. Params: username (default syra_agent), max_results (3–20). POST body: { username, max_results }.",
+        requestExample: `curl "${BASE_URL}/x/feed?username=syra_agent&max_results=5"`,
+        responseExample: `{ "user": { ... }, "tweets": [ ... ], "updatedAt": "..." }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "GET and POST",
+        content: "Every endpoint supports GET (query string) and POST (JSON body). Same parameter names; first request returns 402 with payment instructions; retry with payment header to receive data.",
+      },
+    ],
+  }),
 };
 
 export function getApiDoc(slug: string): ApiDoc | null {

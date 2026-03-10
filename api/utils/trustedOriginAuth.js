@@ -40,7 +40,9 @@ function isBrowserCallablePath(path) {
   if (!path || path === "/") return false;
   return (
     path.startsWith("/analytics") ||
-    path.startsWith("/v1/regular") ||
+    path.startsWith("/preview") ||
+    path.startsWith("/dashboard-summary") ||
+    path.startsWith("/binance-ticker") ||
     path.startsWith("/leaderboard") ||
     path.startsWith("/internal") ||
     path.startsWith("/agent") ||

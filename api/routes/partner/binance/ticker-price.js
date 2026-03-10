@@ -3,7 +3,7 @@
  * Used by the landing page (DashboardPreview) so the browser does not call api.binance.com
  * directly, avoiding ERR_CERT_AUTHORITY_INVALID and ERR_CONNECTION_TIMED_OUT in some
  * production environments (corporate proxies, strict SSL).
- * GET /v1/regular/binance-ticker → same response as https://api.binance.com/api/v3/ticker/price
+ * GET /binance-ticker → same response as https://api.binance.com/api/v3/ticker/price
  *
  * Server-side cache (15s TTL) reduces request weight to Binance and avoids IP bans (-1003).
  * Binance recommends WebSocket Streams for live updates; this proxy is for lightweight preview use.

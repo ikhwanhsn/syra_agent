@@ -1,7 +1,7 @@
 /**
  * Regular (no x402) dashboard summary for landing "Real-time Market Intelligence" section.
  * Uses market data only: Binance (volume, flow chart), Dexscreener (TVL, token count), Rugcheck (trending/recent counts).
- * GET /v1/regular/dashboard-summary?period=1H|4H|1D|1W
+ * GET /dashboard-summary?period=1H|4H|1D|1W
  * Returns: metrics (volume24h, activeTraders, whaleMoves, tvlTracked + change %), flowIndex (chart).
  */
 import express from "express";

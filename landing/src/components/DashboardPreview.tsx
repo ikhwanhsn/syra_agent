@@ -35,7 +35,7 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["cryptoPrice"],
     queryFn: () =>
-      fetch(`${SYRA_API_BASE}v1/regular/binance-ticker`, {
+      fetch(`${SYRA_API_BASE}binance-ticker`, {
         method: "GET",
         headers: { "Content-Type": "application/json", ...getApiHeaders() },
       }).then((res) => {
@@ -64,7 +64,7 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["news"],
     queryFn: () =>
-      fetch(`${SYRA_API_BASE}v1/regular/news`, {
+      fetch(`${SYRA_API_BASE}preview/news`, {
         method: "GET",
         headers: { "Content-Type": "application/json", ...getApiHeaders() },
       }).then((res) => {
@@ -80,7 +80,7 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["sentiment"],
     queryFn: () =>
-      fetch(`${SYRA_API_BASE}v1/regular/sentiment`, {
+      fetch(`${SYRA_API_BASE}preview/sentiment`, {
         method: "GET",
         headers: { "Content-Type": "application/json", ...getApiHeaders() },
       }).then((res) => {
@@ -167,7 +167,7 @@ export const DashboardPreview = () => {
   } = useQuery({
     queryKey: ["signals"],
     queryFn: () =>
-      fetch(`${SYRA_API_BASE}v1/regular/signal?token=bitcoin`, {
+      fetch(`${SYRA_API_BASE}preview/signal?token=bitcoin`, {
         method: "GET",
         headers: { "Content-Type": "application/json", ...getApiHeaders() },
       }).then((res) => {

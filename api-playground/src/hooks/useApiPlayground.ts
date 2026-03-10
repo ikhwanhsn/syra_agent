@@ -95,6 +95,69 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'limit', value: '20', enabled: true, description: 'Max tokens to check (1-50)' },
     ],
   },
+  // Preview & Dashboard (no x402)
+  {
+    id: 'dashboard-summary',
+    label: 'Dashboard summary',
+    method: 'GET',
+    url: `${base}/dashboard-summary`,
+    params: [{ key: 'period', value: '1D', enabled: true, description: '1H, 4H, 1D, 1W' }],
+  },
+  {
+    id: 'binance-ticker',
+    label: 'Binance ticker',
+    method: 'GET',
+    url: `${base}/binance-ticker`,
+    params: [],
+  },
+  {
+    id: 'x-feed',
+    label: 'X feed (profile + tweets)',
+    method: 'GET',
+    url: `${base}/x/feed`,
+    params: [
+      { key: 'username', value: 'syra_agent', enabled: true, description: 'X username' },
+      { key: 'max_results', value: '5', enabled: true, description: 'Tweets to return (3–20)' },
+    ],
+  },
+  {
+    id: 'x-user',
+    label: 'X user lookup',
+    method: 'GET',
+    url: `${base}/x/user`,
+    params: [{ key: 'username', value: 'syra_agent', enabled: true, description: 'X username (without @)' }],
+  },
+  {
+    id: 'x-search-recent',
+    label: 'X search recent',
+    method: 'GET',
+    url: `${base}/x/search/recent`,
+    params: [
+      { key: 'query', value: 'crypto lang:en', enabled: true, description: 'Search query (e.g. crypto lang:en)' },
+      { key: 'max_results', value: '10', enabled: true, description: '10–100' },
+    ],
+  },
+  {
+    id: 'preview-news',
+    label: 'Preview news (no x402)',
+    method: 'GET',
+    url: `${base}/preview/news`,
+    params: [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+  },
+  {
+    id: 'preview-sentiment',
+    label: 'Preview sentiment (no x402)',
+    method: 'GET',
+    url: `${base}/preview/sentiment`,
+    params: [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+  },
+  {
+    id: 'preview-signal',
+    label: 'Preview signal (no x402)',
+    method: 'GET',
+    url: `${base}/preview/signal`,
+    params: [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' }],
+  },
   {
     id: 'news',
     label: 'Get news',
@@ -664,6 +727,20 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
   try {
     const path = new URL(baseUrl).pathname.toLowerCase();
     const known: Record<string, RequestParam[]> = {
+      '/dashboard-summary': [{ key: 'period', value: '1D', enabled: true, description: '1H, 4H, 1D, 1W' }],
+      '/binance-ticker': [],
+      '/x/feed': [
+        { key: 'username', value: 'syra_agent', enabled: true, description: 'X username' },
+        { key: 'max_results', value: '5', enabled: true, description: 'Tweets to return (3–20)' },
+      ],
+      '/x/user': [{ key: 'username', value: 'syra_agent', enabled: true, description: 'X username (without @)' }],
+      '/x/search/recent': [
+        { key: 'query', value: 'crypto lang:en', enabled: true, description: 'Search query' },
+        { key: 'max_results', value: '10', enabled: true, description: '10–100' },
+      ],
+      '/preview/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/preview/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
+      '/preview/signal': [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' }],
       '/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/event': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],

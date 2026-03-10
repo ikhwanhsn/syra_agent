@@ -23,6 +23,7 @@ import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
+import { createXApiRouter } from "./routes/partner/x-api/index.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 import { createKrakenMarketRouter } from "./routes/partner/kraken/market.js";
@@ -169,7 +170,7 @@ const CORS_OPTIONS_REGULAR = {
 };
 
 // COMMAND: x402 API — unversioned paths (e.g. /news, /signal); v1 is not x402.
-// All v1 API (e.g. /v1/regular/*) is internal/free preview; x402 routes get permissive CORS and skip rate limit.
+// Preview/landing routes (/preview/*, /dashboard-summary, /binance-ticker, /x) get permissive CORS; x402 routes skip rate limit.
 function isX402Route(p) {
   if (!p) return false;
   if (p.startsWith("/.well-known")) return true;
@@ -200,6 +201,7 @@ function isX402Route(p) {
   if (p.startsWith("/8004scan")) return true;
   if (p.startsWith("/heylol")) return true;
   if (p.startsWith("/brain")) return true;
+  if (p === "/x" || p.startsWith("/x/")) return true;
   return false;
 }
 
@@ -218,9 +220,13 @@ function isPlaygroundProxyRoute(p) {
   return p === "/api/playground-proxy";
 }
 
-/** v1/regular (landing preview): allow any origin so dev/staging landings (e.g. dev-landing-syra.vercel.app) work without allowlist. */
-function isV1RegularRoute(p) {
-  return p && p.startsWith("/v1/regular");
+/** Preview/landing routes (no v1/regular): allow any origin for dev/staging landings. */
+function isPreviewRoute(p) {
+  if (!p) return false;
+  if (p.startsWith("/preview")) return true;
+  if (p.startsWith("/dashboard-summary")) return true;
+  if (p.startsWith("/binance-ticker")) return true;
+  return false;
 }
 
 app.use((req, res, next) => {
@@ -229,7 +235,7 @@ app.use((req, res, next) => {
     isAgentRoute(req.path) ||
     isHeyLolRoute(req.path) ||
     isPlaygroundProxyRoute(req.path) ||
-    isV1RegularRoute(req.path)
+    isPreviewRoute(req.path)
       ? CORS_OPTIONS_X402
       : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);
@@ -310,7 +316,7 @@ app.post("/api/playground-proxy", async (req, res) => {
   }
 });
 
-// Rate limit all non-x402 routes (v1/regular, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
+// Rate limit all non-x402 routes (preview, dashboard-summary, x, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
 // Strict dual-window: burst 25/10s + sustained 100/min. Only x402 (paid) routes skip.
 app.use(
   rateLimit({
@@ -539,17 +545,17 @@ app.use("/binance", await createV2BinanceCorrelationRouter());
 app.use("/kraken", await createKrakenMarketRouter());
 app.use("/", await createCryptonewsRouter());
 
-// v1/regular (no x402) – used by landing page (LiveDashboard, DashboardPreview); must be mounted before /v1 block
-app.use("/v1/regular/news", await createNewsRouterRegular());
-  app.use("/v1/regular/sentiment", await createSentimentRouterRegular());
-  app.use("/v1/regular/signal", await createSignalRouterRegular());
-  app.use("/v1/regular/dashboard-summary", await createDashboardSummaryRouterRegular());
-  app.use("/v1/regular/binance-ticker", await createBinanceTickerPriceRouter());
-// Block other /v1/* (non-regular) with 410; use unversioned x402 paths (e.g. /news, /signal)
+// Preview/landing routes (no x402) – dashboard-summary, binance-ticker, preview/news|sentiment|signal
+app.use("/preview/news", await createNewsRouterRegular());
+app.use("/preview/sentiment", await createSentimentRouterRegular());
+app.use("/preview/signal", await createSignalRouterRegular());
+app.use("/dashboard-summary", await createDashboardSummaryRouterRegular());
+app.use("/binance-ticker", await createBinanceTickerPriceRouter());
+// Legacy /v1 → 410
 app.use("/v1", (req, res) => {
   res.status(410).json({
     success: false,
-    error: "v1 API is no longer available. Please use the x402 API.",
+    error: "v1 API is no longer available. Use /dashboard-summary, /preview/* (free) or x402 paths (e.g. /x, /news, /signal).",
     migration: "https://api.syraa.fun",
     docs: "https://docs.syraa.fun",
   });
@@ -595,6 +601,8 @@ app.use("/8004scan", await create8004scanRouter());
 
 // hey.lol agent API proxy (x402) – profile, posts, feed, DMs, services, token. Use HEYLOL_SOLANA_PRIVATE_KEY or anonymousId.
 app.use("/heylol", await createHeyLolRouter());
+// X (Twitter) API proxy (x402) – user lookup, search recent, user tweets, feed. GET and POST supported.
+app.use("/x", await createXApiRouter());
 
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
@@ -669,6 +677,8 @@ app.get("/.well-known/x402", (req, res) => {
     "8004scan",
     // hey.lol agent API proxy (x402)
     "heylol",
+    // X (Twitter) API proxy (x402) – user, search/recent, user/:username/tweets, feed
+    "x",
   ];
 
   const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);
