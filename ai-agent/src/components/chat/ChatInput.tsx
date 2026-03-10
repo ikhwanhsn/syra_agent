@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 
 export interface ChatInputHandle {
   focus: () => void;
+  /** Set the input value (e.g. when editing a user question). */
+  setValue: (value: string) => void;
 }
 
 interface ModelOption {
@@ -62,6 +64,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
 
   useImperativeHandle(ref, () => ({
     focus: () => {
+      textareaRef.current?.focus();
+    },
+    setValue: (value: string) => {
+      setMessage(value);
       textareaRef.current?.focus();
     },
   }), []);

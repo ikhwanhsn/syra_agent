@@ -121,6 +121,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       });
     });
   }, []);
+
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(defaultAgents[0]);
   const [isLoading, setIsLoading] = useState(false);
@@ -540,7 +541,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     [anonymousId]
   );
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, options?: { replaceHistory?: Message[] }) => {
     if (!anonymousId) return;
     let chatId = activeChat;
     if (!walletConnected) {
@@ -599,7 +600,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       timestamp: new Date(),
     };
 
-    const prevMessages = chatMessages[chatId] ?? [];
+    const prevMessages = options?.replaceHistory ?? (chatMessages[chatId] ?? []);
     const nextMessages = [...prevMessages, userMessage];
     const isFirstMessage = prevMessages.length === 0;
     const newTitle = isFirstMessage ? content.slice(0, 30) : undefined;
@@ -739,6 +740,18 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }
     }
   };
+
+  const handleUpdateUserMessage = useCallback(
+    (messageId: string, content: string) => {
+      if (!activeChat) return;
+      const list = chatMessages[activeChat] ?? [];
+      const editIndex = list.findIndex((m) => m.id === messageId && m.role === "user");
+      if (editIndex === -1) return;
+      const truncated = list.slice(0, editIndex);
+      handleSendMessage(content, { replaceHistory: truncated });
+    },
+    [activeChat, chatMessages, handleSendMessage]
+  );
 
   const handleStopGeneration = () => {
     if (!activeChat) return;
@@ -1043,6 +1056,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
                 onSelectModel={handleSelectModel}
                 userAvatarUrl={avatarUrl}
+                onUpdateUserMessage={handleUpdateUserMessage}
               />
             </main>
           </ResizablePanel>
@@ -1076,6 +1090,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
           onSelectModel={handleSelectModel}
           userAvatarUrl={avatarUrl}
+          onUpdateUserMessage={handleUpdateUserMessage}
         />
       </main>
       </div>
