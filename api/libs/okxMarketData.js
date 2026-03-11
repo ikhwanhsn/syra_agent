@@ -14,7 +14,9 @@ const OKX_TIMEOUT_MS = 15_000;
  * @returns {Promise<object>} OKX response { code, data, msg }
  */
 async function fetchOkx(path, params = {}) {
-  const url = new URL(path, OKX_REST_BASE);
+  const base = OKX_REST_BASE.replace(/\/$/, "");
+  const pathStr = path.startsWith("/") ? path : `/${path}`;
+  const url = new URL(base + pathStr);
   for (const [k, v] of Object.entries(params)) {
     if (v != null && String(v).trim() !== "") {
       url.searchParams.set(k, String(v).trim());
