@@ -1286,6 +1286,184 @@ curl "${BASE_URL}/okx/books?instId=ETH-USDT&sz=50"`,
     ],
   }),
 
+  "okx-dex-market": doc({
+    title: "OKX DEX Market API",
+    overview:
+      "OKX on-chain/DEX market data by token contract address and chain: single and batch price, kline (candlesticks), trades, index price, signal chains/list, and meme pump (memepump-chains, memepump-tokens, token details, dev info, similar tokens, bundle info, aped wallet). All endpoints use OKX web3 REST API v6; no CLI required. All parameters have defaults: omit address/tokens to use the default token for the chain (e.g. WETH on ethereum, wrapped SOL on solana). Requires OKX API key (OKX_API_KEY, OKX_SECRET_KEY, OKX_PASSPHRASE). Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    useCases: [
+      "On-chain token price by contract address (e.g. Solana, Base, Ethereum)",
+      "Candlesticks and recent DEX trades by token address",
+      "Smart money / whale / KOL buy signals by chain",
+      "Meme pump: new tokens, token details, dev reputation, bundle/sniper analysis",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/okx/dex/price",
+        description: "Single on-chain token price by address and chain. Omit address for default token (e.g. WETH on ethereum, wrapped SOL on solana).",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain: ethereum, solana, base, bsc, arbitrum, xlayer (default ethereum)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/price?address=So11111111111111111111111111111111111111112&chain=solana"`,
+        responseExample: `{ "result": { "chainIndex": "501", "tokenContractAddress": "So11...", "time": "1739439633000", "price": "245.12" } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/prices",
+        description: "Batch on-chain token prices. Omit tokens for default token for chain.",
+        params: [
+          { name: "tokens", type: "string", required: "No", description: "Comma-separated chainIndex:address or addresses (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Default chain (default ethereum)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/prices?tokens=501:So11111111111111111111111111111111111111112&chain=solana"`,
+        responseExample: `{ "result": [ { "chainIndex": "501", "tokenContractAddress": "So11...", "price": "245.12" }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/kline",
+        description: "On-chain candlesticks by token address and chain. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default ethereum)." },
+          { name: "bar", type: "string", required: "No", description: "1m, 1H, 1D, etc. (default 1H)." },
+          { name: "limit", type: "number", required: "No", description: "Candles (default 100, max 299)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/kline?address=So11...&chain=solana&bar=1H&limit=24"`,
+        responseExample: `{ "result": [ ["ts","o","h","l","c","vol","volUsd","confirm"], ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/trades",
+        description: "Recent on-chain DEX trades for a token. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default ethereum)." },
+          { name: "limit", type: "number", required: "No", description: "Trades (default 100, max 500)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/trades?address=So11...&chain=solana&limit=50"`,
+        responseExample: `{ "result": [ { "id": "...", "type": "buy", "price": "245.12", "volume": "1000", "txHashUrl": "...", "userAddress": "..." }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/index",
+        description: "On-chain index price (aggregated). Use empty address for native token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token address; empty for native." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default ethereum)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/index?address=So11...&chain=solana"`,
+        responseExample: `{ "result": { "chainIndex": "501", "tokenContractAddress": "So11...", "price": "245.12", "time": "..." } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/signal-chains",
+        description: "Chains that support OKX market signals (smart money / whale / KOL).",
+        requestExample: `curl "${BASE_URL}/okx/dex/signal-chains"`,
+        responseExample: `{ "result": [ { "chainIndex": "501", "chainName": "Solana" }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/signal-list",
+        description: "Latest buy-direction signals by chain. wallet-type: 1=Smart Money, 2=KOL, 3=Whale.",
+        params: [
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+          { name: "walletType", type: "string", required: "No", description: "Comma-separated 1,2,3 (default: all)." },
+          { name: "minAmountUsd", type: "string", required: "No", description: "Minimum transaction USD." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/signal-list?chain=solana&walletType=1,2,3"`,
+        responseExample: `{ "result": [ { "timestamp": "...", "walletType": "SMART_MONEY", "token": { "tokenAddress": "...", "symbol": "..." }, "amountUsd": "5000" }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-chains",
+        description: "Supported chains and protocols for meme pump (e.g. pumpfun, bonkers).",
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-chains"`,
+        responseExample: `{ "result": { "data": [ { "chainIndex": "501", "chainName": "Solana", "protocolList": [...] } ] } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-tokens",
+        description: "List meme pump tokens by chain and stage: NEW, MIGRATING, MIGRATED.",
+        params: [
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+          { name: "stage", type: "string", required: "No", description: "NEW, MIGRATING, or MIGRATED (default NEW)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-tokens?chain=solana&stage=NEW"`,
+        responseExample: `{ "result": [ { "tokenAddress": "...", "symbol": "...", "market": { "marketCapUsd": "..." }, ... }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-token-details",
+        description: "Detailed meme pump token info and audit tags. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-token-details?address=...&chain=solana"`,
+        responseExample: `{ "result": { "tokenAddress": "...", "bondingPercent": "85", "tags": { "top10HoldingsPercent": "30", ... }, ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-token-dev-info",
+        description: "Developer reputation: rug pulls, migrations, holding info. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-token-dev-info?address=...&chain=solana"`,
+        responseExample: `{ "result": { "devLaunchedInfo": { "totalTokens": "5", "rugPullCount": "0", "migratedCount": "2" }, "devHoldingInfo": { ... } } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-similar-tokens",
+        description: "Similar tokens by same creator. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-similar-tokens?address=...&chain=solana"`,
+        responseExample: `{ "result": { "data": [ { "tokenAddress": "...", "marketCapUsd": "..." }, ... ] } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-token-bundle-info",
+        description: "Bundle/sniper analysis for a meme token. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-token-bundle-info?address=...&chain=solana"`,
+        responseExample: `{ "result": { "bundlerAthPercent": "80", "totalBundlers": "5", "bundledValueNative": "100", ... } }`,
+      },
+      {
+        method: "GET",
+        path: "/okx/dex/memepump-aped-wallet",
+        description: "Aped (same-car) wallet list for a token. Omit address for default token.",
+        params: [
+          { name: "address", type: "string", required: "No", description: "Token contract address (default: chain default token)." },
+          { name: "chain", type: "string", required: "No", description: "Chain (default solana)." },
+          { name: "wallet", type: "string", required: "No", description: "Wallet to highlight in list." },
+        ],
+        requestExample: `curl "${BASE_URL}/okx/dex/memepump-aped-wallet?address=...&chain=solana"`,
+        responseExample: `{ "result": { "data": [ { "walletAddress": "...", "walletType": "Smart Money", "holdingUsd": "5000", "totalPnl": "1000" }, ... ] } }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Reference",
+        content:
+          "All endpoints use OKX web3 API v6 (https://web3.okx.com/onchainos/dev-docs-v5/dex-api). Set OKX_API_KEY, OKX_SECRET_KEY, OKX_PASSPHRASE; same credentials for price, kline, trades, index, signal, and memepump.",
+      },
+      {
+        title: "Dev routes (no payment)",
+        content:
+          "When NODE_ENV is not production, GET/POST /okx/dex/price/dev, /okx/dex/kline/dev, etc. return the same data without x402 payment.",
+      },
+    ],
+  }),
+
   "binance-correlation": doc({
     title: "Binance Correlation API",
     overview: "Binance correlation and correlation matrix. Top correlated assets for a symbol (e.g. BTCUSDT) or full correlation matrix. Uses the x402 payment protocol.",

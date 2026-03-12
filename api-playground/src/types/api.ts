@@ -41,6 +41,8 @@ export interface HistoryItem {
   response?: ApiResponse;
   status: RequestStatus;
   timestamp: Date;
+  /** Content-based share slug from API; same request => same slug. Used for share link. */
+  shareSlug?: string;
 }
 
 export interface PaymentDetails {

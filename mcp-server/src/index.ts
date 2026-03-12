@@ -507,6 +507,207 @@ async function main() {
     },
   );
 
+  // --- OKX DEX / On-chain Market (token by contract address + chain) ---
+  server.tool(
+    "syra_v2_okx_dex_price",
+    "OKX DEX: on-chain single token price by contract address and chain (e.g. solana, ethereum, base). Omit address to use default token for chain (e.g. WETH on ethereum, wrapped SOL on solana)." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("ethereum").describe("Chain (ethereum, solana, base, bsc, arbitrum, xlayer)"),
+    },
+    async ({ address, chain }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "ethereum" };
+      const { status, body } = await fetchV2("/okx/dex/price", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_prices",
+    "OKX DEX: on-chain batch token prices. Omit tokens to use default token for chain." + PAYMENT_NOTE,
+    {
+      tokens: z.string().optional().default("").describe("Comma-separated chainIndex:address or addresses (default: chain default token)"),
+      chain: z.string().optional().default("ethereum").describe("Default chain when tokens omitted or plain addresses"),
+    },
+    async ({ tokens, chain }) => {
+      const params: Record<string, string> = { tokens: tokens ?? "", chain: chain ?? "ethereum" };
+      const { status, body } = await fetchV2("/okx/dex/prices", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_kline",
+    "OKX DEX: on-chain candlesticks (K-line) by token address and chain. Omit address for default token. bar default 1H, limit default 100." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("ethereum").describe("Chain"),
+      bar: z.string().optional().default("1H").describe("Candle interval: 1m, 1H, 1D, etc."),
+      limit: z.number().optional().default(100).describe("Candles (default 100, max 299)"),
+    },
+    async ({ address, chain, bar, limit }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "ethereum" };
+      if (bar) params.bar = bar;
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/okx/dex/kline", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_trades",
+    "OKX DEX: recent on-chain DEX trades for a token. Omit address for default token. limit default 100." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("ethereum").describe("Chain"),
+      limit: z.number().optional().default(100).describe("Trades (default 100, max 500)"),
+    },
+    async ({ address, chain, limit }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "ethereum" };
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/okx/dex/trades", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_index",
+    "OKX DEX: on-chain index price (aggregated) by token address and chain. Use empty address for native token." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token address; empty for native token"),
+      chain: z.string().optional().default("ethereum").describe("Chain"),
+    },
+    async ({ address, chain }) => {
+      const params: Record<string, string> = { chain: chain ?? "ethereum" };
+      if (address !== undefined) params.address = address;
+      const { status, body } = await fetchV2("/okx/dex/index", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_signal_chains",
+    "OKX DEX: chains that support market signals (smart money / whale / KOL). Requires onchainos CLI when used from server." + PAYMENT_NOTE,
+    {},
+    async () => {
+      const { status, body } = await fetchV2("/okx/dex/signal-chains");
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_signal_list",
+    "OKX DEX: latest buy-direction signals by chain. wallet-type: 1=Smart Money, 2=KOL, 3=Whale." + PAYMENT_NOTE,
+    {
+      chain: z.string().optional().default("solana").describe("Chain (e.g. solana, ethereum)"),
+      walletType: z.string().optional().default("").describe("Comma-separated 1,2,3 (default: all)"),
+      minAmountUsd: z.string().optional().default("").describe("Minimum transaction amount in USD"),
+    },
+    async ({ chain, walletType, minAmountUsd }) => {
+      const params: Record<string, string> = { chain: chain ?? "solana" };
+      if (walletType) params.walletType = walletType;
+      if (minAmountUsd) params.minAmountUsd = minAmountUsd;
+      const { status, body } = await fetchV2("/okx/dex/signal-list", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_chains",
+    "OKX DEX: supported chains and protocols for meme pump (e.g. pumpfun, bonkers). Requires onchainos CLI when used from server." + PAYMENT_NOTE,
+    {},
+    async () => {
+      const { status, body } = await fetchV2("/okx/dex/memepump-chains");
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_tokens",
+    "OKX DEX: list meme pump tokens by chain and stage (NEW, MIGRATING, MIGRATED)." + PAYMENT_NOTE,
+    {
+      chain: z.string().optional().default("solana").describe("Chain"),
+      stage: z.enum(["NEW", "MIGRATING", "MIGRATED"]).optional().default("NEW").describe("Token stage (default NEW)"),
+    },
+    async ({ chain, stage }) => {
+      const params: Record<string, string> = { chain: chain ?? "solana", stage };
+      const { status, body } = await fetchV2("/okx/dex/memepump-tokens", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_token_details",
+    "OKX DEX: detailed meme pump token info and audit tags. Omit address for default token (e.g. wrapped SOL on solana)." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("solana").describe("Chain"),
+    },
+    async ({ address, chain }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "solana" };
+      const { status, body } = await fetchV2("/okx/dex/memepump-token-details", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_token_dev_info",
+    "OKX DEX: developer reputation and holding info for a meme token. Omit address for default token." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("solana").describe("Chain"),
+    },
+    async ({ address, chain }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "solana" };
+      const { status, body } = await fetchV2("/okx/dex/memepump-token-dev-info", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_similar_tokens",
+    "OKX DEX: similar tokens by same creator. Omit address for default token." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("solana").describe("Chain"),
+    },
+    async ({ address, chain }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "solana" };
+      const { status, body } = await fetchV2("/okx/dex/memepump-similar-tokens", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_token_bundle_info",
+    "OKX DEX: bundle/sniper analysis for a meme token. Omit address for default token." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("solana").describe("Chain"),
+    },
+    async ({ address, chain }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "solana" };
+      const { status, body } = await fetchV2("/okx/dex/memepump-token-bundle-info", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_okx_dex_memepump_aped_wallet",
+    "OKX DEX: aped (same-car) wallet list for a token. Omit address for default token." + PAYMENT_NOTE,
+    {
+      address: z.string().optional().default("").describe("Token contract address (default: chain default token)"),
+      chain: z.string().optional().default("solana").describe("Chain"),
+      wallet: z.string().optional().default("").describe("Wallet address to highlight in list"),
+    },
+    async ({ address, chain, wallet }) => {
+      const params: Record<string, string> = { address: address ?? "", chain: chain ?? "solana" };
+      if (wallet) params.wallet = wallet;
+      const { status, body } = await fetchV2("/okx/dex/memepump-aped-wallet", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   // --- CoinGecko x402 simple price & onchain token price ---
   server.tool(
     "syra_v2_coingecko_simple_price",

@@ -102,7 +102,10 @@ export const navigation: NavItem[] = [
       {
         title: "Partner: OKX",
         defaultCollapsed: false,
-        items: [{ title: "OKX Market", href: api("okx-market") }],
+        items: [
+          { title: "OKX Market", href: api("okx-market") },
+          { title: "OKX DEX Market", href: api("okx-dex-market") },
+        ],
       },
       {
         title: "Partner: Bubblemaps & Binance",
