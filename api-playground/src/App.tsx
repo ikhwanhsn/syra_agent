@@ -7,6 +7,8 @@ import { ThemeProvider } from "next-themes";
 import { WalletContextProvider } from "@/contexts/WalletContext";
 import Index from "./pages/Index";
 import Examples from "./pages/Examples";
+import Explorer from "./pages/Explorer";
+import ExplorerDetail from "./pages/ExplorerDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,7 +23,10 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/s/:slug" element={<Index />} />
               <Route path="/examples" element={<Examples />} />
+              <Route path="/explorer" element={<Explorer />} />
+              <Route path="/explorer/:slug" element={<ExplorerDetail />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -571,6 +571,133 @@ export const AGENT_TOOLS = [
     name: 'OKX server time',
     description: 'OKX server time.',
   },
+  // OKX DEX / On-chain Market (token by contract address + chain; different from CEX ticker/candles)
+  {
+    id: 'okx-dex-price',
+    path: '/okx/dex/price',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX price',
+    description: 'On-chain single token price by contract address and chain (e.g. solana, ethereum, base)',
+  },
+  {
+    id: 'okx-dex-prices',
+    path: '/okx/dex/prices',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX batch prices',
+    description: 'On-chain batch token prices (tokens: comma-separated chainIndex:address or addresses; optional chain)',
+  },
+  {
+    id: 'okx-dex-kline',
+    path: '/okx/dex/kline',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX kline',
+    description: 'On-chain candlestick/K-line by token address and chain (bar: 1m,1H,1D; limit up to 299)',
+  },
+  {
+    id: 'okx-dex-trades',
+    path: '/okx/dex/trades',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX trades',
+    description: 'On-chain recent trades for a token by address and chain (limit up to 500)',
+  },
+  {
+    id: 'okx-dex-index',
+    path: '/okx/dex/index',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX index price',
+    description: 'On-chain index price (aggregated multi-source) by token address and chain; empty address for native token',
+  },
+  {
+    id: 'okx-dex-signal-chains',
+    path: '/okx/dex/signal-chains',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX signal chains',
+    description: 'Chains that support OKX market signals (smart money / whale / KOL)',
+  },
+  {
+    id: 'okx-dex-signal-list',
+    path: '/okx/dex/signal-list',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX signal list',
+    description: 'Latest buy-direction signals by chain (wallet-type: 1=Smart Money, 2=KOL, 3=Whale; min-amount-usd, token-address)',
+  },
+  {
+    id: 'okx-dex-memepump-chains',
+    path: '/okx/dex/memepump-chains',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump chains',
+    description: 'Supported chains and protocols for meme pump (e.g. pumpfun, bonkers)',
+  },
+  {
+    id: 'okx-dex-memepump-tokens',
+    path: '/okx/dex/memepump-tokens',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump tokens',
+    description: 'List meme pump tokens by chain and stage: NEW, MIGRATING, MIGRATED (optional protocol-id-list, filters)',
+  },
+  {
+    id: 'okx-dex-memepump-token-details',
+    path: '/okx/dex/memepump-token-details',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump token details',
+    description: 'Detailed meme pump token info and audit tags (address, chain)',
+  },
+  {
+    id: 'okx-dex-memepump-token-dev-info',
+    path: '/okx/dex/memepump-token-dev-info',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump token dev info',
+    description: 'Developer reputation and holding info for a meme token (rug pulls, migrations)',
+  },
+  {
+    id: 'okx-dex-memepump-similar-tokens',
+    path: '/okx/dex/memepump-similar-tokens',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump similar tokens',
+    description: 'Similar tokens by same creator (address, chain)',
+  },
+  {
+    id: 'okx-dex-memepump-token-bundle-info',
+    path: '/okx/dex/memepump-token-bundle-info',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump token bundle info',
+    description: 'Bundle/sniper analysis for a meme token (address, chain)',
+  },
+  {
+    id: 'okx-dex-memepump-aped-wallet',
+    path: '/okx/dex/memepump-aped-wallet',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_OKX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
+    name: 'OKX DEX memepump aped wallet',
+    description: 'Aped (same-car) wallet list for a token (address, chain; optional wallet to highlight)',
+  },
   // Partner: CoinGecko x402 (simple price + onchain)
   {
     id: 'coingecko-simple-price',
@@ -860,6 +987,63 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'okx-time',
       test: () => /okx\s*server\s*time|okx\s*time/i.test(text),
     },
+    // OKX DEX (on-chain by token address + chain)
+    {
+      toolId: 'okx-dex-price',
+      test: () => /okx\s*dex\s*price|dex\s*price\s*okx|on-?chain\s*price\s*(by\s*address|token)|token\s*price\s*by\s*contract\s*address\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-prices',
+      test: () => /okx\s*dex\s*(batch\s*)?prices?|dex\s*batch\s*prices?/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-kline',
+      test: () => /okx\s*dex\s*kline|okx\s*dex\s*candles?|dex\s*kline\s*by\s*address|on-?chain\s*candles?\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-trades',
+      test: () => /okx\s*dex\s*trades?|dex\s*trades?\s*by\s*address|on-?chain\s*trades?\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-index',
+      test: () => /okx\s*dex\s*index|dex\s*index\s*price\s*okx|on-?chain\s*index\s*price/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-signal-chains',
+      test: () => /okx\s*dex\s*signal\s*chains?|dex\s*signal\s*chains?/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-signal-list',
+      test: () => /okx\s*dex\s*signal\s*list|dex\s*signal\s*list|okx\s*smart\s*money\s*signals?|okx\s*whale\s*buy\s*signals?/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-chains',
+      test: () => /okx\s*memepump\s*chains?|memepump\s*chains?|okx\s*dex\s*memepump\s*chains?/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-tokens',
+      test: () => /okx\s*memepump\s*tokens?|memepump\s*tokens?|okx\s*dex\s*memepump\s*tokens?|new\s*meme\s*tokens?\s*okx|扫链|trenches/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-token-details',
+      test: () => /okx\s*memepump\s*token\s*details?|memepump\s*token\s*details?/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-token-dev-info',
+      test: () => /okx\s*memepump\s*dev\s*info|memepump\s*token\s*dev\s*info|okx\s*developer\s*reputation\s*meme/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-similar-tokens',
+      test: () => /okx\s*memepump\s*similar\s*tokens?|memepump\s*similar\s*tokens?|same\s*creator\s*tokens?\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-token-bundle-info',
+      test: () => /okx\s*memepump\s*bundle\s*info|memepump\s*token\s*bundle\s*info|bundler\s*sniper\s*okx/i.test(text),
+    },
+    {
+      toolId: 'okx-dex-memepump-aped-wallet',
+      test: () => /okx\s*memepump\s*aped\s*wallet|memepump\s*aped\s*wallet|same-?car\s*wallet\s*okx|同车/i.test(text),
+    },
     // Partner: Nansen, Jupiter, DexScreener
     {
       toolId: 'token-god-mode',
@@ -1095,7 +1279,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
@@ -1188,6 +1372,31 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'okx-funding-rate' || t.id === 'okx-open-interest' || t.id === 'okx-mark-price') {
       out.paramsHint = 'Params: instId (default BTC-USDT-SWAP for perpetual swap)';
+    }
+    // OKX DEX (on-chain by address + chain)
+    if (t.id === 'okx-dex-price') {
+      out.paramsHint = 'Params: address (token contract address, required), chain (e.g. ethereum, solana, base; default ethereum)';
+    }
+    if (t.id === 'okx-dex-prices') {
+      out.paramsHint = 'Params: tokens (comma-separated chainIndex:address or addresses), chain (default when no prefix)';
+    }
+    if (t.id === 'okx-dex-kline') {
+      out.paramsHint = 'Params: address (required), chain (default ethereum), bar (1m,1H,1D), limit (default 100, max 299)';
+    }
+    if (t.id === 'okx-dex-trades') {
+      out.paramsHint = 'Params: address (required), chain (default ethereum), limit (default 100, max 500)';
+    }
+    if (t.id === 'okx-dex-index') {
+      out.paramsHint = 'Params: address (token address; empty for native token), chain (default ethereum)';
+    }
+    if (t.id === 'okx-dex-signal-list') {
+      out.paramsHint = 'Params: chain (e.g. solana, ethereum; required), wallet-type (1=Smart Money,2=KOL,3=Whale), min-amount-usd, token-address';
+    }
+    if (t.id === 'okx-dex-memepump-tokens') {
+      out.paramsHint = 'Params: chain (default solana), stage (NEW, MIGRATING, or MIGRATED; required), protocol-id-list, min-market-cap, keywords-include';
+    }
+    if (['okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet'].includes(t.id)) {
+      out.paramsHint = 'Params: address (token contract address, required), chain (default solana); aped-wallet also accepts optional wallet';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

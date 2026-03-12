@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Wallet, Zap, Menu, Coins, ExternalLink, LogOut, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +54,10 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
               <Menu className="h-5 w-5" />
             </Button>
             
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link
+              to="/"
+              className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-90 transition-opacity"
+            >
               <div className="relative group shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/30 to-black/20 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
                 <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
@@ -70,7 +74,21 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
                 </h1>
                 <p className="text-xs text-muted-foreground -mt-0.5 truncate">HTTP 402 Payment Protocol</p>
               </div>
-            </div>
+            </Link>
+            <nav className="hidden md:flex items-center gap-0.5 border-l border-border pl-3 ml-1">
+              <Link
+                to="/examples"
+                className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-md hover:bg-secondary/50 transition-colors"
+              >
+                Examples
+              </Link>
+              <Link
+                to="/explorer"
+                className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-md hover:bg-secondary/50 transition-colors"
+              >
+                Explorer
+              </Link>
+            </nav>
           </div>
 
           {/* Center: Flow indicator */}

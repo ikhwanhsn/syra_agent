@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Clock, ChevronLeft, ChevronRight, History, Zap, CheckCircle, XCircle, Loader2, Filter, Plus, Copy, GripVertical } from 'lucide-react';
+import { Trash2, Clock, ChevronLeft, ChevronRight, History, Zap, CheckCircle, XCircle, Loader2, Filter, Plus, Copy, GripVertical, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HistoryItem, HttpMethod } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface HistoryPanelProps {
   history: HistoryItem[];
@@ -76,6 +77,7 @@ export function HistoryPanel({
   onSidebarWidthChange
 }: HistoryPanelProps) {
   const [filter, setFilter] = useState<FilterType>('all');
+  const { toast } = useToast();
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -381,6 +383,22 @@ export function HistoryPanel({
 
                     {/* Action buttons - in flow so always visible and responsive */}
                     <div className="flex items-center gap-1.5 shrink-0 p-2 sm:p-3 pt-0 sm:pt-3 sm:pl-0 justify-end">
+                      {item.shareSlug && (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${item.shareSlug}`;
+                            await navigator.clipboard.writeText(link);
+                            toast({ title: 'Link copied', description: 'Share link copied to clipboard.' });
+                          }}
+                          className="h-8 w-8 sm:h-8 sm:w-8 text-muted-foreground hover:text-primary bg-background/95 backdrop-blur-md hover:bg-primary/20 border border-border/60 hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
+                          title="Copy share link"
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon-sm"

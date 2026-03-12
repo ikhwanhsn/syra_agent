@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Play, ArrowLeft, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getExampleFlows, EXAMPLE_FLOWS_VISIBLE_COUNT, getParamsForExampleFlow, type ExampleFlowPreset } from '@/hooks/useApiPlayground';
 import { TopBar } from '@/components/TopBar';
@@ -64,16 +64,9 @@ const Examples = () => {
           connectWallet(option);
         }}
       />
-      <div className="flex-1 pt-14 sm:pt-16 p-3 sm:p-6 max-w-5xl mx-auto w-full min-w-0">
-        <div className="flex items-center gap-4 mb-6 pt-4 pb-2">
-          <Button variant="ghost" size="sm" asChild className="gap-2 text-muted-foreground px-4 py-2 -ml-2">
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4" />
-              Back to playground
-            </Link>
-          </Button>
-        </div>
-        <div className="flex items-center gap-3 mb-2">
+      <div className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-auto overflow-x-hidden">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0">
+          <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
             <Zap className="h-5 w-5 text-primary" />
           </div>
@@ -90,7 +83,7 @@ const Examples = () => {
             <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
               Featured (also on Request Builder)
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
               {featuredFlows.map((flow) => (
                 <div
                   key={flow.id}
@@ -116,7 +109,7 @@ const Examples = () => {
           <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
             All v2 endpoints ({restFlows.length} more)
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
             {restFlows.map((flow) => (
               <div
                 key={flow.id}
@@ -136,6 +129,7 @@ const Examples = () => {
             ))}
           </div>
         </section>
+        </div>
       </div>
 
       <QueryParamsModal

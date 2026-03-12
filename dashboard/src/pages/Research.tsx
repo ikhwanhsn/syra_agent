@@ -386,6 +386,9 @@ export function ResearchPage() {
     }
   }
 
+  /** Max time for entire X search (fetch + payment + retry). Prevents stuck loading. */
+  const X_SEARCH_TIMEOUT_MS = 90_000;
+
   /** Live X search via new X API (/x/search/recent, x402). Requires connected wallet to pay. */
   const runPanelXSearch = async (preset: (typeof SYRA_PRESETS)[number]) => {
     const id = preset.id;
@@ -401,11 +404,23 @@ export function ResearchPage() {
     }
     setLoadingPanelId(id);
     try {
-      const result = await fetchXSearchRecent(preset.xSearchQuery, 10, {
-        connection,
-        publicKey,
-        signTransaction,
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("X search timed out. Check your connection and wallet (sign the payment if prompted), then try again.")),
+          X_SEARCH_TIMEOUT_MS
+        );
       });
+      const result = await Promise.race([
+        fetchXSearchRecent(preset.xSearchQuery, 10, {
+          connection,
+          publicKey,
+          signTransaction,
+        }).finally(() => {
+          if (timeoutId != null) clearTimeout(timeoutId);
+        }),
+        timeoutPromise,
+      ]);
       const resultText = formatTweetsAsMarkdown(result);
       const panelData: XSearchData = { result: resultText, query: preset.xSearchQuery };
       setPanelResults((prev) => ({

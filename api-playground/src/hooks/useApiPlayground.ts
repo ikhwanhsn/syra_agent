@@ -485,6 +485,146 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     url: `${base}/okx/time`,
     params: [],
   },
+  // OKX DEX (on-chain by token address + chain)
+  {
+    id: 'okx-dex-price',
+    label: 'OKX DEX price',
+    method: 'GET',
+    url: `${base}/okx/dex/price`,
+    params: [
+      { key: 'address', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain (ethereum, solana, base, etc.)' },
+    ],
+  },
+  {
+    id: 'okx-dex-prices',
+    label: 'OKX DEX batch prices',
+    method: 'GET',
+    url: `${base}/okx/dex/prices`,
+    params: [
+      { key: 'tokens', value: '501:So11111111111111111111111111111111111111112', enabled: true, description: 'Comma-separated chainIndex:address or addresses' },
+      { key: 'chain', value: 'solana', enabled: false, description: 'Default chain when tokens are plain addresses' },
+    ],
+  },
+  {
+    id: 'okx-dex-kline',
+    label: 'OKX DEX kline',
+    method: 'GET',
+    url: `${base}/okx/dex/kline`,
+    params: [
+      { key: 'address', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      { key: 'bar', value: '1H', enabled: true, description: '1m, 1H, 1D, etc.' },
+      { key: 'limit', value: '100', enabled: true, description: 'Candles (max 299)' },
+    ],
+  },
+  {
+    id: 'okx-dex-trades',
+    label: 'OKX DEX trades',
+    method: 'GET',
+    url: `${base}/okx/dex/trades`,
+    params: [
+      { key: 'address', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      { key: 'limit', value: '100', enabled: true, description: 'Trades (max 500)' },
+    ],
+  },
+  {
+    id: 'okx-dex-index',
+    label: 'OKX DEX index price',
+    method: 'GET',
+    url: `${base}/okx/dex/index`,
+    params: [
+      { key: 'address', value: '', enabled: true, description: 'Token address (empty for native)' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+    ],
+  },
+  {
+    id: 'okx-dex-signal-chains',
+    label: 'OKX DEX signal chains',
+    method: 'GET',
+    url: `${base}/okx/dex/signal-chains`,
+    params: [],
+  },
+  {
+    id: 'okx-dex-signal-list',
+    label: 'OKX DEX signal list',
+    method: 'GET',
+    url: `${base}/okx/dex/signal-list`,
+    params: [
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
+      { key: 'walletType', value: '1,2,3', enabled: false, description: '1=Smart Money, 2=KOL, 3=Whale' },
+      { key: 'minAmountUsd', value: '1000', enabled: false, description: 'Min USD amount' },
+    ],
+  },
+  {
+    id: 'okx-dex-memepump-chains',
+    label: 'OKX DEX memepump chains',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-chains`,
+    params: [],
+  },
+  {
+    id: 'okx-dex-memepump-tokens',
+    label: 'OKX DEX memepump tokens',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-tokens`,
+    params: [
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      { key: 'stage', value: 'NEW', enabled: true, description: 'NEW, MIGRATING, or MIGRATED' },
+    ],
+  },
+  {
+    id: 'okx-dex-memepump-token-details',
+    label: 'OKX DEX memepump token details',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-token-details`,
+    params: [
+      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+    ],
+  },
+  {
+    id: 'okx-dex-memepump-token-dev-info',
+    label: 'OKX DEX memepump token dev info',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-token-dev-info`,
+    params: [
+      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+    ],
+  },
+  {
+    id: 'okx-dex-memepump-similar-tokens',
+    label: 'OKX DEX memepump similar tokens',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-similar-tokens`,
+    params: [
+      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+    ],
+  },
+  {
+    id: 'okx-dex-memepump-token-bundle-info',
+    label: 'OKX DEX memepump token bundle info',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-token-bundle-info`,
+    params: [
+      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+    ],
+  },
+  {
+    id: 'okx-dex-memepump-aped-wallet',
+    label: 'OKX DEX memepump aped wallet',
+    method: 'GET',
+    url: `${base}/okx/dex/memepump-aped-wallet`,
+    params: [
+      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      { key: 'wallet', value: '', enabled: false, description: 'Wallet to highlight' },
+    ],
+  },
   {
     id: 'jupiter-swap-order',
     label: 'Jupiter swap order',
@@ -764,6 +904,20 @@ function getApiEndpoints(): string[] {
     `${base}/okx/open-interest`,
     `${base}/okx/mark-price`,
     `${base}/okx/time`,
+    `${base}/okx/dex/price`,
+    `${base}/okx/dex/prices`,
+    `${base}/okx/dex/kline`,
+    `${base}/okx/dex/trades`,
+    `${base}/okx/dex/index`,
+    `${base}/okx/dex/signal-chains`,
+    `${base}/okx/dex/signal-list`,
+    `${base}/okx/dex/memepump-chains`,
+    `${base}/okx/dex/memepump-tokens`,
+    `${base}/okx/dex/memepump-token-details`,
+    `${base}/okx/dex/memepump-token-dev-info`,
+    `${base}/okx/dex/memepump-similar-tokens`,
+    `${base}/okx/dex/memepump-token-bundle-info`,
+    `${base}/okx/dex/memepump-aped-wallet`,
     `${base}/coingecko/simple-price`,
     `${base}/coingecko/onchain/token-price`,
     `${base}/coingecko/onchain/search-pools`,
@@ -912,6 +1066,61 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/okx/open-interest': [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Perpetual swap instId' }],
       '/okx/mark-price': [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Derivatives instId' }],
       '/okx/time': [],
+      '/okx/dex/price': [
+        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain (ethereum, solana, base)' },
+      ],
+      '/okx/dex/prices': [
+        { key: 'tokens', value: '', enabled: true, description: 'Comma chainIndex:address or addresses' },
+        { key: 'chain', value: 'solana', enabled: false, description: 'Default chain' },
+      ],
+      '/okx/dex/kline': [
+        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'bar', value: '1H', enabled: true, description: '1m, 1H, 1D' },
+        { key: 'limit', value: '100', enabled: true, description: 'Max 299' },
+      ],
+      '/okx/dex/trades': [
+        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'limit', value: '100', enabled: true, description: 'Max 500' },
+      ],
+      '/okx/dex/index': [
+        { key: 'address', value: '', enabled: true, description: 'Token address (empty for native)' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      ],
+      '/okx/dex/signal-chains': [],
+      '/okx/dex/signal-list': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'walletType', value: '1,2,3', enabled: false, description: '1=Smart Money, 2=KOL, 3=Whale' },
+        { key: 'minAmountUsd', value: '', enabled: false, description: 'Min USD' },
+      ],
+      '/okx/dex/memepump-chains': [],
+      '/okx/dex/memepump-tokens': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'stage', value: 'NEW', enabled: true, description: 'NEW, MIGRATING, MIGRATED' },
+      ],
+      '/okx/dex/memepump-token-details': [
+        { key: 'address', value: '', enabled: true, description: 'Token address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      ],
+      '/okx/dex/memepump-token-dev-info': [
+        { key: 'address', value: '', enabled: true, description: 'Token address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      ],
+      '/okx/dex/memepump-similar-tokens': [
+        { key: 'address', value: '', enabled: true, description: 'Token address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      ],
+      '/okx/dex/memepump-token-bundle-info': [
+        { key: 'address', value: '', enabled: true, description: 'Token address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+      ],
+      '/okx/dex/memepump-aped-wallet': [
+        { key: 'address', value: '', enabled: true, description: 'Token address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
+        { key: 'wallet', value: '', enabled: false, description: 'Wallet to highlight' },
+      ],
       '/jupiter/swap/order': [
         { key: 'inputMint', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Input token mint (SOL wrapped)' },
         { key: 'outputMint', value: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', enabled: true, description: 'Output token mint (USDC)' },
@@ -1040,6 +1249,47 @@ function getRequestOrigin(urlStr: string): string | null {
 
 // localStorage key for history
 const HISTORY_STORAGE_KEY = 'x402_api_playground_history';
+
+/** Payload for playground share API (method, url, params, headers, body, optional sharedBy*). */
+interface SharePayload {
+  method: string;
+  url: string;
+  params: RequestParam[];
+  headers: RequestHeader[];
+  body: string;
+  sharedByWallet?: string | null;
+  sharedByChain?: 'solana' | 'base' | null;
+  sharedByEmail?: string | null;
+}
+
+/** POST request config to playground share API; returns slug or null. */
+async function saveShareToApi(payload: SharePayload): Promise<string | null> {
+  try {
+    const base = getApiBaseUrl();
+    const res = await fetch(`${base}/playground/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** GET shared request config by slug. */
+async function loadShareFromApi(slug: string): Promise<SharePayload | null> {
+  try {
+    const base = getApiBaseUrl();
+    const res = await fetch(`${base}/playground/share/${slug}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 
 // Helper functions for localStorage serialization/deserialization
 function loadHistoryFromStorage(): HistoryItem[] {
@@ -1906,6 +2156,9 @@ export function useApiPlayground() {
         setHistory(prev => prev.map(h => 
           h.id === actualRequestId ? { ...h, response: apiResponse, status: 'payment_required' } : h
         ));
+        saveShareToApi({ method: request.method, url: request.url, headers: request.headers, body: request.body, params: request.params }).then(slug => {
+          if (slug) setHistory(prev => prev.map(h => h.id === actualRequestId ? { ...h, shareSlug: slug } : h));
+        });
         
         // Try to build payment details from various sources if not already extracted
         if (!details && jsonData) {
@@ -1989,6 +2242,9 @@ export function useApiPlayground() {
         setHistory(prev => prev.map(h => 
           h.id === actualRequestId ? { ...h, response: apiResponse, status: 'success' } : h
         ));
+        saveShareToApi({ method: request.method, url: request.url, headers: request.headers, body: request.body, params: request.params }).then(slug => {
+          if (slug) setHistory(prev => prev.map(h => h.id === actualRequestId ? { ...h, shareSlug: slug } : h));
+        });
         return fetchResponse.status;
       }
 
@@ -1996,6 +2252,9 @@ export function useApiPlayground() {
       setHistory(prev => prev.map(h => 
         h.id === actualRequestId ? { ...h, response: apiResponse, status: 'error' } : h
       ));
+      saveShareToApi({ method: request.method, url: request.url, headers: request.headers, body: request.body, params: request.params }).then(slug => {
+        if (slug) setHistory(prev => prev.map(h => h.id === actualRequestId ? { ...h, shareSlug: slug } : h));
+      });
       return fetchResponse.status;
 
     } catch (error: any) {
@@ -2021,6 +2280,9 @@ export function useApiPlayground() {
       setHistory(prev => prev.map(h => 
         h.id === actualRequestId ? { ...h, response: errorResponse, status: 'error' } : h
       ));
+      saveShareToApi({ method: request.method, url: request.url, headers: request.headers, body: request.body, params: request.params }).then(slug => {
+        if (slug) setHistory(prev => prev.map(h => h.id === actualRequestId ? { ...h, shareSlug: slug } : h));
+      });
       return undefined;
     }
   }, [method, url, headers, body, params]);
@@ -2280,15 +2542,62 @@ export function useApiPlayground() {
 
   // Remove individual history item
   const removeHistoryItem = useCallback((itemId: string) => {
-    setHistory(prev => {
-      const updated = prev.filter(item => item.id !== itemId);
-      // If the removed item was selected, clear selection
-      if (selectedHistoryId === itemId) {
-        setSelectedHistoryId(undefined);
-      }
-      return updated;
-    });
+    const wasSelected = selectedHistoryId === itemId;
+    setHistory(prev => prev.filter(item => item.id !== itemId));
+    if (wasSelected) {
+      setSelectedHistoryId(undefined);
+      // Clear request builder and response when the active tab/item is deleted
+      setMethod('GET');
+      setUrl('');
+      setHeaders([{ key: 'Content-Type', value: 'application/json', enabled: true }]);
+      setBody('{\n  \n}');
+      setParams([]);
+      setResponse(undefined);
+      setStatus('idle');
+      setPaymentDetails(undefined);
+      setX402Response(undefined);
+      setPaymentOption(undefined);
+      clonedRequestIdRef.current = null;
+      newRequestIdRef.current = null;
+    }
   }, [selectedHistoryId]);
+
+  /** Load shared request by slug from API and prefill form. Returns true if loaded. */
+  const loadSharedRequest = useCallback(async (slug: string): Promise<boolean> => {
+    const data = await loadShareFromApi(slug);
+    if (!data) return false;
+    setMethod((data.method as HttpMethod) || 'GET');
+    setUrl(data.url || '');
+    setParams(Array.isArray(data.params) ? data.params.map(p => ({ key: p.key || '', value: p.value ?? '', enabled: p.enabled !== false, ...(p.description ? { description: p.description } : {}) })) : []);
+    setHeaders(Array.isArray(data.headers) ? data.headers.map(h => ({ key: h.key || '', value: h.value ?? '', enabled: h.enabled !== false })) : [{ key: 'Content-Type', value: 'application/json', enabled: true }]);
+    setBody(typeof data.body === 'string' ? data.body : '{\n  \n}');
+    setResponse(undefined);
+    setStatus('idle');
+    setPaymentDetails(undefined);
+    return true;
+  }, []);
+
+  /** Create share link for current request (POST to API, return full URL). Optionally includes sharedBy* when wallet is connected. */
+  const createShareLink = useCallback(async (): Promise<string | null> => {
+    const payload: SharePayload = { method, url, headers, body, params };
+    const chain = selectedPaymentChain;
+    const walletAddress = chain === 'base' ? walletContext.baseAddress : walletContext.address;
+    if (walletAddress) {
+      payload.sharedByWallet = walletAddress;
+      payload.sharedByChain = chain;
+    }
+    const slug = await saveShareToApi(payload);
+    if (!slug) return null;
+    // Update selected history item with shareSlug so that when we navigate to /s/:slug (onAfterShare),
+    // the load effect skips and does not overwrite the current response.
+    if (selectedHistoryId) {
+      setHistory(prev =>
+        prev.map(h => (h.id === selectedHistoryId ? { ...h, shareSlug: slug } : h))
+      );
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/s/${slug}`;
+  }, [method, url, headers, body, params, selectedPaymentChain, selectedHistoryId, walletContext.address, walletContext.baseAddress]);
 
   // Switch selected payment chain and update option + details
   const selectPaymentChain = useCallback(
@@ -2471,6 +2780,8 @@ export function useApiPlayground() {
     removeHistoryItem,
     createNewRequest,
     cloneHistoryItem,
+    loadSharedRequest,
+    createShareLink,
 
     // Wallet
     wallet,

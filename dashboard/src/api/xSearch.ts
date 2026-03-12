@@ -38,8 +38,12 @@ export interface XSearchRecentResult {
   errors?: Array<{ message?: string }>;
 }
 
+/** Timeout for each API fetch (ms). Prevents indefinite hang. */
+const FETCH_TIMEOUT_MS = 45_000;
+
 /**
  * Call GET /x/search/recent. On 402, parse payment, execute with wallet, retry with PAYMENT-SIGNATURE.
+ * Uses timeouts so the request cannot hang indefinitely.
  */
 export async function fetchXSearchRecent(
   query: string,
@@ -55,6 +59,7 @@ export async function fetchXSearchRecent(
   const first = await fetch(url, {
     method: "GET",
     headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (first.status === 200) {
@@ -118,6 +123,7 @@ export async function fetchXSearchRecent(
       Accept: "application/json",
       [paymentHeaderName]: result.paymentHeader,
     },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!retry.ok) {

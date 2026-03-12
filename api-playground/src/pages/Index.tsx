@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { TopBar } from '@/components/TopBar';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RequestBuilder } from '@/components/RequestBuilder';
@@ -12,6 +12,7 @@ import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { PaymentDetails, RequestParam } from '@/types/api';
 import { GripVertical } from 'lucide-react';
+import { InvalidShareLink } from '@/pages/InvalidShareLink';
 
 // Default payment details when we can't parse x402 response
 const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
@@ -21,9 +22,15 @@ const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
   network: 'Solana',
 };
 
+/** Slug format for share links: 1–24 hex chars (same as API). */
+function isValidShareSlug(s: string): boolean {
+  return /^[a-f0-9]{1,24}$/i.test(s);
+}
+
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { slug: shareSlug } = useParams<{ slug?: string }>();
   const {
     method,
     setMethod,
@@ -45,6 +52,8 @@ const Index = () => {
     removeHistoryItem,
     createNewRequest,
     cloneHistoryItem,
+    loadSharedRequest,
+    createShareLink,
     wallet,
     transactionStatus,
     connectWallet,
@@ -83,6 +92,75 @@ const Index = () => {
   const [isDesktop, setIsDesktop] = useState(false);
   const panelsContainerRef = useRef<HTMLDivElement>(null);
   const lastRunFlowIdRef = useRef<string | null>(null);
+  const lastLoadedShareSlugRef = useRef<string | null>(null);
+
+  // Share link load status: idle (no slug), loading, success, not_found
+  const [shareLoadStatus, setShareLoadStatus] = useState<'idle' | 'loading' | 'success' | 'not_found'>('idle');
+
+  // Dedicated invalid-share page: /s/invalid (redirect target when a share link is bad)
+  const isInvalidSharePage = shareSlug === 'invalid';
+  const attemptedSlug = (location.state as { attemptedSlug?: string } | null)?.attemptedSlug;
+
+  // When no slug in URL, reset so next /s/:slug will load
+  useEffect(() => {
+    if (!shareSlug) {
+      setShareLoadStatus('idle');
+      lastLoadedShareSlugRef.current = null;
+    }
+  }, [shareSlug]);
+
+  // Load shared request when visiting /s/:slug (e.g. shared link). Redirect to /s/invalid if invalid or not found.
+  // Skip loading when the selected history item already has this shareSlug (we just synced URL after a 402/share) so we don't overwrite the response.
+  useEffect(() => {
+    if (!shareSlug || shareSlug === 'invalid' || !loadSharedRequest) return;
+    const selected = history.find((h) => h.id === selectedHistoryId);
+    if (selected?.shareSlug === shareSlug) {
+      setShareLoadStatus('success');
+      lastLoadedShareSlugRef.current = shareSlug;
+      return;
+    }
+    if (lastLoadedShareSlugRef.current === shareSlug) return;
+    lastLoadedShareSlugRef.current = shareSlug;
+    if (!isValidShareSlug(shareSlug)) {
+      navigate('/s/invalid', { replace: true, state: { attemptedSlug: shareSlug } });
+      return;
+    }
+    setShareLoadStatus('loading');
+    loadSharedRequest(shareSlug)
+      .then((ok) => {
+        if (ok) setShareLoadStatus('success');
+        else navigate('/s/invalid', { replace: true, state: { attemptedSlug: shareSlug } });
+      })
+      .catch(() => navigate('/s/invalid', { replace: true, state: { attemptedSlug: shareSlug } }));
+  }, [shareSlug, loadSharedRequest, navigate, history, selectedHistoryId]);
+
+  // Keep browser URL in sync with share link: when on / and selected history item has shareSlug, show /s/:slug in address bar
+  const locationPathname = location.pathname;
+  useEffect(() => {
+    if (locationPathname !== '/') return;
+    if (!selectedHistoryId) return;
+    const selected = history.find((h) => h.id === selectedHistoryId);
+    if (!selected?.shareSlug) return;
+    navigate(`/s/${selected.shareSlug}`, { replace: true });
+  }, [locationPathname, selectedHistoryId, history, navigate]);
+
+  // When the active history item (tab/link) is deleted, we're still on /s/:slug; navigate back to / so the URL matches the cleared state (skip when on /s/invalid)
+  useEffect(() => {
+    if (!locationPathname.startsWith('/s/') || shareSlug === 'invalid' || shareLoadStatus === 'loading') return;
+    if (selectedHistoryId !== undefined) return;
+    navigate('/', { replace: true });
+  }, [locationPathname, selectedHistoryId, shareLoadStatus, shareSlug, navigate]);
+
+  // After Share: update browser URL to the share link so address bar reflects it
+  const handleAfterShare = useCallback(
+    (link: string) => {
+      try {
+        const path = new URL(link).pathname;
+        if (path.startsWith('/s/')) navigate(path, { replace: true });
+      } catch {}
+    },
+    [navigate]
+  );
 
   // Run example flow when navigated from /examples with state.runFlowId (and optional runFlowParams).
   // Only run once per flowId so we don't get double history entries (e.g. React Strict Mode double-invoke).
@@ -152,6 +230,45 @@ const Index = () => {
   // Use actual payment details or default for 402 responses
   const effectivePaymentDetails = paymentDetails || (status === 'payment_required' ? DEFAULT_PAYMENT_DETAILS : undefined);
 
+  // Invalid share link page: /s/invalid (reached via redirect when a share link is bad or not found)
+  if (isInvalidSharePage) {
+    return (
+      <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
+        <TopBar
+          wallet={wallet}
+          onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          isSidebarOpen={isSidebarOpen}
+          paymentNetwork={selectedPaymentChain}
+        />
+        <div className="flex-1 flex min-h-0 pt-14 sm:pt-16">
+          <InvalidShareLink slug={attemptedSlug} />
+        </div>
+      </div>
+    );
+  }
+
+  // Loading shared request: show loading state below TopBar
+  if (shareSlug && shareLoadStatus === 'loading') {
+    return (
+      <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
+        <TopBar
+          wallet={wallet}
+          onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          isSidebarOpen={isSidebarOpen}
+          paymentNetwork={selectedPaymentChain}
+        />
+        <div className="flex-1 flex items-center justify-center pt-14 sm:pt-16">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            <p className="text-sm">Loading shared request…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
       {/* Top Bar */}
@@ -218,6 +335,8 @@ const Index = () => {
                 onSend={sendRequest}
                 onTryDemo={tryDemo}
                 onExampleFlow={runExampleFlow}
+                onCreateShareLink={createShareLink}
+                onAfterShare={handleAfterShare}
               />
             </div>
           </div>

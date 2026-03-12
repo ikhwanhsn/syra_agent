@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Play, LayoutGrid } from 'lucide-react';
+import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Play, LayoutGrid, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getExampleFlows, EXAMPLE_FLOWS_VISIBLE_COUNT } from '@/hooks/useApiPlayground';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 interface RequestBuilderProps {
   method: HttpMethod;
@@ -36,6 +37,10 @@ interface RequestBuilderProps {
   onSend: () => void;
   onTryDemo: () => void;
   onExampleFlow?: (flowId: string) => void;
+  /** Create share link for current request; returns full URL or null. Called when user clicks Share. */
+  onCreateShareLink?: () => Promise<string | null>;
+  /** Called after share link is created and copied; pass the full URL so parent can update browser URL. */
+  onAfterShare?: (link: string) => void;
 }
 
 // x402 API only supports GET and POST
@@ -72,8 +77,12 @@ export function RequestBuilder({
   onSend,
   onTryDemo,
   onExampleFlow,
+  onCreateShareLink,
+  onAfterShare,
 }: RequestBuilderProps) {
   const [activeTab, setActiveTab] = useState('body');
+  const [isSharing, setIsSharing] = useState(false);
+  const { toast } = useToast();
   const isGetMethod = method === 'GET';
   // When API type is known, disable method buttons that aren't supported
   const isMethodDisabled = (m: HttpMethod) =>
@@ -137,6 +146,33 @@ export function RequestBuilder({
                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 Ready to Pay
               </Badge>
+            )}
+            {onCreateShareLink && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isLoading || isSharing}
+                className="gap-2 h-9"
+                onClick={async () => {
+                  if (!onCreateShareLink) return;
+                  setIsSharing(true);
+                  try {
+                    const link = await onCreateShareLink();
+                    if (link) {
+                      await navigator.clipboard.writeText(link);
+                      onAfterShare?.(link);
+                      toast({ title: 'Link copied', description: 'Share link copied to clipboard. Anyone with the link can open the same request.' });
+                    } else {
+                      toast({ title: 'Could not create link', variant: 'destructive' });
+                    }
+                  } finally {
+                    setIsSharing(false);
+                  }
+                }}
+              >
+                <Share2 className="h-4 w-4 shrink-0" />
+                <span className="text-sm">Share</span>
+              </Button>
             )}
             <Button variant="neon-outline" size="sm" onClick={onTryDemo} className="gap-2 h-9 w-full sm:w-auto">
               <Sparkles className="h-4 w-4 shrink-0" />

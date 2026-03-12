@@ -28,6 +28,7 @@ import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 import { createKrakenMarketRouter } from "./routes/partner/kraken/market.js";
 import { createOkxMarketRouter } from "./routes/partner/okx/market.js";
+import { createOkxDexMarketRouter } from "./routes/partner/okx/dex-market.js";
 // x402 route imports (consolidated from v2 into routes)
 import {
   createCryptonewsRouter,
@@ -63,6 +64,7 @@ import { create8004Router } from "./routes/8004.js";
 import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
 import { createHeyLolRouter } from "./routes/heylol.js";
 import { createBrainRouter } from "./routes/brain.js";
+import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import connectMongoose from "./config/mongoose.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -346,7 +348,8 @@ app.use(
         p === "/" ||
         p === "/favicon.ico" ||
         p.startsWith("/og") ||
-        p.startsWith("/info")
+        p.startsWith("/info") ||
+        p.startsWith("/playground")
       );
     },
   ),
@@ -545,6 +548,8 @@ app.use("/coinmarketcap", await createCoinmarketcapRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
 app.use("/kraken", await createKrakenMarketRouter());
+// OKX DEX (on-chain by token address + chain) — mount before /okx so /okx/dex/* is matched
+app.use("/okx/dex", await createOkxDexMarketRouter());
 app.use("/okx", await createOkxMarketRouter());
 app.use("/", await createCryptonewsRouter());
 
@@ -609,6 +614,9 @@ app.use("/x", await createXApiRouter());
 
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
+
+// Playground share: save/load request config by content-based slug (same request => same link)
+app.use("/playground", await createPlaygroundShareRouter());
 
 // X402 Jobs verification
 app.get("/.well-known/x402-verification.json", (req, res) => {
@@ -688,6 +696,21 @@ app.get("/.well-known/x402", (req, res) => {
     "okx/mark-price",
     "okx/instruments",
     "okx/time",
+    // OKX DEX (on-chain price, kline, trades, index, signal, memepump)
+    "okx/dex/price",
+    "okx/dex/prices",
+    "okx/dex/kline",
+    "okx/dex/trades",
+    "okx/dex/index",
+    "okx/dex/signal-chains",
+    "okx/dex/signal-list",
+    "okx/dex/memepump-chains",
+    "okx/dex/memepump-tokens",
+    "okx/dex/memepump-token-details",
+    "okx/dex/memepump-token-dev-info",
+    "okx/dex/memepump-similar-tokens",
+    "okx/dex/memepump-token-bundle-info",
+    "okx/dex/memepump-aped-wallet",
     // Analytics
     "analytics/summary",
     // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)
