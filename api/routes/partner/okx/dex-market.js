@@ -90,11 +90,21 @@ function getDefaultAddressForChain(chain) {
   return addr && String(addr).trim() !== "" ? String(addr).trim() : DEFAULT_TOKEN_BY_CHAIN.ethereum;
 }
 
+/** Resolve token address from request (accepts address, contract_address, token_address, tokenContractAddress, token_contract_address). */
+function getAddressParam(p) {
+  const raw =
+    p.address ??
+    p.contract_address ??
+    p.contractAddress ??
+    p.token_address ??
+    p.tokenContractAddress ??
+    p.token_contract_address;
+  return raw != null && String(raw).trim() !== "" ? String(raw).trim() : null;
+}
+
 /** Get token address from request; for memepump token-specific endpoints, address is required (no default). */
 function getMemepumpTokenAddress(p) {
-  const raw = p.address ?? p.tokenContractAddress ?? p.token_contract_address;
-  if (raw != null && String(raw).trim() !== "") return String(raw).trim();
-  return null;
+  return getAddressParam(p);
 }
 
 // ---- REST (OKX web3 API) ----
@@ -102,7 +112,7 @@ function getMemepumpTokenAddress(p) {
 async function handleDexPrice(req, res) {
   const p = params(req);
   const chain = defaultStr(p.chain, "ethereum");
-  const address = defaultStr(p.address ?? p.tokenContractAddress ?? p.token_contract_address, getDefaultAddressForChain(chain));
+  const address = defaultStr(getAddressParam(p), getDefaultAddressForChain(chain));
   const data = await getDexPrice(address, chain);
   res.setHeader("Cache-Control", "public, max-age=10");
   await maybeSettle(res, req);
@@ -122,12 +132,12 @@ async function handleDexPrices(req, res) {
 async function handleDexKline(req, res) {
   const p = params(req);
   const chain = defaultStr(p.chain, "ethereum");
-  const address = defaultStr(p.address ?? p.tokenContractAddress ?? p.token_contract_address, getDefaultAddressForChain(chain));
+  const address = defaultStr(getAddressParam(p), getDefaultAddressForChain(chain));
   const data = await getDexKline(address, chain, {
     bar: defaultStr(p.bar ?? p.interval, "1H"),
     limit: defaultInt(p.limit ?? p.size, 100, 1, 299),
-    after: (v = p.after) != null && String(v).trim() !== "" ? String(v).trim() : undefined,
-    before: (v = p.before) != null && String(v).trim() !== "" ? String(v).trim() : undefined,
+    after: p.after != null && String(p.after).trim() !== "" ? String(p.after).trim() : undefined,
+    before: p.before != null && String(p.before).trim() !== "" ? String(p.before).trim() : undefined,
   });
   res.setHeader("Cache-Control", "public, max-age=30");
   await maybeSettle(res, req);
@@ -137,10 +147,10 @@ async function handleDexKline(req, res) {
 async function handleDexTrades(req, res) {
   const p = params(req);
   const chain = defaultStr(p.chain, "ethereum");
-  const address = defaultStr(p.address ?? p.tokenContractAddress ?? p.token_contract_address, getDefaultAddressForChain(chain));
+  const address = defaultStr(getAddressParam(p), getDefaultAddressForChain(chain));
   const data = await getDexTrades(address, chain, {
     limit: defaultInt(p.limit ?? p.size, 100, 1, 500),
-    after: (v = p.after) != null && String(v).trim() !== "" ? String(v).trim() : undefined,
+    after: p.after != null && String(p.after).trim() !== "" ? String(p.after).trim() : undefined,
   });
   res.setHeader("Cache-Control", "public, max-age=10");
   await maybeSettle(res, req);
@@ -150,7 +160,7 @@ async function handleDexTrades(req, res) {
 async function handleDexIndex(req, res) {
   const p = params(req);
   const chain = defaultStr(p.chain, "ethereum");
-  const address = defaultStr(p.address ?? p.tokenContractAddress, "");
+  const address = defaultStr(getAddressParam(p), "");
   const data = await getDexIndexPrice(address, chain);
   res.setHeader("Cache-Control", "public, max-age=10");
   await maybeSettle(res, req);
@@ -174,17 +184,18 @@ async function handleSignalList(req, res) {
   try {
     const p = params(req);
     const chain = defaultStr(p.chain, "solana");
+    // Accept camelCase, snake_case, and hyphenated (agent/LLM often sends wallet-type, min-amount-usd, etc.)
     const opts = {
-      walletType: defaultStr(p.walletType ?? p.wallet_type, "1,2,3"),
-      minAmountUsd: defaultStr(p.minAmountUsd ?? p.min_amount_usd, ""),
-      maxAmountUsd: defaultStr(p.maxAmountUsd ?? p.max_amount_usd, ""),
-      minAddressCount: defaultStr(p.minAddressCount ?? p.min_address_count, ""),
-      maxAddressCount: defaultStr(p.maxAddressCount ?? p.max_address_count, ""),
-      tokenAddress: defaultStr(p.tokenAddress ?? p.token_address, ""),
-      minMarketCapUsd: defaultStr(p.minMarketCapUsd ?? p.min_market_cap_usd, ""),
-      maxMarketCapUsd: defaultStr(p.maxMarketCapUsd ?? p.max_market_cap_usd, ""),
-      minLiquidityUsd: defaultStr(p.minLiquidityUsd ?? p.min_liquidity_usd, ""),
-      maxLiquidityUsd: defaultStr(p.maxLiquidityUsd ?? p.max_liquidity_usd, ""),
+      walletType: defaultStr(p.walletType ?? p.wallet_type ?? p["wallet-type"], "1,2,3"),
+      minAmountUsd: defaultStr(p.minAmountUsd ?? p.min_amount_usd ?? p["min-amount-usd"], ""),
+      maxAmountUsd: defaultStr(p.maxAmountUsd ?? p.max_amount_usd ?? p["max-amount-usd"], ""),
+      minAddressCount: defaultStr(p.minAddressCount ?? p.min_address_count ?? p["min-address-count"], ""),
+      maxAddressCount: defaultStr(p.maxAddressCount ?? p.max_address_count ?? p["max-address-count"], ""),
+      tokenAddress: defaultStr(p.tokenAddress ?? p.token_address ?? p["token-address"], ""),
+      minMarketCapUsd: defaultStr(p.minMarketCapUsd ?? p.min_market_cap_usd ?? p["min-market-cap-usd"], ""),
+      maxMarketCapUsd: defaultStr(p.maxMarketCapUsd ?? p.max_market_cap_usd ?? p["max-market-cap-usd"], ""),
+      minLiquidityUsd: defaultStr(p.minLiquidityUsd ?? p.min_liquidity_usd ?? p["min-liquidity-usd"], ""),
+      maxLiquidityUsd: defaultStr(p.maxLiquidityUsd ?? p.max_liquidity_usd ?? p["max-liquidity-usd"], ""),
     };
     const data = await getDexSignalList(chain, opts);
     res.setHeader("Cache-Control", "public, max-age=30");

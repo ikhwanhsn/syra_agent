@@ -14,8 +14,11 @@ const Examples = () => {
   const navigate = useNavigate();
   const { wallet, connectWallet, selectPaymentChain } = useApiPlayground();
   const { setConnectChainOverride, openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
-  const featuredFlows = getExampleFlows().slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT);
-  const restFlows = getExampleFlows().slice(EXAMPLE_FLOWS_VISIBLE_COUNT);
+  const allFlows = getExampleFlows();
+  const featuredFlows = allFlows.slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT);
+  const restFlows = [...allFlows.slice(EXAMPLE_FLOWS_VISIBLE_COUNT)].sort((a, b) =>
+    (a.label ?? '').localeCompare(b.label ?? '', undefined, { sensitivity: 'base' })
+  );
 
   const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
   const [paramsModalFlow, setParamsModalFlow] = useState<ExampleFlowPreset | null>(null);

@@ -20,6 +20,7 @@
     "@faremeter/middleware": "^0.14.0",
     "@faremeter/rides": "^0.14.0",
     "@faremeter/wallet-solana": "^0.14.0",
+    "@gizatech/agent-sdk": "^0.0.4",
     "@solana/pay": "^0.2.6",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
@@ -31,6 +32,7 @@
     "@x402/svm": "^2.2.0",
     "@x402sentinel/x402": "^0.2.0",
     "@zauthx402/sdk": "^0.1.10",
+    "8004-solana": "^0.7.6",
     "axios": "^1.13.2",
     "bs58": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -46,8 +48,7 @@
     "tweetnacl": "^1.0.3",
     "viem": "^2.46.3",
     "x402-express": "^0.7.3",
-    "x402-solana": "^0.1.4",
-    "8004-solana": "^0.7.6"
+    "x402-solana": "^0.1.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

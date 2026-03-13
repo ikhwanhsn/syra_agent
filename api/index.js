@@ -37,6 +37,8 @@ import {
 } from "./routes/partner/cryptonews.js";
 import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 import { createExaSearchRouter as createV2ExaSearchRouter } from "./routes/exa-search.js";
+import { createCrawlRouter } from "./routes/crawl.js";
+import { createBrowserUseRouter } from "./routes/browserUse.js";
 import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/check-status.js";
 import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
 import { createDexscreenerRouter as createV2DexscreenerRouter } from "./routes/partner/dexscreener.js";
@@ -49,6 +51,7 @@ import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
 import { createTokenRiskAlertsRouter as createV2TokenRiskAlertsRouter } from "./routes/partner/rugcheck/token-risk-alerts.js";
 import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 import { createBinanceCorrelationRouter as createV2BinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
+import { createBinanceSpotRouter } from "./routes/partner/binance/spot.js";
 import { createV2CoingeckoOnchainRouter } from "./routes/partner/coingecko/onchain.js";
 import { createV2CoingeckoSimplePriceRouter } from "./routes/partner/coingecko/simple-price.js";
 import { createCoinmarketcapRouter } from "./routes/partner/coinmarketcap/index.js";
@@ -62,6 +65,7 @@ import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
+import { createGizaRouter } from "./routes/partner/giza/index.js";
 import { createHeyLolRouter } from "./routes/heylol.js";
 import { createBrainRouter } from "./routes/brain.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
@@ -180,6 +184,8 @@ function isX402Route(p) {
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
   if (p.startsWith("/exa-search")) return true;
+  if (p.startsWith("/crawl")) return true;
+  if (p.startsWith("/browser-use")) return true;
   if (p.startsWith("/check-status") && !p.startsWith("/check-status-agent")) return true;
   if (p.startsWith("/smart-money")) return true;
   if (p.startsWith("/dexscreener")) return true;
@@ -198,6 +204,7 @@ function isX402Route(p) {
   if (p.startsWith("/bubblemaps")) return true;
   if (p.startsWith("/coingecko")) return true;
   if (p === "/binance" || (p.startsWith("/binance/") && !p.startsWith("/binance/ohlc"))) return true;
+  if (p.startsWith("/binance/spot")) return true;
   if (p.startsWith("/coinmarketcap")) return true;
   if (p.startsWith("/kraken")) return true;
   if (p.startsWith("/okx")) return true;
@@ -546,6 +553,7 @@ app.use("/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
 app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
 app.use("/coinmarketcap", await createCoinmarketcapRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
+app.use("/binance/spot", await createBinanceSpotRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
 app.use("/kraken", await createKrakenMarketRouter());
 // OKX DEX (on-chain by token address + chain) — mount before /okx so /okx/dex/* is matched
@@ -572,6 +580,8 @@ app.use("/v1", (req, res) => {
 // x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/signal", await createV2SignalRouter());
 app.use("/exa-search", await createV2ExaSearchRouter());
+app.use("/crawl", await createCrawlRouter());
+app.use("/browser-use", await createBrowserUseRouter());
 app.use("/check-status", await createV2CheckStatusRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/brain", await createBrainRouter());
@@ -606,6 +616,8 @@ app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 app.use("/8004", await create8004Router());
 // 8004scan.io Public API proxy (x402) – agents, stats, search, feedbacks, chains
 app.use("/8004scan", await create8004scanRouter());
+// Giza DeFi yield optimization (x402) – protocols, agent, portfolio, apr, activate, withdraw, etc.
+app.use("/giza", await createGizaRouter());
 
 // hey.lol agent API proxy (x402) – profile, posts, feed, DMs, services, token. Use HEYLOL_SOLANA_PRIVATE_KEY or anonymousId.
 app.use("/heylol", await createHeyLolRouter());
@@ -666,6 +678,11 @@ app.get("/.well-known/x402", (req, res) => {
     // Binance & CoinGecko
     "binance/correlation",
     "binance/correlation-matrix",
+    "binance/spot/ticker/24hr",
+    "binance/spot/depth",
+    "binance/spot/exchange-info",
+    "binance/spot/account",
+    "binance/spot/order",
     "coingecko/simple-price",
     "coingecko/onchain/token-price",
     "coingecko/onchain/search-pools",
@@ -711,6 +728,17 @@ app.get("/.well-known/x402", (req, res) => {
     "okx/dex/memepump-similar-tokens",
     "okx/dex/memepump-token-bundle-info",
     "okx/dex/memepump-aped-wallet",
+    // Giza DeFi yield optimization (Base, Arbitrum)
+    "giza/protocols",
+    "giza/agent",
+    "giza/portfolio",
+    "giza/apr",
+    "giza/performance",
+    "giza/activate",
+    "giza/withdraw",
+    "giza/top-up",
+    "giza/update-protocols",
+    "giza/run",
     // Analytics
     "analytics/summary",
     // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)

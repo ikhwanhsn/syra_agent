@@ -48,6 +48,7 @@ export const navigation: NavItem[] = [
         defaultCollapsed: false,
         items: [
           { title: "EXA Search", href: api("exa-search") },
+          { title: "Website Crawl", href: api("crawl") },
           { title: "Analytics Summary", href: api("analytics-summary") },
         ],
       },
@@ -113,6 +114,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "Bubblemaps Maps", href: api("bubblemaps-maps") },
           { title: "Binance Correlation", href: api("binance-correlation") },
+          { title: "Binance Spot", href: api("binance-spot") },
         ],
       },
       {

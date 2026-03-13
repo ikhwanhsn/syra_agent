@@ -13,12 +13,14 @@ import {
   X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_COINGECKO_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
+  X402_API_PRICE_CRAWL_USD,
   X402_API_PRICE_COINMARKETCAP_USD,
   X402_API_PRICE_8004_USD,
   X402_API_PRICE_8004SCAN_USD,
   X402_API_PRICE_HEYLOL_USD,
   X402_API_PRICE_KRAKEN_USD,
   X402_API_PRICE_OKX_USD,
+  X402_API_PRICE_GIZA_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -31,12 +33,14 @@ import {
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_COINGECKO_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
+  X402_DISPLAY_PRICE_CRAWL_USD,
   X402_DISPLAY_PRICE_COINMARKETCAP_USD,
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
   X402_DISPLAY_PRICE_KRAKEN_USD,
   X402_DISPLAY_PRICE_OKX_USD,
+  X402_DISPLAY_PRICE_GIZA_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -101,6 +105,15 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_EXA_SEARCH_USD,
     name: 'EXA search',
     description: 'EXA AI web search – dynamic query only',
+  },
+  {
+    id: 'website-crawl',
+    path: '/crawl',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_CRAWL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_CRAWL_USD,
+    name: 'Website crawl',
+    description: 'Crawl a website from a starting URL; returns Markdown content for summarization or RAG (Cloudflare Browser Rendering)',
   },
   {
     id: 'trending-headline',
@@ -433,6 +446,61 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'Binance correlation',
     description: 'Binance correlation data',
+  },
+  // Partner: Binance Spot (market data + account/order with API key)
+  {
+    id: 'binance-ticker-24h',
+    path: '/binance/spot/ticker/24hr',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'Binance 24h ticker',
+    description: 'Binance spot 24h price change statistics. Optional symbol (e.g. BTCUSDT); omit for all symbols.',
+  },
+  {
+    id: 'binance-orderbook',
+    path: '/binance/spot/depth',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'Binance order book',
+    description: 'Binance spot order book (depth). symbol (e.g. BTCUSDT) required; optional limit (5–5000, default 100).',
+  },
+  {
+    id: 'binance-exchange-info',
+    path: '/binance/spot/exchange-info',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'Binance exchange info',
+    description: 'Binance spot exchange trading rules and symbol info. Optional symbol or symbols.',
+  },
+  {
+    id: 'binance-spot-account',
+    path: '/binance/spot/account',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'Binance spot account',
+    description: 'Binance spot account balances. Requires BINANCE_API_KEY and BINANCE_API_SECRET in env (or apiKey/apiSecret in body).',
+  },
+  {
+    id: 'binance-spot-order',
+    path: '/binance/spot/order',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'Binance place spot order',
+    description: 'Place a Binance spot order. symbol (e.g. BTCUSDT), side (BUY/SELL), type (MARKET/LIMIT etc.), quantity or quoteOrderQty. Requires API key in env or body.',
+  },
+  {
+    id: 'binance-spot-order-cancel',
+    path: '/binance/spot/order',
+    method: 'DELETE',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'Binance cancel spot order',
+    description: 'Cancel a Binance spot order. symbol required; orderId or origClientOrderId required. Requires API key in env or body.',
   },
   // Partner: Kraken market (ticker, orderbook, ohlc, trades, status, server-time via kraken-cli)
   {
@@ -827,6 +895,97 @@ export const AGENT_TOOLS = [
     name: 'Hey.lol create post',
     description: 'Create a hey.lol post. Body: content (required), optional media_urls, gif_url, video_url, is_paywalled, paywall_price, teaser, quoted_post_id, parent_id.',
   },
+  // Partner: Giza — DeFi yield optimization (Base, Arbitrum)
+  {
+    id: 'giza-protocols',
+    path: '/giza/protocols',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza protocols',
+    description: 'List DeFi protocols available for a token on Giza (e.g. USDC on Base). Params: token (contract address 0x...)',
+  },
+  {
+    id: 'giza-agent',
+    path: '/giza/agent',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza agent (smart account)',
+    description: 'Get or create Giza smart account (deposit address) for an owner EOA. Params: owner (0x... address)',
+  },
+  {
+    id: 'giza-portfolio',
+    path: '/giza/portfolio',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza portfolio',
+    description: 'Get current Giza portfolio status (protocols, balances). Params: owner (0x...)',
+  },
+  {
+    id: 'giza-apr',
+    path: '/giza/apr',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza APR',
+    description: 'Get current APR for a Giza agent. Params: owner (0x...)',
+  },
+  {
+    id: 'giza-performance',
+    path: '/giza/performance',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza performance',
+    description: 'Get performance history (value over time) for a Giza agent. Params: owner (0x...)',
+  },
+  {
+    id: 'giza-activate',
+    path: '/giza/activate',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza activate',
+    description: 'Activate Giza agent after deposit: owner, token, protocols (array), txHash, optional constraints',
+  },
+  {
+    id: 'giza-withdraw',
+    path: '/giza/withdraw',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza withdraw',
+    description: 'Withdraw from Giza (partial: amount in smallest units; full: omit amount). Params: owner, optional amount',
+  },
+  {
+    id: 'giza-top-up',
+    path: '/giza/top-up',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza top-up',
+    description: 'Record a top-up deposit for an active Giza agent. Params: owner, txHash',
+  },
+  {
+    id: 'giza-update-protocols',
+    path: '/giza/update-protocols',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza update protocols',
+    description: 'Update protocol set for a Giza agent. Params: owner, protocols (array)',
+  },
+  {
+    id: 'giza-run',
+    path: '/giza/run',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_GIZA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_GIZA_USD,
+    name: 'Giza run (rebalance)',
+    description: 'Trigger a manual optimization run for a Giza agent. Params: owner',
+  },
 ];
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
@@ -925,6 +1084,36 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'binance-correlation',
       test: () =>
         /binance\s*correlation|correlation\s*binance|binance\s*correl/i.test(text),
+    },
+    {
+      toolId: 'binance-ticker-24h',
+      test: () =>
+        /binance\s*24h|binance\s*ticker|binance\s*price\s*change|24h\s*ticker\s*binance/i.test(text),
+    },
+    {
+      toolId: 'binance-orderbook',
+      test: () =>
+        /binance\s*order\s*book|binance\s*depth|binance\s*orderbook|orderbook\s*binance/i.test(text),
+    },
+    {
+      toolId: 'binance-exchange-info',
+      test: () =>
+        /binance\s*exchange\s*info|binance\s*symbols?|binance\s*trading\s*rules/i.test(text),
+    },
+    {
+      toolId: 'binance-spot-account',
+      test: () =>
+        /binance\s*account|binance\s*balance|binance\s*wallet|binance\s*holdings/i.test(text),
+    },
+    {
+      toolId: 'binance-spot-order',
+      test: () =>
+        /binance\s*place\s*order|binance\s*buy|binance\s*sell|binance\s*spot\s*order|trade\s*binance/i.test(text),
+    },
+    {
+      toolId: 'binance-spot-order-cancel',
+      test: () =>
+        /binance\s*cancel\s*order|binance\s*cancel\s*trade|cancel\s*binance\s*order/i.test(text),
     },
     {
       toolId: 'kraken-ticker',
@@ -1173,6 +1362,57 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /8004scan\s*feedbacks?|8004scan\.io\s*feedbacks?|agent\s*feedbacks?\s*8004scan|8004\s*feedback/i.test(text),
     },
+    // Partner: Giza (DeFi yield optimization)
+    {
+      toolId: 'giza-protocols',
+      test: () =>
+        /giza\s*protocols?|protocols?\s*(for|on)\s*giza|which\s*protocols?\s*(can i use|are available)|giza\s*usdc\s*protocols?|yield\s*protocols?\s*(base|arbitrum)/i.test(text),
+    },
+    {
+      toolId: 'giza-agent',
+      test: () =>
+        /giza\s*(smart\s*)?account|giza\s*deposit\s*address|create\s*giza\s*agent|get\s*my\s*giza\s*(wallet|account)|giza\s*wallet\s*address/i.test(text),
+    },
+    {
+      toolId: 'giza-portfolio',
+      test: () =>
+        /giza\s*portfolio|my\s*giza\s*(portfolio|balance|holdings)|giza\s*status|giza\s*holdings/i.test(text),
+    },
+    {
+      toolId: 'giza-apr',
+      test: () =>
+        /giza\s*apr|my\s*giza\s*apr|giza\s*(current\s*)?yield|giza\s*rate\s*of\s*return/i.test(text),
+    },
+    {
+      toolId: 'giza-performance',
+      test: () =>
+        /giza\s*performance|giza\s*history|giza\s*chart|giza\s*value\s*over\s*time|giza\s*returns\s*history/i.test(text),
+    },
+    {
+      toolId: 'giza-activate',
+      test: () =>
+        /activate\s*giza|giza\s*activate|start\s*giza\s*agent|enable\s*giza\s*yield|giza\s*after\s*deposit/i.test(text),
+    },
+    {
+      toolId: 'giza-withdraw',
+      test: () =>
+        /giza\s*withdraw|withdraw\s*(from\s*)?giza|pull\s*out\s*giza|giza\s*partial\s*withdraw|giza\s*full\s*withdraw|deactivate\s*giza/i.test(text),
+    },
+    {
+      toolId: 'giza-top-up',
+      test: () =>
+        /giza\s*top\s*up|top\s*up\s*giza|giza\s*add\s*deposit|giza\s*additional\s*deposit/i.test(text),
+    },
+    {
+      toolId: 'giza-update-protocols',
+      test: () =>
+        /giza\s*update\s*protocols?|change\s*giza\s*protocols?|giza\s*add\s*protocol|giza\s*protocol\s*set/i.test(text),
+    },
+    {
+      toolId: 'giza-run',
+      test: () =>
+        /giza\s*run|giza\s*rebalance|trigger\s*giza\s*optimization|giza\s*manual\s*run|run\s*giza\s*now/i.test(text),
+    },
     // Partner: CoinMarketCap x402
     {
       toolId: 'coinmarketcap',
@@ -1235,6 +1475,11 @@ export function matchToolFromUserMessage(userMessage) {
         /analytics\s*summary|full\s*analytics|all\s*analytics|dashboard\s*data|summary\s*analytics/i.test(text),
     },
     {
+      toolId: 'website-crawl',
+      test: () =>
+        /crawl\s*(this\s*)?(site|website|url)|(summarize|get\s*content|ingest)\s*(from\s*)?(this\s*)?(site|website|url|page)|website\s*crawl|site\s*crawl|scrape\s*(this\s*)?site|crawl\s*https?:\/\//i.test(text),
+    },
+    {
       toolId: 'sentiment',
       test: () =>
         /sentiment\s*(analysis)?|market\s*sentiment|sentiment\s*data|feelings?\s*about\s*(market|crypto)/i.test(
@@ -1278,8 +1523,8 @@ export function matchToolFromUserMessage(userMessage) {
  */
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
-  const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap'];
+  const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'website-crawl', 'trending-headline', 'sundown-digest', 'analytics-summary'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'binance-ticker-24h', 'binance-orderbook', 'binance-exchange-info', 'binance-spot-account', 'binance-spot-order', 'binance-spot-order-cancel', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap', 'giza-protocols', 'giza-agent', 'giza-portfolio', 'giza-apr', 'giza-performance', 'giza-activate', 'giza-withdraw', 'giza-top-up', 'giza-update-protocols', 'giza-run'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
@@ -1295,7 +1540,7 @@ export function getCapabilitiesList() {
       .filter(Boolean);
 
   lines.push('Core:', ...fmt(core), '');
-  lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun):', ...fmt(partner), '');
+  lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun, Giza):', ...fmt(partner), '');
   lines.push('8004scan.io (ERC-8004 agent discovery):', ...fmt(eight004scan), '');
   if (nansenX402.length) {
     lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
@@ -1321,6 +1566,9 @@ export function getToolsForLlmSelection() {
     if (t.id === 'exa-search') {
       out.paramsHint = 'Params: query (required) — search query from the user, e.g. "bitcoin insight", "latest Nvidia news"';
     }
+    if (t.id === 'website-crawl') {
+      out.paramsHint = 'Params: url (required) — starting URL to crawl, e.g. https://example.com/docs; optional limit (default 20), depth (default 2)';
+    }
     if (t.id === 'coingecko-simple-price') {
       out.paramsHint = 'Params: symbols (e.g. btc,eth,sol) or ids (e.g. bitcoin,ethereum); optional include_market_cap, include_24hr_vol, include_24hr_change';
     }
@@ -1338,6 +1586,25 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'coinmarketcap') {
       out.paramsHint = 'Params: endpoint (quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp); optional id, slug, symbol, start, limit, convert, q, chain_id, pair_address';
+    }
+    // Giza (DeFi yield optimization): owner = EOA 0x...; token = contract address for protocols/activate
+    if (t.id === 'giza-protocols') {
+      out.paramsHint = 'Params: token (required) — token contract address e.g. USDC on Base: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    }
+    if (['giza-agent', 'giza-portfolio', 'giza-apr', 'giza-performance', 'giza-run'].includes(t.id)) {
+      out.paramsHint = 'Params: owner (required) — EOA address (0x...) of the user';
+    }
+    if (t.id === 'giza-activate') {
+      out.paramsHint = 'Params: owner, token (contract address), protocols (array e.g. aave,compound,moonwell), txHash (deposit tx), optional constraints';
+    }
+    if (t.id === 'giza-withdraw') {
+      out.paramsHint = 'Params: owner (required); optional amount (smallest units for partial; omit for full withdrawal)';
+    }
+    if (t.id === 'giza-top-up') {
+      out.paramsHint = 'Params: owner (required), txHash (required) — deposit transaction hash';
+    }
+    if (t.id === 'giza-update-protocols') {
+      out.paramsHint = 'Params: owner (required), protocols (required) — array of protocol names e.g. aave,compound,moonwell,fluid';
     }
     if (t.id === '8004scan-agents-search') {
       out.paramsHint = 'Params: q (required) – search query for semantic agent search; optional limit, chainId, semanticWeight';

@@ -18,7 +18,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Research & Discovery",
-    slugs: ["browse", "research", "x-search", "exa-search", "gems", "analytics-summary"],
+    slugs: ["browse", "research", "x-search", "exa-search", "crawl", "gems", "analytics-summary"],
   },
   {
     title: "Trading & Events",
@@ -42,7 +42,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Partner: Bubblemaps & Binance",
-    slugs: ["bubblemaps-maps", "binance-correlation"],
+    slugs: ["bubblemaps-maps", "binance-correlation", "binance-spot"],
   },
   {
     title: "Partner: CoinGecko",

@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/call', async (req, res) => {
   try {
-    const { anonymousId, toolId, params = {} } = req.body || {};
+    const { anonymousId, toolId, params: rawParams = {} } = req.body || {};
     if (!anonymousId || !toolId) {
       return res.status(400).json({
         success: false,
@@ -56,6 +56,13 @@ router.post('/call', async (req, res) => {
         error: `Unknown tool: ${toolId}. Use GET /agent/tools to list available tools.`,
       });
     }
+
+    // Normalize params to string key-value (same as chat flow) so GET query is built correctly
+    let params = Object.fromEntries(
+      Object.entries(rawParams).filter(
+        ([k, v]) => typeof k === 'string' && v != null && v !== ''
+      ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+    );
 
     const balanceResult = await getAgentUsdcBalance(anonymousId);
     if (!balanceResult) {
@@ -102,6 +109,20 @@ router.post('/call', async (req, res) => {
       params = { ...params, anonymousId };
     }
 
+    // OKX DEX: normalize param names to match API playground (address, chain, walletType) so agent and playground send same request shape
+    if (tool.path && tool.path.startsWith('/okx/dex')) {
+      const addr =
+        params.address ??
+        params.contract_address ??
+        params.contractAddress ??
+        params.token_address ??
+        params.tokenContractAddress ??
+        params.token_contract_address;
+      if (addr) params.address = typeof addr === 'string' ? addr : String(addr);
+      const wt = params.walletType ?? params.wallet_type ?? params['wallet-type'];
+      if (wt != null && wt !== '') params.walletType = typeof wt === 'string' ? wt : String(wt);
+    }
+
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
     if (tool.nansenPath) {
       const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
@@ -123,7 +144,7 @@ router.post('/call', async (req, res) => {
 
   const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
   const method = tool.method || 'GET';
-  const query = method === 'GET' ? params : {};
+  const query = method === 'GET' || method === 'DELETE' ? params : {};
   const body = method === 'POST' ? params : undefined;
 
   const result = await callX402V2WithAgent({

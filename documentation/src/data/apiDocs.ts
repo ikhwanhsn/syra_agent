@@ -12,7 +12,7 @@ export interface ApiParam {
 }
 
 export interface ApiEndpoint {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "DELETE";
   path: string;
   description: string;
   params?: ApiParam[];
@@ -400,6 +400,50 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
   "results": [ { "title": "...", "url": "https://...", "score": 0.95, "highlights": ["..."] } ],
   "autopromptString": null
 }`,
+      },
+    ],
+  }),
+
+  "crawl": doc({
+    title: "Website Crawl API",
+    overview:
+      "Crawl a website from a starting URL using Cloudflare Browser Rendering. Discovers pages via links/sitemaps, renders in headless browser, returns content as Markdown. Uses the x402 payment protocol.",
+    useCases: [
+      "Summarize or research content across a site",
+      "Build RAG/knowledge bases from docs or blogs",
+    ],
+    endpoints: [
+      {
+        method: "POST",
+        path: "/crawl",
+        description: "Start a crawl job. Polls until complete (up to ~2 min). Returns up to 50 pages with Markdown.",
+        params: [],
+        bodyExample: `{ "url": "https://blog.cloudflare.com/", "limit": 20, "depth": 2 }`,
+        requestExample: `curl -X POST ${BASE_URL}/crawl \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://blog.cloudflare.com/","limit":20,"depth":2}'`,
+        responseExample: `{
+  "jobId": "...",
+  "status": "completed",
+  "total": 20,
+  "finished": 20,
+  "records": [
+    { "url": "https://...", "title": "...", "markdown": "# ..." }
+  ],
+  "truncated": false
+}`,
+      },
+      {
+        method: "GET",
+        path: "/crawl",
+        description: "Same as POST; pass url, limit, depth as query parameters.",
+        params: [
+          { name: "url", type: "string", required: "Yes", description: "Starting URL to crawl." },
+          { name: "limit", type: "number", required: "No", description: "Max pages (default 20, max 500)." },
+          { name: "depth", type: "number", required: "No", description: "Max link depth (default 2)." },
+        ],
+        requestExample: `curl "${BASE_URL}/crawl?url=https%3A%2F%2Fblog.cloudflare.com%2F&limit=20&depth=2"`,
+        responseExample: `{ "jobId": "...", "status": "completed", "records": [...] }`,
       },
     ],
   }),
@@ -1494,6 +1538,76 @@ curl "${BASE_URL}/binance/correlation?symbol=ETHUSDT"`,
   "matrix": {},
   "symbols": []
 }`,
+      },
+    ],
+  }),
+
+  "binance-spot": doc({
+    title: "Binance Spot API",
+    overview:
+      "Binance Spot market data (24h ticker, order book, exchange info) and signed endpoints (account balances, place/cancel order). Market data requires no API key; account and order require BINANCE_API_KEY and BINANCE_API_SECRET in env or apiKey/apiSecret in request body. Uses the x402 payment protocol.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/binance/spot/ticker/24hr",
+        description: "24h price change statistics. Optional symbol (e.g. BTCUSDT); omit for all symbols.",
+        params: [{ name: "symbol", type: "string", required: "No", description: "Trading pair. Omit for all." }],
+        requestExample: `curl "${BASE_URL}/binance/spot/ticker/24hr"
+curl "${BASE_URL}/binance/spot/ticker/24hr?symbol=BTCUSDT"`,
+        responseExample: `{ "symbol": "BTCUSDT", "priceChange": "...", "lastPrice": "...", "volume": "...", ... }`,
+      },
+      {
+        method: "GET",
+        path: "/binance/spot/depth",
+        description: "Order book (depth). Symbol required; limit optional (5, 10, 20, 50, 100, 500, 1000).",
+        params: [
+          { name: "symbol", type: "string", required: "Yes", description: "e.g. BTCUSDT" },
+          { name: "limit", type: "string", required: "No", description: "Default 100." },
+        ],
+        requestExample: `curl "${BASE_URL}/binance/spot/depth?symbol=BTCUSDT&limit=100"`,
+        responseExample: `{ "lastUpdateId": 0, "bids": [[ "price", "qty" ]], "asks": [[ "price", "qty" ]] }`,
+      },
+      {
+        method: "GET",
+        path: "/binance/spot/exchange-info",
+        description: "Exchange trading rules and symbol info. Optional symbol or symbols.",
+        params: [
+          { name: "symbol", type: "string", required: "No", description: "Single symbol" },
+          { name: "symbols", type: "string", required: "No", description: "Symbols filter" },
+        ],
+        requestExample: `curl "${BASE_URL}/binance/spot/exchange-info"`,
+        responseExample: `{ "timezone": "...", "symbols": [ ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/binance/spot/account",
+        description: "Spot account balances (signed). Requires Binance API key in env or body.",
+        requestExample: `curl "${BASE_URL}/binance/spot/account"`,
+        responseExample: `{ "balances": [ { "asset": "BTC", "free": "...", "locked": "..." }, ... ] }`,
+      },
+      {
+        method: "POST",
+        path: "/binance/spot/order",
+        description: "Place spot order (signed). symbol, side (BUY/SELL), type (MARKET/LIMIT etc.), quantity or quoteOrderQty. Requires API key.",
+        params: [
+          { name: "symbol", type: "string", required: "Yes", description: "e.g. BTCUSDT" },
+          { name: "side", type: "string", required: "Yes", description: "BUY or SELL" },
+          { name: "type", type: "string", required: "Yes", description: "MARKET, LIMIT, etc." },
+          { name: "quantity", type: "string", required: "No*", description: "Base quantity. *Or quoteOrderQty for MARKET." },
+        ],
+        requestExample: `curl -X POST "${BASE_URL}/binance/spot/order" -H "Content-Type: application/json" -d '{"symbol":"BTCUSDT","side":"BUY","type":"MARKET","quantity":"0.001"}'`,
+        responseExample: `{ "orderId": 0, "symbol": "BTCUSDT", "status": "...", ... }`,
+      },
+      {
+        method: "DELETE",
+        path: "/binance/spot/order",
+        description: "Cancel spot order (signed). symbol required; orderId or origClientOrderId required. Requires API key.",
+        params: [
+          { name: "symbol", type: "string", required: "Yes", description: "e.g. BTCUSDT" },
+          { name: "orderId", type: "string", required: "No*", description: "Order ID. *Or origClientOrderId." },
+        ],
+        requestExample: `curl -X DELETE "${BASE_URL}/binance/spot/order?symbol=BTCUSDT&orderId=123"`,
+        responseExample: `{ "orderId": 123, "symbol": "BTCUSDT", "status": "CANCELED", ... }`,
       },
     ],
   }),
