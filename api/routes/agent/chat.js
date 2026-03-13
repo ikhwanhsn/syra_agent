@@ -63,6 +63,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - Each tool object: "toolId" (one of the ids above), "params" (object, see below).
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
 - For the "exa-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for Exa search, web search, or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
+- For the "website-crawl" tool set "params": {"url": "<starting URL from user>"} when the user asks to crawl a website, summarize a site, get content from a URL, or ingest a docs site (e.g. "crawl https://example.com/docs", "summarize this website"). Extract the URL from the message; if no URL is given, do not select this tool. Optional: "limit" (e.g. 20), "depth" (e.g. 2).
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
 - For the "coingecko-search-pools" tool set "params": {"query": "<search term from user>", "network": "solana"} or "base" when the user asks to search pools/tokens (e.g. "search pools for pump", "find token X on Solana").
 - For the "coingecko-trending-pools" tool always set "params": {"network": "solana", "duration": "5m"} when the user asks for trending pools (e.g. "give me coingecko trending pools"). Only use a different network if the user explicitly says "on Base" or "on Ethereum".
@@ -301,6 +302,26 @@ export function formatToolResultForLlm(data, toolId) {
       return condensedAnalyticsSummary(data);
     } catch {
       // use truncation fallback
+    }
+  }
+  // Website crawl: present crawled pages as readable sections for summarization
+  if (toolId === 'website-crawl' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      const records = Array.isArray(data.records) ? data.records : [];
+      const status = data.status ?? 'unknown';
+      if (status !== 'completed' || records.length === 0) {
+        return `[Website crawl ended with status: ${status}. ${data.message || ''} No page content to summarize.]`;
+      }
+      const lines = [`Crawled ${records.length} page(s) from the website (status: ${data.status}). Use ONLY this content to answer or summarize.`, ''];
+      for (const r of records) {
+        const title = r.title || r.url || 'Untitled';
+        const md = r.markdown || r.content || '';
+        lines.push(`## ${title}\nURL: ${r.url || ''}\n\n${md.slice(0, 6000)}${md.length > 6000 ? '\n\n[... truncated]' : ''}\n`);
+      }
+      const out = lines.join('\n');
+      return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + "\n\n[... Result truncated.]";
+    } catch {
+      // fallback to raw below
     }
   }
   // CoinGecko trending pools: only present real API data; never allow the LLM to invent pools/prices
@@ -586,6 +607,22 @@ router.post('/completion', async (req, res) => {
           if (!params.duration) params.duration = '5m';
         }
         if (!tool) continue;
+        // OKX DEX: normalize param names to match API playground (address, chain, walletType, etc.) so agent and playground send same request shape
+        if (tool.path && tool.path.startsWith('/okx/dex')) {
+          const addr =
+            params.address ??
+            params.contract_address ??
+            params.contractAddress ??
+            params.token_address ??
+            params.tokenContractAddress ??
+            params.token_contract_address;
+          if (addr) params.address = typeof addr === 'string' ? addr : String(addr);
+          const wt =
+            params.walletType ??
+            params.wallet_type ??
+            params['wallet-type'];
+          if (wt != null && wt !== '') params.walletType = typeof wt === 'string' ? wt : String(wt);
+        }
         // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount) or infer from message.
         if (matched.toolId === 'jupiter-swap-order') {
           const agentAddr = await getAgentAddress(anonymousId);

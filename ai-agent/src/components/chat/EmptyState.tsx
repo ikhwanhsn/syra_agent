@@ -43,12 +43,22 @@ const suggestions: SuggestionCard[] = [
     title: "Syra & tools",
     prompt: "What can the Syra agent do? When do I need to connect a wallet?",
   },
+  {
+    icon: FileText,
+    title: "Crawl & summarize",
+    prompt: "Crawl https://blog.cloudflare.com/ and give me a short summary of what's on the site (connect wallet for paid tool)",
+  },
+  {
+    icon: Wrench,
+    title: "Binance spot",
+    prompt: "What's the Binance 24h ticker for BTCUSDT? Or show my Binance spot balance (connect wallet for paid tools)",
+  },
 ];
 
 /** Group tools by category to match API v2 structure (core, partner, memecoin). */
 function groupTools(tools: AgentTool[]): { core: AgentTool[]; partner: AgentTool[]; memecoin: AgentTool[] } {
   const coreIds = new Set([
-    "check-status", "news", "signal", "sentiment", "event", "browse", "x-search",
+    "check-status", "news", "signal", "sentiment", "event", "browse", "x-search", "exa-search", "website-crawl",
     "research", "gems", "x-kol", "crypto-kol", "trending-headline", "sundown-digest", "analytics-summary",
   ]);
   const core: AgentTool[] = [];

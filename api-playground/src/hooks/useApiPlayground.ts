@@ -104,6 +104,27 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [{ key: 'period', value: '1D', enabled: true, description: '1H, 4H, 1D, 1W' }],
   },
   {
+    id: 'website-crawl',
+    label: 'Website crawl',
+    method: 'POST',
+    url: `${base}/crawl`,
+    params: [
+      { key: 'url', value: 'https://blog.cloudflare.com/', enabled: true, description: 'Starting URL to crawl (required)' },
+      { key: 'limit', value: '20', enabled: true, description: 'Max pages (default 20, max 500)' },
+      { key: 'depth', value: '2', enabled: true, description: 'Max link depth (default 2)' },
+    ],
+  },
+  {
+    id: 'browser-use',
+    label: 'Browser Use (browser task)',
+    method: 'POST',
+    url: `${base}/browser-use`,
+    params: [
+      { key: 'task', value: 'What is the top post on Hacker News right now?', enabled: true, description: 'Natural language task for the browser agent (required)' },
+      { key: 'start_url', value: '', enabled: false, description: 'Optional start URL (e.g. https://news.ycombinator.com)' },
+    ],
+  },
+  {
     id: 'binance-ticker',
     label: 'Binance ticker',
     method: 'GET',
@@ -359,6 +380,49 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     method: 'GET',
     url: `${base}/binance/correlation`,
     params: [{ key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT, ETHUSDT' }],
+  },
+  {
+    id: 'binance-ticker-24h',
+    label: 'Binance 24h ticker',
+    method: 'GET',
+    url: `${base}/binance/spot/ticker/24hr`,
+    params: [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional; omit for all symbols' }],
+  },
+  {
+    id: 'binance-orderbook',
+    label: 'Binance order book',
+    method: 'GET',
+    url: `${base}/binance/spot/depth`,
+    params: [
+      { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT' },
+      { key: 'limit', value: '100', enabled: true, description: '5, 10, 20, 50, 100, 500, 1000' },
+    ],
+  },
+  {
+    id: 'binance-exchange-info',
+    label: 'Binance exchange info',
+    method: 'GET',
+    url: `${base}/binance/spot/exchange-info`,
+    params: [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional symbol or symbols' }],
+  },
+  {
+    id: 'binance-spot-account',
+    label: 'Binance spot account',
+    method: 'GET',
+    url: `${base}/binance/spot/account`,
+    params: [],
+  },
+  {
+    id: 'binance-spot-order',
+    label: 'Binance place spot order',
+    method: 'POST',
+    url: `${base}/binance/spot/order`,
+    params: [
+      { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'Trading pair (required)' },
+      { key: 'side', value: 'BUY', enabled: true, description: 'BUY or SELL' },
+      { key: 'type', value: 'MARKET', enabled: true, description: 'MARKET, LIMIT, etc.' },
+      { key: 'quantity', value: '0.001', enabled: true, description: 'Base asset quantity (or use quoteOrderQty for MARKET)' },
+    ],
   },
   {
     id: 'kraken-ticker',
@@ -828,7 +892,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
 };
 
 /** Number of example flows to show on the Request Builder; rest are on /examples. */
-export const EXAMPLE_FLOWS_VISIBLE_COUNT = 4;
+export const EXAMPLE_FLOWS_VISIBLE_COUNT = 5;
 
 // Proxy URL for avoiding CORS issues in development
 const PROXY_BASE_URL = '/api/proxy/';
@@ -877,6 +941,8 @@ function getApiEndpoints(): string[] {
     `${base}/sundown-digest`,
     `${base}/check-status`,
     `${base}/exa-search`,
+    `${base}/crawl`,
+    `${base}/browser-use`,
     `${base}/analytics/summary`,
     `${base}/smart-money`,
     `${base}/dexscreener`,
@@ -889,6 +955,11 @@ function getApiEndpoints(): string[] {
     `${base}/bubblemaps/maps`,
     `${base}/binance/correlation`,
     `${base}/binance/correlation-matrix`,
+    `${base}/binance/spot/ticker/24hr`,
+    `${base}/binance/spot/depth`,
+    `${base}/binance/spot/exchange-info`,
+    `${base}/binance/spot/account`,
+    `${base}/binance/spot/order`,
     `${base}/kraken/ticker`,
     `${base}/kraken/orderbook`,
     `${base}/kraken/ohlc`,
@@ -953,6 +1024,7 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
   try {
     const path = new URL(url).pathname.toLowerCase();
     if (path === '/brain') return 'POST'; // Brain supports GET (query) and POST (body); default POST
+    if (path === '/binance/spot/order') return 'POST'; // Place order is POST
   } catch {
     // ignore
   }
@@ -994,6 +1066,15 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/analytics/summary': [],
       '/signal': [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. solana, bitcoin' }],
       '/exa-search': [{ key: 'query', value: 'latest crypto news', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
+      '/crawl': [
+        { key: 'url', value: 'https://blog.cloudflare.com/', enabled: true, description: 'Starting URL to crawl (required)' },
+        { key: 'limit', value: '20', enabled: true, description: 'Max pages (default 20, max 500)' },
+        { key: 'depth', value: '2', enabled: true, description: 'Max link depth (default 2)' },
+      ],
+      '/browser-use': [
+        { key: 'task', value: 'What is the top post on Hacker News right now?', enabled: true, description: 'Natural language task for the browser agent (required)' },
+        { key: 'start_url', value: '', enabled: false, description: 'Optional start URL' },
+      ],
       '/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
       '/api/v1/profiler/address/current-balance': [
@@ -1032,6 +1113,19 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
       '/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT, ETHUSDT' }],
       '/binance/correlation-matrix': [],
+      '/binance/spot/ticker/24hr': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional; omit for all' }],
+      '/binance/spot/depth': [
+        { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT' },
+        { key: 'limit', value: '100', enabled: true, description: '5, 10, 20, 50, 100, 500, 1000' },
+      ],
+      '/binance/spot/exchange-info': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional' }],
+      '/binance/spot/account': [],
+      '/binance/spot/order': [
+        { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'Trading pair' },
+        { key: 'side', value: 'BUY', enabled: true, description: 'BUY or SELL' },
+        { key: 'type', value: 'MARKET', enabled: true, description: 'MARKET, LIMIT, etc.' },
+        { key: 'quantity', value: '0.001', enabled: true, description: 'Base quantity or quoteOrderQty' },
+      ],
       '/kraken/ticker': [{ key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair(s) comma-separated (default BTCUSD)' }],
       '/kraken/orderbook': [
         { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
@@ -1884,6 +1978,28 @@ export function useApiPlayground() {
         return undefined;
       }
     }
+    if (effectiveMethod === 'POST' && pathname === '/crawl') {
+      const urlVal = enabledParams.find(p => p.key === 'url')?.value?.trim() ?? '';
+      if (!urlVal) {
+        toast({
+          title: 'URL required',
+          description: 'Please enter a starting URL in the Params section (e.g. https://blog.cloudflare.com/).',
+          variant: 'destructive',
+        });
+        return undefined;
+      }
+    }
+    if (effectiveMethod === 'POST' && pathname === '/browser-use') {
+      const taskVal = enabledParams.find(p => p.key === 'task')?.value?.trim() ?? '';
+      if (!taskVal) {
+        toast({
+          title: 'Task required',
+          description: 'Please enter a natural language task in the Params section (e.g. What is the top post on Hacker News?).',
+          variant: 'destructive',
+        });
+        return undefined;
+      }
+    }
 
     // For POST to query-based endpoints, ensure body includes query when body is empty (playground fills params, not body)
     let bodyToSend = effectiveBody;
@@ -1915,6 +2031,20 @@ export function useApiPlayground() {
       } else if (emptyBody && pathname === '/exa-search') {
         const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
         bodyToSend = JSON.stringify({ query: queryVal });
+      } else if (emptyBody && pathname === '/crawl') {
+        const urlVal = enabledParams.find(p => p.key === 'url')?.value ?? '';
+        const limitVal = enabledParams.find(p => p.key === 'limit')?.value ?? '20';
+        const depthVal = enabledParams.find(p => p.key === 'depth')?.value ?? '2';
+        const crawlBody: Record<string, string | number> = { url: urlVal };
+        if (limitVal && !Number.isNaN(Number(limitVal))) crawlBody.limit = Number(limitVal);
+        if (depthVal && !Number.isNaN(Number(depthVal))) crawlBody.depth = Number(depthVal);
+        bodyToSend = JSON.stringify(crawlBody);
+      } else if (emptyBody && pathname === '/browser-use') {
+        const taskVal = enabledParams.find(p => p.key === 'task')?.value ?? '';
+        const startUrlVal = enabledParams.find(p => p.key === 'start_url')?.value?.trim() ?? '';
+        const browserUseBody: Record<string, string> = { task: taskVal };
+        if (startUrlVal) browserUseBody.start_url = startUrlVal;
+        bodyToSend = JSON.stringify(browserUseBody);
       } else if (emptyBody && pathname === '/brain') {
         const questionVal = enabledParams.find(p => p.key === 'question')?.value ?? '';
         bodyToSend = JSON.stringify({ question: questionVal });
@@ -1937,8 +2067,8 @@ export function useApiPlayground() {
     if (payerAddress) {
       requestHeaders['X-Payer-Address'] = payerAddress;
     }
-    // Nansen and Brain expect JSON body with Content-Type: application/json
-    if ((isNansen || pathname === '/brain') && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
+    // Nansen, Brain, Crawl, and Browser Use expect JSON body with Content-Type: application/json
+    if ((isNansen || pathname === '/brain' || pathname === '/crawl' || pathname === '/browser-use') && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
       requestHeaders['Content-Type'] = 'application/json';
     }
 
@@ -2307,8 +2437,8 @@ export function useApiPlayground() {
       skipNextAutoDetectRef.current = false;
       exampleFlowJustRanRef.current = false;
     }, 2500);
-    // Default to GET for example flow; real method will be detected on 402 when user enters URL
-    const defaultMethod = getDefaultMethodForUrl(preset.url);
+    // Use preset method when set (e.g. POST for browser-use, crawl); else detect from URL
+    const defaultMethod = preset.method ?? getDefaultMethodForUrl(preset.url);
     const defaultBody = preset.body ?? '{\n  \n}';
     setMethod(defaultMethod);
     setUrl(preset.url);
@@ -2329,8 +2459,15 @@ export function useApiPlayground() {
       }
     })();
     const queryRequiredPaths = ['/exa-search'];
+    const urlRequiredPaths = ['/crawl'];
+    const taskRequiredPaths = ['/browser-use'];
     const queryValue = (effectiveParams.find((p) => p.key === 'query')?.value ?? '').trim();
-    const shouldSend = !queryRequiredPaths.includes(pathname) || !!queryValue;
+    const urlValue = (effectiveParams.find((p) => p.key === 'url')?.value ?? '').trim();
+    const taskValue = (effectiveParams.find((p) => p.key === 'task')?.value ?? '').trim();
+    const shouldSend =
+      (!queryRequiredPaths.includes(pathname) || !!queryValue) &&
+      (!urlRequiredPaths.includes(pathname) || !!urlValue) &&
+      (!taskRequiredPaths.includes(pathname) || !!taskValue);
 
     if (shouldSend) {
       setStatus('loading');
@@ -2347,10 +2484,22 @@ export function useApiPlayground() {
       setSelectedHistoryId(newId);
     } else {
       setStatus('idle');
-      toast({
-        title: 'Enter your search query',
-        description: 'Fill in the "query" param above (e.g. bitcoin insight, latest Nvidia news) and click Send.',
-      });
+      if (urlRequiredPaths.includes(pathname)) {
+        toast({
+          title: 'Enter a URL to crawl',
+          description: 'Fill in the "url" param above (e.g. https://blog.cloudflare.com/) and click Send.',
+        });
+      } else if (taskRequiredPaths.includes(pathname)) {
+        toast({
+          title: 'Enter a browser task',
+          description: 'Fill in the "task" param above (e.g. What is the top post on Hacker News?) and click Send.',
+        });
+      } else {
+        toast({
+          title: 'Enter your search query',
+          description: 'Fill in the "query" param above (e.g. bitcoin insight, latest Nvidia news) and click Send.',
+        });
+      }
     }
   }, [sendRequest, status]);
 

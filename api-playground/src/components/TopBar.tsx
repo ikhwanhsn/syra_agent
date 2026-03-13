@@ -88,6 +88,12 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
               >
                 Explorer
               </Link>
+              <Link
+                to="/batch-test"
+                className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-md hover:bg-secondary/50 transition-colors"
+              >
+                Batch Test
+              </Link>
             </nav>
           </div>
 
