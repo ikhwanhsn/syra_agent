@@ -95,7 +95,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'limit', value: '20', enabled: true, description: 'Max tokens to check (1-50)' },
     ],
   },
-  // Preview & Dashboard (no x402)
   {
     id: 'dashboard-summary',
     label: 'Dashboard summary',
@@ -157,27 +156,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'query', value: 'crypto lang:en', enabled: true, description: 'Search query (e.g. crypto lang:en)' },
       { key: 'max_results', value: '10', enabled: true, description: '10–100' },
     ],
-  },
-  {
-    id: 'preview-news',
-    label: 'Preview news (no x402)',
-    method: 'GET',
-    url: `${base}/preview/news`,
-    params: [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-  },
-  {
-    id: 'preview-sentiment',
-    label: 'Preview sentiment (no x402)',
-    method: 'GET',
-    url: `${base}/preview/sentiment`,
-    params: [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-  },
-  {
-    id: 'preview-signal',
-    label: 'Preview signal (no x402)',
-    method: 'GET',
-    url: `${base}/preview/signal`,
-    params: [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' }],
   },
   {
     id: 'news',
@@ -888,6 +866,146 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'pair_address', value: '0x3548029694fbb241d45fb24ba0cd9c9d4e745f16', enabled: true, description: 'Pair address (WETH/USDC on Base by default)' },
     ],
   },
+  // Messari x402
+  {
+    id: 'messari-ai',
+    label: 'Messari AI chat',
+    method: 'POST',
+    url: `${base}/messari/ai`,
+    params: [
+      { key: 'question', value: 'What is the latest on Bitcoin?', enabled: true, description: 'Natural language question' },
+    ],
+  },
+  {
+    id: 'messari-asset-details',
+    label: 'Messari asset details',
+    method: 'GET',
+    url: `${base}/messari/assets/details`,
+    params: [
+      { key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' },
+    ],
+  },
+  {
+    id: 'messari-ath',
+    label: 'Messari all-time highs',
+    method: 'GET',
+    url: `${base}/messari/ath`,
+    params: [
+      { key: 'slugs', value: 'bitcoin,ethereum,solana', enabled: true, description: 'Comma-separated asset slugs' },
+    ],
+  },
+  {
+    id: 'messari-roi',
+    label: 'Messari ROI',
+    method: 'GET',
+    url: `${base}/messari/roi`,
+    params: [
+      { key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' },
+    ],
+  },
+  {
+    id: 'messari-mindshare-gainers',
+    label: 'Messari mindshare gainers',
+    method: 'GET',
+    url: `${base}/messari/mindshare-gainers`,
+    params: [
+      { key: 'period', value: '24h', enabled: true, description: '24h (default) or 7d' },
+    ],
+  },
+  {
+    id: 'messari-mindshare-losers',
+    label: 'Messari mindshare losers',
+    method: 'GET',
+    url: `${base}/messari/mindshare-losers`,
+    params: [
+      { key: 'period', value: '24h', enabled: true, description: '24h (default) or 7d' },
+    ],
+  },
+  {
+    id: 'messari-signal',
+    label: 'Messari signal (social intelligence)',
+    method: 'GET',
+    url: `${base}/messari/signal`,
+    params: [
+      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+    ],
+  },
+  {
+    id: 'messari-news',
+    label: 'Messari news feed',
+    method: 'GET',
+    url: `${base}/messari/news`,
+    params: [
+      { key: 'assetSlugs', value: '', enabled: false, description: 'Filter by asset slugs (e.g. bitcoin,solana)' },
+      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+    ],
+  },
+  {
+    id: 'messari-token-unlocks',
+    label: 'Messari token unlock events',
+    method: 'GET',
+    url: `${base}/messari/token-unlocks`,
+    params: [
+      { key: 'assetId', value: 'arbitrum', enabled: true, description: 'Messari asset ID (e.g. arbitrum, aptos)' },
+    ],
+  },
+  {
+    id: 'messari-timeseries',
+    label: 'Messari timeseries (price)',
+    method: 'GET',
+    url: `${base}/messari/timeseries`,
+    params: [
+      { key: 'assetId', value: 'bitcoin', enabled: true, description: 'Asset slug (e.g. bitcoin, ethereum)' },
+      { key: 'datasetSlug', value: 'price', enabled: true, description: 'Dataset (e.g. price, volume)' },
+      { key: 'granularity', value: '1d', enabled: true, description: '5m, 15m, 1h, 1d' },
+    ],
+  },
+  {
+    id: 'messari-fundraising',
+    label: 'Messari fundraising rounds',
+    method: 'GET',
+    url: `${base}/messari/fundraising`,
+    params: [
+      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+      { key: 'roundTypes', value: '', enabled: false, description: 'seed, series-a, series-b, etc.' },
+    ],
+  },
+  {
+    id: 'messari-fundraising-investors',
+    label: 'Messari fundraising investors',
+    method: 'GET',
+    url: `${base}/messari/fundraising/investors`,
+    params: [
+      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+    ],
+  },
+  {
+    id: 'messari-stablecoins',
+    label: 'Messari stablecoins',
+    method: 'GET',
+    url: `${base}/messari/stablecoins`,
+    params: [
+      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+    ],
+  },
+  {
+    id: 'messari-networks',
+    label: 'Messari networks',
+    method: 'GET',
+    url: `${base}/messari/networks`,
+    params: [
+      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+    ],
+  },
+  {
+    id: 'messari-x-users',
+    label: 'Messari X-users (influencers)',
+    method: 'GET',
+    url: `${base}/messari/x-users`,
+    params: [
+      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+    ],
+  },
 ];
 };
 
@@ -919,10 +1037,9 @@ function useBackendPlaygroundProxy(targetUrl: string): boolean {
   return !!targetOrigin && targetOrigin !== pageOrigin;
 }
 
-// When using backend proxy, call the proxy on the **target** API's origin so the request reaches the right service (fixes "other service" when e.g. calling api.syraa.fun from localhost).
-function getPlaygroundProxyUrl(targetUrl: string): string {
-  const origin = getRequestOrigin(targetUrl);
-  if (origin) return `${origin}/api/playground-proxy`;
+// Always route through Syra's backend proxy so the playground can call any external x402 API.
+// The proxy at api.syraa.fun/api/playground-proxy forwards to any target URL passed in the body.
+function getPlaygroundProxyUrl(_targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
@@ -1006,6 +1123,27 @@ function getApiEndpoints(): string[] {
     `${base}/8004scan/agents/search`,
     `${base}/8004scan/agent`,
     `${base}/8004scan/feedbacks`,
+    `${base}/messari/ai`,
+    `${base}/messari/assets`,
+    `${base}/messari/assets/details`,
+    `${base}/messari/assets/metrics`,
+    `${base}/messari/ath`,
+    `${base}/messari/roi`,
+    `${base}/messari/timeseries`,
+    `${base}/messari/signal`,
+    `${base}/messari/mindshare-gainers`,
+    `${base}/messari/mindshare-losers`,
+    `${base}/messari/news`,
+    `${base}/messari/token-unlocks`,
+    `${base}/messari/token-unlocks/assets`,
+    `${base}/messari/token-unlocks/vesting`,
+    `${base}/messari/fundraising`,
+    `${base}/messari/fundraising/investors`,
+    `${base}/messari/fundraising/projects`,
+    `${base}/messari/fundraising/mna`,
+    `${base}/messari/stablecoins`,
+    `${base}/messari/networks`,
+    `${base}/messari/x-users`,
     `${base}/heylol/feed`,
     `${base}/heylol/profile/me`,
     `${base}/heylol/search`,
@@ -1025,6 +1163,7 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
     const path = new URL(url).pathname.toLowerCase();
     if (path === '/brain') return 'POST'; // Brain supports GET (query) and POST (body); default POST
     if (path === '/binance/spot/order') return 'POST'; // Place order is POST
+    if (path === '/messari/ai') return 'POST'; // Messari AI chat is POST
   } catch {
     // ignore
   }
@@ -1075,6 +1214,40 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'task', value: 'What is the top post on Hacker News right now?', enabled: true, description: 'Natural language task for the browser agent (required)' },
         { key: 'start_url', value: '', enabled: false, description: 'Optional start URL' },
       ],
+      '/messari/ai': [{ key: 'question', value: 'What is the latest on Bitcoin?', enabled: true, description: 'Natural language question about crypto' }],
+      '/messari/assets': [
+        { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+        { key: 'assetSlugs', value: '', enabled: false, description: 'Filter by slugs (e.g. bitcoin,ethereum)' },
+      ],
+      '/messari/assets/details': [{ key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' }],
+      '/messari/assets/metrics': [],
+      '/messari/ath': [{ key: 'slugs', value: 'bitcoin,ethereum,solana', enabled: true, description: 'Comma-separated asset slugs' }],
+      '/messari/roi': [{ key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' }],
+      '/messari/timeseries': [
+        { key: 'assetId', value: 'bitcoin', enabled: true, description: 'Asset ID or slug (e.g. bitcoin, ethereum)' },
+        { key: 'datasetSlug', value: 'price', enabled: true, description: 'Dataset slug (e.g. price, volume)' },
+        { key: 'granularity', value: '1d', enabled: true, description: '5m, 15m, 1h, 1d' },
+      ],
+      '/messari/signal': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
+      '/messari/mindshare-gainers': [{ key: 'period', value: '24h', enabled: true, description: '24h or 7d' }],
+      '/messari/mindshare-losers': [{ key: 'period', value: '24h', enabled: true, description: '24h or 7d' }],
+      '/messari/news': [
+        { key: 'assetSlugs', value: '', enabled: false, description: 'Filter by asset slugs' },
+        { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+      ],
+      '/messari/token-unlocks': [{ key: 'assetId', value: '', enabled: true, description: 'Messari asset ID (required)' }],
+      '/messari/token-unlocks/assets': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
+      '/messari/token-unlocks/vesting': [{ key: 'assetId', value: 'arbitrum', enabled: true, description: 'Messari asset ID (e.g. arbitrum, aptos)' }],
+      '/messari/fundraising': [
+        { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+        { key: 'roundTypes', value: '', enabled: false, description: 'seed, series-a, series-b, etc.' },
+      ],
+      '/messari/fundraising/investors': [{ key: 'limit', value: '10', enabled: true, description: 'Max results' }],
+      '/messari/fundraising/projects': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
+      '/messari/fundraising/mna': [{ key: 'limit', value: '10', enabled: true, description: 'Max results' }],
+      '/messari/stablecoins': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
+      '/messari/networks': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
+      '/messari/x-users': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
       '/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
       '/api/v1/profiler/address/current-balance': [
@@ -1592,14 +1765,46 @@ export function useApiPlayground() {
     'output', 'result', 'response', 'data', 'toolCalls', 'citations', 'news', 'message', 'error',
   ]);
 
-  // Extract params from 402 response extensions (input/query only). Use known API param names (ticker, query, token, etc.) when 402 only gives generic "input".
+  // Extract params from 402 response extensions (input/query only).
+  // Handles two bazaar schema layouts:
+  //   1) Flat: schema.properties = { ticker: {...}, query: {...} }  (Syra APIs)
+  //   2) Nested: schema.properties.input.properties.body.properties = { symbol: {...} }  (Heurist / external x402 APIs)
   const extractParamsFrom402Response = useCallback((x402Resp: X402Response, baseUrl?: string): RequestParam[] => {
     const params: RequestParam[] = [];
 
     try {
       const schema = x402Resp.extensions?.bazaar?.schema;
-      const exampleInput = x402Resp.extensions?.bazaar?.info?.input;
+      const bazaarInfo = x402Resp.extensions?.bazaar?.info;
+      const exampleInput = bazaarInfo?.input;
 
+      // Try nested schema first: schema.properties.input.properties.body.properties
+      const nestedBodySchema = (schema?.properties as any)?.input?.properties?.body;
+      const nestedBodyProps = nestedBodySchema?.properties as Record<string, any> | undefined;
+      const nestedBodyRequired: string[] = nestedBodySchema?.required ?? [];
+
+      if (nestedBodyProps && Object.keys(nestedBodyProps).length > 0) {
+        const exampleBody = exampleInput?.body as Record<string, any> | undefined;
+        Object.entries(nestedBodyProps).forEach(([key, prop]) => {
+          if (OUTPUT_SCHEMA_KEY_BLOCKLIST.has(key)) return;
+          const exampleVal = exampleBody?.[key];
+          const schemaDefault = prop && typeof prop === 'object' && 'default' in prop ? prop.default : undefined;
+          const defaultValue = exampleVal !== undefined && exampleVal !== ''
+            ? String(exampleVal)
+            : schemaDefault !== undefined ? String(schemaDefault) : '';
+          const desc = prop && typeof prop === 'object' && 'description' in prop
+            ? String((prop as { description?: string }).description || '')
+            : undefined;
+          params.push({
+            key,
+            value: defaultValue,
+            enabled: nestedBodyRequired.includes(key) || false,
+            ...(desc ? { description: desc } : {}),
+          });
+        });
+        if (params.length > 0) return params;
+      }
+
+      // Flat schema: schema.properties = { ticker: {...}, query: {...} }
       if (schema?.properties) {
         Object.entries(schema.properties).forEach(([key, prop]) => {
           if (OUTPUT_SCHEMA_KEY_BLOCKLIST.has(key)) return;
@@ -1621,7 +1826,6 @@ export function useApiPlayground() {
       if (known !== null && (params.length === 0 || onlyGenericInput)) {
         return known;
       }
-      // Endpoints not in our list often get a generic "input" from 402 schema; show no params instead
       if (onlyGenericInput) {
         return [];
       }
@@ -1778,17 +1982,26 @@ export function useApiPlayground() {
           setMethod(allowed.includes('GET') ? 'GET' : 'POST');
         }
 
-        // Use 402 response from the chosen method for params/headers (prefer GET if both 402)
-        const chosenMethod = allowed.includes('GET') ? 'GET' : 'POST';
+        // Parse 402 response to extract params, headers, and preferred method.
+        // Try POST 402 first (richer schema for body-based APIs), fallback to GET 402.
         const response402 =
-          (chosenMethod === 'GET' && getResult.status === 402 ? getResult.body : null) ??
-          (postResult.status === 402 ? postResult.body : null);
+          (postResult.status === 402 ? postResult.body : null) ??
+          (getResult.status === 402 ? getResult.body : null);
 
         if (response402) {
           try {
             const jsonData = JSON.parse(response402);
             const parsed = parseX402Response(jsonData);
             if (parsed) {
+              // Override method if bazaar info specifies one (e.g. Heurist declares method: "POST")
+              const bazaarMethod = parsed.extensions?.bazaar?.info?.input?.method as string | undefined;
+              if (bazaarMethod && ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(bazaarMethod.toUpperCase())) {
+                const preferred = bazaarMethod.toUpperCase() as HttpMethod;
+                if (allowed.includes(preferred) || allowed.length === 0) {
+                  setMethod(preferred);
+                }
+              }
+
               const detectedParams = extractParamsFrom402Response(parsed, baseUrl);
               if (detectedParams.length > 0) {
                 setParams((currentParams) => {
@@ -1940,20 +2153,11 @@ export function useApiPlayground() {
     const effectiveHeaders = useOverride ? requestOverride.headers : headers;
     const effectiveBody = useOverride ? requestOverride.body : body;
 
-    // Build URL with params (Nansen expects POST JSON body, so don't add params to URL)
+    // Build URL with params: GET → query string; POST → body (handled below)
     let finalUrl = baseUrl;
     const enabledParams = effectiveParams.filter(p => p.enabled && p.key);
     const isNansen = isNansenUrl(baseUrl);
-    // pathname for URL building: brain and Nansen use POST body only, not query params
-    const pathnameForUrl = (() => {
-      try {
-        return new URL(baseUrl).pathname.toLowerCase();
-      } catch {
-        return '';
-      }
-    })();
-    // For GET, add query params to URL; for /brain with POST, question goes in body only (handled below)
-    if (enabledParams.length > 0 && !isNansen && !(pathnameForUrl === '/brain' && effectiveMethod === 'POST')) {
+    if (effectiveMethod === 'GET' && enabledParams.length > 0) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach(p => searchParams.append(p.key, p.value));
       finalUrl += (baseUrl.includes('?') ? '&' : '?') + searchParams.toString();
@@ -2048,6 +2252,21 @@ export function useApiPlayground() {
       } else if (emptyBody && pathname === '/brain') {
         const questionVal = enabledParams.find(p => p.key === 'question')?.value ?? '';
         bodyToSend = JSON.stringify({ question: questionVal });
+      } else if (emptyBody) {
+        // Generic fallback: build JSON body from params for any POST endpoint (external x402 APIs, etc.)
+        const bodyObj: Record<string, unknown> = {};
+        enabledParams.forEach(p => {
+          const v = p.value?.trim() ?? '';
+          if (v === 'true') bodyObj[p.key] = true;
+          else if (v === 'false') bodyObj[p.key] = false;
+          else if (v !== '' && !Number.isNaN(Number(v)) && v !== '') bodyObj[p.key] = Number(v);
+          else if (v.startsWith('{') || v.startsWith('[')) {
+            try { bodyObj[p.key] = JSON.parse(v); } catch { bodyObj[p.key] = v; }
+          } else {
+            bodyObj[p.key] = v;
+          }
+        });
+        bodyToSend = JSON.stringify(bodyObj);
       }
     }
 
@@ -2067,8 +2286,8 @@ export function useApiPlayground() {
     if (payerAddress) {
       requestHeaders['X-Payer-Address'] = payerAddress;
     }
-    // Nansen, Brain, Crawl, and Browser Use expect JSON body with Content-Type: application/json
-    if ((isNansen || pathname === '/brain' || pathname === '/crawl' || pathname === '/browser-use') && bodyToSend.trim() && effectiveMethod === 'POST' && !requestHeaders['Content-Type']) {
+    // POST with a JSON body needs Content-Type: application/json
+    if (effectiveMethod === 'POST' && bodyToSend.trim() && !requestHeaders['Content-Type']) {
       requestHeaders['Content-Type'] = 'application/json';
     }
 
@@ -2188,7 +2407,6 @@ export function useApiPlayground() {
     try {
       let fetchResponse: Response;
       if (useBackendPlaygroundProxy(finalUrl)) {
-        // Cross-origin: use the **target** API's playground-proxy so the request reaches the right service (e.g. api.syraa.fun)
         const proxyUrl = getPlaygroundProxyUrl(finalUrl);
         fetchResponse = await fetch(proxyUrl, {
           method: 'POST',
@@ -2806,42 +3024,28 @@ export function useApiPlayground() {
           hash: result.signature,
         });
 
-        // Show warning toast if confirmation timed out (but transaction was submitted)
-        if (result.warning) {
-          toast({
-            title: "Transaction Submitted",
-            description: result.warning,
-            variant: "default",
-          });
-        }
-
         // Store payment header and origin so we only reuse it for the same API
         localStorage.setItem(PAYMENT_HEADER_KEY, result.paymentHeader);
         const paidOrigin = getRequestOrigin(url);
         if (paidOrigin) localStorage.setItem(PAYMENT_ORIGIN_KEY, paidOrigin);
         
-        // Auto-retry the request after a short delay to show success state
+        // Auto-retry: the signed tx is in the header; the API server will submit and verify it.
         setTimeout(async () => {
           setIsPaymentModalOpen(false);
           setTransactionStatus({ status: 'idle' });
           
-          // Retry the request with payment header
-          // The server will verify the transaction even if confirmation timed out
           const retryStatus = await sendRequest(result.paymentHeader);
           
-          // Clear stored payment header and origin
           localStorage.removeItem(PAYMENT_HEADER_KEY);
           localStorage.removeItem(PAYMENT_ORIGIN_KEY);
           
-          // Only show success toast when retry actually returned 200; otherwise
-          // sendRequest already toasts "Payment not verified" for 402
           if (retryStatus === 200) {
             toast({
               title: "Payment Successful",
               description: "API data has been fetched successfully!",
             });
           }
-        }, 3000); // 3s delay so server/facilitator can see the transaction before retry
+        }, 1000);
       } else {
         setTransactionStatus({
           status: 'failed',

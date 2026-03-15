@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::StakingError;
-use crate::state::{GlobalPool, UserStakeInfo, Period, POOL_SEED, ACCUMULATED_REWARD_PER_SHARE_PRECISION, UNCLAIMED_REWARD_FLAG};
+use crate::state::{GlobalPool, UserStakeInfo, Period, POOL_SEED, ACCUMULATED_REWARD_PER_SHARE_PRECISION};
 use crate::instructions::stake::{update_pool, calculate_pending_reward};
 
 #[derive(Accounts)]
@@ -103,21 +103,25 @@ pub fn unstake(ctx: Context<Unstake>, amount: u64, period: Period) -> Result<()>
         .checked_sub(amount)
         .ok_or(StakingError::MathOverflow)?;
 
-    if user_stake_info.amount == 0 && pending_reward > 0 {
-        // Store pending reward for later manual claim (high bit of reward_debt = unclaimed flag).
-        let reward_to_claim_later = u64::try_from(pending_reward)
+    // Preserve accrued rewards for later claim (both full and partial unstake)
+    if pending_reward > 0 {
+        let pending_u64 = u64::try_from(pending_reward)
             .map_err(|_| StakingError::RewardCalculationOverflow)?;
-        user_stake_info.reward_debt = UNCLAIMED_REWARD_FLAG | (reward_to_claim_later as u128);
-        msg!("Stored {} pending rewards for later claim (use Claim Reward button)", reward_to_claim_later);
+        user_stake_info.unclaimed_reward = user_stake_info.unclaimed_reward
+            .checked_add(pending_u64)
+            .ok_or(StakingError::MathOverflow)?;
+    }
+
+    // Reset reward debt for remaining stake
+    user_stake_info.reward_debt = if user_stake_info.amount == 0 {
+        0u128
     } else {
-        // Partial unstake: set reward_debt so remaining stake has correct accumulated share (no subtraction to avoid underflow).
-        let new_reward_debt = (user_stake_info.amount as u128)
+        (user_stake_info.amount as u128)
             .checked_mul(global_pool.accumulated_reward_per_share)
             .ok_or(StakingError::MathOverflow)?
             .checked_div(ACCUMULATED_REWARD_PER_SHARE_PRECISION)
-            .ok_or(StakingError::MathOverflow)?;
-        user_stake_info.reward_debt = new_reward_debt;
-    }
+            .ok_or(StakingError::MathOverflow)?
+    };
 
     global_pool.total_staked = global_pool
         .total_staked

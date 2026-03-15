@@ -74,6 +74,10 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - For Nansen smart-money tools (nansen-smart-money-netflow, nansen-smart-money-holdings, nansen-smart-money-dex-trades) set "params": {"chains": "[\"solana\"]"} or extract chain from user question.
 - For Nansen TGM/token tools (nansen-tgm-holders, nansen-tgm-flow-intelligence, nansen-tgm-flows, nansen-tgm-dex-trades, nansen-tgm-pnl-leaderboard) set "params": {"chain": "solana", "token_address": "<token contract address from user>"}; add date_from/date_to for flows or pnl-leaderboard if user specifies a date range.
 - For "nansen-token-screener" set "params": {"chain": "solana"} or chain from user.
+- For OKX DEX on-chain tools (okx-dex-price, okx-dex-kline, okx-dex-trades, okx-dex-index) set "params": {"address": "<token contract address>", "chain": "solana"} or "ethereum" or "base". Omit address to use default token.
+- For "okx-dex-signal-list" set "params": {"chain": "solana", "walletType": "1,2,3"} to get all signal types (Smart Money, KOL, Whale) in ONE call. Do NOT make separate calls per wallet type.
+- For "okx-dex-memepump-tokens" set "params": {"chain": "solana", "stage": "NEW"} or "MIGRATING" or "MIGRATED".
+- For other okx-dex-memepump-* tools set "params": {"address": "<token contract address>", "chain": "solana"}.
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.
 - If the question does not match any tool, respond with: {"tools": []}`;
@@ -107,9 +111,9 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
       const params =
         item.params && typeof item.params === 'object' && !Array.isArray(item.params)
           ? Object.fromEntries(
-              Object.entries(item.params).filter(
-                ([k, v]) => typeof k === 'string' && (v == null || typeof v === 'string')
-              )
+              Object.entries(item.params)
+                .filter(([k, v]) => typeof k === 'string' && v != null && v !== '')
+                .map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
             )
           : {};
       result.push({ toolId, params });
@@ -514,7 +518,7 @@ router.post('/completion', async (req, res) => {
       `When the user asks for something specific (e.g. "give me X", "show me Y data") that is not covered by the tools above, then say Syra doesn't have that capability right now and briefly list what Syra can do. Do not make up data or use general knowledge for topics that require a tool we don't have.`
     );
     systemParts.push(
-      `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). Do not include raw JSON, code blocks showing tool calls, or blocks like {"tool": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
+      `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). NEVER include raw JSON, code blocks showing tool calls, "tool_calls:" blocks, or blocks like {"tool": "..."} or {"name": "...", "arguments": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. Tools are called automatically by the system; you must NEVER output tool_calls or function_call JSON yourself. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
     );
     if (anonymousId) {
       let usdcBalance = 0;
@@ -713,12 +717,14 @@ router.post('/completion', async (req, res) => {
           const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
           const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
           const budgetExceeded = result.budgetExceeded === true;
-          const isBackendError = /Kraken request failed|timeout|CLI|502|503|request failed/i.test(err);
+          const isBackendError =
+            /Kraken request failed|timeout|CLI|502|503|request failed/i.test(err) ||
+            /403|401|Forbidden|permission\s*(issue|error)|temporarily unavailable|service.*unavailable/i.test(err);
           let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
           if (budgetExceeded) {
             instruction += ` This was blocked by the agent's spend limit (Sentinel budget). Tell the user their agent has hit its hourly/daily budget cap; they can try again later or adjust limits in settings.`;
           } else if (isBackendError) {
-            instruction += ` This was a temporary service or data-provider issue, not a wallet balance problem. Tell the user the tool could not fetch data right now and they can try again in a moment.`;
+            instruction += ` This was a temporary service or API access issue, not a wallet balance problem. Tell the user the tool could not fetch data right now and they can try again in a moment. Do NOT suggest checking USDC or SOL for this error.`;
           } else if (useTreasury) {
             instruction += ` Tell the user their agent wallet needs SOL to pay Solana transaction fees—they should send a small amount of SOL (e.g. 0.01) to their agent wallet address.`;
           } else if (needsUsdc) {

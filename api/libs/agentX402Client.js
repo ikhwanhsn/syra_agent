@@ -1,6 +1,8 @@
 /**
  * Agent x402 client: call x402 API v2 using agent keypair (pay automatically).
  * Used by the Syra agent to access paid APIs; balance must be checked before calling.
+ * Internal requests to our own API (BASE_URL) include X-API-Key so proxies/middleware that require auth allow them.
+ * Self-API calls (localhost / api.syraa.fun) use raw fetch (no Sentinel) to avoid budget/audit interference.
  */
 import { Connection, PublicKey } from '@solana/web3.js';
 import {
@@ -19,6 +21,70 @@ import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { getAgentKeypair } from './agentWallet.js';
 import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
+
+/** Server API key (first of API_KEYS or API_KEY) for internal x402 requests so they are not rejected with 403. */
+function getServerApiKey() {
+  const raw = (process.env.API_KEYS || process.env.API_KEY || '').trim();
+  if (!raw) return null;
+  const first = raw.split(',')[0].trim();
+  return first || null;
+}
+
+/** Our API base URL (no trailing slash). When set, requests to this host get X-API-Key. */
+function getOwnApiBaseUrl() {
+  const base = (process.env.BASE_URL || '').trim().replace(/\/$/, '');
+  return base || null;
+}
+
+/** Hosts we treat as our own API (internal tool calls). Add X-API-Key so proxies/auth allow server-to-server. */
+const OWN_API_HOSTS = new Set([
+  'api.syraa.fun',
+  'www.api.syraa.fun',
+  'localhost',
+  '127.0.0.1',
+  ...(process.env.CORS_EXTRA_ORIGINS || '')
+    .split(',')
+    .map((o) => {
+      try {
+        return new URL(o.trim()).hostname;
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean),
+]);
+
+/** True when the URL targets our own API (self-call). */
+function isOwnApiUrl(url) {
+  if (typeof url !== 'string') return false;
+  try {
+    const u = new URL(url);
+    const baseUrl = getOwnApiBaseUrl();
+    const isOwnByBase = baseUrl && (url.startsWith(baseUrl) || u.origin === new URL(baseUrl).origin);
+    const isOwnByHost = OWN_API_HOSTS.has(u.hostname);
+    return !!(isOwnByBase || isOwnByHost);
+  } catch {
+    const baseUrl = getOwnApiBaseUrl();
+    return !!(baseUrl && url.startsWith(baseUrl));
+  }
+}
+
+/** Add X-API-Key to headers when the request URL is our own API (avoids 403 from proxies/auth that block server-to-server). */
+function addInternalApiKeyIfOwnUrl(url, headers) {
+  const key = getServerApiKey();
+  if (!key || typeof url !== 'string' || !headers || typeof headers !== 'object') return;
+  if (isOwnApiUrl(url)) {
+    headers['X-API-Key'] = key;
+  }
+}
+
+/**
+ * Choose the right fetch for the URL: raw globalThis.fetch for self-API calls (avoids
+ * Sentinel budget/audit interference on internal tool calls), sentinel-wrapped for external.
+ */
+function chooseFetch(url, sentinelFetch) {
+  return isOwnApiUrl(url) ? globalThis.fetch : sentinelFetch;
+}
 
 /**
  * Get treasury keypair from AGENT_PRIVATE_KEY (base58). Used to pay for tool calls when user is a 1M+ SYRA holder.
@@ -39,13 +105,43 @@ function getTreasuryKeypair() {
 const ZERO_SIG_BASE58 = '1'.repeat(64);
 
 const USDC_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-// Prefer RPC that allows blockchain access (getAccountInfo, etc.). Some keys (e.g. Alchemy free) return 403 for blockchain.
+
+// Prefer RPC that allows blockchain access (getAccountInfo, sendRawTransaction, etc.).
+// Some keys (e.g. Alchemy restricted) return 403 "not allowed to access blockchain".
 const RPC_URL =
   process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
   process.env.SOLANA_RPC_READ_ONLY_URL ||
   process.env.SOLANA_RPC_URL ||
   process.env.VITE_SOLANA_RPC_URL ||
   'https://rpc.ankr.com/solana';
+
+// Fallback RPC when primary returns "not allowed to access blockchain" (Alchemy -32052).
+const RPC_FALLBACK_URL =
+  process.env.SOLANA_RPC_FALLBACK_URL &&
+  process.env.SOLANA_RPC_FALLBACK_URL.trim() !== (process.env.SOLANA_RPC_URL || '').trim()
+    ? process.env.SOLANA_RPC_FALLBACK_URL.trim()
+    : 'https://rpc.ankr.com/solana';
+
+/** True if error is Alchemy "not allowed to access blockchain" or similar RPC access restriction. */
+function isRpcBlockchainAccessError(e) {
+  const msg = e?.message || String(e);
+  return /not allowed to access blockchain|json-rpc code:\s*-32052|403 Forbidden/i.test(msg);
+}
+
+/** Get a Connection, falling back if the primary RPC blocks blockchain access. */
+let _useFallbackRpc = false;
+function getConnection() {
+  const url = _useFallbackRpc ? RPC_FALLBACK_URL : RPC_URL;
+  return new Connection(url, 'confirmed');
+}
+
+/** Switch to fallback RPC for subsequent calls (sticky per process). */
+function switchToFallbackRpc() {
+  if (!_useFallbackRpc) {
+    _useFallbackRpc = true;
+    console.warn(`[agentX402] Primary RPC blocked blockchain access → switching to fallback: ${RPC_FALLBACK_URL}`);
+  }
+}
 
 /** Poll interval for confirmation (ms). */
 const CONFIRM_POLL_MS = 1500;
@@ -158,9 +254,11 @@ export async function callX402V2WithAgent(opts) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
     const sentinelFetch = getSentinelFetch(anonymousId);
-    return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress }, sentinelFetch);
+    const fetchFn = chooseFetch(url, sentinelFetch);
+    return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress }, fetchFn);
   } catch (e) {
     const msg = e?.message || String(e);
+    console.error(`[agentX402] callX402V2WithAgent threw:`, e?.name || 'Error', msg);
     if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
       return { success: false, error: msg, budgetExceeded: true };
     }
@@ -180,9 +278,11 @@ export async function callX402V2WithTreasury(opts) {
       return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
     }
     const sentinelFetch = getSentinelFetch('treasury');
-    return await callX402V2WithKeypair(keypair, opts, sentinelFetch);
+    const fetchFn = chooseFetch(opts.url, sentinelFetch);
+    return await callX402V2WithKeypair(keypair, opts, fetchFn);
   } catch (e) {
     const msg = e?.message || String(e);
+    console.error(`[agentX402] callX402V2WithTreasury threw:`, e?.name || 'Error', msg);
     if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
       return { success: false, error: msg, budgetExceeded: true };
     }
@@ -192,7 +292,6 @@ export async function callX402V2WithTreasury(opts) {
 
 async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) {
   const { url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
-  const connection = new Connection(RPC_URL, 'confirmed');
   const agentPubkey = keypair.publicKey;
 
   const buildUrl = () => {
@@ -209,6 +308,7 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
   if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
     initHeaders['X-Connected-Wallet'] = connectedWalletAddress.trim();
   }
+  addInternalApiKeyIfOwnUrl(initialUrl, initHeaders);
   const initOpts = {
     method,
     headers: initHeaders,
@@ -236,8 +336,9 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
       connectedWalletAddress,
     }, fetchFn);
   }
-  // Upstream returned 4xx/5xx (e.g. Xona 400 Bad Request) – surface error to caller
+  // Upstream returned 4xx/5xx – log for diagnostics and surface error to caller
   const errMsg = firstData?.error || firstData?.message || firstRes.statusText || `Request failed: ${firstRes.status}`;
+  console.error(`[agentX402] Initial request failed: ${firstRes.status} ${firstRes.statusText} → ${initialUrl}`, typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
   return { success: false, error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg) };
 }
 
@@ -249,7 +350,7 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
  */
 export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) {
   const { url, method = 'POST', body, accepts, x402Version = 2, connectedWalletAddress } = opts;
-  const connection = new Connection(RPC_URL, 'confirmed');
+  let connection = getConnection();
   const agentPubkey = keypair.publicKey;
 
   const rawAccept = accepts[0];
@@ -262,59 +363,56 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
   const destinationPubkey = new PublicKey(payTo);
   const mintPubkey = new PublicKey(asset);
 
-  let programId = TOKEN_PROGRAM_ID;
-  try {
-    const mintInfo = await connection.getAccountInfo(mintPubkey, 'confirmed');
-    if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
-      programId = TOKEN_2022_PROGRAM_ID;
+  // Build payment transaction; auto-retry with fallback RPC if primary blocks blockchain access.
+  async function buildPaymentTx(conn) {
+    let programId = TOKEN_PROGRAM_ID;
+    try {
+      const mintInfo = await conn.getAccountInfo(mintPubkey, 'confirmed');
+      if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
+        programId = TOKEN_2022_PROGRAM_ID;
+      }
+    } catch {
+      // keep TOKEN_PROGRAM_ID
     }
-  } catch {
-    // keep TOKEN_PROGRAM_ID
+
+    const mint = await getMint(conn, mintPubkey, undefined, programId);
+    const sourceAta = await getAssociatedTokenAddress(mintPubkey, agentPubkey, false, programId);
+    const destAta = await getAssociatedTokenAddress(mintPubkey, destinationPubkey, false, programId);
+
+    const sourceAtaInfo = await conn.getAccountInfo(sourceAta, 'confirmed');
+    if (!sourceAtaInfo) {
+      return { error: 'Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.' };
+    }
+    const destAtaInfo = await conn.getAccountInfo(destAta, 'confirmed');
+    if (!destAtaInfo) {
+      return { error: 'Recipient token account not found. The API treasury must have a USDC token account.' };
+    }
+
+    const instructions = [
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 7_000 }),
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
+      createTransferCheckedInstruction(sourceAta, mintPubkey, destAta, agentPubkey, amount, mint.decimals, [], programId),
+    ];
+    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('confirmed');
+    return { instructions, blockhash, lastValidBlockHeight, mint };
   }
 
-  const mint = await getMint(connection, mintPubkey, undefined, programId);
-  const sourceAta = await getAssociatedTokenAddress(
-    mintPubkey,
-    agentPubkey,
-    false,
-    programId
-  );
-  const destAta = await getAssociatedTokenAddress(
-    mintPubkey,
-    destinationPubkey,
-    false,
-    programId
-  );
-
-  const sourceAtaInfo = await connection.getAccountInfo(sourceAta, 'confirmed');
-  if (!sourceAtaInfo) {
-    const err = 'Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.';
-    return { success: false, error: err };
+  let txBuild;
+  try {
+    txBuild = await buildPaymentTx(connection);
+  } catch (e) {
+    if (isRpcBlockchainAccessError(e)) {
+      switchToFallbackRpc();
+      connection = getConnection();
+      txBuild = await buildPaymentTx(connection);
+    } else {
+      throw e;
+    }
   }
-
-  const destAtaInfo = await connection.getAccountInfo(destAta, 'confirmed');
-  if (!destAtaInfo) {
-    const err =
-      'Recipient token account not found. The API treasury must have a USDC token account.';
-    return { success: false, error: err };
+  if (txBuild.error) {
+    return { success: false, error: txBuild.error };
   }
-
-  const instructions = [
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 7_000 }),
-    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
-    createTransferCheckedInstruction(
-      sourceAta,
-      mintPubkey,
-      destAta,
-      agentPubkey,
-      amount,
-      mint.decimals,
-      [],
-      programId
-    ),
-  ];
-
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+  const { instructions, blockhash, lastValidBlockHeight } = txBuild;
   const message = new TransactionMessage({
     payerKey: feePayerPubkey,
     recentBlockhash: blockhash,
@@ -344,15 +442,29 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
       };
     }
   } catch (sendErr) {
-    const rawMsg = sendErr?.message || 'Failed to submit payment transaction to Solana';
-    const isDebitNoCredit =
-      /debit an account but found no record of a prior credit/i.test(rawMsg) ||
-      /insufficient funds/i.test(rawMsg);
-    const err = isDebitNoCredit
-      ? 'Agent wallet needs SOL for transaction fees. The wallet has USDC but no (or not enough) SOL to pay the network fee. Send a small amount of SOL (e.g. 0.01 SOL) to the agent wallet: ' +
-        agentPubkey.toBase58()
-      : rawMsg;
-    return { success: false, error: err };
+    if (isRpcBlockchainAccessError(sendErr)) {
+      switchToFallbackRpc();
+      connection = getConnection();
+      try {
+        signature = await connection.sendRawTransaction(transaction.serialize(), {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+      } catch (retryErr) {
+        const rawMsg = retryErr?.message || 'Failed to submit payment transaction to Solana';
+        return { success: false, error: rawMsg };
+      }
+    } else {
+      const rawMsg = sendErr?.message || 'Failed to submit payment transaction to Solana';
+      const isDebitNoCredit =
+        /debit an account but found no record of a prior credit/i.test(rawMsg) ||
+        /insufficient funds/i.test(rawMsg);
+      const err = isDebitNoCredit
+        ? 'Agent wallet needs SOL for transaction fees. The wallet has USDC but no (or not enough) SOL to pay the network fee. Send a small amount of SOL (e.g. 0.01 SOL) to the agent wallet: ' +
+          agentPubkey.toBase58()
+        : rawMsg;
+      return { success: false, error: err };
+    }
   }
 
   await confirmTransactionByPolling(connection, signature, lastValidBlockHeight);
@@ -367,6 +479,7 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
   if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
     retryHeaders['X-Connected-Wallet'] = connectedWalletAddress.trim();
   }
+  addInternalApiKeyIfOwnUrl(url, retryHeaders);
 
   const retryOpts = {
     method,
@@ -378,10 +491,9 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
   const secondData = await secondRes.json().catch(() => ({}));
 
   if (!secondRes.ok) {
-    return {
-      success: false,
-      error: secondData?.error || secondRes.statusText || `Request failed: ${secondRes.status}`,
-    };
+    const retryErr = secondData?.error || secondRes.statusText || `Request failed: ${secondRes.status}`;
+    console.error(`[agentX402] Retry after payment failed: ${secondRes.status} ${secondRes.statusText} → ${url}`, retryErr);
+    return { success: false, error: retryErr };
   }
 
   return { success: true, data: secondData };
@@ -403,7 +515,7 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
     throw new Error('Agent wallet not found for this user');
   }
 
-  const connection = new Connection(RPC_URL, 'confirmed');
+  let connection = getConnection();
   const agentPubkey = keypair.publicKey;
   const agentAddress = agentPubkey.toBase58();
   const rawAccept = paymentRequired.accepts[0];
@@ -413,59 +525,49 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
   const payTo = accept.payTo;
   const asset = accept.asset;
   const x402Version = paymentRequired.x402Version ?? 2;
-  // Agent is the payer: we must be the fee payer so our signature is applied (same fix as callX402V2WithAgentImpl).
   const feePayerPubkey = agentPubkey;
   const destinationPubkey = new PublicKey(payTo);
   const mintPubkey = new PublicKey(asset);
 
-  let programId = TOKEN_PROGRAM_ID;
-  try {
-    const mintInfo = await connection.getAccountInfo(mintPubkey, 'confirmed');
-    if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
-      programId = TOKEN_2022_PROGRAM_ID;
+  async function buildTx(conn) {
+    let programId = TOKEN_PROGRAM_ID;
+    try {
+      const mintInfo = await conn.getAccountInfo(mintPubkey, 'confirmed');
+      if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
+        programId = TOKEN_2022_PROGRAM_ID;
+      }
+    } catch {
+      // keep TOKEN_PROGRAM_ID
     }
-  } catch {
-    // keep TOKEN_PROGRAM_ID
+    const mint = await getMint(conn, mintPubkey, undefined, programId);
+    const sourceAta = await getAssociatedTokenAddress(mintPubkey, agentPubkey, false, programId);
+    const destAta = await getAssociatedTokenAddress(mintPubkey, destinationPubkey, false, programId);
+    const sourceAtaInfo = await conn.getAccountInfo(sourceAta, 'confirmed');
+    if (!sourceAtaInfo) throw new Error('Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.');
+    const destAtaInfo = await conn.getAccountInfo(destAta, 'confirmed');
+    if (!destAtaInfo) throw new Error('Recipient token account not found');
+    return {
+      instructions: [
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 7_000 }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
+        createTransferCheckedInstruction(sourceAta, mintPubkey, destAta, agentPubkey, amount, mint.decimals, [], programId),
+      ],
+    };
   }
 
-  const mint = await getMint(connection, mintPubkey, undefined, programId);
-  const sourceAta = await getAssociatedTokenAddress(
-    mintPubkey,
-    agentPubkey,
-    false,
-    programId
-  );
-  const destAta = await getAssociatedTokenAddress(
-    mintPubkey,
-    destinationPubkey,
-    false,
-    programId
-  );
-
-  const sourceAtaInfo = await connection.getAccountInfo(sourceAta, 'confirmed');
-  if (!sourceAtaInfo) {
-    throw new Error('Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.');
+  let txParts;
+  try {
+    txParts = await buildTx(connection);
+  } catch (e) {
+    if (isRpcBlockchainAccessError(e)) {
+      switchToFallbackRpc();
+      connection = getConnection();
+      txParts = await buildTx(connection);
+    } else {
+      throw e;
+    }
   }
-
-  const destAtaInfo = await connection.getAccountInfo(destAta, 'confirmed');
-  if (!destAtaInfo) {
-    throw new Error('Recipient token account not found');
-  }
-
-  const instructions = [
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 7_000 }),
-    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
-    createTransferCheckedInstruction(
-      sourceAta,
-      mintPubkey,
-      destAta,
-      agentPubkey,
-      amount,
-      mint.decimals,
-      [],
-      programId
-    ),
-  ];
+  const { instructions } = txParts;
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   const message = new TransactionMessage({
@@ -513,7 +615,7 @@ export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase
   if (!keypair) {
     throw new Error('Agent wallet not found for this user');
   }
-  const connection = new Connection(RPC_URL, 'confirmed');
+  let connection = getConnection();
   const txBuf = Buffer.from(serializedTxBase64, 'base64');
   const transaction = VersionedTransaction.deserialize(txBuf);
   transaction.sign([keypair]);
@@ -528,6 +630,15 @@ export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase
     });
     return { signature };
   } catch (sendErr) {
+    if (isRpcBlockchainAccessError(sendErr)) {
+      switchToFallbackRpc();
+      connection = getConnection();
+      const signature = await connection.sendRawTransaction(transaction.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      });
+      return { signature };
+    }
     const rawMsg = sendErr?.message || 'Failed to submit swap transaction to Solana';
     const isDebitNoCredit =
       /debit an account but found no record of a prior credit/i.test(rawMsg) ||

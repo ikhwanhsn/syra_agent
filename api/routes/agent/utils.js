@@ -13,5 +13,7 @@ export function resolveAgentBaseUrl(req) {
   if (host) {
     return `${protocol}://${host}`.replace(/\/$/, '');
   }
-  return 'http://localhost:3000';
+  // Fallback for localhost (e.g. server-to-self tool calls): use PORT so the correct API is reached
+  const port = process.env.PORT || '3000';
+  return `http://localhost:${port}`;
 }

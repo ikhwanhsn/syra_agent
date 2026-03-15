@@ -38,6 +38,7 @@ const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessingTransitions, setIsProcessingTransitions] = useState(false);
+  const [isAutoResolving, setIsAutoResolving] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -83,6 +84,25 @@ const Admin = () => {
     }
   };
 
+  const handleAutoResolve = async () => {
+    setIsAutoResolving(true);
+    try {
+      const result = await api.autoResolveEvents();
+      if (result.resolved > 0) {
+        toast.success(`Resolved ${result.resolved} events with live prices`);
+      } else if (result.eventsChecked === 0) {
+        toast.info('No events ready for resolution');
+      } else {
+        toast.warning(`${result.failed} events failed to resolve`);
+      }
+      await fetchData();
+    } catch (error) {
+      toast.error('Failed to auto-resolve events');
+    } finally {
+      setIsAutoResolving(false);
+    }
+  };
+
   const handleWithdraw = () => {
     toast.info('Withdrawal feature coming soon! (Requires smart contract integration)');
   };
@@ -91,7 +111,7 @@ const Admin = () => {
     switch (status) {
       case 'joining': return <Users className="h-4 w-4 text-blue-400" />;
       case 'predicting': return <Eye className="h-4 w-4 text-yellow-400" />;
-      case 'waiting': return <Clock className="h-4 w-4 text-purple-400" />;
+      case 'waiting': return <Clock className="h-4 w-4 text-amber-400" />;
       case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-400" />;
       case 'cancelled': return <XCircle className="h-4 w-4 text-red-400" />;
       default: return <Activity className="h-4 w-4" />;
@@ -102,7 +122,7 @@ const Admin = () => {
     switch (status) {
       case 'joining': return 'text-blue-400 bg-blue-500/10';
       case 'predicting': return 'text-yellow-400 bg-yellow-500/10';
-      case 'waiting': return 'text-purple-400 bg-purple-500/10';
+      case 'waiting': return 'text-amber-400 bg-amber-500/10';
       case 'completed': return 'text-green-400 bg-green-500/10';
       case 'cancelled': return 'text-red-400 bg-red-500/10';
       default: return 'text-muted-foreground bg-secondary';
@@ -145,12 +165,12 @@ const Admin = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <div className="glass-card p-3 sm:p-4 hover-lift">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+                <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Platform</p>
-                <p className="text-lg sm:text-xl font-bold text-purple-400">
+                <p className="text-lg sm:text-xl font-bold text-accent">
                   {(stats?.totalPlatformEarned || 0).toFixed(2)} SOL
                 </p>
               </div>
@@ -235,12 +255,12 @@ const Admin = () => {
                 </div>
                 <span className="font-bold text-xs sm:text-sm text-yellow-400">{stats?.predictingEvents || 0}</span>
               </div>
-              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-purple-500/10">
+              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-amber-500/10">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Clock className="h-4 w-4 text-purple-400" />
+                  <Clock className="h-4 w-4 text-amber-400" />
                   <span className="text-xs sm:text-sm">Waiting</span>
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-purple-400">{stats?.waitingEvents || 0}</span>
+                <span className="font-bold text-xs sm:text-sm text-amber-400">{stats?.waitingEvents || 0}</span>
               </div>
               <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-green-500/10">
                 <div className="flex items-center gap-1.5 sm:gap-2">
@@ -326,7 +346,7 @@ const Admin = () => {
         </div>
 
         {/* Actions & Tools */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Phase Transitions */}
           <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
             <div className="flex items-center gap-2 mb-2">
@@ -334,7 +354,7 @@ const Admin = () => {
               <h2 className="text-sm sm:text-base font-semibold">Phase Transitions</h2>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-              Trigger phase transitions for events at time limits.
+              Advance events through joining → predicting → waiting.
             </p>
             <Button
               onClick={handleProcessTransitions}
@@ -343,6 +363,25 @@ const Admin = () => {
               size="sm"
             >
               {isProcessingTransitions ? 'Processing...' : 'Process Transitions'}
+            </Button>
+          </div>
+
+          {/* Auto-Resolve */}
+          <div className="glass-card p-4 sm:p-5 border-accent/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
+              <h2 className="text-sm sm:text-base font-semibold">Auto-Resolve</h2>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+              Resolve waiting events with live CoinGecko prices.
+            </p>
+            <Button
+              onClick={handleAutoResolve}
+              disabled={isAutoResolving}
+              className="w-full bg-accent hover:bg-accent/90"
+              size="sm"
+            >
+              {isAutoResolving ? 'Resolving...' : 'Auto-Resolve Events'}
             </Button>
           </div>
 

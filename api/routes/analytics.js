@@ -7,6 +7,7 @@ import express from "express";
 import PaidApiCall from "../models/PaidApiCall.js";
 import Chat from "../models/agent/Chat.js";
 import ApiRequestLog from "../models/ApiRequestLog.js";
+import PlaygroundShare from "../models/PlaygroundShare.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_ANALYTICS_SUMMARY_USD } from "../config/x402Pricing.js";
 
@@ -141,6 +142,347 @@ router.get("/kpi", async (req, res) => {
       dailyPaidCalls: dailyPaidCalls.map((d) => ({ date: d._id, count: d.count })),
       kpiTargets: { paidApiCalls: KPI_TARGET_PAID_API_CALLS, agentSessions: KPI_TARGET_AGENT_SESSIONS },
       insights,
+      updatedAt: now.toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error", message: error?.message || "Unknown error" });
+  }
+});
+
+/**
+ * GET /analytics/kpi-extended – extended KPI data for internal dashboard.
+ * Returns revenue, users, engagement, playground, and system health metrics.
+ */
+router.get("/kpi-extended", async (req, res) => {
+  try {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    // Revenue: paid calls by source (api vs agent), by day, by path with amounts
+    const [
+      paidBySourceAgg,
+      dailyPaidBySource,
+      paidByPathAndSource,
+      hourlyPaidToday,
+    ] = await Promise.all([
+      PaidApiCall.aggregate([
+        { $group: { _id: "$source", count: { $sum: 1 } } },
+      ]),
+      PaidApiCall.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+              source: { $ifNull: ["$source", "api"] },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { "_id.date": 1 } },
+      ]),
+      PaidApiCall.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { path: "$path", source: { $ifNull: ["$source", "api"] } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 30 },
+      ]),
+      PaidApiCall.aggregate([
+        { $match: { createdAt: { $gte: oneDayAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%dT%H:00:00", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+    ]);
+
+    // Previous 30d paid calls for comparison
+    const paidPrev30d = await PaidApiCall.countDocuments({
+      createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
+    });
+    const paidCurr30d = await PaidApiCall.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo },
+    });
+
+    // Users & Engagement from Chat model
+    const [
+      totalChats,
+      chatsLast7d,
+      chatsLast30d,
+      uniqueUsersTotal,
+      uniqueUsersLast7d,
+      uniqueUsersLast30d,
+      chatEngagementAgg,
+      dailyNewChats,
+      dailyActiveUsers,
+      topAgents,
+    ] = await Promise.all([
+      Chat.countDocuments(),
+      Chat.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      Chat.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Chat.distinct("anonymousId").then((ids) => ids.filter(Boolean).length),
+      Chat.distinct("anonymousId", { updatedAt: { $gte: sevenDaysAgo } }).then((ids) => ids.filter(Boolean).length),
+      Chat.distinct("anonymousId", { updatedAt: { $gte: thirtyDaysAgo } }).then((ids) => ids.filter(Boolean).length),
+      Chat.aggregate([
+        { $project: { msgCount: { $size: { $ifNull: ["$messages", []] } } } },
+        { $group: { _id: null, avgMessages: { $avg: "$msgCount" }, totalMessages: { $sum: "$msgCount" }, maxMessages: { $max: "$msgCount" } } },
+      ]),
+      Chat.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
+      Chat.aggregate([
+        { $match: { updatedAt: { $gte: thirtyDaysAgo }, anonymousId: { $ne: null } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" } }, users: { $addToSet: "$anonymousId" } } },
+        { $project: { _id: 1, count: { $size: "$users" } } },
+        { $sort: { _id: 1 } },
+      ]),
+      Chat.aggregate([
+        { $match: { agentId: { $ne: "" }, agentId: { $exists: true } } },
+        { $group: { _id: "$agentId", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
+    ]);
+
+    const engagementStats = chatEngagementAgg[0] || { avgMessages: 0, totalMessages: 0, maxMessages: 0 };
+
+    // Tool usage from chats
+    const toolUsageAgg = await Chat.aggregate([
+      { $unwind: "$messages" },
+      { $match: { "messages.toolUsage": { $exists: true } } },
+      {
+        $group: {
+          _id: "$messages.toolUsage.name",
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ["$messages.toolUsage.status", "complete"] }, 1, 0] } },
+          errors: { $sum: { $cond: [{ $eq: ["$messages.toolUsage.status", "error"] }, 1, 0] } },
+        },
+      },
+      { $sort: { total: -1 } },
+      { $limit: 20 },
+    ]);
+
+    // Playground: shares metrics
+    const [
+      totalShares,
+      sharesLast7d,
+      sharesLast30d,
+      sharesByChain,
+      dailyShares,
+    ] = await Promise.all([
+      PlaygroundShare.countDocuments(),
+      PlaygroundShare.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      PlaygroundShare.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      PlaygroundShare.aggregate([
+        { $group: { _id: { $ifNull: ["$sharedByChain", "unknown"] }, count: { $sum: 1 } } },
+      ]),
+      PlaygroundShare.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
+    ]);
+
+    // System Health: latency percentiles, error rates by endpoint
+    let health = {
+      avgLatency: 0,
+      p95Latency: 0,
+      p99Latency: 0,
+      errorRateByEndpoint: [],
+      statusCodeDistribution: [],
+      dailyErrorRate: [],
+      slowestEndpoints: [],
+    };
+    try {
+      const [
+        latencyAgg,
+        errorRateByEndpointAgg,
+        statusDistAgg,
+        dailyErrorRateAgg,
+        slowestEndpointsAgg,
+      ] = await Promise.all([
+        ApiRequestLog.aggregate([
+          { $match: { createdAt: { $gte: sevenDaysAgo }, durationMs: { $gt: 0 } } },
+          { $sort: { durationMs: 1 } },
+          {
+            $group: {
+              _id: null,
+              avg: { $avg: "$durationMs" },
+              values: { $push: "$durationMs" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+        ApiRequestLog.aggregate([
+          { $match: { createdAt: { $gte: sevenDaysAgo } } },
+          {
+            $group: {
+              _id: "$path",
+              total: { $sum: 1 },
+              errors: { $sum: { $cond: [{ $gte: ["$statusCode", 400] }, 1, 0] } },
+              avgDuration: { $avg: "$durationMs" },
+            },
+          },
+          { $match: { errors: { $gt: 0 } } },
+          { $project: { _id: 1, total: 1, errors: 1, errorRate: { $multiply: [{ $divide: ["$errors", "$total"] }, 100] }, avgDuration: 1 } },
+          { $sort: { errors: -1 } },
+          { $limit: 15 },
+        ]),
+        ApiRequestLog.aggregate([
+          { $match: { createdAt: { $gte: sevenDaysAgo } } },
+          {
+            $group: {
+              _id: {
+                $switch: {
+                  branches: [
+                    { case: { $lt: ["$statusCode", 300] }, then: "2xx" },
+                    { case: { $lt: ["$statusCode", 400] }, then: "3xx" },
+                    { case: { $lt: ["$statusCode", 500] }, then: "4xx" },
+                  ],
+                  default: "5xx",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ]),
+        ApiRequestLog.aggregate([
+          { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+          {
+            $group: {
+              _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+              total: { $sum: 1 },
+              errors: { $sum: { $cond: [{ $gte: ["$statusCode", 400] }, 1, 0] } },
+            },
+          },
+          { $project: { _id: 1, total: 1, errors: 1, errorRate: { $cond: [{ $gt: ["$total", 0] }, { $multiply: [{ $divide: ["$errors", "$total"] }, 100] }, 0] } } },
+          { $sort: { _id: 1 } },
+        ]),
+        ApiRequestLog.aggregate([
+          { $match: { createdAt: { $gte: sevenDaysAgo }, durationMs: { $gt: 0 } } },
+          {
+            $group: {
+              _id: "$path",
+              avgDuration: { $avg: "$durationMs" },
+              maxDuration: { $max: "$durationMs" },
+              count: { $sum: 1 },
+            },
+          },
+          { $match: { count: { $gte: 5 } } },
+          { $sort: { avgDuration: -1 } },
+          { $limit: 10 },
+        ]),
+      ]);
+
+      let p95 = 0;
+      let p99 = 0;
+      let avg = 0;
+      if (latencyAgg[0]) {
+        const vals = latencyAgg[0].values;
+        avg = Math.round(latencyAgg[0].avg);
+        const p95Idx = Math.floor(vals.length * 0.95);
+        const p99Idx = Math.floor(vals.length * 0.99);
+        p95 = vals[p95Idx] || 0;
+        p99 = vals[p99Idx] || 0;
+      }
+
+      health = {
+        avgLatency: avg,
+        p95Latency: Math.round(p95),
+        p99Latency: Math.round(p99),
+        errorRateByEndpoint: errorRateByEndpointAgg.map((e) => ({
+          path: e._id,
+          total: e.total,
+          errors: e.errors,
+          errorRate: Math.round(e.errorRate * 10) / 10,
+          avgDuration: Math.round(e.avgDuration || 0),
+        })),
+        statusCodeDistribution: statusDistAgg.map((s) => ({ status: s._id, count: s.count })),
+        dailyErrorRate: dailyErrorRateAgg.map((d) => ({
+          date: d._id,
+          total: d.total,
+          errors: d.errors,
+          errorRate: Math.round(d.errorRate * 10) / 10,
+        })),
+        slowestEndpoints: slowestEndpointsAgg.map((e) => ({
+          path: e._id,
+          avgDuration: Math.round(e.avgDuration),
+          maxDuration: Math.round(e.maxDuration),
+          count: e.count,
+        })),
+      };
+    } catch {
+      // ApiRequestLog may not exist
+    }
+
+    // Conversion: requests -> paid requests ratio
+    let conversion = { totalRequests30d: 0, paidRequests30d: 0, conversionRate: 0 };
+    try {
+      const [totalReqs, paidReqs] = await Promise.all([
+        ApiRequestLog.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+        ApiRequestLog.countDocuments({ createdAt: { $gte: thirtyDaysAgo }, paid: true }),
+      ]);
+      conversion = {
+        totalRequests30d: totalReqs,
+        paidRequests30d: paidReqs,
+        conversionRate: totalReqs > 0 ? Math.round((paidReqs / totalReqs) * 10000) / 100 : 0,
+      };
+    } catch { /* ignore */ }
+
+    res.json({
+      revenue: {
+        bySource: paidBySourceAgg.map((s) => ({ source: s._id || "api", count: s.count })),
+        dailyBySource: dailyPaidBySource.map((d) => ({ date: d._id.date, source: d._id.source, count: d.count })),
+        byPathAndSource: paidByPathAndSource.map((p) => ({ path: p._id.path, source: p._id.source, count: p.count })),
+        hourlyToday: hourlyPaidToday.map((h) => ({ hour: h._id, count: h.count })),
+        paidPrev30d,
+        paidCurr30d,
+        growthPct: paidPrev30d > 0 ? Math.round(((paidCurr30d - paidPrev30d) / paidPrev30d) * 10000) / 100 : 0,
+      },
+      users: {
+        totalChats,
+        chatsLast7d,
+        chatsLast30d,
+        uniqueUsersTotal,
+        uniqueUsersLast7d,
+        uniqueUsersLast30d,
+        avgMessagesPerChat: Math.round((engagementStats.avgMessages || 0) * 10) / 10,
+        totalMessages: engagementStats.totalMessages || 0,
+        maxMessagesInChat: engagementStats.maxMessages || 0,
+        dailyNewChats: dailyNewChats.map((d) => ({ date: d._id, count: d.count })),
+        dailyActiveUsers: dailyActiveUsers.map((d) => ({ date: d._id, count: d.count })),
+        topAgents: topAgents.map((a) => ({ agentId: a._id, count: a.count })),
+        toolUsage: toolUsageAgg.map((t) => ({
+          name: t._id || "unknown",
+          total: t.total,
+          completed: t.completed,
+          errors: t.errors,
+          successRate: t.total > 0 ? Math.round((t.completed / t.total) * 10000) / 100 : 0,
+        })),
+      },
+      playground: {
+        totalShares,
+        sharesLast7d,
+        sharesLast30d,
+        byChain: sharesByChain.map((c) => ({ chain: c._id, count: c.count })),
+        dailyShares: dailyShares.map((d) => ({ date: d._id, count: d.count })),
+      },
+      health,
+      conversion,
       updatedAt: now.toISOString(),
     });
   } catch (error) {

@@ -5,6 +5,9 @@ import { DashboardPage } from "./pages/Dashboard";
 import { ApiErrorsPage } from "./pages/ApiErrors";
 import { ResearchPage } from "./pages/Research";
 import { InsightsPage } from "./pages/Insights";
+import { RevenuePage } from "./pages/Revenue";
+import { UsersPage } from "./pages/Users";
+import { HealthPage } from "./pages/Health";
 
 function App() {
   return (
@@ -14,6 +17,9 @@ function App() {
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="insights" element={<InsightsPage />} />
+            <Route path="revenue" element={<RevenuePage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="health" element={<HealthPage />} />
             <Route path="api-errors" element={<ApiErrorsPage />} />
             <Route path="research" element={<ResearchPage />} />
           </Route>

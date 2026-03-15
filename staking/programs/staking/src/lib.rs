@@ -17,9 +17,9 @@ pub mod staking {
         instructions::initialize(ctx, reward_per_second)
     }
 
-    /// Stake tokens into the pool (period: 0=1m, 1=3m, 2=1y). position_index must equal counter.next_index for that period.
-    pub fn stake(ctx: Context<Stake>, amount: u64, period: u8, position_index: u32) -> Result<()> {
-        instructions::stake(ctx, amount, period, position_index)
+    /// Stake tokens into the pool (period: 0=1m, 1=3m, 2=1y).
+    pub fn stake(ctx: Context<Stake>, amount: u64, period: u8) -> Result<()> {
+        instructions::stake(ctx, amount, period)
     }
 
     /// Unstake tokens from the pool (period: 0=1m, 1=3m, 2=1y)

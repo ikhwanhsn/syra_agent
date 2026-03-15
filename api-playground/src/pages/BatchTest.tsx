@@ -57,9 +57,7 @@ function useBackendPlaygroundProxy(targetUrl: string): boolean {
   return !!targetOrigin && targetOrigin !== pageOrigin;
 }
 
-function getPlaygroundProxyUrl(targetUrl: string): string {
-  const origin = getRequestOrigin(targetUrl);
-  if (origin) return `${origin}/api/playground-proxy`;
+function getPlaygroundProxyUrl(_targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
@@ -221,13 +219,33 @@ interface BatchStats {
 
 function buildFinalUrl(url: string, method: string, params: { key: string; value: string; enabled: boolean }[]): string {
   let finalUrl = url.trim();
-  const enabledParams = params.filter((p) => p.enabled && p.key);
-  if (enabledParams.length > 0) {
-    const searchParams = new URLSearchParams();
-    enabledParams.forEach((p) => searchParams.append(p.key, p.value));
-    finalUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();
+  if (method === 'GET') {
+    const enabledParams = params.filter((p) => p.enabled && p.key);
+    if (enabledParams.length > 0) {
+      const searchParams = new URLSearchParams();
+      enabledParams.forEach((p) => searchParams.append(p.key, p.value));
+      finalUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();
+    }
   }
   return finalUrl;
+}
+
+function buildBodyFromParams(params: { key: string; value: string; enabled: boolean }[]): string {
+  const enabledParams = params.filter((p) => p.enabled && p.key);
+  if (enabledParams.length === 0) return '{}';
+  const bodyObj: Record<string, unknown> = {};
+  enabledParams.forEach(p => {
+    const v = p.value?.trim() ?? '';
+    if (v === 'true') bodyObj[p.key] = true;
+    else if (v === 'false') bodyObj[p.key] = false;
+    else if (v !== '' && !Number.isNaN(Number(v))) bodyObj[p.key] = Number(v);
+    else if (v.startsWith('{') || v.startsWith('[')) {
+      try { bodyObj[p.key] = JSON.parse(v); } catch { bodyObj[p.key] = v; }
+    } else {
+      bodyObj[p.key] = v;
+    }
+  });
+  return JSON.stringify(bodyObj);
 }
 
 async function doFetch(
@@ -537,7 +555,11 @@ export default function BatchTest() {
 
     for (const entry of entries) {
       const finalUrl = buildFinalUrl(entry.url, entry.method, entry.params);
-      const body = entry.body ?? '{}';
+      const rawBody = entry.body ?? '{}';
+      const emptyBody = !rawBody.trim() || /^\s*\{\s*\}\s*$/.test(rawBody.trim());
+      const body = (entry.method === 'POST' && emptyBody && entry.params.filter(p => p.enabled && p.key).length > 0)
+        ? buildBodyFromParams(entry.params)
+        : rawBody;
 
       updateRow(entry.id, { status: 'running' });
 

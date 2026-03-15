@@ -6,6 +6,7 @@ import {
   TransactionInstruction,
   VersionedTransaction,
   SystemProgram,
+  ComputeBudgetProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import {
@@ -33,6 +34,10 @@ const BASE_USDC_MAINNET = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 
 // x402 protocol version
 const X402_VERSION = 2;
+
+// Match @x402/svm defaults — the facilitator expects these exact ComputeBudget values.
+const X402_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 1;
+const X402_COMPUTE_UNIT_LIMIT = 8_000;
 
 /** Poll interval for confirmation (ms). */
 const CONFIRM_POLL_MS = 1500;
@@ -393,6 +398,10 @@ export async function createPaymentTransaction(
     );
   }
 
+  // Use feePayer from extra if provided (external API handles tx fees server-side)
+  const feePayerStr = paymentOption.extra?.feePayer as string | undefined;
+  const feePayerKey = feePayerStr ? new PublicKey(feePayerStr) : publicKey;
+
   const isUSDC =
     paymentOption.asset === USDC_MINT_STRING ||
     paymentOption.asset === USDC_DEVNET_STRING ||
@@ -403,9 +412,11 @@ export async function createPaymentTransaction(
     const lamports = (amount * BigInt(LAMPORTS_PER_SOL)) / BigInt(1_000_000);
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
     const message = new TransactionMessage({
-      payerKey: publicKey,
+      payerKey: feePayerKey,
       recentBlockhash: blockhash,
       instructions: [
+        ComputeBudgetProgram.setComputeUnitLimit({ units: X402_COMPUTE_UNIT_LIMIT }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: X402_COMPUTE_UNIT_PRICE_MICROLAMPORTS }),
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: recipientPubkey,
@@ -451,7 +462,10 @@ export async function createPaymentTransaction(
     ownerForAta = recipientPubkey;
   }
 
-  const instructions: TransactionInstruction[] = [];
+  const instructions: TransactionInstruction[] = [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: X402_COMPUTE_UNIT_LIMIT }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: X402_COMPUTE_UNIT_PRICE_MICROLAMPORTS }),
+  ];
 
   // Ensure destination ATA exists. Create it if we have the owner (wallet address).
   try {
@@ -497,7 +511,7 @@ export async function createPaymentTransaction(
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   const message = new TransactionMessage({
-    payerKey: publicKey,
+    payerKey: feePayerKey,
     recentBlockhash: blockhash,
     instructions,
   }).compileToV0Message();
@@ -537,6 +551,7 @@ export function createPaymentHeader(
 
   const paymentPayload = {
     x402Version: X402_VERSION,
+    scheme: accepted.scheme ?? 'exact',
     accepted,
     payload: {
       transaction: base64Tx,
@@ -666,55 +681,24 @@ function isBlockhashExpiredError(error: any): boolean {
 
 /**
  * Execute payment and create payment header.
+ *
+ * Standard x402 protocol: the client signs the transaction but does NOT submit it.
+ * The signed tx is included in the payment header; the API server verifies and submits it.
+ * This ensures compatibility with all x402 APIs (Syra, Heurist, Xona, etc.).
+ *
  * For v1 APIs pass rawV1Accept (the original accept from 402 body) so the header is built in v1 format (X-PAYMENT).
- * On "Blockhash not found", retries send once with skipPreflight (same signed tx, no second wallet confirmation).
  */
 export async function executePayment(
   config: X402ClientConfig,
   paymentOption: X402PaymentOption,
   rawV1Accept?: Record<string, any>
 ): Promise<PaymentResult> {
-  let signature: string | undefined;
-  let signedTransaction: VersionedTransaction | undefined;
-  const { connection, signTransaction } = config;
-
   try {
-    const { transaction, lastValidBlockHeight } = await createPaymentTransaction(config, paymentOption);
-    signedTransaction = (await signTransaction(transaction as any)) as unknown as VersionedTransaction;
+    const { transaction } = await createPaymentTransaction(config, paymentOption);
+    const signedTransaction = (await config.signTransaction(transaction as any)) as unknown as VersionedTransaction;
 
-    try {
-      signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-        skipPreflight: false,
-      });
-    } catch (sendError: any) {
-      if (isBlockhashExpiredError(sendError) && signedTransaction) {
-        // Retry send only, with same signed tx; no second wallet confirmation
-        signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-          skipPreflight: true,
-        });
-      } else {
-        throw sendError;
-      }
-    }
-
-    const { confirmed: confirmationSuccess, err: confirmErr } = await confirmTransactionByPolling(
-      connection,
-      signature,
-      lastValidBlockHeight
-    );
-
-    if (!confirmationSuccess && confirmErr && confirmErr !== 'Confirmation timeout') {
-      return {
-        success: false,
-        error: `Transaction failed: ${JSON.stringify(confirmErr)}`,
-      };
-    }
-    if (!signedTransaction) {
-      return {
-        success: false,
-        error: 'Failed to create signed transaction',
-      };
-    }
+    const sig = signedTransaction.signatures[0];
+    const signatureB58 = sig && sig.length === 64 ? bs58.encode(Buffer.from(sig)) : undefined;
 
     const paymentHeader = rawV1Accept
       ? createV1PaymentHeader(signedTransaction, rawV1Accept)
@@ -722,25 +706,14 @@ export async function executePayment(
 
     return {
       success: true,
-      signature,
+      signature: signatureB58,
       paymentHeader,
-      ...(confirmationSuccess
-        ? {}
-        : {
-            warning: `Transaction submitted but confirmation timed out. Check status: https://solscan.io/tx/${signature}`,
-          }),
     };
   } catch (error: any) {
     const errMsg = error?.message ?? 'Payment execution failed';
     const errLog = error?.logs?.join?.(' ') ?? error?.toString?.() ?? '';
     const errorMessage = errLog && !errMsg.includes(errLog.slice(0, 50)) ? `${errMsg}. ${errLog.slice(0, 200)}` : errMsg;
 
-    if (signature) {
-      return {
-        success: false,
-        error: `${errorMessage}. Tx: ${signature}. Check Solana Explorer.`,
-      };
-    }
     return {
       success: false,
       error: errorMessage,

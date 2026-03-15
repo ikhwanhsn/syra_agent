@@ -88,12 +88,19 @@ export function RequestBuilder({
   const isMethodDisabled = (m: HttpMethod) =>
     allowedMethods.length > 0 && !allowedMethods.includes(m);
 
-  // Auto-switch tab when method changes
+  // Auto-switch tab when method changes or params are detected
   useEffect(() => {
     if (isGetMethod && activeTab === 'body') {
       setActiveTab('params');
     }
   }, [method, isGetMethod, activeTab]);
+
+  const hasEnabledParams = params.filter(p => p.enabled && p.key).length > 0;
+  useEffect(() => {
+    if (hasEnabledParams) {
+      setActiveTab('params');
+    }
+  }, [hasEnabledParams]);
 
   const addHeader = () => {
     onHeadersChange([...headers, { key: '', value: '', enabled: true }]);
@@ -348,8 +355,8 @@ export function RequestBuilder({
 
           <div className="flex-1 mt-3 min-h-0 overflow-auto lg:overflow-hidden flex flex-col">
             {!isGetMethod && (
-              <TabsContent value="body" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar flex flex-col">
-                <div className="flex-1 min-h-0 flex flex-col">
+              <TabsContent value="body" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar">
+                <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs text-muted-foreground">JSON request body</span>
                     <Badge variant="secondary" className="text-xs px-2 py-1">application/json</Badge>
@@ -369,7 +376,9 @@ export function RequestBuilder({
             <TabsContent value="params" className="m-0 flex-1 min-h-0 overflow-auto custom-scrollbar">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Query parameters will be appended to the URL</span>
+                  <span className="text-xs text-muted-foreground">
+                    {isGetMethod ? 'Query parameters will be appended to the URL' : 'Parameters will be sent as JSON body'}
+                  </span>
                 </div>
                 {params.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">

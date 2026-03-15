@@ -508,6 +508,76 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// CoinGecko token ID mapping
+const COINGECKO_IDS = {
+  BTC: 'bitcoin',
+  SOL: 'solana',
+  ETH: 'ethereum',
+  DOGE: 'dogecoin',
+  ADA: 'cardano',
+  XRP: 'ripple',
+  AVAX: 'avalanche-2',
+  DOT: 'polkadot',
+};
+
+async function fetchTokenPrice(token) {
+  const coinId = COINGECKO_IDS[token];
+  if (!coinId) throw new Error(`No CoinGecko mapping for ${token}`);
+
+  const res = await fetch(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`
+  );
+  if (!res.ok) throw new Error(`CoinGecko API error: ${res.status}`);
+  const data = await res.json();
+  const price = data?.[coinId]?.usd;
+  if (!price) throw new Error(`No price data for ${coinId}`);
+  return price;
+}
+
+// POST /api/prediction-game/events/auto-resolve - Auto-resolve waiting events past their resolution time
+router.post('/auto-resolve', async (req, res) => {
+  try {
+    const now = new Date();
+    const waitingEvents = await PredictionEvent.find({
+      status: 'waiting',
+      resolutionAt: { $lte: now },
+    });
+
+    const results = { resolved: 0, failed: 0, errors: [] };
+
+    for (const event of waitingEvents) {
+      try {
+        const price = await fetchTokenPrice(event.token);
+        await event.resolveEvent(price);
+
+        try {
+          const creator = await PredictionCreator.getOrCreate(event.creatorWallet);
+          await creator.onEventCompleted({
+            participants: event.participants,
+            predictions: event.predictions,
+            creatorDeposit: event.creatorDeposit,
+            entryFee: event.entryFee,
+            maxParticipants: event.maxParticipants,
+          });
+        } catch (_) { /* creator update is non-critical */ }
+
+        results.resolved++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push({ eventId: event._id, token: event.token, error: err.message });
+      }
+    }
+
+    res.json({
+      message: 'Auto-resolution complete',
+      eventsChecked: waitingEvents.length,
+      ...results,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export function createPredictionEventsRouter() {
   return router;
 }

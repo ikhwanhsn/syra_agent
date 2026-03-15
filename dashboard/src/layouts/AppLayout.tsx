@@ -18,8 +18,11 @@ import { cn } from "../lib/utils";
 const navItems = [
   { to: "/", label: "Overview", icon: "📊" },
   { to: "/insights", label: "Insights", icon: "📈" },
-  { to: "/research", label: "Research", icon: "🔬" },
+  { to: "/revenue", label: "Revenue", icon: "💰" },
+  { to: "/users", label: "Users", icon: "👥" },
+  { to: "/health", label: "Health", icon: "🏥" },
   { to: "/api-errors", label: "API errors", icon: "⚠️" },
+  { to: "/research", label: "Research", icon: "🔬" },
 ];
 
 function MenuIcon({ className }: { className?: string }) {
@@ -218,13 +221,7 @@ export function AppLayout() {
             <MenuIcon className="h-5 w-5" />
           </button>
           <span className="truncate text-base font-semibold text-white">
-            {location.pathname === "/research"
-              ? "Research"
-              : location.pathname === "/insights"
-                ? "Insights"
-                : location.pathname === "/api-errors"
-                  ? "API errors"
-                  : "Overview"}
+            {navItems.find((n) => (n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to)))?.label ?? "Overview"}
           </span>
         </div>
         <ConnectWalletButton />

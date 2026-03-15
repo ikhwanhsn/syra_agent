@@ -862,6 +862,225 @@ async function main() {
     },
   );
 
+  // --- Messari x402 ---
+  server.tool(
+    "syra_v2_messari_ai",
+    "Messari AI chat: ask any crypto research question powered by Messari data." + PAYMENT_NOTE,
+    {
+      question: z.string().describe("Natural language question (e.g. What is the latest on Bitcoin?)"),
+    },
+    async ({ question }) => {
+      const { status, body } = await fetchV2("/messari/ai", { question });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_assets_details",
+    "Messari asset details: detailed profiles by slug — sector, category, description." + PAYMENT_NOTE,
+    {
+      slugs: z.string().describe("Comma-separated asset slugs (e.g. bitcoin,ethereum)"),
+    },
+    async ({ slugs }) => {
+      const { status, body } = await fetchV2("/messari/assets/details", { slugs });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_ath",
+    "Messari all-time highs: ATH price, date, and drawdown for assets." + PAYMENT_NOTE,
+    {
+      slugs: z.string().describe("Comma-separated asset slugs (e.g. bitcoin,ethereum,solana)"),
+    },
+    async ({ slugs }) => {
+      const { status, body } = await fetchV2("/messari/ath", { slugs });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_roi",
+    "Messari ROI: return on investment across time-frames." + PAYMENT_NOTE,
+    {
+      slugs: z.string().describe("Comma-separated asset slugs (e.g. bitcoin,ethereum)"),
+    },
+    async ({ slugs }) => {
+      const { status, body } = await fetchV2("/messari/roi", { slugs });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_timeseries",
+    "Messari timeseries: historical data for asset metrics (price, volume, etc.)." + PAYMENT_NOTE,
+    {
+      assetId: z.string().describe("Asset ID or slug (e.g. bitcoin)"),
+      datasetSlug: z.string().describe("Dataset slug (e.g. price, volume)"),
+      granularity: z.string().optional().default("1d").describe("5m, 15m, 1h, 1d"),
+      start: z.string().optional().default("").describe("ISO date start"),
+      end: z.string().optional().default("").describe("ISO date end"),
+    },
+    async ({ assetId, datasetSlug, granularity, start, end }) => {
+      const params: Record<string, string> = { assetId, datasetSlug };
+      if (granularity) params.granularity = granularity;
+      if (start) params.start = start;
+      if (end) params.end = end;
+      const { status, body } = await fetchV2("/messari/timeseries", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_signal",
+    "Messari signal: real-time social intelligence and sentiment." + PAYMENT_NOTE,
+    {
+      limit: z.number().optional().default(20).describe("Max results"),
+    },
+    async ({ limit }) => {
+      const params: Record<string, string> = {};
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/messari/signal", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_mindshare_gainers",
+    "Messari mindshare gainers: assets gaining the most social mindshare." + PAYMENT_NOTE,
+    {
+      period: z.string().optional().default("24h").describe("24h or 7d"),
+    },
+    async ({ period }) => {
+      const { status, body } = await fetchV2("/messari/mindshare-gainers", { period: period ?? "24h" });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_mindshare_losers",
+    "Messari mindshare losers: assets losing the most social mindshare." + PAYMENT_NOTE,
+    {
+      period: z.string().optional().default("24h").describe("24h or 7d"),
+    },
+    async ({ period }) => {
+      const { status, body } = await fetchV2("/messari/mindshare-losers", { period: period ?? "24h" });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_news",
+    "Messari news: latest news and research articles." + PAYMENT_NOTE,
+    {
+      assetSlugs: z.string().optional().default("").describe("Filter by asset slugs (e.g. bitcoin,solana)"),
+      limit: z.number().optional().default(10).describe("Max results"),
+    },
+    async ({ assetSlugs, limit }) => {
+      const params: Record<string, string> = {};
+      if (assetSlugs) params.assetSlugs = assetSlugs;
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/messari/news", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_token_unlocks",
+    "Messari token unlocks: upcoming and past unlock events for an asset." + PAYMENT_NOTE,
+    {
+      assetId: z.string().describe("Messari asset ID (e.g. arbitrum)"),
+    },
+    async ({ assetId }) => {
+      const { status, body } = await fetchV2("/messari/token-unlocks", { assetId });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_token_unlocks_vesting",
+    "Messari vesting schedule: full allocation breakdown for an asset." + PAYMENT_NOTE,
+    {
+      assetId: z.string().describe("Messari asset ID (e.g. arbitrum)"),
+    },
+    async ({ assetId }) => {
+      const { status, body } = await fetchV2("/messari/token-unlocks/vesting", { assetId });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_fundraising",
+    "Messari fundraising: recent crypto fundraising rounds." + PAYMENT_NOTE,
+    {
+      limit: z.number().optional().default(10).describe("Max results"),
+      roundTypes: z.string().optional().default("").describe("seed, series-a, series-b, etc."),
+    },
+    async ({ limit, roundTypes }) => {
+      const params: Record<string, string> = {};
+      if (limit != null) params.limit = String(limit);
+      if (roundTypes) params.roundTypes = roundTypes;
+      const { status, body } = await fetchV2("/messari/fundraising", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_fundraising_investors",
+    "Messari fundraising investors: top crypto investors and their investments." + PAYMENT_NOTE,
+    {
+      limit: z.number().optional().default(10).describe("Max results"),
+    },
+    async ({ limit }) => {
+      const params: Record<string, string> = {};
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/messari/fundraising/investors", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_stablecoins",
+    "Messari stablecoins: market overview and supply data." + PAYMENT_NOTE,
+    {
+      limit: z.number().optional().default(20).describe("Max results"),
+    },
+    async ({ limit }) => {
+      const params: Record<string, string> = {};
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/messari/stablecoins", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_networks",
+    "Messari networks: chain metrics and rankings." + PAYMENT_NOTE,
+    {
+      limit: z.number().optional().default(20).describe("Max results"),
+    },
+    async ({ limit }) => {
+      const params: Record<string, string> = {};
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/messari/networks", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_messari_x_users",
+    "Messari X-users: influential crypto accounts on X/Twitter." + PAYMENT_NOTE,
+    {
+      limit: z.number().optional().default(20).describe("Max results"),
+    },
+    async ({ limit }) => {
+      const params: Record<string, string> = {};
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/messari/x-users", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
   // --- 8004 Trustless Agent Registry (Solana) ---
   server.tool(
     "syra_v2_8004_stats",

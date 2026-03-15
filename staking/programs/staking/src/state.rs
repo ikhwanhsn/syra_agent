@@ -52,6 +52,8 @@ pub struct UserStakeInfo {
     pub reward_debt: u128,
     /// Latest unlock time among positions (for backward compat / display)
     pub unlock_at: i64,
+    /// Unclaimed rewards accumulated from unstake operations, claimed via claim()
+    pub unclaimed_reward: u64,
 }
 
 impl UserStakeInfo {
@@ -59,7 +61,8 @@ impl UserStakeInfo {
         32 + // owner
         8 + // amount
         16 + // reward_debt (u128)
-        8; // unlock_at (i64)
+        8 + // unlock_at (i64)
+        8; // unclaimed_reward (u64)
 }
 
 /// Counter for next position index per (owner, period). PDA: [POOL_SEED, COUNTER_SEED, owner, period]
@@ -119,8 +122,11 @@ pub fn get_stake_position_pda(
 
 /// Constants
 pub const ACCUMULATED_REWARD_PER_SHARE_PRECISION: u128 = 1_000_000_000_000; // 1e12
-/// When amount == 0, reward_debt can store unclaimed reward: high bit set, lower bits = token amount.
-pub const UNCLAIMED_REWARD_FLAG: u128 = 1u128 << 127;
+pub const MAX_REWARD_ELAPSED_SECS: u64 = 30 * 86400; // cap reward accrual at 30 days
+/// Upper bound: prevents overflow in reward * precision intermediate (defense-in-depth).
+/// With 30-day cap: max_rps * 2_592_000 * 1e12 must fit u128 (3.4e38).
+/// 1e15 * 2.592e6 * 1e12 = 2.592e33 << 3.4e38. Safe.
+pub const MAX_REWARD_PER_SECOND: u64 = 1_000_000_000_000_000; // 1e15
 pub const POOL_SEED: &[u8] = b"pool";
 pub const POSITION_SEED: &[u8] = b"position";
 pub const COUNTER_SEED: &[u8] = b"counter";

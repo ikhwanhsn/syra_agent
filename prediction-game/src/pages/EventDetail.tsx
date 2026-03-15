@@ -9,7 +9,7 @@ import api, { Event, getPhaseDisplayName, calculateTimeBonus, calculatePayoutBre
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { isConnected, walletAddress } = useWallet();
+  const { isConnected, walletAddress, sendSol } = useWallet();
   const [prediction, setPrediction] = useState('');
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,10 +97,17 @@ const EventDetail = () => {
 
     setIsJoining(true);
     try {
-      // TODO: In production, send entry fee to treasury
-      // const txSignature = await sendSol(event.entryFee, 'TREASURY_ADDRESS');
-      
-      const updatedEvent = await api.joinEvent(event._id, { walletAddress });
+      toast.info('Please approve the transaction in your wallet...');
+
+      const txSignature = await sendSol(event.entryFee);
+      if (!txSignature) {
+        throw new Error('Transaction failed or was rejected');
+      }
+
+      const updatedEvent = await api.joinEvent(event._id, {
+        walletAddress,
+        txSignature,
+      });
       setEvent(updatedEvent);
       toast.success('Successfully joined the event!');
     } catch (err) {
@@ -195,7 +202,7 @@ const EventDetail = () => {
   const statusConfig = {
     joining: { color: 'text-blue-400', bg: 'bg-blue-400/20', label: 'Joining Phase', icon: Users },
     predicting: { color: 'text-yellow-400', bg: 'bg-yellow-400/20', label: 'Prediction Phase', icon: EyeOff },
-    waiting: { color: 'text-purple-400', bg: 'bg-purple-400/20', label: 'Waiting Phase', icon: Clock },
+    waiting: { color: 'text-amber-400', bg: 'bg-amber-400/20', label: 'Waiting Phase', icon: Clock },
     completed: { color: 'text-green-400', bg: 'bg-green-400/20', label: 'Completed', icon: Trophy },
     cancelled: { color: 'text-red-400', bg: 'bg-red-400/20', label: 'Cancelled', icon: XCircle },
   };
@@ -297,8 +304,8 @@ const EventDetail = () => {
                     style={{
                       width: `${progressPercent}%`,
                       background: hasMinParticipants 
-                        ? 'linear-gradient(90deg, hsl(145 70% 50%) 0%, hsl(190 90% 50%) 100%)'
-                        : 'linear-gradient(90deg, hsl(270 70% 60%) 0%, hsl(220 70% 60%) 100%)',
+                        ? 'linear-gradient(90deg, hsl(142 70% 45%) 0%, hsl(187 80% 45%) 100%)'
+                        : 'var(--gradient-primary)',
                     }}
                   />
                 </div>
@@ -472,7 +479,7 @@ const EventDetail = () => {
             {event.status === 'waiting' && (
               <div className="glass-card p-4 sm:p-5">
                 <h3 className="font-semibold mb-3 text-sm sm:text-base flex items-center gap-2">
-                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
                   Predictions ({event.predictions.length})
                 </h3>
                 <div className="space-y-1.5 sm:space-y-2 max-h-56 overflow-y-auto">

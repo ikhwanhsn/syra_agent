@@ -7,6 +7,7 @@ import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../../config/x402Pricing.js";
 import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 import {
+  getCryptonewsToken,
   fetchNewsCategoryGeneral,
   fetchNewsCategoryAllTickers,
   fetchNewsTickers,
@@ -30,6 +31,16 @@ const {
 } = await getV2Payment();
 
 const CACHE_TTL_MS = 90 * 1000;
+
+/** Return 503 if CRYPTO_NEWS_API_TOKEN is not set in production. In development, allow through so handler can return a stub. */
+function ensureCryptonewsToken(res) {
+  if (getCryptonewsToken()) return true;
+  if (process.env.NODE_ENV !== "production") return true;
+  res.status(503).json({
+    error: "News service is temporarily unavailable. The operator must set CRYPTO_NEWS_API_TOKEN in the API .env.",
+  });
+  return false;
+}
 
 function cacheKey(ticker) {
   return String(ticker || "general").trim().toLowerCase() || "general";
@@ -246,13 +257,38 @@ export async function createCryptonewsRouter() {
       outputSchema: { news: { type: "array", description: "News articles" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const news = await getNewsForRequest(ticker);
-      if (!news) return res.status(404).json({ error: "News not found" });
-      if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
-      await settlePaymentAndSetResponse(res, req);
-      res.json({ news });
+      // Development without CRYPTO_NEWS_API_TOKEN: return stub so localhost agent flow works
+      if (process.env.NODE_ENV !== "production" && !getCryptonewsToken()) {
+        await settlePaymentAndSetResponse(res, req);
+        return res.json({
+          news: [
+            {
+              title: "Local dev: set CRYPTO_NEWS_API_TOKEN for real news",
+              description: "Add CRYPTO_NEWS_API_TOKEN to api/.env (from cryptonews-api.com) to fetch live crypto news. Production uses this token.",
+              url: "",
+              source: "syra-dev",
+              tickers: [ticker].filter(Boolean),
+              published_at: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+      try {
+        const news = await getNewsForRequest(ticker);
+        if (!news) return res.status(404).json({ error: "News not found" });
+        if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
+        await settlePaymentAndSetResponse(res, req);
+        res.json({ news });
+      } catch (err) {
+        const msg = err?.message || String(err);
+        console.warn("[cryptonews] /news upstream error:", msg);
+        return res.status(503).json({
+          error: "News service is temporarily unavailable. Please try again later.",
+        });
+      }
     }
   );
   router.post(
@@ -269,13 +305,37 @@ export async function createCryptonewsRouter() {
       outputSchema: { news: { type: "array", description: "News articles" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const news = await getNewsForRequest(ticker);
-      if (!news) return res.status(404).json({ error: "News not found" });
-      if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
-      await settlePaymentAndSetResponse(res, req);
-      res.json({ news });
+      if (process.env.NODE_ENV !== "production" && !getCryptonewsToken()) {
+        await settlePaymentAndSetResponse(res, req);
+        return res.json({
+          news: [
+            {
+              title: "Local dev: set CRYPTO_NEWS_API_TOKEN for real news",
+              description: "Add CRYPTO_NEWS_API_TOKEN to api/.env to fetch live crypto news.",
+              url: "",
+              source: "syra-dev",
+              tickers: [ticker].filter(Boolean),
+              published_at: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+      try {
+        const news = await getNewsForRequest(ticker);
+        if (!news) return res.status(404).json({ error: "News not found" });
+        if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
+        await settlePaymentAndSetResponse(res, req);
+        res.json({ news });
+      } catch (err) {
+        const msg = err?.message || String(err);
+        console.warn("[cryptonews] /news upstream error:", msg);
+        return res.status(503).json({
+          error: "News service is temporarily unavailable. Please try again later.",
+        });
+      }
     }
   );
 
@@ -303,17 +363,23 @@ export async function createCryptonewsRouter() {
       outputSchema: { sentimentAnalysis: { type: "array", description: "Daily sentiment scores" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const { payload, accepted } = req.x402Payment;
-      const [sentimentAnalysis, settle] = await Promise.all([
-        getSentimentForTicker(ticker),
-        settlePaymentWithFallback(payload, accepted),
-      ]);
-      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
-      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
-      setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
-      runBuybackForRequest(req);
+      try {
+        const { payload, accepted } = req.x402Payment;
+        const [sentimentAnalysis, settle] = await Promise.all([
+          getSentimentForTicker(ticker),
+          settlePaymentWithFallback(payload, accepted),
+        ]);
+        if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+        if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+        setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
+        runBuybackForRequest(req);
+      } catch (err) {
+        console.warn("[cryptonews] /sentiment upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Sentiment service is temporarily unavailable. Please try again later." });
+      }
     }
   );
   router.post(
@@ -330,17 +396,23 @@ export async function createCryptonewsRouter() {
       outputSchema: { sentimentAnalysis: { type: "array", description: "Daily sentiment scores" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const { payload, accepted } = req.x402Payment;
-      const [sentimentAnalysis, settle] = await Promise.all([
-        getSentimentForTicker(ticker),
-        settlePaymentWithFallback(payload, accepted),
-      ]);
-      if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
-      if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
-      setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
-      runBuybackForRequest(req);
+      try {
+        const { payload, accepted } = req.x402Payment;
+        const [sentimentAnalysis, settle] = await Promise.all([
+          getSentimentForTicker(ticker),
+          settlePaymentWithFallback(payload, accepted),
+        ]);
+        if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
+        if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+        setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
+        runBuybackForRequest(req);
+      } catch (err) {
+        console.warn("[cryptonews] /sentiment upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Sentiment service is temporarily unavailable. Please try again later." });
+      }
     }
   );
 
@@ -368,13 +440,19 @@ export async function createCryptonewsRouter() {
       outputSchema: { event: { type: "array", description: "Crypto events" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const event = await getEventForTicker(ticker);
-      if (!event) return res.status(404).json({ error: "Event not found" });
-      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
-      await settlePaymentAndSetResponse(res, req);
-      res.json({ event });
+      try {
+        const event = await getEventForTicker(ticker);
+        if (!event) return res.status(404).json({ error: "Event not found" });
+        if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+        await settlePaymentAndSetResponse(res, req);
+        res.json({ event });
+      } catch (err) {
+        console.warn("[cryptonews] /event upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Event service is temporarily unavailable. Please try again later." });
+      }
     }
   );
   router.post(
@@ -391,13 +469,19 @@ export async function createCryptonewsRouter() {
       outputSchema: { event: { type: "array", description: "Crypto events" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const event = await getEventForTicker(ticker);
-      if (!event) return res.status(404).json({ error: "Event not found" });
-      if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
-      await settlePaymentAndSetResponse(res, req);
-      res.json({ event });
+      try {
+        const event = await getEventForTicker(ticker);
+        if (!event) return res.status(404).json({ error: "Event not found" });
+        if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
+        await settlePaymentAndSetResponse(res, req);
+        res.json({ event });
+      } catch (err) {
+        console.warn("[cryptonews] /event upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Event service is temporarily unavailable. Please try again later." });
+      }
     }
   );
 
@@ -425,17 +509,23 @@ export async function createCryptonewsRouter() {
       outputSchema: { trendingHeadline: { type: "array", description: "Trending headlines" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const { payload, accepted } = req.x402Payment;
-      const [trendingHeadline, settle] = await Promise.all([
-        getTrendingForTicker(ticker),
-        settlePaymentWithFallback(payload, accepted),
-      ]);
-      if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
-      if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
-      setPaymentResponseAndSendTrending(res, trendingHeadline, settle);
-      runBuybackForRequest(req);
+      try {
+        const { payload, accepted } = req.x402Payment;
+        const [trendingHeadline, settle] = await Promise.all([
+          getTrendingForTicker(ticker),
+          settlePaymentWithFallback(payload, accepted),
+        ]);
+        if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
+        if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
+        setPaymentResponseAndSendTrending(res, trendingHeadline, settle);
+        runBuybackForRequest(req);
+      } catch (err) {
+        console.warn("[cryptonews] /trending-headline upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Trending headlines are temporarily unavailable. Please try again later." });
+      }
     }
   );
   router.post(
@@ -452,17 +542,23 @@ export async function createCryptonewsRouter() {
       outputSchema: { trendingHeadline: { type: "array", description: "Trending headlines" } },
     }),
     async (req, res) => {
+      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
-      const { payload, accepted } = req.x402Payment;
-      const [trendingHeadline, settle] = await Promise.all([
-        getTrendingForTicker(ticker),
-        settlePaymentWithFallback(payload, accepted),
-      ]);
-      if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
-      if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
-      setPaymentResponseAndSendTrending(res, trendingHeadline, settle);
-      runBuybackForRequest(req);
+      try {
+        const { payload, accepted } = req.x402Payment;
+        const [trendingHeadline, settle] = await Promise.all([
+          getTrendingForTicker(ticker),
+          settlePaymentWithFallback(payload, accepted),
+        ]);
+        if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
+        if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
+        setPaymentResponseAndSendTrending(res, trendingHeadline, settle);
+        runBuybackForRequest(req);
+      } catch (err) {
+        console.warn("[cryptonews] /trending-headline upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Trending headlines are temporarily unavailable. Please try again later." });
+      }
     }
   );
 
@@ -485,15 +581,21 @@ export async function createCryptonewsRouter() {
       outputSchema: { sundownDigest: { type: "array", description: "Daily digest items" } },
     }),
     async (req, res) => {
-      const { payload, accepted } = req.x402Payment;
-      const [sundownDigest, settle] = await Promise.all([
-        getSundownData(),
-        settlePaymentWithFallback(payload, accepted),
-      ]);
-      if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
-      if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
-      setPaymentResponseAndSendSundown(res, sundownDigest, settle);
-      runBuybackForRequest(req);
+      if (!ensureCryptonewsToken(res)) return;
+      try {
+        const { payload, accepted } = req.x402Payment;
+        const [sundownDigest, settle] = await Promise.all([
+          getSundownData(),
+          settlePaymentWithFallback(payload, accepted),
+        ]);
+        if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
+        if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
+        setPaymentResponseAndSendSundown(res, sundownDigest, settle);
+        runBuybackForRequest(req);
+      } catch (err) {
+        console.warn("[cryptonews] /sundown-digest upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Sundown digest is temporarily unavailable. Please try again later." });
+      }
     }
   );
   router.post(
@@ -506,15 +608,21 @@ export async function createCryptonewsRouter() {
       outputSchema: { sundownDigest: { type: "array", description: "Daily digest items" } },
     }),
     async (req, res) => {
-      const { payload, accepted } = req.x402Payment;
-      const [sundownDigest, settle] = await Promise.all([
-        getSundownData(),
-        settlePaymentWithFallback(payload, accepted),
-      ]);
-      if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
-      if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
-      setPaymentResponseAndSendSundown(res, sundownDigest, settle);
-      runBuybackForRequest(req);
+      if (!ensureCryptonewsToken(res)) return;
+      try {
+        const { payload, accepted } = req.x402Payment;
+        const [sundownDigest, settle] = await Promise.all([
+          getSundownData(),
+          settlePaymentWithFallback(payload, accepted),
+        ]);
+        if (!sundownDigest) return res.status(404).json({ error: "Sundown digest not found" });
+        if (sundownDigest.length === 0) return res.status(500).json({ error: "Failed to fetch sundown digest" });
+        setPaymentResponseAndSendSundown(res, sundownDigest, settle);
+        runBuybackForRequest(req);
+      } catch (err) {
+        console.warn("[cryptonews] /sundown-digest upstream error:", err?.message || err);
+        return res.status(503).json({ error: "Sundown digest is temporarily unavailable. Please try again later." });
+      }
     }
   );
 

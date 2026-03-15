@@ -1847,6 +1847,212 @@ curl "${BASE_URL}/coinmarketcap?endpoint=dex-search&q=SOL"`,
     ],
   }),
 
+  messari: doc({
+    title: "Messari API (x402)",
+    overview:
+      "Partner API with Messari x402. Institutional-grade crypto intelligence including asset metrics, timeseries, token unlocks, fundraising, AI chat, social signal, and more. Data is sourced from Messari's pay-per-use x402 API (Base/EVM). Uses the x402 payment protocol.",
+    price: "$0.01 – $0.025 USD per request (varies by endpoint)",
+    useCases: [
+      "Ask Messari's AI analyst any crypto research question",
+      "Get asset details, all-time highs, and ROI data",
+      "Query historical time-series for price, volume, and other metrics",
+      "Track token unlock schedules and vesting allocations",
+      "Monitor fundraising rounds, investors, and M&A activity",
+      "Track social mindshare gainers/losers and crypto influencers",
+      "Stablecoin market data and network/chain metrics",
+    ],
+    endpoints: [
+      {
+        method: "POST",
+        path: "/messari/ai",
+        description:
+          "Ask Messari's AI analyst a natural language question about any crypto topic.",
+        params: [
+          { name: "question", type: "string", required: "Yes", description: "Natural language question" },
+        ],
+        bodyExample: `{ "question": "What is the latest on Bitcoin?" }`,
+        requestExample: `curl -X POST ${BASE_URL}/messari/ai \\
+  -H "Content-Type: application/json" \\
+  -d '{"question":"What is the latest on Bitcoin?"}'`,
+        responseExample: `{ "data": { "answer": "Bitcoin is currently trading at...", "sources": [...] } }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/assets/details",
+        description: "Detailed asset profiles by slug — sector, category, description.",
+        params: [
+          { name: "slugs", type: "string", required: "Yes", description: "Comma-separated asset slugs (e.g. bitcoin,ethereum)" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/assets/details?slugs=bitcoin,ethereum"`,
+        responseExample: `{ "data": [{ "slug": "bitcoin", "name": "Bitcoin", "sector": "Currencies", ... }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/ath",
+        description: "All-time high price, date, and current drawdown for assets.",
+        params: [
+          { name: "slugs", type: "string", required: "Yes", description: "Comma-separated asset slugs" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/ath?slugs=bitcoin,ethereum,solana"`,
+        responseExample: `{ "data": [{ "slug": "bitcoin", "ath_price": 108000, "ath_date": "2025-01-20", "drawdown": -0.07 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/roi",
+        description: "Return on investment across multiple time-frames.",
+        params: [
+          { name: "slugs", type: "string", required: "Yes", description: "Comma-separated asset slugs" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/roi?slugs=bitcoin,ethereum"`,
+        responseExample: `{ "data": [{ "slug": "bitcoin", "roi_1d": 0.02, "roi_7d": 0.05, "roi_30d": 0.12 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/timeseries",
+        description:
+          "Historical time-series data for any asset metric (price, volume, etc.). Requires assetId and datasetSlug.",
+        params: [
+          { name: "assetId", type: "string", required: "Yes", description: "Asset ID or slug" },
+          { name: "datasetSlug", type: "string", required: "Yes", description: "Dataset slug (e.g. price, volume)" },
+          { name: "granularity", type: "string", required: "No", description: "5m, 15m, 1h, 1d (default 1d)" },
+          { name: "start", type: "string", required: "No", description: "ISO date start" },
+          { name: "end", type: "string", required: "No", description: "ISO date end" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/timeseries?assetId=bitcoin&datasetSlug=price&granularity=1d"`,
+        responseExample: `{ "data": { "values": [[1710000000000, 97000], [1710086400000, 97500], ...] } }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/signal",
+        description: "Real-time social intelligence from Messari Signal.",
+        params: [
+          { name: "limit", type: "string", required: "No", description: "Max results (default 20)" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/signal?limit=10"`,
+        responseExample: `{ "data": [{ "asset": "bitcoin", "signal_score": 85, ... }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/mindshare-gainers",
+        description: "Assets gaining the most social mindshare.",
+        params: [
+          { name: "period", type: "string", required: "No", description: "24h (default) or 7d" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/mindshare-gainers?period=24h"`,
+        responseExample: `{ "data": [{ "slug": "solana", "mindshare_change": 12.5 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/mindshare-losers",
+        description: "Assets losing the most social mindshare.",
+        params: [
+          { name: "period", type: "string", required: "No", description: "24h (default) or 7d" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/mindshare-losers?period=24h"`,
+        responseExample: `{ "data": [{ "slug": "dogecoin", "mindshare_change": -8.3 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/news",
+        description: "Latest news and research articles from Messari.",
+        params: [
+          { name: "assetSlugs", type: "string", required: "No", description: "Filter by asset slugs" },
+          { name: "limit", type: "string", required: "No", description: "Max results" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/news?assetSlugs=bitcoin&limit=5"`,
+        responseExample: `{ "data": [{ "title": "Bitcoin Q1 2025 Report", "url": "...", "publishedAt": "..." }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/token-unlocks",
+        description: "Upcoming and past token unlock events for a specific asset.",
+        params: [
+          { name: "assetId", type: "string", required: "Yes", description: "Messari asset ID" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/token-unlocks?assetId=arbitrum"`,
+        responseExample: `{ "data": [{ "date": "2025-03-16", "amount": 1000000, "type": "cliff" }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/token-unlocks/vesting",
+        description: "Full vesting schedule and allocation breakdown.",
+        params: [
+          { name: "assetId", type: "string", required: "Yes", description: "Messari asset ID" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/token-unlocks/vesting?assetId=arbitrum"`,
+        responseExample: `{ "data": { "allocations": [{ "name": "Team", "pct": 0.12 }, ...] } }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/fundraising",
+        description: "Recent crypto fundraising rounds.",
+        params: [
+          { name: "limit", type: "string", required: "No", description: "Max results" },
+          { name: "roundTypes", type: "string", required: "No", description: "seed, series-a, series-b, etc." },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/fundraising?limit=10"`,
+        responseExample: `{ "data": [{ "project": "...", "round": "Series A", "amount": 15000000 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/fundraising/investors",
+        description: "Top investors and their recent crypto investments.",
+        params: [
+          { name: "limit", type: "string", required: "No", description: "Max results" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/fundraising/investors?limit=10"`,
+        responseExample: `{ "data": [{ "name": "a16z", "totalInvestments": 120 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/stablecoins",
+        description: "Stablecoin market overview and supply data.",
+        params: [
+          { name: "limit", type: "string", required: "No", description: "Max results" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/stablecoins?limit=20"`,
+        responseExample: `{ "data": [{ "name": "USDT", "market_cap": 140000000000, "supply": 140000000000 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/networks",
+        description: "Network/chain metrics and rankings.",
+        params: [
+          { name: "limit", type: "string", required: "No", description: "Max results" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/networks?limit=20"`,
+        responseExample: `{ "data": [{ "name": "Ethereum", "tvl": 50000000000, "txns_24h": 1200000 }] }`,
+      },
+      {
+        method: "GET",
+        path: "/messari/x-users",
+        description: "Influential crypto X/Twitter accounts tracked by Messari.",
+        params: [
+          { name: "limit", type: "string", required: "No", description: "Max results" },
+        ],
+        requestExample: `curl "${BASE_URL}/messari/x-users?limit=20"`,
+        responseExample: `{ "data": [{ "username": "...", "followers": 500000 }] }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Default values (easy testing)",
+        content:
+          "All endpoints support GET with no query params for quick testing. Defaults: AI chat uses \"What is the latest on Bitcoin?\"; asset details, ATH, and ROI use bitcoin,ethereum (and solana for ATH); timeseries uses assetId=bitcoin and datasetSlug=price; token unlocks and vesting use assetId=arbitrum; list endpoints (signal, news, fundraising, stablecoins, networks, x-users) use limit=10 or 20.",
+      },
+      {
+        title: "Reference",
+        content:
+          "Messari x402: https://messari.io/api. Messari uses Base (eip155:8453) and x402 payment protocol. CMC_PAYER_PRIVATE_KEY or BASE_PAYER_PRIVATE_KEY must be set for the server to pay Messari.",
+      },
+      {
+        title: "Dev route (no payment)",
+        content:
+          "When NODE_ENV is not production, append /dev to any Messari path (e.g. /messari/ai/dev) to bypass x402 payment.",
+      },
+    ],
+  }),
+
   "8004": doc({
     title: "8004 Trustless Agent Registry API",
     overview:

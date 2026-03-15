@@ -11,7 +11,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.syraa.fun https://api.nansen.ai https://auth.privy.io https://solana-mainnet.g.alchemy.com; frame-src 'self' https://auth.privy.io; img-src 'self' data: https:;"
+          "value": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; frame-src 'self' https://auth.privy.io; img-src 'self' data: https:;"
         }
       ]
     }

@@ -2,23 +2,22 @@ import React, { FC, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
+import { clusterApiUrl, type Cluster } from '@solana/web3.js';
 
-// Import wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 interface SolanaWalletProviderProps {
   children: React.ReactNode;
 }
 
-export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
-  // You can use 'devnet', 'testnet', or 'mainnet-beta'
-  const network = 'devnet'; // Change to 'mainnet-beta' for production
-  
-  // You can also provide a custom RPC endpoint
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+const NETWORK = (import.meta.env.VITE_SOLANA_NETWORK || 'devnet') as Cluster;
 
-  // Initialize wallets - Phantom and Solflare are the most popular
+export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
+  const endpoint = useMemo(
+    () => import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl(NETWORK),
+    []
+  );
+
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
@@ -37,3 +36,5 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
     </ConnectionProvider>
   );
 };
+
+export { NETWORK };

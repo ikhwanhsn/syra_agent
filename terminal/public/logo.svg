@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="96" fill="#0a0e17"/>
+  <rect x="16" y="16" width="480" height="480" rx="80" fill="#0a0e17" stroke="#1e2a3a" stroke-width="4"/>
+  <!-- S-curve chart line representing trading/analytics -->
+  <path d="M96 352 C144 352, 160 192, 208 192 S272 320, 320 320 S384 160, 416 160" stroke="#00d4ff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Glow effect -->
+  <path d="M96 352 C144 352, 160 192, 208 192 S272 320, 320 320 S384 160, 416 160" stroke="#00d4ff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.3" filter="blur(12px)"/>
+  <!-- Gradient area under the curve -->
+  <path d="M96 352 C144 352, 160 192, 208 192 S272 320, 320 320 S384 160, 416 160 L416 400 L96 400 Z" fill="url(#areaGrad)" opacity="0.25"/>
+  <!-- Dot at peak -->
+  <circle cx="416" cy="160" r="16" fill="#00ff88"/>
+  <circle cx="416" cy="160" r="16" fill="#00ff88" opacity="0.4" filter="blur(8px)"/>
+  <circle cx="416" cy="160" r="8" fill="#0a0e17"/>
+  <circle cx="416" cy="160" r="5" fill="#00ff88"/>
+  <defs>
+    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>

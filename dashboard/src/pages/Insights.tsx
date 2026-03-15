@@ -391,28 +391,77 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
         </section>
       )}
 
-      {/* Market context placeholder for future */}
+      {/* Cross-links to deeper pages */}
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:text-lg">
-          More insight
+          Explore more
         </h2>
-        <Card
-          title="Research & strategy"
-          subtitle="Growth strategy, competitors, and market signals"
-        >
-          <p className="text-sm text-gray-400">
-            Use the <strong className="text-gray-300">Research</strong> page for
-            X search panels (growth strategy, competitors, adoption, trends) and
-            executive summaries. Combine with this page for full Syra growth
-            insight.
-          </p>
-          <Link
-            to="/research"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-syra-primary hover:underline"
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Card
+            title="Revenue & monetization"
+            subtitle="x402 paid calls, source breakdown, conversion"
           >
-            Open Research →
-          </Link>
-        </Card>
+            <p className="text-sm text-gray-400">
+              Track paid API revenue by source (direct API vs agent), daily trends,
+              conversion funnel, and hourly activity.
+            </p>
+            <Link
+              to="/revenue"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:underline"
+            >
+              Open Revenue →
+            </Link>
+          </Card>
+          <Card
+            title="Users & engagement"
+            subtitle="User growth, chat analytics, tool usage"
+          >
+            <p className="text-sm text-gray-400">
+              View unique users, daily active users, chat engagement,
+              tool usage stats, and playground sharing activity.
+            </p>
+            <Link
+              to="/users"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-syra-primary hover:underline"
+            >
+              Open Users →
+            </Link>
+          </Card>
+          <Card
+            title="System health"
+            subtitle="Latency, error rates, reliability"
+          >
+            <p className="text-sm text-gray-400">
+              Monitor API performance with P95/P99 latency, error rate trends,
+              slowest endpoints, and status code distribution.
+            </p>
+            <Link
+              to="/health"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:underline"
+            >
+              Open Health →
+            </Link>
+          </Card>
+        </div>
+        <div className="mt-4">
+          <Card
+            title="Research & strategy"
+            subtitle="Growth strategy, competitors, and market signals"
+          >
+            <p className="text-sm text-gray-400">
+              Use the <strong className="text-gray-300">Research</strong> page for
+              X search panels (growth strategy, competitors, adoption, trends) and
+              executive summaries. Combine with this page for full Syra growth
+              insight.
+            </p>
+            <Link
+              to="/research"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-syra-accent hover:underline"
+            >
+              Open Research →
+            </Link>
+          </Card>
+        </div>
       </section>
     </div>
   );

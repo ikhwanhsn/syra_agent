@@ -94,20 +94,12 @@ const Dashboard = () => {
     cancelled: events.filter(e => e.status === 'cancelled'),
   };
 
-  if (!isConnected) {
-    return (
-      <div className="min-h-screen pt-24 px-4">
-        <div className="container mx-auto">
-          <div className="glass-card p-12 text-center max-w-lg mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Connect Your Wallet</h2>
-            <p className="text-muted-foreground mb-6 text-sm sm:text-base md:text-lg">
-              Please connect your wallet to view your dashboard and manage your prediction events.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const personalTabs = isConnected
+    ? [
+        { key: 'created', label: 'My Created' },
+        { key: 'joined', label: 'Joined' },
+      ]
+    : [];
 
   return (
     <div className="min-h-screen pt-20 pb-8 px-4">
@@ -116,7 +108,9 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 gradient-text">Dashboard</h1>
-            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">Manage your prediction events</p>
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
+              {isConnected ? 'Manage your prediction events' : 'Browse prediction events'}
+            </p>
           </div>
           <div className="flex gap-3">
             <Button 
@@ -142,15 +136,14 @@ const Dashboard = () => {
           {[
             { key: 'all', label: 'All Events' },
             { key: 'active', label: 'Active' },
-            { key: 'created', label: 'My Created' },
-            { key: 'joined', label: 'Joined' },
+            ...personalTabs,
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as TabType)}
               className={`px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 relative ${
                 activeTab === tab.key
-                  ? 'bg-primary text-primary-foreground shadow-[0_0_15px_hsl(270_70%_60%/0.3)]'
+                  ? 'bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--accent)/0.3)]'
                   : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
               }`}
             >
@@ -170,7 +163,7 @@ const Dashboard = () => {
             <span className="text-muted-foreground">Predicting - Submit prediction</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-purple-400"></span>
+            <span className="w-3 h-3 rounded-full bg-amber-400"></span>
             <span className="text-muted-foreground">Waiting - Resolution pending</span>
           </div>
           <div className="flex items-center gap-2">
@@ -216,7 +209,7 @@ const Dashboard = () => {
                 {groupedEvents.active.length > 0 && (
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 animate-pulse"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-accent animate-pulse"></span>
                       Active Events
                       <span className="text-sm sm:text-base font-normal text-muted-foreground">({groupedEvents.active.length})</span>
                     </h2>

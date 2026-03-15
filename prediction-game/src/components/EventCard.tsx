@@ -47,7 +47,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
       icon: EyeOff,
     },
     waiting: {
-      classes: 'bg-purple-400/20 text-purple-400 border-purple-400/30',
+      classes: 'bg-amber-400/20 text-amber-400 border-amber-400/30',
       label: 'Waiting',
       icon: Clock,
     },
@@ -90,7 +90,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
     <div className="event-card group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(270_70%_60%/0.3)]">
+          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--accent)/0.3)]">
             {event.tokenIcon}
           </div>
           <div>
@@ -137,7 +137,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
               style={{
                 width: `${progressPercent}%`,
                 background: hasMinParticipants 
-                  ? 'linear-gradient(90deg, hsl(145 70% 50%) 0%, hsl(190 90% 50%) 100%)'
+                  ? 'linear-gradient(90deg, hsl(142 70% 45%) 0%, hsl(187 80% 45%) 100%)'
                   : 'var(--gradient-primary)',
               }}
             />
