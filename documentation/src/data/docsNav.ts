@@ -128,6 +128,11 @@ export const navigation: NavItem[] = [
         items: [{ title: "CoinMarketCap API", href: api("coinmarketcap") }],
       },
       {
+        title: "Partner: Messari",
+        defaultCollapsed: false,
+        items: [{ title: "Messari API", href: api("messari") }],
+      },
+      {
         title: "8004 Agent Registry",
         defaultCollapsed: false,
         items: [{ title: "8004 Trustless Agent Registry", href: api("8004") }],

@@ -30,6 +30,8 @@ const TRUSTED_ORIGINS = [
   "https://dev-dashboard-syra.vercel.app",
   "https://dev-playground-syra.vercel.app",
   "https://dev-ai-agent-syra.vercel.app",
+  "https://predict.syraa.fun",
+  "https://www.predict.syraa.fun",
   ...(process.env.CORS_EXTRA_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
@@ -65,6 +67,22 @@ function getOriginFromRequest(req) {
   return null;
 }
 
+/** In development, allow any localhost / 127.0.0.1 origin (any port) so local dev works. */
+function isTrustedOrigin(origin) {
+  if (!origin || typeof origin !== "string") return false;
+  if (TRUSTED_ORIGINS.includes(origin)) return true;
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const u = new URL(origin);
+      const host = (u.hostname || "").toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1") return true;
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+}
+
 /**
  * Middleware: for requests from trusted origins to browser-callable paths,
  * if no API key is sent, inject the server's API key so requireApiKey passes.
@@ -76,7 +94,7 @@ export function injectTrustedOriginApiKey(req, res, next) {
   if (existing) return next();
 
   const origin = getOriginFromRequest(req);
-  if (!origin || !TRUSTED_ORIGINS.includes(origin)) return next();
+  if (!origin || !isTrustedOrigin(origin)) return next();
   if (!isBrowserCallablePath(req.path)) return next();
 
   req.headers["x-api-key"] = SERVER_KEY;

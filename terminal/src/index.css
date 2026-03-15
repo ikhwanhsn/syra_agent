@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  background: #0a0e17;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 12px;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e17;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2a3a;
+  border-radius: 1px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2d3f56;
+}
+
+@layer components {
+  .panel {
+    @apply bg-terminal-panel border border-terminal-border overflow-hidden flex flex-col;
+  }
+  .panel-header {
+    @apply flex items-center justify-between px-2 py-1 border-b border-terminal-border bg-terminal-bg/60 text-[10px] font-semibold uppercase tracking-wider text-terminal-dim flex-shrink-0;
+  }
+  .panel-body {
+    @apply p-1.5 flex-1 overflow-auto;
+  }
+  .badge-green {
+    @apply text-terminal-green bg-terminal-green/10 px-1 py-0 rounded-sm text-[9px];
+  }
+  .badge-red {
+    @apply text-terminal-red bg-terminal-red/10 px-1 py-0 rounded-sm text-[9px];
+  }
+  .badge-accent {
+    @apply text-terminal-accent bg-terminal-accent/10 px-1 py-0 rounded-sm text-[9px];
+  }
+  .badge-yellow {
+    @apply text-terminal-yellow bg-terminal-yellow/10 px-1 py-0 rounded-sm text-[9px];
+  }
+}
+
+.ticker-track {
+  display: flex;
+  animation: ticker 45s linear infinite;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink::after {
+  content: '█';
+  animation: blink 1s step-end infinite;
+  color: #00d4ff;
+}

@@ -3,7 +3,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use anchor_spl::associated_token::AssociatedToken;
 
 use crate::error::StakingError;
-use crate::state::{GlobalPool, POOL_SEED};
+use crate::state::{GlobalPool, POOL_SEED, MAX_REWARD_PER_SECOND};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -51,6 +51,10 @@ pub fn initialize(ctx: Context<Initialize>, reward_per_second: u64) -> Result<()
 
     require!(!global_pool.is_initialized, StakingError::AlreadyInitialized);
     require!(reward_per_second > 0, StakingError::InvalidAmount);
+    require!(
+        reward_per_second <= MAX_REWARD_PER_SECOND,
+        StakingError::RewardPerSecondExceedsMax
+    );
 
     let clock = Clock::get()?;
 

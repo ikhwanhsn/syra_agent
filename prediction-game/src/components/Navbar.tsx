@@ -23,12 +23,11 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenWalletModal }) => {
   }, []);
 
   const navLinks = [
-    { name: "Home", path: "/" },
-    { name: "Dashboard", path: "/dashboard" },
-    { name: "Staking", path: "/staking" },
-    { name: "Create Event", path: "/create" },
-    { name: "Admin", path: "/admin" },
-  ];
+    { name: "Home", path: "/", requiresWallet: false },
+    { name: "Dashboard", path: "/dashboard", requiresWallet: false },
+    { name: "Staking", path: "/staking", requiresWallet: false },
+    { name: "Create Event", path: "/create", requiresWallet: true },
+  ].filter(link => !link.requiresWallet || isConnected);
 
   const isActive = (path: string) => location.pathname === path;
 

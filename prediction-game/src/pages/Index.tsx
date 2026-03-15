@@ -31,17 +31,51 @@ import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import api, { StatsResponse, Event } from "@/services/api";
 import { STAKING_TIERS, formatSyraAmount } from "@/services/stakingApi";
-import EventCard from "@/components/EventCard";
+import EventCard, { Event as EventCardEvent } from "@/components/EventCard";
 
 interface IndexProps {
   onOpenWalletModal: () => void;
 }
 
 const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
-  const { isConnected } = useWallet();
+  const { isConnected, walletAddress } = useWallet();
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [activeEvents, setActiveEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const transformEvent = (event: Event): EventCardEvent => {
+    const participantCount = event.participants?.length || 0;
+    const entryFeesCollected = participantCount * (event.entryFee || 0.1);
+    const totalPool = (event.creatorDeposit || event.rewardPool || 0) + entryFeesCollected;
+    const userJoined = event.participants?.some(p => p.walletAddress === walletAddress);
+    const userPredictionData = event.predictions?.find(p => p.walletAddress === walletAddress);
+
+    return {
+      id: event._id,
+      token: event.tokenName,
+      tokenIcon: event.tokenIcon,
+      totalPool,
+      creatorDeposit: event.creatorDeposit || event.rewardPool || 0,
+      entryFee: event.entryFee || 0.1,
+      participants: participantCount,
+      predictions: event.predictions?.length || 0,
+      minParticipants: event.minParticipants,
+      maxParticipants: event.maxParticipants,
+      status: event.status,
+      joiningEndsAt: event.joiningEndsAt ? new Date(event.joiningEndsAt) : undefined,
+      predictionEndsAt: event.predictionEndsAt ? new Date(event.predictionEndsAt) : undefined,
+      resolutionAt: event.resolutionAt ? new Date(event.resolutionAt) : undefined,
+      finalPrice: event.finalPrice,
+      userJoined,
+      userPrediction: userPredictionData?.predictedPrice,
+      cancellationReason: event.cancellationReason,
+      winners: event.winners?.map(w => ({
+        address: w.walletAddress,
+        prize: w.prize,
+        rank: w.rank,
+      })),
+    };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +108,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             style={{ animationDelay: "1s" }}
           />
           <div
-            className="absolute rounded-full top-1/2 left-1/2 w-72 h-72 bg-[hsl(210_100%_60%)]/15 blur-3xl animate-pulse-glow"
+            className="absolute rounded-full top-1/2 left-1/2 w-72 h-72 bg-neon-gold/15 blur-3xl animate-pulse-glow"
             style={{ animationDelay: "0.5s" }}
           />
         </div>
@@ -310,7 +344,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
           <div className="max-w-4xl mx-auto">
             <div className="relative">
               {/* Connection Line */}
-              <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-yellow-500 via-purple-500 to-green-500 hidden md:block" />
+              <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-amber-500 to-green-500 hidden md:block" />
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                 {[
@@ -338,7 +372,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     title: "Waiting",
                     duration: "12-72h",
                     description: "Predictions revealed! Await final price.",
-                    color: "purple",
+                    color: "amber",
                     features: ["Revealed", "Locked"],
                   },
                   {
@@ -459,7 +493,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Platform:</span>
-                      <span className="font-bold text-purple-400">30%</span>
+                      <span className="font-bold text-amber-400">30%</span>
                     </div>
                   </div>
                 </div>
@@ -481,8 +515,8 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     <p className="text-lg sm:text-2xl font-bold text-green-400">1.4 SOL</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Creator</p>
                   </div>
-                  <div className="p-2 sm:p-4 bg-purple-500/10 rounded-lg">
-                    <p className="text-lg sm:text-2xl font-bold text-purple-400">0.6 SOL</p>
+                  <div className="p-2 sm:p-4 bg-amber-500/10 rounded-lg">
+                    <p className="text-lg sm:text-2xl font-bold text-amber-400">0.6 SOL</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Platform</p>
                   </div>
                 </div>
@@ -508,7 +542,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                 <div 
                   key={key} 
                   className={`glass-card p-3 sm:p-4 text-center ${
-                    key === 'DIAMOND' ? 'border-cyan-500/50 bg-cyan-500/5' : 
+                    key === 'DIAMOND' ? 'border-accent/50 bg-accent/5' : 
                     key === 'GOLD' ? 'border-yellow-500/30' :
                     key === 'SILVER' ? 'border-gray-400/30' :
                     key === 'BRONZE' ? 'border-orange-500/30' :
@@ -517,7 +551,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                 >
                   <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{tier.emoji}</div>
                   <h4 className={`font-bold text-sm sm:text-base ${
-                    key === 'DIAMOND' ? 'text-cyan-400' :
+                    key === 'DIAMOND' ? 'text-accent' :
                     key === 'GOLD' ? 'text-yellow-400' :
                     key === 'SILVER' ? 'text-gray-300' :
                     key === 'BRONZE' ? 'text-orange-400' :
@@ -567,7 +601,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
 
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {activeEvents.map((event) => (
-                <EventCard key={event._id} event={event} />
+                <EventCard key={event._id} event={transformEvent(event)} />
               ))}
             </div>
 
@@ -741,7 +775,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             <Link to="/create" className="hover:text-foreground transition-colors">Create</Link>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            © 2024 SyraPredict
+            © {new Date().getFullYear()} SyraPredict
           </p>
         </div>
       </footer>

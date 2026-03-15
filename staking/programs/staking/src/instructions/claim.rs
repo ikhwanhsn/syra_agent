@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::StakingError;
-use crate::state::{GlobalPool, UserStakeInfo, POOL_SEED, ACCUMULATED_REWARD_PER_SHARE_PRECISION, UNCLAIMED_REWARD_FLAG};
+use crate::state::{GlobalPool, UserStakeInfo, POOL_SEED, ACCUMULATED_REWARD_PER_SHARE_PRECISION};
 use crate::instructions::stake::{update_pool, calculate_pending_reward};
 
 #[derive(Accounts)]
@@ -65,19 +65,21 @@ pub struct Claim<'info> {
     pub system_program: Program<'info, System>,
 }
 
-/// Pending reward for one period: from active stake or from stored unclaimed (after full unstake).
+/// Pending reward for one period: from active stake plus any unclaimed from prior unstakes.
 fn pending_for_period(
     amount: u64,
     accumulated_reward_per_share: u128,
     reward_debt: u128,
+    unclaimed_reward: u64,
 ) -> Result<u128> {
-    if amount > 0 {
-        calculate_pending_reward(amount, accumulated_reward_per_share, reward_debt)
-    } else if reward_debt & UNCLAIMED_REWARD_FLAG != 0 {
-        Ok(reward_debt & (UNCLAIMED_REWARD_FLAG - 1))
+    let from_stake = if amount > 0 {
+        calculate_pending_reward(amount, accumulated_reward_per_share, reward_debt)?
     } else {
-        Ok(0)
-    }
+        0u128
+    };
+    from_stake
+        .checked_add(unclaimed_reward as u128)
+        .ok_or_else(|| error!(StakingError::MathOverflow))
 }
 
 pub fn claim(ctx: Context<Claim>) -> Result<()> {
@@ -90,17 +92,31 @@ pub fn claim(ctx: Context<Claim>) -> Result<()> {
         ctx.accounts.user_stake_info_1m.amount,
         global_pool.accumulated_reward_per_share,
         ctx.accounts.user_stake_info_1m.reward_debt,
+        ctx.accounts.user_stake_info_1m.unclaimed_reward,
     )?;
     let pending_3m = pending_for_period(
         ctx.accounts.user_stake_info_3m.amount,
         global_pool.accumulated_reward_per_share,
         ctx.accounts.user_stake_info_3m.reward_debt,
+        ctx.accounts.user_stake_info_3m.unclaimed_reward,
     )?;
     let pending_1y = pending_for_period(
         ctx.accounts.user_stake_info_1y.amount,
         global_pool.accumulated_reward_per_share,
         ctx.accounts.user_stake_info_1y.reward_debt,
+        ctx.accounts.user_stake_info_1y.unclaimed_reward,
     )?;
+
+    let owner_key = ctx.accounts.owner.key();
+    if pending_1m > 0 {
+        require!(ctx.accounts.user_stake_info_1m.owner == owner_key, StakingError::InvalidAuthority);
+    }
+    if pending_3m > 0 {
+        require!(ctx.accounts.user_stake_info_3m.owner == owner_key, StakingError::InvalidAuthority);
+    }
+    if pending_1y > 0 {
+        require!(ctx.accounts.user_stake_info_1y.owner == owner_key, StakingError::InvalidAuthority);
+    }
 
     let total_pending = pending_1m
         .checked_add(pending_3m)
@@ -118,7 +134,7 @@ pub fn claim(ctx: Context<Claim>) -> Result<()> {
         StakingError::InsufficientRewardBalance
     );
 
-    // Update reward debt for each period (and clear unclaimed flag if amount == 0)
+    // Update reward debt and reset unclaimed rewards for each period
     let acc = global_pool.accumulated_reward_per_share;
     let prec = ACCUMULATED_REWARD_PER_SHARE_PRECISION;
 
@@ -154,6 +170,10 @@ pub fn claim(ctx: Context<Claim>) -> Result<()> {
             .ok_or(StakingError::MathOverflow)?
     };
     ctx.accounts.user_stake_info_1y.reward_debt = new_debt_1y;
+
+    ctx.accounts.user_stake_info_1m.unclaimed_reward = 0;
+    ctx.accounts.user_stake_info_3m.unclaimed_reward = 0;
+    ctx.accounts.user_stake_info_1y.unclaimed_reward = 0;
 
     let seeds = &[POOL_SEED, &[global_pool.bump]];
     let signer = &[&seeds[..]];

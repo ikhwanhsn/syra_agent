@@ -29,6 +29,7 @@ export interface UserStakeInfo {
   amount: bigint;
   rewardDebt: bigint;
   unlockAt: bigint;
+  unclaimedReward: bigint;
 }
 
 export const STAKING_IDL = {
@@ -267,7 +268,9 @@ function deserializeUserStakeInfo(data: Buffer): UserStakeInfo {
     data.readBigUInt64LE(offset + 8) * (1n << 64n);
   offset += 16;
   const unlockAt = data.readBigInt64LE(offset);
-  return { owner, amount, rewardDebt, unlockAt: BigInt(unlockAt) };
+  offset += 8;
+  const unclaimedReward = offset + 8 <= data.length ? data.readBigUInt64LE(offset) : 0n;
+  return { owner, amount, rewardDebt, unlockAt: BigInt(unlockAt), unclaimedReward };
 }
 
 /**

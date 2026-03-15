@@ -114,6 +114,21 @@ export const X402_API_PRICE_X_USD = price(0.01);
 /** Giza Agent SDK — DeFi yield optimization (protocols, agent, portfolio, apr, activate, withdraw, etc.) */
 export const X402_API_PRICE_GIZA_USD = price(0.01);
 
+/** Messari x402 — standard tier (asset details, ATH, ROI) — upstream $0.10/req */
+export const X402_API_PRICE_MESSARI_USD = price(0.01);
+/** Messari x402 — AI chat completions — upstream $0.25/req */
+export const X402_API_PRICE_MESSARI_AI_USD = price(0.03);
+/** Messari x402 — signal/mindshare tier — upstream $0.35/req */
+export const X402_API_PRICE_MESSARI_SIGNAL_USD = price(0.04);
+/** Messari x402 — premium tier (signal assets, news, x-users) — upstream $0.55/req */
+export const X402_API_PRICE_MESSARI_PREMIUM_USD = price(0.06);
+/** Messari x402 — timeseries/events tier (asset timeseries, token unlocks events, fundraising) — upstream $0.15/req */
+export const X402_API_PRICE_MESSARI_TIMESERIES_USD = price(0.02);
+/** Messari x402 — vesting schedule tier — upstream $0.75/req */
+export const X402_API_PRICE_MESSARI_VESTING_USD = price(0.08);
+/** Messari x402 — fundraising investors tier — upstream $0.25/req */
+export const X402_API_PRICE_MESSARI_INVESTOR_USD = price(0.03);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -148,6 +163,13 @@ export const X402_DISPLAY_PRICE_HEYLOL_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BRAIN_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_X_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_GIZA_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_AI_USD = 0.03 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD = 0.04 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD = 0.06 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_VESTING_USD = 0.08 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD = 0.03 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +

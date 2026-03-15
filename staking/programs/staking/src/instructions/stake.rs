@@ -177,7 +177,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::error::StakingError;
 use crate::state::{
     GlobalPool, PositionCounter, StakePosition, UserStakeInfo, Period, POOL_SEED, COUNTER_SEED,
-    POSITION_SEED, ACCUMULATED_REWARD_PER_SHARE_PRECISION,
+    POSITION_SEED, ACCUMULATED_REWARD_PER_SHARE_PRECISION, MAX_REWARD_ELAPSED_SECS,
     PERIOD_SECS_1_MONTH, PERIOD_SECS_1_YEAR, PERIOD_SECS_3_MONTHS,
     get_stake_position_pda,
 };
@@ -283,42 +283,144 @@ fn period_duration_secs(period: Period) -> Result<i64> {
 }
 
 /// Entrypoint for stake instruction (called from lib.rs).
-pub fn stake(ctx: Context<Stake>, amount: u64, period: Period, position_index: u32) -> Result<()> {
-    Stake::exec(ctx, amount, period, position_index)
+pub fn stake(ctx: Context<Stake>, amount: u64, period: Period) -> Result<()> {
+    Stake::exec(ctx, amount, period)
 }
 
 impl<'info> Stake<'info> {
-    pub fn exec(ctx: Context<Stake>, amount: u64, period: Period, position_index: u32) -> Result<()> {
+    pub fn exec(ctx: Context<Stake>, amount: u64, period: Period) -> Result<()> {
+        // === CHECKS ===
         require!(amount > 0, StakingError::InvalidAmount);
         require!(period <= 2, StakingError::InvalidPeriod);
         let period_secs = period_duration_secs(period)?;
 
         let global_pool = &mut ctx.accounts.global_pool;
         let clock = Clock::get()?;
+        let unlock_at_new = clock.unix_timestamp
+            .checked_add(period_secs)
+            .ok_or(StakingError::MathOverflow)?;
         let owner = ctx.accounts.owner.key();
 
-        // Get counter for this period and validate position_index
-        let position_counter = match period {
-            0 => &ctx.accounts.position_counter_1m,
-            1 => &ctx.accounts.position_counter_3m,
-            _ => &ctx.accounts.position_counter_1y,
+        // C-02 fix: derive position_index atomically from the counter (not user-provided)
+        let position_index = match period {
+            0 => ctx.accounts.position_counter_1m.next_index,
+            1 => ctx.accounts.position_counter_3m.next_index,
+            _ => ctx.accounts.position_counter_1y.next_index,
         };
-        let next_idx = position_counter.next_index;
-        require!(
-            position_index == next_idx,
-            StakingError::InvalidAmount
-        );
 
         let (position_pda, position_bump) =
             get_stake_position_pda(ctx.program_id, &owner, period, position_index);
         require!(
             ctx.accounts.stake_position.key() == position_pda,
-            StakingError::InvalidAmount
+            StakingError::PositionPdaMismatch
+        );
+        require!(
+            ctx.accounts.stake_position.data_is_empty(),
+            StakingError::AlreadyInitialized
         );
 
-        // Create the position account (PDA)
+        // === EFFECTS (all state mutations before external CPI) ===
+
+        update_pool(global_pool, clock.unix_timestamp)?;
+
+        Self::init_user_if_needed(&mut ctx.accounts.user_stake_info_1m, owner);
+        Self::init_user_if_needed(&mut ctx.accounts.user_stake_info_3m, owner);
+        Self::init_user_if_needed(&mut ctx.accounts.user_stake_info_1y, owner);
+
+        require!(ctx.accounts.user_stake_info_1m.owner == owner, StakingError::InvalidAuthority);
+        require!(ctx.accounts.user_stake_info_3m.owner == owner, StakingError::InvalidAuthority);
+        require!(ctx.accounts.user_stake_info_1y.owner == owner, StakingError::InvalidAuthority);
+
+        let (user_stake_info, pending_reward) = match period {
+            0 => {
+                let info = &mut ctx.accounts.user_stake_info_1m;
+                let pending = if info.amount > 0 {
+                    calculate_pending_reward(
+                        info.amount,
+                        global_pool.accumulated_reward_per_share,
+                        info.reward_debt,
+                    )?
+                } else {
+                    0u128
+                };
+                info.unlock_at = if info.amount == 0 || unlock_at_new > info.unlock_at {
+                    unlock_at_new
+                } else {
+                    info.unlock_at
+                };
+                (info, pending)
+            }
+            1 => {
+                let info = &mut ctx.accounts.user_stake_info_3m;
+                let pending = if info.amount > 0 {
+                    calculate_pending_reward(
+                        info.amount,
+                        global_pool.accumulated_reward_per_share,
+                        info.reward_debt,
+                    )?
+                } else {
+                    0u128
+                };
+                info.unlock_at = if info.amount == 0 || unlock_at_new > info.unlock_at {
+                    unlock_at_new
+                } else {
+                    info.unlock_at
+                };
+                (info, pending)
+            }
+            _ => {
+                let info = &mut ctx.accounts.user_stake_info_1y;
+                let pending = if info.amount > 0 {
+                    calculate_pending_reward(
+                        info.amount,
+                        global_pool.accumulated_reward_per_share,
+                        info.reward_debt,
+                    )?
+                } else {
+                    0u128
+                };
+                info.unlock_at = if info.amount == 0 || unlock_at_new > info.unlock_at {
+                    unlock_at_new
+                } else {
+                    info.unlock_at
+                };
+                (info, pending)
+            }
+        };
+
+        // C-01 fix: update all state BEFORE any external CPI
+        user_stake_info.amount = user_stake_info
+            .amount
+            .checked_add(amount)
+            .ok_or(StakingError::MathOverflow)?;
+
+        let acc_reward_for_amount = (user_stake_info.amount as u128)
+            .checked_mul(global_pool.accumulated_reward_per_share)
+            .ok_or(StakingError::MathOverflow)?
+            .checked_div(ACCUMULATED_REWARD_PER_SHARE_PRECISION)
+            .ok_or(StakingError::MathOverflow)?;
+        user_stake_info.reward_debt = acc_reward_for_amount
+            .checked_sub(pending_reward)
+            .ok_or(StakingError::MathOverflow)?;
+
+        global_pool.total_staked = global_pool
+            .total_staked
+            .checked_add(amount)
+            .ok_or(StakingError::MathOverflow)?;
+
+        let next_counter_val = position_index.checked_add(1).ok_or(StakingError::MathOverflow)?;
+        match period {
+            0 => ctx.accounts.position_counter_1m.next_index = next_counter_val,
+            1 => ctx.accounts.position_counter_3m.next_index = next_counter_val,
+            _ => ctx.accounts.position_counter_1y.next_index = next_counter_val,
+        }
+
+        // === INTERACTIONS (external CPIs last) ===
+
+        // Create position account (system program CPI)
         let rent = anchor_lang::solana_program::rent::Rent::get()?;
         let lamports = rent.minimum_balance(StakePosition::LEN);
+        let idx_bytes = position_index.to_le_bytes();
         let create_ix = anchor_lang::solana_program::system_instruction::create_account(
             &ctx.accounts.owner.key(),
             &position_pda,
@@ -331,7 +433,7 @@ impl<'info> Stake<'info> {
             POSITION_SEED,
             owner.as_ref(),
             &[period],
-            &position_index.to_le_bytes(),
+            &idx_bytes,
             &[position_bump],
         ]];
         anchor_lang::solana_program::program::invoke_signed(
@@ -344,111 +446,23 @@ impl<'info> Stake<'info> {
             signer_seeds,
         )?;
 
-        let unlock_at = clock.unix_timestamp + period_secs;
+        // C-03 fix: verify the created account is owned by this program
+        require!(
+            ctx.accounts.stake_position.owner == ctx.program_id,
+            StakingError::InvalidAccountOwner
+        );
+
         let position_data = StakePosition {
             owner,
             period,
             index: position_index,
             amount,
-            unlock_at,
+            unlock_at: unlock_at_new,
         };
         let mut data = ctx.accounts.stake_position.try_borrow_mut_data()?;
         position_data.try_serialize(&mut *data)?;
 
-        // Increment counter for next stake in this period
-        match period {
-            0 => ctx.accounts.position_counter_1m.next_index = next_idx + 1,
-            1 => ctx.accounts.position_counter_3m.next_index = next_idx + 1,
-            _ => ctx.accounts.position_counter_1y.next_index = next_idx + 1,
-        }
-
-        // 1. Update pool rewards first
-        update_pool(global_pool, clock.unix_timestamp)?;
-
-        // Ensure all 3 period accounts exist (init_if_needed by Anchor; set defaults if new)
-        Self::init_user_if_needed(&mut ctx.accounts.user_stake_info_1m, owner);
-        Self::init_user_if_needed(&mut ctx.accounts.user_stake_info_3m, owner);
-        Self::init_user_if_needed(&mut ctx.accounts.user_stake_info_1y, owner);
-
-        let (user_stake_info, pending_reward) = match period {
-            0 => {
-                let info = &mut ctx.accounts.user_stake_info_1m;
-                Self::init_user_if_needed(info, owner);
-                let pending = if info.amount > 0 {
-                    calculate_pending_reward(
-                        info.amount,
-                        global_pool.accumulated_reward_per_share,
-                        info.reward_debt,
-                    )?
-                } else {
-                    0u128
-                };
-                let unlock_at = if info.amount == 0 {
-                    clock.unix_timestamp + period_secs
-                } else {
-                    let new_unlock = clock.unix_timestamp + period_secs;
-                    if new_unlock > info.unlock_at {
-                        new_unlock
-                    } else {
-                        info.unlock_at
-                    }
-                };
-                info.unlock_at = unlock_at;
-                (info, pending)
-            }
-            1 => {
-                let info = &mut ctx.accounts.user_stake_info_3m;
-                Self::init_user_if_needed(info, owner);
-                let pending = if info.amount > 0 {
-                    calculate_pending_reward(
-                        info.amount,
-                        global_pool.accumulated_reward_per_share,
-                        info.reward_debt,
-                    )?
-                } else {
-                    0u128
-                };
-                let unlock_at = if info.amount == 0 {
-                    clock.unix_timestamp + period_secs
-                } else {
-                    let new_unlock = clock.unix_timestamp + period_secs;
-                    if new_unlock > info.unlock_at {
-                        new_unlock
-                    } else {
-                        info.unlock_at
-                    }
-                };
-                info.unlock_at = unlock_at;
-                (info, pending)
-            }
-            _ => {
-                let info = &mut ctx.accounts.user_stake_info_1y;
-                Self::init_user_if_needed(info, owner);
-                let pending = if info.amount > 0 {
-                    calculate_pending_reward(
-                        info.amount,
-                        global_pool.accumulated_reward_per_share,
-                        info.reward_debt,
-                    )?
-                } else {
-                    0u128
-                };
-                let unlock_at = if info.amount == 0 {
-                    clock.unix_timestamp + period_secs
-                } else {
-                    let new_unlock = clock.unix_timestamp + period_secs;
-                    if new_unlock > info.unlock_at {
-                        new_unlock
-                    } else {
-                        info.unlock_at
-                    }
-                };
-                info.unlock_at = unlock_at;
-                (info, pending)
-            }
-        };
-
-        // 2. Transfer tokens from user to vault
+        // Token transfer from user to vault (last external CPI)
         let cpi_accounts = Transfer {
             from: ctx.accounts.user_staking_token_account.to_account_info(),
             to: ctx.accounts.staking_vault.to_account_info(),
@@ -457,28 +471,6 @@ impl<'info> Stake<'info> {
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
         token::transfer(cpi_ctx, amount)?;
-
-        // 3. Update user state
-        user_stake_info.amount = user_stake_info
-            .amount
-            .checked_add(amount)
-            .ok_or(StakingError::MathOverflow)?;
-
-        // 4. Update reward debt so pending is preserved for later claim
-        let acc_reward_for_amount = (user_stake_info.amount as u128)
-            .checked_mul(global_pool.accumulated_reward_per_share)
-            .ok_or(StakingError::MathOverflow)?
-            .checked_div(ACCUMULATED_REWARD_PER_SHARE_PRECISION)
-            .ok_or(StakingError::MathOverflow)?;
-        user_stake_info.reward_debt = acc_reward_for_amount
-            .checked_sub(pending_reward)
-            .ok_or(StakingError::MathOverflow)?;
-
-        // 5. Update global pool total
-        global_pool.total_staked = global_pool
-            .total_staked
-            .checked_add(amount)
-            .ok_or(StakingError::MathOverflow)?;
 
         msg!(
             "Stake successful. Period: {}, User Amount: {}, Unlock at: {}",
@@ -495,6 +487,7 @@ impl<'info> Stake<'info> {
             info.amount = 0;
             info.reward_debt = 0;
             info.unlock_at = 0;
+            info.unclaimed_reward = 0;
         }
     }
 }
@@ -509,7 +502,8 @@ pub fn update_pool(pool: &mut GlobalPool, current_time: i64) -> Result<()> {
         return Ok(());
     }
 
-    let time_elapsed = (current_time - pool.last_reward_time) as u64;
+    let raw_elapsed = (current_time - pool.last_reward_time) as u64;
+    let time_elapsed = std::cmp::min(raw_elapsed, MAX_REWARD_ELAPSED_SECS);
     let reward = (pool.reward_per_second as u128)
         .checked_mul(time_elapsed as u128)
         .ok_or(StakingError::RewardCalculationOverflow)?;
@@ -540,5 +534,7 @@ pub fn calculate_pending_reward(
         .checked_div(ACCUMULATED_REWARD_PER_SHARE_PRECISION)
         .ok_or(StakingError::MathOverflow)?;
 
-    Ok(acc_reward.checked_sub(reward_debt).unwrap_or(0))
+    acc_reward
+        .checked_sub(reward_debt)
+        .ok_or_else(|| error!(StakingError::MathOverflow))
 }

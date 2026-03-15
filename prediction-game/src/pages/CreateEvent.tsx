@@ -11,7 +11,7 @@ import { stakingApi, STAKING_TIERS, formatSyraAmount, getTierColor, getTierBgCol
 
 const CreateEvent = () => {
   const navigate = useNavigate();
-  const { isConnected, syraBalance, walletAddress, solBalance, refreshBalances } = useWallet();
+  const { isConnected, syraBalance, walletAddress, solBalance, refreshBalances, sendSol } = useWallet();
   const { 
     stakingInfo,
     currentTier, 
@@ -129,12 +129,10 @@ const CreateEvent = () => {
 
     try {
       toast.info('Please approve the transaction in your wallet...');
-      
-      // TODO: In production, send creatorDeposit to treasury/escrow
-      // const txSignature = await sendSol(creatorDepositNum, 'TREASURY_ADDRESS');
-      
-      if (solBalance < creatorDepositNum) {
-        throw new Error('Insufficient SOL balance');
+
+      const txSignature = await sendSol(creatorDepositNum);
+      if (!txSignature) {
+        throw new Error('Transaction failed or was rejected');
       }
 
       const event = await api.createEvent({
@@ -149,6 +147,7 @@ const CreateEvent = () => {
         maxParticipants: maxParticipantsNum,
         distribution,
         winnerSplit,
+        creationTxSignature: txSignature,
       });
 
       // Record event creation in staking system
@@ -256,7 +255,7 @@ const CreateEvent = () => {
                     onClick={() => setSelectedToken(token.symbol)}
                     className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 group ${
                       selectedToken === token.symbol
-                        ? 'border-primary bg-primary/10 shadow-[0_0_15px_hsl(270_70%_60%/0.3)] scale-105'
+                        ? 'border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--accent)/0.3)] scale-105'
                         : 'border-border bg-secondary/50 hover:border-primary/40 hover:scale-105'
                     }`}
                   >
@@ -401,8 +400,8 @@ const CreateEvent = () => {
 
                 <div>
                   <label className="text-xs sm:text-sm text-muted-foreground mb-2 flex items-center gap-1">
-                    <span className="text-purple-400">3.</span> Waiting
-                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" />
+                    <span className="text-amber-400">3.</span> Waiting
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400" />
                   </label>
                   <div className="grid grid-cols-4 gap-1">
                     {['12', '24', '48', '72'].map((hours) => (
@@ -411,8 +410,8 @@ const CreateEvent = () => {
                         onClick={() => setWaitingDuration(hours)}
                         className={`py-1.5 sm:py-2 rounded border text-xs sm:text-sm transition-all ${
                           waitingDuration === hours
-                            ? 'border-purple-400 bg-purple-400/10 text-purple-400 font-semibold'
-                            : 'border-border bg-secondary/50 hover:border-purple-400/40'
+                            ? 'border-amber-400 bg-amber-400/10 text-amber-400 font-semibold'
+                            : 'border-border bg-secondary/50 hover:border-amber-400/40'
                         }`}
                       >
                         {hours}h
@@ -429,7 +428,7 @@ const CreateEvent = () => {
                   <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <span className="text-yellow-400">Predict {predictionDuration}h</span>
                   <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-purple-400">Wait {waitingDuration}h</span>
+                  <span className="text-amber-400">Wait {waitingDuration}h</span>
                   <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <span className="text-green-400">Results</span>
                 </div>
@@ -537,7 +536,7 @@ const CreateEvent = () => {
                     <p className="text-muted-foreground">Your Profit</p>
                   </div>
                   <div>
-                    <p className="font-bold text-purple-400">{maxPayout.platformPayout} SOL</p>
+                    <p className="font-bold text-amber-400">{maxPayout.platformPayout} SOL</p>
                     <p className="text-muted-foreground">Platform</p>
                   </div>
                 </div>

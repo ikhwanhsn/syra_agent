@@ -321,6 +321,12 @@ class ApiService {
     });
   }
 
+  async autoResolveEvents(): Promise<{ message: string; eventsChecked: number; resolved: number; failed: number; errors: any[] }> {
+    return this.request('/events/auto-resolve', {
+      method: 'POST',
+    });
+  }
+
   // Stats
   async getStats(): Promise<StatsResponse> {
     return this.request<StatsResponse>('/events/stats');
@@ -348,7 +354,7 @@ export function getPhaseColor(status: Event['status']): string {
   const colors: Record<Event['status'], string> = {
     joining: 'text-blue-400',
     predicting: 'text-yellow-400',
-    waiting: 'text-purple-400',
+    waiting: 'text-amber-400',
     completed: 'text-green-400',
     cancelled: 'text-red-400',
   };

@@ -12,9 +12,13 @@
  *   OKX_DEX_RETRIES       — retries on timeout/connection errors (default 2)
  *   OKX_DEX_RETRY_DELAY_MS — delay between retries (default 2000)
  *   OKX_DEX_SECURE_SSL    — set to 1 to verify SSL (default: allow self-signed for proxy)
+ *   OKX_DEX_DNS_BYPASS    — set to 0 to disable custom DNS resolution (default: enabled)
+ *   OKX_DEX_DNS_SERVERS   — comma-separated DNS servers for bypass (default: 8.8.8.8,1.1.1.1)
+ *   OKX_DEX_DNS_TTL_MS    — DNS cache TTL in ms (default: 300000 = 5 min)
  */
 import crypto from "crypto";
 import https from "https";
+import dns from "dns";
 import axios from "axios";
 
 const OKX_DEX_BASE = process.env.OKX_WEB3_API_BASE_URL || "https://web3.okx.com";
@@ -22,11 +26,56 @@ const OKX_TIMEOUT_MS = Math.max(15_000, Number(process.env.OKX_DEX_TIMEOUT_MS) |
 const OKX_DEX_RETRIES = Math.min(3, Math.max(0, parseInt(process.env.OKX_DEX_RETRIES, 10) || 2));
 const OKX_DEX_RETRY_DELAY_MS = Number(process.env.OKX_DEX_RETRY_DELAY_MS) || 2_000;
 
-/** Cached agent; created lazily so process.env is read after dotenv has loaded. */
-let _httpsAgent = null;
+// --- DNS bypass for ISP-level domain blocking (e.g. web3.okx.com blocked in some regions) ---
 
-/** Use HTTPS agent that allows self-signed certs (corporate proxy). Set OKX_DEX_SECURE_SSL=1 to disable and use strict verification. */
-function getHttpsAgent() {
+const OKX_DNS_BYPASS = !/^(0|false|no)$/i.test(String(process.env.OKX_DEX_DNS_BYPASS ?? "").trim());
+const OKX_DNS_SERVERS = (process.env.OKX_DEX_DNS_SERVERS || "8.8.8.8,1.1.1.1")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const OKX_DNS_TTL_MS = Math.max(10_000, Number(process.env.OKX_DEX_DNS_TTL_MS) || 300_000);
+
+const _dnsCache = new Map();
+let _dnsResolver = null;
+
+function getDnsResolver() {
+  if (_dnsResolver) return _dnsResolver;
+  _dnsResolver = new dns.Resolver();
+  _dnsResolver.setServers(OKX_DNS_SERVERS);
+  return _dnsResolver;
+}
+
+/**
+ * Resolve hostname to IP using custom DNS servers (bypasses ISP DNS hijacking).
+ * Caches results for OKX_DNS_TTL_MS.
+ */
+async function resolveHostBypass(hostname) {
+  const cached = _dnsCache.get(hostname);
+  if (cached && Date.now() - cached.ts < OKX_DNS_TTL_MS) return cached.addresses;
+
+  const resolver = getDnsResolver();
+  const addresses = await new Promise((resolve, reject) => {
+    resolver.resolve4(hostname, (err, addrs) => {
+      if (err) return reject(err);
+      resolve(addrs);
+    });
+  });
+  _dnsCache.set(hostname, { addresses, ts: Date.now() });
+  return addresses;
+}
+
+/** Cached agents; created lazily so process.env is read after dotenv has loaded. */
+let _httpsAgent = null;
+let _bypassAgent = null;
+let _bypassServername = null;
+
+function getHttpsAgent(servername) {
+  if (servername) {
+    if (_bypassAgent && _bypassServername === servername) return _bypassAgent;
+    _bypassServername = servername;
+    _bypassAgent = new https.Agent({ rejectUnauthorized: true, servername });
+    return _bypassAgent;
+  }
   if (_httpsAgent !== null) return _httpsAgent;
   const secureOnly = /^(1|true|yes)$/i.test(String(process.env.OKX_DEX_SECURE_SSL ?? "").trim());
   _httpsAgent = secureOnly ? undefined : new https.Agent({ rejectUnauthorized: false });
@@ -131,6 +180,26 @@ async function okxDexRequest(method, path, queryParams = {}, body = undefined) {
   };
   if (method === "POST") headers["Content-Type"] = "application/json";
 
+  // DNS bypass: resolve hostname via custom DNS to circumvent ISP-level blocking
+  let requestUrl = url.toString();
+  let agent;
+  if (OKX_DNS_BYPASS && url.hostname) {
+    try {
+      const ips = await resolveHostBypass(url.hostname);
+      if (ips && ips.length > 0) {
+        const ip = ips[Math.floor(Math.random() * ips.length)];
+        requestUrl = url.toString().replace(url.hostname, ip);
+        headers["Host"] = url.hostname;
+        agent = getHttpsAgent(url.hostname);
+      }
+    } catch (_dnsErr) {
+      // DNS bypass failed — fall through to normal resolution
+      agent = getHttpsAgent();
+    }
+  } else {
+    agent = getHttpsAgent();
+  }
+
   const isRetryable = (e) => {
     const code = e?.code || e?.cause?.code;
     return (
@@ -154,10 +223,9 @@ async function okxDexRequest(method, path, queryParams = {}, body = undefined) {
         headers["OK-ACCESS-SIGN"] = sig2;
         headers["OK-ACCESS-TIMESTAMP"] = ts2;
       }
-      const agent = getHttpsAgent();
       const res = await axios({
         method,
-        url: url.toString(),
+        url: requestUrl,
         headers,
         data: method === "POST" ? bodyStr : undefined,
         timeout: OKX_TIMEOUT_MS,
@@ -365,23 +433,19 @@ export async function getDexSignalChains() {
  */
 export async function getDexSignalList(chain = "solana", opts = {}) {
   const chainIndex = resolveChainIndex(chain);
-  const body = [
-    {
-      chainIndex,
-      walletType: opts.walletType ?? "1,2,3",
-      minAmountUsd: opts.minAmountUsd ?? "",
-      maxAmountUsd: opts.maxAmountUsd ?? "",
-      minAddressCount: opts.minAddressCount ?? "",
-      maxAddressCount: opts.maxAddressCount ?? "",
-      tokenAddress: opts.tokenAddress ?? "",
-      minMarketCapUsd: opts.minMarketCapUsd ?? "",
-      maxMarketCapUsd: opts.maxMarketCapUsd ?? "",
-      minLiquidityUsd: opts.minLiquidityUsd ?? "",
-      maxLiquidityUsd: opts.maxLiquidityUsd ?? "",
-    },
-  ];
+  const body = { chainIndex, walletType: opts.walletType ?? "1,2,3" };
+  if (opts.minAmountUsd) body.minAmountUsd = opts.minAmountUsd;
+  if (opts.maxAmountUsd) body.maxAmountUsd = opts.maxAmountUsd;
+  if (opts.minAddressCount) body.minAddressCount = opts.minAddressCount;
+  if (opts.maxAddressCount) body.maxAddressCount = opts.maxAddressCount;
+  if (opts.tokenAddress) body.tokenAddress = opts.tokenAddress;
+  if (opts.minMarketCapUsd) body.minMarketCapUsd = opts.minMarketCapUsd;
+  if (opts.maxMarketCapUsd) body.maxMarketCapUsd = opts.maxMarketCapUsd;
+  if (opts.minLiquidityUsd) body.minLiquidityUsd = opts.minLiquidityUsd;
+  if (opts.maxLiquidityUsd) body.maxLiquidityUsd = opts.maxLiquidityUsd;
   const out = await okxDexRequest("POST", "/api/v6/dex/market/signal/list", {}, body);
-  return { result: out.data ?? [] };
+  const data = out.data;
+  return { result: Array.isArray(data) ? data : data?.list ?? data ?? [] };
 }
 
 // ---- Memepump API (REST) ----

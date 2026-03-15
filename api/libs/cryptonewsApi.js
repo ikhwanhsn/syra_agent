@@ -6,8 +6,12 @@
 
 const BASE_URL = "https://cryptonews-api.com/api/v1";
 
+export function getCryptonewsToken() {
+  return (process.env.CRYPTO_NEWS_API_TOKEN || "").trim();
+}
+
 function getToken() {
-  return process.env.CRYPTO_NEWS_API_TOKEN || "";
+  return getCryptonewsToken();
 }
 
 /**
@@ -31,6 +35,7 @@ export function buildUrl(pathname, params = {}) {
 
 /**
  * Fetch from cryptonews-api.com and return full JSON response.
+ * Throws on 401/403 with a clear message so callers don't surface upstream "Permission Issue with API key" to end users.
  * @param {string} pathname
  * @param {Record<string, string | number>} [params]
  * @returns {Promise<{ data?: unknown }>}
@@ -38,7 +43,26 @@ export function buildUrl(pathname, params = {}) {
 export async function fetchCryptoNewsApi(pathname, params = {}) {
   const url = buildUrl(pathname, params);
   const response = await fetch(url);
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401 || response.status === 403) {
+    const upstreamMsg = (data && (data.message || data.error || data.msg)) || response.statusText;
+    if (!getToken()) {
+      throw new Error(
+        "CRYPTO_NEWS_API_TOKEN is not set. Set it in API .env to enable crypto news (see https://cryptonews-api.com)."
+      );
+    }
+    throw new Error(
+      `Cryptonews API rejected the request (${response.status}). Token may be invalid or expired; check CRYPTO_NEWS_API_TOKEN. ${upstreamMsg}`
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      (data && (data.message || data.error || data.msg)) || response.statusText || `Request failed: ${response.status}`
+    );
+  }
+
   return data;
 }
 

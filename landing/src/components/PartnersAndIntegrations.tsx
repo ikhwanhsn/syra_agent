@@ -14,6 +14,7 @@ const PARTNERS = [
   { name: "Rugcheck", slug: "rugcheck", href: "https://rugcheck.xyz" },
   { name: "Bubblemaps", slug: "bubblemaps", href: "https://bubblemaps.io" },
   { name: "Binance", slug: "binance", href: "https://binance.com" },
+  { name: "Messari", slug: "messari", href: "https://messari.io" },
   { name: "Pump", slug: "pump", href: "https://pump.fun" },
 ];
 

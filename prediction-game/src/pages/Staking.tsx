@@ -88,9 +88,8 @@ const Staking = () => {
 
     setIsStaking(true);
     try {
-      // TODO: In production, trigger actual token transfer to staking contract
       toast.info('Processing stake...');
-      
+
       const success = await stake(stakeAmountNum);
       
       if (success) {

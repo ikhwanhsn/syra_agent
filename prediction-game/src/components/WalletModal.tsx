@@ -1,11 +1,13 @@
 import { X, Wallet, Coins, LogOut, Copy, Check, ExternalLink, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/contexts/WalletContext';
+import { useStaking } from '@/contexts/StakingContext';
 import { useWallet as useSolanaWallet, useConnection } from '@solana/wallet-adapter-react';
+import { NETWORK } from '@/contexts/SolanaWalletProvider';
+import { getTierColor, getTierBgColor, formatSyraAmount, type TierName } from '@/services/stakingApi';
 import { useState, useEffect } from 'react';
 
-// Network configuration - change this when switching between devnet/mainnet
-const CURRENT_NETWORK: 'devnet' | 'testnet' | 'mainnet-beta' = 'devnet';
+const CURRENT_NETWORK = NETWORK;
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -14,6 +16,7 @@ interface WalletModalProps {
 
 const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const { isConnected, walletAddress, syraBalance, solBalance, disconnect } = useWallet();
+  const { currentTier, stakedAmount, canCreateEvent, remainingEventsToday, dailyLimit } = useStaking();
   const { wallets, select, connecting } = useSolanaWallet();
   const { connection } = useConnection();
   const [copied, setCopied] = useState(false);
@@ -146,7 +149,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
       />
       
       {/* Modal */}
-      <div className="relative glass-card w-full max-w-md p-6 animate-scale-in shadow-[0_0_40px_hsl(270_70%_60%/0.3)]">
+      <div className="relative glass-card w-full max-w-md p-6 animate-scale-in shadow-[0_0_40px_hsl(var(--accent)/0.2)]">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -177,10 +180,10 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
         {isConnected ? (
           <div className="space-y-4">
             {/* Wallet Address */}
-            <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(270_70%_60%/0.2)]">
+            <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_hsl(270_70%_60%/0.4)]">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_hsl(var(--accent)/0.3)]">
                     <Wallet className="h-5 w-5 text-primary" />
                   </div>
                   <div>
@@ -217,31 +220,32 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
 
             {/* Balances */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-accent/40 hover:shadow-[0_0_15px_hsl(190_90%_50%/0.2)] hover:scale-105">
+              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-accent/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)] hover:scale-105">
                 <div className="flex items-center gap-2 mb-2">
                   <Coins className="h-4 w-4 text-accent" />
                   <span className="text-sm text-muted-foreground">SOL Balance</span>
                 </div>
                 <p className="text-xl font-bold text-accent">{solBalance.toFixed(4)} SOL</p>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(270_70%_60%/0.2)] hover:scale-105">
+              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)] hover:scale-105">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-primary shadow-[0_0_8px_hsl(270_70%_60%/0.5)]" />
+                  <div className="w-4 h-4 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--accent)/0.4)]" />
                   <span className="text-sm text-muted-foreground">$SYRA</span>
                 </div>
                 <p className="text-xl font-bold text-primary">{formatBalance(syraBalance)}</p>
               </div>
             </div>
 
-            {/* SYRA Tier */}
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_20px_hsl(270_70%_60%/0.3)]">
-              <p className="text-sm text-muted-foreground mb-2">Your Tier</p>
+            {/* Staking Tier */}
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--accent)/0.2)]">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm text-muted-foreground">Staking Tier</p>
+                {stakedAmount > 0 && (
+                  <span className="text-xs text-muted-foreground">{formatSyraAmount(stakedAmount)} staked</span>
+                )}
+              </div>
               <p className="font-semibold text-primary text-lg">
-                {syraBalance >= 10_000_000
-                  ? '🔥 Diamond - 10 Events/Day'
-                  : syraBalance >= 1_000_000
-                  ? '⭐ Gold - 5 Events/Day'
-                  : '📊 Silver - 3 Events/Day'}
+                {currentTier?.emoji} {currentTier?.name || 'Free'} — {canCreateEvent ? `${remainingEventsToday}/${dailyLimit} Events` : 'Stake to Create'}
               </p>
             </div>
 
@@ -270,7 +274,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
                     key={wallet.adapter.name}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     disabled={connecting}
-                    className="w-full flex items-center gap-4 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-all duration-300 border border-border hover:border-primary/40 hover:shadow-[0_0_15px_hsl(270_70%_60%/0.2)] hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-4 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-all duration-300 border border-border hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)] hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center transition-all duration-300 overflow-hidden">
                       {wallet.adapter.icon ? (
@@ -317,7 +321,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
                         window.open(url, '_blank');
                       }
                     }}
-                    className="w-full flex items-center gap-4 p-4 bg-secondary/30 hover:bg-secondary/50 rounded-lg transition-all duration-300 border border-border/50 hover:border-accent/40 hover:shadow-[0_0_15px_hsl(190_90%_50%/0.1)] hover:scale-[1.01] active:scale-100"
+                    className="w-full flex items-center gap-4 p-4 bg-secondary/30 hover:bg-secondary/50 rounded-lg transition-all duration-300 border border-border/50 hover:border-accent/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.1)] hover:scale-[1.01] active:scale-100"
                   >
                     <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center transition-all duration-300 overflow-hidden">
                       {wallet.adapter.icon ? (

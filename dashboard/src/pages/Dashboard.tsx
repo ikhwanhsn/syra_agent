@@ -9,8 +9,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import { fetchKpi, type KpiResponse } from "../api/kpi";
+import { fetchKpiExtended, type KpiExtendedResponse } from "../api/kpiExtended";
 import { LoadingState } from "../components/LoadingState";
 import { cn } from "../lib/utils";
 
@@ -21,6 +24,14 @@ function useKpi() {
     queryKey: ["kpi"],
     queryFn: fetchKpi,
     refetchInterval: 60_000,
+  });
+}
+
+function useKpiExtended() {
+  return useQuery({
+    queryKey: ["kpi-extended"],
+    queryFn: fetchKpiExtended,
+    refetchInterval: 120_000,
   });
 }
 
@@ -95,8 +106,102 @@ const OVERVIEW_TABS: { id: OverviewTab; label: string; icon: string }[] = [
   { id: "requests", label: "Requests", icon: "🔌" },
 ];
 
+function QuickGlanceCard({
+  to,
+  icon,
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  to: string;
+  icon: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="group rounded-xl border border-gray-800 bg-syra-card p-4 shadow-sm transition-all hover:border-gray-600 hover:bg-gray-800/40 sm:p-5"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-800/80 text-lg group-hover:bg-gray-700/80">
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-gray-500">{label}</p>
+          <p className={cn("text-lg font-bold sm:text-xl", accent)}>
+            {typeof value === "number" ? value.toLocaleString() : value}
+          </p>
+          {sub && <p className="truncate text-xs text-gray-500">{sub}</p>}
+        </div>
+        <span className="text-gray-600 transition-colors group-hover:text-gray-400">→</span>
+      </div>
+    </Link>
+  );
+}
+
+function QuickGlanceSection({ extended }: { extended: KpiExtendedResponse | undefined }) {
+  if (!extended) return null;
+  const { revenue, users, health, conversion } = extended;
+  const successRate =
+    health.statusCodeDistribution.reduce((s, d) => s + d.count, 0) > 0
+      ? Math.round(
+          ((health.statusCodeDistribution.find((d) => d.status === "2xx")?.count ?? 0) /
+            health.statusCodeDistribution.reduce((s, d) => s + d.count, 0)) *
+            10000
+        ) / 100
+      : 100;
+
+  return (
+    <section>
+      <h2 className="mb-3 text-base font-semibold text-gray-200 sm:text-lg">
+        Quick glance
+        <span className="ml-2 text-xs font-normal text-gray-500">(click to explore)</span>
+      </h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <QuickGlanceCard
+          to="/revenue"
+          icon="💰"
+          label="Revenue (30d)"
+          value={revenue.paidCurr30d}
+          sub={revenue.growthPct !== 0 ? `${revenue.growthPct > 0 ? "+" : ""}${revenue.growthPct}% MoM` : undefined}
+          accent="text-emerald-400"
+        />
+        <QuickGlanceCard
+          to="/users"
+          icon="👥"
+          label="Active users (7d)"
+          value={users.uniqueUsersLast7d}
+          sub={`${users.totalChats.toLocaleString()} total chats`}
+          accent="text-syra-primary"
+        />
+        <QuickGlanceCard
+          to="/health"
+          icon="🏥"
+          label="API success rate"
+          value={`${successRate}%`}
+          sub={`Avg ${health.avgLatency}ms / P95 ${health.p95Latency}ms`}
+          accent={successRate >= 99 ? "text-emerald-400" : successRate >= 95 ? "text-amber-400" : "text-red-400"}
+        />
+        <QuickGlanceCard
+          to="/revenue"
+          icon="🔄"
+          label="Conversion (30d)"
+          value={`${conversion.conversionRate}%`}
+          sub={`${conversion.paidRequests30d.toLocaleString()} paid / ${conversion.totalRequests30d.toLocaleString()} total`}
+          accent="text-syra-accent"
+        />
+      </div>
+    </section>
+  );
+}
+
 function DashboardContent({ data }: { data: KpiResponse }) {
   const [tab, setTab] = useState<OverviewTab>("summary");
+  const { data: extendedData } = useKpiExtended();
   const {
     totalPaidApiCalls,
     paidApiCallsLast7Days,
@@ -138,6 +243,12 @@ function DashboardContent({ data }: { data: KpiResponse }) {
         >
           Growth insights →
         </Link>
+        <Link
+          to="/revenue"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-600 bg-gray-800/60 px-3 py-2 text-sm font-medium text-gray-300 hover:border-emerald-500/50 hover:bg-gray-800 hover:text-white"
+        >
+          Revenue →
+        </Link>
         <nav
           className="flex rounded-lg border border-gray-700 bg-gray-800/40 p-0.5"
           aria-label="Overview tabs"
@@ -161,6 +272,9 @@ function DashboardContent({ data }: { data: KpiResponse }) {
         </nav>
         </div>
       </header>
+
+      {/* Quick glance: key metrics linking to dedicated pages */}
+      <QuickGlanceSection extended={extendedData} />
 
       {/* API request insights (volume, errors) — includes x402 and non-x402 */}
       {insights && showRequests && (

@@ -243,7 +243,7 @@ export function getTierColor(tier: TierName): string {
     BRONZE: 'text-orange-400',
     SILVER: 'text-gray-300',
     GOLD: 'text-yellow-400',
-    DIAMOND: 'text-cyan-400',
+    DIAMOND: 'text-accent',
   };
   return colors[tier];
 }
@@ -254,7 +254,7 @@ export function getTierBgColor(tier: TierName): string {
     BRONZE: 'bg-orange-500/10 border-orange-500/30',
     SILVER: 'bg-gray-400/10 border-gray-400/30',
     GOLD: 'bg-yellow-500/10 border-yellow-500/30',
-    DIAMOND: 'bg-cyan-500/10 border-cyan-500/30',
+    DIAMOND: 'bg-accent/10 border-accent/30',
   };
   return colors[tier];
 }

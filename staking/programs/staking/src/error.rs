@@ -26,4 +26,10 @@ pub enum StakingError {
     InvalidPeriod,
     #[msg("Stake is still locked")]
     StakeLocked,
+    #[msg("Account not owned by the staking program")]
+    InvalidAccountOwner,
+    #[msg("Stake position PDA does not match expected derivation")]
+    PositionPdaMismatch,
+    #[msg("Reward per second exceeds allowed maximum")]
+    RewardPerSecondExceedsMax,
 }

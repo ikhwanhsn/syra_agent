@@ -21,6 +21,13 @@ import {
   X402_API_PRICE_KRAKEN_USD,
   X402_API_PRICE_OKX_USD,
   X402_API_PRICE_GIZA_USD,
+  X402_API_PRICE_MESSARI_USD,
+  X402_API_PRICE_MESSARI_AI_USD,
+  X402_API_PRICE_MESSARI_SIGNAL_USD,
+  X402_API_PRICE_MESSARI_PREMIUM_USD,
+  X402_API_PRICE_MESSARI_TIMESERIES_USD,
+  X402_API_PRICE_MESSARI_VESTING_USD,
+  X402_API_PRICE_MESSARI_INVESTOR_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -41,6 +48,13 @@ import {
   X402_DISPLAY_PRICE_KRAKEN_USD,
   X402_DISPLAY_PRICE_OKX_USD,
   X402_DISPLAY_PRICE_GIZA_USD,
+  X402_DISPLAY_PRICE_MESSARI_USD,
+  X402_DISPLAY_PRICE_MESSARI_AI_USD,
+  X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD,
+  X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD,
+  X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
+  X402_DISPLAY_PRICE_MESSARI_VESTING_USD,
+  X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
@@ -986,6 +1000,160 @@ export const AGENT_TOOLS = [
     name: 'Giza run (rebalance)',
     description: 'Trigger a manual optimization run for a Giza agent. Params: owner',
   },
+  // Partner: Messari x402 (AI, metrics, signal, news, token unlocks, fundraising, networks, X-users)
+  {
+    id: 'messari-ai',
+    path: '/messari/ai',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_MESSARI_AI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_AI_USD,
+    name: 'Messari AI chat',
+    description: 'AI-powered crypto research using Messari\'s 30TB+ knowledge graph (chat completions)',
+  },
+  {
+    id: 'messari-asset-details',
+    path: '/messari/assets/details',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_USD,
+    name: 'Messari asset details',
+    description: 'Rich point-in-time asset data: profile, supply, metrics, sectors (slugs e.g. bitcoin,ethereum)',
+  },
+  {
+    id: 'messari-assets',
+    path: '/messari/assets',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_USD,
+    name: 'Messari list assets',
+    description: 'List 34,000+ crypto assets with market and fundamental metrics',
+  },
+  {
+    id: 'messari-ath',
+    path: '/messari/ath',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_USD,
+    name: 'Messari all-time highs',
+    description: 'All-time high snapshots with drawdown context for crypto assets',
+  },
+  {
+    id: 'messari-roi',
+    path: '/messari/roi',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_USD,
+    name: 'Messari ROI',
+    description: 'Multi-window return on investment snapshots for crypto assets',
+  },
+  {
+    id: 'messari-timeseries',
+    path: '/messari/timeseries',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_TIMESERIES_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
+    name: 'Messari asset timeseries',
+    description: 'Historical timeseries data for an asset (price, volume, on-chain metrics) by dataset and granularity',
+  },
+  {
+    id: 'messari-signal',
+    path: '/messari/signal',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD,
+    name: 'Messari signal',
+    description: 'Ranked crypto asset feed by mindshare, sentiment, and momentum from social intelligence',
+  },
+  {
+    id: 'messari-mindshare-gainers',
+    path: '/messari/mindshare-gainers',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_SIGNAL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD,
+    name: 'Messari mindshare gainers',
+    description: 'Tokens gaining the most social attention/mindshare (24h or 7d period)',
+  },
+  {
+    id: 'messari-mindshare-losers',
+    path: '/messari/mindshare-losers',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_SIGNAL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD,
+    name: 'Messari mindshare losers',
+    description: 'Tokens losing the most social attention/mindshare (24h or 7d period)',
+  },
+  {
+    id: 'messari-news',
+    path: '/messari/news',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD,
+    name: 'Messari news',
+    description: 'Curated institutional-grade crypto news feed (optional assetSlugs filter)',
+  },
+  {
+    id: 'messari-token-unlocks',
+    path: '/messari/token-unlocks',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_TIMESERIES_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
+    name: 'Messari token unlocks',
+    description: 'Upcoming and past token unlock events for an asset (assetId required)',
+  },
+  {
+    id: 'messari-vesting',
+    path: '/messari/token-unlocks/vesting',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_VESTING_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_VESTING_USD,
+    name: 'Messari vesting schedule',
+    description: 'Forward-looking token vesting schedule for an asset (assetId required)',
+  },
+  {
+    id: 'messari-fundraising',
+    path: '/messari/fundraising',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_TIMESERIES_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
+    name: 'Messari fundraising rounds',
+    description: 'VC funding rounds by stage, date, amount, participants (seed, series-a, etc.)',
+  },
+  {
+    id: 'messari-fundraising-investors',
+    path: '/messari/fundraising/investors',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_INVESTOR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD,
+    name: 'Messari fundraising investors',
+    description: 'Investors who participated in matching funding rounds',
+  },
+  {
+    id: 'messari-stablecoins',
+    path: '/messari/stablecoins',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_USD,
+    name: 'Messari stablecoins',
+    description: 'Stablecoin supply, flows, and chain breakdowns',
+  },
+  {
+    id: 'messari-networks',
+    path: '/messari/networks',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_USD,
+    name: 'Messari networks',
+    description: 'L1/L2 network on-chain activity — fees, active addresses, usage metrics',
+  },
+  {
+    id: 'messari-x-users',
+    path: '/messari/x-users',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MESSARI_PREMIUM_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD,
+    name: 'Messari X-users',
+    description: 'Ranked crypto X/Twitter influencer feed with engagement and mindshare metrics',
+  },
 ];
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
@@ -1064,6 +1232,92 @@ export function matchToolFromUserMessage(userMessage) {
 
   // Ordered intent patterns: more specific first. Return first match.
   const intents = [
+    // Partner: Messari (AI, metrics, signal, news, unlocks, fundraising)
+    {
+      toolId: 'messari-ai',
+      test: () =>
+        /messari\s*ai|messari\s*chat|messari\s*research|ask\s*messari|messari\s*copilot/i.test(text),
+    },
+    {
+      toolId: 'messari-mindshare-gainers',
+      test: () =>
+        /messari\s*mindshare\s*gainer|mindshare\s*gainer|mindshare\s*trending|mindshare\s*gain/i.test(text),
+    },
+    {
+      toolId: 'messari-mindshare-losers',
+      test: () =>
+        /messari\s*mindshare\s*loser|mindshare\s*loser|mindshare\s*loss|mindshare\s*drop/i.test(text),
+    },
+    {
+      toolId: 'messari-signal',
+      test: () =>
+        /messari\s*signal|messari\s*sentiment|messari\s*social\s*signal|messari\s*mindshare(?!\s*(gainer|loser|gain|loss|drop|trending))/i.test(text),
+    },
+    {
+      toolId: 'messari-token-unlocks',
+      test: () =>
+        /token\s*unlock|messari\s*unlock|vesting\s*event|upcoming\s*unlock/i.test(text),
+    },
+    {
+      toolId: 'messari-vesting',
+      test: () =>
+        /vesting\s*schedule|messari\s*vesting|token\s*vesting/i.test(text),
+    },
+    {
+      toolId: 'messari-fundraising',
+      test: () =>
+        /fundrais|funding\s*round|vc\s*round|seed\s*round|series\s*[a-d]|messari\s*fund/i.test(text),
+    },
+    {
+      toolId: 'messari-fundraising-investors',
+      test: () =>
+        /fundrais.*investor|who\s*invested|vc\s*investor|messari\s*investor/i.test(text),
+    },
+    {
+      toolId: 'messari-asset-details',
+      test: () =>
+        /messari\s*asset\s*detail|messari\s*detail|messari\s*profile|messari\s*fundamentals/i.test(text),
+    },
+    {
+      toolId: 'messari-ath',
+      test: () =>
+        /messari\s*ath|all\s*time\s*high|messari\s*all.?time|ath\s*data|drawdown/i.test(text),
+    },
+    {
+      toolId: 'messari-roi',
+      test: () =>
+        /messari\s*roi|return\s*on\s*investment|messari\s*return|roi\s*data/i.test(text),
+    },
+    {
+      toolId: 'messari-news',
+      test: () =>
+        /messari\s*news|institutional\s*news\s*messari/i.test(text),
+    },
+    {
+      toolId: 'messari-stablecoins',
+      test: () =>
+        /messari\s*stablecoin|stablecoin\s*supply|stablecoin\s*flow|stablecoin\s*data/i.test(text),
+    },
+    {
+      toolId: 'messari-networks',
+      test: () =>
+        /messari\s*network|l1\s*l2\s*activity|network\s*activity\s*messari|chain\s*activity|messari\s*l1|messari\s*l2/i.test(text),
+    },
+    {
+      toolId: 'messari-x-users',
+      test: () =>
+        /messari\s*x.?user|messari\s*influencer|crypto\s*influencer\s*rank|messari\s*twitter/i.test(text),
+    },
+    {
+      toolId: 'messari-timeseries',
+      test: () =>
+        /messari\s*timeseries|messari\s*historical|messari\s*time\s*series/i.test(text),
+    },
+    {
+      toolId: 'messari-assets',
+      test: () =>
+        /messari\s*assets?(?!\s*detail)|list\s*(?:all\s*)?assets?\s*messari/i.test(text),
+    },
     // Partner: Rugcheck, Bubblemaps, Binance
     {
       toolId: 'token-report',
@@ -1525,6 +1779,7 @@ export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'website-crawl', 'trending-headline', 'sundown-digest', 'analytics-summary'];
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'binance-ticker-24h', 'binance-orderbook', 'binance-exchange-info', 'binance-spot-account', 'binance-spot-order', 'binance-spot-order-cancel', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap', 'giza-protocols', 'giza-agent', 'giza-portfolio', 'giza-apr', 'giza-performance', 'giza-activate', 'giza-withdraw', 'giza-top-up', 'giza-update-protocols', 'giza-run'];
+  const messari = ['messari-ai', 'messari-asset-details', 'messari-assets', 'messari-ath', 'messari-roi', 'messari-timeseries', 'messari-signal', 'messari-mindshare-gainers', 'messari-mindshare-losers', 'messari-news', 'messari-token-unlocks', 'messari-vesting', 'messari-fundraising', 'messari-fundraising-investors', 'messari-stablecoins', 'messari-networks', 'messari-x-users'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
@@ -1541,6 +1796,7 @@ export function getCapabilitiesList() {
 
   lines.push('Core:', ...fmt(core), '');
   lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun, Giza):', ...fmt(partner), '');
+  lines.push('Messari (AI, metrics, signal/mindshare, news, token unlocks, fundraising, stablecoins, networks, X-users):', ...fmt(messari), '');
   lines.push('8004scan.io (ERC-8004 agent discovery):', ...fmt(eight004scan), '');
   if (nansenX402.length) {
     lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
@@ -1657,13 +1913,62 @@ export function getToolsForLlmSelection() {
       out.paramsHint = 'Params: address (token address; empty for native token), chain (default ethereum)';
     }
     if (t.id === 'okx-dex-signal-list') {
-      out.paramsHint = 'Params: chain (e.g. solana, ethereum; required), wallet-type (1=Smart Money,2=KOL,3=Whale), min-amount-usd, token-address';
+      out.paramsHint = 'Params: chain (e.g. solana, ethereum; required), walletType (use "1,2,3" for all: Smart Money+KOL+Whale in ONE call; or "1" for Smart Money only, "2" for KOL only, "3" for Whale only)';
     }
     if (t.id === 'okx-dex-memepump-tokens') {
-      out.paramsHint = 'Params: chain (default solana), stage (NEW, MIGRATING, or MIGRATED; required), protocol-id-list, min-market-cap, keywords-include';
+      out.paramsHint = 'Params: chain (default solana), stage (NEW or MIGRATING or MIGRATED; required)';
     }
     if (['okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet'].includes(t.id)) {
       out.paramsHint = 'Params: address (token contract address, required), chain (default solana); aped-wallet also accepts optional wallet';
+    }
+    // Messari x402 tools
+    if (t.id === 'messari-ai') {
+      out.paramsHint = 'Params: question (required) — natural language question about crypto; OR messages (array of {role, content})';
+    }
+    if (t.id === 'messari-asset-details') {
+      out.paramsHint = 'Params: slugs (comma-separated, e.g. bitcoin,ethereum) or assetIds';
+    }
+    if (t.id === 'messari-assets') {
+      out.paramsHint = 'Params: assetSlugs (optional filter), metrics (optional), limit, page';
+    }
+    if (t.id === 'messari-ath') {
+      out.paramsHint = 'Params: slugs (e.g. bitcoin,ethereum) or assetIds; optional sectors, categories, tags';
+    }
+    if (t.id === 'messari-roi') {
+      out.paramsHint = 'Params: slugs (e.g. bitcoin,ethereum) or assetIds';
+    }
+    if (t.id === 'messari-timeseries') {
+      out.paramsHint = 'Params: assetId (or slug, required), datasetSlug (required, e.g. price), granularity (5m,15m,1h,1d default 1d), start, end';
+    }
+    if (t.id === 'messari-signal') {
+      out.paramsHint = 'Params: assetIds (optional), sort, sortDirection (asc/desc), limit, page';
+    }
+    if (t.id === 'messari-mindshare-gainers' || t.id === 'messari-mindshare-losers') {
+      out.paramsHint = 'Params: period (24h default or 7d), limit, page';
+    }
+    if (t.id === 'messari-news') {
+      out.paramsHint = 'Params: assetSlugs (optional, comma-separated), sourceIds, limit, page';
+    }
+    if (t.id === 'messari-token-unlocks') {
+      out.paramsHint = 'Params: assetId (required — Messari asset ID); optional start, end, limit';
+    }
+    if (t.id === 'messari-vesting') {
+      out.paramsHint = 'Params: assetId (required — Messari asset ID)';
+    }
+    if (t.id === 'messari-fundraising') {
+      out.paramsHint = 'Params: assetSlugs, roundTypes (seed,series-a,etc.), investorSlugs, start, end, limit, page';
+    }
+    if (t.id === 'messari-fundraising-investors') {
+      out.paramsHint = 'Params: assetSlugs, roundTypes, start, end, limit';
+    }
+    if (t.id === 'messari-stablecoins') {
+      out.paramsHint = 'Params: metrics (optional), chains (optional), limit';
+    }
+    if (t.id === 'messari-networks') {
+      out.paramsHint = 'Params: networkSlugs (optional), metrics (optional), limit';
+    }
+    if (t.id === 'messari-x-users') {
+      out.paramsHint = 'Params: sort, sortDirection, accountType, limit, page';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

@@ -93,7 +93,7 @@ const OPTS: SendTransactionOptions = {
 /**
  * Build and send stake transaction (period: 0=1m, 1=3m, 2=1y).
  * Creates user staking ATA if it doesn't exist.
- * Fetches next position index and passes position_counter + stake_position accounts.
+ * Fetches next position index to derive stake_position PDA account address.
  */
 export async function stake(
   connection: Connection,
@@ -133,7 +133,7 @@ export async function stake(
   );
 
   const stakeIx = await program.methods
-    .stake(new BN(amountRaw.toString()), period, positionIndex)
+    .stake(new BN(amountRaw.toString()), period)
     .accountsStrict({
       globalPool,
       userStakeInfo1M: userStakeInfo1m,

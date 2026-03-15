@@ -3,8 +3,8 @@ import { useWallet as useSolanaWallet, useConnection } from '@solana/wallet-adap
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 
-// SYRA Token Mint Address
 const SYRA_TOKEN_MINT = '8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump';
+const TREASURY_WALLET = import.meta.env.VITE_TREASURY_WALLET || '';
 
 /** Poll interval for confirmation (ms). Avoids signatureSubscribe which fails on HTTP-only RPCs. */
 const CONFIRM_POLL_MS = 1500;
@@ -144,17 +144,18 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setSyraBalance(0);
   }, [disconnectWallet]);
 
-  // Send SOL to a recipient (or treasury for event creation)
   const sendSol = useCallback(async (amount: number, recipient?: string): Promise<string | null> => {
     if (!publicKey || !connection || !sendTransaction) {
       throw new Error('Wallet not connected');
     }
 
+    const target = recipient || TREASURY_WALLET;
+    if (!target) {
+      throw new Error('Treasury wallet not configured. Set VITE_TREASURY_WALLET in .env');
+    }
+
     try {
-      // Default recipient is a treasury/escrow address - you should set this to your actual treasury
-      const recipientPubkey = recipient 
-        ? new PublicKey(recipient) 
-        : publicKey; // For now, sends to self as placeholder
+      const recipientPubkey = new PublicKey(target);
 
       const transaction = new Transaction().add(
         SystemProgram.transfer({

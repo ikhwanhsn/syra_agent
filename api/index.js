@@ -66,6 +66,7 @@ import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
 import { createGizaRouter } from "./routes/partner/giza/index.js";
+import { createMessariRouter } from "./routes/partner/messari/index.js";
 import { createHeyLolRouter } from "./routes/heylol.js";
 import { createBrainRouter } from "./routes/brain.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
@@ -126,6 +127,8 @@ const CORS_ALLOWED_ORIGINS = [
   "https://dev-dashboard-syra.vercel.app",
   "https://dev-playground-syra.vercel.app",
   "https://dev-ai-agent-syra.vercel.app",
+  "https://predict.syraa.fun",
+  "https://www.predict.syraa.fun",
   ...CORS_EXTRA,
 ];
 const CORS_OPTIONS_X402 = {
@@ -208,6 +211,7 @@ function isX402Route(p) {
   if (p.startsWith("/coinmarketcap")) return true;
   if (p.startsWith("/kraken")) return true;
   if (p.startsWith("/okx")) return true;
+  if (p.startsWith("/messari")) return true;
   if (p.startsWith("/8004")) return true;
   if (p.startsWith("/8004scan")) return true;
   if (p.startsWith("/heylol")) return true;
@@ -286,10 +290,10 @@ app.post("/api/playground-proxy", async (req, res) => {
     res.status(400).json({ error: "Missing or invalid url in body" });
     return;
   }
-  const allowedMethods = ["GET", "POST", "HEAD"];
+  const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"];
   const forwardMethod = (method || "GET").toUpperCase();
   if (!allowedMethods.includes(forwardMethod)) {
-    res.status(400).json({ error: "Method not allowed. Use GET or POST." });
+    res.status(400).json({ error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}` });
     return;
   }
   const sentinelFetch = getSentinelFetch("playground");
@@ -356,7 +360,8 @@ app.use(
         p === "/favicon.ico" ||
         p.startsWith("/og") ||
         p.startsWith("/info") ||
-        p.startsWith("/playground")
+        p.startsWith("/playground") ||
+        p.startsWith("/prediction-game")
       );
     },
   ),
@@ -618,6 +623,8 @@ app.use("/8004", await create8004Router());
 app.use("/8004scan", await create8004scanRouter());
 // Giza DeFi yield optimization (x402) – protocols, agent, portfolio, apr, activate, withdraw, etc.
 app.use("/giza", await createGizaRouter());
+// Messari x402 — AI, metrics, signal/mindshare, news, token unlocks, fundraising, stablecoins, networks, X-users
+app.use("/messari", await createMessariRouter());
 
 // hey.lol agent API proxy (x402) – profile, posts, feed, DMs, services, token. Use HEYLOL_SOLANA_PRIVATE_KEY or anonymousId.
 app.use("/heylol", await createHeyLolRouter());
@@ -739,6 +746,31 @@ app.get("/.well-known/x402", (req, res) => {
     "giza/top-up",
     "giza/update-protocols",
     "giza/run",
+    // Messari x402 (AI, metrics, signal, news, token unlocks, fundraising, stablecoins, networks, X-users)
+    "messari/ai",
+    "messari/assets",
+    "messari/assets/details",
+    "messari/assets/metrics",
+    "messari/ath",
+    "messari/roi",
+    "messari/timeseries",
+    "messari/signal",
+    "messari/signal/timeseries",
+    "messari/mindshare-gainers",
+    "messari/mindshare-losers",
+    "messari/news",
+    "messari/token-unlocks",
+    "messari/token-unlocks/assets",
+    "messari/token-unlocks/allocations",
+    "messari/token-unlocks/vesting",
+    "messari/fundraising",
+    "messari/fundraising/investors",
+    "messari/fundraising/projects",
+    "messari/fundraising/mna",
+    "messari/stablecoins",
+    "messari/networks",
+    "messari/x-users",
+    "messari/x-users/timeseries",
     // Analytics
     "analytics/summary",
     // 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection)
