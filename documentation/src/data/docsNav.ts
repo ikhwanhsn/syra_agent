@@ -87,6 +87,11 @@ export const navigation: NavItem[] = [
         ],
       },
       {
+        title: "Partner: Purch Vault",
+        defaultCollapsed: false,
+        items: [{ title: "Purch Vault API", href: api("purch-vault") }],
+      },
+      {
         title: "Partner: Rugcheck",
         defaultCollapsed: false,
         items: [

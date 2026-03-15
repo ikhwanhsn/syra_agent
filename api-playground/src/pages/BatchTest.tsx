@@ -86,6 +86,7 @@ const DEFAULT_BATCH_FLOW_IDS = [
   'token-risk-alerts',
   '8004scan-stats',
   '8004scan-chains',
+  'purch-vault-search',
 ];
 
 const BATCH_SELECTION_STORAGE_KEY = 'x402_batch_test_flow_ids';

@@ -8,6 +8,11 @@ import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../con
 import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
 import { callX402V2WithAgent, signAndSubmitSwapTransaction } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
+import {
+  purchVaultSearch,
+  purchVaultBuy,
+  purchVaultDownload,
+} from '../../libs/agentPurchVaultClient.js';
 import { getAgentUsdcBalance, getAgentAddress, getConnectedWalletAddress } from '../../libs/agentWallet.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
@@ -126,23 +131,98 @@ router.post('/call', async (req, res) => {
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
     if (tool.nansenPath) {
       const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
-    if (!result.success) {
-      const status = result.budgetExceeded ? 402 : 502;
-      return res.status(status).json({
-        success: false,
-        error: result.error,
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return res.status(status).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return res.json({
+        success: true,
         toolId: tool.id,
-        ...(result.budgetExceeded && { budgetExceeded: true }),
+        data: result.data,
       });
     }
-    return res.json({
-      success: true,
-      toolId: tool.id,
-      data: result.data,
-    });
-  }
 
-  const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
+    // Purch Vault: call api.purch.xyz (search, or buy + sign/submit + download)
+    if (tool.purchVaultPath) {
+      if (tool.id === 'purch-vault-search') {
+        const result = await purchVaultSearch(anonymousId, params);
+        if (!result.success) {
+          const status = result.budgetExceeded ? 402 : 502;
+          return res.status(status).json({
+            success: false,
+            error: result.error,
+            toolId: tool.id,
+            ...(result.budgetExceeded && { budgetExceeded: true }),
+          });
+        }
+        return res.json({ success: true, toolId: tool.id, data: result.data });
+      }
+      if (tool.id === 'purch-vault-buy') {
+        const slug = params.slug && String(params.slug).trim();
+        if (!slug) {
+          return res.status(400).json({
+            success: false,
+            error: 'slug is required to buy a Purch Vault item',
+            toolId: tool.id,
+          });
+        }
+        const buyResult = await purchVaultBuy(anonymousId, {
+          slug,
+          email: (params.email && String(params.email).trim()) || undefined,
+        });
+        if (!buyResult.success) {
+          const status = buyResult.budgetExceeded ? 402 : 502;
+          return res.status(status).json({
+            success: false,
+            error: buyResult.error,
+            toolId: tool.id,
+            ...(buyResult.budgetExceeded && { budgetExceeded: true }),
+          });
+        }
+        try {
+          const { signature } = await signAndSubmitSwapTransaction(
+            anonymousId,
+            buyResult.data.serializedTransaction
+          );
+          const downloadResult = await purchVaultDownload(anonymousId, {
+            purchaseId: buyResult.data.purchaseId,
+            downloadToken: buyResult.data.downloadToken,
+            txSignature: signature,
+          });
+          if (downloadResult.success) {
+            return res.json({
+              success: true,
+              toolId: tool.id,
+              data: {
+                purchaseId: buyResult.data.purchaseId,
+                item: buyResult.data.item,
+                payment: buyResult.data.payment,
+                purchased: true,
+                downloadCompleted: true,
+              },
+            });
+          }
+          return res.status(502).json({
+            success: false,
+            error: `Purchase submitted but download failed: ${downloadResult.error}`,
+            toolId: tool.id,
+          });
+        } catch (signErr) {
+          return res.status(502).json({
+            success: false,
+            error: signErr?.message || 'Failed to sign or submit purchase transaction',
+            toolId: tool.id,
+          });
+        }
+      }
+    }
+
+    const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
   const method = tool.method || 'GET';
   const query = method === 'GET' || method === 'DELETE' ? params : {};
   const body = method === 'POST' ? params : undefined;

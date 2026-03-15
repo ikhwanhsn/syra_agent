@@ -34,6 +34,7 @@ const PRICE = {
   messariTimeseries: 0.025,
   messariVesting: 0.02,
   messariInvestor: 0.015,
+  purchVault: 0.01,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -359,6 +360,22 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Get a Jupiter Ultra swap order (buy/sell token on Solana). Requires inputMint, outputMint, amount, and taker wallet.",
     priceUsd: PRICE.jupiterSwap,
     examplePrompt: "Jupiter swap order / Get swap quote SOL to USDC",
+    category: "partner",
+  },
+  {
+    id: "purch-vault-search",
+    name: "Purch Vault search",
+    description: "Search Purch Vault for agent skills, knowledge bases, and personas. Optional: q, category, productType, minPrice, maxPrice, limit.",
+    priceUsd: PRICE.purchVault,
+    examplePrompt: "Search Purch Vault for development skills / Find knowledge bases on Purch Vault",
+    category: "partner",
+  },
+  {
+    id: "purch-vault-buy",
+    name: "Purch Vault buy",
+    description: "Purchase a Purch Vault item by slug (from search). Agent pays item price in USDC on Solana and receives the download.",
+    priceUsd: PRICE.purchVault * 2,
+    examplePrompt: "Buy the Faith knowledge pack from Purch Vault / Purchase slug faith from Purch Vault",
     category: "partner",
   },
   {

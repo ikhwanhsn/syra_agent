@@ -37,6 +37,7 @@ export interface ApiDoc {
 
 const BASE_URL = "https://api.syraa.fun";
 const NANSEN_BASE = "https://api.nansen.ai";
+const PURCH_VAULT_BASE = "https://api.purch.xyz";
 const SUPPORT = "https://t.me/ikhwanhsn";
 
 const standard402 = (price: number) => `{
@@ -954,6 +955,55 @@ curl "${BASE_URL}/event?ticker=BTC"`,
   "order": {},
   "transaction": "base64-encoded-transaction..."
 }`,
+      },
+    ],
+  }),
+
+  "purch-vault": doc({
+    title: "Purch Vault API",
+    overview:
+      "Purch Vault is a marketplace for AI agent skills, knowledge bases, and personas. Search, buy, and download digital assets via x402 micropayments (USDC on Solana). Base URL: api.purch.xyz. $0.01 USDC per API call; item purchase is a separate on-chain USDC transfer.",
+    baseUrl: PURCH_VAULT_BASE,
+    price: "$0.01 USDC per API call (search, buy, download); item price paid on-chain when buying.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/x402/vault/search",
+        description: "Search vault items (skills, knowledge, personas). Optional filters: q, category, productType, minPrice, maxPrice, cursor, limit (1–100, default 30).",
+        params: [
+          { name: "q", type: "string", required: "No", description: "Search query." },
+          { name: "category", type: "string", required: "No", description: "Filter: marketing, development, automation, career, ios, productivity." },
+          { name: "productType", type: "string", required: "No", description: "Filter: skill, knowledge, persona." },
+          { name: "limit", type: "string", required: "No", description: "Items per page (default 30)." },
+        ],
+        requestExample: `curl "${PURCH_VAULT_BASE}/x402/vault/search?category=development&limit=5"`,
+        responseExample: `{
+  "items": [
+    { "id": "...", "slug": "faith", "title": "Faith", "productType": "knowledge", "price": 1, "category": "development", "creator": {}, "downloads": 42 }
+  ],
+  "nextCursor": null
+}`,
+      },
+      {
+        method: "POST",
+        path: "/x402/vault/buy",
+        description: "Purchase a vault item. Body: slug (required), walletAddress (Solana payer), email. Returns purchaseId, downloadToken, serializedTransaction to sign and submit on Solana; then call download with txSignature.",
+        bodyExample: `{ "slug": "faith", "walletAddress": "YourSolanaWalletPubkey", "email": "user@example.com" }`,
+        requestExample: `curl -X POST "${PURCH_VAULT_BASE}/x402/vault/buy" -H "Content-Type: application/json" -d '{"slug":"faith","walletAddress":"...","email":"user@example.com"}'`,
+        responseExample: `{
+  "purchaseId": "...",
+  "downloadToken": "...",
+  "serializedTransaction": "base64...",
+  "item": { "slug": "faith", "title": "Faith", "productType": "knowledge", "price": 1 },
+  "payment": { "amountUsdc": "1.00", "network": "solana" }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/x402/vault/download/:purchaseId",
+        description: "Download purchased file (ZIP). Query: downloadToken (required), txSignature (required on first download). Re-downloads need only downloadToken.",
+        requestExample: `curl "${PURCH_VAULT_BASE}/x402/vault/download/<purchaseId>?downloadToken=...&txSignature=..."`,
+        responseExample: "Returns application/zip file.",
       },
     ],
   }),

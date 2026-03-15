@@ -46,10 +46,34 @@ function getNansenBaseUrl(): string {
   return (base && base.trim()) || 'https://api.nansen.ai';
 }
 
+/** Purch Vault API base (marketplace for agent skills, knowledge, personas). Override via VITE_PURCH_VAULT_API_BASE_URL. */
+function getPurchVaultBaseUrl(): string {
+  const base = import.meta.env.VITE_PURCH_VAULT_API_BASE_URL as string | undefined;
+  return (base && base.trim()) || 'https://api.purch.xyz';
+}
+
 function isNansenUrl(url: string): boolean {
   try {
     const u = new URL(url.trim());
     return u.origin === new URL(getNansenBaseUrl()).origin;
+  } catch {
+    return false;
+  }
+}
+
+function isPurchVaultUrl(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    return u.origin === new URL(getPurchVaultBaseUrl()).origin;
+  } catch {
+    return false;
+  }
+}
+
+function isPurchVaultBuyUrl(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    return u.origin === new URL(getPurchVaultBaseUrl()).origin && u.pathname.toLowerCase().endsWith('/x402/vault/buy');
   } catch {
     return false;
   }
@@ -679,6 +703,30 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'taker', value: '', enabled: true, description: 'Your wallet public key (executes the swap)' },
     ],
   },
+  // Purch Vault (api.purch.xyz — marketplace for agent skills, knowledge, personas; x402 payment with wallet)
+  {
+    id: 'purch-vault-search',
+    label: 'Purch Vault search',
+    method: 'GET',
+    url: `${getPurchVaultBaseUrl()}/x402/vault/search`,
+    params: [
+      { key: 'q', value: 'development', enabled: true, description: 'Search query (optional)' },
+      { key: 'category', value: 'development', enabled: false, description: 'marketing, development, automation, career, ios, productivity' },
+      { key: 'productType', value: '', enabled: false, description: 'skill, knowledge, persona' },
+      { key: 'limit', value: '30', enabled: true, description: 'Items per page (1-100, default 30)' },
+    ],
+  },
+  {
+    id: 'purch-vault-buy',
+    label: 'Purch Vault buy',
+    method: 'POST',
+    url: `${getPurchVaultBaseUrl()}/x402/vault/buy`,
+    params: [
+      { key: 'slug', value: 'faith', enabled: true, description: 'Item slug from search (required)' },
+      { key: 'walletAddress', value: '', enabled: true, description: 'Your Solana wallet (payer)' },
+      { key: 'email', value: 'user@example.com', enabled: true, description: 'Email for receipt' },
+    ],
+  },
   // Nansen (call api.nansen.ai directly; x402 payment with wallet)
   ...(function nansenFlows(): ExampleFlowPreset[] {
     const nansenBase = getNansenBaseUrl();
@@ -1250,6 +1298,17 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/messari/x-users': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
       '/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
+      '/x402/vault/search': [
+        { key: 'q', value: 'development', enabled: true, description: 'Search query (optional)' },
+        { key: 'category', value: 'development', enabled: false, description: 'marketing, development, automation, career, ios, productivity' },
+        { key: 'productType', value: '', enabled: false, description: 'skill, knowledge, persona' },
+        { key: 'limit', value: '30', enabled: true, description: 'Items per page (1-100)' },
+      ],
+      '/x402/vault/buy': [
+        { key: 'slug', value: 'faith', enabled: true, description: 'Item slug from search (required)' },
+        { key: 'walletAddress', value: '', enabled: true, description: 'Your Solana wallet (payer)' },
+        { key: 'email', value: 'user@example.com', enabled: true, description: 'Email for receipt' },
+      ],
       '/api/v1/profiler/address/current-balance': [
         { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
         { key: 'address', value: '', enabled: true, description: 'Wallet address' },
@@ -2232,6 +2291,12 @@ export function useApiPlayground() {
           }
         });
         bodyToSend = JSON.stringify(bodyObj);
+      } else if (emptyBody && isPurchVaultBuyUrl(baseUrl)) {
+        // Purch Vault buy expects POST body: { slug, walletAddress, email }
+        const slugVal = enabledParams.find(p => p.key === 'slug')?.value?.trim() ?? '';
+        const walletVal = enabledParams.find(p => p.key === 'walletAddress')?.value?.trim() ?? '';
+        const emailVal = enabledParams.find(p => p.key === 'email')?.value?.trim() ?? 'user@example.com';
+        bodyToSend = JSON.stringify({ slug: slugVal, walletAddress: walletVal, email: emailVal });
       } else if (emptyBody && pathname === '/exa-search') {
         const queryVal = enabledParams.find(p => p.key === 'query')?.value ?? '';
         bodyToSend = JSON.stringify({ query: queryVal });

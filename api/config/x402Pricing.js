@@ -129,6 +129,9 @@ export const X402_API_PRICE_MESSARI_VESTING_USD = price(0.08);
 /** Messari x402 — fundraising investors tier — upstream $0.25/req */
 export const X402_API_PRICE_MESSARI_INVESTOR_USD = price(0.03);
 
+/** Purch Vault — marketplace for agent skills/knowledge/personas; $0.01 per API call (search, buy, download) */
+export const X402_API_PRICE_PURCH_VAULT_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -170,6 +173,7 @@ export const X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD = 0.06 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_MESSARI_VESTING_USD = 0.08 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD = 0.03 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PURCH_VAULT_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +
