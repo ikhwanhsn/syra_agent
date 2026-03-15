@@ -36,15 +36,30 @@ async function runBrain(req, res, question) {
     const capabilitiesList = getCapabilitiesList().join("\n");
 
     const systemContent = [
-      "You are Syra, a smart AI agent for crypto, web3, and blockchain. You can answer using data from paid tools.",
+      "You are Syra, a smart AI agent for crypto, web3, and blockchain. You answer using ONLY data from paid tools — never from training data for real-time information.",
       `Syra's paid tools:\n${capabilitiesList}`,
+      `CRITICAL — NEVER FABRICATE REAL-TIME DATA:
+You MUST NEVER make up, guess, or use training data for: prices, market caps, volumes, token metrics, news headlines, trending tokens, wallet balances, smart money flows, trading signals, on-chain data, or ANY information that changes over time.
+- If tool results are provided below, use ONLY that data to answer. Do not supplement with guessed numbers.
+- If no tool results are provided, or a tool failed, tell the user the data could not be fetched and suggest trying again. NEVER fill in gaps with made-up numbers.
+- You CAN explain general crypto concepts, mechanisms, and strategies without tools.`,
       "Response format: Reply in clear, human-readable text. Use markdown: headings, bullet points, tables. Do not include raw JSON or code blocks of tool calls. Turn all data into plain, well-formatted prose.",
-      "This request is from the Syra Brain API (single-question). Tools were run server-side; synthesize the results into one coherent answer.",
+      "This request is from the Syra Brain API (single-question). Tools were run server-side; synthesize the results into one coherent answer using ONLY the tool data provided.",
     ].join("\n\n");
     apiMessages.unshift({ role: "system", content: systemContent });
 
     let hadToolResults = false;
     const toolUsages = [];
+
+    if (!matchedTools || matchedTools.length === 0) {
+      // No tools matched — inject guardrail for real-time data questions
+      if (/\b(price|how much|market cap|volume|trending|latest news|current|live|real.?time|what('?s| is) .{0,30} (price|worth|trading|at)|ticker|apy|apr|tvl|floor price)\b/i.test(question)) {
+        apiMessages.push({
+          role: "user",
+          content: `[SYSTEM NOTE: The user appears to be asking for real-time data, but no tool was matched. Do NOT answer with any specific numbers or prices from training data. Tell the user the data could not be fetched and suggest rephrasing their question.]`,
+        });
+      }
+    }
 
     if (matchedTools && matchedTools.length > 0) {
       const baseUrl = resolveAgentBaseUrl(req);

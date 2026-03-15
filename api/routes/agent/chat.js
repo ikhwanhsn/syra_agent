@@ -58,14 +58,42 @@ export async function selectToolsWithLlm(userMessage) {
     })
     .join('\n');
 
-  const systemContent = `You are a tool selector. Given the user's question, pick the tools from the list below that are MOST relevant to answering it. You may pick 1, 2, or up to 3 tools—only include tools that clearly help answer the question. Order by relevance (most relevant first). You must respond with ONLY a valid JSON object, no markdown, no explanation, no other text.
+  const systemContent = `You are a strict tool selector for a crypto AI agent. Your ONLY job is to decide which tools to call based on the user's question. You must respond with ONLY a valid JSON object — no markdown, no explanation, no other text.
+
+CRITICAL RULES — READ CAREFULLY:
+
+1. REAL-TIME DATA ALWAYS REQUIRES TOOLS. Any question about current/live/latest prices, market data, token data, news, sentiment, trading signals, trending tokens, on-chain data, wallet balances, smart money activity, or any data that changes over time MUST select at least one tool. NEVER return {"tools": []} for these — you do NOT have access to real-time data without tools.
+
+2. ONLY return {"tools": []} for purely conversational messages: greetings (hi, hello), "what can you do", general crypto concept explanations (e.g. "what is DeFi", "how does staking work"), opinions that don't need live data, or topics unrelated to crypto.
+
+3. When in doubt, SELECT A TOOL. It is far better to call a tool unnecessarily than to miss a tool call and return stale/wrong data.
+
+QUICK ROUTING GUIDE (use this to pick the right tool fast):
+— Price of BTC/ETH/SOL by name/symbol → coingecko-simple-price
+— Price of a token by contract address → coingecko-onchain-token-price OR okx-dex-price
+— "What's the price of X" (any token) → coingecko-simple-price (by symbol) or okx-dex-price / coingecko-onchain-token-price (by address)
+— OKX DEX price (on-chain price by address) → okx-dex-price
+— Trending tokens/pools → coingecko-trending-pools OR trending-jupiter
+— Token data/info by address → coingecko-onchain-token
+— Search for a pool/token → coingecko-search-pools
+— News / latest updates → news
+— Market sentiment → sentiment
+— Trading signal → signal
+— Smart money / whale activity → smart-money, nansen-smart-money-*, or okx-dex-signal-list
+— Token report / safety → token-report
+— Swap / buy / sell tokens → jupiter-swap-order
+— Web search / research → exa-search
+— Any question starting with "what's the...", "give me...", "show me...", "how much is...", "current..." about market data → ALWAYS select a tool
 
 Available tools (id, name, description):
 ${toolsText}
 
 Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
-- "tools" must be an array. Include 1 to 3 tools that best match the question; use [] if no tool fits.
+- "tools" must be an array. Include 1 to 3 tools that best match the question.
+- ONLY return {"tools": []} for casual chat / concept explanations that need zero live data.
 - Each tool object: "toolId" (one of the ids above), "params" (object, see below).
+
+PARAM RULES:
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
 - For the "exa-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for Exa search, web search, or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
 - For the "website-crawl" tool set "params": {"url": "<starting URL from user>"} when the user asks to crawl a website, summarize a site, get content from a URL, or ingest a docs site (e.g. "crawl https://example.com/docs", "summarize this website"). Extract the URL from the message; if no URL is given, do not select this tool. Optional: "limit" (e.g. 20), "depth" (e.g. 2).
@@ -79,6 +107,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - For Nansen smart-money tools (nansen-smart-money-netflow, nansen-smart-money-holdings, nansen-smart-money-dex-trades) set "params": {"chains": "[\"solana\"]"} or extract chain from user question.
 - For Nansen TGM/token tools (nansen-tgm-holders, nansen-tgm-flow-intelligence, nansen-tgm-flows, nansen-tgm-dex-trades, nansen-tgm-pnl-leaderboard) set "params": {"chain": "solana", "token_address": "<token contract address from user>"}; add date_from/date_to for flows or pnl-leaderboard if user specifies a date range.
 - For "nansen-token-screener" set "params": {"chain": "solana"} or chain from user.
+- For OKX CEX market tools (okx-ticker, okx-candles, okx-trades, etc.) set "params": {"instId": "BTC-USDT"} or the appropriate instrument ID from the user's question (e.g. "SOL-USDT", "ETH-USDT-SWAP").
 - For OKX DEX on-chain tools (okx-dex-price, okx-dex-kline, okx-dex-trades, okx-dex-index) set "params": {"address": "<token contract address>", "chain": "solana"} or "ethereum" or "base". Omit address to use default token.
 - For "okx-dex-signal-list" set "params": {"chain": "solana", "walletType": "1,2,3"} to get all signal types (Smart Money, KOL, Whale) in ONE call. Do NOT make separate calls per wallet type.
 - For "okx-dex-memepump-tokens" set "params": {"chain": "solana", "stage": "NEW"} or "MIGRATING" or "MIGRATED".
@@ -86,8 +115,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - For "purch-vault-search" set "params": {"q": "<search query>"} or {"category": "development"} or {"productType": "skill"} when the user asks to search Purch Vault for skills, knowledge, or personas. Optional: category (marketing, development, automation, career, ios, productivity), productType (skill, knowledge, persona), minPrice, maxPrice, limit.
 - For "purch-vault-buy" set "params": {"slug": "<item slug from search>"} when the user asks to buy a Purch Vault item (e.g. after search). Slug is required (e.g. "faith"); optional email.
 - For all other tools use "params": {}.
-- Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.
-- If the question does not match any tool, respond with: {"tools": []}`;
+- Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.`;
 
   const userContent = `User question: ${userMessage.trim()}`;
 
@@ -97,7 +125,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
         { role: 'system', content: systemContent },
         { role: 'user', content: userContent },
       ],
-      { max_tokens: 400, temperature: 0.2 }
+      { max_tokens: 400, temperature: 0.05 }
     );
 
     const raw = (response || '').trim();
@@ -565,6 +593,14 @@ router.post('/completion', async (req, res) => {
       `When the user asks for something specific (e.g. "give me X", "show me Y data") that is not covered by the tools above, then say Syra doesn't have that capability right now and briefly list what Syra can do. Do not make up data or use general knowledge for topics that require a tool we don't have.`
     );
     systemParts.push(
+      `CRITICAL — NEVER FABRICATE REAL-TIME DATA:
+You MUST NEVER make up, guess, or use training data for: prices, market caps, volumes, token metrics, news headlines, trending tokens, wallet balances, smart money flows, trading signals, on-chain data, or ANY information that changes over time. These MUST come from tool results only.
+- If the user asks for real-time data (price, market data, news, signals, etc.) and you did NOT receive tool results in this conversation, tell the user: "Let me fetch that data for you" or explain that the tool needs to be called. NEVER answer with a made-up number.
+- If a tool was called but failed or returned an error, say the data could not be fetched right now. NEVER fill in the gap with your own data.
+- You CAN freely answer: general crypto concepts (what is DeFi, how staking works), explain mechanisms, give educational content, discuss strategy frameworks, and have casual conversation — these don't need tools.
+- The rule is simple: if it has a number that changes (price, volume, TVL, market cap, APR, etc.), it MUST come from a tool.`
+    );
+    systemParts.push(
       `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). NEVER include raw JSON, code blocks showing tool calls, "tool_calls:" blocks, or blocks like {"tool": "..."} or {"name": "...", "arguments": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. Tools are called automatically by the system; you must NEVER output tool_calls or function_call JSON yourself. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
     );
     if (anonymousId) {
@@ -608,7 +644,14 @@ router.post('/completion', async (req, res) => {
     let toolUsages = [];
     let hadToolResults = false;
     if (!matchedTools || matchedTools.length === 0) {
-      // No tools matched: let the agent answer from the system prompt (general chat vs out-of-scope).
+      // No tools matched — but if the user is asking for real-time data, inject a guardrail
+      // so the LLM doesn't fabricate prices/data from training knowledge.
+      if (lastUserMessage && /\b(price|how much|market cap|volume|trending|latest news|current|live|real.?time|what('?s| is) .{0,30} (price|worth|trading|at)|ticker|apy|apr|tvl|floor price)\b/i.test(lastUserMessage)) {
+        apiMessages.push({
+          role: 'user',
+          content: `[SYSTEM NOTE: The user appears to be asking for real-time market data, but no tool was called for this request. You MUST NOT answer with any specific numbers, prices, or data from your training knowledge. Instead, tell the user you'll fetch the data using your tools, or ask them to rephrase their question so the right tool can be selected. If they need a price, suggest they ask like "What's the price of BTC?" or "Show me SOL price". Do NOT make up any numbers.]`,
+        });
+      }
     } else if (walletConnected === false) {
       toolUsages = matchedTools.map((m) => {
         const t = getAgentTool(m.toolId);
