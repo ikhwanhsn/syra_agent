@@ -53,6 +53,11 @@ const suggestions: SuggestionCard[] = [
     title: "Binance spot",
     prompt: "What's the Binance 24h ticker for BTCUSDT? Or show my Binance spot balance (connect wallet for paid tools)",
   },
+  {
+    icon: Wrench,
+    title: "Purch Vault",
+    prompt: "Search Purch Vault for agent skills or knowledge bases (connect wallet for paid tool)",
+  },
 ];
 
 /** Group tools by category to match API v2 structure (core, partner, memecoin). */

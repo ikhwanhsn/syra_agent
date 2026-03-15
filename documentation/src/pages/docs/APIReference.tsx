@@ -37,6 +37,10 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["dexscreener", "trending-jupiter", "jupiter-swap-order"],
   },
   {
+    title: "Partner: Purch Vault",
+    slugs: ["purch-vault"],
+  },
+  {
     title: "Partner: Rugcheck",
     slugs: ["token-report", "token-statistic", "token-risk-alerts"],
   },

@@ -28,6 +28,7 @@ import {
   X402_API_PRICE_MESSARI_TIMESERIES_USD,
   X402_API_PRICE_MESSARI_VESTING_USD,
   X402_API_PRICE_MESSARI_INVESTOR_USD,
+  X402_API_PRICE_PURCH_VAULT_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -55,9 +56,10 @@ import {
   X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
   X402_DISPLAY_PRICE_MESSARI_VESTING_USD,
   X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD,
+  X402_DISPLAY_PRICE_PURCH_VAULT_USD,
 } from './x402Pricing.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; purchVaultPath?: string }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen tools call api.nansen.ai directly.
@@ -1154,6 +1156,27 @@ export const AGENT_TOOLS = [
     name: 'Messari X-users',
     description: 'Ranked crypto X/Twitter influencer feed with engagement and mindshare metrics',
   },
+  // Partner: Purch Vault — marketplace for agent skills, knowledge, personas (x402 at api.purch.xyz)
+  {
+    id: 'purch-vault-search',
+    path: '/x402/vault/search',
+    method: 'GET',
+    purchVaultPath: '/x402/vault/search',
+    priceUsd: X402_API_PRICE_PURCH_VAULT_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PURCH_VAULT_USD,
+    name: 'Purch Vault search',
+    description: 'Search Purch Vault for agent skills, knowledge bases, and personas (optional q, category, productType, minPrice, maxPrice, limit)',
+  },
+  {
+    id: 'purch-vault-buy',
+    path: '/x402/vault/buy',
+    method: 'POST',
+    purchVaultPath: '/x402/vault/buy',
+    priceUsd: X402_API_PRICE_PURCH_VAULT_USD * 2,
+    displayPriceUsd: X402_DISPLAY_PRICE_PURCH_VAULT_USD * 2,
+    name: 'Purch Vault buy',
+    description: 'Purchase a Purch Vault item by slug (from search); agent pays item price in USDC on Solana and receives the download',
+  },
 ];
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
@@ -1673,6 +1696,17 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /coinmarketcap|cmc\s*(quotes|listing|dex)|quotes\s*latest\s*cmc|listing\s*latest\s*cmc|dex\s*pairs?\s*quotes?|dex\s*search\s*cmc/i.test(text),
     },
+    // Partner: Purch Vault (skills, knowledge, personas marketplace)
+    {
+      toolId: 'purch-vault-search',
+      test: () =>
+        /purch\s*vault|purch\s*vault\s*search|search\s*(?:the\s*)?vault|vault\s*search|agent\s*skills?\s*marketplace|buy\s*skills?\s*for\s*agent|find\s*(?:agent\s*)?(?:skills?|knowledge|personas?)/i.test(text),
+    },
+    {
+      toolId: 'purch-vault-buy',
+      test: () =>
+        /purch\s*vault\s*buy|buy\s*(?:from\s*)?(?:purch\s*)?vault|purchase\s*(?:from\s*)?(?:purch\s*)?vault|buy\s*(?:this\s*)?(?:skill|knowledge|persona)\s*(?:from\s*)?vault/i.test(text),
+    },
     // Partner: CoinGecko x402 onchain
     {
       toolId: 'coingecko-search-pools',
@@ -1781,6 +1815,7 @@ export function getCapabilitiesList() {
   const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'binance-ticker-24h', 'binance-orderbook', 'binance-exchange-info', 'binance-spot-account', 'binance-spot-order', 'binance-spot-order-cancel', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap', 'giza-protocols', 'giza-agent', 'giza-portfolio', 'giza-apr', 'giza-performance', 'giza-activate', 'giza-withdraw', 'giza-top-up', 'giza-update-protocols', 'giza-run'];
   const messari = ['messari-ai', 'messari-asset-details', 'messari-assets', 'messari-ath', 'messari-roi', 'messari-timeseries', 'messari-signal', 'messari-mindshare-gainers', 'messari-mindshare-losers', 'messari-news', 'messari-token-unlocks', 'messari-vesting', 'messari-fundraising', 'messari-fundraising-investors', 'messari-stablecoins', 'messari-networks', 'messari-x-users'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
+  const purchVault = ['purch-vault-search', 'purch-vault-buy'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
@@ -1798,6 +1833,7 @@ export function getCapabilitiesList() {
   lines.push('Partner (Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun, Giza):', ...fmt(partner), '');
   lines.push('Messari (AI, metrics, signal/mindshare, news, token unlocks, fundraising, stablecoins, networks, X-users):', ...fmt(messari), '');
   lines.push('8004scan.io (ERC-8004 agent discovery):', ...fmt(eight004scan), '');
+  lines.push('Purch Vault (marketplace for agent skills, knowledge, personas):', ...fmt(purchVault), '');
   if (nansenX402.length) {
     lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
   }
@@ -1969,6 +2005,13 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'messari-x-users') {
       out.paramsHint = 'Params: sort, sortDirection, accountType, limit, page';
+    }
+    // Purch Vault
+    if (t.id === 'purch-vault-search') {
+      out.paramsHint = 'Params: q (search query), category (marketing, development, automation, career, ios, productivity), productType (skill, knowledge, persona), minPrice, maxPrice, limit (default 30)';
+    }
+    if (t.id === 'purch-vault-buy') {
+      out.paramsHint = 'Params: slug (required — item slug from search, e.g. faith); optional email';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

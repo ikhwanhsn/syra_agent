@@ -20,6 +20,11 @@ import {
   signAndSubmitSwapTransaction,
 } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
+import {
+  purchVaultSearch,
+  purchVaultBuy,
+  purchVaultDownload,
+} from '../../libs/agentPurchVaultClient.js';
 import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
@@ -78,6 +83,8 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 - For "okx-dex-signal-list" set "params": {"chain": "solana", "walletType": "1,2,3"} to get all signal types (Smart Money, KOL, Whale) in ONE call. Do NOT make separate calls per wallet type.
 - For "okx-dex-memepump-tokens" set "params": {"chain": "solana", "stage": "NEW"} or "MIGRATING" or "MIGRATED".
 - For other okx-dex-memepump-* tools set "params": {"address": "<token contract address>", "chain": "solana"}.
+- For "purch-vault-search" set "params": {"q": "<search query>"} or {"category": "development"} or {"productType": "skill"} when the user asks to search Purch Vault for skills, knowledge, or personas. Optional: category (marketing, development, automation, career, ios, productivity), productType (skill, knowledge, persona), minPrice, maxPrice, limit.
+- For "purch-vault-buy" set "params": {"slug": "<item slug from search>"} when the user asks to buy a Purch Vault item (e.g. after search). Slug is required (e.g. "faith"); optional email.
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.
 - If the question does not match any tool, respond with: {"tools": []}`;
@@ -326,6 +333,46 @@ export function formatToolResultForLlm(data, toolId) {
       return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + "\n\n[... Result truncated.]";
     } catch {
       // fallback to raw below
+    }
+  }
+  // Purch Vault search: list items for the user to choose from
+  if (toolId === 'purch-vault-search' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      const items = Array.isArray(data.items) ? data.items : [];
+      const nextCursor = data.nextCursor;
+      if (items.length === 0) {
+        return '[Purch Vault search returned no items. Suggest trying a different query or category.]';
+      }
+      const lines = ['Purch Vault results (skills, knowledge, personas):'];
+      for (const item of items.slice(0, 20)) {
+        const title = item.title || item.slug || '—';
+        const productType = item.productType || '—';
+        const price = item.price != null ? `$${item.price}` : '—';
+        const category = item.category || '—';
+        const desc = (item.cardDescription || '').slice(0, 120);
+        lines.push(`- **${title}** (${productType}) | ${price} | ${category} | slug: \`${item.slug || ''}\`${desc ? ` — ${desc}...` : ''}`);
+      }
+      if (items.length > 20) lines.push(`... and ${items.length - 20} more. Use slug to buy.`);
+      if (nextCursor) lines.push('(More results available with cursor pagination.)');
+      return lines.join('\n');
+    } catch {
+      // fallback to raw
+    }
+  }
+  // Purch Vault buy: purchase complete summary
+  if (toolId === 'purch-vault-buy' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      const item = data.item || {};
+      const payment = data.payment || {};
+      const lines = [
+        data.message || 'Purchase complete.',
+        `Item: ${item.title || item.slug || '—'} (${item.productType || '—'})`,
+        `Price: ${payment.amountUsdc != null ? payment.amountUsdc : payment.amountMicroUsdc || '—'} USDC`,
+        data.downloadCompleted ? 'Download completed; file was received.' : '',
+      ].filter(Boolean);
+      return lines.join('\n');
+    } catch {
+      // fallback to raw
     }
   }
   // CoinGecko trending pools: only present real API data; never allow the LLM to invent pools/prices
@@ -692,12 +739,75 @@ router.post('/completion', async (req, res) => {
           params = { ...params, anonymousId };
         }
         // Nansen x402 tools: call real Nansen API (api.nansen.ai) with agent wallet; no Syra route
+        // Purch Vault: call api.purch.xyz (search, or buy + sign/submit + download)
         let result;
         if (tool.nansenPath) {
           const nansenResult = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
           result = nansenResult.success
             ? { status: 200, data: nansenResult.data }
             : { status: 502, error: nansenResult.error };
+        } else if (tool.purchVaultPath) {
+          if (tool.id === 'purch-vault-search') {
+            const searchResult = await purchVaultSearch(anonymousId, params);
+            result = searchResult.success
+              ? { status: 200, data: searchResult.data }
+              : { status: 502, error: searchResult.error, budgetExceeded: searchResult.budgetExceeded };
+          } else if (tool.id === 'purch-vault-buy') {
+            const slug = params.slug && String(params.slug).trim();
+            if (!slug) {
+              result = { status: 400, error: 'slug is required to buy a Purch Vault item (e.g. from search results)' };
+            } else {
+              const buyResult = await purchVaultBuy(anonymousId, {
+                slug,
+                email: (params.email && String(params.email).trim()) || undefined,
+              });
+              if (!buyResult.success) {
+                result = {
+                  status: 502,
+                  error: buyResult.error,
+                  budgetExceeded: buyResult.budgetExceeded,
+                };
+              } else {
+                try {
+                  const { signature } = await signAndSubmitSwapTransaction(
+                    anonymousId,
+                    buyResult.data.serializedTransaction
+                  );
+                  const downloadResult = await purchVaultDownload(anonymousId, {
+                    purchaseId: buyResult.data.purchaseId,
+                    downloadToken: buyResult.data.downloadToken,
+                    txSignature: signature,
+                  });
+                  if (downloadResult.success) {
+                    result = {
+                      status: 200,
+                      data: {
+                        purchaseId: buyResult.data.purchaseId,
+                        item: buyResult.data.item,
+                        payment: buyResult.data.payment,
+                        purchased: true,
+                        downloadCompleted: true,
+                        message:
+                          'Purchase complete. The file was received. You can re-download from Purch Vault with the same purchase if needed.',
+                      },
+                    };
+                  } else {
+                    result = {
+                      status: 502,
+                      error: `Purchase submitted (tx signed) but download failed: ${downloadResult.error}`,
+                    };
+                  }
+                } catch (signErr) {
+                  result = {
+                    status: 502,
+                    error: signErr?.message || 'Failed to sign or submit purchase transaction',
+                  };
+                }
+              }
+            }
+          } else {
+            result = { status: 502, error: `Unknown Purch Vault tool: ${tool.id}` };
+          }
         } else {
           const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
           const method = tool.method || 'GET';
