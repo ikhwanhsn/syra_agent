@@ -107,6 +107,7 @@ PARAM RULES:
 - For Nansen smart-money tools (nansen-smart-money-netflow, nansen-smart-money-holdings, nansen-smart-money-dex-trades) set "params": {"chains": "[\"solana\"]"} or extract chain from user question.
 - For Nansen TGM/token tools (nansen-tgm-holders, nansen-tgm-flow-intelligence, nansen-tgm-flows, nansen-tgm-dex-trades, nansen-tgm-pnl-leaderboard) set "params": {"chain": "solana", "token_address": "<token contract address from user>"}; add date_from/date_to for flows or pnl-leaderboard if user specifies a date range.
 - For "nansen-token-screener" set "params": {"chain": "solana"} or chain from user.
+- For KuCoin spot tools (kucoin-ticker, kucoin-stats, kucoin-orderbook, kucoin-trades, kucoin-candles) set "params": {"symbol": "BTC-USDT"} or the symbol from the user's question (e.g. "ETH-USDT", "SOL-USDT"). Omit symbol for kucoin-ticker to get all tickers. For kucoin-orderbook optional "level": "level2_20" or "level2_100". For kucoin-candles optional "type": "1min", "1hour", "1day", etc., "pageSize": 100.
 - For OKX CEX market tools (okx-ticker, okx-candles, okx-trades, etc.) set "params": {"instId": "BTC-USDT"} or the appropriate instrument ID from the user's question (e.g. "SOL-USDT", "ETH-USDT-SWAP").
 - For OKX DEX on-chain tools (okx-dex-price, okx-dex-kline, okx-dex-trades, okx-dex-index) set "params": {"address": "<token contract address>", "chain": "solana"} or "ethereum" or "base". Omit address to use default token.
 - For "okx-dex-signal-list" set "params": {"chain": "solana", "walletType": "1,2,3"} to get all signal types (Smart Money, KOL, Whale) in ONE call. Do NOT make separate calls per wallet type.
@@ -403,6 +404,36 @@ export function formatToolResultForLlm(data, toolId) {
       // fallback to raw
     }
   }
+  // Squid Router cross-chain route: present route summary and transactionRequest for user to sign
+  if (toolId === 'squid-route' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      const route = data.route || data;
+      const txReq = route.transactionRequest;
+      const quoteId = route.quoteId ?? data.quoteId;
+      const requestId = data.requestId;
+      const lines = [
+        'Cross-chain route (Squid Router):',
+        requestId ? `Request ID: ${requestId} (use for status check)` : '',
+        quoteId ? `Quote ID: ${quoteId} (required for status check)` : '',
+        txReq
+          ? `First-leg transaction: sign and submit on source chain. target: ${txReq.target || '—'}, data length: ${(txReq.data && txReq.data.length) || 0}, value: ${txReq.value ?? '0'}, gasLimit: ${txReq.gasLimit ?? '—'}. After submitting, use squid-status with transactionId, requestId, fromChainId, toChainId, quoteId to track status.`
+          : 'No transactionRequest in response; route may be unsupported for this pair.',
+      ].filter(Boolean);
+      return lines.join('\n');
+    } catch {
+      // fallback to raw below
+    }
+  }
+  // Squid Router cross-chain status
+  if (toolId === 'squid-status' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      const status = data.squidTransactionStatus ?? data.status ?? 'unknown';
+      const lines = [`Cross-chain transaction status: ${status}`, data.message ? `Message: ${data.message}` : ''].filter(Boolean);
+      return lines.join('\n');
+    } catch {
+      // fallback to raw below
+    }
+  }
   // CoinGecko trending pools: only present real API data; never allow the LLM to invent pools/prices
   if (toolId === 'coingecko-trending-pools' && data && typeof data === 'object') {
     const pools = Array.isArray(data.data) ? data.data : [];
@@ -554,9 +585,13 @@ router.post('/completion', async (req, res) => {
       .pop();
 
     const toolSelectStart = Date.now();
-    /** Normalize toolId so "jupiter_swap_order" becomes "jupiter-swap-order" for backend. */
-    const normalizeToolId = (id) =>
-      id === 'jupiter_swap_order' ? 'jupiter-swap-order' : id;
+    /** Normalize toolId so "jupiter_swap_order" -> "jupiter-swap-order", "squid_route" -> "squid-route", etc. */
+    const normalizeToolId = (id) => {
+      if (id === 'jupiter_swap_order') return 'jupiter-swap-order';
+      if (id === 'squid_route') return 'squid-route';
+      if (id === 'squid_status') return 'squid-status';
+      return id;
+    };
     /** @type {Array<{ toolId: string; params?: Record<string, string> }>} */
     let matchedTools;
     if (clientToolRequest?.toolId != null) {

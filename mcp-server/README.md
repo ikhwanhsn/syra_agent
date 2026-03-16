@@ -94,6 +94,7 @@ The **production** Syra API at `https://api.syraa.fun` uses **x402** for many en
   - **Research & browse** — Deep research on crypto topics (quick/deep), web browse and extract from URL or query, X/Twitter search.
   - **Token & chain data** — Rugcheck token report and statistics, Nansen token god mode, Bubblemaps holder/concentration maps, X KOL analysis (by Solana token address).
   - **Analytics** — Health check, daily sundown digest, hidden gems (X), crypto KOL insights, smart money tracking, DEXScreener, Jupiter trending, full analytics summary.
+  - **Squid Router** — Cross-chain route (quote + transactionRequest for first leg) and transaction status across 100+ chains.
   - **Binance** — Correlation for a symbol (default BTCUSDT) and full correlation matrix.
   - **Memecoin screens** — Fastest holder growth, smart money mentions, pre-CEX accumulation, strong narrative + low mcap, by experienced devs, unusual whale behavior, trending on X not DEX, organic traction, surviving market dumps.
 
@@ -369,6 +370,13 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_trending_jupiter` | Trending tokens on Jupiter. |
 | `syra_v2_analytics_summary` | Full analytics summary (dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, memecoin screens). |
 
+### Squid Router (cross-chain)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_squid_route` | `fromAddress`, `fromChain`, `fromToken`, `fromAmount`, `toChain`, `toToken`, `toAddress`, `slippage` (optional, default 1) | Get cross-chain route/quote; returns route and transactionRequest for first leg (user signs on source chain). Requires API env `SQUID_INTEGRATOR_ID`. |
+| `syra_v2_squid_status` | `transactionId`, `requestId`, `fromChainId`, `toChainId`, `quoteId` (optional, for Coral V2) | Check status of a cross-chain transaction. |
+
 ### Binance
 
 | Tool | Parameters | Description |
@@ -415,6 +423,39 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_memecoin_organic_traction` | Memecoins with organic traction. |
 | `syra_v2_memecoin_surviving_market_dumps` | Memecoins surviving market dumps. |
 
+### Quicknode RPC (Solana, Base)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_quicknode_balance` | `chain` (solana \| base), `address` (required) | Get native balance for a wallet. Requires API env QUICKNODE_SOLANA_RPC_URL / QUICKNODE_BASE_RPC_URL. |
+| `syra_v2_quicknode_transaction` | `chain`, `signature` (Solana) or `txHash` (Base) | Get transaction status. |
+| `syra_v2_quicknode_rpc` | `chain`, `method`, `params` (optional JSON string) | Forward raw JSON-RPC to Quicknode. |
+
+### Bankr (agent prompts, job status, balances)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_bankr_balances` | `chains` (optional, e.g. base,solana) | Wallet balances across chains. Requires BANKR_API_KEY in API. |
+| `syra_v2_bankr_prompt` | `prompt` (required), `threadId` (optional) | Submit natural language prompt; returns jobId. Poll syra_v2_bankr_job for result. |
+| `syra_v2_bankr_job` | `jobId` (required) | Get job status and result. |
+| `syra_v2_bankr_job_cancel` | `jobId` (required) | Cancel a pending/processing job. |
+
+### Neynar (Farcaster API)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_neynar_user` | `username` or `fids` (optional) | Farcaster user by username or FIDs. |
+| `syra_v2_neynar_feed` | `feed_type`, `fid`, `channel_id`, `limit`, `cursor` | Farcaster feed. |
+| `syra_v2_neynar_cast` | `identifier` (required) | Single cast by hash or URL. |
+| `syra_v2_neynar_search` | `q` (required), `limit`, `channel_id` | Search casts. |
+
+### SIWA (Sign-In With Agent)
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `syra_v2_siwa_nonce` | `address`, `agentId`, `agentRegistry` (optional) | Get nonce for agent sign-in. |
+| `syra_v2_siwa_verify` | `message`, `signature` | Verify SIWA signed message. |
+
 ---
 
 ## API Endpoint Mapping
@@ -438,6 +479,8 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_dexscreener` | `/dexscreener` |
 | `syra_v2_trending_jupiter` | `/trending-jupiter` |
 | `syra_v2_analytics_summary` | `/analytics/summary` |
+| `syra_v2_squid_route` | `POST /squid/route` (body: fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress, slippage) |
+| `syra_v2_squid_status` | `/squid/status` (query: transactionId, requestId, fromChainId, toChainId, quoteId) |
 | `syra_v2_research` | `/research` |
 | `syra_v2_browse` | `/browse` |
 | `syra_v2_x_search` | `/x-search` |
@@ -479,6 +522,19 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_memecoin_trending_on_x_not_dex` | `/memecoin/trending-on-x-not-dex` |
 | `syra_v2_memecoin_organic_traction` | `/memecoin/organic-traction` |
 | `syra_v2_memecoin_surviving_market_dumps` | `/memecoin/surviving-market-dumps` |
+| `syra_v2_quicknode_balance` | `/quicknode/balance` (query: chain, address) |
+| `syra_v2_quicknode_transaction` | `/quicknode/transaction` (query: chain, signature or txHash) |
+| `syra_v2_quicknode_rpc` | `POST /quicknode/rpc` (body: chain, method, params) |
+| `syra_v2_bankr_balances` | `/bankr/balances` (query: chains) |
+| `syra_v2_bankr_prompt` | `POST /bankr/prompt` (body: prompt, threadId) |
+| `syra_v2_bankr_job` | `/bankr/job/:jobId` |
+| `syra_v2_bankr_job_cancel` | `POST /bankr/job/:jobId/cancel` |
+| `syra_v2_neynar_user` | `/neynar/user` (query: username or fids) |
+| `syra_v2_neynar_feed` | `/neynar/feed` |
+| `syra_v2_neynar_cast` | `/neynar/cast` (query: identifier) |
+| `syra_v2_neynar_search` | `/neynar/search` (query: q) |
+| `syra_v2_siwa_nonce` | `POST /siwa/nonce` |
+| `syra_v2_siwa_verify` | `POST /siwa/verify` |
 
 ---
 
@@ -529,6 +585,7 @@ Once the server is connected, you can try prompts like these in Cursor or Claude
 - “Give me the sundown digest.”
 - “What’s trending on Jupiter?”
 - “Get the full analytics summary.”
+- “Get a cross-chain route from Base to Arbitrum for 100 USDC.”
 - “Deep research on [token or topic].”
 - “Search X for [query].”
 - “Rugcheck token report for address [address].”

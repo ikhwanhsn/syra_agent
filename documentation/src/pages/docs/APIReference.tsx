@@ -37,6 +37,10 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["dexscreener", "trending-jupiter", "jupiter-swap-order"],
   },
   {
+    title: "Partner: Squid Router",
+    slugs: ["squid-route", "squid-status"],
+  },
+  {
     title: "Partner: Purch Vault",
     slugs: ["purch-vault"],
   },

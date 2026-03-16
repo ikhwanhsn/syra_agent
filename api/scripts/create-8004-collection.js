@@ -125,7 +125,7 @@ async function main() {
       console.error("The on-chain pointer cannot be changed. New metadata was uploaded to IPFS:", result.uri);
       console.error("To use new image/links, you would need a different agent that does not have a pointer set yet.");
     } else {
-      console.error("setCollectionPointer failed:", err);
+      console.error("setCollectionPointer failed:", typeof err === "string" ? err : (err?.message ?? "unknown error"));
     }
     process.exit(1);
   }
@@ -134,6 +134,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(err?.message ?? String(err));
   process.exit(1);
 });

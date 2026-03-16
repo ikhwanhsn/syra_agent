@@ -477,6 +477,70 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     url: `${base}/kraken/server-time`,
     params: [],
   },
+  // KuCoin spot (ticker, stats, orderbook, trades, candles, symbols, currencies, server-time)
+  {
+    id: 'kucoin-ticker',
+    label: 'KuCoin ticker',
+    method: 'GET',
+    url: `${base}/kucoin/ticker`,
+    params: [{ key: 'symbol', value: 'BTC-USDT', enabled: false, description: 'Optional symbol (omit for all tickers)' }],
+  },
+  {
+    id: 'kucoin-stats',
+    label: 'KuCoin 24h stats',
+    method: 'GET',
+    url: `${base}/kucoin/stats`,
+    params: [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
+  },
+  {
+    id: 'kucoin-orderbook',
+    label: 'KuCoin orderbook',
+    method: 'GET',
+    url: `${base}/kucoin/orderbook`,
+    params: [
+      { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
+      { key: 'level', value: 'level2_20', enabled: true, description: 'level2_20 or level2_100' },
+    ],
+  },
+  {
+    id: 'kucoin-trades',
+    label: 'KuCoin trades',
+    method: 'GET',
+    url: `${base}/kucoin/trades`,
+    params: [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
+  },
+  {
+    id: 'kucoin-candles',
+    label: 'KuCoin candles',
+    method: 'GET',
+    url: `${base}/kucoin/candles`,
+    params: [
+      { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
+      { key: 'type', value: '1min', enabled: true, description: '1min, 1hour, 1day, etc.' },
+      { key: 'pageSize', value: '100', enabled: true, description: 'Candles to return (max 1500)' },
+    ],
+  },
+  {
+    id: 'kucoin-symbols',
+    label: 'KuCoin symbols',
+    method: 'GET',
+    url: `${base}/kucoin/symbols`,
+    params: [],
+  },
+  {
+    id: 'kucoin-currencies',
+    label: 'KuCoin currencies',
+    method: 'GET',
+    url: `${base}/kucoin/currencies`,
+    params: [],
+  },
+  {
+    id: 'kucoin-server-time',
+    label: 'KuCoin server time',
+    method: 'GET',
+    url: `${base}/kucoin/server-time`,
+    params: [],
+  },
   // OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.)
   {
     id: 'okx-ticker',
@@ -701,6 +765,35 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'outputMint', value: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', enabled: true, description: 'Output token mint (USDC)' },
       { key: 'amount', value: '1000000', enabled: true, description: 'Amount in smallest units (1M lamports = 0.001 SOL)' },
       { key: 'taker', value: '', enabled: true, description: 'Your wallet public key (executes the swap)' },
+    ],
+  },
+  {
+    id: 'squid-route',
+    label: 'Squid cross-chain route',
+    method: 'POST',
+    url: `${base}/squid/route`,
+    params: [
+      { key: 'fromAddress', value: '', enabled: true, description: 'Source chain wallet address' },
+      { key: 'fromChain', value: '8453', enabled: true, description: 'Source chain ID (e.g. 8453 Base, 42161 Arbitrum, 56 BNB)' },
+      { key: 'fromToken', value: '', enabled: true, description: 'Source token contract address' },
+      { key: 'fromAmount', value: '1000000', enabled: true, description: 'Amount in smallest units' },
+      { key: 'toChain', value: '42161', enabled: true, description: 'Destination chain ID' },
+      { key: 'toToken', value: '', enabled: true, description: 'Destination token contract address' },
+      { key: 'toAddress', value: '', enabled: true, description: 'Destination wallet address' },
+      { key: 'slippage', value: '1', enabled: true, description: 'Slippage tolerance percent (default 1)' },
+    ],
+  },
+  {
+    id: 'squid-status',
+    label: 'Squid cross-chain status',
+    method: 'GET',
+    url: `${base}/squid/status`,
+    params: [
+      { key: 'transactionId', value: '', enabled: true, description: 'Source chain transaction hash' },
+      { key: 'requestId', value: '', enabled: true, description: 'x-request-id from route response' },
+      { key: 'fromChainId', value: '', enabled: true, description: 'Source chain ID' },
+      { key: 'toChainId', value: '', enabled: true, description: 'Destination chain ID' },
+      { key: 'quoteId', value: '', enabled: false, description: 'quoteId from route (Coral V2)' },
     ],
   },
   // Purch Vault (api.purch.xyz — marketplace for agent skills, knowledge, personas; x402 payment with wallet)
@@ -1057,6 +1150,69 @@ export function getExampleFlows(): ExampleFlowPreset[] {
 ];
 };
 
+/** Group slug and display name for example flow grouping on /examples. */
+export interface ExampleFlowGroup {
+  slug: string;
+  name: string;
+  description?: string;
+  count: number;
+}
+
+/** Derive group from flow id/url for grouping on Examples page. */
+export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: string } {
+  const id = flow.id.toLowerCase();
+  const url = flow.url;
+  const nansenBase = getNansenBaseUrl();
+  const purchBase = getPurchVaultBaseUrl();
+  if (url.includes(new URL(nansenBase).origin)) return { slug: 'nansen', name: 'Nansen' };
+  if (url.includes(new URL(purchBase).origin)) return { slug: 'purch-vault', name: 'Purch Vault' };
+  if (id.startsWith('nansen-')) return { slug: 'nansen', name: 'Nansen' };
+  if (id.startsWith('purch-')) return { slug: 'purch-vault', name: 'Purch Vault' };
+  if (id.startsWith('binance-') || id === 'correlation-matrix') return { slug: 'binance', name: 'Binance' };
+  if (id.startsWith('kraken-')) return { slug: 'kraken', name: 'Kraken' };
+  if (id.startsWith('kucoin-')) return { slug: 'kucoin', name: 'KuCoin' };
+  if (id.startsWith('okx-')) return { slug: 'okx', name: 'OKX' };
+  if (id.startsWith('8004scan-')) return { slug: '8004scan', name: '8004scan' };
+  if (id.startsWith('8004-')) return { slug: '8004', name: '8004' };
+  if (id.startsWith('coingecko-')) return { slug: 'coingecko', name: 'CoinGecko' };
+  if (id.startsWith('coinmarketcap-')) return { slug: 'coinmarketcap', name: 'CoinMarketCap' };
+  if (id.startsWith('messari-')) return { slug: 'messari', name: 'Messari' };
+  if (id.startsWith('x-') && (id === 'x-feed' || id === 'x-user' || id === 'x-search-recent')) return { slug: 'x', name: 'X (Twitter)' };
+  if (id.startsWith('jupiter-')) return { slug: 'jupiter', name: 'Jupiter' };
+  if (id.startsWith('squid-')) return { slug: 'squid', name: 'Squid' };
+  if (id.startsWith('heylol-')) return { slug: 'heylol', name: 'HeyLol' };
+  const tokenDexIds = ['token-risk', 'token-risk-alerts', 'token-statistic', 'token-report', 'token-god-mode', 'bubblemaps-maps', 'dexscreener', 'trending-jupiter'];
+  if (tokenDexIds.some((t) => id === t)) return { slug: 'tokens-dex', name: 'Tokens & DEX' };
+  return { slug: 'syra-core', name: 'Syra Core' };
+}
+
+/** All groups with flow counts for the Examples landing page. */
+export function getExampleFlowGroups(): ExampleFlowGroup[] {
+  const flows = getExampleFlows();
+  const bySlug = new Map<string, { name: string; count: number }>();
+  for (const f of flows) {
+    const { slug, name } = getFlowGroup(f);
+    const cur = bySlug.get(slug);
+    if (!cur) bySlug.set(slug, { name, count: 1 });
+    else cur.count += 1;
+  }
+  const order = ['syra-core', 'tokens-dex', 'binance', '8004', '8004scan', 'kraken', 'kucoin', 'okx', 'coingecko', 'coinmarketcap', 'messari', 'nansen', 'x', 'jupiter', 'squid', 'purch-vault', 'heylol'];
+  const result: ExampleFlowGroup[] = [];
+  for (const slug of order) {
+    const cur = bySlug.get(slug);
+    if (cur) result.push({ slug, name: cur.name, count: cur.count });
+  }
+  const remaining = [...bySlug.entries()].filter(([s]) => !order.includes(s));
+  remaining.forEach(([slug, { name, count }]) => result.push({ slug, name, count }));
+  return result;
+}
+
+/** Flows for a single group (for /examples/:groupSlug detail page). */
+export function getExampleFlowsForGroup(groupSlug: string): ExampleFlowPreset[] {
+  const flows = getExampleFlows();
+  return flows.filter((f) => getFlowGroup(f).slug === groupSlug);
+}
+
 /** Number of example flows to show on the Request Builder; rest are on /examples. */
 export const EXAMPLE_FLOWS_VISIBLE_COUNT = 5;
 
@@ -1114,6 +1270,8 @@ function getApiEndpoints(): string[] {
     `${base}/token-god-mode`,
     `${base}/trending-jupiter`,
     `${base}/jupiter/swap/order`,
+    `${base}/squid/route`,
+    `${base}/squid/status`,
     `${base}/token-report`,
     `${base}/token-statistic`,
     `${base}/token-risk/alerts`,
@@ -1131,6 +1289,14 @@ function getApiEndpoints(): string[] {
     `${base}/kraken/trades`,
     `${base}/kraken/status`,
     `${base}/kraken/server-time`,
+    `${base}/kucoin/ticker`,
+    `${base}/kucoin/stats`,
+    `${base}/kucoin/orderbook`,
+    `${base}/kucoin/trades`,
+    `${base}/kucoin/candles`,
+    `${base}/kucoin/symbols`,
+    `${base}/kucoin/currencies`,
+    `${base}/kucoin/server-time`,
     `${base}/okx/ticker`,
     `${base}/okx/tickers`,
     `${base}/okx/books`,
@@ -1373,6 +1539,21 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       ],
       '/kraken/status': [],
       '/kraken/server-time': [],
+      '/kucoin/ticker': [{ key: 'symbol', value: 'BTC-USDT', enabled: false, description: 'Optional; omit for all tickers' }],
+      '/kucoin/stats': [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
+      '/kucoin/orderbook': [
+        { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
+        { key: 'level', value: 'level2_20', enabled: true, description: 'level2_20 or level2_100' },
+      ],
+      '/kucoin/trades': [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
+      '/kucoin/candles': [
+        { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
+        { key: 'type', value: '1min', enabled: true, description: '1min, 1hour, 1day, etc.' },
+        { key: 'pageSize', value: '100', enabled: true, description: 'Candles (max 1500)' },
+      ],
+      '/kucoin/symbols': [],
+      '/kucoin/currencies': [],
+      '/kucoin/server-time': [],
       '/okx/ticker': [{ key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (e.g. BTC-USDT, ETH-USDT-SWAP)' }],
       '/okx/tickers': [{ key: 'instType', value: 'SPOT', enabled: true, description: 'SPOT, SWAP, FUTURES, OPTION, MARGIN' }],
       '/okx/books': [
@@ -1452,6 +1633,23 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'outputMint', value: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', enabled: true, description: 'Output token mint (USDC)' },
         { key: 'amount', value: '1000000', enabled: true, description: 'Amount in smallest units (1M lamports = 0.001 SOL)' },
         { key: 'taker', value: '', enabled: true, description: 'Your wallet public key (executes the swap)' },
+      ],
+      '/squid/route': [
+        { key: 'fromAddress', value: '', enabled: true, description: 'Source chain wallet address' },
+        { key: 'fromChain', value: '8453', enabled: true, description: 'Source chain ID (e.g. 8453 Base, 42161 Arbitrum)' },
+        { key: 'fromToken', value: '', enabled: true, description: 'Source token contract address' },
+        { key: 'fromAmount', value: '1000000', enabled: true, description: 'Amount in smallest units' },
+        { key: 'toChain', value: '42161', enabled: true, description: 'Destination chain ID' },
+        { key: 'toToken', value: '', enabled: true, description: 'Destination token contract address' },
+        { key: 'toAddress', value: '', enabled: true, description: 'Destination wallet address' },
+        { key: 'slippage', value: '1', enabled: true, description: 'Slippage tolerance percent' },
+      ],
+      '/squid/status': [
+        { key: 'transactionId', value: '', enabled: true, description: 'Source chain transaction hash' },
+        { key: 'requestId', value: '', enabled: true, description: 'x-request-id from route response' },
+        { key: 'fromChainId', value: '', enabled: true, description: 'Source chain ID' },
+        { key: 'toChainId', value: '', enabled: true, description: 'Destination chain ID' },
+        { key: 'quoteId', value: '', enabled: false, description: 'quoteId from route (Coral V2)' },
       ],
       '/coingecko/simple-price': [
         { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols (or use ids)' },

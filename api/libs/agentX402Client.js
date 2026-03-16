@@ -42,11 +42,10 @@ const OWN_API_HOSTS = new Set([
   'www.api.syraa.fun',
   'localhost',
   '127.0.0.1',
-  ...(process.env.CORS_EXTRA_ORIGINS || '')
-    .split(',')
+  ...[process.env.INTERNAL_BASE_URL, ...(process.env.CORS_EXTRA_ORIGINS || '').split(',')]
     .map((o) => {
       try {
-        return new URL(o.trim()).hostname;
+        return o && new URL(o.trim()).hostname;
       } catch {
         return null;
       }
@@ -139,7 +138,8 @@ function getConnection() {
 function switchToFallbackRpc() {
   if (!_useFallbackRpc) {
     _useFallbackRpc = true;
-    console.warn(`[agentX402] Primary RPC blocked blockchain access → switching to fallback: ${RPC_FALLBACK_URL}`);
+    const fallbackHost = (RPC_FALLBACK_URL && (() => { try { return new URL(RPC_FALLBACK_URL).hostname; } catch { return '(fallback)'; } })()) || '(fallback)';
+    console.warn(`[agentX402] Primary RPC blocked blockchain access → switching to fallback: ${fallbackHost}`);
   }
 }
 
@@ -336,9 +336,11 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
       connectedWalletAddress,
     }, fetchFn);
   }
-  // Upstream returned 4xx/5xx – log for diagnostics and surface error to caller
+  // Upstream returned 4xx/5xx – log for diagnostics and surface error to caller (do not log full URL or response body)
   const errMsg = firstData?.error || firstData?.message || firstRes.statusText || `Request failed: ${firstRes.status}`;
-  console.error(`[agentX402] Initial request failed: ${firstRes.status} ${firstRes.statusText} → ${initialUrl}`, typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
+  const safeUrl = (() => { try { const u = new URL(initialUrl); return u.origin + u.pathname; } catch { return '(url)'; } })();
+  const safeMsg = typeof errMsg === 'string' ? (errMsg.length > 200 ? errMsg.slice(0, 200) + '…' : errMsg) : 'non-string error';
+  console.error(`[agentX402] Initial request failed: ${firstRes.status} ${firstRes.statusText} → ${safeUrl}`, safeMsg);
   return { success: false, error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg) };
 }
 
@@ -492,7 +494,9 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
 
   if (!secondRes.ok) {
     const retryErr = secondData?.error || secondRes.statusText || `Request failed: ${secondRes.status}`;
-    console.error(`[agentX402] Retry after payment failed: ${secondRes.status} ${secondRes.statusText} → ${url}`, retryErr);
+    const safeUrl = (() => { try { const u = new URL(url); return u.origin + u.pathname; } catch { return '(url)'; } })();
+    const safeErr = typeof retryErr === 'string' ? (retryErr.length > 200 ? retryErr.slice(0, 200) + '…' : retryErr) : 'non-string error';
+    console.error(`[agentX402] Retry after payment failed: ${secondRes.status} ${secondRes.statusText} → ${safeUrl}`, safeErr);
     return { success: false, error: retryErr };
   }
 

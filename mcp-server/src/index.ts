@@ -196,6 +196,60 @@ async function main() {
   );
 
   server.tool(
+    "syra_v2_squid_route",
+    "Get cross-chain route/quote from Squid Router (100+ chains). Returns route and transactionRequest for first leg; user signs on source chain. Requires fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress; optional slippage (default 1)." +
+      PAYMENT_NOTE,
+    {
+      fromAddress: z.string().describe("Source chain wallet address"),
+      fromChain: z.string().describe("Source chain ID (e.g. 56 BNB, 42161 Arbitrum, 8453 Base)"),
+      fromToken: z.string().describe("Source token contract address"),
+      fromAmount: z.string().describe("Amount in smallest units"),
+      toChain: z.string().describe("Destination chain ID"),
+      toToken: z.string().describe("Destination token contract address"),
+      toAddress: z.string().describe("Destination wallet address"),
+      slippage: z.number().optional().default(1).describe("Slippage tolerance percent"),
+    },
+    async (params) => {
+      const bodyObj: Record<string, unknown> = {
+        fromAddress: params.fromAddress,
+        fromChain: params.fromChain,
+        fromToken: params.fromToken,
+        fromAmount: params.fromAmount,
+        toChain: params.toChain,
+        toToken: params.toToken,
+        toAddress: params.toAddress,
+        slippage: params.slippage ?? 1,
+      };
+      const { status, body } = await fetchPost("/squid/route", bodyObj);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_squid_status",
+    "Check status of a cross-chain transaction (Squid Router). Requires transactionId, requestId, fromChainId, toChainId; optional quoteId (required for Coral V2)." +
+      PAYMENT_NOTE,
+    {
+      transactionId: z.string().describe("Source chain transaction hash"),
+      requestId: z.string().describe("x-request-id from route response"),
+      fromChainId: z.string().describe("Source chain ID"),
+      toChainId: z.string().describe("Destination chain ID"),
+      quoteId: z.string().optional().describe("quoteId from route response (Coral V2)"),
+    },
+    async ({ transactionId, requestId, fromChainId, toChainId, quoteId }) => {
+      const params: Record<string, string> = {
+        transactionId,
+        requestId,
+        fromChainId,
+        toChainId,
+      };
+      if (quoteId != null && quoteId !== "") params.quoteId = quoteId;
+      const { status, body } = await fetchV2("/squid/status", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
     "syra_v2_exa_search",
     "EXA AI web search. Only the search query is dynamic (e.g. latest news on Nvidia, crypto market analysis)." + PAYMENT_NOTE,
     {
@@ -1162,6 +1216,224 @@ async function main() {
     },
     async ({ wallet }) => {
       const { status, body } = await fetch8004(`/agent-by-wallet/${wallet}`);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  // --- Quicknode RPC (balance, transaction status, raw RPC) ---
+  server.tool(
+    "syra_v2_quicknode_balance",
+    "Quicknode: get native balance for a wallet on Solana or Base. chain (solana|base) and address required." + PAYMENT_NOTE,
+    {
+      chain: z.enum(["solana", "base"]).describe("Chain: solana or base"),
+      address: z.string().describe("Wallet address (base58 for Solana, 0x for Base)"),
+    },
+    async ({ chain, address }) => {
+      const { status, body } = await fetchV2("/quicknode/balance", { chain, address });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_quicknode_transaction",
+    "Quicknode: get transaction status on Solana (signature) or Base (txHash). chain and signature or txHash required." + PAYMENT_NOTE,
+    {
+      chain: z.enum(["solana", "base"]).describe("Chain: solana or base"),
+      signature: z.string().optional().describe("Solana transaction signature (required when chain=solana)"),
+      txHash: z.string().optional().describe("EVM transaction hash 0x... (required when chain=base)"),
+    },
+    async ({ chain, signature, txHash }) => {
+      const params: Record<string, string> = { chain };
+      if (signature) params.signature = signature;
+      if (txHash) params.txHash = txHash;
+      const { status, body } = await fetchV2("/quicknode/transaction", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_quicknode_rpc",
+    "Quicknode: forward a raw JSON-RPC request (chain: solana or base; method and params in body)." + PAYMENT_NOTE,
+    {
+      chain: z.enum(["solana", "base"]).describe("Chain: solana or base"),
+      method: z.string().describe("JSON-RPC method (e.g. getBalance, eth_blockNumber)"),
+      params: z.string().optional().describe("JSON array of params as string, e.g. '[\\\"address\\\"]'"),
+    },
+    async ({ chain, method, params }) => {
+      const bodyObj: { chain: string; method: string; params?: unknown; id?: number } = { chain, method };
+      if (params != null && params !== "") {
+        try {
+          bodyObj.params = JSON.parse(params) as unknown[];
+        } catch {
+          bodyObj.params = [];
+        }
+      } else {
+        bodyObj.params = [];
+      }
+      const { status, body } = await fetchPost("/quicknode/rpc", bodyObj);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  // --- Bankr (agent prompts, job status, balances) ---
+  server.tool(
+    "syra_v2_bankr_balances",
+    "Bankr: wallet balances across chains. Optional chains query (e.g. base,solana). Requires BANKR_API_KEY in API." + PAYMENT_NOTE,
+    {
+      chains: z.string().optional().describe("Comma-separated: base, polygon, mainnet, unichain, solana"),
+    },
+    async ({ chains }) => {
+      const params: Record<string, string> = {};
+      if (chains) params.chains = chains;
+      const { status, body } = await fetchV2("/bankr/balances", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_bankr_prompt",
+    "Bankr: submit a natural language prompt to the Bankr agent. Returns jobId and threadId; poll syra_v2_bankr_job for result." + PAYMENT_NOTE,
+    {
+      prompt: z.string().describe("Natural language prompt (e.g. What is my ETH balance?)"),
+      threadId: z.string().optional().describe("Optional thread ID to continue conversation"),
+    },
+    async ({ prompt, threadId }) => {
+      const bodyObj: { prompt: string; threadId?: string } = { prompt };
+      if (threadId) bodyObj.threadId = threadId;
+      const { status, body } = await fetchPost("/bankr/prompt", bodyObj);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_bankr_job",
+    "Bankr: get job status and result. Use jobId from syra_v2_bankr_prompt. Poll until status is completed, failed, or cancelled." + PAYMENT_NOTE,
+    {
+      jobId: z.string().describe("Bankr job ID (e.g. job_abc123)"),
+    },
+    async ({ jobId }) => {
+      const path = `/bankr/job/${encodeURIComponent(jobId)}`;
+      const url = new URL(SYRA_USE_DEV_ROUTES ? `${path}/dev` : path, SYRA_API_BASE_URL);
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      const body = await res.text();
+      return { content: [{ type: "text" as const, text: formatToolResult(res.status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_bankr_job_cancel",
+    "Bankr: cancel a pending or processing job." + PAYMENT_NOTE,
+    {
+      jobId: z.string().describe("Bankr job ID to cancel"),
+    },
+    async ({ jobId }) => {
+      const path = `/bankr/job/${encodeURIComponent(jobId)}/cancel`;
+      const url = new URL(SYRA_USE_DEV_ROUTES ? `${path}/dev` : path, SYRA_API_BASE_URL);
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: "{}",
+      });
+      const body = await res.text();
+      return { content: [{ type: "text" as const, text: formatToolResult(res.status, body) }] };
+    },
+  );
+
+  // --- Neynar Farcaster API ---
+  server.tool(
+    "syra_v2_neynar_user",
+    "Neynar: Farcaster user by username or by FIDs (query: username or fids)." + PAYMENT_NOTE,
+    {
+      username: z.string().optional().describe("Farcaster username (e.g. dwr.eth)"),
+      fids: z.string().optional().describe("Comma-separated FIDs (e.g. 1,2,3)"),
+    },
+    async ({ username, fids }) => {
+      const params: Record<string, string> = {};
+      if (username) params.username = username;
+      if (fids) params.fids = fids;
+      const { status, body } = await fetchV2("/neynar/user", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_neynar_feed",
+    "Neynar: Farcaster feed (feed_type, fid, channel_id, limit, cursor)." + PAYMENT_NOTE,
+    {
+      feed_type: z.string().optional().describe("e.g. following, channel, trending"),
+      fid: z.number().optional().describe("User FID for user feed"),
+      channel_id: z.string().optional().describe("Channel ID"),
+      limit: z.number().optional().default(25),
+      cursor: z.string().optional(),
+    },
+    async ({ feed_type, fid, channel_id, limit, cursor }) => {
+      const params: Record<string, string> = {};
+      if (feed_type) params.feed_type = feed_type;
+      if (fid != null) params.fid = String(fid);
+      if (channel_id) params.channel_id = channel_id;
+      if (limit != null) params.limit = String(limit);
+      if (cursor) params.cursor = cursor;
+      const { status, body } = await fetchV2("/neynar/feed", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_neynar_cast",
+    "Neynar: get single Farcaster cast by hash or URL (identifier)." + PAYMENT_NOTE,
+    { identifier: z.string().describe("Cast hash or Warpcast URL") },
+    async ({ identifier }) => {
+      const { status, body } = await fetchV2("/neynar/cast", { identifier });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_neynar_search",
+    "Neynar: search Farcaster casts. q required." + PAYMENT_NOTE,
+    {
+      q: z.string().describe("Search query"),
+      limit: z.number().optional().default(20),
+      channel_id: z.string().optional(),
+    },
+    async ({ q, limit, channel_id }) => {
+      const params: Record<string, string> = { q };
+      if (limit != null) params.limit = String(limit);
+      if (channel_id) params.channel_id = channel_id;
+      const { status, body } = await fetchV2("/neynar/search", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  // --- SIWA Sign-In With Agent ---
+  server.tool(
+    "syra_v2_siwa_nonce",
+    "SIWA: get nonce for Sign-In With Agent (body: address, agentId, agentRegistry?)." + PAYMENT_NOTE,
+    {
+      address: z.string().describe("Ethereum address (0x...)"),
+      agentId: z.number().describe("ERC-8004 agent ID"),
+      agentRegistry: z.string().optional().describe("Agent registry (e.g. eip155:1:0x...)"),
+    },
+    async ({ address, agentId, agentRegistry }) => {
+      const bodyObj: { address: string; agentId: number; agentRegistry?: string } = { address, agentId };
+      if (agentRegistry) bodyObj.agentRegistry = agentRegistry;
+      const { status, body } = await fetchPost("/siwa/nonce", bodyObj);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_v2_siwa_verify",
+    "SIWA: verify signed message (body: message, signature). Returns valid, agentId, receipt." + PAYMENT_NOTE,
+    {
+      message: z.string().describe("SIWA message that was signed"),
+      signature: z.string().describe("Signature (hex)"),
+    },
+    async ({ message, signature }) => {
+      const { status, body } = await fetchPost("/siwa/verify", { message, signature });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );

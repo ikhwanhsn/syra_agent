@@ -1,45 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Play, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { getExampleFlows, EXAMPLE_FLOWS_VISIBLE_COUNT, getParamsForExampleFlow, type ExampleFlowPreset } from '@/hooks/useApiPlayground';
+import { Link } from 'react-router-dom';
+import { Zap, ChevronRight, Layers } from 'lucide-react';
+import { getExampleFlowGroups } from '@/hooks/useApiPlayground';
 import { TopBar } from '@/components/TopBar';
 import { ConnectChainModal } from '@/components/ConnectChainModal';
-import { QueryParamsModal } from '@/components/QueryParamsModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
-import type { RequestParam } from '@/types/api';
 
 const Examples = () => {
-  const navigate = useNavigate();
   const { wallet, connectWallet, selectPaymentChain } = useApiPlayground();
-  const { setConnectChainOverride, openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
-  const allFlows = getExampleFlows();
-  const featuredFlows = allFlows.slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT);
-  const restFlows = [...allFlows.slice(EXAMPLE_FLOWS_VISIBLE_COUNT)].sort((a, b) =>
-    (a.label ?? '').localeCompare(b.label ?? '', undefined, { sensitivity: 'base' })
-  );
-
+  const { openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
   const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
-  const [paramsModalFlow, setParamsModalFlow] = useState<ExampleFlowPreset | null>(null);
-  const [paramsModalInitialParams, setParamsModalInitialParams] = useState<RequestParam[]>([]);
-
-  const handleRun = (flow: ExampleFlowPreset) => {
-    const paramsForFlow = getParamsForExampleFlow(flow);
-    if (paramsForFlow.length > 0) {
-      setParamsModalFlow(flow);
-      setParamsModalInitialParams(paramsForFlow);
-    } else {
-      navigate('/', { state: { runFlowId: flow.id } });
-    }
-  };
-
-  const handleRunWithParams = (params: RequestParam[]) => {
-    if (!paramsModalFlow) return;
-    navigate('/', { state: { runFlowId: paramsModalFlow.id, runFlowParams: params } });
-    setParamsModalFlow(null);
-    setParamsModalInitialParams([]);
-  };
+  const groups = getExampleFlowGroups();
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
@@ -69,79 +41,44 @@ const Examples = () => {
       />
       <div className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-auto overflow-x-hidden">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0">
-          <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-            <Zap className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border/50">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Example flows</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Browse APIs by group or partner — open a group to see all endpoints and run them
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">All v2 example flows</h1>
-            <p className="text-sm text-muted-foreground">
-              Click Run to open the playground and send the request
-            </p>
-          </div>
-        </div>
 
-        {featuredFlows.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Featured (also on Request Builder)
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              {featuredFlows.map((flow) => (
-                <div
-                  key={flow.id}
-                  className="flex items-center justify-between gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50"
+          <section>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {groups.map((group) => (
+                <Link
+                  key={group.slug}
+                  to={`/examples/${group.slug}`}
+                  className="flex items-center gap-4 p-4 sm:p-5 rounded-xl bg-card border border-border/60 hover:border-primary/40 hover:bg-card/80 transition-all duration-200 group"
                 >
-                  <span className="text-sm font-medium truncate">{flow.label}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRun(flow)}
-                    className="gap-1.5 shrink-0"
-                  >
-                    <Play className="h-3.5 w-3.5" />
-                    Run
-                  </Button>
-                </div>
+                  <div className="w-11 h-11 rounded-lg bg-secondary/80 border border-border/50 flex items-center justify-center shrink-0 group-hover:bg-primary/10 group-hover:border-primary/30 transition-colors">
+                    <Layers className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                      {group.name}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {group.count} API{group.count !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                </Link>
               ))}
             </div>
           </section>
-        )}
-
-        <section>
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            All v2 endpoints ({restFlows.length} more)
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-            {restFlows.map((flow) => (
-              <div
-                key={flow.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50"
-              >
-                <span className="text-sm font-medium truncate">{flow.label}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleRun(flow)}
-                  className="gap-1.5 shrink-0"
-                >
-                  <Play className="h-3.5 w-3.5" />
-                  Run
-                </Button>
-              </div>
-            ))}
-          </div>
-        </section>
         </div>
       </div>
-
-      <QueryParamsModal
-        isOpen={!!paramsModalFlow}
-        onClose={() => { setParamsModalFlow(null); setParamsModalInitialParams([]); }}
-        flow={paramsModalFlow}
-        initialParams={paramsModalInitialParams}
-        onRun={handleRunWithParams}
-      />
     </div>
   );
 };
