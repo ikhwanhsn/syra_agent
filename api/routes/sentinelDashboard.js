@@ -41,7 +41,7 @@ export async function createSentinelDashboardRouter() {
       const report = await dashboard.getSpend(query);
       res.json(report);
     } catch (err) {
-      console.error("[sentinel-dashboard] getSpend error:", err);
+      console.error("[sentinel-dashboard] getSpend error:", err?.message ?? String(err));
       res.status(500).json({ error: "Failed to query spend", message: err.message });
     }
   });
@@ -56,7 +56,7 @@ export async function createSentinelDashboardRouter() {
       const agents = await dashboard.getAgents();
       res.json({ agents });
     } catch (err) {
-      console.error("[sentinel-dashboard] getAgents error:", err);
+      console.error("[sentinel-dashboard] getAgents error:", err?.message ?? String(err));
       res.status(500).json({ error: "Failed to query agents", message: err.message });
     }
   });
@@ -71,7 +71,7 @@ export async function createSentinelDashboardRouter() {
       const alerts = await dashboard.getAlerts();
       res.json({ alerts });
     } catch (err) {
-      console.error("[sentinel-dashboard] getAlerts error:", err);
+      console.error("[sentinel-dashboard] getAlerts error:", err?.message ?? String(err));
       res.status(500).json({ error: "Failed to query alerts", message: err.message });
     }
   });
@@ -93,7 +93,7 @@ export async function createSentinelDashboardRouter() {
       ]);
       res.json({ spend, agents, alerts });
     } catch (err) {
-      console.error("[sentinel-dashboard] dashboard error:", err);
+      console.error("[sentinel-dashboard] dashboard error:", err?.message ?? String(err));
       res.status(500).json({ error: "Failed to query dashboard", message: err.message });
     }
   });

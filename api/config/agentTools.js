@@ -11,6 +11,8 @@ import {
   X402_API_PRICE_DEXSCREENER_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_JUPITER_SWAP_USD,
+  X402_API_PRICE_SQUID_ROUTE_USD,
+  X402_API_PRICE_SQUID_STATUS_USD,
   X402_API_PRICE_COINGECKO_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
   X402_API_PRICE_CRAWL_USD,
@@ -19,6 +21,7 @@ import {
   X402_API_PRICE_8004SCAN_USD,
   X402_API_PRICE_HEYLOL_USD,
   X402_API_PRICE_KRAKEN_USD,
+  X402_API_PRICE_KUCOIN_USD,
   X402_API_PRICE_OKX_USD,
   X402_API_PRICE_GIZA_USD,
   X402_API_PRICE_MESSARI_USD,
@@ -29,6 +32,10 @@ import {
   X402_API_PRICE_MESSARI_VESTING_USD,
   X402_API_PRICE_MESSARI_INVESTOR_USD,
   X402_API_PRICE_PURCH_VAULT_USD,
+  X402_API_PRICE_QUICKNODE_USD,
+  X402_API_PRICE_BANKR_USD,
+  X402_API_PRICE_NEYNAR_USD,
+  X402_API_PRICE_SIWA_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -39,6 +46,8 @@ import {
   X402_DISPLAY_PRICE_DEXSCREENER_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
+  X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
+  X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_COINGECKO_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
@@ -47,6 +56,7 @@ import {
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
   X402_DISPLAY_PRICE_KRAKEN_USD,
+  X402_DISPLAY_PRICE_KUCOIN_USD,
   X402_DISPLAY_PRICE_OKX_USD,
   X402_DISPLAY_PRICE_GIZA_USD,
   X402_DISPLAY_PRICE_MESSARI_USD,
@@ -57,6 +67,10 @@ import {
   X402_DISPLAY_PRICE_MESSARI_VESTING_USD,
   X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD,
   X402_DISPLAY_PRICE_PURCH_VAULT_USD,
+  X402_DISPLAY_PRICE_QUICKNODE_USD,
+  X402_DISPLAY_PRICE_BANKR_USD,
+  X402_DISPLAY_PRICE_NEYNAR_USD,
+  X402_DISPLAY_PRICE_SIWA_USD,
 } from './x402Pricing.js';
 
 /** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; purchVaultPath?: string }} AgentTool */
@@ -250,6 +264,127 @@ export const AGENT_TOOLS = [
     name: '8004scan list feedbacks',
     description: '8004scan.io paginated agent feedbacks (optional page, limit, chainId, tokenId, minScore, maxScore)',
   },
+  // Quicknode RPC (balance, transaction status, raw RPC – Solana, Base)
+  {
+    id: 'quicknode-balance',
+    path: '/quicknode/balance',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_QUICKNODE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_QUICKNODE_USD,
+    name: 'Quicknode balance',
+    description: 'Get native balance for a wallet on Solana or Base (chain and address required). Requires QUICKNODE_*_RPC_URL in API.',
+  },
+  {
+    id: 'quicknode-transaction',
+    path: '/quicknode/transaction',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_QUICKNODE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_QUICKNODE_USD,
+    name: 'Quicknode transaction status',
+    description: 'Get transaction status on Solana (signature) or Base (txHash). chain and signature or txHash required.',
+  },
+  {
+    id: 'quicknode-rpc',
+    path: '/quicknode/rpc',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_QUICKNODE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_QUICKNODE_USD,
+    name: 'Quicknode raw RPC',
+    description: 'Forward a raw JSON-RPC request to Quicknode (chain: solana or base; method, params in body).',
+  },
+  // Bankr – agent prompts, job status, balances (api.bankr.bot)
+  {
+    id: 'bankr-balances',
+    path: '/bankr/balances',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_BANKR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_BANKR_USD,
+    name: 'Bankr balances',
+    description: 'Wallet balances across chains (optional query: chains=base,solana). Requires BANKR_API_KEY in API.',
+  },
+  {
+    id: 'bankr-prompt',
+    path: '/bankr/prompt',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_BANKR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_BANKR_USD,
+    name: 'Bankr prompt',
+    description: 'Submit a natural language prompt to Bankr agent (body: prompt, optional threadId). Returns jobId; poll GET /bankr/job/:jobId for result.',
+  },
+  {
+    id: 'bankr-job',
+    path: '/bankr/job',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_BANKR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_BANKR_USD,
+    name: 'Bankr job status',
+    description: 'Get Bankr job status and result (path: /bankr/job/:jobId).',
+  },
+  {
+    id: 'bankr-job-cancel',
+    path: '/bankr/job/:jobId/cancel',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_BANKR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_BANKR_USD,
+    name: 'Bankr cancel job',
+    description: 'Cancel a pending/processing Bankr job (path: /bankr/job/:jobId/cancel).',
+  },
+  // Neynar Farcaster API
+  {
+    id: 'neynar-user',
+    path: '/neynar/user',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NEYNAR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NEYNAR_USD,
+    name: 'Neynar user lookup',
+    description: 'Farcaster user by username or by FIDs (query: username or fids). Requires NEYNAR_API_KEY.',
+  },
+  {
+    id: 'neynar-feed',
+    path: '/neynar/feed',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NEYNAR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NEYNAR_USD,
+    name: 'Neynar feed',
+    description: 'Farcaster feed (query: feed_type, filter_type, fid, channel_id, limit, cursor).',
+  },
+  {
+    id: 'neynar-cast',
+    path: '/neynar/cast',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NEYNAR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NEYNAR_USD,
+    name: 'Neynar get cast',
+    description: 'Single Farcaster cast by identifier (hash or URL). Query: identifier or hash.',
+  },
+  {
+    id: 'neynar-search',
+    path: '/neynar/search',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_NEYNAR_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_NEYNAR_USD,
+    name: 'Neynar search casts',
+    description: 'Search Farcaster casts. Query: q (required), limit, channel_id, cursor.',
+  },
+  // SIWA Sign-In With Agent
+  {
+    id: 'siwa-nonce',
+    path: '/siwa/nonce',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_SIWA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_SIWA_USD,
+    name: 'SIWA nonce',
+    description: 'Get a SIWA nonce for agent sign-in (body: address, agentId, agentRegistry?). Requires RECEIPT_SECRET, SIWA_RPC_URL.',
+  },
+  {
+    id: 'siwa-verify',
+    path: '/siwa/verify',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_SIWA_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_SIWA_USD,
+    name: 'SIWA verify',
+    description: 'Verify SIWA signed message (body: message, signature). Returns agentId and optional receipt.',
+  },
   // Partner: Nansen
   {
     id: 'smart-money',
@@ -417,6 +552,24 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
     name: 'Jupiter swap order (buy/sell token)',
     description: 'Get a Jupiter Ultra swap order for buying or selling a token on Solana; returns transaction to sign and submit',
+  },
+  {
+    id: 'squid-route',
+    path: '/squid/route',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_SQUID_ROUTE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
+    name: 'Squid cross-chain route',
+    description: 'Get cross-chain route/quote from Squid Router (100+ chains); returns route and transactionRequest for first leg — user signs on source chain',
+  },
+  {
+    id: 'squid-status',
+    path: '/squid/status',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_SQUID_STATUS_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_SQUID_STATUS_USD,
+    name: 'Squid cross-chain status',
+    description: 'Check status of a cross-chain transaction (transactionId, requestId, fromChainId, toChainId, quoteId)',
   },
   {
     id: 'token-report',
@@ -781,6 +934,79 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_OKX_USD,
     name: 'OKX DEX memepump aped wallet',
     description: 'Aped (same-car) wallet list for a token (address, chain; optional wallet to highlight)',
+  },
+  // Partner: KuCoin spot (ticker, stats, orderbook, trades, candles, symbols, currencies, server-time)
+  {
+    id: 'kucoin-ticker',
+    path: '/kucoin/ticker',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin ticker',
+    description: 'KuCoin spot ticker. Optional symbol (e.g. BTC-USDT); omit for all tickers.',
+  },
+  {
+    id: 'kucoin-stats',
+    path: '/kucoin/stats',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin 24h stats',
+    description: 'KuCoin 24h stats for a symbol (default BTC-USDT).',
+  },
+  {
+    id: 'kucoin-orderbook',
+    path: '/kucoin/orderbook',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin order book',
+    description: 'KuCoin order book. Optional symbol (default BTC-USDT), level (level2_20, level2_100).',
+  },
+  {
+    id: 'kucoin-trades',
+    path: '/kucoin/trades',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin trades',
+    description: 'KuCoin recent trades. Optional symbol (default BTC-USDT).',
+  },
+  {
+    id: 'kucoin-candles',
+    path: '/kucoin/candles',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin candles',
+    description: 'KuCoin klines/candles. Optional symbol (default BTC-USDT), type (1min, 1hour, 1day, etc.), pageSize (default 100).',
+  },
+  {
+    id: 'kucoin-symbols',
+    path: '/kucoin/symbols',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin symbols',
+    description: 'KuCoin list of tradeable symbols.',
+  },
+  {
+    id: 'kucoin-currencies',
+    path: '/kucoin/currencies',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin currencies',
+    description: 'KuCoin list of currencies.',
+  },
+  {
+    id: 'kucoin-server-time',
+    path: '/kucoin/server-time',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_KUCOIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_KUCOIN_USD,
+    name: 'KuCoin server time',
+    description: 'KuCoin server time.',
   },
   // Partner: CoinGecko x402 (simple price + onchain)
   {
@@ -1181,6 +1407,7 @@ export const AGENT_TOOLS = [
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
 const JUPITER_SWAP_TOOL_ID_ALIASES = ['jupiter_swap_order', 'jupiter-swap-order'];
+const SQUID_TOOL_ID_ALIASES = ['squid_route', 'squid-route', 'squid_status', 'squid-status'];
 
 /** Token symbols -> mint + decimals for Jupiter swap param normalization (SOL, USDC). */
 const JUPITER_SWAP_TOKEN_MAP = {
@@ -1217,8 +1444,10 @@ export function normalizeJupiterSwapParams(params) {
  * @returns {AgentTool | undefined}
  */
 export function getAgentTool(toolId) {
-  const normalized =
-    toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId) ? 'jupiter-swap-order' : toolId;
+  let normalized = toolId;
+  if (toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId)) normalized = 'jupiter-swap-order';
+  else if (toolId === 'squid_route') normalized = 'squid-route';
+  else if (toolId === 'squid_status') normalized = 'squid-status';
   return AGENT_TOOLS.find((t) => t.id === normalized);
 }
 
@@ -1453,6 +1682,39 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'okx-time',
       test: () => /okx\s*server\s*time|okx\s*time/i.test(text),
     },
+    // Partner: KuCoin spot
+    {
+      toolId: 'kucoin-ticker',
+      test: () => /kucoin\s*ticker|ticker\s*kucoin|kucoin\s*price|kucoin\s*btc|kucoin\s*spot/i.test(text),
+    },
+    {
+      toolId: 'kucoin-stats',
+      test: () => /kucoin\s*stats|kucoin\s*24h|kucoin\s*24\s*hour/i.test(text),
+    },
+    {
+      toolId: 'kucoin-orderbook',
+      test: () => /kucoin\s*order\s*book|kucoin\s*orderbook|orderbook\s*kucoin/i.test(text),
+    },
+    {
+      toolId: 'kucoin-trades',
+      test: () => /kucoin\s*trades?|trades?\s*kucoin|kucoin\s*recent\s*trades?/i.test(text),
+    },
+    {
+      toolId: 'kucoin-candles',
+      test: () => /kucoin\s*candles?|kucoin\s*klines?|kucoin\s*ohlc|candles?\s*kucoin/i.test(text),
+    },
+    {
+      toolId: 'kucoin-symbols',
+      test: () => /kucoin\s*symbols?|symbols?\s*kucoin|kucoin\s*market\s*list/i.test(text),
+    },
+    {
+      toolId: 'kucoin-currencies',
+      test: () => /kucoin\s*currencies?|currencies?\s*kucoin/i.test(text),
+    },
+    {
+      toolId: 'kucoin-server-time',
+      test: () => /kucoin\s*server\s*time|kucoin\s*time/i.test(text),
+    },
     // OKX DEX (on-chain by token address + chain)
     {
       toolId: 'okx-dex-price',
@@ -1595,6 +1857,20 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'jupiter-swap-order',
       test: () =>
         /jupiter\s*swap|swap\s*(order|token|solana)?|buy\s*token\s*(on\s*solana)?|sell\s*token\s*(on\s*solana)?|swap\s*(via\s*)?jupiter/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'squid-route',
+      test: () =>
+        /squid\s*route|cross[- ]?chain\s*(route|swap|bridge|quote)|bridge\s*(usdc|eth|token)|route\s*(from|to)\s*\w+\s*chain|get\s*cross[- ]?chain\s*quote|bridge\s*from\s*\w+\s*to\s*\w+/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'squid-status',
+      test: () =>
+        /squid\s*status|cross[- ]?chain\s*(tx\s*)?status|bridge\s*status|status\s*of\s*(my\s*)?(bridge|cross[- ]?chain)/i.test(
           text
         ),
     },
@@ -1812,7 +2088,7 @@ export function matchToolFromUserMessage(userMessage) {
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
   const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'website-crawl', 'trending-headline', 'sundown-digest', 'analytics-summary'];
-  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'binance-ticker-24h', 'binance-orderbook', 'binance-exchange-info', 'binance-spot-account', 'binance-spot-order', 'binance-spot-order-cancel', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap', 'giza-protocols', 'giza-agent', 'giza-portfolio', 'giza-apr', 'giza-performance', 'giza-activate', 'giza-withdraw', 'giza-top-up', 'giza-update-protocols', 'giza-run'];
+  const partner = ['smart-money', 'token-god-mode', 'dexscreener', 'trending-jupiter', 'jupiter-swap-order', 'squid-route', 'squid-status', 'token-report', 'token-statistic', 'token-risk-alerts', 'bubblemaps-maps', 'binance-correlation', 'binance-ticker-24h', 'binance-orderbook', 'binance-exchange-info', 'binance-spot-account', 'binance-spot-order', 'binance-spot-order-cancel', 'kraken-ticker', 'kraken-orderbook', 'kraken-ohlc', 'kraken-trades', 'kraken-status', 'kraken-server-time', 'kucoin-ticker', 'kucoin-stats', 'kucoin-orderbook', 'kucoin-trades', 'kucoin-candles', 'kucoin-symbols', 'kucoin-currencies', 'kucoin-server-time', 'okx-ticker', 'okx-tickers', 'okx-books', 'okx-candles', 'okx-trades', 'okx-funding-rate', 'okx-open-interest', 'okx-mark-price', 'okx-time', 'okx-dex-price', 'okx-dex-prices', 'okx-dex-kline', 'okx-dex-trades', 'okx-dex-index', 'okx-dex-signal-chains', 'okx-dex-signal-list', 'okx-dex-memepump-chains', 'okx-dex-memepump-tokens', 'okx-dex-memepump-token-details', 'okx-dex-memepump-token-dev-info', 'okx-dex-memepump-similar-tokens', 'okx-dex-memepump-token-bundle-info', 'okx-dex-memepump-aped-wallet', 'coingecko-simple-price', 'coingecko-onchain-token-price', 'coingecko-search-pools', 'coingecko-trending-pools', 'coingecko-onchain-token', 'coinmarketcap', 'giza-protocols', 'giza-agent', 'giza-portfolio', 'giza-apr', 'giza-performance', 'giza-activate', 'giza-withdraw', 'giza-top-up', 'giza-update-protocols', 'giza-run'];
   const messari = ['messari-ai', 'messari-asset-details', 'messari-assets', 'messari-ath', 'messari-roi', 'messari-timeseries', 'messari-signal', 'messari-mindshare-gainers', 'messari-mindshare-losers', 'messari-news', 'messari-token-unlocks', 'messari-vesting', 'messari-fundraising', 'messari-fundraising-investors', 'messari-stablecoins', 'messari-networks', 'messari-x-users'];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const purchVault = ['purch-vault-search', 'purch-vault-buy'];
@@ -1912,6 +2188,13 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'smart-money') {
       out.paramsHint = 'Optional params: chains (e.g. ["solana"]), or leave empty for default';
+    }
+    // KuCoin spot
+    if (t.id === 'kucoin-ticker') {
+      out.paramsHint = 'Params: symbol (optional; e.g. BTC-USDT; omit for all tickers)';
+    }
+    if (['kucoin-stats', 'kucoin-orderbook', 'kucoin-trades', 'kucoin-candles'].includes(t.id)) {
+      out.paramsHint = 'Params: symbol (default BTC-USDT); kucoin-orderbook also accepts level (level2_20, level2_100); kucoin-candles accepts type (1min, 1hour, 1day, etc.), pageSize (default 100)';
     }
     // OKX market tools
     if (t.id === 'okx-ticker') {

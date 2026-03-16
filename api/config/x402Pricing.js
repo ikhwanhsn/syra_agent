@@ -72,6 +72,11 @@ export const X402_API_PRICE_DEXSCREENER_USD = price(0.01);
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
+/** Squid Router cross-chain route (quote + transactionRequest for first leg) */
+export const X402_API_PRICE_SQUID_ROUTE_USD = price(0.02);
+/** Squid Router cross-chain transaction status */
+export const X402_API_PRICE_SQUID_STATUS_USD = price(0.01);
+
 /** CoinGecko x402 (onchain search pools, trending pools, token by address) */
 export const X402_API_PRICE_COINGECKO_USD = price(0.01);
 
@@ -92,6 +97,9 @@ export const X402_API_PRICE_KRAKEN_USD = price(0.01);
 
 /** OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.) via OKX API v5 — no auth */
 export const X402_API_PRICE_OKX_USD = price(0.01);
+
+/** KuCoin spot market (ticker, orderbook, trades, klines, stats, symbols, currencies, server-time) via KuCoin REST — no auth */
+export const X402_API_PRICE_KUCOIN_USD = price(0.01);
 
 /** 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection) */
 export const X402_API_PRICE_8004_USD = price(0.01);
@@ -132,6 +140,18 @@ export const X402_API_PRICE_MESSARI_INVESTOR_USD = price(0.03);
 /** Purch Vault — marketplace for agent skills/knowledge/personas; $0.01 per API call (search, buy, download) */
 export const X402_API_PRICE_PURCH_VAULT_USD = price(0.01);
 
+/** Quicknode RPC — balance, transaction status, raw JSON-RPC (Solana, Base) */
+export const X402_API_PRICE_QUICKNODE_USD = price(0.01);
+
+/** Bankr — agent prompts, job status, wallet balances (api.bankr.bot) */
+export const X402_API_PRICE_BANKR_USD = price(0.02);
+
+/** Neynar — Farcaster API (user, feed, cast, search) */
+export const X402_API_PRICE_NEYNAR_USD = price(0.01);
+
+/** SIWA — Sign-In With Agent nonce + verify (ERC-8004 / ERC-8128) */
+export const X402_API_PRICE_SIWA_USD = price(0.01);
+
 /**
  * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
  * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
@@ -152,6 +172,8 @@ export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_DEXSCREENER_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_COINGECKO_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_CRAWL_USD = 0.05 * PRODUCTION_MULT;
@@ -159,6 +181,7 @@ export const X402_DISPLAY_PRICE_BROWSER_USE_USD = 0.08 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_COINMARKETCAP_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_KRAKEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_OKX_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_KUCOIN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;
@@ -174,6 +197,10 @@ export const X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_MESSARI_VESTING_USD = 0.08 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD = 0.03 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PURCH_VAULT_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_QUICKNODE_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_BANKR_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_NEYNAR_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_SIWA_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_DEXSCREENER_USD +
   X402_DISPLAY_PRICE_USD +

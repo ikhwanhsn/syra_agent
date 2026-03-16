@@ -92,7 +92,7 @@ export interface MarketplacePrompt {
   icon: typeof FileText;
 }
 
-/** 10 prompts that trigger Syra agent tools (news, signal, sentiment, research, gems, x-search, trending-headline, sundown-digest, memecoin, Jupiter). Connect wallet to use. */
+/** 11 prompts that trigger Syra agent tools (news, signal, sentiment, research, gems, x-search, trending-headline, sundown-digest, memecoin, Jupiter, Squid). Connect wallet to use. */
 const TOOL_PROMPTS: MarketplacePrompt[] = [
   { id: "tool-news", title: "Latest crypto news", description: "Fetches latest crypto news (uses News tool).", prompt: "Get me the latest crypto news", category: "live_data", icon: Newspaper },
   { id: "tool-signal", title: "Trading signal for Solana", description: "Gets a trading signal for Solana (uses Signal tool).", prompt: "Give me a trading signal for Solana", category: "live_data", icon: BarChart3 },
@@ -104,6 +104,7 @@ const TOOL_PROMPTS: MarketplacePrompt[] = [
   { id: "tool-sundown", title: "Sundown digest", description: "Today's daily digest (uses Sundown digest tool).", prompt: "Give me today's sundown digest", category: "live_data", icon: Sun },
   { id: "tool-memecoin-growth", title: "Memecoins: fastest holder growth", description: "Memecoins with fastest holder growth (uses Memecoin tool).", prompt: "Which memecoins have the fastest holder growth?", category: "live_data", icon: Zap },
   { id: "tool-jupiter", title: "Trending on Jupiter", description: "Tokens trending on Jupiter DEX (uses Jupiter tool).", prompt: "What tokens are trending on Jupiter?", category: "live_data", icon: ShoppingCart },
+  { id: "tool-squid-route", title: "Cross-chain route (Squid)", description: "Get a cross-chain route/quote from Base to Arbitrum (uses Squid Router tool).", prompt: "Get a cross-chain route from Base to Arbitrum for 100 USDC", category: "live_data", icon: ShoppingCart },
 ];
 
 const GENERAL_PROMPTS: MarketplacePrompt[] = [

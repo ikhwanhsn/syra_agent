@@ -64,7 +64,7 @@ router.get('/:anonymousId/balance', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Agent wallet missing agentAddress' });
     }
   } catch (err) {
-    console.error('[agent/wallet] balance lookup error:', err?.message || err);
+    console.error('[agent/wallet] balance lookup error:', err?.message ?? String(err));
     return res.status(500).json({ success: false, error: err?.message || 'Failed to lookup agent wallet' });
   }
 
@@ -72,7 +72,7 @@ router.get('/:anonymousId/balance', async (req, res) => {
   try {
     agentPubkey = new PublicKey(doc.agentAddress);
   } catch (err) {
-    console.error('[agent/wallet] invalid agentAddress:', doc.agentAddress, err?.message);
+    console.error('[agent/wallet] invalid agentAddress:', err?.message ?? String(err));
     return res.status(500).json({ success: false, error: 'Invalid agent wallet address' });
   }
 
@@ -90,7 +90,7 @@ router.get('/:anonymousId/balance', async (req, res) => {
       err?.code === 'ECONNREFUSED' ||
       err?.code === 'ETIMEDOUT' ||
       /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT|timeout|network/i.test(String(err?.message || ''));
-    console.error('[agent/wallet] Solana RPC error:', err?.message || err);
+    console.error('[agent/wallet] Solana RPC error:', err?.message ?? String(err));
     const message = isRpcUnavailable
       ? 'Solana RPC unavailable. Check SOLANA_RPC_URL in api/.env and network connectivity.'
       : (err?.message || 'Failed to fetch balance');
@@ -109,7 +109,7 @@ router.get('/:anonymousId/balance', async (req, res) => {
       usdcBalance += Number(ui) || 0;
     }
   } catch (err) {
-    console.error('[agent/wallet] USDC parse error:', err?.message || err);
+    console.error('[agent/wallet] USDC parse error:', err?.message ?? String(err));
   }
 
   return res.json({

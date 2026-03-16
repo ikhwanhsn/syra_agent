@@ -84,7 +84,7 @@ async function main() {
 
   // Setup connection and provider
   const connection = new Connection(RPC_URL, "confirmed");
-  console.log("RPC URL:", RPC_URL);
+  console.log("RPC host:", (() => { try { return new URL(RPC_URL).hostname; } catch { return "(invalid)"; } })());
 
   // Preflight: ensure RPC is reachable before sending tx
   try {
@@ -92,7 +92,8 @@ async function main() {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("\n❌ Cannot reach Solana RPC. Check:");
-    console.error("   1. Network connection and firewall (RPC URL:", RPC_URL, ")");
+    const rpcHost = (() => { try { return new URL(RPC_URL).hostname; } catch { return "(invalid url)"; } })();
+    console.error("   1. Network connection and firewall (RPC host:", rpcHost, ")");
     console.error("   2. Try a different RPC in .env.local (e.g. Helius/QuickNode devnet)");
     console.error("   3. If using WSL or VPN, try from another network.\n");
     console.error("Original error:", msg);
@@ -161,7 +162,7 @@ async function main() {
     console.log("✅ Pool initialized successfully!");
     console.log("   Transaction:", tx);
   } catch (error) {
-    console.error("❌ Initialization failed:", error);
+    console.error("❌ Initialization failed:", error?.message ?? String(error));
     throw error;
   }
 }
@@ -169,6 +170,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error(error?.message ?? String(error));
     process.exit(1);
   });

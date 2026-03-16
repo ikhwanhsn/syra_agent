@@ -87,6 +87,14 @@ export const navigation: NavItem[] = [
         ],
       },
       {
+        title: "Partner: Squid Router",
+        defaultCollapsed: false,
+        items: [
+          { title: "Squid Cross-Chain Route", href: api("squid-route") },
+          { title: "Squid Cross-Chain Status", href: api("squid-status") },
+        ],
+      },
+      {
         title: "Partner: Purch Vault",
         defaultCollapsed: false,
         items: [{ title: "Purch Vault API", href: api("purch-vault") }],
@@ -104,6 +112,11 @@ export const navigation: NavItem[] = [
         title: "Partner: Kraken",
         defaultCollapsed: false,
         items: [{ title: "Kraken Market", href: api("kraken-market") }],
+      },
+      {
+        title: "Partner: KuCoin",
+        defaultCollapsed: false,
+        items: [{ title: "KuCoin Spot Market", href: api("kucoin-market") }],
       },
       {
         title: "Partner: OKX",

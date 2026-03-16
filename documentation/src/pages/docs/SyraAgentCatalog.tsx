@@ -98,7 +98,7 @@ export default function SyraAgentCatalog() {
       <section className="mb-6">
         <h2 className="text-2xl font-semibold mb-4">Partner tools</h2>
         <p className="text-muted-foreground mb-4">
-          Tools powered by partners: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, Workfun.
+          Tools powered by partners: Nansen, DexScreener, Jupiter, Squid Router (cross-chain route and status), Rugcheck, Bubblemaps, Binance, Workfun.
         </p>
         <ToolTable tools={partner} id="partner-tools" />
       </section>

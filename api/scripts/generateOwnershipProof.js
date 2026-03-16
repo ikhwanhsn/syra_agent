@@ -17,11 +17,17 @@
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import dotenv from "dotenv";
+import { writeFile } from "fs/promises";
 
 dotenv.config();
 
 // The origin URL to sign (NO trailing slash)
 const ORIGIN = "https://api.syraa.fun";
+
+function maskValue(value) {
+  if (!value || value.length < 18) return "***";
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
+}
 
 /**
  * Generate Solana (SVM) ownership proof
@@ -132,21 +138,31 @@ async function generateOwnershipProofs() {
     console.log("  SVM_PRIVATE_KEY=your_solana_private_key_base58");
     console.log("  EVM_PRIVATE_KEY=your_evm_private_key_hex");
     console.log("\nThese should be the private keys for your payTo addresses:");
-    console.log(`  SVM_ADDRESS=${process.env.SVM_ADDRESS || "(not set)"}`);
-    console.log(`  EVM_ADDRESS=${process.env.EVM_ADDRESS || "(not set)"}`);
+    console.log(`  SVM_ADDRESS=${process.env.SVM_ADDRESS ? "(set)" : "(not set)"}`);
+    console.log(`  EVM_ADDRESS=${process.env.EVM_ADDRESS ? "(set)" : "(not set)"}`);
     process.exit(1);
   }
 
-  console.log("\n" + "=".repeat(60));
-  console.log("Add these to your .env file:");
-  console.log("=".repeat(60) + "\n");
-
+  const envOutput = [];
   for (const proof of proofs) {
     if (proof.network.startsWith("solana")) {
-      console.log(`X402_OWNERSHIP_PROOF_SVM=${proof.signature}`);
+      envOutput.push(`X402_OWNERSHIP_PROOF_SVM=${proof.signature}`);
     } else if (proof.network.startsWith("eip155")) {
-      console.log(`X402_OWNERSHIP_PROOF_EVM=${proof.signature}`);
+      envOutput.push(`X402_OWNERSHIP_PROOF_EVM=${proof.signature}`);
     }
+  }
+
+  const outputPath = ".x402-ownership-proof.env";
+  await writeFile(outputPath, `${envOutput.join("\n")}\n`, "utf8");
+
+  console.log("\n" + "=".repeat(60));
+  console.log("Ownership proofs saved privately:");
+  console.log("=".repeat(60) + "\n");
+  console.log(`Saved to ${outputPath} (do not commit or share this file)\n`);
+
+  for (const line of envOutput) {
+    const [key, value] = line.split("=");
+    console.log(`${key}=${maskValue(value)}`);
   }
 
   console.log("\n" + "=".repeat(60));

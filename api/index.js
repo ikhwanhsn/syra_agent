@@ -27,6 +27,7 @@ import { createXApiRouter } from "./routes/partner/x-api/index.js";
 import { createBinanceOHLCRouter } from "./routes/partner/binance/ohlc.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 import { createKrakenMarketRouter } from "./routes/partner/kraken/market.js";
+import { createKucoinMarketRouter } from "./routes/partner/kucoin/market.js";
 import { createOkxMarketRouter } from "./routes/partner/okx/market.js";
 import { createOkxDexMarketRouter } from "./routes/partner/okx/dex-market.js";
 // x402 route imports (consolidated from v2 into routes)
@@ -45,6 +46,8 @@ import { createDexscreenerRouter as createV2DexscreenerRouter } from "./routes/p
 import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
 import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./routes/partner/jupiter/swap-order.js";
+import { createSquidRouteRouter as createV2SquidRouteRouter } from "./routes/partner/squid/route.js";
+import { createSquidStatusRouter as createV2SquidStatusRouter } from "./routes/partner/squid/status.js";
 import { createTokenReportRouter as createV2TokenReportRouter } from "./routes/partner/rugcheck/token-report.js";
 import { createTokenStatisticRouter as createV2TokenStatisticRouter } from "./routes/partner/rugcheck/token-statistic.js";
 import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
@@ -69,6 +72,10 @@ import { createGizaRouter } from "./routes/partner/giza/index.js";
 import { createMessariRouter } from "./routes/partner/messari/index.js";
 import { createHeyLolRouter } from "./routes/heylol.js";
 import { createBrainRouter } from "./routes/brain.js";
+import { createQuicknodeRouter } from "./routes/partner/quicknode/index.js";
+import { createBankrRouter } from "./routes/partner/bankr/index.js";
+import { createNeynarRouter } from "./routes/partner/neynar/index.js";
+import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import connectMongoose from "./config/mongoose.js";
 
@@ -196,6 +203,7 @@ function isX402Route(p) {
   if (p.startsWith("/solana-agent")) return true;
   if (p.startsWith("/trending-jupiter")) return true;
   if (p.startsWith("/jupiter")) return true;
+  if (p.startsWith("/squid")) return true;
   if (p.startsWith("/analytics/summary")) return true;
   if (p.startsWith("/token-report")) return true;
   if (p.startsWith("/token-statistic")) return true;
@@ -210,12 +218,18 @@ function isX402Route(p) {
   if (p.startsWith("/binance/spot")) return true;
   if (p.startsWith("/coinmarketcap")) return true;
   if (p.startsWith("/kraken")) return true;
+  if (p.startsWith("/kucoin")) return true;
   if (p.startsWith("/okx")) return true;
   if (p.startsWith("/messari")) return true;
   if (p.startsWith("/8004")) return true;
   if (p.startsWith("/8004scan")) return true;
   if (p.startsWith("/heylol")) return true;
   if (p.startsWith("/brain")) return true;
+  if (p.startsWith("/quicknode")) return true;
+  if (p.startsWith("/bankr")) return true;
+  if (p.startsWith("/neynar")) return true;
+  if (p.startsWith("/siwa")) return true;
+  if (p.startsWith("/erc8004")) return true;
   if (p === "/x" || p.startsWith("/x/")) return true;
   return false;
 }
@@ -553,6 +567,11 @@ app.get("/", (req, res) => {
 });
 
 // x402 routes (unversioned paths only; single canonical URL per endpoint)
+// Partner market data (mount before "/" so they are not shadowed by cryptonews)
+app.use("/kucoin", await createKucoinMarketRouter());
+app.use("/kraken", await createKrakenMarketRouter());
+app.use("/okx/dex", await createOkxDexMarketRouter());
+app.use("/okx", await createOkxMarketRouter());
 app.use("/info", await createInfoRouter());
 app.use("/coingecko/simple-price", await createV2CoingeckoSimplePriceRouter());
 app.use("/coingecko/onchain", await createV2CoingeckoOnchainRouter());
@@ -560,10 +579,6 @@ app.use("/coinmarketcap", await createCoinmarketcapRouter());
 app.use("/binance/ohlc", await createBinanceOHLCRouter());
 app.use("/binance/spot", await createBinanceSpotRouter());
 app.use("/binance", await createV2BinanceCorrelationRouter());
-app.use("/kraken", await createKrakenMarketRouter());
-// OKX DEX (on-chain by token address + chain) — mount before /okx so /okx/dex/* is matched
-app.use("/okx/dex", await createOkxDexMarketRouter());
-app.use("/okx", await createOkxMarketRouter());
 app.use("/", await createCryptonewsRouter());
 
 // Preview/landing routes (no x402) – dashboard-summary, binance-ticker, preview/news|sentiment|signal
@@ -604,6 +619,8 @@ app.use("/token-god-mode", await createV2TokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
 app.use("/trending-jupiter", await createV2TrendingJupiterRouter());
 app.use("/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
+app.use("/squid/route", await createV2SquidRouteRouter());
+app.use("/squid/status", await createV2SquidStatusRouter());
 app.use("/token-report", await createV2TokenReportRouter());
 app.use("/token-statistic", await createV2TokenStatisticRouter());
 app.use("/token-risk/alerts", await createV2TokenRiskAlertsRouter());
@@ -628,6 +645,16 @@ app.use("/messari", await createMessariRouter());
 
 // hey.lol agent API proxy (x402) – profile, posts, feed, DMs, services, token. Use HEYLOL_SOLANA_PRIVATE_KEY or anonymousId.
 app.use("/heylol", await createHeyLolRouter());
+// Quicknode RPC proxy (x402) – balance, transaction status, raw JSON-RPC. Set QUICKNODE_SOLANA_RPC_URL / QUICKNODE_BASE_RPC_URL.
+app.use("/quicknode", await createQuicknodeRouter());
+// Bankr agent API proxy (x402) – prompts, job status, balances. Set BANKR_API_KEY (bk_...) in api/.env.
+app.use("/bankr", await createBankrRouter());
+// Neynar Farcaster API proxy (x402). Set NEYNAR_API_KEY in api/.env.
+app.use("/neynar", await createNeynarRouter());
+// SIWA Sign-In With Agent (x402). Set RECEIPT_SECRET, SIWA_RPC_URL. Install @buildersgarden/siwa.
+app.use("/siwa", await createSiwaRouter());
+// ERC-8004 Ethereum agent discovery – same as 8004scan, alias path for Ethereum mainnet/Sepolia.
+app.use("/erc8004", await create8004scanRouter());
 // X (Twitter) API proxy (x402) – user lookup, search recent, user tweets, feed. GET and POST supported.
 app.use("/x", await createXApiRouter());
 
@@ -678,6 +705,8 @@ app.get("/.well-known/x402", (req, res) => {
     "token-god-mode",
     "trending-jupiter",
     "jupiter/swap/order",
+    "squid/route",
+    "squid/status",
     "token-report",
     "token-statistic",
     "token-risk/alerts",
@@ -704,6 +733,15 @@ app.get("/.well-known/x402", (req, res) => {
     "kraken/trades",
     "kraken/status",
     "kraken/server-time",
+    // KuCoin spot (ticker, stats, orderbook, trades, candles, symbols, currencies, server-time)
+    "kucoin/ticker",
+    "kucoin/stats",
+    "kucoin/orderbook",
+    "kucoin/trades",
+    "kucoin/candles",
+    "kucoin/symbols",
+    "kucoin/currencies",
+    "kucoin/server-time",
     // OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.)
     "okx/ticker",
     "okx/tickers",
@@ -781,6 +819,21 @@ app.get("/.well-known/x402", (req, res) => {
     "heylol",
     // X (Twitter) API proxy (x402) – user, search/recent, user/:username/tweets, feed
     "x",
+    // Quicknode RPC (balance, transaction, raw rpc)
+    "quicknode/balance",
+    "quicknode/transaction",
+    "quicknode/rpc",
+    "bankr/balances",
+    "bankr/prompt",
+    "bankr/job",
+    "bankr/job/cancel",
+    "neynar/user",
+    "neynar/feed",
+    "neynar/cast",
+    "neynar/search",
+    "siwa/nonce",
+    "siwa/verify",
+    "erc8004",
   ];
 
   const resources = x402Paths.map((p) => `${X402_BASE}/${p}`);
@@ -843,4 +896,6 @@ import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitiali
   ensureX402ResourceServerInitialized().catch(() => {});
 });
 
-app.listen(PORT, () => {});
+app.listen(PORT, () => {
+  console.log(`[Syra API] listening on port ${PORT} | /kucoin, /kraken, /okx partner routes registered`);
+});

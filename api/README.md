@@ -148,6 +148,90 @@ If your agent shows low scores (e.g. 50/100, 33/100) with tags like **reachable*
 
 ---
 
+## Quicknode RPC (optional)
+
+The API can proxy **Quicknode** RPC for Solana and Base so agents and MCP clients can query balances and transaction status (and raw JSON-RPC) via x402.
+
+### Setup
+
+In `api/.env` set one or both:
+
+- **`QUICKNODE_SOLANA_RPC_URL`** — Quicknode Solana endpoint (e.g. `https://xxx.solana-mainnet.quiknode.pro/YOUR_KEY/`)
+- **`QUICKNODE_BASE_RPC_URL`** — Quicknode Base endpoint (e.g. `https://xxx.base-mainnet.quiknode.pro/YOUR_KEY/`)
+
+Optional: **`QUICKNODE_RPC_TIMEOUT_MS`** (default 15000).
+
+### Endpoints (x402)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/quicknode/balance` | Query params: `chain` (solana \| base), `address`. Returns native balance (lamports for Solana, wei hex for Base). |
+| GET | `/quicknode/transaction` | Query params: `chain`, and `signature` (Solana) or `txHash` (Base). Returns transaction status. |
+| POST | `/quicknode/rpc` | Body: `{ "chain": "solana" \| "base", "method": "...", "params": [...], "id"?: number }`. Forwards raw JSON-RPC. |
+
+If neither env var is set, these routes return **503** with a message to configure Quicknode. The MCP server exposes `syra_v2_quicknode_balance`, `syra_v2_quicknode_transaction`, and `syra_v2_quicknode_rpc`.
+
+---
+
+## Bankr (optional)
+
+The API can proxy **Bankr** (api.bankr.bot) so agents and MCP clients can check wallet balances, submit natural language prompts, and poll job results via x402. Uses a single **server-side** API key so the Syra agent shares one Bankr-backed wallet.
+
+### Setup
+
+In `api/.env` set:
+
+- **`BANKR_API_KEY`** — Bankr API key (starts with `bk_...`). Create at [bankr.bot/api](https://bankr.bot/api) with **Agent API** enabled.
+
+Optional: **`BANKR_API_URL`** (default `https://api.bankr.bot`), **`BANKR_TIMEOUT_MS`** (default 30000).
+
+### Endpoints (x402)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/bankr/balances` | Query param: `chains` (optional, e.g. `base,solana`). Returns wallet balances across chains. |
+| POST | `/bankr/prompt` | Body: `{ "prompt": "...", "threadId"?: "..." }`. Submits prompt; returns **202** with `jobId` and `threadId`. Poll `GET /bankr/job/:jobId` for result. |
+| GET | `/bankr/job/:jobId` | Returns job status and, when completed, `response` and `richData`. |
+| POST | `/bankr/job/:jobId/cancel` | Cancels a pending/processing job. |
+
+If `BANKR_API_KEY` is not set, these routes return **503**. MCP tools: `syra_v2_bankr_balances`, `syra_v2_bankr_prompt`, `syra_v2_bankr_job`, `syra_v2_bankr_job_cancel`.
+
+---
+
+## ERC-8004 (Ethereum agent discovery)
+
+The **`/erc8004`** path is an alias for the same 8004scan router used at `/8004scan`. Use it for Ethereum mainnet (chainId 1) and Sepolia (11155111) ERC-8004 agent discovery. Same endpoints: `GET /erc8004/agents`, `GET /erc8004/agents/search?q=...`, `GET /erc8004/agents/:chainId/:tokenId`, `GET /erc8004/stats`, `GET /erc8004/chains`, etc. Optional **EIGHTYFOUR_SCAN_API_KEY** in `.env` for higher 8004scan rate limits.
+
+---
+
+## Neynar (Farcaster API, optional)
+
+Proxy to **Neynar** Farcaster API for user lookup, feeds, cast, and search. Set **`NEYNAR_API_KEY`** in `api/.env` (get a key at [dev.neynar.com](https://dev.neynar.com)).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/neynar/user` | Query: `username` or `fids` (comma-separated). |
+| GET | `/neynar/feed` | Query: `feed_type`, `fid`, `channel_id`, `limit`, `cursor`. |
+| GET | `/neynar/cast` | Query: `identifier` or `hash` (cast hash or URL). |
+| GET | `/neynar/search` | Query: `q` (required), `limit`, `channel_id`, `cursor`. |
+
+MCP tools: `syra_v2_neynar_user`, `syra_v2_neynar_feed`, `syra_v2_neynar_cast`, `syra_v2_neynar_search`.
+
+---
+
+## SIWA (Sign-In With Agent, optional)
+
+**SIWA** lets ERC-8004 agents authenticate with services. Set **`RECEIPT_SECRET`** (min 32 chars) and **`SIWA_RPC_URL`** (or **`ETH_RPC_URL`**) in `api/.env`. Optional **`SIWA_DOMAIN`** (default `api.syraa.fun`). Requires **`@buildersgarden/siwa`** (already in dependencies).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/siwa/nonce` | Body: `{ "address", "agentId", "agentRegistry"? }`. Returns nonce for the agent to sign. |
+| POST | `/siwa/verify` | Body: `{ "message", "signature" }`. Verifies SIWA message and returns `valid`, `agentId`, optional `receipt`. |
+
+MCP tools: `syra_v2_siwa_nonce`, `syra_v2_siwa_verify`.
+
+---
+
 ## API key and trusted origins
 
 - **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, playground) so frontends do not need to send it.

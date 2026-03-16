@@ -112,7 +112,7 @@ async function main() {
   );
 
   console.log("Configuration:");
-  console.log("  RPC:", RPC_URL);
+  console.log("  RPC host:", (() => { try { return new URL(RPC_URL).hostname; } catch { return "(invalid)"; } })());
   console.log("  Program ID:", PROGRAM_ID.toBase58());
   console.log("  Reward mint:", REWARD_MINT.toBase58());
   console.log("  Amount (human):", AMOUNT_HUMAN, "tokens");
@@ -151,6 +151,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((e) => {
-    console.error(e);
+    console.error(e?.message ?? String(e));
     process.exit(1);
   });

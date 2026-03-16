@@ -959,6 +959,61 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
+  "squid-route": doc({
+    title: "Squid Cross-Chain Route API",
+    overview:
+      "Get a cross-chain route/quote from Squid Router (100+ chains). Returns the optimal route and transactionRequest for the first leg; the user signs and submits on the source chain. Requires SQUID_INTEGRATOR_ID in API env. Uses the x402 payment protocol.",
+    price: "$0.02 USD per request",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/squid/route",
+        description: "Get cross-chain route. Body params required.",
+        params: [
+          { name: "fromAddress", type: "string", required: "Yes", description: "Source chain wallet address." },
+          { name: "fromChain", type: "string", required: "Yes", description: "Source chain ID (e.g. 8453 Base, 42161 Arbitrum, 56 BNB)." },
+          { name: "fromToken", type: "string", required: "Yes", description: "Source token contract address." },
+          { name: "fromAmount", type: "string", required: "Yes", description: "Amount in smallest units." },
+          { name: "toChain", type: "string", required: "Yes", description: "Destination chain ID." },
+          { name: "toToken", type: "string", required: "Yes", description: "Destination token contract address." },
+          { name: "toAddress", type: "string", required: "Yes", description: "Destination wallet address." },
+          { name: "slippage", type: "number", required: "No", description: "Slippage tolerance percent (default 1)." },
+        ],
+        requestExample: `curl -X POST "${BASE_URL}/squid/route" -H "Content-Type: application/json" -d '{"fromAddress":"0x...","fromChain":"8453","fromToken":"0x...","fromAmount":"1000000","toChain":"42161","toToken":"0x...","toAddress":"0x..."}'`,
+        responseExample: `{
+  "route": { "transactionRequest": { "target": "0x...", "data": "0x...", "value": "0", "gasLimit": "..." }, "quoteId": "..." },
+  "requestId": "uuid-from-header"
+}`,
+      },
+    ],
+  }),
+
+  "squid-status": doc({
+    title: "Squid Cross-Chain Status API",
+    overview:
+      "Check the status of a cross-chain transaction. Use transactionId (source chain tx hash), requestId (from route response header), fromChainId, toChainId, and optionally quoteId (from route, required for Coral V2). Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/squid/status",
+        description: "Get transaction status. Query params required.",
+        params: [
+          { name: "transactionId", type: "string", required: "Yes", description: "Source chain transaction hash." },
+          { name: "requestId", type: "string", required: "Yes", description: "x-request-id from route response." },
+          { name: "fromChainId", type: "string", required: "Yes", description: "Source chain ID." },
+          { name: "toChainId", type: "string", required: "Yes", description: "Destination chain ID." },
+          { name: "quoteId", type: "string", required: "No", description: "quoteId from route (Coral V2)." },
+        ],
+        requestExample: `curl "${BASE_URL}/squid/status?transactionId=0x...&requestId=...&fromChainId=8453&toChainId=42161"`,
+        responseExample: `{
+  "squidTransactionStatus": "success",
+  "message": "..."
+}`,
+      },
+    ],
+  }),
+
   "purch-vault": doc({
     title: "Purch Vault API",
     overview:
@@ -1266,6 +1321,106 @@ curl "${BASE_URL}/kraken/orderbook?pair=ETHUSD&count=50"`,
         title: "Dev routes (no payment)",
         content:
           "When NODE_ENV is not production, GET/POST /kraken/ticker/dev, /kraken/orderbook/dev, /kraken/ohlc/dev, /kraken/trades/dev, /kraken/status/dev, and /kraken/server-time/dev return the same data without x402 payment.",
+      },
+    ],
+  }),
+
+  "kucoin-market": doc({
+    title: "KuCoin Spot Market API",
+    overview:
+      "KuCoin spot market data via KuCoin REST API (no auth): ticker, 24h stats, order book, recent trades, klines/candles, symbol list, currencies, and server time. All endpoints support GET and POST; all params have defaults. Uses the x402 payment protocol.",
+    price: "$0.01 USD per request",
+    useCases: [
+      "Get KuCoin spot ticker for a symbol (e.g. BTC-USDT) or all tickers",
+      "Fetch 24h stats, order book depth, and OHLC candles",
+      "Recent trades, symbol/currency lists, and server time for monitoring",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/kucoin/ticker",
+        description: "Ticker for all symbols or single symbol (e.g. BTC-USDT). Omit symbol for all tickers.",
+        params: [
+          { name: "symbol", type: "string", required: "No", description: "Symbol (e.g. BTC-USDT); omit for all tickers." },
+        ],
+        requestExample: `curl ${BASE_URL}/kucoin/ticker
+curl "${BASE_URL}/kucoin/ticker?symbol=BTC-USDT"`,
+        responseExample: `{ "time": 1234567890000, "ticker": [ ... ] } or level1 { "sequence": "...", "bestAsk": "...", "bestBid": "...", ... }`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/stats",
+        description: "24h stats for a symbol. Default: BTC-USDT.",
+        params: [{ name: "symbol", type: "string", required: "No", description: "Symbol (default BTC-USDT)." }],
+        requestExample: `curl ${BASE_URL}/kucoin/stats
+curl "${BASE_URL}/kucoin/stats?symbol=ETH-USDT"`,
+        responseExample: `{ "symbol": "BTC-USDT", "buy": "...", "sell": "...", "changeRate": "...", "vol": "...", ... }`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/orderbook",
+        description: "Order book. Default symbol: BTC-USDT, level: level2_20.",
+        params: [
+          { name: "symbol", type: "string", required: "No", description: "Symbol (default BTC-USDT)." },
+          { name: "level", type: "string", required: "No", description: "level2_20 or level2_100 (default level2_20)." },
+        ],
+        requestExample: `curl ${BASE_URL}/kucoin/orderbook
+curl "${BASE_URL}/kucoin/orderbook?symbol=ETH-USDT&level=level2_100"`,
+        responseExample: `{ "sequence": "...", "time": 1234567890000, "bids": [...], "asks": [...] }`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/trades",
+        description: "Recent trades. Default symbol: BTC-USDT.",
+        params: [{ name: "symbol", type: "string", required: "No", description: "Symbol (default BTC-USDT)." }],
+        requestExample: `curl ${BASE_URL}/kucoin/trades`,
+        responseExample: `[ { "sequence": "...", "price": "...", "size": "...", "side": "buy", "time": 1234567890000 }, ... ]`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/candles",
+        description: "Klines/candles. Default symbol: BTC-USDT, type: 1min, pageSize: 100.",
+        params: [
+          { name: "symbol", type: "string", required: "No", description: "Symbol (default BTC-USDT)." },
+          { name: "type", type: "string", required: "No", description: "1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 8hour, 12hour, 1day, 1week (default 1min)." },
+          { name: "pageSize", type: "number", required: "No", description: "Candles to return (default 100, max 1500)." },
+        ],
+        requestExample: `curl ${BASE_URL}/kucoin/candles
+curl "${BASE_URL}/kucoin/candles?symbol=BTC-USDT&type=1hour&pageSize=50"`,
+        responseExample: `[ [ "time", "open", "close", "high", "low", "vol", "turnover" ], ... ]`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/symbols",
+        description: "List of tradeable symbols.",
+        requestExample: `curl ${BASE_URL}/kucoin/symbols`,
+        responseExample: `{ "data": [ { "symbol": "BTC-USDT", ... }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/currencies",
+        description: "List of currencies.",
+        requestExample: `curl ${BASE_URL}/kucoin/currencies`,
+        responseExample: `{ "data": [ { "currency": "BTC", ... }, ... ] }`,
+      },
+      {
+        method: "GET",
+        path: "/kucoin/server-time",
+        description: "KuCoin server time (milliseconds).",
+        requestExample: `curl ${BASE_URL}/kucoin/server-time`,
+        responseExample: `{ "timestamp": 1234567890000 }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Reference",
+        content:
+          "Data is provided via KuCoin REST API (https://api.kucoin.com). Market endpoints require no API key; the Syra API uses x402 for payment only. See KuCoin Skills Hub (https://github.com/Kucoin/kucoin-skills-hub) for full spot skill coverage.",
+      },
+      {
+        title: "Dev routes (no payment)",
+        content:
+          "When NODE_ENV is not production, GET/POST /kucoin/ticker/dev, /kucoin/stats/dev, /kucoin/orderbook/dev, /kucoin/trades/dev, /kucoin/candles/dev, /kucoin/symbols/dev, /kucoin/currencies/dev, and /kucoin/server-time/dev return the same data without x402 payment.",
       },
     ],
   }),
