@@ -1418,6 +1418,11 @@ curl "${BASE_URL}/kucoin/candles?symbol=BTC-USDT&type=1hour&pageSize=50"`,
           "Data is provided via KuCoin REST API (https://api.kucoin.com). Market endpoints require no API key; the Syra API uses x402 for payment only. See KuCoin Skills Hub (https://github.com/Kucoin/kucoin-skills-hub) for full spot skill coverage.",
       },
       {
+        title: "Syra AI Agent",
+        content:
+          "The KuCoin API is integrated with the Syra AI agent. At agent.syraa.fun you can ask in natural language (e.g. \"KuCoin ticker for BTC-USDT\", \"KuCoin 24h stats\", \"KuCoin orderbook\", \"KuCoin candles\") and the agent will call the appropriate tool. Available agent tools: kucoin-ticker, kucoin-stats, kucoin-orderbook, kucoin-trades, kucoin-candles, kucoin-symbols, kucoin-currencies, kucoin-server-time. See the Agent Catalog in the docs for the full list of tools and example prompts.",
+      },
+      {
         title: "Dev routes (no payment)",
         content:
           "When NODE_ENV is not production, GET/POST /kucoin/ticker/dev, /kucoin/stats/dev, /kucoin/orderbook/dev, /kucoin/trades/dev, /kucoin/candles/dev, /kucoin/symbols/dev, /kucoin/currencies/dev, and /kucoin/server-time/dev return the same data without x402 payment.",
