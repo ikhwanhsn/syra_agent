@@ -21,7 +21,7 @@
 The **ai-agent** package is the **Syra AI Agent web app**. It is a Vite + React (TypeScript) application that provides:
 
 - **AI chat** — web-based chat that explains Syra, tokens, and trading logic.
-- **Marketplace** — browse and use Syra agents and x402 pay-per-use flows.
+- **Marketplace** — browse and use Syra agents and x402 pay-per-use flows (including partner market data: Kraken, KuCoin, OKX, Binance).
 - **Shareable chats** — share chat sessions via URL.
 - **Solana wallet** — connect wallet for x402 payments and agent actions.
 

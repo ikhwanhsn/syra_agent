@@ -83,7 +83,7 @@ export default function AgentFeatures() {
       <section id="full-list" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Full List of Tools</h2>
         <p className="text-muted-foreground mb-4">
-          For a complete, up-to-date list of every tool the agent can use—including names, short descriptions, per-call prices in USD, and example prompts—see the <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link>. It covers core tools (signals, news, sentiment, research, x-search, gems, KOL, digest, headline), partner tools (Nansen, DexScreener, Jupiter, Squid Router, Rugcheck, Bubblemaps, Binance), and all memecoin screens.
+          For a complete, up-to-date list of every tool the agent can use—including names, short descriptions, per-call prices in USD, and example prompts—see the <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link>. It covers core tools (signals, news, sentiment, research, x-search, gems, KOL, digest, headline), partner tools (Nansen, DexScreener, Jupiter, Squid Router, Rugcheck, Bubblemaps, Binance, Kraken, KuCoin, OKX), and all memecoin screens.
         </p>
       </section>
 
