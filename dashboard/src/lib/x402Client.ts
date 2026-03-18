@@ -182,14 +182,27 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
   };
 }
 
+/** v2 = PAYMENT-SIGNATURE path; v1 = X-PAYMENT. APIs may send "2" as string. */
+function parseX402Version(raw: unknown): 1 | 2 | null {
+  if (raw === 1 || raw === 2) return raw;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    const n = Math.trunc(raw);
+    if (n === 1 || n === 2) return n as 1 | 2;
+  }
+  if (typeof raw === 'string') {
+    const t = raw.trim();
+    if (t === '1' || t === '2') return Number(t) as 1 | 2;
+  }
+  return null;
+}
+
 /**
  * Parse x402 response from API
  * Handles x402 v2 and v1 protocol responses (matching api/utils/x402Payment.js format)
  */
 export function parseX402Response(data: any, responseHeaders?: Record<string, string>): X402Response | null {
-  // Check for x402 protocol response (v2 or v1)
-  if (data && typeof data.x402Version === 'number') {
-    const version = data.x402Version;
+  const version = data ? parseX402Version(data.x402Version) : null;
+  if (data && version !== null) {
     const rawAccepts = data.accepts || [];
     // v1 uses maxAmountRequired and simple "solana" network; normalize so getBestPaymentOption/createPaymentTransaction work
     let accepts =
