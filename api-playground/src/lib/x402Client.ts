@@ -155,9 +155,33 @@ function base64EncodeUnicode(str: string): string {
   return btoa(binary);
 }
 
+/** Pick first non-zero amount-like value from an object (for v1 / external APIs with varying field names). */
+function pickAmountFromObject(obj: any): string {
+  if (obj == null || typeof obj !== 'object') return '0';
+  const priceVal = typeof obj.price === 'object' && obj.price != null ? obj.price.amount : obj.price;
+  const candidates = [
+    obj.maxAmountRequired,
+    obj.amount,
+    obj.amountRequired,
+    obj.requiredAmount,
+    obj.cost,
+    obj.value,
+    obj.amountMicro,
+    obj.priceMicro,
+    obj.amountUsd,
+    obj.priceUsd,
+    priceVal,
+  ].filter((v) => v !== undefined && v !== null && v !== '');
+  for (const v of candidates) {
+    const s = String(v).trim();
+    if (s && s !== '0') return s;
+  }
+  return '0';
+}
+
 /** Normalize a v1 accept (maxAmountRequired, network "solana") to shared shape for getBestPaymentOption and createPaymentTransaction. */
 function normalizeV1Accept(raw: any): X402PaymentOption {
-  const amount = String(raw.maxAmountRequired ?? raw.amount ?? '0');
+  const amount = pickAmountFromObject(raw) || '0';
   const network =
     raw.network === 'solana' || !raw.network
       ? SOLANA_MAINNET_CAIP2
@@ -165,10 +189,13 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
         ? raw.network
         : SOLANA_MAINNET_CAIP2;
   const owner = raw.owner ?? raw.extra?.owner;
+  // payTo can appear as payTo, recipient, paymentAddress, or address in v1 / external APIs
+  const payTo =
+    raw.payTo ?? raw.recipient ?? raw.paymentAddress ?? raw.address ?? raw.payToAddress ?? '';
   return {
     scheme: raw.scheme || 'exact',
     network,
-    payTo: raw.payTo ?? '',
+    payTo,
     amount,
     asset: raw.asset ?? USDC_MINT_STRING,
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
@@ -186,11 +213,35 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
   if (data && typeof data.x402Version === 'number') {
     const version = data.x402Version;
     const rawAccepts = data.accepts || [];
-    // v1 uses maxAmountRequired and simple "solana" network; normalize so getBestPaymentOption/createPaymentTransaction work
-    const accepts =
+    // Normalize: v1 → normalizeV1Accept, v2 → normalizePaymentOption (so amount/payTo are always resolved)
+    let accepts =
       version === 1 && rawAccepts.length > 0
         ? rawAccepts.map((a: any) => normalizeV1Accept(a))
-        : rawAccepts;
+        : rawAccepts.length > 0
+          ? rawAccepts.map((a: any) => normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } }))
+          : rawAccepts;
+    // v1 and v2: some APIs put amount/payTo only at top level or in data.payment; fill first accept when missing
+    if (accepts.length > 0) {
+      const first = accepts[0];
+      const payment = data.payment && typeof data.payment === 'object' ? data.payment : {};
+      const topAmount =
+        pickAmountFromObject(data) !== '0'
+          ? pickAmountFromObject(data)
+          : pickAmountFromObject(payment) !== '0'
+            ? pickAmountFromObject(payment)
+            : data.amount ?? data.price ?? data.maxAmountRequired ?? data.requiredAmount ?? data.cost ?? data.value ?? payment.amount ?? payment.price;
+      const topPayTo =
+        data.payTo ?? data.recipient ?? data.address ?? data.wallet ?? data.paymentAddress ??
+        payment.payTo ?? payment.recipient ?? payment.address ?? payment.wallet;
+      const filledFirst = {
+        ...first,
+        ...((!first.amount || first.amount === '0') && topAmount != null && String(topAmount).trim() !== ''
+          ? { amount: String(topAmount) }
+          : {}),
+        ...(first.payTo === '' && topPayTo ? { payTo: String(topPayTo) } : {}),
+      };
+      accepts = [filledFirst, ...accepts.slice(1)];
+    }
     return {
       x402Version: version,
       accepts,
@@ -254,9 +305,21 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
         const rawAccepts = Array.isArray(decoded) ? decoded : decoded?.accepts;
         const version = decoded?.x402Version ?? 2;
         if (rawAccepts?.length) {
-          const accepts = rawAccepts.map((a: any) =>
+          let accepts = rawAccepts.map((a: any) =>
             (version === 1 || a.maxAmountRequired != null) ? normalizeV1Accept(a) : normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
           );
+          // Fill first accept from top-level decoded when amount/payTo missing (v1 and v2)
+          if (accepts.length > 0) {
+            const first = accepts[0];
+            const topAmount = pickAmountFromObject(decoded) !== '0' ? pickAmountFromObject(decoded) : (decoded.amount ?? decoded.price ?? decoded.maxAmountRequired ?? decoded.requiredAmount);
+            const topPayTo = decoded.payTo ?? decoded.recipient ?? decoded.address ?? decoded.wallet;
+            const filledFirst = {
+              ...first,
+              ...((!first.amount || first.amount === '0') && topAmount != null && String(topAmount).trim() !== '' ? { amount: String(topAmount) } : {}),
+              ...(first.payTo === '' && topPayTo ? { payTo: String(topPayTo) } : {}),
+            };
+            accepts = [filledFirst, ...accepts.slice(1)];
+          }
           if (accepts.some((a: X402PaymentOption) => a.payTo)) {
             return {
               x402Version: version,
@@ -276,13 +339,14 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
 
 /** Normalize raw accept from 402 so it has top-level amount and asset (V2 may send price: { asset, amount }). */
 function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: string; amount?: string }; owner?: string; extra?: { owner?: string } }): X402PaymentOption {
-  const amount = String(raw.price?.amount ?? raw.amount ?? '0');
+  const amount = pickAmountFromObject(raw as any) !== '0' ? pickAmountFromObject(raw as any) : String(raw.price?.amount ?? raw.amount ?? '0');
   const asset = raw.price?.asset ?? raw.asset ?? USDC_MINT_STRING;
   const owner = raw.owner ?? raw.extra?.owner;
+  const payTo = raw.payTo ?? (raw as any).recipient ?? (raw as any).paymentAddress ?? (raw as any).address ?? '';
   return {
     scheme: raw.scheme || 'exact',
     network: raw.network,
-    payTo: raw.payTo,
+    payTo,
     amount,
     asset,
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
@@ -410,7 +474,7 @@ export async function createPaymentTransaction(
   const amount = parseAmountToSmallestUnits(paymentOption.amount, 6);
   if (amount <= BigInt(0)) {
     throw new Error(
-      `Invalid payment amount: "${paymentOption.amount}". Use micro units (e.g. 10000 for $0.01 USDC) or decimal (e.g. 0.01).`
+      `Invalid payment amount: "${paymentOption.amount}". The API did not return a recognized amount (expected micro units e.g. 10000 for $0.01 USDC, or decimal e.g. 0.01). Check the 402 response body for amount/maxAmountRequired/price fields.`
     );
   }
 
@@ -579,29 +643,26 @@ export function createPaymentHeader(
 }
 
 /**
- * Build v1 "accepted" object for X-PAYMENT header. Server (x402-solana) expects simple network string "solana" or "devnet", not CAIP-2.
- * Sending CAIP-2 (e.g. "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp") causes "Invalid network" on verification.
+ * Normalize network for v1 X-PAYMENT: server expects "solana", "devnet", or "base" (not CAIP-2).
+ */
+function normalizeV1NetworkForHeader(rawNetwork: unknown): string {
+  const s = String(rawNetwork ?? '').trim().toLowerCase();
+  if (s === 'solana' || s === 'devnet') return s;
+  if (s === 'base' || s.startsWith('eip155:')) return 'base';
+  if (s.includes('devnet')) return 'devnet';
+  return 'solana';
+}
+
+/**
+ * Build v1 "accepted" object for X-PAYMENT header. Use the server's accept object as-is and only
+ * overwrite network so it is "solana"|"devnet"|"base" (never CAIP-2). Preserves all other fields.
  */
 function buildV1AcceptedForHeader(rawV1Accept: Record<string, any>): Record<string, any> {
-  const rawNetwork = rawV1Accept.network;
-  const network =
-    rawNetwork === 'solana' || rawNetwork === 'devnet'
-      ? rawNetwork
-      : typeof rawNetwork === 'string' && rawNetwork.includes('devnet')
-        ? 'devnet'
-        : 'solana';
+  const network = normalizeV1NetworkForHeader(rawV1Accept.network);
   return {
-    scheme: rawV1Accept.scheme ?? 'exact',
+    ...rawV1Accept,
     network,
     maxAmountRequired: rawV1Accept.maxAmountRequired ?? rawV1Accept.amount,
-    resource: rawV1Accept.resource,
-    description: rawV1Accept.description,
-    mimeType: rawV1Accept.mimeType ?? '',
-    payTo: rawV1Accept.payTo,
-    maxTimeoutSeconds: rawV1Accept.maxTimeoutSeconds ?? 60,
-    asset: rawV1Accept.asset,
-    outputSchema: rawV1Accept.outputSchema,
-    extra: rawV1Accept.extra && typeof rawV1Accept.extra === 'object' ? rawV1Accept.extra : undefined,
   };
 }
 

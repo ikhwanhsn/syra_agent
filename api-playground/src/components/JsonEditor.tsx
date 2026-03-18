@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Copy, AlertCircle, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** Heuristic: treat as image if URL has common image extension or path patterns. */
+/** Heuristic: treat as image if URL has common image extension or path patterns (including CDN/generated). */
 function isImageUrl(url: string): boolean {
   const s = url.trim();
   if (!/^https?:\/\//i.test(s)) return false;
@@ -11,6 +12,7 @@ function isImageUrl(url: string): boolean {
   const imageExt = /\.(png|jpe?g|gif|webp|svg|bmp|ico)(\?|$)/i;
   if (imageExt.test(lower)) return true;
   if (/\/img\//i.test(lower) || /\/image/i.test(lower) || /\/images\//i.test(lower)) return true;
+  if (/\/generated\//i.test(lower) || /imgen\.|cdn\.|digitaloceanspaces/i.test(lower)) return true;
   return false;
 }
 
@@ -213,26 +215,24 @@ export function JsonEditor({
         )}
       </div>
 
-      {/* Image preview popover - portal so it floats above everything */}
+      {/* Image preview popover - container fits image aspect ratio (max 280px) so no blank space */}
       {hoveredImageUrl &&
         createPortal(
           <div
-            className="fixed z-[100] rounded-lg border border-border bg-card shadow-xl overflow-hidden pointer-events-none"
+            className="fixed z-[100] rounded-lg border border-border bg-muted/95 shadow-xl overflow-hidden pointer-events-none w-fit max-w-[280px] max-h-[280px]"
             style={{
-              left: Math.min(previewPosition.x + 16, window.innerWidth - IMAGE_PREVIEW_SIZE - 16),
-              top: Math.max(8, previewPosition.y - IMAGE_PREVIEW_SIZE - 8),
-              maxWidth: IMAGE_PREVIEW_SIZE,
-              maxHeight: IMAGE_PREVIEW_SIZE,
+              left: Math.min(previewPosition.x + 16, Math.max(8, window.innerWidth - IMAGE_PREVIEW_SIZE - 16)),
+              top: Math.max(8, Math.min(previewPosition.y - 16, window.innerHeight - IMAGE_PREVIEW_SIZE - 8)),
             }}
           >
             <img
               src={hoveredImageUrl}
               alt="Preview"
-              className="max-w-full max-h-full object-contain block"
+              className="block max-w-[280px] max-h-[280px] w-auto h-auto object-contain"
               loading="lazy"
               referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
+              onError={() => {
+                setHoveredImageUrl(null);
               }}
             />
           </div>,

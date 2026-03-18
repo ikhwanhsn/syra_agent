@@ -11,6 +11,7 @@ import ExamplesGroup from "./pages/ExamplesGroup";
 import Explorer from "./pages/Explorer";
 import ExplorerDetail from "./pages/ExplorerDetail";
 import BatchTest from "./pages/BatchTest";
+import FormatValidator from "./pages/FormatValidator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/explorer" element={<Explorer />} />
               <Route path="/explorer/:slug" element={<ExplorerDetail />} />
               <Route path="/batch-test" element={<BatchTest />} />
+              <Route path="/format-test" element={<FormatValidator />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

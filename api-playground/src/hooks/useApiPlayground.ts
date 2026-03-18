@@ -1759,6 +1759,7 @@ function isValidApiUrl(url: string): boolean {
 
 // localStorage keys for payment header (scoped by origin so we don't send one API's payment to another)
 const PAYMENT_HEADER_KEY = 'x402_payment_header';
+const PAYMENT_HEADER_VERSION_KEY = 'x402_payment_version'; // 1 = X-PAYMENT only, 2 = PAYMENT-SIGNATURE only (avoids nginx "header too large")
 const PAYMENT_ORIGIN_KEY = 'x402_payment_origin';
 
 function getRequestOrigin(urlStr: string): string | null {
@@ -2394,7 +2395,7 @@ export function useApiPlayground() {
 
   // Send request (optionally with payment header or full request override for example flows).
   // Returns the HTTP status on success (e.g. 200, 402) or undefined on network error.
-  const sendRequest = useCallback(async (paymentHeader?: string, requestOverride?: RequestOverride): Promise<number | undefined> => {
+  const sendRequest = useCallback(async (paymentHeader?: string, requestOverride?: RequestOverride, paymentVersion?: 1 | 2): Promise<number | undefined> => {
     const useOverride = !!requestOverride;
     const baseUrl = useOverride ? requestOverride.url.trim() : url.trim();
     if (!baseUrl) return undefined;
@@ -2539,10 +2540,14 @@ export function useApiPlayground() {
       requestHeaders[h.key] = h.value;
     });
 
-    // Add payment header if provided (for retry after payment). V2 format: use PAYMENT-SIGNATURE; also send X-Payment for legacy v1 APIs.
+    // Add a single payment header to avoid "Request Header Or Cookie Too Large" (nginx). v1: X-PAYMENT; v2: PAYMENT-SIGNATURE.
     if (paymentHeader) {
-      requestHeaders['PAYMENT-SIGNATURE'] = paymentHeader;
-      requestHeaders['X-Payment'] = paymentHeader;
+      const version = paymentVersion ?? (typeof localStorage !== 'undefined' ? (localStorage.getItem(PAYMENT_HEADER_VERSION_KEY) === '1' ? 1 : 2) : 2);
+      if (version === 1) {
+        requestHeaders['X-PAYMENT'] = paymentHeader;
+      } else {
+        requestHeaders['PAYMENT-SIGNATURE'] = paymentHeader;
+      }
     }
     // So production API can apply playground-dev pricing when this wallet is connected
     const payerAddress = walletContext.address ?? walletContext.baseAddress ?? null;
@@ -3255,10 +3260,19 @@ export function useApiPlayground() {
 
     setTransactionStatus({ status: 'pending' });
 
-    const rawV1Accept =
-      x402Response?.x402Version === 1 && x402Response._rawV1Accepts?.[0]
-        ? x402Response._rawV1Accepts[0]
-        : undefined;
+    // For v1, send the raw accept that matches the payment we're making (by payTo then by network)
+    const rawV1Accept = (() => {
+      if (x402Response?.x402Version !== 1 || !x402Response._rawV1Accepts?.length || !paymentOption?.payTo) return undefined;
+      const raw = x402Response._rawV1Accepts as Record<string, any>[];
+      const matchByPayTo = raw.find((a: any) => String(a.payTo || '').trim() === String(paymentOption.payTo || '').trim());
+      if (matchByPayTo) return matchByPayTo;
+      if (isBase) {
+        const baseRaw = raw.find((a: any) => a.network === 'base' || String(a.network || '').startsWith('eip155:'));
+        return baseRaw ?? raw[0];
+      }
+      const solanaRaw = raw.find((a: any) => a.network === 'solana' || (typeof a.network === 'string' && a.network.startsWith('solana')));
+      return solanaRaw ?? raw[0];
+    })();
 
     try {
       let result: Awaited<ReturnType<typeof executePayment>>;
@@ -3287,19 +3301,22 @@ export function useApiPlayground() {
           hash: result.signature,
         });
 
-        // Store payment header and origin so we only reuse it for the same API
+        // Store payment header, version, and origin so we only reuse it for the same API
         localStorage.setItem(PAYMENT_HEADER_KEY, result.paymentHeader);
+        localStorage.setItem(PAYMENT_HEADER_VERSION_KEY, x402Response?.x402Version === 1 ? '1' : '2');
         const paidOrigin = getRequestOrigin(url);
         if (paidOrigin) localStorage.setItem(PAYMENT_ORIGIN_KEY, paidOrigin);
         
         // Auto-retry: the signed tx is in the header; the API server will submit and verify it.
+        const payVersion: 1 | 2 = x402Response?.x402Version === 1 ? 1 : 2;
         setTimeout(async () => {
           setIsPaymentModalOpen(false);
           setTransactionStatus({ status: 'idle' });
           
-          const retryStatus = await sendRequest(result.paymentHeader);
+          const retryStatus = await sendRequest(result.paymentHeader, undefined, payVersion);
           
           localStorage.removeItem(PAYMENT_HEADER_KEY);
+          localStorage.removeItem(PAYMENT_HEADER_VERSION_KEY);
           localStorage.removeItem(PAYMENT_ORIGIN_KEY);
           
           if (retryStatus === 200) {
@@ -3349,13 +3366,15 @@ export function useApiPlayground() {
     // Only send the stored payment header if it was for this same API origin
     if (paymentHeader && currentOrigin && storedOrigin && storedOrigin === currentOrigin) {
       setTransactionStatus({ status: 'idle' });
-      await sendRequest(paymentHeader);
+      await sendRequest(paymentHeader, undefined, localStorage.getItem(PAYMENT_HEADER_VERSION_KEY) === '1' ? 1 : 2);
       localStorage.removeItem(PAYMENT_HEADER_KEY);
+      localStorage.removeItem(PAYMENT_HEADER_VERSION_KEY);
       localStorage.removeItem(PAYMENT_ORIGIN_KEY);
     } else {
       // Stored payment was for a different API or has no origin (legacy); don't send it
       if (paymentHeader && (!storedOrigin || (currentOrigin && storedOrigin !== currentOrigin))) {
         localStorage.removeItem(PAYMENT_HEADER_KEY);
+        localStorage.removeItem(PAYMENT_HEADER_VERSION_KEY);
         localStorage.removeItem(PAYMENT_ORIGIN_KEY);
         if (currentOrigin && storedOrigin && storedOrigin !== currentOrigin) {
           toast({

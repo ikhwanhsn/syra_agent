@@ -152,7 +152,14 @@ function base64EncodeUnicode(str: string): string {
 
 /** Normalize a v1 accept (maxAmountRequired, network "solana") to shared shape for getBestPaymentOption and createPaymentTransaction. */
 function normalizeV1Accept(raw: any): X402PaymentOption {
-  const amount = String(raw.maxAmountRequired ?? raw.amount ?? '0');
+  // v1 and some APIs use maxAmountRequired; others use amount, price.amount, requiredAmount, or cost
+  const amountStr =
+    raw.maxAmountRequired ??
+    raw.amount ??
+    (typeof raw.price === 'object' && raw.price != null ? raw.price.amount : undefined) ??
+    raw.requiredAmount ??
+    raw.cost;
+  const amount = String(amountStr ?? '0');
   const network =
     raw.network === 'solana' || !raw.network
       ? SOLANA_MAINNET_CAIP2
@@ -160,10 +167,13 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
         ? raw.network
         : SOLANA_MAINNET_CAIP2;
   const owner = raw.owner ?? raw.extra?.owner;
+  // payTo can appear as payTo, recipient, paymentAddress, or address in v1 / external APIs
+  const payTo =
+    raw.payTo ?? raw.recipient ?? raw.paymentAddress ?? raw.address ?? raw.payToAddress ?? '';
   return {
     scheme: raw.scheme || 'exact',
     network,
-    payTo: raw.payTo ?? '',
+    payTo,
     amount,
     asset: raw.asset ?? USDC_MINT_STRING,
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
@@ -182,10 +192,24 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
     const version = data.x402Version;
     const rawAccepts = data.accepts || [];
     // v1 uses maxAmountRequired and simple "solana" network; normalize so getBestPaymentOption/createPaymentTransaction work
-    const accepts =
+    let accepts =
       version === 1 && rawAccepts.length > 0
         ? rawAccepts.map((a: any) => normalizeV1Accept(a))
         : rawAccepts;
+    // Some v1 APIs put amount/payTo only at top level; fill first accept when missing
+    if (version === 1 && accepts.length > 0) {
+      const first = accepts[0];
+      const topAmount = data.amount ?? data.price ?? data.maxAmountRequired ?? data.requiredAmount;
+      const topPayTo = data.payTo ?? data.recipient ?? data.address ?? data.wallet;
+      const filledFirst = {
+        ...first,
+        ...((!first.amount || first.amount === '0') && topAmount != null
+          ? { amount: String(topAmount) }
+          : {}),
+        ...(first.payTo === '' && topPayTo ? { payTo: String(topPayTo) } : {}),
+      };
+      accepts = [filledFirst, ...accepts.slice(1)];
+    }
     return {
       x402Version: version,
       accepts,

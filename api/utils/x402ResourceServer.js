@@ -9,6 +9,7 @@ import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import dotenv from "dotenv";
+import { createPayAiFacilitatorAuthHeaders } from "./payaiFacilitatorAuth.js";
 
 dotenv.config();
 
@@ -67,6 +68,38 @@ const baseUsdcAsset = envAny(["BASE_USDC"]) || (basePayTo ? BASE_USDC_MAINNET : 
 const solanaNetwork = normalizeSolanaNetwork(envAny(["SOLANA_NETWORK", "NETWORK_PAYAI", "NETWORK"]) || DEFAULT_SOLANA_NETWORK);
 const baseNetwork = normalizeBaseNetwork(envAny(["BASE_NETWORK"]) || DEFAULT_BASE_NETWORK);
 
+const payaiApiKeyId = env("PAYAI_API_KEY_ID");
+const payaiApiKeySecret = env("PAYAI_API_KEY_SECRET");
+const payaiAuthHeaders =
+  payaiApiKeyId && payaiApiKeySecret
+    ? createPayAiFacilitatorAuthHeaders(payaiApiKeyId, payaiApiKeySecret)
+    : null;
+if (payaiApiKeyId && !payaiApiKeySecret) {
+  console.warn(
+    "[x402] PAYAI_API_KEY_ID is set but PAYAI_API_KEY_SECRET is missing — facilitator calls stay unauthenticated (free tier only)."
+  );
+}
+if (!payaiApiKeyId && payaiApiKeySecret) {
+  console.warn(
+    "[x402] PAYAI_API_KEY_SECRET is set but PAYAI_API_KEY_ID is missing — facilitator calls stay unauthenticated."
+  );
+}
+
+/** Only send PayAI merchant JWT to PayAI hosts (not x402.org default). */
+function shouldUsePayAiAuthForUrl(url) {
+  const s = String(url || "").toLowerCase();
+  return s.includes("payai");
+}
+
+function newFacilitatorClient(url) {
+  const u = url || undefined;
+  const useAuth = payaiAuthHeaders && shouldUsePayAiAuthForUrl(u);
+  if (useAuth) {
+    return new HTTPFacilitatorClient({ url: u, createAuthHeaders: payaiAuthHeaders });
+  }
+  return u ? new HTTPFacilitatorClient({ url: u }) : new HTTPFacilitatorClient();
+}
+
 let resourceServerInstance = null;
 let initPromise = null;
 
@@ -82,14 +115,18 @@ export function getX402ResourceServer() {
 
   const clients = [];
   if (facilitatorUrl) {
-    clients.push(new HTTPFacilitatorClient({ url: facilitatorUrl }));
+    clients.push(newFacilitatorClient(facilitatorUrl));
   }
   const baseUrl = baseFacilitatorUrl || facilitatorUrl;
   if (baseUrl && baseUrl !== facilitatorUrl) {
-    clients.push(new HTTPFacilitatorClient({ url: baseUrl }));
+    clients.push(newFacilitatorClient(baseUrl));
   }
   if (clients.length === 0) {
-    clients.push(new HTTPFacilitatorClient());
+    clients.push(newFacilitatorClient());
+  }
+
+  if (payaiAuthHeaders && facilitatorUrl && shouldUsePayAiAuthForUrl(facilitatorUrl)) {
+    console.log("[x402] PayAI facilitator: merchant JWT auth enabled (verify/settle/supported).");
   }
 
   const server = new x402ResourceServer(clients);
