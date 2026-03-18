@@ -55,10 +55,11 @@ function NavbarLogo() {
 
 export default function StakingPage() {
   const { resolved: theme } = useTheme();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
   const [stakePeriod, setStakePeriod] = useState<StakingPeriod>(0);
   const [unstakePeriod, setUnstakePeriod] = useState<StakingPeriod>(0);
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
+  const [faucetLoading, setFaucetLoading] = useState(false);
 
   const {
     pool,
@@ -223,6 +224,34 @@ export default function StakingPage() {
     }
   };
 
+  const handleFaucet = async () => {
+    if (!connected || !publicKey) {
+      toast.error("Connect your wallet first");
+      return;
+    }
+    setFaucetLoading(true);
+    try {
+      const res = await fetch("/api/faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: publicKey.toBase58() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Faucet request failed");
+        return;
+      }
+      const amount = typeof data.amount === "number" ? data.amount.toLocaleString() : "1,000";
+      toast.success(`You received ${amount} ${CONFIG.stakingTokenSymbol}. Balance will update shortly.`);
+      setHistoryRefreshTrigger((t) => t + 1);
+      refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Faucet failed");
+    } finally {
+      setFaucetLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="navbar border-b border-border">
@@ -348,6 +377,16 @@ export default function StakingPage() {
                 <p className="text-2xl font-bold text-foreground">
                   {userStakingBalanceFormatted} {CONFIG.stakingTokenSymbol}
                 </p>
+                {CONFIG.IS_DEVNET && (
+                  <button
+                    type="button"
+                    onClick={handleFaucet}
+                    disabled={faucetLoading || !pool}
+                    className="mt-4 w-full rounded-xl border-2 border-primary/50 bg-primary/10 py-3 font-semibold text-primary transition hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {faucetLoading ? "Claiming..." : "Claim test tokens"}
+                  </button>
+                )}
               </div>
             </section>
 
