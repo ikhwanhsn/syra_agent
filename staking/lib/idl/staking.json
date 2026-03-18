@@ -333,7 +333,7 @@
     {
       "name": "stake",
       "docs": [
-        "Stake tokens into the pool (period: 0=1m, 1=3m, 2=1y)"
+        "Stake tokens into the pool (period: 0=1m, 1=3m, 2=1y). position_index must equal counter.next_index for that period."
       ],
       "discriminator": [
         206,
@@ -421,13 +421,17 @@
         {
           "name": "period",
           "type": "u8"
+        },
+        {
+          "name": "position_index",
+          "type": "u32"
         }
       ]
     },
     {
       "name": "unstake",
       "docs": [
-        "Unstake tokens from the pool"
+        "Unstake tokens from the pool (period: 0=1m, 1=3m, 2=1y)"
       ],
       "discriminator": [
         90,
@@ -514,6 +518,19 @@
       ]
     },
     {
+      "name": "PositionCounter",
+      "discriminator": [
+        218,
+        67,
+        231,
+        60,
+        108,
+        121,
+        38,
+        234
+      ]
+    },
+    {
       "name": "UserStakeInfo",
       "discriminator": [
         219,
@@ -587,21 +604,6 @@
       "code": 6011,
       "name": "StakeLocked",
       "msg": "Stake is still locked"
-    },
-    {
-      "code": 6012,
-      "name": "InvalidAccountOwner",
-      "msg": "Account not owned by the staking program"
-    },
-    {
-      "code": 6013,
-      "name": "PositionPdaMismatch",
-      "msg": "Stake position PDA does not match expected derivation"
-    },
-    {
-      "code": 6014,
-      "name": "RewardPerSecondExceedsMax",
-      "msg": "Reward per second exceeds allowed maximum"
     }
   ],
   "types": [
@@ -680,9 +682,25 @@
       }
     },
     {
+      "name": "PositionCounter",
+      "docs": [
+        "Counter for next position index per (owner, period). PDA: [POOL_SEED, COUNTER_SEED, owner, period]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "next_index",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
       "name": "UserStakeInfo",
       "docs": [
-        "User stake information"
+        "User stake information (per period). PDA: [POOL_SEED, owner, period]",
+        "Tracks aggregate amount and reward debt for the period (sum of all positions)."
       ],
       "type": {
         "kind": "struct",
@@ -697,7 +715,7 @@
           {
             "name": "amount",
             "docs": [
-              "Amount staked by the user"
+              "Total amount staked by the user in this period (sum of all positions)"
             ],
             "type": "u64"
           },
@@ -711,16 +729,9 @@
           {
             "name": "unlock_at",
             "docs": [
-              "Latest unlock time among positions"
+              "Latest unlock time among positions (for backward compat / display)"
             ],
             "type": "i64"
-          },
-          {
-            "name": "unclaimed_reward",
-            "docs": [
-              "Unclaimed rewards accumulated from unstake operations"
-            ],
-            "type": "u64"
           }
         ]
       }

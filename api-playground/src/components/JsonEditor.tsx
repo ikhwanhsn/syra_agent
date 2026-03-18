@@ -1,7 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Check, Copy, AlertCircle, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+/** Heuristic: treat as image if URL has common image extension or path patterns. */
+function isImageUrl(url: string): boolean {
+  const s = url.trim();
+  if (!/^https?:\/\//i.test(s)) return false;
+  const lower = s.toLowerCase();
+  const imageExt = /\.(png|jpe?g|gif|webp|svg|bmp|ico)(\?|$)/i;
+  if (imageExt.test(lower)) return true;
+  if (/\/img\//i.test(lower) || /\/image/i.test(lower) || /\/images\//i.test(lower)) return true;
+  return false;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 interface JsonEditorProps {
   value: string;
@@ -10,6 +38,9 @@ interface JsonEditorProps {
   placeholder?: string;
   minHeight?: string;
 }
+
+const IMAGE_PREVIEW_DELAY_MS = 300;
+const IMAGE_PREVIEW_SIZE = 280;
 
 export function JsonEditor({ 
   value, 
@@ -20,6 +51,10 @@ export function JsonEditor({
 }: JsonEditorProps) {
   const [isValid, setIsValid] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [hoveredImageUrl, setHoveredImageUrl] = useState<string | null>(null);
+  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
+  const showPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!value.trim()) {
@@ -50,10 +85,49 @@ export function JsonEditor({
     setTimeout(() => setCopied(false), 2000);
   }, [value]);
 
-  // Syntax highlighting for JSON
+  const clearImagePreview = useCallback(() => {
+    if (showPreviewTimeoutRef.current) {
+      clearTimeout(showPreviewTimeoutRef.current);
+      showPreviewTimeoutRef.current = null;
+    }
+    pendingUrlRef.current = null;
+    setHoveredImageUrl(null);
+  }, []);
+
+  const handleBodyMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!readOnly) return;
+    const el = (e.target as HTMLElement).closest?.('[data-image-url]') as HTMLElement | null;
+    const url = el?.getAttribute?.('data-image-url');
+    if (url) {
+      pendingUrlRef.current = url;
+      setPreviewPosition({ x: e.clientX, y: e.clientY });
+      if (!showPreviewTimeoutRef.current) {
+        showPreviewTimeoutRef.current = setTimeout(() => {
+          showPreviewTimeoutRef.current = null;
+          if (pendingUrlRef.current) setHoveredImageUrl(pendingUrlRef.current);
+        }, IMAGE_PREVIEW_DELAY_MS);
+      }
+    } else {
+      clearImagePreview();
+    }
+  }, [readOnly, clearImagePreview]);
+
+  const handleBodyMouseLeave = useCallback(() => {
+    clearImagePreview();
+  }, [clearImagePreview]);
+
+  // Syntax highlighting for JSON; string values that are image URLs get a hoverable span
   const highlightedValue = value
-    .replace(/"([^"]+)":/g, '<span class="text-accent">"$1"</span>:')
-    .replace(/: "([^"]*)"/g, ': <span class="text-success">"$1"</span>')
+    .replace(/"([^"]+)":/g, (_, key) => `<span class="text-accent">"${escapeHtml(key)}"</span>:`)
+    .replace(/: "([^"]*)"/g, (_, content) => {
+      const isImage = isImageUrl(content);
+      const escaped = escapeHtml(content);
+      const attr = escapeAttr(content);
+      if (isImage) {
+        return `: <span class="text-success image-url-preview cursor-help underline decoration-dotted decoration-success/50" data-image-url="${attr}">"${escaped}"</span>`;
+      }
+      return `: <span class="text-success">"${escaped}"</span>`;
+    })
     .replace(/: (\d+)/g, ': <span class="text-warning">$1</span>')
     .replace(/: (true|false)/g, ': <span class="text-primary">$1</span>')
     .replace(/: (null)/g, ': <span class="text-muted-foreground">$1</span>');
@@ -111,14 +185,16 @@ export function JsonEditor({
       )}
 
       {/* Editor */}
-      <div 
+      <div
         className={cn(
           "code-editor relative flex-1 min-h-0 min-w-0 overflow-auto custom-scrollbar w-full max-w-full",
           !isValid && !readOnly && "border-destructive/50"
         )}
+        onMouseMove={readOnly ? handleBodyMouseMove : undefined}
+        onMouseLeave={readOnly ? handleBodyMouseLeave : undefined}
       >
         {readOnly ? (
-          <pre 
+          <pre
             className="p-4 text-sm w-full min-h-full overflow-x-auto"
             dangerouslySetInnerHTML={{ __html: highlightedValue || '<span class="text-muted-foreground">No content</span>' }}
           />
@@ -136,6 +212,32 @@ export function JsonEditor({
           />
         )}
       </div>
+
+      {/* Image preview popover - portal so it floats above everything */}
+      {hoveredImageUrl &&
+        createPortal(
+          <div
+            className="fixed z-[100] rounded-lg border border-border bg-card shadow-xl overflow-hidden pointer-events-none"
+            style={{
+              left: Math.min(previewPosition.x + 16, window.innerWidth - IMAGE_PREVIEW_SIZE - 16),
+              top: Math.max(8, previewPosition.y - IMAGE_PREVIEW_SIZE - 8),
+              maxWidth: IMAGE_PREVIEW_SIZE,
+              maxHeight: IMAGE_PREVIEW_SIZE,
+            }}
+          >
+            <img
+              src={hoveredImageUrl}
+              alt="Preview"
+              className="max-w-full max-h-full object-contain block"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -25,3 +25,4 @@ anchor-debug = []
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
 anchor-spl = "0.31.1"
+blake3 = ">=0.1, <1.8"

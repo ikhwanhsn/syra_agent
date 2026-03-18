@@ -134,6 +134,22 @@ export interface X402ClientConfig {
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
 }
 
+/**
+ * Base64-encode a string that may contain Unicode (UTF-8).
+ * btoa() only accepts Latin1; use this for JSON payloads that can include non-ASCII (e.g. description with ✔).
+ */
+function base64EncodeUnicode(str: string): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str, 'utf8').toString('base64');
+  }
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 /** Normalize a v1 accept (maxAmountRequired, network "solana") to shared shape for getBestPaymentOption and createPaymentTransaction. */
 function normalizeV1Accept(raw: any): X402PaymentOption {
   const amount = String(raw.maxAmountRequired ?? raw.amount ?? '0');
@@ -544,7 +560,7 @@ export function createPaymentHeader(
     },
   };
 
-  return btoa(JSON.stringify(paymentPayload));
+  return base64EncodeUnicode(JSON.stringify(paymentPayload));
 }
 
 /**
@@ -593,7 +609,7 @@ export function createV1PaymentHeader(
       transaction: base64Tx,
     },
   };
-  return btoa(JSON.stringify(paymentPayload));
+  return base64EncodeUnicode(JSON.stringify(paymentPayload));
 }
 
 /** EVM signer for Base payments: address + signTypedData (viem-compatible). */
@@ -620,7 +636,7 @@ function createEvmPaymentHeader(
     accepted,
     payload,
   };
-  return btoa(JSON.stringify(paymentPayload));
+  return base64EncodeUnicode(JSON.stringify(paymentPayload));
 }
 
 /**

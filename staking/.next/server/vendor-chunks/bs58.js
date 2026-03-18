@@ -18,6 +18,16 @@ exports.modules = {
 
 eval("var basex = __webpack_require__(/*! base-x */ \"(ssr)/./node_modules/base-x/src/index.js\")\nvar ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'\n\nmodule.exports = basex(ALPHABET)\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHNzcikvLi9ub2RlX21vZHVsZXMvYnM1OC9pbmRleC5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLG1CQUFPLENBQUMsd0RBQVE7QUFDNUI7O0FBRUEiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9zeXJhLXN0YWtpbmcvLi9ub2RlX21vZHVsZXMvYnM1OC9pbmRleC5qcz85MzU4Il0sInNvdXJjZXNDb250ZW50IjpbInZhciBiYXNleCA9IHJlcXVpcmUoJ2Jhc2UteCcpXG52YXIgQUxQSEFCRVQgPSAnMTIzNDU2Nzg5QUJDREVGR0hKS0xNTlBRUlNUVVZXWFlaYWJjZGVmZ2hpamttbm9wcXJzdHV2d3h5eidcblxubW9kdWxlLmV4cG9ydHMgPSBiYXNleChBTFBIQUJFVClcbiJdLCJuYW1lcyI6W10sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///(ssr)/./node_modules/bs58/index.js\n");
 
+/***/ }),
+
+/***/ "(rsc)/./node_modules/bs58/index.js":
+/*!************************************!*\
+  !*** ./node_modules/bs58/index.js ***!
+  \************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("var basex = __webpack_require__(/*! base-x */ \"(rsc)/./node_modules/base-x/src/index.js\")\nvar ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'\n\nmodule.exports = basex(ALPHABET)\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHJzYykvLi9ub2RlX21vZHVsZXMvYnM1OC9pbmRleC5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLG1CQUFPLENBQUMsd0RBQVE7QUFDNUI7O0FBRUEiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9zeXJhLXN0YWtpbmcvLi9ub2RlX21vZHVsZXMvYnM1OC9pbmRleC5qcz82MzlhIl0sInNvdXJjZXNDb250ZW50IjpbInZhciBiYXNleCA9IHJlcXVpcmUoJ2Jhc2UteCcpXG52YXIgQUxQSEFCRVQgPSAnMTIzNDU2Nzg5QUJDREVGR0hKS0xNTlBRUlNUVVZXWFlaYWJjZGVmZ2hpamttbm9wcXJzdHV2d3h5eidcblxubW9kdWxlLmV4cG9ydHMgPSBiYXNleChBTFBIQUJFVClcbiJdLCJuYW1lcyI6W10sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///(rsc)/./node_modules/bs58/index.js\n");
+
 /***/ })
 
 };
