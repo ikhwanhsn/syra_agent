@@ -205,13 +205,30 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
 }
 
 /**
+ * Normalize x402Version from API (2, "2", 1, "1"). v2 = PAYMENT-SIGNATURE; v1 = X-PAYMENT.
+ * Collabra and other modern APIs use v2; some stacks serialize version as a string.
+ */
+export function parseX402Version(raw: unknown): 1 | 2 | null {
+  if (raw === 1 || raw === 2) return raw;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    const n = Math.trunc(raw);
+    if (n === 1 || n === 2) return n as 1 | 2;
+  }
+  if (typeof raw === 'string') {
+    const t = raw.trim();
+    if (t === '1' || t === '2') return Number(t) as 1 | 2;
+  }
+  return null;
+}
+
+/**
  * Parse x402 response from API
  * Handles x402 v2 and v1 protocol responses (matching api/utils/x402Payment.js format)
  */
 export function parseX402Response(data: any, responseHeaders?: Record<string, string>): X402Response | null {
-  // Check for x402 protocol response (v2 or v1)
-  if (data && typeof data.x402Version === 'number') {
-    const version = data.x402Version;
+  const version = data ? parseX402Version(data.x402Version) : null;
+  // Structured 402 with explicit x402Version (number or string "1"/"2")
+  if (data && version !== null) {
     const rawAccepts = data.accepts || [];
     // Normalize: v1 → normalizeV1Accept, v2 → normalizePaymentOption (so amount/payTo are always resolved)
     let accepts =
@@ -248,11 +265,11 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
       resource: data.resource,
       error: data.error,
       extensions: data.extensions,
-      // Keep raw accepts for v1 so we can build the correct X-Payment header (server expects v1 shape)
+      // v1 only: raw accepts for X-PAYMENT. v2 (e.g. agent.collabrachain.fun) uses PAYMENT-SIGNATURE + createPaymentHeader.
       ...(version === 1 && rawAccepts.length > 0 ? { _rawV1Accepts: rawAccepts } : {}),
     };
   }
-  
+
   // Try to extract payment info from generic 402 response (fallback)
   if (data && (data.accepts || data.payment || data.paymentRequired || data.price || data.amount)) {
     let accepts: X402PaymentOption[] = [];
@@ -303,7 +320,7 @@ export function parseX402Response(data: any, responseHeaders?: Record<string, st
       try {
         const decoded = JSON.parse(atob(header));
         const rawAccepts = Array.isArray(decoded) ? decoded : decoded?.accepts;
-        const version = decoded?.x402Version ?? 2;
+        const version = parseX402Version(decoded?.x402Version) ?? 2;
         if (rawAccepts?.length) {
           let accepts = rawAccepts.map((a: any) =>
             (version === 1 || a.maxAmountRequired != null) ? normalizeV1Accept(a) : normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
@@ -601,10 +618,13 @@ export async function createPaymentTransaction(
 }
 
 /** V2 API may return price as { asset, amount }; normalize to top-level for header. */
-function normalizeAcceptedForHeader(option: X402PaymentOption & { price?: { asset?: string; amount?: string } }): Record<string, unknown> {
+function normalizeAcceptedForHeader(
+  option: X402PaymentOption & { price?: { asset?: string; amount?: string } },
+  resourceUrl?: string
+): Record<string, unknown> {
   const amount = String(option.price?.amount ?? option.amount ?? '0');
   const asset = option.price?.asset ?? option.asset ?? USDC_MINT_STRING;
-  return {
+  const accepted: Record<string, unknown> = {
     scheme: option.scheme || 'exact',
     network: option.network,
     payTo: option.payTo,
@@ -613,19 +633,25 @@ function normalizeAcceptedForHeader(option: X402PaymentOption & { price?: { asse
     maxTimeoutSeconds: option.maxTimeoutSeconds ?? 60,
     ...(option.extra && typeof option.extra === 'object' ? { extra: option.extra } : {}),
   };
+  if (resourceUrl && typeof resourceUrl === 'string' && resourceUrl.trim()) {
+    accepted.resource = resourceUrl.trim();
+  }
+  return accepted;
 }
 
 /**
  * Create x402 V2 payment header from signed VersionedTransaction.
  * V2 API expects decodePaymentSignatureHeader(header) to return payload with .accepted and .payload.transaction.
+ * Include resourceUrl so the server can verify the payment was for the requested resource (e.g. agent.collabrachain.fun).
  */
 export function createPaymentHeader(
   signedTransaction: VersionedTransaction,
-  paymentOption: X402PaymentOption
+  paymentOption: X402PaymentOption,
+  resourceUrl?: string
 ): string {
   const serialized = signedTransaction.serialize();
   const base64Tx = Buffer.from(serialized).toString('base64');
-  const accepted = normalizeAcceptedForHeader(paymentOption);
+  const accepted = normalizeAcceptedForHeader(paymentOption, resourceUrl);
   const sig = signedTransaction.signatures[0];
   const signatureB58 = sig && sig.length === 64 ? bs58.encode(Buffer.from(sig)) : null;
 
@@ -704,9 +730,13 @@ export interface EvmSigner {
  */
 function createEvmPaymentHeader(
   payload: { authorization: Record<string, unknown>; signature: string },
-  paymentOption: X402PaymentOption
+  paymentOption: X402PaymentOption,
+  resourceUrl?: string
 ): string {
-  const accepted = normalizeAcceptedForHeader(paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } });
+  const accepted = normalizeAcceptedForHeader(
+    paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } },
+    resourceUrl
+  );
   const paymentPayload = {
     x402Version: X402_VERSION,
     accepted,
@@ -721,7 +751,8 @@ function createEvmPaymentHeader(
  */
 export async function executeBasePayment(
   evmSigner: EvmSigner,
-  paymentOption: X402PaymentOption
+  paymentOption: X402PaymentOption,
+  resourceUrl?: string
 ): Promise<PaymentResult> {
   const { ExactEvmScheme } = await import('@x402/evm/exact/client');
   const raw = paymentOption as X402PaymentOption & { extra?: { name?: string; version?: string; eip712?: { name?: string; version?: string } } };
@@ -739,7 +770,7 @@ export async function executeBasePayment(
   };
   const scheme = new ExactEvmScheme(evmSigner);
   const result = await scheme.createPaymentPayload(X402_VERSION, paymentRequirements);
-  const paymentHeader = createEvmPaymentHeader(result.payload, paymentOption);
+  const paymentHeader = createEvmPaymentHeader(result.payload, paymentOption, resourceUrl);
   return {
     success: true,
     paymentHeader,
@@ -761,14 +792,16 @@ function isBlockhashExpiredError(error: any): boolean {
  *
  * Standard x402 protocol: the client signs the transaction but does NOT submit it.
  * The signed tx is included in the payment header; the API server verifies and submits it.
- * This ensures compatibility with all x402 APIs (Syra, Heurist, Xona, etc.).
+ * This ensures compatibility with all x402 APIs (Syra, Heurist, Xona, Collabra, etc.).
  *
  * For v1 APIs pass rawV1Accept (the original accept from 402 body) so the header is built in v1 format (X-PAYMENT).
+ * For v2 APIs pass resourceUrl (the request URL that returned 402) so the server can verify payment was for that resource.
  */
 export async function executePayment(
   config: X402ClientConfig,
   paymentOption: X402PaymentOption,
-  rawV1Accept?: Record<string, any>
+  rawV1Accept?: Record<string, any>,
+  resourceUrl?: string
 ): Promise<PaymentResult> {
   try {
     const { transaction } = await createPaymentTransaction(config, paymentOption);
@@ -779,7 +812,7 @@ export async function executePayment(
 
     const paymentHeader = rawV1Accept
       ? createV1PaymentHeader(signedTransaction, rawV1Accept)
-      : createPaymentHeader(signedTransaction, paymentOption);
+      : createPaymentHeader(signedTransaction, paymentOption, resourceUrl);
 
     return {
       success: true,

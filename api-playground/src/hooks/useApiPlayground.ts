@@ -3278,6 +3278,15 @@ export function useApiPlayground() {
       return solanaRaw ?? raw[0];
     })();
 
+    // Resource URL (request that got 402) so v2 APIs can verify payment was for this endpoint
+    let resourceUrl = url.trim();
+    const enabledParams = params.filter((p: { enabled: boolean; key: string }) => p.enabled && p.key);
+    if (method === 'GET' && enabledParams.length > 0) {
+      const searchParams = new URLSearchParams();
+      enabledParams.forEach((p: { key: string; value: string }) => searchParams.append(p.key, p.value));
+      resourceUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();
+    }
+
     try {
       let result: Awaited<ReturnType<typeof executePayment>>;
       if (isBase) {
@@ -3286,7 +3295,7 @@ export function useApiPlayground() {
           setTransactionStatus({ status: 'failed', error: 'Base wallet not available' });
           return;
         }
-        result = await executeBasePayment(signer, paymentOption);
+        result = await executeBasePayment(signer, paymentOption, resourceUrl);
       } else {
         result = await executePayment(
             {
@@ -3295,7 +3304,8 @@ export function useApiPlayground() {
               signTransaction: walletContext.signTransaction,
             },
             paymentOption,
-            rawV1Accept
+            rawV1Accept,
+            resourceUrl
           );
       }
 
@@ -3354,7 +3364,7 @@ export function useApiPlayground() {
         variant: "destructive",
       });
     }
-  }, [walletContext, paymentOption, connection, sendRequest, x402Response]);
+  }, [walletContext, paymentOption, connection, sendRequest, x402Response, url, method, params]);
 
   // Allowed methods from 402/405 probe (GET and/or POST); empty until detection runs
   const allowedMethods = useMemo((): HttpMethod[] => allowedMethodsFromDetection, [allowedMethodsFromDetection]);
