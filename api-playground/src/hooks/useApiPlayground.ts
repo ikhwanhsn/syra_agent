@@ -2876,17 +2876,21 @@ export function useApiPlayground() {
     } catch (error: any) {
       const errorMessage = error.message || 'Unknown error';
       const isNetworkError = errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
-      
+      const usedProxy = useBackendPlaygroundProxy(finalUrl);
+      const hint = isNetworkError
+        ? usedProxy
+          ? 'The request was sent via our proxy. The connection may have timed out, or the target API may block server-side requests or be unreachable from our server. Try again; if it persists, the API provider may need to allow our proxy.'
+          : 'This may be a CORS issue, network connectivity problem, or the server may be unreachable. Make sure the API URL is correct and the server is running.'
+        : undefined;
+
       const errorResponse: ApiResponse = {
         status: 0,
         statusText: 'Network Error',
         headers: {},
-        body: JSON.stringify({ 
-          error: 'Request failed', 
+        body: JSON.stringify({
+          error: 'Request failed',
           message: errorMessage,
-          hint: isNetworkError 
-            ? 'This may be a CORS issue, network connectivity problem, or the server may be unreachable. Make sure the API URL is correct and the server is running.'
-            : undefined
+          hint,
         }, null, 2),
         time: Date.now() - startTime,
         size: 0,

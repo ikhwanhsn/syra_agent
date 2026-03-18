@@ -272,6 +272,71 @@ app.use((req, res, next) => {
 
 // Security: headers (X-Content-Type-Options, X-Frame-Options, etc.) and body size limit
 app.use(securityHeaders);
+
+// Timeout for playground proxy outbound fetch (ms). Prevents hanging so we always return 502 with a clear message.
+const PLAYGROUND_PROXY_TIMEOUT_MS = 28_000;
+
+// Playground proxy must parse large bodies (payment headers can be 50kb+). Register before global json so this route gets 2mb limit.
+app.post(
+  "/api/playground-proxy",
+  express.json({ limit: "2mb" }),
+  async (req, res) => {
+    const { url: targetUrl, method = "GET", body: forwardBody, headers: forwardHeaders = {} } = req.body || {};
+    if (!targetUrl || typeof targetUrl !== "string") {
+      res.status(400).json({ error: "Missing or invalid url in body" });
+      return;
+    }
+    const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"];
+    const forwardMethod = (method || "GET").toUpperCase();
+    if (!allowedMethods.includes(forwardMethod)) {
+      res.status(400).json({ error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}` });
+      return;
+    }
+    const sentinelFetch = getSentinelFetch("playground");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PLAYGROUND_PROXY_TIMEOUT_MS);
+    try {
+      const fetchOpts = {
+        method: forwardMethod,
+        headers: { ...forwardHeaders },
+        signal: controller.signal,
+      };
+      if (forwardBody != null && forwardBody !== "" && forwardMethod !== "GET" && forwardMethod !== "HEAD") {
+        fetchOpts.body = typeof forwardBody === "string" ? forwardBody : JSON.stringify(forwardBody);
+      }
+      const proxyRes = await sentinelFetch(targetUrl, fetchOpts);
+      clearTimeout(timeoutId);
+      const responseText = await proxyRes.text();
+      // Forward safe response headers (exclude hop-by-hop and encoding)
+      const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
+      proxyRes.headers.forEach((value, key) => {
+        if (!skipHeaders.includes(key.toLowerCase())) {
+          res.setHeader(key, value);
+        }
+      });
+      res.status(proxyRes.status).send(responseText);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err && (err.name === "SentinelBudgetError" || err instanceof SentinelBudgetError)) {
+        res.status(402).json({
+          error: "Playground spend limit exceeded",
+          message: err.message || String(err),
+          budgetExceeded: true,
+        });
+        return;
+      }
+      const isTimeout = err && err.name === "AbortError";
+      res.status(502).json({
+        error: "Proxy fetch failed",
+        message: isTimeout ? "The request to the target API timed out." : (err.message || String(err)),
+        hint: isTimeout
+          ? "The target API took too long to respond. It may be slow or blocking server-side requests."
+          : "The target API may be unreachable from our server (e.g. blocking our IP, firewall, or down).",
+      });
+    }
+  }
+);
+
 app.use(express.json({ limit: "200kb" })); // Prevent large-payload DoS
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -294,55 +359,6 @@ app.use((req, res, next) => {
 // Favicon explicit route (important for bots)
 app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "favicon.ico"));
-});
-
-// Playground CORS proxy: forward requests to external x402 APIs so the playground can call them from the browser.
-// Uses Sentinel-wrapped fetch so playground x402 calls are audited and budget-limited (agent id: "playground").
-app.post("/api/playground-proxy", async (req, res) => {
-  const { url: targetUrl, method = "GET", body: forwardBody, headers: forwardHeaders = {} } = req.body || {};
-  if (!targetUrl || typeof targetUrl !== "string") {
-    res.status(400).json({ error: "Missing or invalid url in body" });
-    return;
-  }
-  const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"];
-  const forwardMethod = (method || "GET").toUpperCase();
-  if (!allowedMethods.includes(forwardMethod)) {
-    res.status(400).json({ error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}` });
-    return;
-  }
-  const sentinelFetch = getSentinelFetch("playground");
-  try {
-    const fetchOpts = {
-      method: forwardMethod,
-      headers: { ...forwardHeaders },
-    };
-    if (forwardBody != null && forwardBody !== "" && forwardMethod !== "GET" && forwardMethod !== "HEAD") {
-      fetchOpts.body = typeof forwardBody === "string" ? forwardBody : JSON.stringify(forwardBody);
-    }
-    const proxyRes = await sentinelFetch(targetUrl, fetchOpts);
-    const responseText = await proxyRes.text();
-    // Forward safe response headers (exclude hop-by-hop and encoding)
-    const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
-    proxyRes.headers.forEach((value, key) => {
-      if (!skipHeaders.includes(key.toLowerCase())) {
-        res.setHeader(key, value);
-      }
-    });
-    res.status(proxyRes.status).send(responseText);
-  } catch (err) {
-    if (err && (err.name === "SentinelBudgetError" || err instanceof SentinelBudgetError)) {
-      res.status(402).json({
-        error: "Playground spend limit exceeded",
-        message: err.message || String(err),
-        budgetExceeded: true,
-      });
-      return;
-    }
-    res.status(502).json({
-      error: "Proxy fetch failed",
-      message: err.message || String(err),
-    });
-  }
 });
 
 // Rate limit all non-x402 routes (preview, dashboard-summary, x, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
