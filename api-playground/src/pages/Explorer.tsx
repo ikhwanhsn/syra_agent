@@ -194,25 +194,25 @@ const Explorer = () => {
   const methods = stats?.byMethod ? Object.keys(stats.byMethod).sort() : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
       <TopBar
         wallet={wallet}
         onOpenConnectModal={() => {}}
         onToggleSidebar={() => {}}
         isSidebarOpen={false}
       />
-      <div className="flex-1 min-h-0 pt-14 sm:pt-16 w-full overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-scroll overflow-x-hidden">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0">
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-4 min-w-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center border border-border/50 shrink-0">
-                  <Compass className="h-5 w-5 text-primary" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border/50 shrink-0">
+                  <Compass className="h-6 w-6 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-xl font-bold text-foreground truncate">Explorer</h1>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Explorer</h1>
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     Shared request history — discover and try API calls others have run.
                   </p>
                 </div>
