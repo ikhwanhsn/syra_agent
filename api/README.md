@@ -55,6 +55,17 @@ See the [root README](../README.md) and [Syra docs](https://docs.syraa.fun) for 
 
 ---
 
+## Tempo wallet (EVM keypair)
+
+Tempo uses **EVM-style** accounts (same as Ethereum): a **0x address** and a **hex private key**. Generate one locally:
+
+```bash
+cd api
+npm run generate-tempo-wallet
+```
+
+This writes **`api/.tempo-wallet.local.json`** (gitignored) with `address` and `privateKey`. Copy `privateKey` into `TEMPO_PAYOUT_PRIVATE_KEY` in `.env`. The script does **not** print the private key to the terminal.
+
 ## Tempo payout rail
 
 The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) with optional memos for reconciliation.
