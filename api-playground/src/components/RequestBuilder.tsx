@@ -71,6 +71,7 @@ export function RequestBuilder({
   isLoading,
   isAutoDetecting = false,
   allowedMethods = [],
+  paymentLane = 'x402',
   wallet,
   onMethodChange,
   onUrlChange,

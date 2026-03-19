@@ -88,9 +88,36 @@ const Index = () => {
   const { setConnectChainOverride, openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
 
   const paymentLane = useMemo(
-    () => resolvePlaygroundPaymentLane(url, response),
+    () => {
+      // Guard against rare stale-bundle situations where the helper symbol isn't
+      // present yet; keep the playground usable.
+      try {
+        if (typeof resolvePlaygroundPaymentLane === 'function') {
+          return resolvePlaygroundPaymentLane(url, response);
+        }
+      } catch {
+        // ignore
+      }
+      return 'x402' as const;
+    },
     [url, response]
   );
+
+  // When testing MPP/x402-compatible lanes, keep the payment rail on Solana to
+  // avoid triggering the EVM wallet ask/injection path (which may crash some
+  // environments with "Cannot redefine property: ethereum").
+  useEffect(() => {
+    if (paymentLane !== 'mpp') return;
+    if (selectedPaymentChain !== 'solana') selectPaymentChain('solana');
+  }, [paymentLane, selectedPaymentChain, selectPaymentChain]);
+
+  const paymentOptionsByChainForLane = useMemo(() => {
+    if (paymentLane !== 'mpp') return paymentOptionsByChain;
+    return {
+      solana: paymentOptionsByChain.solana,
+      base: null,
+    };
+  }, [paymentLane, paymentOptionsByChain]);
 
   // Chain picker modal: user picks Solana or Base first, then Privy modal opens for that chain
   const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
@@ -165,7 +192,9 @@ const Index = () => {
       try {
         const path = new URL(link).pathname;
         if (path.startsWith('/s/')) navigate(path, { replace: true });
-      } catch {}
+      } catch {
+        // ignore invalid URLs
+      }
     },
     [navigate]
   );
@@ -445,7 +474,7 @@ const Index = () => {
           onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
           onPay={pay}
           onRetry={retryAfterPayment}
-          paymentOptionsByChain={paymentOptionsByChain}
+          paymentOptionsByChain={paymentOptionsByChainForLane}
           selectedPaymentChain={selectedPaymentChain}
           onSelectPaymentChain={selectPaymentChain}
         />

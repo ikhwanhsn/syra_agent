@@ -501,6 +501,13 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
   const [pendingConnectOption, setPendingConnectOption] = useState<ConnectOption | null>(null);
 
   const requestConnectWhenDeferred = useCallback((option: ConnectOption) => {
+    // Important: Privy config's initial `walletChainType` influences whether it
+    // injects/initializes EVM wallet plumbing (e.g. `window.ethereum`).
+    // When the user picked Solana, keep Privy "solana-only" to avoid the
+    // `Cannot redefine property: ethereum` crash in some environments.
+    if (option === 'base') setConnectChainOverride('ethereum-only');
+    else if (option === 'solana') setConnectChainOverride('solana-only');
+    else setConnectChainOverride(null);
     setPendingConnectOption(option);
     setMountPrivy(true);
   }, []);
