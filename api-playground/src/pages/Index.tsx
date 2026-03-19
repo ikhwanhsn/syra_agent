@@ -11,7 +11,10 @@ import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { PaymentDetails, RequestParam } from '@/types/api';
-import { GripVertical } from 'lucide-react';
+import { ExternalLink, GripVertical, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { resolvePlaygroundPaymentLane } from '@/lib/paymentLane';
 import { InvalidShareLink } from '@/pages/InvalidShareLink';
 
 // Default payment details when we can't parse x402 response
