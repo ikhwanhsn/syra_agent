@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Zap, ArrowRight, LayoutGrid, FileCode, Terminal, Home, SearchX, FlaskConical } from 'lucide-react';
+import { Zap, ArrowRight, LayoutGrid, FileCode, Terminal, Home, SearchX, FlaskConical, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const GLITCH_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
@@ -142,6 +142,20 @@ const NotFound = () => {
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-foreground block">Format Test</span>
               <span className="text-xs text-muted-foreground">Check if x402 API format is correct</span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+          </Link>
+
+          <Link
+            to="/mpp"
+            className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
+              <CreditCard className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-foreground block">MPP</span>
+              <span className="text-xs text-muted-foreground">Test MPP / x402-compatible lane</span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>

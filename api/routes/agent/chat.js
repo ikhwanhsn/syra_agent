@@ -30,6 +30,7 @@ import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
 import { recordAgentChatUsage } from '../../libs/agentLeaderboard.js';
+import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
 
 const router = express.Router();
 
@@ -806,7 +807,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         }
         const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
         const requiredUsdc = effectivePrice;
-        if (!useTreasury && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
+        // Free tools (e.g. tempo-network-info at $0) must not require USDC balance
+        if (!useTreasury && requiredUsdc > 0 && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
           const msg =
             usdcBalance <= 0
               ? `The user's agent wallet has 0 USDC balance. The requested paid tool (${tool.name}) costs $${requiredUsdc.toFixed(4)}. Explain that they need to deposit USDC to their agent wallet to use this feature.`
@@ -888,6 +890,19 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             }
           } else {
             result = { status: 502, error: `Unknown Purch Vault tool: ${tool.id}` };
+          }
+        } else if (tool.tempoPublic) {
+          // Synthetic paths (/__tempo_public__/…) are not HTTP routes; mirror POST /agent/tools/call
+          if (tool.tempoPublic === 'networks') {
+            result = { status: 200, data: TEMPO_PUBLIC_REFERENCE };
+          } else if (tool.tempoPublic === 'tokenlist') {
+            const chainId = params.chainId || params.chain_id || '4217';
+            const listResult = await fetchTempoTokenList(chainId);
+            result = listResult.ok
+              ? { status: 200, data: listResult.data }
+              : { status: 502, error: listResult.error };
+          } else {
+            result = { status: 502, error: `Unknown Tempo public tool: ${tool.id}` };
           }
         } else {
           const url = `${resolveAgentBaseUrl(req)}${tool.path}`;

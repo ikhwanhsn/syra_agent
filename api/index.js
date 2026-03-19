@@ -41,6 +41,7 @@ import { createExaSearchRouter as createV2ExaSearchRouter } from "./routes/exa-s
 import { createCrawlRouter } from "./routes/crawl.js";
 import { createBrowserUseRouter } from "./routes/browserUse.js";
 import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/check-status.js";
+import { createMppV1Router } from "./routes/mpp/v1.js";
 import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
 import { createDexscreenerRouter as createV2DexscreenerRouter } from "./routes/partner/dexscreener.js";
 import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
@@ -198,6 +199,7 @@ function isX402Route(p) {
   if (p.startsWith("/crawl")) return true;
   if (p.startsWith("/browser-use")) return true;
   if (p.startsWith("/check-status") && !p.startsWith("/check-status-agent")) return true;
+  if (p.startsWith("/mpp/v1")) return true;
   if (p.startsWith("/smart-money")) return true;
   if (p.startsWith("/dexscreener")) return true;
   if (p.startsWith("/token-god-mode")) return true;
@@ -620,6 +622,7 @@ app.use("/exa-search", await createV2ExaSearchRouter());
 app.use("/crawl", await createCrawlRouter());
 app.use("/browser-use", await createBrowserUseRouter());
 app.use("/check-status", await createV2CheckStatusRouter());
+app.use("/mpp/v1", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/brain", await createBrainRouter());
 app.use("/smart-money", await createV2SmartMoneyRouter());
@@ -717,6 +720,7 @@ app.get("/.well-known/x402", (req, res) => {
     "trending-headline",
     "sundown-digest",
     "check-status",
+    "mpp/v1/check-status",
     // Search
     "exa-search",
     // Partner: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps

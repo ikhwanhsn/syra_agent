@@ -196,6 +196,13 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
+    id: 'mpp-check-status',
+    label: 'MPP check status (v1)',
+    method: 'GET',
+    url: `${base}/mpp/v1/check-status`,
+    params: [],
+  },
+  {
     id: '8004-stats',
     label: '8004 global stats',
     method: 'GET',
@@ -1261,6 +1268,7 @@ function getApiEndpoints(): string[] {
     `${base}/trending-headline`,
     `${base}/sundown-digest`,
     `${base}/check-status`,
+    `${base}/mpp/v1/check-status`,
     `${base}/exa-search`,
     `${base}/crawl`,
     `${base}/browser-use`,
@@ -1409,6 +1417,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/trending-headline': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/sundown-digest': [],
       '/check-status': [],
+      '/mpp/v1/check-status': [],
       '/brain': [{ key: 'question', value: 'What is the latest BTC news?', enabled: true, description: 'Natural language question (e.g. trending pools on Solana, BTC price)' }],
       '/token-statistic': [],
       '/token-risk/alerts': [

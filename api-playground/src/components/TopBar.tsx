@@ -100,6 +100,12 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
               >
                 Format Test
               </Link>
+              <Link
+                to="/mpp"
+                className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-md hover:bg-secondary/50 transition-colors"
+              >
+                MPP
+              </Link>
             </nav>
           </div>
 
