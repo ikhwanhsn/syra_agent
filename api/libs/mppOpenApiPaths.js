@@ -4,43 +4,48 @@
  */
 import { AGENT_TOOLS } from '../config/agentTools.js';
 import { X402_DISCOVERY_RESOURCE_PATHS } from '../config/x402DiscoveryResourcePaths.js';
+/**
+ * OpenAPI `price` is a catalog hint for MPPscan / AgentCash (2-decimal UIs).
+ * Use production-scale display amounts so dashboards are not all $0.00 when NODE_ENV !== production
+ * or when tiny microprices round down. Actual HTTP 402 amounts still come from route `priceUsd` at runtime.
+ */
 import {
-  X402_API_PRICE_USD,
-  X402_API_PRICE_CHECK_STATUS_USD,
-  X402_API_PRICE_NEWS_USD,
-  X402_API_PRICE_NANSEN_USD,
-  X402_API_PRICE_NANSEN_PREMIUM_USD,
-  X402_API_PRICE_DEXSCREENER_USD,
-  X402_API_PRICE_ANALYTICS_SUMMARY_USD,
-  X402_API_PRICE_JUPITER_SWAP_USD,
-  X402_API_PRICE_SQUID_ROUTE_USD,
-  X402_API_PRICE_SQUID_STATUS_USD,
-  X402_API_PRICE_COINGECKO_USD,
-  X402_API_PRICE_EXA_SEARCH_USD,
-  X402_API_PRICE_CRAWL_USD,
-  X402_API_PRICE_BROWSER_USE_USD,
-  X402_API_PRICE_COINMARKETCAP_USD,
-  X402_API_PRICE_8004_USD,
-  X402_API_PRICE_8004SCAN_USD,
-  X402_API_PRICE_HEYLOL_USD,
-  X402_API_PRICE_KRAKEN_USD,
-  X402_API_PRICE_KUCOIN_USD,
-  X402_API_PRICE_OKX_USD,
-  X402_API_PRICE_GIZA_USD,
-  X402_API_PRICE_MESSARI_USD,
-  X402_API_PRICE_MESSARI_AI_USD,
-  X402_API_PRICE_MESSARI_SIGNAL_USD,
-  X402_API_PRICE_MESSARI_PREMIUM_USD,
-  X402_API_PRICE_MESSARI_TIMESERIES_USD,
-  X402_API_PRICE_MESSARI_VESTING_USD,
-  X402_API_PRICE_MESSARI_INVESTOR_USD,
-  X402_API_PRICE_PURCH_VAULT_USD,
-  X402_API_PRICE_QUICKNODE_USD,
-  X402_API_PRICE_BANKR_USD,
-  X402_API_PRICE_NEYNAR_USD,
-  X402_API_PRICE_SIWA_USD,
-  X402_API_PRICE_BRAIN_USD,
-  X402_API_PRICE_X_USD,
+  X402_DISPLAY_PRICE_USD,
+  X402_DISPLAY_PRICE_CHECK_STATUS_USD,
+  X402_DISPLAY_PRICE_NEWS_USD,
+  X402_DISPLAY_PRICE_NANSEN_USD,
+  X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+  X402_DISPLAY_PRICE_DEXSCREENER_USD,
+  X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
+  X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
+  X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
+  X402_DISPLAY_PRICE_SQUID_STATUS_USD,
+  X402_DISPLAY_PRICE_COINGECKO_USD,
+  X402_DISPLAY_PRICE_EXA_SEARCH_USD,
+  X402_DISPLAY_PRICE_CRAWL_USD,
+  X402_DISPLAY_PRICE_BROWSER_USE_USD,
+  X402_DISPLAY_PRICE_COINMARKETCAP_USD,
+  X402_DISPLAY_PRICE_8004_USD,
+  X402_DISPLAY_PRICE_8004SCAN_USD,
+  X402_DISPLAY_PRICE_HEYLOL_USD,
+  X402_DISPLAY_PRICE_KRAKEN_USD,
+  X402_DISPLAY_PRICE_KUCOIN_USD,
+  X402_DISPLAY_PRICE_OKX_USD,
+  X402_DISPLAY_PRICE_GIZA_USD,
+  X402_DISPLAY_PRICE_MESSARI_USD,
+  X402_DISPLAY_PRICE_MESSARI_AI_USD,
+  X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD,
+  X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD,
+  X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
+  X402_DISPLAY_PRICE_MESSARI_VESTING_USD,
+  X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD,
+  X402_DISPLAY_PRICE_PURCH_VAULT_USD,
+  X402_DISPLAY_PRICE_QUICKNODE_USD,
+  X402_DISPLAY_PRICE_BANKR_USD,
+  X402_DISPLAY_PRICE_NEYNAR_USD,
+  X402_DISPLAY_PRICE_SIWA_USD,
+  X402_DISPLAY_PRICE_BRAIN_USD,
+  X402_DISPLAY_PRICE_X_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -96,29 +101,29 @@ const JSON_BODY_REQUEST = {
 /**
  * @param {string} apiPath - absolute path e.g. /okx/ticker
  */
-function priceForDiscoveryOnlyPath(apiPath) {
+function displayPriceForDiscoveryOnlyPath(apiPath) {
   const p = apiPath.replace(/\/+$/, '') || '/';
-  if (p === '/check-status' || p === '/mpp/v1/check-status') return X402_API_PRICE_CHECK_STATUS_USD;
+  if (p === '/check-status' || p === '/mpp/v1/check-status') return X402_DISPLAY_PRICE_CHECK_STATUS_USD;
   if (p.startsWith('/news') || p.startsWith('/sentiment') || p.startsWith('/event') || p.startsWith('/trending-headline') || p.startsWith('/sundown-digest')) {
-    return X402_API_PRICE_NEWS_USD;
+    return X402_DISPLAY_PRICE_NEWS_USD;
   }
-  if (p.startsWith('/brain')) return X402_API_PRICE_BRAIN_USD;
-  if (p.startsWith('/browser-use')) return X402_API_PRICE_BROWSER_USE_USD;
-  if (p.startsWith('/exa-search')) return X402_API_PRICE_EXA_SEARCH_USD;
-  if (p.startsWith('/crawl')) return X402_API_PRICE_CRAWL_USD;
-  if (p.startsWith('/analytics/summary')) return X402_API_PRICE_ANALYTICS_SUMMARY_USD;
-  if (p.startsWith('/coingecko/')) return X402_API_PRICE_COINGECKO_USD;
-  if (p.startsWith('/coinmarketcap')) return X402_API_PRICE_COINMARKETCAP_USD;
-  if (p.startsWith('/kraken/')) return X402_API_PRICE_KRAKEN_USD;
-  if (p.startsWith('/kucoin/')) return X402_API_PRICE_KUCOIN_USD;
-  if (p.startsWith('/okx/')) return X402_API_PRICE_OKX_USD;
-  if (p.startsWith('/giza/')) return X402_API_PRICE_GIZA_USD;
-  if (p.startsWith('/messari/ai')) return X402_API_PRICE_MESSARI_AI_USD;
-  if (p.startsWith('/messari/signal')) return X402_API_PRICE_MESSARI_SIGNAL_USD;
-  if (p.startsWith('/messari/token-unlocks/vesting')) return X402_API_PRICE_MESSARI_VESTING_USD;
-  if (p.startsWith('/messari/fundraising/investors')) return X402_API_PRICE_MESSARI_INVESTOR_USD;
+  if (p.startsWith('/brain')) return X402_DISPLAY_PRICE_BRAIN_USD;
+  if (p.startsWith('/browser-use')) return X402_DISPLAY_PRICE_BROWSER_USE_USD;
+  if (p.startsWith('/exa-search')) return X402_DISPLAY_PRICE_EXA_SEARCH_USD;
+  if (p.startsWith('/crawl')) return X402_DISPLAY_PRICE_CRAWL_USD;
+  if (p.startsWith('/analytics/summary')) return X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD;
+  if (p.startsWith('/coingecko/')) return X402_DISPLAY_PRICE_COINGECKO_USD;
+  if (p.startsWith('/coinmarketcap')) return X402_DISPLAY_PRICE_COINMARKETCAP_USD;
+  if (p.startsWith('/kraken/')) return X402_DISPLAY_PRICE_KRAKEN_USD;
+  if (p.startsWith('/kucoin/')) return X402_DISPLAY_PRICE_KUCOIN_USD;
+  if (p.startsWith('/okx/')) return X402_DISPLAY_PRICE_OKX_USD;
+  if (p.startsWith('/giza/')) return X402_DISPLAY_PRICE_GIZA_USD;
+  if (p.startsWith('/messari/ai')) return X402_DISPLAY_PRICE_MESSARI_AI_USD;
+  if (p.startsWith('/messari/signal')) return X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD;
+  if (p.startsWith('/messari/token-unlocks/vesting')) return X402_DISPLAY_PRICE_MESSARI_VESTING_USD;
+  if (p.startsWith('/messari/fundraising/investors')) return X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD;
   if (p.startsWith('/messari/timeseries') || p.startsWith('/messari/token-unlocks') || p.startsWith('/messari/fundraising')) {
-    return X402_API_PRICE_MESSARI_TIMESERIES_USD;
+    return X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD;
   }
   if (
     p.startsWith('/messari/mindshare') ||
@@ -127,26 +132,26 @@ function priceForDiscoveryOnlyPath(apiPath) {
     p.startsWith('/messari/stablecoins') ||
     p.startsWith('/messari/networks')
   ) {
-    return X402_API_PRICE_MESSARI_PREMIUM_USD;
+    return X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD;
   }
-  if (p.startsWith('/messari/')) return X402_API_PRICE_MESSARI_USD;
-  if (p.startsWith('/8004scan') || p === '/erc8004') return X402_API_PRICE_8004SCAN_USD;
-  if (p.startsWith('/8004')) return X402_API_PRICE_8004_USD;
-  if (p.startsWith('/heylol')) return X402_API_PRICE_HEYLOL_USD;
-  if (p === '/x' || p.startsWith('/x/')) return X402_API_PRICE_X_USD;
-  if (p.startsWith('/quicknode/')) return X402_API_PRICE_QUICKNODE_USD;
-  if (p.startsWith('/bankr/')) return X402_API_PRICE_BANKR_USD;
-  if (p.startsWith('/neynar/')) return X402_API_PRICE_NEYNAR_USD;
-  if (p.startsWith('/siwa/')) return X402_API_PRICE_SIWA_USD;
-  if (p.startsWith('/jupiter/swap/order')) return X402_API_PRICE_JUPITER_SWAP_USD;
-  if (p.startsWith('/squid/route')) return X402_API_PRICE_SQUID_ROUTE_USD;
-  if (p.startsWith('/squid/status')) return X402_API_PRICE_SQUID_STATUS_USD;
-  if (p.startsWith('/dexscreener')) return X402_API_PRICE_DEXSCREENER_USD;
-  if (p.startsWith('/smart-money/') || p.startsWith('/nansen/smart-money/')) return X402_API_PRICE_NANSEN_PREMIUM_USD;
-  if (p.startsWith('/nansen/')) return X402_API_PRICE_NANSEN_USD;
-  if (p.startsWith('/smart-money') || p.startsWith('/token-god-mode')) return X402_API_PRICE_NANSEN_USD;
-  if (p.startsWith('/x402/vault')) return X402_API_PRICE_PURCH_VAULT_USD;
-  return X402_API_PRICE_USD;
+  if (p.startsWith('/messari/')) return X402_DISPLAY_PRICE_MESSARI_USD;
+  if (p.startsWith('/8004scan') || p === '/erc8004') return X402_DISPLAY_PRICE_8004SCAN_USD;
+  if (p.startsWith('/8004')) return X402_DISPLAY_PRICE_8004_USD;
+  if (p.startsWith('/heylol')) return X402_DISPLAY_PRICE_HEYLOL_USD;
+  if (p === '/x' || p.startsWith('/x/')) return X402_DISPLAY_PRICE_X_USD;
+  if (p.startsWith('/quicknode/')) return X402_DISPLAY_PRICE_QUICKNODE_USD;
+  if (p.startsWith('/bankr/')) return X402_DISPLAY_PRICE_BANKR_USD;
+  if (p.startsWith('/neynar/')) return X402_DISPLAY_PRICE_NEYNAR_USD;
+  if (p.startsWith('/siwa/')) return X402_DISPLAY_PRICE_SIWA_USD;
+  if (p.startsWith('/jupiter/swap/order')) return X402_DISPLAY_PRICE_JUPITER_SWAP_USD;
+  if (p.startsWith('/squid/route')) return X402_DISPLAY_PRICE_SQUID_ROUTE_USD;
+  if (p.startsWith('/squid/status')) return X402_DISPLAY_PRICE_SQUID_STATUS_USD;
+  if (p.startsWith('/dexscreener')) return X402_DISPLAY_PRICE_DEXSCREENER_USD;
+  if (p.startsWith('/smart-money/') || p.startsWith('/nansen/smart-money/')) return X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD;
+  if (p.startsWith('/nansen/')) return X402_DISPLAY_PRICE_NANSEN_USD;
+  if (p.startsWith('/smart-money') || p.startsWith('/token-god-mode')) return X402_DISPLAY_PRICE_NANSEN_USD;
+  if (p.startsWith('/x402/vault')) return X402_DISPLAY_PRICE_PURCH_VAULT_USD;
+  return X402_DISPLAY_PRICE_USD;
 }
 
 /**
@@ -197,7 +202,11 @@ export function buildMppOpenApiPaths() {
       continue;
     }
 
-    const priceStr = usdPriceString(tool.priceUsd);
+    const catalogUsd =
+      typeof tool.displayPriceUsd === 'number' && Number.isFinite(tool.displayPriceUsd)
+        ? tool.displayPriceUsd
+        : tool.priceUsd;
+    const priceStr = usdPriceString(catalogUsd);
     const desc = `${tool.name}. ${tool.description}`.trim();
     const op = operationObject(method, desc, priceStr);
 
@@ -215,8 +224,8 @@ export function buildMppOpenApiPaths() {
     if (key === '/') continue;
     if (agentPaths.has(key)) continue;
 
-    const priceUsd = priceForDiscoveryOnlyPath(key);
-    const priceStr = usdPriceString(priceUsd);
+    const catalogUsd = displayPriceForDiscoveryOnlyPath(key);
+    const priceStr = usdPriceString(catalogUsd);
     const desc = `Syra x402 resource /${segment.replace(/^\/+/, '')}. Same URL as /.well-known/x402 catalog; HTTP 402 + x402 v2 settlement. See https://docs.syraa.fun`;
 
     const pathItem = {
