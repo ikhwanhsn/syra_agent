@@ -13,7 +13,14 @@ import {
   purchVaultBuy,
   purchVaultDownload,
 } from '../../libs/agentPurchVaultClient.js';
-import { getAgentUsdcBalance, getAgentAddress, getConnectedWalletAddress } from '../../libs/agentWallet.js';
+import {
+  getAgentUsdcBalance,
+  getAgentAddress,
+  getConnectedWalletAddress,
+  getTempoPayoutRecipientAddress,
+} from '../../libs/agentWallet.js';
+import { sendTempoPayout } from '../../libs/tempoPayout.js';
+import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -24,7 +31,8 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
-    const tools = AGENT_TOOLS.map((t) => ({
+    const tempoAgentPayoutEnabled = String(process.env.TEMPO_AGENT_PAYOUT_ENABLED || '').trim() === 'true';
+    const tools = AGENT_TOOLS.filter((t) => t.id !== 'tempo-send-payout' || tempoAgentPayoutEnabled).map((t) => ({
       id: t.id,
       name: t.name,
       description: t.description,
@@ -59,6 +67,105 @@ router.post('/call', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: `Unknown tool: ${toolId}. Use GET /agent/tools to list available tools.`,
+      });
+    }
+
+    // Tempo public: token list + network reference (no wallet spend, no USDC balance check)
+    if (tool.tempoPublic) {
+      const params = Object.fromEntries(
+        Object.entries(rawParams || {}).filter(
+          ([k, v]) => typeof k === 'string' && v != null && v !== ''
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+      );
+      if (tool.tempoPublic === 'networks') {
+        return res.json({
+          success: true,
+          toolId: tool.id,
+          data: TEMPO_PUBLIC_REFERENCE,
+        });
+      }
+      if (tool.tempoPublic === 'tokenlist') {
+        const chainId = params.chainId || params.chain_id || '4217';
+        const result = await fetchTempoTokenList(chainId);
+        if (!result.ok) {
+          return res.status(502).json({
+            success: false,
+            error: result.error,
+            toolId: tool.id,
+          });
+        }
+        return res.json({
+          success: true,
+          toolId: tool.id,
+          data: result.data,
+        });
+      }
+    }
+
+    // Tempo payout: treasury rail; recipient resolved server-side (never from LLM). No agent USDC balance check.
+    if (tool.tempoPayout) {
+      if (String(process.env.TEMPO_AGENT_PAYOUT_ENABLED || '').trim() !== 'true') {
+        return res.status(403).json({
+          success: false,
+          error: 'Tempo agent payouts are disabled. Set TEMPO_AGENT_PAYOUT_ENABLED=true on the server.',
+          toolId: tool.id,
+        });
+      }
+
+      let params = Object.fromEntries(
+        Object.entries(rawParams).filter(
+          ([k, v]) => typeof k === 'string' && v != null && v !== ''
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+      );
+
+      const maxUsdRaw = Number(process.env.TEMPO_AGENT_PAYOUT_MAX_USD || '50');
+      const cap = Number.isFinite(maxUsdRaw) && maxUsdRaw > 0 ? maxUsdRaw : 50;
+      const amountUsd = Number(params.amountUsd ?? params.amount_usd);
+      if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'amountUsd is required and must be a positive number',
+          toolId: tool.id,
+        });
+      }
+      if (amountUsd > cap) {
+        return res.status(400).json({
+          success: false,
+          error: `amountUsd exceeds maximum allowed per payout ($${cap})`,
+          toolId: tool.id,
+        });
+      }
+
+      const recipient = await getTempoPayoutRecipientAddress(anonymousId);
+      if (!recipient) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'No Tempo payout recipient: connect an EVM wallet (0x) or create a Base agent wallet so Syra has an Ethereum address to receive the payout.',
+          toolId: tool.id,
+        });
+      }
+
+      const memo =
+        params.memo != null && String(params.memo).trim() ? String(params.memo).trim() : undefined;
+      const payout = await sendTempoPayout({ to: recipient, amountUsd, memo });
+      if (!payout.success) {
+        return res.status(502).json({
+          success: false,
+          error: payout.error || 'Tempo payout failed',
+          toolId: tool.id,
+          recipient,
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: {
+          transactionHash: payout.transactionHash,
+          recipient,
+          amountUsd,
+          memo: memo ?? null,
+        },
       });
     }
 

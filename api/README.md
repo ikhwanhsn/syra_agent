@@ -55,6 +55,21 @@ See the [root README](../README.md) and [Syra docs](https://docs.syraa.fun) for 
 
 ---
 
+## Tempo payout rail
+
+The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) with optional memos for reconciliation.
+
+- **Endpoint:** `POST /payouts/tempo` (API key required)
+- **Body:** `{ "to": "0x...", "amountUsd": 10.5, "memo": "INV-12345" }`
+- **Env:** `TEMPO_RPC_URL`, `TEMPO_PAYOUT_PRIVATE_KEY`, `TEMPO_PAYOUT_TOKEN` (see `.env.example`)
+
+**AI agent — Tempo**
+
+- **Public (always on, $0):** `tempo-network-info` (RPC, explorers, token list URLs, docs) and `tempo-token-list` (JSON from [tokenlist.tempo.xyz](https://tokenlist.tempo.xyz/list/4217); param `chainId` `4217` or `42431`). No USDC balance required.
+- **Payouts:** When `TEMPO_AGENT_PAYOUT_ENABLED=true`, tool `tempo-send-payout` appears. Params: `amountUsd`, optional `memo`. Recipient is **never** taken from the model—only the user’s connected EVM address or Base agent wallet. Cap: `TEMPO_AGENT_PAYOUT_MAX_USD` (default 50).
+
+---
+
 ## Register Syra on 8004 (Solana Agent Registry)
 
 The [8004 Trustless Agent Registry](https://8004.qnt.sh/skill.md) lets you register Syra as a discoverable agent on Solana.

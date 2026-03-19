@@ -115,6 +115,9 @@ PARAM RULES:
 - For other okx-dex-memepump-* tools set "params": {"address": "<token contract address>", "chain": "solana"}.
 - For "purch-vault-search" set "params": {"q": "<search query>"} or {"category": "development"} or {"productType": "skill"} when the user asks to search Purch Vault for skills, knowledge, or personas. Optional: category (marketing, development, automation, career, ios, productivity), productType (skill, knowledge, persona), minPrice, maxPrice, limit.
 - For "purch-vault-buy" set "params": {"slug": "<item slug from search>"} when the user asks to buy a Purch Vault item (e.g. after search). Slug is required (e.g. "faith"); optional email.
+- For "tempo-token-list" set "params": {"chainId": "4217"} or {"chainId": "42431"} when the user asks for Tempo tokens, contract addresses on Tempo, official token list, or which stablecoins exist on Tempo mainnet vs testnet. Default chainId is 4217 (mainnet) if not specified.
+- For "tempo-network-info" set "params": {} when the user asks for Tempo RPC URL, chain ID, explorer, how to connect to Tempo, or public documentation links.
+- For "tempo-send-payout" set "params": {"amountUsd": "<number from user>"} when the user asks to receive a payout, withdrawal, or transfer on Tempo blockchain in stablecoin; optional "memo" (e.g. invoice id). Only select if the user explicitly wants money sent on Tempo. The server sends funds only to the user’s linked EVM wallet or Base agent wallet—never pass a recipient address.
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.`;
 

@@ -73,7 +73,7 @@ import {
   X402_DISPLAY_PRICE_SIWA_USD,
 } from './x402Pricing.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; purchVaultPath?: string }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; purchVaultPath?: string; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen tools call api.nansen.ai directly.
@@ -1403,6 +1403,41 @@ export const AGENT_TOOLS = [
     name: 'Purch Vault buy',
     description: 'Purchase a Purch Vault item by slug (from search); agent pays item price in USDC on Solana and receives the download',
   },
+  // Tempo public data (agent): official token list + network URLs; free, no USDC balance required
+  {
+    id: 'tempo-token-list',
+    path: '/__tempo_public__/tokenlist',
+    method: 'GET',
+    tempoPublic: 'tokenlist',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'Tempo public token list',
+    description:
+      'Fetch the official Tempo token list JSON (Uniswap Token Lists format) from tokenlist.tempo.xyz. Params: chainId — 4217 (mainnet Presto) or 42431 (testnet Moderato); default 4217. Use for token names, addresses, and decimals on Tempo.',
+  },
+  {
+    id: 'tempo-network-info',
+    path: '/__tempo_public__/networks',
+    method: 'GET',
+    tempoPublic: 'networks',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'Tempo public network info',
+    description:
+      'Return public Tempo RPC URLs, chain IDs, block explorers, token list endpoints, and documentation links (no on-chain call). No params.',
+  },
+  // Tempo payout rail (agent): treasury sends TIP-20 on Tempo to user’s verified EVM address only; gated by TEMPO_AGENT_PAYOUT_ENABLED
+  {
+    id: 'tempo-send-payout',
+    path: '/payouts/tempo',
+    method: 'POST',
+    tempoPayout: true,
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'Tempo stablecoin payout',
+    description:
+      'Send stablecoin on Tempo to the user’s own address only (connected 0x wallet or Base agent wallet). Params: amountUsd (required), memo (optional). Treasury pays on Tempo; not deducted from agent Solana USDC. Only when the server enables agent Tempo payouts.',
+  },
 ];
 
 /** LLM/frontend may send underscore variant; backend uses hyphen. */
@@ -2123,7 +2158,8 @@ export function getCapabilitiesList() {
  * @returns {Array<{ id: string; name: string; description: string; paramsHint?: string }>}
  */
 export function getToolsForLlmSelection() {
-  return AGENT_TOOLS.map((t) => {
+  const tempoAgentPayoutEnabled = String(process.env.TEMPO_AGENT_PAYOUT_ENABLED || "").trim() === "true";
+  return AGENT_TOOLS.filter((t) => t.id !== "tempo-send-payout" || tempoAgentPayoutEnabled).map((t) => {
     const out = { id: t.id, name: t.name, description: t.description };
     if (t.id === 'news') {
       out.paramsHint = 'Optional params: ticker (BTC, ETH, SOL, or general)';
@@ -2295,6 +2331,17 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'purch-vault-buy') {
       out.paramsHint = 'Params: slug (required — item slug from search, e.g. faith); optional email';
+    }
+    if (t.id === 'tempo-token-list') {
+      out.paramsHint =
+        'Params: chainId — 4217 (mainnet) or 42431 (Moderato testnet); omit for mainnet. Returns tokens[].address, symbol, decimals from https://tokenlist.tempo.xyz/list/{chainId}';
+    }
+    if (t.id === 'tempo-network-info') {
+      out.paramsHint = 'No params. Returns RPC, explorer, token list URLs, and docs links.';
+    }
+    if (t.id === 'tempo-send-payout') {
+      out.paramsHint =
+        'Params: amountUsd (required, positive number; cap from server), memo (optional — reconciliation ref). Payout always goes to the user’s linked EVM address or Base agent wallet; never pass a recipient address.';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

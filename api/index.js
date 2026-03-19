@@ -77,6 +77,7 @@ import { createBankrRouter } from "./routes/partner/bankr/index.js";
 import { createNeynarRouter } from "./routes/partner/neynar/index.js";
 import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
+import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import connectMongoose from "./config/mongoose.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -673,6 +674,9 @@ app.use("/siwa", await createSiwaRouter());
 app.use("/erc8004", await create8004scanRouter());
 // X (Twitter) API proxy (x402) – user lookup, search recent, user tweets, feed. GET and POST supported.
 app.use("/x", await createXApiRouter());
+
+// Tempo payout rail: POST /payouts/tempo (API key required). Env: TEMPO_RPC_URL, TEMPO_PAYOUT_PRIVATE_KEY, TEMPO_PAYOUT_TOKEN.
+app.use("/payouts", createTempoPayoutRouter());
 
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());

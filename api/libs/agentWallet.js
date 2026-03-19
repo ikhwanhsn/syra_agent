@@ -4,6 +4,7 @@
  */
 import { Keypair, Connection, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { getAddress } from 'viem';
 import AgentWallet from '../models/agent/AgentWallet.js';
 
 /**
@@ -159,4 +160,36 @@ export async function getAgentBalances(anonymousId) {
       /fetch failed|ConnectTimeoutError|ECONNREFUSED|ETIMEDOUT/i.test(e?.message || '');
     return isRpcUnavailable ? { usdcBalance: 0, solBalance: 0, agentAddress: doc.agentAddress } : null;
   }
+}
+
+/**
+ * Resolve the only allowed Tempo payout recipient for an agent user (never trust LLM for `to`).
+ * - If linked wallet is EVM (0x…), payout goes there.
+ * - If linked wallet is Solana, payout may go to the user's Base agent wallet (same walletAddress + chain base) if it exists.
+ * @param {string} anonymousId
+ * @returns {Promise<string | null>} Checksummed 0x address or null
+ */
+export async function getTempoPayoutRecipientAddress(anonymousId) {
+  if (!anonymousId || typeof anonymousId !== "string") return null;
+  const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
+  if (!doc?.walletAddress) return null;
+  const w = doc.walletAddress.trim();
+  if (/^0x[a-fA-F0-9]{40}$/.test(w)) {
+    try {
+      return getAddress(w);
+    } catch {
+      return null;
+    }
+  }
+  const baseAgent = await AgentWallet.findOne({ walletAddress: w, chain: "base" })
+    .select("agentAddress")
+    .lean();
+  if (baseAgent?.agentAddress && /^0x[a-fA-F0-9]{40}$/.test(baseAgent.agentAddress)) {
+    try {
+      return getAddress(baseAgent.agentAddress);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
