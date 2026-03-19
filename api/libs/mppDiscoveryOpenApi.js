@@ -42,9 +42,7 @@ export function buildMppDiscoveryOpenApi() {
       title: 'Syra API',
       version: '1.0.0',
       description:
-        'Syra crypto intelligence and agent API. MPP (Machine Payments Protocol) discovery lists the same HTTP resources as the x402 catalog: call these paths on this server, respond to HTTP 402 with x402 v2 payment (PAYMENT-SIGNATURE / compatible wallets), then retry. MPP and x402 are not different backends—only different discovery channels (this OpenAPI vs /.well-known/x402).',
-      guidance:
-        '1) Pick an operation below (note fixed price in x-payment-info). 2) GET or POST the path on servers[0].url without payment → HTTP 402 with payment requirements. 3) Pay via x402 v2 (Solana or Base USDC as offered). 4) Retry with proof headers. Optional query/body shapes vary by route — see https://docs.syraa.fun . Full resource list: GET /.well-known/x402 . Branded health check: GET|POST /mpp/v1/check-status (same pricing tier as /check-status).',
+        'Syra is the intelligence layer for autonomous trading agents—real-time market data, on-chain signals, news, sentiment, and research',
     },
     servers: [{ url: serverUrl }],
     paths,
