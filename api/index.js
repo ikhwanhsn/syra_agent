@@ -80,6 +80,7 @@ import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import connectMongoose from "./config/mongoose.js";
+import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -192,6 +193,7 @@ const CORS_OPTIONS_REGULAR = {
 // Preview/landing routes (/preview/*, /dashboard-summary, /binance-ticker, /x) get permissive CORS; x402 routes skip rate limit.
 function isX402Route(p) {
   if (!p) return false;
+  if (p === "/openapi.json") return true;
   if (p.startsWith("/.well-known")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
@@ -686,6 +688,13 @@ app.use("/prediction-game", createPredictionGameRouter());
 
 // Playground share: save/load request config by content-based slug (same request => same link)
 app.use("/playground", await createPlaygroundShareRouter());
+
+// MPP / AgentCash discovery — canonical OpenAPI (https://www.mppscan.com/discovery)
+app.get("/openapi.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res.json(buildMppDiscoveryOpenApi());
+});
 
 // X402 Jobs verification
 app.get("/.well-known/x402-verification.json", (req, res) => {

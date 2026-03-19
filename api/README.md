@@ -81,6 +81,27 @@ The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) 
 
 ---
 
+## MPP discovery (MPPscan / AgentCash)
+
+Syra’s **MPP test lane** is `GET` or `POST` [`/mpp/v1/check-status`](https://api.syraa.fun/mpp/v1/check-status) — same **HTTP 402 + x402 v2** flow as `/check-status`, tagged for machine-payment clients.
+
+To **register** with the [Machine Payments Protocol explorer](https://www.mppscan.com/discovery) (AgentCash discovery ecosystem), your server must expose:
+
+1. **`GET /openapi.json`** — canonical spec with `info.guidance`, per-operation `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), and a **`402`** response. Syra serves this at the API root (same host as `api.syraa.fun`).
+2. **Live `402`** on protected routes — already implemented on `/mpp/v1/check-status`.
+
+Optional: set **`SYRA_PUBLIC_API_URL`** in `.env` if the OpenAPI `servers[0].url` must point at staging. Reuse **`X402_OWNERSHIP_PROOF_EVM`** / **`X402_OWNERSHIP_PROOF_SVM`** (or **`X402_OWNERSHIP_PROOF`**) so `openapi.json` includes `x-discovery.ownershipProofs` (see [generateOwnershipProof.js](./scripts/generateOwnershipProof.js)).
+
+**Validate before/after deploy:**
+
+```bash
+npx -y @agentcash/discovery@latest discover "https://api.syraa.fun"
+```
+
+Then use **Register Server** on [mppscan.com/discovery](https://www.mppscan.com/discovery) with your production API origin.
+
+---
+
 ## Register Syra on 8004 (Solana Agent Registry)
 
 The [8004 Trustless Agent Registry](https://8004.qnt.sh/skill.md) lets you register Syra as a discoverable agent on Solana.
