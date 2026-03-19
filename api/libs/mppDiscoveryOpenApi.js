@@ -1,6 +1,6 @@
 /**
  * OpenAPI 3.1 document for MPP / AgentCash discovery (GET /openapi.json).
- * @see https://www.mppscan.com/discovery — openapi, info.guidance, paths with x-payment-info + 402.
+ * @see https://www.mppscan.com/discovery — openapi, info.description, info.guidance (required), paths with x-payment-info + 402.
  *
  * Paths mirror **canonical x402 URLs** (same as GET /.well-known/x402). Settlement is x402 v2 (HTTP 402);
  * `protocols: ["mpp"]` is discovery metadata for MPPscan / AgentCash. `/mpp/v1/check-status` is included
@@ -43,6 +43,9 @@ export function buildMppDiscoveryOpenApi() {
       version: '1.0.0',
       description:
         'Syra is the intelligence layer for autonomous trading agents—real-time market data, on-chain signals, news, sentiment, and research',
+      // Required by MPP / AgentCash discovery — without this, registries may return not_found / no resources
+      guidance:
+        'Call an operation without payment → HTTP 402. Pay with x402 (Solana or Base USDC), retry with payment proof. Docs: https://docs.syraa.fun',
     },
     servers: [{ url: serverUrl }],
     paths,
