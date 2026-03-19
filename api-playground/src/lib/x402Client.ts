@@ -91,6 +91,8 @@ export interface X402PaymentOption {
   /** When payTo is a token account (ATA), owner is the wallet that owns it. Lets us create the ATA if it doesn't exist. */
   owner?: string;
   extra?: Record<string, any>;
+  /** Original accept object from the server 402 response, preserved so the payment header echoes all fields the server expects. */
+  _raw?: Record<string, unknown>;
 }
 
 export interface X402Response {
@@ -189,7 +191,6 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
         ? raw.network
         : SOLANA_MAINNET_CAIP2;
   const owner = raw.owner ?? raw.extra?.owner;
-  // payTo can appear as payTo, recipient, paymentAddress, or address in v1 / external APIs
   const payTo =
     raw.payTo ?? raw.recipient ?? raw.paymentAddress ?? raw.address ?? raw.payToAddress ?? '';
   return {
@@ -201,6 +202,7 @@ function normalizeV1Accept(raw: any): X402PaymentOption {
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
     ...(owner ? { owner: String(owner) } : {}),
     ...(raw.extra && typeof raw.extra === 'object' ? { extra: raw.extra } : {}),
+    _raw: { ...raw },
   };
 }
 
@@ -369,6 +371,7 @@ function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: str
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
     ...(owner ? { owner: String(owner) } : {}),
     ...(raw.extra && typeof raw.extra === 'object' ? { extra: raw.extra } : {}),
+    _raw: { ...(raw as Record<string, unknown>) },
   };
 }
 
@@ -495,7 +498,8 @@ export async function createPaymentTransaction(
     );
   }
 
-  // Use feePayer from extra if provided (external API handles tx fees server-side)
+  // x402 v2 facilitator pattern: extra.feePayer is the server's facilitator address.
+  // The facilitator pays gas and co-signs after verifying the client's partial signature.
   const feePayerStr = paymentOption.extra?.feePayer as string | undefined;
   const feePayerKey = feePayerStr ? new PublicKey(feePayerStr) : publicKey;
 
@@ -617,14 +621,20 @@ export async function createPaymentTransaction(
   return { transaction, lastValidBlockHeight };
 }
 
-/** V2 API may return price as { asset, amount }; normalize to top-level for header. */
+/**
+ * Build `accepted` for the PAYMENT-SIGNATURE header.
+ * Start from the original server accept (_raw) so ALL fields the server expects are echoed back
+ * (e.g. maxAmountRequired, description, mimeType, extensions). Then overlay normalized amount/asset.
+ */
 function normalizeAcceptedForHeader(
   option: X402PaymentOption & { price?: { asset?: string; amount?: string } },
   resourceUrl?: string
 ): Record<string, unknown> {
   const amount = String(option.price?.amount ?? option.amount ?? '0');
   const asset = option.price?.asset ?? option.asset ?? USDC_MINT_STRING;
+  const raw = option._raw ?? {};
   const accepted: Record<string, unknown> = {
+    ...raw,
     scheme: option.scheme || 'exact',
     network: option.network,
     payTo: option.payTo,
@@ -633,6 +643,7 @@ function normalizeAcceptedForHeader(
     maxTimeoutSeconds: option.maxTimeoutSeconds ?? 60,
     ...(option.extra && typeof option.extra === 'object' ? { extra: option.extra } : {}),
   };
+  delete accepted._raw;
   if (resourceUrl && typeof resourceUrl === 'string' && resourceUrl.trim()) {
     accepted.resource = resourceUrl.trim();
   }

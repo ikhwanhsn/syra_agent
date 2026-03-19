@@ -253,13 +253,20 @@ async function doFetch(
   finalUrl: string,
   method: string,
   body: string,
-  paymentHeader?: string
+  paymentHeader?: string,
+  paymentVersion?: 1 | 2
 ): Promise<{ status: number; statusText: string; body: string; timeMs: number }> {
   const useProxy = useBackendPlaygroundProxy(finalUrl);
   const start = Date.now();
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (paymentHeader) headers['X-Payment'] = paymentHeader;
+  if (paymentHeader) {
+    if (paymentVersion === 1) {
+      headers['X-PAYMENT'] = paymentHeader;
+    } else {
+      headers['PAYMENT-SIGNATURE'] = paymentHeader;
+    }
+  }
 
   if (useProxy) {
     const proxyUrl = getPlaygroundProxyUrl(finalUrl);
@@ -594,6 +601,7 @@ export default function BatchTest() {
         }
 
         const rawV1 = parsed.x402Version === 1 && parsed._rawV1Accepts?.[0] ? parsed._rawV1Accepts[0] : undefined;
+        const payVersion: 1 | 2 = parsed.x402Version === 1 ? 1 : 2;
 
         try {
           let result: { success: boolean; paymentHeader?: string; error?: string };
@@ -633,7 +641,7 @@ export default function BatchTest() {
           continue;
         }
 
-        const second = await doFetch(finalUrl, entry.method, body, paymentHeader);
+        const second = await doFetch(finalUrl, entry.method, body, paymentHeader, payVersion);
         if (second.status >= 200 && second.status < 300) {
           successCount++;
           updateRow(entry.id, {
@@ -696,7 +704,7 @@ export default function BatchTest() {
   const hasWallet = walletContext.connected || walletContext.baseConnected;
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
       <TopBar
         wallet={wallet}
         onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
@@ -943,16 +951,18 @@ export default function BatchTest() {
         </DialogContent>
       </Dialog>
 
-      <main className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-scroll overflow-x-hidden">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0 flex flex-col gap-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <BarChart3 className="h-7 w-7 text-primary" />
-              x402 Batch Test
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Run many x402 APIs with one click. You pay for each 402 and see which endpoints succeed or fail, plus overall statistics. Add or remove APIs in the table toolbar and rows.
-            </p>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border/50 shrink-0">
+              <BarChart3 className="h-6 w-6 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">x402 Batch Test</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Run many x402 APIs with one click. You pay for each 402 and see which endpoints succeed or fail, plus overall statistics. Add or remove APIs in the table toolbar and rows.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
