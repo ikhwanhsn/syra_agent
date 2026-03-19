@@ -1,21 +1,14 @@
 /**
  * OpenAPI 3.1 document for MPP / AgentCash discovery (GET /openapi.json).
- * @see https://www.mppscan.com/discovery — requires openapi, info.guidance, paths with x-payment-info + 402.
+ * @see https://www.mppscan.com/discovery — openapi, info.guidance, paths with x-payment-info + 402.
+ *
+ * Paths mirror **canonical x402 URLs** (same as GET /.well-known/x402). Settlement is x402 v2 (HTTP 402);
+ * `protocols: ["mpp"]` is discovery metadata for MPPscan / AgentCash. `/mpp/v1/check-status` is included
+ * as the MPP-branded health check (also listed under x402 discovery).
  */
-import { X402_API_PRICE_CHECK_STATUS_USD } from '../config/x402Pricing.js';
+import { buildMppOpenApiPaths } from './mppOpenApiPaths.js';
 
 const DEFAULT_SERVER = 'https://api.syraa.fun';
-
-/**
- * @param {number} n
- * @returns {string} Non-scientific USD string for OpenAPI `price` (fixed mode).
- */
-function usdPriceString(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x) || x < 0) return '0';
-  const s = x.toFixed(10).replace(/\.?0+$/, '');
-  return s === '' ? '0' : s;
-}
 
 /**
  * @returns {string[]}
@@ -35,19 +28,12 @@ function discoveryOwnershipProofs() {
 }
 
 /**
- * Build the discovery document. Price matches live /mpp/v1/check-status (x402 tier).
  * @returns {Record<string, unknown>}
  */
 export function buildMppDiscoveryOpenApi() {
   const serverUrl = (process.env.SYRA_PUBLIC_API_URL || DEFAULT_SERVER).replace(/\/$/, '');
-  const price = usdPriceString(X402_API_PRICE_CHECK_STATUS_USD);
   const ownershipProofs = discoveryOwnershipProofs();
-
-  const paymentInfo = {
-    protocols: ['mpp'],
-    pricingMode: 'fixed',
-    price,
-  };
+  const paths = buildMppOpenApiPaths();
 
   /** @type {Record<string, unknown>} */
   const doc = {
@@ -56,37 +42,12 @@ export function buildMppDiscoveryOpenApi() {
       title: 'Syra API',
       version: '1.0.0',
       description:
-        'Syra crypto intelligence and agent API. Documented paths are the MPP discovery lane; runtime payment challenges use x402 v2 (HTTP 402 + PAYMENT-SIGNATURE) compatible with AgentCash and x402 wallets.',
+        'Syra crypto intelligence and agent API. MPP (Machine Payments Protocol) discovery lists the same HTTP resources as the x402 catalog: call these paths on this server, respond to HTTP 402 with x402 v2 payment (PAYMENT-SIGNATURE / compatible wallets), then retry. MPP and x402 are not different backends—only different discovery channels (this OpenAPI vs /.well-known/x402).',
       guidance:
-        'Call GET or POST /mpp/v1/check-status without payment to receive HTTP 402 with an x402 payment challenge. Complete payment, then retry with the proof header. This lane mirrors pricing and settlement of /check-status. Full x402 resource list: GET https://api.syraa.fun/.well-known/x402 — human docs: https://docs.syraa.fun',
+        '1) Pick an operation below (note fixed price in x-payment-info). 2) GET or POST the path on servers[0].url without payment → HTTP 402 with payment requirements. 3) Pay via x402 v2 (Solana or Base USDC as offered). 4) Retry with proof headers. Optional query/body shapes vary by route — see https://docs.syraa.fun . Full resource list: GET /.well-known/x402 . Branded health check: GET|POST /mpp/v1/check-status (same pricing tier as /check-status).',
     },
     servers: [{ url: serverUrl }],
-    paths: {
-      '/mpp/v1/check-status': {
-        get: {
-          description:
-            'MPP discovery health check: JSON status when payment succeeds. Fixed-price; same x402 v2 facilitator flow as /check-status.',
-          'x-payment-info': paymentInfo,
-          responses: {
-            '200': {
-              description: 'OK — includes status, message, protocol, paymentCompatibility',
-            },
-            '402': { description: 'Payment Required' },
-          },
-        },
-        post: {
-          description:
-            'Same as GET for clients that use POST (optional JSON body). Fixed-price x402 v2.',
-          'x-payment-info': paymentInfo,
-          responses: {
-            '200': {
-              description: 'OK — includes status, message, protocol, paymentCompatibility',
-            },
-            '402': { description: 'Payment Required' },
-          },
-        },
-      },
-    },
+    paths,
   };
 
   if (ownershipProofs.length > 0) {

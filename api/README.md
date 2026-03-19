@@ -83,22 +83,21 @@ The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) 
 
 ## MPP discovery (MPPscan / AgentCash)
 
-Syra’s **MPP test lane** is `GET` or `POST` [`/mpp/v1/check-status`](https://api.syraa.fun/mpp/v1/check-status) — same **HTTP 402 + x402 v2** flow as `/check-status`, tagged for machine-payment clients.
+**Settlement:** MPP discovery uses the **same URLs and x402 v2 payment flow** as the rest of Syra (`HTTP 402` → pay → retry with proof). `protocols: ["mpp"]` in OpenAPI is **discovery metadata** for [MPPscan](https://www.mppscan.com/discovery) / AgentCash, not a separate payment rail.
 
-To **register** with the [Machine Payments Protocol explorer](https://www.mppscan.com/discovery) (AgentCash discovery ecosystem), your server must expose:
+**Catalog:**
 
-1. **`GET /openapi.json`** — canonical spec with `info.guidance`, per-operation `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), and a **`402`** response. Syra serves this at the API root (same host as `api.syraa.fun`).
-2. **Live `402`** on protected routes — already implemented on `/mpp/v1/check-status`.
+- **`GET /.well-known/x402`** — x402 resource list (unchanged).
+- **`GET /openapi.json`** — full **OpenAPI 3.1** MPP discovery document: one entry per paid route (from **agent tools** + [`x402DiscoveryResourcePaths.js`](./config/x402DiscoveryResourcePaths.js)), with `info.guidance`, `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), **`402`**, optional **query parameters** (GET) and **JSON requestBody** (POST) to satisfy discovery validators.
+- **`GET` / `POST` [`/mpp/v1/check-status`](https://api.syraa.fun/mpp/v1/check-status)** — MPP-branded health check (same tier as `/check-status`).
 
-Optional: set **`SYRA_PUBLIC_API_URL`** in `.env` if the OpenAPI `servers[0].url` must point at staging. Reuse **`X402_OWNERSHIP_PROOF_EVM`** / **`X402_OWNERSHIP_PROOF_SVM`** (or **`X402_OWNERSHIP_PROOF`**) so `openapi.json` includes `x-discovery.ownershipProofs` (see [generateOwnershipProof.js](./scripts/generateOwnershipProof.js)).
-
-**Validate before/after deploy:**
+To **register**, deploy then validate:
 
 ```bash
 npx -y @agentcash/discovery@latest discover "https://api.syraa.fun"
 ```
 
-Then use **Register Server** on [mppscan.com/discovery](https://www.mppscan.com/discovery) with your production API origin.
+Optional: **`SYRA_PUBLIC_API_URL`** for staging `servers[0].url`. **`X402_OWNERSHIP_PROOF_EVM`** / **`X402_OWNERSHIP_PROOF_SVM`** populate `x-discovery.ownershipProofs` (see [generateOwnershipProof.js](./scripts/generateOwnershipProof.js)).
 
 ---
 

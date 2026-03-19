@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
 
 interface RequestBuilderProps {
   method: HttpMethod;
@@ -28,6 +29,8 @@ interface RequestBuilderProps {
   isAutoDetecting?: boolean;
   /** When set, only these methods are enabled for the current API; empty = both GET and POST */
   allowedMethods?: HttpMethod[];
+  /** Shown in subtitle; derived on Index from URL / last response. */
+  paymentLane?: PlaygroundPaymentLane;
   wallet: WalletState;
   onMethodChange: (method: HttpMethod) => void;
   onUrlChange: (url: string) => void;
@@ -144,7 +147,11 @@ export function RequestBuilder({
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-foreground truncate">Request Builder</h2>
-              <p className="text-xs text-muted-foreground">Configure your x402 API request</p>
+              <p className="text-xs text-muted-foreground">
+                {paymentLane === 'mpp'
+                  ? 'Configure your request (MPP lane — same x402 v2 payment flow)'
+                  : 'Configure your x402 API request'}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">

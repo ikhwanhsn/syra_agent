@@ -6,11 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JsonEditor } from '@/components/JsonEditor';
 import { ApiResponse, RequestStatus, PaymentDetails } from '@/types/api';
 import { cn } from '@/lib/utils';
+import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
 
 interface ResponseViewerProps {
   response?: ApiResponse;
   status: RequestStatus;
   paymentDetails?: PaymentDetails;
+  /** Matches main playground lane detection (URL or response). */
+  paymentLane?: PlaygroundPaymentLane;
   onPayAndRetry?: () => void;
 }
 
@@ -42,7 +45,13 @@ function getStatusMessage(status: number): string {
   return 'Processing...';
 }
 
-export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry }: ResponseViewerProps) {
+export function ResponseViewer({
+  response,
+  status,
+  paymentDetails,
+  paymentLane = 'x402',
+  onPayAndRetry,
+}: ResponseViewerProps) {
   const [activeTab, setActiveTab] = useState('body');
   const [viewMode, setViewMode] = useState<'pretty' | 'raw'>('pretty');
   const [copied, setCopied] = useState(false);
@@ -154,7 +163,12 @@ export function ResponseViewer({ response, status, paymentDetails, onPayAndRetry
             <p className="text-xs text-muted-foreground truncate">{getStatusMessage(response.status)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {paymentLane === 'mpp' && (
+            <Badge variant="outline" className="text-xs px-2 py-1 border-primary/40 text-primary">
+              MPP
+            </Badge>
+          )}
           <Badge variant={getStatusVariant(response.status)} className="font-mono text-xs px-3 py-1.5">
             {response.status} {response.statusText}
           </Badge>
