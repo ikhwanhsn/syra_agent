@@ -5,6 +5,9 @@ anchor_version = "0.31.1"
 resolution = true
 skip-lint = false
 
+[programs.mainnet]
+staking = "7r3QjYH2tremMbCj5TNFMsr2bv1R6zayD86h8tcvHEcd"
+
 [programs.devnet]
 staking = "7r3QjYH2tremMbCj5TNFMsr2bv1R6zayD86h8tcvHEcd"
 

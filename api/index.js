@@ -79,6 +79,8 @@ import { createNeynarRouter } from "./routes/partner/neynar/index.js";
 import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
+import { getV2Payment } from "./utils/getV2Payment.js";
+import { sendTempoPayout } from "./libs/tempoPayout.js";
 import connectMongoose from "./config/mongoose.js";
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
@@ -95,6 +97,7 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 // See utils/x402Payment.js for configuration details.
 
 const app = express();
+const { requirePayment: requirePaymentV2, settlePaymentAndSetResponse } = await getV2Payment();
 
 // Trust first proxy (e.g. Nginx, Cloudflare) so req.ip / X-Forwarded-For are correct for rate limiting
 if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
@@ -282,6 +285,62 @@ app.use(securityHeaders);
 // Timeout for playground proxy outbound fetch (ms). Prevents hanging so we always return 502 with a clear message.
 const PLAYGROUND_PROXY_TIMEOUT_MS = 28_000;
 
+function getHeaderCaseInsensitive(headers, name) {
+  if (!headers || typeof headers !== "object") return undefined;
+  const wanted = String(name || "").toLowerCase();
+  for (const [k, v] of Object.entries(headers)) {
+    if (String(k).toLowerCase() === wanted) return v;
+  }
+  return undefined;
+}
+
+function decodeBase64UrlJson(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  try {
+    const normalized = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    const parsed = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseTempoChallengeFromWwwAuthenticate(headerValue) {
+  if (!headerValue || typeof headerValue !== "string") return null;
+  const raw = headerValue;
+  if (!/^\s*payment\s/i.test(raw)) return null;
+  const methodMatch = raw.match(/method="([^"]+)"/i);
+  if (!methodMatch || String(methodMatch[1]).toLowerCase() !== "tempo") return null;
+  const requestMatch = raw.match(/request="([^"]+)"/i);
+  if (!requestMatch?.[1]) return null;
+  const reqPayload = decodeBase64UrlJson(requestMatch[1]);
+  if (!reqPayload) return null;
+  const amountRaw = String(reqPayload.amount ?? "0").trim();
+  const recipient = String(reqPayload.recipient ?? "").trim();
+  if (!/^\d+$/.test(amountRaw) || !recipient) return null;
+  const amountMicro = Number(amountRaw);
+  if (!Number.isFinite(amountMicro) || amountMicro <= 0) return null;
+  const idMatch = raw.match(/id="([^"]+)"/i);
+  return {
+    id: idMatch?.[1] ? String(idMatch[1]) : undefined,
+    amountMicro,
+    amountUsd: amountMicro / 1_000_000,
+    recipient,
+    currency: String(reqPayload.currency ?? "").trim(),
+    chainId: String(reqPayload.chainId ?? reqPayload.chain ?? "").trim(),
+  };
+}
+
+async function requireProxyPayment(req, res, options) {
+  const middleware = requirePaymentV2(options);
+  let allowed = false;
+  await middleware(req, res, () => {
+    allowed = true;
+  });
+  return allowed;
+}
+
 // Playground proxy must parse large bodies (payment headers can be 50kb+). Register before global json so this route gets 2mb limit.
 app.post(
   "/api/playground-proxy",
@@ -313,6 +372,77 @@ app.post(
       const proxyRes = await sentinelFetch(targetUrl, fetchOpts);
       clearTimeout(timeoutId);
       const responseText = await proxyRes.text();
+      const forwardedHeaders = {};
+      proxyRes.headers.forEach((value, key) => {
+        forwardedHeaders[key] = value;
+      });
+
+      // Tempo MPP relay:
+      // 1) Upstream returns 402 with WWW-Authenticate method="tempo".
+      // 2) We ask the user to pay Syra via x402 (Solana/Base).
+      // 3) After successful user payment, server pays Tempo via TEMPO_PAYOUT_PRIVATE_KEY.
+      // 4) Retry upstream request once and return the final response.
+      let target;
+      try {
+        target = new URL(targetUrl);
+      } catch {
+        target = null;
+      }
+      const isMppPath = target?.pathname?.toLowerCase().includes("/mpp/");
+      const tempoChallenge = parseTempoChallengeFromWwwAuthenticate(
+        getHeaderCaseInsensitive(forwardedHeaders, "www-authenticate")
+      );
+      if (proxyRes.status === 402 && isMppPath && tempoChallenge) {
+        const relayPrice = tempoChallenge.amountUsd.toFixed(6);
+        const paid = await requireProxyPayment(req, res, {
+          price: relayPrice,
+          method: forwardMethod,
+          discoverable: false,
+          resource: "/api/playground-proxy",
+          description: "MPP Tempo relay payment (user pays with x402; server settles Tempo challenge)",
+          inputSchema: {
+            bodyType: "json",
+            bodyFields: {
+              url: { type: "string", required: true, description: "Target URL" },
+              method: { type: "string", required: false, description: "HTTP method" },
+              body: { type: "object", required: false, description: "Request body" },
+            },
+          },
+        });
+        if (!paid) return;
+
+        const memo = tempoChallenge.id ? tempoChallenge.id.slice(0, 32) : undefined;
+        const payout = await sendTempoPayout({
+          to: tempoChallenge.recipient,
+          amountUsd: tempoChallenge.amountUsd,
+          memo,
+        });
+
+        if (!payout.success) {
+          if (req.x402Payment) await settlePaymentAndSetResponse(res, req);
+          res.status(502).json({
+            success: false,
+            error: "Tempo relay payout failed",
+            message: payout.error || "Could not settle Tempo challenge from server wallet.",
+          });
+          return;
+        }
+
+        const retryRes = await sentinelFetch(targetUrl, fetchOpts);
+        const retryText = await retryRes.text();
+        const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
+        retryRes.headers.forEach((value, key) => {
+          if (!skipHeaders.includes(key.toLowerCase())) {
+            res.setHeader(key, value);
+          }
+        });
+        res.setHeader("X-Syra-Tempo-Relay", "true");
+        res.setHeader("X-Syra-Tempo-Payout-Tx", payout.transactionHash || "");
+        if (req.x402Payment) await settlePaymentAndSetResponse(res, req);
+        res.status(retryRes.status).send(retryText);
+        return;
+      }
+
       // Forward safe response headers (exclude hop-by-hop and encoding)
       const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
       proxyRes.headers.forEach((value, key) => {

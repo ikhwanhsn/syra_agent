@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Code, Lightbulb, FileText, ExternalLink, Wrench, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Code, Lightbulb, FileText, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { agentToolsApi, type AgentTool } from "@/lib/chatApi";
 import {
@@ -42,21 +42,6 @@ const suggestions: SuggestionCard[] = [
     icon: Sparkles,
     title: "Syra & tools",
     prompt: "What can the Syra agent do? When do I need to connect a wallet?",
-  },
-  {
-    icon: FileText,
-    title: "Crawl & summarize",
-    prompt: "Crawl https://blog.cloudflare.com/ and give me a short summary of what's on the site (connect wallet for paid tool)",
-  },
-  {
-    icon: Wrench,
-    title: "Binance spot",
-    prompt: "What's the Binance 24h ticker for BTCUSDT? Or show my Binance spot balance (connect wallet for paid tools)",
-  },
-  {
-    icon: Wrench,
-    title: "Purch Vault",
-    prompt: "Search Purch Vault for agent skills or knowledge bases (connect wallet for paid tool)",
   },
 ];
 

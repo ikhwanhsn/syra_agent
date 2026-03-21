@@ -131,7 +131,7 @@ pub const POOL_SEED: &[u8] = b"pool";
 pub const POSITION_SEED: &[u8] = b"position";
 pub const COUNTER_SEED: &[u8] = b"counter";
 
-/// Period duration in seconds. Same on devnet and mainnet: 1 minute, 1 hour, 1 day.
+/// Period duration in seconds for devnet testing.
 pub const PERIOD_SECS_1_MONTH: i64 = 60; // 1 minute
 pub const PERIOD_SECS_3_MONTHS: i64 = 60 * 60; // 1 hour
 pub const PERIOD_SECS_1_YEAR: i64 = 24 * 60 * 60; // 1 day

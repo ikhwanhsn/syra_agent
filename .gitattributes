@@ -1,0 +1,2 @@
+# Shell scripts: LF only (Git Bash/WSL break on CRLF — $'\r' / read -p errors)
+*.sh text eol=lf

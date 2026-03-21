@@ -132,6 +132,7 @@ export async function stake(
     TOKEN_PROGRAM_ID
   );
 
+  // Keys must match Anchor's camelCased IDL (see convertIdlToCamelCase): e.g. userStakeInfo1M not user_stake_info_1m.
   const stakeIx = await program.methods
     .stake(new BN(amountRaw.toString()), period)
     .accountsStrict({

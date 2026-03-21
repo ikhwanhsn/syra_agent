@@ -42,6 +42,14 @@ function getFaucetKeypair(): Keypair | null {
 }
 
 export async function POST(request: Request) {
+  const isMainnet = process.env.NEXT_PUBLIC_SOLANA_NETWORK === "mainnet-beta";
+  if (isMainnet) {
+    return NextResponse.json(
+      { error: "Faucet is disabled on mainnet" },
+      { status: 403 }
+    );
+  }
+
   if (!STAKING_MINT || STAKING_MINT === "11111111111111111111111111111111") {
     return NextResponse.json(
       { error: "Faucet not configured: NEXT_PUBLIC_STAKING_MINT missing" },

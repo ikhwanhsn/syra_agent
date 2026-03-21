@@ -40,6 +40,46 @@ function getApiHeaders(): Record<string, string> {
   return {};
 }
 
+function getHeaderCaseInsensitive(
+  headers: Record<string, string>,
+  name: string
+): string | undefined {
+  const wanted = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === wanted) return value;
+  }
+  return undefined;
+}
+
+function formatMaybeMicroAmount(rawAmount: string): string {
+  const trimmed = rawAmount.trim();
+  if (!trimmed) return '0';
+  if (!/^\d+$/.test(trimmed)) return trimmed;
+  if (parseInt(trimmed, 10) <= 10000) return trimmed;
+
+  const microUnits = BigInt(trimmed);
+  const divisor = BigInt(1000000);
+  const intPart = microUnits / divisor;
+  const decPart = microUnits % divisor;
+  return decPart === BigInt(0)
+    ? intPart.toString()
+    : `${intPart}.${decPart.toString().padStart(6, '0').replace(/0+$/, '')}`;
+}
+
+function decodeBase64UrlJson(input: string): Record<string, unknown> | null {
+  try {
+    const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = normalized.length % 4;
+    const padded = padding === 0 ? normalized : normalized + '='.repeat(4 - padding);
+    const decoded = atob(padded);
+    const parsed = JSON.parse(decoded);
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, unknown>;
+  } catch {
+    // ignore invalid base64url payload
+  }
+  return null;
+}
+
 /** Nansen API base (call directly; x402 payment with wallet). Override via VITE_NANSEN_API_BASE_URL. */
 function getNansenBaseUrl(): string {
   const base = import.meta.env.VITE_NANSEN_API_BASE_URL as string | undefined;
@@ -1240,7 +1280,9 @@ const getProxiedUrl = (url: string): string => {
 // In production, cross-origin requests hit CORS. Use the API's playground-proxy when we're not in dev and the target is another origin.
 // Nansen is called directly (no proxy) so the user pays x402 with their wallet.
 function useBackendPlaygroundProxy(targetUrl: string): boolean {
-  if (USE_PROXY) return false; // Dev proxy handles it
+  // Always use backend proxy for MPP lanes so the server can relay Tempo challenges.
+  if (targetUrl.toLowerCase().includes('/mpp/')) return true;
+  if (USE_PROXY) return false; // Dev proxy handles non-MPP routes
   if (typeof window === 'undefined') return false;
   if (isNansenUrl(targetUrl)) return false; // Call Nansen directly
   const targetOrigin = getRequestOrigin(targetUrl);
@@ -2792,17 +2834,7 @@ export function useApiPlayground() {
             const accept = jsonData.accepts[0];
             
             // Format amount (convert from micro-units if needed)
-            let formattedAmount = accept.amount || '0';
-            if (formattedAmount && parseInt(formattedAmount) > 10000) {
-              // Likely micro-units, convert to human readable
-              const microUnits = BigInt(formattedAmount);
-              const divisor = BigInt(1000000);
-              const intPart = microUnits / divisor;
-              const decPart = microUnits % divisor;
-              formattedAmount = decPart === BigInt(0) 
-                ? intPart.toString() 
-                : `${intPart}.${decPart.toString().padStart(6, '0').replace(/0+$/, '')}`;
-            }
+            const formattedAmount = formatMaybeMicroAmount(String(accept.amount || '0'));
             
             details = {
               amount: formattedAmount,
@@ -2823,6 +2855,40 @@ export function useApiPlayground() {
             
             if (genericDetails.recipient || genericDetails.amount !== '0') {
               details = genericDetails;
+            }
+          }
+        }
+
+        // MPP fallback: some APIs (e.g. tempo/mpp challenge) provide payment fields only in
+        // WWW-Authenticate: Payment ... request="<base64url-json>".
+        if (!details) {
+          const challengeHeader = getHeaderCaseInsensitive(responseHeaders, 'WWW-Authenticate');
+          if (challengeHeader && challengeHeader.toLowerCase().includes('payment')) {
+            const requestMatch = challengeHeader.match(/request="([^"]+)"/i);
+            const methodMatch = challengeHeader.match(/method="([^"]+)"/i);
+            const requestPayload = requestMatch?.[1]
+              ? decodeBase64UrlJson(requestMatch[1])
+              : null;
+            if (requestPayload) {
+              const amountRaw = String(requestPayload.amount ?? '0');
+              const currencyRaw = String(requestPayload.currency ?? 'USDC');
+              const recipientRaw = String(requestPayload.recipient ?? requestPayload.payTo ?? '');
+              const chainId = String(requestPayload.chainId ?? requestPayload.chain ?? '');
+              const inferredNetwork =
+                chainId === '4217'
+                  ? 'Tempo'
+                  : chainId
+                    ? `Chain ${chainId}`
+                    : (methodMatch?.[1]?.toLowerCase() === 'tempo' ? 'Tempo' : 'Solana');
+
+              details = {
+                amount: formatMaybeMicroAmount(amountRaw),
+                token: currencyRaw.toLowerCase() === '0x20c000000000000000000000b9537d11c60e8b50'
+                  ? 'USDC'
+                  : currencyRaw,
+                recipient: recipientRaw,
+                network: inferredNetwork,
+              };
             }
           }
         }
@@ -3262,7 +3328,18 @@ export function useApiPlayground() {
 
   // Execute payment and auto-retry (Solana or Base)
   const pay = useCallback(async () => {
-    if (!paymentOption) return;
+    if (!paymentOption) {
+      setTransactionStatus({
+        status: 'failed',
+        error: 'This payment challenge uses a method/network not supported by the current playground wallet flow.',
+      });
+      toast({
+        title: 'Payment method not supported yet',
+        description: 'This endpoint returns a Tempo/MPP challenge. The playground can show the amount, but it can only execute Solana or Base x402 payments right now.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const isBase = isBaseNetwork(paymentOption);
     if (isBase) {
@@ -3287,10 +3364,14 @@ export function useApiPlayground() {
       return solanaRaw ?? raw[0];
     })();
 
-    // Resource URL (request that got 402) so v2 APIs can verify payment was for this endpoint
-    let resourceUrl = url.trim();
+    // Resource URL must match the endpoint that returned 402.
+    // For MPP lanes we always call Syra backend proxy, so sign for /api/playground-proxy
+    // (not for the upstream target URL), otherwise verification returns 402 again.
+    const rawUrl = url.trim();
+    const isProxyPayment = useBackendPlaygroundProxy(rawUrl);
+    let resourceUrl = isProxyPayment ? getPlaygroundProxyUrl(rawUrl) : rawUrl;
     const enabledParams = params.filter((p: { enabled: boolean; key: string }) => p.enabled && p.key);
-    if (method === 'GET' && enabledParams.length > 0) {
+    if (!isProxyPayment && method === 'GET' && enabledParams.length > 0) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach((p: { key: string; value: string }) => searchParams.append(p.key, p.value));
       resourceUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();

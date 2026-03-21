@@ -165,7 +165,10 @@ export function ResponseViewer({
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           {paymentLane === 'mpp' && (
-            <Badge variant="outline" className="text-xs px-2 py-1 border-primary/40 text-primary">
+            <Badge
+              variant="outline"
+              className="text-xs px-2 py-1 border-accent/45 text-accent bg-accent/10"
+            >
               MPP
             </Badge>
           )}
@@ -199,8 +202,14 @@ export function ResponseViewer({
               <Zap className="h-5 w-5 text-warning" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-foreground">x402 Payment Required</h3>
-              <p className="text-xs text-muted-foreground">This endpoint requires payment to access</p>
+              <h3 className="text-sm font-semibold text-foreground">
+                {paymentLane === 'mpp' ? 'Payment required' : 'x402 Payment Required'}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {paymentLane === 'mpp'
+                  ? 'MPP settles with the same x402 v2 wallet step'
+                  : 'This endpoint requires payment to access'}
+              </p>
             </div>
           </div>
           

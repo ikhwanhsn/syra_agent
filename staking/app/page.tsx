@@ -16,9 +16,10 @@ import { toast } from "sonner";
 import { CONFIG } from "@/constants/config";
 import type { StakingPeriod } from "@/lib/staking";
 
-const EXPLORER_CLUSTER = CONFIG.rpcEndpoint.includes("devnet") ? "devnet" : "mainnet";
 const EXPLORER_TX = (sig: string) =>
-  `https://explorer.solana.com/tx/${sig}?cluster=${EXPLORER_CLUSTER}`;
+  CONFIG.IS_DEVNET
+    ? `https://explorer.solana.com/tx/${sig}?cluster=devnet`
+    : `https://explorer.solana.com/tx/${sig}`;
 
 /** Format APR for readability: compact (e.g. 631.15M%) when very large, otherwise with commas. */
 function formatApr(apr: number): string {
@@ -294,7 +295,7 @@ export default function StakingPage() {
               }
             >
               <p>
-                The staking pool may not be initialized yet on devnet, or the RPC could not fetch it. Run the init-pool script if you deployed the program, or check your RPC and program ID in .env.local.
+                The staking pool may not be initialized yet, or the RPC could not fetch it. Run the init-pool script if you deployed the program, or check your RPC and program ID in .env.local.
               </p>
             </Alert>
           </div>

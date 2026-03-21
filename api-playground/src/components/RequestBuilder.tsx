@@ -143,14 +143,26 @@ export function RequestBuilder({
         {/* Header - fixed, does not scroll */}
         <div className="shrink-0 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 shrink-0 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <Zap className="h-4.5 w-4.5 text-primary" />
+            <div
+              className={cn(
+                'w-9 h-9 shrink-0 rounded-lg flex items-center justify-center',
+                paymentLane === 'mpp'
+                  ? 'bg-gradient-to-br from-accent/25 to-accent/10'
+                  : 'bg-gradient-to-br from-primary/20 to-accent/20'
+              )}
+            >
+              <Zap
+                className={cn(
+                  'h-4.5 w-4.5',
+                  paymentLane === 'mpp' ? 'text-accent' : 'text-primary'
+                )}
+              />
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-foreground truncate">Request Builder</h2>
               <p className="text-xs text-muted-foreground">
                 {paymentLane === 'mpp'
-                  ? 'Configure your request (MPP lane — same x402 v2 payment flow)'
+                  ? 'Build requests to Syra MPP routes'
                   : 'Configure your x402 API request'}
               </p>
             </div>
@@ -240,7 +252,11 @@ export function RequestBuilder({
                 <Info className="h-4 w-4 text-muted-foreground/50 shrink-0" />
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[200px]">
-                <p className="text-xs">x402 API supports GET for fetching data and POST for sending data</p>
+                <p className="text-xs">
+                  {paymentLane === 'mpp'
+                    ? 'Syra MPP routes support GET and POST like the rest of the API'
+                    : 'x402 API supports GET for fetching data and POST for sending data'}
+                </p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -296,8 +312,19 @@ export function RequestBuilder({
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 )}
                 {url && (
-                  <Badge variant="secondary" className="text-xs px-2 py-1">
-                    {url.includes('x402') || url.includes('demo') ? 'x402' : 'API'}
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      'text-xs px-2 py-1',
+                      url.toLowerCase().includes('/mpp/') &&
+                        'border border-accent/40 bg-accent/10 text-accent'
+                    )}
+                  >
+                    {url.includes('x402') || url.includes('demo')
+                      ? 'x402'
+                      : url.toLowerCase().includes('/mpp/')
+                        ? 'MPP'
+                        : 'API'}
                   </Badge>
                 )}
               </div>

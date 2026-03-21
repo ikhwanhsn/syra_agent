@@ -1330,6 +1330,9 @@ video {
 .border-primary {
   border-color: hsl(var(--primary));
 }
+.border-primary\/50 {
+  border-color: hsl(var(--primary) / 0.5);
+}
 .border-success\/40 {
   border-color: hsl(var(--success) / 0.4);
 }
@@ -1338,9 +1341,6 @@ video {
 }
 .border-warning\/40 {
   border-color: hsl(var(--warning) / 0.4);
-}
-.border-primary\/50 {
-  border-color: hsl(var(--primary) / 0.5);
 }
 .bg-amber-500\/20 {
   background-color: rgb(245 158 11 / 0.2);

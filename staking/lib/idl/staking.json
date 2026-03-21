@@ -333,7 +333,7 @@
     {
       "name": "stake",
       "docs": [
-        "Stake tokens into the pool (period: 0=1m, 1=3m, 2=1y). position_index must equal counter.next_index for that period."
+        "Stake tokens into the pool (period: 0=1m, 1=3m, 2=1y)."
       ],
       "discriminator": [
         206,
@@ -421,10 +421,6 @@
         {
           "name": "period",
           "type": "u8"
-        },
-        {
-          "name": "position_index",
-          "type": "u32"
         }
       ]
     },

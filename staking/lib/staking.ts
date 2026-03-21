@@ -21,7 +21,7 @@ export interface GlobalPool {
   isInitialized: boolean;
 }
 
-/** Staking period: 0 = 1 minute, 1 = 1 hour, 2 = 1 day */
+/** Staking period: 0 = 1 month, 1 = 3 months, 2 = 1 year */
 export type StakingPeriod = 0 | 1 | 2;
 
 export interface UserStakeInfo {

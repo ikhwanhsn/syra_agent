@@ -2,13 +2,16 @@ import { PublicKey } from "@solana/web3.js";
 
 /**
  * Staking dApp configuration.
- * Change these values for devnet vs mainnet and your deployed program.
+ * Mainnet: users stake $SYRA token and earn $SYRA rewards.
  */
 
 export const IS_DEVNET = process.env.NEXT_PUBLIC_SOLANA_NETWORK !== "mainnet-beta";
 
+/** $SYRA token mint on Solana mainnet */
+const SYRA_MINT = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
+
 export const CONFIG = {
-  /** true on devnet, false on mainnet (used for period labels and future overrides) */
+  /** true on devnet, false on mainnet */
   IS_DEVNET,
 
   /** Solana RPC endpoint. Use .env for secrets. */
@@ -16,7 +19,7 @@ export const CONFIG = {
     process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
     (IS_DEVNET
       ? "https://api.devnet.solana.com"
-      : "https://api.mainnet.solana.com"),
+      : "https://api.mainnet-beta.solana.com"),
 
   /** Your deployed Anchor staking program ID */
   programId: new PublicKey(
@@ -24,16 +27,14 @@ export const CONFIG = {
       "11111111111111111111111111111111"
   ),
 
-  /** SPL token mint that users stake */
+  /** SPL token mint that users stake ($SYRA) */
   stakingMint: new PublicKey(
-    process.env.NEXT_PUBLIC_STAKING_MINT ||
-      "11111111111111111111111111111111"
+    process.env.NEXT_PUBLIC_STAKING_MINT || SYRA_MINT
   ),
 
-  /** SPL token mint used for rewards */
+  /** SPL token mint used for rewards ($SYRA) */
   rewardMint: new PublicKey(
-    process.env.NEXT_PUBLIC_REWARD_MINT ||
-      "11111111111111111111111111111111"
+    process.env.NEXT_PUBLIC_REWARD_MINT || SYRA_MINT
   ),
 
   /**
@@ -50,7 +51,7 @@ export const CONFIG = {
   /** Staking token decimals. */
   stakingDecimals: Number(process.env.NEXT_PUBLIC_STAKING_DECIMALS || "6"),
 
-  /** Display symbol for the staking token (e.g. SYRA). */
+  /** Display symbol for the staking token. */
   stakingTokenSymbol:
     process.env.NEXT_PUBLIC_STAKING_TOKEN_SYMBOL || "SYRA",
 

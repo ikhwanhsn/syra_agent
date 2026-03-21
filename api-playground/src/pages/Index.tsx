@@ -11,9 +11,9 @@ import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { PaymentDetails, RequestParam } from '@/types/api';
-import { ExternalLink, GripVertical, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { MppLaneStrip } from '@/components/MppLaneStrip';
 import { resolvePlaygroundPaymentLane } from '@/lib/paymentLane';
 import { InvalidShareLink } from '@/pages/InvalidShareLink';
 
@@ -354,48 +354,19 @@ const Index = () => {
             }}
           >
             <div className="glass-panel h-auto min-h-0 lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
-              <div className="shrink-0 flex flex-col gap-2 mb-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Payment lane</span>
-                  <Badge variant={paymentLane === 'mpp' ? 'default' : 'secondary'} className="text-xs">
-                    {paymentLane === 'mpp' ? 'MPP (x402-compatible)' : 'x402'}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {paymentLane === 'mpp'
-                      ? 'Detected from URL or last response (Syra MPP test route).'
-                      : 'Standard Syra x402 v2 resources.'}
-                  </span>
-                </div>
-                {paymentLane === 'mpp' && (
-                  <Alert className="border-primary/30 bg-primary/5 py-2">
-                    <Info className="h-4 w-4" />
-                    <AlertTitle className="text-sm">MPP on this playground</AlertTitle>
-                    <AlertDescription className="text-xs text-muted-foreground space-y-2">
-                      <p>
-                        Use the same wallet flow as x402 v2. Paid responses may include{' '}
-                        <code className="text-foreground">X-Syra-Payment-Lane</code> and JSON{' '}
-                        <code className="text-foreground">protocol: &quot;mpp-test&quot;</code>.
-                      </p>
-                      <p className="flex flex-wrap gap-x-3 gap-y-1">
-                        <a
-                          href="https://docs.tempo.xyz/guide/payments/make-machine-payments"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          Tempo — machine payments <ExternalLink className="h-3 w-3" />
-                        </a>
-                        <a
-                          href="https://docs.stripe.com/payments/machine/x402"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          Stripe — x402 machine payments <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </p>
-                    </AlertDescription>
-                  </Alert>
+              <div className="shrink-0 mb-3">
+                {paymentLane === 'mpp' ? (
+                  <MppLaneStrip />
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Payment lane</span>
+                    <Badge variant="secondary" className="text-xs">
+                      x402
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Standard Syra x402 v2 resources.
+                    </span>
+                  </div>
                 )}
               </div>
               <RequestBuilder
