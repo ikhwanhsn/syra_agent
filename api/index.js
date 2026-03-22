@@ -876,7 +876,7 @@ app.listen(PORT, () => {
 
   const runSignal = () =>
     import("./libs/tradingExperimentService.js")
-      .then(({ runExperimentSignalCycle }) => runExperimentSignalCycle())
+      .then(({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles())
       .then((out) => {
         if (out.errors?.length) {
           console.warn("[Trading experiment] signal errors:", out.errors.slice(0, 3));

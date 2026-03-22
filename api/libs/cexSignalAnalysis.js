@@ -18,6 +18,18 @@
 import { CryptoAnalysisEngine } from "../scripts/cryptoAnalysisEngine.js";
 import { buildBinanceSignalReport } from "./binanceSignalAnalysis.js";
 import { buildOkxSignalReport } from "./okxSignalAnalysis.js";
+import { barDurationMsGeneric, lastClosedAnchorFromEngineRows } from "./experimentCandleAnchor.js";
+
+/**
+ * @param {Record<string, string>} meta
+ * @returns {string}
+ */
+export function pickCexInstrument(meta) {
+  const m = meta || {};
+  return String(
+    m.symbol || m.instId || m.productId || m.pair || m.market || m.instrument_name || "",
+  );
+}
 
 /** @type {readonly string[]} */
 export const SIGNAL_CEX_SOURCES = Object.freeze([
@@ -135,6 +147,7 @@ function barToCoinbaseGranularity(bar) {
     "5m": 300,
     "15m": 900,
     "1h": 3600,
+    "4h": 14400,
     "6h": 21600,
     "1d": 86400,
   };
@@ -177,10 +190,12 @@ async function buildCoinbaseReport(params) {
     throw new Error(`Coinbase candles: ${body?.message || "invalid response"}`);
   }
   const rows = body.map(coinbaseRow).filter((r) => r.every((x) => !Number.isNaN(Number(x))));
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
   return {
     source: "coinbase",
     meta: { productId },
     report: runEngine(rows, productId, "COINBASE_SPOT"),
+    anchorCloseMs,
   };
 }
 
@@ -243,7 +258,13 @@ async function buildBybitReport(params) {
     throw new Error(`Bybit kline: ${j.retMsg || j.retCode || "bad response"}`);
   }
   const rows = j.result.list.map(bybitRow).filter(Boolean);
-  return { source: "bybit", meta: { symbol }, report: runEngine(rows, symbol, "BYBIT_SPOT") };
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
+  return {
+    source: "bybit",
+    meta: { symbol },
+    report: runEngine(rows, symbol, "BYBIT_SPOT"),
+    anchorCloseMs,
+  };
 }
 
 // ========== Kraken OHLC: [time, o, h, l, c, vwap, volume, count] time in SECONDS ==========
@@ -296,7 +317,13 @@ async function buildKrakenReport(params) {
   const raw = result[keys[0]];
   if (!Array.isArray(raw)) throw new Error("Kraken OHLC: bad series");
   const rows = raw.map(krakenRow).filter((r) => r.slice(0, 5).every((x) => !Number.isNaN(Number(x))));
-  return { source: "kraken", meta: { pair }, report: runEngine(rows, pair, "KRAKEN_SPOT") };
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
+  return {
+    source: "kraken",
+    meta: { pair },
+    report: runEngine(rows, pair, "KRAKEN_SPOT"),
+    anchorCloseMs,
+  };
 }
 
 // ========== Bitget v2: data [[ts,o,h,l,c,baseVol,quote,quote2], ...] ==========
@@ -343,7 +370,13 @@ async function buildBitgetReport(params) {
     throw new Error(`Bitget candles: ${j.msg || j.code || "bad response"}`);
   }
   const rows = j.data.map(bitgetRow).filter(Boolean);
-  return { source: "bitget", meta: { symbol }, report: runEngine(rows, symbol, "BITGET_SPOT") };
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
+  return {
+    source: "bitget",
+    meta: { symbol },
+    report: runEngine(rows, symbol, "BITGET_SPOT"),
+    anchorCloseMs,
+  };
 }
 
 // ========== KuCoin: data [[time,open,close,high,low,volume,turnover], ...] strings ==========
@@ -402,7 +435,13 @@ async function buildKucoinReport(params) {
     throw new Error(`KuCoin candles: ${j.msg || j.code || "bad response"}`);
   }
   const rows = j.data.map(kucoinRow).filter(Boolean);
-  return { source: "kucoin", meta: { symbol }, report: runEngine(rows, symbol, "KUCOIN_SPOT") };
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
+  return {
+    source: "kucoin",
+    meta: { symbol },
+    report: runEngine(rows, symbol, "KUCOIN_SPOT"),
+    anchorCloseMs,
+  };
 }
 
 // ========== Upbit: array of objects ==========
@@ -453,7 +492,13 @@ async function buildUpbitReport(params) {
     throw new Error("Upbit candles: invalid response");
   }
   const rows = body.map(upbitRow).filter(Boolean);
-  return { source: "upbit", meta: { market }, report: runEngine(rows, market, "UPBIT_SPOT") };
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
+  return {
+    source: "upbit",
+    meta: { market },
+    report: runEngine(rows, market, "UPBIT_SPOT"),
+    anchorCloseMs,
+  };
 }
 
 // ========== Crypto.com Exchange v1 ==========
@@ -510,10 +555,12 @@ async function buildCryptocomReport(params) {
     throw new Error(`Crypto.com candles: ${j.message || j.code || "bad response"}`);
   }
   const rows = j.result.data.map(cryptocomRow).filter(Boolean);
+  const anchorCloseMs = lastClosedAnchorFromEngineRows(rows, barDurationMsGeneric(params.bar));
   return {
     source: "cryptocom",
     meta: { instrument_name },
     report: runEngine(rows, instrument_name, "CRYPTOCOM_SPOT"),
+    anchorCloseMs,
   };
 }
 
@@ -522,7 +569,7 @@ async function buildCryptocomReport(params) {
 /**
  * @param {string} source - normalized: binance, okx, coinbase, ...
  * @param {{ token?: string; instId?: string; bar?: string; limit?: number }} params
- * @returns {Promise<{ source: string; meta: Record<string, string>; report: Record<string, unknown> }>}
+ * @returns {Promise<{ source: string; meta: Record<string, string>; report: Record<string, unknown>; anchorCloseMs: number | null; instrument: string }>}
  */
 export async function buildCexSignalReport(source, params) {
   const s = normalizeSignalCexSource(source);
@@ -530,27 +577,55 @@ export async function buildCexSignalReport(source, params) {
 
   switch (s) {
     case "binance": {
-      const { symbol, report } = await buildBinanceSignalReport(params);
-      return { source: "binance", meta: { symbol }, report };
+      const { symbol, report, anchorCloseMs } = await buildBinanceSignalReport(params);
+      const meta = { symbol };
+      return {
+        source: "binance",
+        meta,
+        report,
+        anchorCloseMs,
+        instrument: pickCexInstrument(meta),
+      };
     }
     case "okx": {
-      const { instId, report } = await buildOkxSignalReport(params);
-      return { source: "okx", meta: { instId }, report };
+      const { instId, report, anchorCloseMs } = await buildOkxSignalReport(params);
+      const meta = { instId };
+      return {
+        source: "okx",
+        meta,
+        report,
+        anchorCloseMs,
+        instrument: pickCexInstrument(meta),
+      };
     }
-    case "coinbase":
-      return buildCoinbaseReport(params);
-    case "bybit":
-      return buildBybitReport(params);
-    case "kraken":
-      return buildKrakenReport(params);
-    case "bitget":
-      return buildBitgetReport(params);
-    case "kucoin":
-      return buildKucoinReport(params);
-    case "upbit":
-      return buildUpbitReport(params);
-    case "cryptocom":
-      return buildCryptocomReport(params);
+    case "coinbase": {
+      const out = await buildCoinbaseReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "bybit": {
+      const out = await buildBybitReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "kraken": {
+      const out = await buildKrakenReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "bitget": {
+      const out = await buildBitgetReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "kucoin": {
+      const out = await buildKucoinReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "upbit": {
+      const out = await buildUpbitReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "cryptocom": {
+      const out = await buildCryptocomReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
     default:
       throw new Error(`CEX source not implemented: ${s}`);
   }

@@ -3,8 +3,38 @@
  * No x402 — intended for internal / lab use.
  */
 import TradingExperimentRun from "../models/TradingExperimentRun.js";
-import { TRADING_EXPERIMENT_STRATEGIES } from "../config/tradingExperimentStrategies.js";
+import {
+  EXPERIMENT_SUITE_PRIMARY,
+  EXPERIMENT_SUITE_SECONDARY,
+  EXPERIMENT_SUITE_MULTI_RESOURCE,
+  normalizeSuite,
+  getStrategiesForSuite,
+} from "../config/tradingExperimentStrategies.js";
 import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSignalAnalysis.js";
+import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
+import { fetchExperimentValidation1mKlines } from "./cexExperimentKlines.js";
+
+/**
+ * @param {string | undefined | null} suite
+ * @returns {Record<string, unknown>}
+ */
+function mongoMatchSuite(suite) {
+  const s = normalizeSuite(suite);
+  if (s === EXPERIMENT_SUITE_PRIMARY) {
+    return {
+      $or: [
+        { suite: EXPERIMENT_SUITE_PRIMARY },
+        { suite: { $exists: false } },
+        { suite: null },
+        { suite: "" },
+      ],
+    };
+  }
+  if (s === EXPERIMENT_SUITE_MULTI_RESOURCE) {
+    return { suite: EXPERIMENT_SUITE_MULTI_RESOURCE };
+  }
+  return { suite: EXPERIMENT_SUITE_SECONDARY };
+}
 
 /** Max 1m candles fetched per open position per validation tick (10s default). */
 const VALIDATION_1M_BATCH = 150;
@@ -107,30 +137,66 @@ function evaluateLongForward(candles, stopLoss, firstTarget) {
   return { outcome: "expired", resolution: "max_bars_no_tp_sl", bars: r.bars };
 }
 
-async function countOpenForAgent(agentId) {
-  return TradingExperimentRun.countDocuments({ agentId, status: "open" });
+/**
+ * @param {number} agentId
+ * @param {string} suiteNorm
+ */
+async function countOpenForAgent(agentId, suiteNorm) {
+  return TradingExperimentRun.countDocuments({
+    agentId,
+    status: "open",
+    ...mongoMatchSuite(suiteNorm),
+  });
 }
 
 /**
- * Run all strategies once: create run rows (BUY → open; else skipped).
- * @returns {Promise<{ created: number; errors: string[] }>}
+ * Run all strategies for one suite once: create run rows (BUY → open; else skipped).
+ * @param {{ suite?: string | null }} [opts]
+ * @returns {Promise<{ created: number; errors: string[]; suite: string }>}
  */
-export async function runExperimentSignalCycle() {
+export async function runExperimentSignalCycle(opts = {}) {
+  const suiteNorm = normalizeSuite(opts.suite);
+  const strategies = getStrategiesForSuite(suiteNorm);
   const errors = [];
   let created = 0;
 
-  for (const s of TRADING_EXPERIMENT_STRATEGIES) {
+  for (const s of strategies) {
     try {
-      const hasOpen = (await countOpenForAgent(s.id)) > 0;
+      const hasOpen = (await countOpenForAgent(s.id, suiteNorm)) > 0;
       if (hasOpen) {
         continue;
       }
 
-      const { symbol, report, anchorCloseMs } = await buildBinanceSignalReport({
-        token: s.token,
-        bar: s.bar,
-        limit: s.limit,
-      });
+      /** @type {string} */
+      let symbol;
+      /** @type {Record<string, unknown>} */
+      let report;
+      /** @type {number | null} */
+      let anchorCloseMs;
+      /** @type {string | null} */
+      let cexSource = null;
+
+      if (suiteNorm === EXPERIMENT_SUITE_MULTI_RESOURCE) {
+        const src = /** @type {{ source: string }} */ (s).source;
+        const built = await buildCexSignalReport(src, {
+          token: s.token,
+          bar: s.bar,
+          limit: s.limit,
+        });
+        report = built.report;
+        anchorCloseMs = built.anchorCloseMs ?? null;
+        symbol = built.instrument;
+        cexSource = built.source;
+      } else {
+        const bin = await buildBinanceSignalReport({
+          token: s.token,
+          bar: s.bar,
+          limit: s.limit,
+        });
+        symbol = bin.symbol;
+        report = bin.report;
+        anchorCloseMs = bin.anchorCloseMs;
+      }
 
       const ex = extractSignalFields(report);
       const summary = {
@@ -141,6 +207,7 @@ export async function runExperimentSignalCycle() {
 
       if (ex.clearSignal !== "BUY") {
         await TradingExperimentRun.create({
+          suite: suiteNorm,
           agentId: s.id,
           agentName: s.name,
           token: s.token,
@@ -168,6 +235,7 @@ export async function runExperimentSignalCycle() {
         !(ex.firstTarget > ex.entry && ex.stopLoss < ex.entry)
       ) {
         await TradingExperimentRun.create({
+          suite: suiteNorm,
           agentId: s.id,
           agentName: s.name,
           token: s.token,
@@ -189,6 +257,7 @@ export async function runExperimentSignalCycle() {
       }
 
       await TradingExperimentRun.create({
+        suite: suiteNorm,
         agentId: s.id,
         agentName: s.name,
         token: s.token,
@@ -208,11 +277,35 @@ export async function runExperimentSignalCycle() {
       created += 1;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      errors.push(`agent ${s.id}: ${msg}`);
+      errors.push(`[${suiteNorm}] agent ${s.id}: ${msg}`);
     }
   }
 
-  return { created, errors };
+  return { created, errors, suite: suiteNorm };
+}
+
+/**
+ * Hourly job: sample signals for every suite (isolated ledgers).
+ * @returns {Promise<{ created: number; errors: string[]; bySuite: Record<string, number> }>}
+ */
+export async function runAllExperimentSignalCycles() {
+  const errors = [];
+  let created = 0;
+  /** @type {Record<string, number>} */
+  const bySuite = {};
+
+  for (const suiteId of [
+    EXPERIMENT_SUITE_PRIMARY,
+    EXPERIMENT_SUITE_SECONDARY,
+    EXPERIMENT_SUITE_MULTI_RESOURCE,
+  ]) {
+    const out = await runExperimentSignalCycle({ suite: suiteId });
+    errors.push(...out.errors);
+    created += out.created;
+    bySuite[out.suite] = out.created;
+  }
+
+  return { created, errors, bySuite };
 }
 
 /**
@@ -227,8 +320,13 @@ export async function resolveOpenExperimentRuns() {
 
   for (const run of openRuns) {
     try {
-      const strat = TRADING_EXPERIMENT_STRATEGIES.find((x) => x.id === run.agentId);
+      const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
       const lookAhead = strat?.lookAheadBars ?? 48;
+
+      const cexNorm = run.cexSource ? normalizeSignalCexSource(run.cexSource) : null;
+      if (cexNorm && cexNorm !== "binance") {
+        continue;
+      }
 
       if (run.anchorCloseMs == null || run.stopLoss == null || run.firstTarget == null) {
         await TradingExperimentRun.updateOne(
@@ -289,7 +387,7 @@ export async function resolveOpenExperimentRunsIncremental1m() {
   for (const run of openRuns) {
     try {
       touched += 1;
-      const strat = TRADING_EXPERIMENT_STRATEGIES.find((x) => x.id === run.agentId);
+      const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
       const maxHoldMs = maxHoldMsForStrategy(strat);
 
       if (run.anchorCloseMs == null || run.stopLoss == null || run.firstTarget == null) {
@@ -389,32 +487,42 @@ export async function runFullExperimentCycle() {
   const errors = [];
   const res = await resolveOpenExperimentRunsIncremental1m();
   errors.push(...res.errors);
-  const sig = await runExperimentSignalCycle();
+  const sig = await runAllExperimentSignalCycles();
   errors.push(...sig.errors);
   return {
     sampled: sig.created,
     resolved: res.resolved,
     errors,
+    bySuite: sig.bySuite,
   };
 }
 
 /**
- * @returns {Promise<{ strategies: typeof TRADING_EXPERIMENT_STRATEGIES; agents: object[] }>}
+ * @param {{ suite?: string | null }} [opts]
+ * @returns {Promise<{ strategies: readonly object[]; agents: object[]; suite: string }>}
  */
-export async function getExperimentStats() {
+export async function getExperimentStats(opts = {}) {
+  const suiteNorm = normalizeSuite(opts.suite);
+  const strategies = getStrategiesForSuite(suiteNorm);
+  const suiteQ = mongoMatchSuite(suiteNorm);
   const agents = [];
 
-  for (const s of TRADING_EXPERIMENT_STRATEGIES) {
+  for (const s of strategies) {
     const settled = await TradingExperimentRun.find({
       agentId: s.id,
       status: { $in: ["win", "loss"] },
+      ...suiteQ,
     }).lean();
     const wins = settled.filter((r) => r.status === "win").length;
     const losses = settled.filter((r) => r.status === "loss").length;
     const decided = wins + losses;
     const winRate = decided > 0 ? wins / decided : null;
 
-    const openCount = await TradingExperimentRun.countDocuments({ agentId: s.id, status: "open" });
+    const openCount = await TradingExperimentRun.countDocuments({
+      agentId: s.id,
+      status: "open",
+      ...suiteQ,
+    });
 
     agents.push({
       agentId: s.id,
@@ -422,6 +530,7 @@ export async function getExperimentStats() {
       token: s.token,
       bar: s.bar,
       limit: s.limit,
+      cexSource: "source" in s ? /** @type {{ source: string }} */ (s).source : null,
       wins,
       losses,
       decided,
@@ -431,7 +540,7 @@ export async function getExperimentStats() {
     });
   }
 
-  return { strategies: TRADING_EXPERIMENT_STRATEGIES, agents };
+  return { strategies, agents, suite: suiteNorm };
 }
 
 /**
@@ -439,7 +548,10 @@ export async function getExperimentStats() {
  */
 export async function listRecentRuns(opts = {}) {
   const limit = Math.min(200, Math.max(1, Number(opts.limit) || 50));
-  const runs = await TradingExperimentRun.find({})
+  const suiteNorm = normalizeSuite(opts.suite);
+  const runs = await TradingExperimentRun.find({
+    ...mongoMatchSuite(suiteNorm),
+  })
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();

@@ -14,10 +14,13 @@ import { WalletNav } from "@/components/chat/WalletNav";
 import {
   fetchTradingExperimentRuns,
   fetchTradingExperimentStats,
+  fetchTradingExperimentSuites,
   postTradingExperimentRunCycle,
   postTradingExperimentValidateTick,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
+  type TradingExperimentSuiteId,
+  type TradingExperimentSuiteMeta,
 } from "@/lib/tradingExperimentApi";
 import {
   Table,
@@ -28,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function formatTime(iso: string | undefined) {
   if (!iso) return "—";
@@ -42,6 +46,8 @@ export default function TradingAgentExperiment() {
   const [isDarkMode, setIsDarkMode] = useState(
     () => !document.documentElement.classList.contains("light"),
   );
+  const [activeSuite, setActiveSuite] = useState<TradingExperimentSuiteId>("primary");
+  const [suiteMeta, setSuiteMeta] = useState<TradingExperimentSuiteMeta[]>([]);
   const [agents, setAgents] = useState<TradingExperimentAgentStats[]>([]);
   const [runs, setRuns] = useState<TradingExperimentRunRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +66,8 @@ export default function TradingAgentExperiment() {
     setLoading(true);
     try {
       const [stats, runRows] = await Promise.all([
-        fetchTradingExperimentStats(),
-        fetchTradingExperimentRuns(80),
+        fetchTradingExperimentStats(activeSuite),
+        fetchTradingExperimentRuns(80, activeSuite),
       ]);
       setAgents(stats.agents);
       setRuns(runRows);
@@ -70,6 +76,12 @@ export default function TradingAgentExperiment() {
     } finally {
       setLoading(false);
     }
+  }, [activeSuite]);
+
+  useEffect(() => {
+    fetchTradingExperimentSuites()
+      .then(setSuiteMeta)
+      .catch(() => setSuiteMeta([]));
   }, []);
 
   useEffect(() => {
@@ -84,13 +96,21 @@ export default function TradingAgentExperiment() {
     }
   }, [isDarkMode]);
 
+  const activeSuiteDescription = suiteMeta.find((m) => m.id === activeSuite)?.description;
+
   const onRunCycle = async () => {
     setRunningCycle(true);
     setCycleMessage(null);
     try {
       const out = await postTradingExperimentRunCycle(cronSecret);
+      const by =
+        out.bySuite && Object.keys(out.bySuite).length > 0
+          ? ` (${Object.entries(out.bySuite)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(", ")})`
+          : "";
       setCycleMessage(
-        `Validated + sampled: resolved ${out.resolved}, new rows ${out.sampled}${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
+        `Validated + sampled: resolved ${out.resolved}, new rows ${out.sampled}${by}${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
       );
       await load();
     } catch (e) {
@@ -143,15 +163,34 @@ export default function TradingAgentExperiment() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+        <Tabs
+          value={activeSuite}
+          onValueChange={(v) => setActiveSuite(v as TradingExperimentSuiteId)}
+          className="w-full"
+        >
+          <TabsList className="h-auto min-h-10 flex-wrap gap-1 p-1">
+            <TabsTrigger value="primary" className="text-xs sm:text-sm">
+              {suiteMeta.find((m) => m.id === "primary")?.title ?? "Experiment 1"}
+            </TabsTrigger>
+            <TabsTrigger value="secondary" className="text-xs sm:text-sm">
+              {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Experiment 2"}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <section className="space-y-3">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Ten strategies use the same <strong className="text-foreground">Binance spot OHLC</strong> + Syra engine
-            as <code className="text-xs bg-muted px-1 rounded">/signal</code> (no x402). New BUYs are sampled on a{" "}
-            <strong className="text-foreground">slow</strong> cadence (e.g. hourly);{" "}
-            <strong className="text-foreground">TP/SL validation</strong> runs on a <strong className="text-foreground">fast</strong>{" "}
-            cadence (e.g. every 10s) using <strong className="text-foreground">1m</strong> klines so wicks are not
-            missed. Win rate = wins / (wins + losses).
+            <strong className="text-foreground">Two isolated experiments</strong> (tabs above): separate agent matrices
+            and win-rate ledgers. Each uses <strong className="text-foreground">Binance spot OHLC</strong> + the same Syra
+            engine as <code className="text-xs bg-muted px-1 rounded">/signal</code> (no x402). The server samples new
+            BUYs for <strong className="text-foreground">both</strong> suites on the hourly job;{" "}
+            <strong className="text-foreground">TP/SL validation</strong> runs every ~10s on{" "}
+            <strong className="text-foreground">1m</strong> klines for <strong className="text-foreground">all</strong>{" "}
+            open positions. Win rate = wins / (wins + losses) within the selected tab only.
           </p>
+          {activeSuiteDescription ? (
+            <p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-3">{activeSuiteDescription}</p>
+          ) : null}
           <div className="flex flex-wrap gap-2 items-center">
             <Button variant="outline" size="sm" onClick={() => load()} disabled={loading} className="gap-2">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -197,6 +236,7 @@ export default function TradingAgentExperiment() {
                 <TableRow>
                   <TableHead>#</TableHead>
                   <TableHead>Name</TableHead>
+                  {activeSuite === "multi_resource" ? <TableHead>CEX</TableHead> : null}
                   <TableHead>Pair</TableHead>
                   <TableHead>Bar</TableHead>
                   <TableHead className="text-right">W</TableHead>
@@ -233,6 +273,7 @@ export default function TradingAgentExperiment() {
                 <TableRow>
                   <TableHead>Time</TableHead>
                   <TableHead>Agent</TableHead>
+                  {activeSuite === "multi_resource" ? <TableHead>CEX</TableHead> : null}
                   <TableHead>Symbol</TableHead>
                   <TableHead>Signal</TableHead>
                   <TableHead>Status</TableHead>
@@ -260,6 +301,9 @@ export default function TradingAgentExperiment() {
                         <span className="font-mono text-muted-foreground">{r.agentId}</span>{" "}
                         <span className="hidden sm:inline">{r.agentName}</span>
                       </TableCell>
+                      {activeSuite === "multi_resource" ? (
+                        <TableCell className="text-xs font-mono text-muted-foreground">{r.cexSource ?? "—"}</TableCell>
+                      ) : null}
                       <TableCell className="font-mono text-xs">{r.symbol}</TableCell>
                       <TableCell>{r.clearSignal}</TableCell>
                       <TableCell>

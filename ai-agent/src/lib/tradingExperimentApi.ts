@@ -2,6 +2,14 @@ import { getApiBaseUrl } from "@/lib/chatApi";
 
 const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/trading-agent`;
 
+export type TradingExperimentSuiteId = "primary" | "secondary" | "multi_resource";
+
+export interface TradingExperimentSuiteMeta {
+  id: TradingExperimentSuiteId;
+  title: string;
+  description: string;
+}
+
 export interface TradingExperimentStrategy {
   id: number;
   name: string;
@@ -27,6 +35,8 @@ export interface TradingExperimentAgentStats {
 
 export interface TradingExperimentRunRow {
   _id: string;
+  suite?: string | null;
+  cexSource?: string | null;
   agentId: number;
   agentName: string;
   token: string;
@@ -48,20 +58,48 @@ async function parseJson<T>(res: Response): Promise<{ ok: boolean; body: T }> {
   return { ok: res.ok, body };
 }
 
-export async function fetchTradingExperimentStats(): Promise<{
+export async function fetchTradingExperimentSuites(): Promise<TradingExperimentSuiteMeta[]> {
+  const res = await fetch(`${base()}/suites`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { suites: TradingExperimentSuiteMeta[] };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data?.suites) {
+    throw new Error(body.error || "Failed to load experiment suites");
+  }
+  return body.data.suites;
+}
+
+export async function fetchTradingExperimentStats(
+  suite: TradingExperimentSuiteId = "primary",
+): Promise<{
   strategies: TradingExperimentStrategy[];
   agents: TradingExperimentAgentStats[];
+  suite: string;
 }> {
-  const res = await fetch(`${base()}/stats`, { credentials: "include" });
-  const { ok, body } = await parseJson<{ success?: boolean; data?: { strategies: TradingExperimentStrategy[]; agents: TradingExperimentAgentStats[] }; error?: string }>(res);
+  const q = new URLSearchParams({ suite });
+  const res = await fetch(`${base()}/stats?${q}`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: {
+      strategies: TradingExperimentStrategy[];
+      agents: TradingExperimentAgentStats[];
+      suite: string;
+    };
+    error?: string;
+  }>(res);
   if (!ok || !body.success || !body.data) {
     throw new Error(body.error || "Failed to load experiment stats");
   }
   return body.data;
 }
 
-export async function fetchTradingExperimentRuns(limit = 50): Promise<TradingExperimentRunRow[]> {
-  const q = new URLSearchParams({ limit: String(limit) });
+export async function fetchTradingExperimentRuns(
+  limit = 50,
+  suite: TradingExperimentSuiteId = "primary",
+): Promise<TradingExperimentRunRow[]> {
+  const q = new URLSearchParams({ limit: String(limit), suite });
   const res = await fetch(`${base()}/runs?${q}`, { credentials: "include" });
   const { ok, body } = await parseJson<{ success?: boolean; data?: { runs: TradingExperimentRunRow[] }; error?: string }>(res);
   if (!ok || !body.success || !body.data?.runs) {
@@ -78,6 +116,7 @@ export async function postTradingExperimentRunCycle(secretHeader?: string): Prom
   sampled: number;
   resolved: number;
   errors: string[];
+  bySuite?: Record<string, number>;
 }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (secretHeader) headers["x-trading-experiment-secret"] = secretHeader;
@@ -89,7 +128,7 @@ export async function postTradingExperimentRunCycle(secretHeader?: string): Prom
   });
   const { ok, body } = await parseJson<{
     success?: boolean;
-    data?: { sampled: number; resolved: number; errors: string[] };
+    data?: { sampled: number; resolved: number; errors: string[]; bySuite?: Record<string, number> };
     error?: string;
   }>(res);
   if (!ok || !body.success || !body.data) {
@@ -123,10 +162,15 @@ export async function postTradingExperimentValidateTick(secretHeader?: string): 
   return body.data;
 }
 
-/** New signal samples only (hourly job). */
-export async function postTradingExperimentSignalTick(secretHeader?: string): Promise<{
+/** New signal samples only (hourly job). `suite: "all"` runs both isolated experiments. */
+export async function postTradingExperimentSignalTick(
+  secretHeader?: string,
+  suite: TradingExperimentSuiteId | "all" = "all",
+): Promise<{
   created: number;
   errors: string[];
+  suite?: string;
+  bySuite?: Record<string, number>;
 }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (secretHeader) headers["x-trading-experiment-secret"] = secretHeader;
@@ -134,11 +178,16 @@ export async function postTradingExperimentSignalTick(secretHeader?: string): Pr
     method: "POST",
     credentials: "include",
     headers,
-    body: "{}",
+    body: JSON.stringify({ suite }),
   });
   const { ok, body } = await parseJson<{
     success?: boolean;
-    data?: { created: number; errors: string[] };
+    data?: {
+      created: number;
+      errors: string[];
+      suite?: string;
+      bySuite?: Record<string, number>;
+    };
     error?: string;
   }>(res);
   if (!ok || !body.success || !body.data) {

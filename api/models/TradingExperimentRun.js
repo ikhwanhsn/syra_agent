@@ -6,12 +6,16 @@ import mongoose from "mongoose";
 
 const tradingExperimentRunSchema = new mongoose.Schema(
   {
+    /** Isolated experiment ledger: primary (default / legacy) vs secondary. */
+    suite: { type: String, default: "primary", index: true },
     agentId: { type: Number, required: true, min: 0, max: 99, index: true },
     agentName: { type: String, required: true },
     token: { type: String, required: true },
     bar: { type: String, required: true },
     limit: { type: Number, required: true },
     symbol: { type: String, required: true },
+    /** /signal CEX key when suite uses multi-resource experiment (null = Binance-only suite). */
+    cexSource: { type: String, default: null, index: true },
     /** Last fully closed candle close time (ms) when signal was built */
     anchorCloseMs: { type: Number, default: null },
     clearSignal: { type: String, required: true },
@@ -48,6 +52,7 @@ const tradingExperimentRunSchema = new mongoose.Schema(
 );
 
 tradingExperimentRunSchema.index({ agentId: 1, status: 1, createdAt: -1 });
+tradingExperimentRunSchema.index({ suite: 1, agentId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ createdAt: -1 });
 
 const TradingExperimentRun =

@@ -9,10 +9,15 @@ import {
   getExperimentStats,
   listRecentRuns,
   runExperimentSignalCycle,
+  runAllExperimentSignalCycles,
   runFullExperimentCycle,
   resolveOpenExperimentRunsIncremental1m,
 } from "../libs/tradingExperimentService.js";
-import { TRADING_EXPERIMENT_STRATEGIES } from "../config/tradingExperimentStrategies.js";
+import {
+  getStrategiesForSuite,
+  normalizeSuite,
+  EXPERIMENT_SUITES_META,
+} from "../config/tradingExperimentStrategies.js";
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.TRADING_EXPERIMENT_CRON_SECRET || "").trim();
@@ -30,16 +35,22 @@ function requireCronSecret(req, res, next) {
 export function createTradingExperimentRouter() {
   const router = express.Router();
 
-  router.get("/strategies", (_req, res) => {
+  router.get("/strategies", (req, res) => {
+    const suite = normalizeSuite(req.query.suite);
+    const strategies = getStrategiesForSuite(suite);
     res.json({
       success: true,
-      data: { strategies: TRADING_EXPERIMENT_STRATEGIES, source: "binance" },
+      data: { strategies, source: "binance", suite },
     });
   });
 
-  router.get("/stats", async (_req, res) => {
+  router.get("/suites", (_req, res) => {
+    res.json({ success: true, data: { suites: EXPERIMENT_SUITES_META } });
+  });
+
+  router.get("/stats", async (req, res) => {
     try {
-      const data = await getExperimentStats();
+      const data = await getExperimentStats({ suite: req.query.suite });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -52,7 +63,7 @@ export function createTradingExperimentRouter() {
   router.get("/runs", async (req, res) => {
     try {
       const limit = req.query.limit != null ? Number(req.query.limit) : 50;
-      const runs = await listRecentRuns({ limit });
+      const runs = await listRecentRuns({ limit, suite: req.query.suite });
       res.json({ success: true, data: { runs } });
     } catch (e) {
       res.status(500).json({
@@ -87,10 +98,18 @@ export function createTradingExperimentRouter() {
     }
   });
 
-  /** New hourly samples only; does not run validation (assumes validate-tick cron). */
-  router.post("/signal-tick", requireCronSecret, async (_req, res) => {
+  /** New hourly samples only; does not run validation (assumes validate-tick cron). Body: { suite?: "primary" | "secondary" | "all" } (default all). */
+  router.post("/signal-tick", requireCronSecret, async (req, res) => {
     try {
-      const data = await runExperimentSignalCycle();
+      const raw = req.body?.suite;
+      const mode =
+        raw == null || raw === ""
+          ? "all"
+          : String(raw).trim().toLowerCase();
+      const data =
+        mode === "all" || mode === "both"
+          ? await runAllExperimentSignalCycles()
+          : await runExperimentSignalCycle({ suite: raw });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
