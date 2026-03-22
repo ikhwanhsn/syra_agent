@@ -36,6 +36,8 @@ const tradingExperimentRunSchema = new mongoose.Schema(
     },
     resolution: { type: String, default: null },
     forwardBarsExamined: { type: Number, default: 0 },
+    /** Last 1m kline close time (ms) fully processed for volatile TP/SL checks */
+    lastProcessed1mCloseMs: { type: Number, default: null },
     /** When win/loss/expired/error was determined */
     resolvedAt: { type: Date, default: null },
     /** Trimmed snapshot for UI */

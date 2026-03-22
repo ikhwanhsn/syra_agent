@@ -15,6 +15,7 @@ import {
   fetchTradingExperimentRuns,
   fetchTradingExperimentStats,
   postTradingExperimentRunCycle,
+  postTradingExperimentValidateTick,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
 } from "@/lib/tradingExperimentApi";
@@ -45,6 +46,7 @@ export default function TradingAgentExperiment() {
   const [runs, setRuns] = useState<TradingExperimentRunRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [runningCycle, setRunningCycle] = useState(false);
+  const [runningValidate, setRunningValidate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cycleMessage, setCycleMessage] = useState<string | null>(null);
 
@@ -88,13 +90,29 @@ export default function TradingAgentExperiment() {
     try {
       const out = await postTradingExperimentRunCycle(cronSecret);
       setCycleMessage(
-        `Resolved ${out.resolved}, new rows ${out.sampled}${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
+        `Validated + sampled: resolved ${out.resolved}, new rows ${out.sampled}${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
       );
       await load();
     } catch (e) {
       setCycleMessage(e instanceof Error ? e.message : String(e));
     } finally {
       setRunningCycle(false);
+    }
+  };
+
+  const onValidateTick = async () => {
+    setRunningValidate(true);
+    setCycleMessage(null);
+    try {
+      const out = await postTradingExperimentValidateTick(cronSecret);
+      setCycleMessage(
+        `1m validation: closed ${out.resolved} / ${out.touched} open${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
+      );
+      await load();
+    } catch (e) {
+      setCycleMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunningValidate(false);
     }
   };
 
@@ -127,32 +145,41 @@ export default function TradingAgentExperiment() {
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
         <section className="space-y-3">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Ten strategies call the same <strong className="text-foreground">Binance spot OHLC</strong> + Syra
-            technical engine as production <code className="text-xs bg-muted px-1 rounded">/signal</code>, without
-            x402. Each agent may open one tracked BUY at a time; forward candles decide win (first target hit),
-            loss (stop hit first, or both in one bar), or expired. Win rate = wins / (wins + losses).
+            Ten strategies use the same <strong className="text-foreground">Binance spot OHLC</strong> + Syra engine
+            as <code className="text-xs bg-muted px-1 rounded">/signal</code> (no x402). New BUYs are sampled on a{" "}
+            <strong className="text-foreground">slow</strong> cadence (e.g. hourly);{" "}
+            <strong className="text-foreground">TP/SL validation</strong> runs on a <strong className="text-foreground">fast</strong>{" "}
+            cadence (e.g. every 10s) using <strong className="text-foreground">1m</strong> klines so wicks are not
+            missed. Win rate = wins / (wins + losses).
           </p>
           <div className="flex flex-wrap gap-2 items-center">
             <Button variant="outline" size="sm" onClick={() => load()} disabled={loading} className="gap-2">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Refresh
             </Button>
+            <Button size="sm" onClick={onValidateTick} disabled={runningValidate} variant="secondary" className="gap-2">
+              {runningValidate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              Validate (1m tick)
+            </Button>
             <Button size="sm" onClick={onRunCycle} disabled={runningCycle} className="gap-2">
               {runningCycle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Run cycle now
+              Full cycle
             </Button>
             {cycleMessage && (
               <span className="text-xs text-muted-foreground max-w-md">{cycleMessage}</span>
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Server cron: set <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_MS</code> (e.g.{" "}
-            <code className="bg-muted px-1 rounded">3600000</code> hourly). If{" "}
-            <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_SECRET</code> is set, POST{" "}
-            <code className="bg-muted px-1 rounded">/experiment/trading-agent/run-cycle</code> requires header{" "}
-            <code className="bg-muted px-1 rounded">x-trading-experiment-secret</code> (optional{" "}
-            <code className="bg-muted px-1 rounded">VITE_TRADING_EXPERIMENT_CRON_SECRET</code> in dev only — do not
-            ship secrets to public builds).
+            Server: <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_SIGNAL_CRON_MS=3600000</code> (hourly
+            samples) and{" "}
+            <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_VALIDATE_CRON_MS=10000</code> (10s 1m TP/SL).
+            Legacy: only <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_MS</code> runs a combined
+            full cycle on that interval (if the two new vars are unset). Secret:{" "}
+            <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_SECRET</code> → header{" "}
+            <code className="bg-muted px-1 rounded">x-trading-experiment-secret</code> on POST{" "}
+            <code className="bg-muted px-1 rounded">/validate-tick</code>,{" "}
+            <code className="bg-muted px-1 rounded">/signal-tick</code>,{" "}
+            <code className="bg-muted px-1 rounded">/run-cycle</code>.
           </p>
         </section>
 

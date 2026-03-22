@@ -2,13 +2,15 @@
  * Trading agent experiment API — no x402. Uses MongoDB + Binance public data.
  *
  * Env (optional):
- * - TRADING_EXPERIMENT_CRON_SECRET: if set, POST /run-cycle requires header x-trading-experiment-secret
+ * - TRADING_EXPERIMENT_CRON_SECRET: if set, POST /run-cycle and POST /validate-tick require header x-trading-experiment-secret
  */
 import express from "express";
 import {
   getExperimentStats,
   listRecentRuns,
+  runExperimentSignalCycle,
   runFullExperimentCycle,
+  resolveOpenExperimentRunsIncremental1m,
 } from "../libs/tradingExperimentService.js";
 import { TRADING_EXPERIMENT_STRATEGIES } from "../config/tradingExperimentStrategies.js";
 
@@ -64,6 +66,32 @@ export function createTradingExperimentRouter() {
     try {
       const result = await runFullExperimentCycle();
       res.json({ success: true, data: result });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  /** 1m TP/SL scan only (use every ~10s); does not sample new signals. */
+  router.post("/validate-tick", requireCronSecret, async (_req, res) => {
+    try {
+      const data = await resolveOpenExperimentRunsIncremental1m();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  /** New hourly samples only; does not run validation (assumes validate-tick cron). */
+  router.post("/signal-tick", requireCronSecret, async (_req, res) => {
+    try {
+      const data = await runExperimentSignalCycle();
+      res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
         success: false,

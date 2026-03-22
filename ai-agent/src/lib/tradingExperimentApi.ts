@@ -97,3 +97,52 @@ export async function postTradingExperimentRunCycle(secretHeader?: string): Prom
   }
   return body.data;
 }
+
+/** 1m TP/SL scan only (same as frequent server cron). */
+export async function postTradingExperimentValidateTick(secretHeader?: string): Promise<{
+  resolved: number;
+  touched: number;
+  errors: string[];
+}> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (secretHeader) headers["x-trading-experiment-secret"] = secretHeader;
+  const res = await fetch(`${base()}/validate-tick`, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: "{}",
+  });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { resolved: number; touched: number; errors: string[] };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data) {
+    throw new Error(body.error || "Validate tick failed");
+  }
+  return body.data;
+}
+
+/** New signal samples only (hourly job). */
+export async function postTradingExperimentSignalTick(secretHeader?: string): Promise<{
+  created: number;
+  errors: string[];
+}> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (secretHeader) headers["x-trading-experiment-secret"] = secretHeader;
+  const res = await fetch(`${base()}/signal-tick`, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: "{}",
+  });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { created: number; errors: string[] };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data) {
+    throw new Error(body.error || "Signal tick failed");
+  }
+  return body.data;
+}

@@ -860,18 +860,50 @@ import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitiali
 app.listen(PORT, () => {
   console.log(`[Syra API] listening on port ${PORT}`);
 
-  const cronMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
-  if (cronMs >= 60_000) {
-    console.log(`[Trading experiment] auto run-cycle every ${cronMs}ms`);
-    setInterval(() => {
-      import("./libs/tradingExperimentService.js")
-        .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
-        .then((out) => {
-          if (out.errors?.length) {
-            console.warn("[Trading experiment] cycle errors:", out.errors.slice(0, 5));
-          }
-        })
-        .catch((err) => console.warn("[Trading experiment] cycle failed:", err?.message || err));
-    }, cronMs);
+  const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
+  const signalMs = Number(process.env.TRADING_EXPERIMENT_SIGNAL_CRON_MS || 0);
+  const validateMs = Number(process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0);
+
+  const runValidate = () =>
+    import("./libs/tradingExperimentService.js")
+      .then(({ resolveOpenExperimentRunsIncremental1m }) => resolveOpenExperimentRunsIncremental1m())
+      .then((out) => {
+        if (out.errors?.length) {
+          console.warn("[Trading experiment] validate errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) => console.warn("[Trading experiment] validate failed:", err?.message || err));
+
+  const runSignal = () =>
+    import("./libs/tradingExperimentService.js")
+      .then(({ runExperimentSignalCycle }) => runExperimentSignalCycle())
+      .then((out) => {
+        if (out.errors?.length) {
+          console.warn("[Trading experiment] signal errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) => console.warn("[Trading experiment] signal failed:", err?.message || err));
+
+  const runFull = () =>
+    import("./libs/tradingExperimentService.js")
+      .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
+      .then((out) => {
+        if (out.errors?.length) {
+          console.warn("[Trading experiment] cycle errors:", out.errors.slice(0, 5));
+        }
+      })
+      .catch((err) => console.warn("[Trading experiment] cycle failed:", err?.message || err));
+
+  if (validateMs >= 1_000) {
+    console.log(`[Trading experiment] validate (1m TP/SL) every ${validateMs}ms`);
+    setInterval(runValidate, validateMs);
+  }
+  if (signalMs >= 60_000) {
+    console.log(`[Trading experiment] signal sample every ${signalMs}ms`);
+    setInterval(runSignal, signalMs);
+  }
+  if (legacyMs >= 60_000 && validateMs < 1_000 && signalMs < 60_000) {
+    console.log(`[Trading experiment] legacy full run-cycle every ${legacyMs}ms`);
+    setInterval(runFull, legacyMs);
   }
 });
