@@ -1,8 +1,120 @@
 import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
+import {
+  buildCexSignalReport,
+  normalizeSignalCexSource,
+  SIGNAL_CEX_SOURCES,
+} from "../libs/cexSignalAnalysis.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+
+const CEX_LIST_DOC = `${SIGNAL_CEX_SOURCES.join(", ")} (alias: crypto.com → cryptocom)`;
+
+async function fetchN8nSignal(token) {
+  const base = process.env.N8N_WEBHOOK_URL_SIGNAL;
+  if (!base) {
+    throw new Error("N8N_WEBHOOK_URL_SIGNAL is not configured");
+  }
+  const url = `${base}?token=${encodeURIComponent(token || "bitcoin")}`;
+  return fetch(url).then((r) => r.json());
+}
+
+/**
+ * @param {{ token?: string; source?: string; instId?: string; bar?: string; limit?: string|number }} input
+ */
+async function loadSignal(input) {
+  const token = input.token || "bitcoin";
+  const limitNum =
+    input.limit != null && input.limit !== ""
+      ? Number.parseInt(String(input.limit), 10)
+      : undefined;
+  const limitOpt = Number.isFinite(limitNum) ? limitNum : undefined;
+
+  const raw = input.source == null ? "" : String(input.source).trim();
+  const rawLower = raw.toLowerCase();
+
+  if (rawLower === "n8n" || rawLower === "webhook") {
+    const signal = await fetchN8nSignal(token);
+    return { signal };
+  }
+
+  const cexKey = raw === "" ? "binance" : normalizeSignalCexSource(raw);
+  if (cexKey) {
+    const { source, meta, report } = await buildCexSignalReport(cexKey, {
+      token,
+      instId: input.instId,
+      bar: input.bar || undefined,
+      limit: limitOpt,
+    });
+    return { signal: { ...report, source, ...meta } };
+  }
+
+  const signal = await fetchN8nSignal(token);
+  return { signal };
+}
+
+const signalQueryInputSchema = {
+  queryParams: {
+    token: {
+      type: "string",
+      required: false,
+      description: "Token name for the signal (e.g., solana, bitcoin); used for n8n or exchange mapping",
+    },
+    source: {
+      type: "string",
+      required: false,
+      description: `Default: binance (spot OHLC + engine). Other CEX: ${CEX_LIST_DOC}. Use n8n or webhook for legacy n8n signal.`,
+    },
+    instId: {
+      type: "string",
+      required: false,
+      description:
+        "Override instrument: e.g. BTCUSDT (Binance/Bybit/Bitget), BTC-USDT (OKX/KuCoin), BTC-USD (Coinbase), XBTUSDT (Kraken), KRW-BTC (Upbit), BTC_USDT (Crypto.com)",
+    },
+    bar: {
+      type: "string",
+      required: false,
+      description: "Candle interval (venue-specific; common: 1m, 15m, 1h, 4h, 1d)",
+    },
+    limit: {
+      type: "string",
+      required: false,
+      description: "Number of candles (venue-specific max; default 200)",
+    },
+  },
+};
+
+const signalBodyInputSchema = {
+  bodyType: "json",
+  bodyFields: {
+    token: {
+      type: "string",
+      required: false,
+      description: "Token name for the signal (e.g., solana, bitcoin)",
+    },
+    source: {
+      type: "string",
+      required: false,
+      description: `Default binance. ${CEX_LIST_DOC}. n8n | webhook for n8n.`,
+    },
+    instId: {
+      type: "string",
+      required: false,
+      description: "Venue-specific symbol / product / market override",
+    },
+    bar: {
+      type: "string",
+      required: false,
+      description: "Candle interval (default ~1h per venue)",
+    },
+    limit: {
+      type: "number",
+      required: false,
+      description: "Candle count (venue max varies)",
+    },
+  },
+};
 
 export async function createSignalRouter() {
   const router = express.Router();
@@ -10,19 +122,17 @@ export async function createSignalRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/dev", async (req, res) => {
       try {
-        const token = req.query.token || "bitcoin";
-        const signal = await fetch(
-          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
-        ).then((r) => r.json());
-        if (signal) res.json({ signal });
+        const { token, source, instId, bar, limit } = req.query;
+        const out = await loadSignal({ token, source, instId, bar, limit });
+        if (out?.signal) res.json(out);
         else res.status(500).json({ error: "Failed to fetch signal" });
       } catch (error) {
-        res.status(500).json({ error: "Server error" });
+        const msg = error?.message || "Server error";
+        res.status(500).json({ error: msg });
       }
     });
   }
 
-  // GET Route Example
   router.get(
     "/",
     (req, res, next) =>
@@ -32,15 +142,7 @@ export async function createSignalRouter() {
         method: "GET",
         discoverable: true,
         resource: "/signal",
-        inputSchema: {
-          queryParams: {
-            token: {
-              type: "string",
-              required: false,
-              description: "Token name for the signal (e.g., solana, bitcoin)",
-            },
-          },
-        },
+        inputSchema: signalQueryInputSchema,
         outputSchema: {
           signal: {
             type: "object",
@@ -50,25 +152,22 @@ export async function createSignalRouter() {
       })(req, res, next),
     async (req, res) => {
       try {
-        const token = req.query.token || "bitcoin";
+        const { token, source, instId, bar, limit } = req.query;
+        const out = await loadSignal({ token, source, instId, bar, limit });
 
-        const signal = await fetch(
-          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
-        ).then((res) => res.json());
-
-        if (signal) {
+        if (out?.signal) {
           await settlePaymentAndSetResponse(res, req);
-          res.json({ signal });
+          res.json(out);
         } else {
           res.status(500).json({ error: "Failed to fetch signal" });
         }
       } catch (error) {
-        res.status(500).json({ error: "Server error" });
+        const msg = error?.message || "Server error";
+        res.status(500).json({ error: msg });
       }
     }
   );
 
-  // POST Route Example
   router.post(
     "/",
     (req, res, next) =>
@@ -78,16 +177,7 @@ export async function createSignalRouter() {
         method: "POST",
         discoverable: true,
         resource: "/signal",
-        inputSchema: {
-          bodyType: "json",
-          bodyFields: {
-            token: {
-              type: "string",
-              required: false,
-              description: "Token name for the signal (e.g., solana, bitcoin)",
-            },
-          },
-        },
+        inputSchema: signalBodyInputSchema,
         outputSchema: {
           signal: {
             type: "object",
@@ -97,17 +187,16 @@ export async function createSignalRouter() {
       })(req, res, next),
     async (req, res) => {
       try {
-        const token = req.body?.token || "bitcoin";
-        const signal = await fetch(
-          `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
-        ).then((r) => r.json());
-        if (!signal) {
+        const { token, source, instId, bar, limit } = req.body || {};
+        const out = await loadSignal({ token, source, instId, bar, limit });
+        if (!out?.signal) {
           return res.status(500).json({ error: "Failed to fetch signal" });
         }
         await settlePaymentAndSetResponse(res, req);
-        res.json({ signal });
+        res.json(out);
       } catch (error) {
-        res.status(500).json({ error: "Server error" });
+        const msg = error?.message || "Server error";
+        res.status(500).json({ error: msg });
       }
     }
   );
@@ -121,14 +210,26 @@ export async function createSignalRouterRegular() {
 
   router.get("/", async (req, res) => {
     try {
-      const token = req.query.token || "solana";
-      const signal = await fetch(
-        `${process.env.N8N_WEBHOOK_URL_SIGNAL}?token=${token}`
-      ).then((r) => r.json());
-      if (signal) res.json({ signal, token });
-      else res.status(500).json({ error: "Failed to fetch signal" });
+      const { token, source, instId, bar, limit } = req.query;
+      const out = await loadSignal({
+        token: token || "solana",
+        source,
+        instId,
+        bar,
+        limit,
+      });
+      if (out?.signal) {
+        res.json({
+          signal: out.signal,
+          token: token || "solana",
+          ...(source ? { source } : {}),
+        });
+      } else {
+        res.status(500).json({ error: "Failed to fetch signal" });
+      }
     } catch (error) {
-      res.status(500).json({ error: "Server error" });
+      const msg = error?.message || "Server error";
+      res.status(500).json({ error: msg });
     }
   });
 

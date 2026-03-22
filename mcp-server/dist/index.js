@@ -89,10 +89,30 @@ async function main() {
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
     // --- Signal (token param) ---
-    server.tool("syra_v2_signal", "Get AI-generated trading signals with entry/exit recommendations. Optional token name." + PAYMENT_NOTE, {
+    server.tool("syra_v2_signal", "Trading signals: default Binance spot OHLC + technical engine; source = coinbase | okx | bybit | kraken | bitget | kucoin | upbit | cryptocom (alias crypto.com) for other venues; n8n | webhook for legacy n8n AI signal (requires N8N_WEBHOOK_URL_SIGNAL). Optional instId, bar, limit." +
+        PAYMENT_NOTE, {
         token: z.string().optional().default("bitcoin").describe("Token name (e.g. solana, bitcoin)"),
-    }, async ({ token }) => {
-        const { status, body } = await fetchV2("/signal", { token: token ?? "bitcoin" });
+        source: z
+            .string()
+            .optional()
+            .describe("Omit = binance. Other CEX: coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom. n8n | webhook for n8n."),
+        instId: z
+            .string()
+            .optional()
+            .describe("Venue symbol override (e.g. BTCUSDT, BTC-USDT, KRW-BTC, BTC_USDT, XBTUSDT)"),
+        bar: z.string().optional().describe("Candle interval e.g. 1m, 1h, 4h, 1d (venue-specific)"),
+        limit: z.number().optional().describe("Candle count (venue max varies; default 200)"),
+    }, async ({ token, source, instId, bar, limit }) => {
+        const params = { token: token ?? "bitcoin" };
+        if (source != null && source !== "")
+            params.source = source;
+        if (instId != null && instId !== "")
+            params.instId = instId;
+        if (bar != null && bar !== "")
+            params.bar = bar;
+        if (limit != null)
+            params.limit = String(limit);
+        const { status, body } = await fetchV2("/signal", params);
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
     // --- No-param GET endpoints ---

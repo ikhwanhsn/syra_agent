@@ -31,7 +31,7 @@ export default function AgentSupportedTokens() {
       <section id="overview" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Overview</h2>
         <p className="text-muted-foreground mb-4">
-          The Syra Agent's <strong className="text-foreground">trading signal</strong> feature works for a defined set of cryptocurrencies. These are typically major and liquid assets (e.g. BTC, ETH, SOL, BNB, XRP, ADA, DOGE) so that the analysis—price, indicators, levels, action plan—is based on reliable, real-time data. Other agent features (news, sentiment, research, memecoin screens, partner tools) are not limited to this token list; supported tokens here refer specifically to <em>signal</em> requests.
+          The Syra Agent's <strong className="text-foreground">trading signal</strong> feature works for a defined set of cryptocurrencies. Signals are built from <strong className="text-foreground">public spot OHLC</strong> on a supported exchange; the API <strong className="text-foreground">defaults to Binance</strong> unless you or the agent pass another <code className="text-sm font-mono bg-muted px-1 rounded">source</code>. These are typically major and liquid assets (e.g. BTC, ETH, SOL, BNB, XRP, ADA, DOGE) so that the analysis—price, indicators, levels, action plan—is based on reliable data. Other agent features (news, sentiment, research, memecoin screens, partner tools) are not limited to this token list; supported tokens here refer specifically to <em>signal</em> requests.
         </p>
       </section>
 

@@ -81,7 +81,8 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'Trading signal',
-    description: 'Trading signal creation / signal data',
+    description:
+      'Spot OHLC + technical signal (default Binance); optional source for other CEX or n8n|webhook',
   },
   {
     id: 'sentiment',
@@ -1319,7 +1320,8 @@ export function getToolsForLlmSelection() {
       out.paramsHint = 'Optional params: ticker (BTC, ETH, SOL, or general)';
     }
     if (t.id === 'signal') {
-      out.paramsHint = 'Optional params: token (bitcoin, ethereum, solana) — use the token the user asked for';
+      out.paramsHint =
+        'Optional: token (default bitcoin); omit source = Binance OHLC + engine; or source = coinbase|okx|bybit|kraken|bitget|kucoin|upbit|cryptocom; n8n|webhook for legacy n8n; instId, bar, limit';
     }
     if (t.id === 'exa-search') {
       out.paramsHint = 'Params: query (required) — search query from the user, e.g. "bitcoin insight", "latest Nvidia news"';

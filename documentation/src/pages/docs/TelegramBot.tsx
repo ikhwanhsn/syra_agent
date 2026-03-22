@@ -68,7 +68,10 @@ export default function TelegramBot() {
         <h2 className="text-2xl font-semibold mb-4">Step 3: Request a Trading Signal</h2>
         <p className="text-muted-foreground mb-4">Use the <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/signal</code> command followed by the token name.</p>
         <CodeBlock plain code={"/signal bitcoin"} language="text" showLineNumbers={false} />
-        <p className="text-muted-foreground mt-4 mb-4">The bot returns a complete analysis including:</p>
+        <p className="text-muted-foreground mt-2 mb-4">
+          On the Syra API, trading signals default to <strong className="text-foreground">Binance</strong> spot OHLC plus technicals unless you pass another <code className="text-sm font-mono bg-muted px-1 rounded">source</code> (see Signal API docs).
+        </p>
+        <p className="text-muted-foreground mb-4">The bot returns a complete analysis including:</p>
         <ul className="list-disc pl-6 space-y-1 text-muted-foreground mb-4">
           <li>Current price and 24h change</li>
           <li>RSI, MACD, and Moving Averages</li>

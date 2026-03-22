@@ -200,6 +200,38 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
+    id: 'preview-news',
+    label: 'News (free preview)',
+    method: 'GET',
+    url: `${base}/preview/news`,
+    params: [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH, or 'general'" }],
+  },
+  {
+    id: 'preview-sentiment',
+    label: 'Sentiment (free preview)',
+    method: 'GET',
+    url: `${base}/preview/sentiment`,
+    params: [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH, or 'general'" }],
+  },
+  {
+    id: 'preview-signal',
+    label: 'Signal (free preview, default Binance)',
+    method: 'GET',
+    url: `${base}/preview/signal`,
+    params: [
+      { key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' },
+      {
+        key: 'source',
+        value: 'binance',
+        enabled: false,
+        description: 'Omit = binance; okx, coinbase, bybit, kraken, bitget, kucoin, upbit, cryptocom; n8n|webhook',
+      },
+      { key: 'instId', value: '', enabled: false, description: 'Optional venue symbol override' },
+      { key: 'bar', value: '1h', enabled: false, description: 'e.g. 1m, 1h, 4h, 1d' },
+      { key: 'limit', value: '200', enabled: false, description: 'Candle count (venue max varies)' },
+    ],
+  },
+  {
     id: 'x-feed',
     label: 'X feed (profile + tweets)',
     method: 'GET',
@@ -331,10 +363,21 @@ export function getExampleFlows(): ExampleFlowPreset[] {
   // Core
   {
     id: 'signal',
-    label: 'Signal',
+    label: 'Signal (x402, default Binance)',
     method: 'GET',
     url: `${base}/signal`,
-    params: [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' }],
+    params: [
+      { key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' },
+      {
+        key: 'source',
+        value: 'binance',
+        enabled: false,
+        description: 'Omit = binance; okx, coinbase, bybit, kraken, bitget, kucoin, upbit, cryptocom; n8n|webhook',
+      },
+      { key: 'instId', value: '', enabled: false, description: 'Optional venue symbol (e.g. BTCUSDT, BTC-USDT)' },
+      { key: 'bar', value: '1h', enabled: false, description: 'Candle interval (venue-specific)' },
+      { key: 'limit', value: '200', enabled: false, description: 'Candle count (default 200)' },
+    ],
   },
   {
     id: 'sentiment',
@@ -590,6 +633,7 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
   if (id.startsWith('jupiter-')) return { slug: 'jupiter', name: 'Jupiter' };
   if (id.startsWith('squid-')) return { slug: 'squid', name: 'Squid' };
   if (id.startsWith('heylol-')) return { slug: 'heylol', name: 'HeyLol' };
+  if (id.startsWith('preview-')) return { slug: 'preview', name: 'Free preview' };
   const tokenDexIds = ['token-god-mode', 'bubblemaps-maps', 'trending-jupiter'];
   if (tokenDexIds.some((t) => id === t)) return { slug: 'tokens-dex', name: 'Tokens & DEX' };
   return { slug: 'syra-core', name: 'Syra Core' };
@@ -607,6 +651,7 @@ export function getExampleFlowGroups(): ExampleFlowGroup[] {
   }
   const order = [
     'syra-core',
+    'preview',
     'tokens-dex',
     'agent',
     'binance',
@@ -755,7 +800,17 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       ],
       '/preview/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/preview/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
-      '/preview/signal': [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' }],
+      '/preview/signal': [
+        { key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. bitcoin, solana' },
+        {
+          key: 'source',
+          value: 'binance',
+          enabled: false,
+          description: 'Default binance if omitted; coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom; n8n|webhook',
+        },
+        { key: 'instId', value: '', enabled: false, description: 'Optional venue symbol override' },
+        { key: 'bar', value: '1h', enabled: false, description: 'e.g. 1m, 1h, 4h, 1d' },
+      ],
       '/news': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/event': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
       '/sentiment': [{ key: 'ticker', value: 'general', enabled: true, description: "e.g. BTC, ETH or 'general'" }],
@@ -765,7 +820,17 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/mpp/v1/check-status': [],
       '/brain': [{ key: 'question', value: 'What is the latest BTC news?', enabled: true, description: 'Natural language question (e.g. Jupiter trending, BTC news)' }],
       '/analytics/summary': [],
-      '/signal': [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. solana, bitcoin' }],
+      '/signal': [
+        { key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. solana, bitcoin' },
+        {
+          key: 'source',
+          value: 'binance',
+          enabled: false,
+          description: 'Default binance if omitted; coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom; n8n|webhook',
+        },
+        { key: 'instId', value: '', enabled: false, description: 'Optional venue symbol override' },
+        { key: 'bar', value: '1h', enabled: false, description: 'e.g. 1m, 1h, 4h, 1d' },
+      ],
       '/exa-search': [{ key: 'query', value: 'latest crypto news', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
       '/crawl': [
         { key: 'url', value: 'https://blog.cloudflare.com/', enabled: true, description: 'Starting URL to crawl (required)' },

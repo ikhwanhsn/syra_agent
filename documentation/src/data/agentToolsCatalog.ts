@@ -53,9 +53,10 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
   {
     id: "signal",
     name: "Trading signal",
-    description: "Trading signal creation and signal data for supported tokens (e.g. Bitcoin, Ethereum, Solana).",
+    description:
+      "Spot OHLC + technical analysis for supported tokens (e.g. Bitcoin, Ethereum, Solana). Defaults to Binance when no source is set; other venues and legacy n8n/webhook are optional per API.",
     priceUsd: PRICE.default,
-    examplePrompt: "Signal for Bitcoin / Get me a signal for SOL",
+    examplePrompt: "Signal for Bitcoin / OKX signal for SOL / Trading signal for ethereum",
     category: "core",
   },
   {

@@ -484,40 +484,68 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
   signal: doc({
     title: "Signal API",
     overview:
-      "Get AI-generated trading signals with entry/exit recommendations, targets, and analysis for a given token. Uses the x402 payment protocol.",
+      "Trading signal from public spot OHLC candles plus a technical analysis engine (RSI, MACD, levels, action plan). If you omit `source`, the API uses **Binance** spot klines. Set `source` to another supported CEX (coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom) or use `n8n` / `webhook` for the legacy n8n webhook when configured. Optional `instId`, `bar`, and `limit` tune the candle series per venue. Uses the x402 payment protocol.",
     endpoints: [
       {
         method: "GET",
         path: "/signal",
-        description: "Get a trading signal for a token.",
+        description: "Get a trading signal for a token (default exchange: Binance).",
         params: [
           { name: "token", type: "string", required: "No", description: "Token name (e.g. solana, bitcoin). Default: bitcoin." },
+          {
+            name: "source",
+            type: "string",
+            required: "No",
+            description:
+              "Default: binance. Other: coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias crypto.com → cryptocom). Legacy: n8n | webhook.",
+          },
+          {
+            name: "instId",
+            type: "string",
+            required: "No",
+            description: "Override pair symbol per venue (e.g. BTCUSDT, BTC-USDT, XBTUSDT, KRW-BTC, BTC_USDT).",
+          },
+          {
+            name: "bar",
+            type: "string",
+            required: "No",
+            description: "Candle interval (venue-specific; e.g. 1m, 15m, 1h, 4h, 1d).",
+          },
+          {
+            name: "limit",
+            type: "string",
+            required: "No",
+            description: "Number of candles (venue max varies; default 200).",
+          },
         ],
         requestExample: `curl "${BASE_URL}/signal?token=bitcoin"
-curl "${BASE_URL}/signal?token=solana"`,
+curl "${BASE_URL}/signal?token=solana&source=okx"
+curl "${BASE_URL}/signal?token=bitcoin&source=n8n"`,
         responseExample: `{
   "signal": {
     "recommendation": "BUY",
     "entryPrice": 45000,
     "targets": [48000, 52000],
-    "analysis": "Technical and on-chain metrics support a buy; RSI oversold, funding rates neutral. Target levels based on recent structure."
+    "analysis": "Technical metrics from spot OHLC; RSI, MACD, levels — not financial advice.",
+    "source": "binance"
   }
 }`,
       },
       {
         method: "POST",
         path: "/signal",
-        description: "Get signal via POST.",
-        bodyExample: `{ "token": "solana" }`,
+        description: "Same as GET; JSON body accepts token, source, instId, bar, limit.",
+        bodyExample: `{ "token": "solana", "source": "binance", "bar": "1h", "limit": 200 }`,
         requestExample: `curl -X POST ${BASE_URL}/signal \\
   -H "Content-Type: application/json" \\
-  -d '{"token": "solana"}'`,
+  -d '{"token":"solana","source":"okx"}'`,
         responseExample: `{
   "signal": {
     "recommendation": "BUY",
     "entryPrice": 98.5,
     "targets": [105, 112],
-    "analysis": "Technical and sentiment analysis for Solana..."
+    "analysis": "Technical analysis from exchange OHLC...",
+    "source": "okx"
   }
 }`,
       },
@@ -1223,10 +1251,23 @@ curl "${BASE_URL}/event?ticker=BTC"`,
       {
         method: "GET",
         path: "/preview/signal",
-        description: "Free signal preview (same data as x402 /signal, no payment).",
-        params: [{ name: "token", type: "string", required: "No", description: "e.g. bitcoin, solana" }],
-        requestExample: `curl "${BASE_URL}/preview/signal?token=bitcoin"`,
-        responseExample: `{ "signal": { ... }, "token": "bitcoin" }`,
+        description:
+          "Free signal preview (same logic as x402 /signal, no payment). Default source is Binance when omitted.",
+        params: [
+          { name: "token", type: "string", required: "No", description: "e.g. bitcoin, solana (preview default: solana if omitted on server)." },
+          {
+            name: "source",
+            type: "string",
+            required: "No",
+            description: "Same as /signal: default binance; other CEX or n8n|webhook.",
+          },
+          { name: "instId", type: "string", required: "No", description: "Optional venue symbol override." },
+          { name: "bar", type: "string", required: "No", description: "Candle interval." },
+          { name: "limit", type: "string", required: "No", description: "Candle count." },
+        ],
+        requestExample: `curl "${BASE_URL}/preview/signal?token=bitcoin"
+curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
+        responseExample: `{ "signal": { ... , "source": "binance" }, "token": "bitcoin" }`,
       },
     ],
     paymentFlow: {

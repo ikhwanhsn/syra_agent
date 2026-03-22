@@ -36,7 +36,7 @@ export default function AgentFeatures() {
       <section id="trading-signals" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Trading Signals</h2>
         <p className="text-muted-foreground mb-4">
-          Request a full technical and contextual analysis for supported tokens (e.g. Bitcoin, Ethereum, Solana). Each signal typically includes current price, 24h change, RSI, MACD, moving averages, support and resistance levels, a suggested action plan (entry, targets, stop loss), and risk/reward with confidence. The agent explains the reasoning behind the setup so you can align it with your strategy. See <Link to="/docs/agent/supported-tokens" className="text-primary hover:underline">Supported Tokens</Link> for the list of assets you can request signals for.
+          Request a full technical analysis for supported tokens (e.g. Bitcoin, Ethereum, Solana). By default the backend uses <strong className="text-foreground">Binance spot OHLC</strong> plus the technical engine; you can ask for another exchange when supported (see the <Link to="/docs/api/signal" className="text-primary hover:underline">Signal API</Link> and agent tool hints). Each signal typically includes current price, 24h change, RSI, MACD, moving averages, support and resistance levels, a suggested action plan (entry, targets, stop loss), and risk/reward with confidence. See <Link to="/docs/agent/supported-tokens" className="text-primary hover:underline">Supported Tokens</Link> for the list of assets you can request signals for.
         </p>
         <p className="text-muted-foreground">
           <strong className="text-foreground">Example:</strong> <em>&quot;Signal for Bitcoin&quot;</em>, <em>&quot;Get me analysis for SOL&quot;</em>
