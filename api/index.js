@@ -21,6 +21,7 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
+import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createXApiRouter } from "./routes/partner/x-api/index.js";
@@ -735,6 +736,8 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Internal dashboard: research-store, research-resume (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
+// Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
+app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
 app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
@@ -856,4 +859,19 @@ import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitiali
 
 app.listen(PORT, () => {
   console.log(`[Syra API] listening on port ${PORT}`);
+
+  const cronMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
+  if (cronMs >= 60_000) {
+    console.log(`[Trading experiment] auto run-cycle every ${cronMs}ms`);
+    setInterval(() => {
+      import("./libs/tradingExperimentService.js")
+        .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[Trading experiment] cycle errors:", out.errors.slice(0, 5));
+          }
+        })
+        .catch((err) => console.warn("[Trading experiment] cycle failed:", err?.message || err));
+    }, cronMs);
+  }
 });

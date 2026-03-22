@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Trophy, Share2, Lock, Globe, Twitter, Send, BookOpen, ExternalLink } from "lucide-react";
+import { Plus, MessageSquare, Settings, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Store, Trophy, Share2, Lock, Globe, Twitter, Send, BookOpen, ExternalLink, FlaskConical } from "lucide-react";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -543,6 +543,15 @@ export function Sidebar({
             >
               <Trophy className="w-4 h-4" />
               <span className="flex-1 text-left">Leaderboard</span>
+            </Button>
+          </Link>
+          <Link to="/experiment/trading-agent">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <FlaskConical className="w-4 h-4" />
+              <span className="flex-1 text-left">Trading experiment</span>
             </Button>
           </Link>
           <Button

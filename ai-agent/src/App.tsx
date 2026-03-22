@@ -14,6 +14,7 @@ import MarketplaceTools from "./pages/MarketplaceTools";
 import MarketplaceMore from "./pages/MarketplaceMore";
 import ShareableChatRoute from "./pages/ShareableChatRoute";
 import Leaderboard from "./pages/Leaderboard";
+import TradingAgentExperiment from "./pages/TradingAgentExperiment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
                 </Route>
                 <Route path="/c/:shareId" element={<ShareableChatRoute />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/experiment/trading-agent" element={<TradingAgentExperiment />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

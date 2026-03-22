@@ -116,16 +116,22 @@ export function resolveBinanceSymbol(token, explicitSymbol) {
 
 /**
  * @param {string} symbol
- * @param {{ interval?: string; bar?: string; limit?: number; signal?: AbortSignal }} [opts]
+ * @param {{ interval?: string; bar?: string; limit?: number; startTime?: number; endTime?: number; signal?: AbortSignal }} [opts]
  * @returns {Promise<unknown[][]>}
  */
 export async function fetchBinanceKlinesJson(symbol, opts = {}) {
   const interval = toBinanceInterval(opts.interval ?? opts.bar);
-  const limit = Math.min(1000, Math.max(20, Number(opts.limit) || 200));
+  const limit = Math.min(1000, Math.max(1, Number(opts.limit) || 200));
   const url = new URL(`${BINANCE_API}/klines`);
   url.searchParams.set("symbol", symbol);
   url.searchParams.set("interval", interval);
   url.searchParams.set("limit", String(limit));
+  if (opts.startTime != null && Number.isFinite(Number(opts.startTime))) {
+    url.searchParams.set("startTime", String(Math.floor(Number(opts.startTime))));
+  }
+  if (opts.endTime != null && Number.isFinite(Number(opts.endTime))) {
+    url.searchParams.set("endTime", String(Math.floor(Number(opts.endTime))));
+  }
 
   const res = await fetch(url.toString(), {
     headers: { Accept: "application/json" },
@@ -151,8 +157,24 @@ export async function fetchBinanceKlinesJson(symbol, opts = {}) {
 }
 
 /**
+ * Close time (ms) of the last fully closed candle in the series (Binance appends an in-progress bar).
+ * Used to anchor forward outcome resolution for experiments.
+ * @param {unknown[][]} raw
+ */
+export function lastClosedCandleCloseMs(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  if (raw.length >= 2) {
+    const pen = raw[raw.length - 2];
+    if (Array.isArray(pen) && pen[6] != null) return Number(pen[6]);
+  }
+  const last = raw[raw.length - 1];
+  if (Array.isArray(last) && last[6] != null) return Number(last[6]);
+  return null;
+}
+
+/**
  * @param {{ token?: string; instId?: string; bar?: string; limit?: number; signal?: AbortSignal }} params
- * @returns {Promise<{ symbol: string; report: Record<string, unknown> }>}
+ * @returns {Promise<{ symbol: string; report: Record<string, unknown>; anchorCloseMs: number | null }>}
  */
 export async function buildBinanceSignalReport(params) {
   const symbol = resolveBinanceSymbol(params.token, params.instId);
@@ -161,8 +183,9 @@ export async function buildBinanceSignalReport(params) {
     limit: params.limit,
     signal: params.signal,
   });
+  const anchorCloseMs = lastClosedCandleCloseMs(raw);
   const data = raw.map(binanceKlineRowToEngineRow).filter(Boolean);
   const engine = new CryptoAnalysisEngine({ data }, symbol, "BINANCE_SPOT");
   const report = engine.analyze();
-  return { symbol, report };
+  return { symbol, report, anchorCloseMs };
 }

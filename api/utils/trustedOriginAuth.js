@@ -46,6 +46,7 @@ function isBrowserCallablePath(path) {
     path.startsWith("/dashboard-summary") ||
     path.startsWith("/binance-ticker") ||
     path.startsWith("/leaderboard") ||
+    path.startsWith("/experiment") ||
     path.startsWith("/internal") ||
     path.startsWith("/agent") ||
     path.startsWith("/8004")
