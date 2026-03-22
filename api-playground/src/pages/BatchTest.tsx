@@ -70,7 +70,6 @@ const DEFAULT_BATCH_FLOW_IDS = [
   '8004-stats',
   '8004-leaderboard',
   'token-statistic',
-  'correlation-matrix',
   'dashboard-summary',
   'news',
   'sentiment',

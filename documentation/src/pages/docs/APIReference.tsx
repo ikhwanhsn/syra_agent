@@ -33,8 +33,8 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["smart-money", "token-god-mode", "nansen-endpoints"],
   },
   {
-    title: "Partner: DexScreener & Jupiter",
-    slugs: ["dexscreener", "trending-jupiter", "jupiter-swap-order"],
+    title: "Partner: Jupiter",
+    slugs: ["trending-jupiter", "jupiter-swap-order"],
   },
   {
     title: "Partner: Squid Router",
@@ -45,16 +45,8 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["purch-vault"],
   },
   {
-    title: "Partner: Rugcheck",
-    slugs: ["token-report", "token-statistic", "token-risk-alerts"],
-  },
-  {
-    title: "Partner: Bubblemaps & Binance",
-    slugs: ["bubblemaps-maps", "binance-correlation", "binance-spot"],
-  },
-  {
-    title: "Partner: CoinGecko",
-    slugs: ["coingecko-onchain"],
+    title: "Partner: Bubblemaps & agent-only partners",
+    slugs: ["bubblemaps-maps", "agent-tools-partners"],
   },
   {
     title: "Memecoin",

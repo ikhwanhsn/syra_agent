@@ -1,9 +1,7 @@
 /**
- * Data fetchers for V2 analytics summary. Each returns the same shape as the
- * corresponding paid endpoint (no params or default params only).
+ * Data fetchers for /analytics/summary. Each mirrors the corresponding paid endpoint
+ * (trending Jupiter, Nansen smart money, Binance correlation).
  */
-import { dexscreenerRequests } from "../request/dexscreener.request.js";
-import { rugcheckRequests } from "../request/rugcheck.request.js";
 import { smartMoneyRequests } from "../request/nansen/smart-money.request.js";
 import {
   computeCorrelationFromOHLC,
@@ -15,47 +13,6 @@ const JUPITER_TRENDING_URL =
   "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
 const DEFAULT_CORRELATION_SYMBOL = "BTCUSDT";
 const DEFAULT_CORRELATION_LIMIT = 10;
-
-/** Dexscreener: token profiles, takeovers, ads, boosts (no params). */
-export async function fetchDexscreener() {
-  const responses = await Promise.all(
-    dexscreenerRequests.map(({ url }) => fetch(url))
-  );
-  for (const r of responses) {
-    if (!r.ok) {
-      const text = await r.text().catch(() => "");
-      throw new Error(`Dexscreener ${r.status}: ${text}`);
-    }
-  }
-  const allData = await Promise.all(responses.map((r) => r.json()));
-  return {
-    "dexscreener/token-profiles": allData[0],
-    "dexscreener/community-takeovers": allData[1],
-    "dexscreener/ads": allData[2],
-    "dexscreener/token-boosts": allData[3],
-    "dexscreener/token-boosts-top": allData[4],
-  };
-}
-
-/** Rugcheck token stats: new, recent, trending, verified (no params). */
-export async function fetchTokenStatistic() {
-  const responses = await Promise.all(
-    rugcheckRequests.map(({ url }) => fetch(url))
-  );
-  for (const r of responses) {
-    if (!r.ok) {
-      const text = await r.text().catch(() => "");
-      throw new Error(`Rugcheck ${r.status}: ${text}`);
-    }
-  }
-  const allData = await Promise.all(responses.map((r) => r.json()));
-  return {
-    "rugcheck/new_tokens": allData[0],
-    "rugcheck/recent": allData[1],
-    "rugcheck/trending": allData[2],
-    "rugcheck/verified": allData[3],
-  };
-}
 
 /** Jupiter trending tokens (no params). Requires PAYER_KEYPAIR. */
 export async function fetchTrendingJupiter() {
@@ -142,4 +99,3 @@ export async function fetchBinanceCorrelation() {
     count: ohlcPayload.count,
   };
 }
-

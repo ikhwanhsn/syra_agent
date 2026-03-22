@@ -77,6 +77,11 @@ export default function SyraAgentCatalog() {
             agent.syraa.fun
           </a>{" "}
           — just ask in natural language; the agent picks the right tool and pays per use when you have a connected wallet.
+          Binance (correlation &amp; spot), Giza, Bankr, Neynar, and SIWA run <strong className="text-foreground">only</strong> through these agent tools (no public Syra URLs for them). See also the{" "}
+          <Link to="/docs/api/agent-tools-partners" className="text-primary hover:underline">
+            API doc for agent-only partner tools
+          </Link>
+          .
         </p>
       </div>
 
@@ -98,7 +103,12 @@ export default function SyraAgentCatalog() {
       <section className="mb-6">
         <h2 className="text-2xl font-semibold mb-4">Partner tools</h2>
         <p className="text-muted-foreground mb-4">
-          Tools powered by partners: Nansen, DexScreener, Jupiter, Squid Router (cross-chain route and status), Rugcheck, Bubblemaps, Binance, Workfun.
+          Partner-backed tools: Nansen, Jupiter, Squid Router, Purch Vault, Bubblemaps, 8004 / 8004scan, plus{" "}
+          <strong className="text-foreground">Binance, Giza, Bankr, Neynar, and SIWA</strong> (those five are agent-executed only on Syra—use{" "}
+          <Link to="/docs/api/agent-tools-partners" className="text-primary hover:underline">
+            POST /agent/tools/call
+          </Link>{" "}
+          or chat at agent.syraa.fun).
         </p>
         <ToolTable tools={partner} id="partner-tools" />
       </section>
@@ -118,6 +128,15 @@ export default function SyraAgentCatalog() {
           <li>Use the <strong className="text-foreground">example prompts</strong> in the tables above as inspiration (e.g. &quot;Signal for Bitcoin&quot;, &quot;Trending on Jupiter&quot;).</li>
           <li>For paid tools, connect a wallet so the agent can pay per call; prices are listed in USD per request.</li>
           <li>Check-status is a minimal-cost health check; most other tools use the standard per-call pricing shown.</li>
+          <li>
+            Integrations can call <strong className="text-foreground">GET /agent/tools</strong> and{" "}
+            <strong className="text-foreground">POST /agent/tools/call</strong> on the Syra API with the user&apos;s{" "}
+            <code className="text-sm bg-muted px-1 rounded">anonymousId</code> — see{" "}
+            <Link to="/docs/api/agent-tools-partners" className="text-primary hover:underline">
+              Agent tools: Binance, Giza, Bankr, Neynar &amp; SIWA
+            </Link>
+            .
+          </li>
         </ul>
       </section>
 

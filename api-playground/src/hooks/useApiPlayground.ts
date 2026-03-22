@@ -135,29 +135,34 @@ export function getExampleFlows(): ExampleFlowPreset[] {
   return [
   // Featured (shown on main builder)
   {
-    id: 'correlation-matrix',
-    label: 'Correlation matrix',
+    id: 'analytics-summary',
+    label: 'Analytics summary',
     method: 'GET',
-    url: `${base}/binance/correlation-matrix`,
+    url: `${base}/analytics/summary`,
     params: [],
   },
   {
-    id: 'token-risk',
-    label: 'Token risk',
+    id: 'agent-tools-list',
+    label: 'Syra Agent: list tools',
     method: 'GET',
-    url: `${base}/token-statistic`,
+    url: `${base}/agent/tools`,
     params: [],
   },
   {
-    id: 'token-risk-alerts',
-    label: 'Token risk alerts',
-    method: 'GET',
-    url: `${base}/token-risk/alerts`,
-    params: [
-      { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
-      { key: 'source', value: 'new_tokens,recent,trending,verified', enabled: true, description: 'new_tokens, recent, trending, verified' },
-      { key: 'limit', value: '20', enabled: true, description: 'Max tokens to check (1-50)' },
-    ],
+    id: 'agent-tools-call-example',
+    label: 'Syra Agent: call partner tool (example)',
+    method: 'POST',
+    url: `${base}/agent/tools/call`,
+    params: [],
+    body: JSON.stringify(
+      {
+        anonymousId: 'YOUR_ANONYMOUS_ID',
+        toolId: 'binance-correlation',
+        params: { symbol: 'BTCUSDT', limit: '10' },
+      },
+      null,
+      2
+    ),
   },
   {
     id: 'dashboard-summary',
@@ -189,7 +194,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
   },
   {
     id: 'binance-ticker',
-    label: 'Binance ticker',
+    label: 'Binance ticker (free preview)',
     method: 'GET',
     url: `${base}/binance-ticker`,
     params: [],
@@ -323,13 +328,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     url: `${base}/heylol/feed`,
     params: [],
   },
-  {
-    id: 'analytics-summary',
-    label: 'Analytics summary',
-    method: 'GET',
-    url: `${base}/analytics/summary`,
-    params: [],
-  },
   // Core
   {
     id: 'signal',
@@ -396,13 +394,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for Nansen research' }],
   },
   {
-    id: 'dexscreener',
-    label: 'DexScreener',
-    method: 'GET',
-    url: `${base}/dexscreener`,
-    params: [],
-  },
-  {
     id: 'trending-jupiter',
     label: 'Trending Jupiter',
     method: 'GET',
@@ -410,397 +401,11 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
-    id: 'token-report',
-    label: 'Token report',
-    method: 'GET',
-    url: `${base}/token-report`,
-    params: [{ key: 'address', value: '', enabled: true, description: 'Token contract address (Rugcheck)' }],
-  },
-  {
     id: 'bubblemaps-maps',
     label: 'Bubblemaps maps',
     method: 'GET',
     url: `${base}/bubblemaps/maps`,
     params: [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
-  },
-  {
-    id: 'binance-correlation',
-    label: 'Binance correlation',
-    method: 'GET',
-    url: `${base}/binance/correlation`,
-    params: [{ key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT, ETHUSDT' }],
-  },
-  {
-    id: 'binance-ticker-24h',
-    label: 'Binance 24h ticker',
-    method: 'GET',
-    url: `${base}/binance/spot/ticker/24hr`,
-    params: [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional; omit for all symbols' }],
-  },
-  {
-    id: 'binance-orderbook',
-    label: 'Binance order book',
-    method: 'GET',
-    url: `${base}/binance/spot/depth`,
-    params: [
-      { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT' },
-      { key: 'limit', value: '100', enabled: true, description: '5, 10, 20, 50, 100, 500, 1000' },
-    ],
-  },
-  {
-    id: 'binance-exchange-info',
-    label: 'Binance exchange info',
-    method: 'GET',
-    url: `${base}/binance/spot/exchange-info`,
-    params: [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional symbol or symbols' }],
-  },
-  {
-    id: 'binance-spot-account',
-    label: 'Binance spot account',
-    method: 'GET',
-    url: `${base}/binance/spot/account`,
-    params: [],
-  },
-  {
-    id: 'binance-spot-order',
-    label: 'Binance place spot order',
-    method: 'POST',
-    url: `${base}/binance/spot/order`,
-    params: [
-      { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'Trading pair (required)' },
-      { key: 'side', value: 'BUY', enabled: true, description: 'BUY or SELL' },
-      { key: 'type', value: 'MARKET', enabled: true, description: 'MARKET, LIMIT, etc.' },
-      { key: 'quantity', value: '0.001', enabled: true, description: 'Base asset quantity (or use quoteOrderQty for MARKET)' },
-    ],
-  },
-  {
-    id: 'kraken-ticker',
-    label: 'Kraken ticker',
-    method: 'GET',
-    url: `${base}/kraken/ticker`,
-    params: [{ key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair(s) comma-separated (default BTCUSD)' }],
-  },
-  {
-    id: 'kraken-orderbook',
-    label: 'Kraken orderbook',
-    method: 'GET',
-    url: `${base}/kraken/orderbook`,
-    params: [
-      { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
-      { key: 'count', value: '25', enabled: true, description: 'Depth (default 25, max 500)' },
-    ],
-  },
-  {
-    id: 'kraken-ohlc',
-    label: 'Kraken OHLC',
-    method: 'GET',
-    url: `${base}/kraken/ohlc`,
-    params: [
-      { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
-      { key: 'interval', value: '60', enabled: true, description: 'Minutes (default 60)' },
-    ],
-  },
-  {
-    id: 'kraken-trades',
-    label: 'Kraken trades',
-    method: 'GET',
-    url: `${base}/kraken/trades`,
-    params: [
-      { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
-      { key: 'count', value: '100', enabled: true, description: 'Number of trades (default 100, max 1000)' },
-    ],
-  },
-  {
-    id: 'kraken-status',
-    label: 'Kraken status',
-    method: 'GET',
-    url: `${base}/kraken/status`,
-    params: [],
-  },
-  {
-    id: 'kraken-server-time',
-    label: 'Kraken server time',
-    method: 'GET',
-    url: `${base}/kraken/server-time`,
-    params: [],
-  },
-  // KuCoin spot (ticker, stats, orderbook, trades, candles, symbols, currencies, server-time)
-  {
-    id: 'kucoin-ticker',
-    label: 'KuCoin ticker',
-    method: 'GET',
-    url: `${base}/kucoin/ticker`,
-    params: [{ key: 'symbol', value: 'BTC-USDT', enabled: false, description: 'Optional symbol (omit for all tickers)' }],
-  },
-  {
-    id: 'kucoin-stats',
-    label: 'KuCoin 24h stats',
-    method: 'GET',
-    url: `${base}/kucoin/stats`,
-    params: [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
-  },
-  {
-    id: 'kucoin-orderbook',
-    label: 'KuCoin orderbook',
-    method: 'GET',
-    url: `${base}/kucoin/orderbook`,
-    params: [
-      { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
-      { key: 'level', value: 'level2_20', enabled: true, description: 'level2_20 or level2_100' },
-    ],
-  },
-  {
-    id: 'kucoin-trades',
-    label: 'KuCoin trades',
-    method: 'GET',
-    url: `${base}/kucoin/trades`,
-    params: [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
-  },
-  {
-    id: 'kucoin-candles',
-    label: 'KuCoin candles',
-    method: 'GET',
-    url: `${base}/kucoin/candles`,
-    params: [
-      { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
-      { key: 'type', value: '1min', enabled: true, description: '1min, 1hour, 1day, etc.' },
-      { key: 'pageSize', value: '100', enabled: true, description: 'Candles to return (max 1500)' },
-    ],
-  },
-  {
-    id: 'kucoin-symbols',
-    label: 'KuCoin symbols',
-    method: 'GET',
-    url: `${base}/kucoin/symbols`,
-    params: [],
-  },
-  {
-    id: 'kucoin-currencies',
-    label: 'KuCoin currencies',
-    method: 'GET',
-    url: `${base}/kucoin/currencies`,
-    params: [],
-  },
-  {
-    id: 'kucoin-server-time',
-    label: 'KuCoin server time',
-    method: 'GET',
-    url: `${base}/kucoin/server-time`,
-    params: [],
-  },
-  // OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.)
-  {
-    id: 'okx-ticker',
-    label: 'OKX ticker',
-    method: 'GET',
-    url: `${base}/okx/ticker`,
-    params: [{ key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (e.g. BTC-USDT, ETH-USDT-SWAP)' }],
-  },
-  {
-    id: 'okx-tickers',
-    label: 'OKX tickers',
-    method: 'GET',
-    url: `${base}/okx/tickers`,
-    params: [{ key: 'instType', value: 'SPOT', enabled: true, description: 'SPOT, SWAP, FUTURES, OPTION, MARGIN' }],
-  },
-  {
-    id: 'okx-books',
-    label: 'OKX order book',
-    method: 'GET',
-    url: `${base}/okx/books`,
-    params: [
-      { key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (default BTC-USDT)' },
-      { key: 'sz', value: '20', enabled: true, description: 'Depth (default 20, max 400)' },
-    ],
-  },
-  {
-    id: 'okx-candles',
-    label: 'OKX candles',
-    method: 'GET',
-    url: `${base}/okx/candles`,
-    params: [
-      { key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (default BTC-USDT)' },
-      { key: 'bar', value: '1H', enabled: true, description: '1m, 3m, 5m, 15m, 30m, 1H, 2H, 4H, 6H, 12H, 1D, 1W, 1M' },
-      { key: 'limit', value: '100', enabled: true, description: 'Candles to return (default 100, max 300)' },
-    ],
-  },
-  {
-    id: 'okx-trades',
-    label: 'OKX trades',
-    method: 'GET',
-    url: `${base}/okx/trades`,
-    params: [
-      { key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (default BTC-USDT)' },
-      { key: 'limit', value: '100', enabled: true, description: 'Trades (default 100, max 500)' },
-    ],
-  },
-  {
-    id: 'okx-funding-rate',
-    label: 'OKX funding rate',
-    method: 'GET',
-    url: `${base}/okx/funding-rate`,
-    params: [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Perpetual swap instId (default BTC-USDT-SWAP)' }],
-  },
-  {
-    id: 'okx-open-interest',
-    label: 'OKX open interest',
-    method: 'GET',
-    url: `${base}/okx/open-interest`,
-    params: [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Perpetual swap instId (default BTC-USDT-SWAP)' }],
-  },
-  {
-    id: 'okx-mark-price',
-    label: 'OKX mark price',
-    method: 'GET',
-    url: `${base}/okx/mark-price`,
-    params: [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Derivatives instId (default BTC-USDT-SWAP)' }],
-  },
-  {
-    id: 'okx-time',
-    label: 'OKX server time',
-    method: 'GET',
-    url: `${base}/okx/time`,
-    params: [],
-  },
-  // OKX DEX (on-chain by token address + chain)
-  {
-    id: 'okx-dex-price',
-    label: 'OKX DEX price',
-    method: 'GET',
-    url: `${base}/okx/dex/price`,
-    params: [
-      { key: 'address', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain (ethereum, solana, base, etc.)' },
-    ],
-  },
-  {
-    id: 'okx-dex-prices',
-    label: 'OKX DEX batch prices',
-    method: 'GET',
-    url: `${base}/okx/dex/prices`,
-    params: [
-      { key: 'tokens', value: '501:So11111111111111111111111111111111111111112', enabled: true, description: 'Comma-separated chainIndex:address or addresses' },
-      { key: 'chain', value: 'solana', enabled: false, description: 'Default chain when tokens are plain addresses' },
-    ],
-  },
-  {
-    id: 'okx-dex-kline',
-    label: 'OKX DEX kline',
-    method: 'GET',
-    url: `${base}/okx/dex/kline`,
-    params: [
-      { key: 'address', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      { key: 'bar', value: '1H', enabled: true, description: '1m, 1H, 1D, etc.' },
-      { key: 'limit', value: '100', enabled: true, description: 'Candles (max 299)' },
-    ],
-  },
-  {
-    id: 'okx-dex-trades',
-    label: 'OKX DEX trades',
-    method: 'GET',
-    url: `${base}/okx/dex/trades`,
-    params: [
-      { key: 'address', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      { key: 'limit', value: '100', enabled: true, description: 'Trades (max 500)' },
-    ],
-  },
-  {
-    id: 'okx-dex-index',
-    label: 'OKX DEX index price',
-    method: 'GET',
-    url: `${base}/okx/dex/index`,
-    params: [
-      { key: 'address', value: '', enabled: true, description: 'Token address (empty for native)' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-    ],
-  },
-  {
-    id: 'okx-dex-signal-chains',
-    label: 'OKX DEX signal chains',
-    method: 'GET',
-    url: `${base}/okx/dex/signal-chains`,
-    params: [],
-  },
-  {
-    id: 'okx-dex-signal-list',
-    label: 'OKX DEX signal list',
-    method: 'GET',
-    url: `${base}/okx/dex/signal-list`,
-    params: [
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
-      { key: 'walletType', value: '1,2,3', enabled: false, description: '1=Smart Money, 2=KOL, 3=Whale' },
-      { key: 'minAmountUsd', value: '1000', enabled: false, description: 'Min USD amount' },
-    ],
-  },
-  {
-    id: 'okx-dex-memepump-chains',
-    label: 'OKX DEX memepump chains',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-chains`,
-    params: [],
-  },
-  {
-    id: 'okx-dex-memepump-tokens',
-    label: 'OKX DEX memepump tokens',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-tokens`,
-    params: [
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      { key: 'stage', value: 'NEW', enabled: true, description: 'NEW, MIGRATING, or MIGRATED' },
-    ],
-  },
-  {
-    id: 'okx-dex-memepump-token-details',
-    label: 'OKX DEX memepump token details',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-token-details`,
-    params: [
-      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-    ],
-  },
-  {
-    id: 'okx-dex-memepump-token-dev-info',
-    label: 'OKX DEX memepump token dev info',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-token-dev-info`,
-    params: [
-      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-    ],
-  },
-  {
-    id: 'okx-dex-memepump-similar-tokens',
-    label: 'OKX DEX memepump similar tokens',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-similar-tokens`,
-    params: [
-      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-    ],
-  },
-  {
-    id: 'okx-dex-memepump-token-bundle-info',
-    label: 'OKX DEX memepump token bundle info',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-token-bundle-info`,
-    params: [
-      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-    ],
-  },
-  {
-    id: 'okx-dex-memepump-aped-wallet',
-    label: 'OKX DEX memepump aped wallet',
-    method: 'GET',
-    url: `${base}/okx/dex/memepump-aped-wallet`,
-    params: [
-      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-      { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      { key: 'wallet', value: '', enabled: false, description: 'Wallet to highlight' },
-    ],
   },
   {
     id: 'jupiter-swap-order',
@@ -956,244 +561,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       },
     ];
   })(),
-  {
-    id: 'coingecko-simple-price',
-    label: 'CoinGecko simple price',
-    method: 'GET',
-    url: `${base}/coingecko/simple-price`,
-    params: [
-      { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols' },
-      { key: 'ids', value: 'bitcoin', enabled: false, description: 'Or use ids instead of symbols (e.g. bitcoin,ethereum)' },
-      { key: 'vs_currencies', value: 'usd', enabled: true, description: 'e.g. usd' },
-      { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
-      { key: 'include_24hr_vol', value: 'true', enabled: false, description: 'true/false' },
-      { key: 'include_24hr_change', value: 'true', enabled: false, description: 'true/false' },
-    ],
-  },
-  {
-    id: 'coingecko-onchain-token-price',
-    label: 'CoinGecko onchain token price',
-    method: 'GET',
-    url: `${base}/coingecko/onchain/token-price`,
-    params: [
-      { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
-      { key: 'address', value: '', enabled: true, description: 'Token contract address (comma for multiple)' },
-    ],
-  },
-  {
-    id: 'coingecko-search-pools',
-    label: 'CoinGecko search pools',
-    method: 'GET',
-    url: `${base}/coingecko/onchain/search-pools`,
-    params: [
-      { key: 'query', value: 'pump', enabled: true, description: 'Search query (name, symbol, or address)' },
-      { key: 'network', value: 'solana', enabled: true, description: 'e.g. solana, base' },
-    ],
-  },
-  {
-    id: 'coingecko-trending-pools',
-    label: 'CoinGecko trending pools',
-    method: 'GET',
-    url: `${base}/coingecko/onchain/trending-pools`,
-    params: [
-      { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana' },
-      { key: 'duration', value: '5m', enabled: false, description: 'e.g. 5m' },
-    ],
-  },
-  {
-    id: 'coingecko-onchain-token',
-    label: 'CoinGecko onchain token',
-    method: 'GET',
-    url: `${base}/coingecko/onchain/token`,
-    params: [
-      { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
-      { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-    ],
-  },
-  {
-    id: 'coinmarketcap-quotes',
-    label: 'CoinMarketCap quotes latest',
-    method: 'GET',
-    url: `${base}/coinmarketcap`,
-    params: [
-      { key: 'endpoint', value: 'quotes-latest', enabled: true, description: 'quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp' },
-      { key: 'id', value: '1', enabled: true, description: 'CMC id (e.g. 1 for Bitcoin, 1027 for Ethereum)' },
-      { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
-    ],
-  },
-  {
-    id: 'coinmarketcap-listing',
-    label: 'CoinMarketCap listing latest',
-    method: 'GET',
-    url: `${base}/coinmarketcap`,
-    params: [
-      { key: 'endpoint', value: 'listing-latest', enabled: true, description: 'listing-latest' },
-      { key: 'start', value: '1', enabled: true, description: 'Start rank (default 1)' },
-      { key: 'limit', value: '10', enabled: true, description: 'Limit (default 10)' },
-      { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
-    ],
-  },
-  {
-    id: 'coinmarketcap-dex-search',
-    label: 'CoinMarketCap DEX search',
-    method: 'GET',
-    url: `${base}/coinmarketcap`,
-    params: [
-      { key: 'endpoint', value: 'dex-search', enabled: true, description: 'dex-search' },
-      { key: 'q', value: 'pepe', enabled: true, description: 'Search keyword (name, symbol, or contract address)' },
-    ],
-  },
-  {
-    id: 'coinmarketcap-dex-pairs',
-    label: 'CoinMarketCap DEX pairs quotes',
-    method: 'GET',
-    url: `${base}/coinmarketcap`,
-    params: [
-      { key: 'endpoint', value: 'dex-pairs-quotes-latest', enabled: true, description: 'dex-pairs-quotes-latest' },
-      { key: 'chain_id', value: '8453', enabled: true, description: 'Chain id (e.g. 8453 for Base)' },
-      { key: 'pair_address', value: '0x3548029694fbb241d45fb24ba0cd9c9d4e745f16', enabled: true, description: 'Pair address (WETH/USDC on Base by default)' },
-    ],
-  },
-  // Messari x402
-  {
-    id: 'messari-ai',
-    label: 'Messari AI chat',
-    method: 'POST',
-    url: `${base}/messari/ai`,
-    params: [
-      { key: 'question', value: 'What is the latest on Bitcoin?', enabled: true, description: 'Natural language question' },
-    ],
-  },
-  {
-    id: 'messari-asset-details',
-    label: 'Messari asset details',
-    method: 'GET',
-    url: `${base}/messari/assets/details`,
-    params: [
-      { key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' },
-    ],
-  },
-  {
-    id: 'messari-ath',
-    label: 'Messari all-time highs',
-    method: 'GET',
-    url: `${base}/messari/ath`,
-    params: [
-      { key: 'slugs', value: 'bitcoin,ethereum,solana', enabled: true, description: 'Comma-separated asset slugs' },
-    ],
-  },
-  {
-    id: 'messari-roi',
-    label: 'Messari ROI',
-    method: 'GET',
-    url: `${base}/messari/roi`,
-    params: [
-      { key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' },
-    ],
-  },
-  {
-    id: 'messari-mindshare-gainers',
-    label: 'Messari mindshare gainers',
-    method: 'GET',
-    url: `${base}/messari/mindshare-gainers`,
-    params: [
-      { key: 'period', value: '24h', enabled: true, description: '24h (default) or 7d' },
-    ],
-  },
-  {
-    id: 'messari-mindshare-losers',
-    label: 'Messari mindshare losers',
-    method: 'GET',
-    url: `${base}/messari/mindshare-losers`,
-    params: [
-      { key: 'period', value: '24h', enabled: true, description: '24h (default) or 7d' },
-    ],
-  },
-  {
-    id: 'messari-signal',
-    label: 'Messari signal (social intelligence)',
-    method: 'GET',
-    url: `${base}/messari/signal`,
-    params: [
-      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
-    ],
-  },
-  {
-    id: 'messari-news',
-    label: 'Messari news feed',
-    method: 'GET',
-    url: `${base}/messari/news`,
-    params: [
-      { key: 'assetSlugs', value: '', enabled: false, description: 'Filter by asset slugs (e.g. bitcoin,solana)' },
-      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
-    ],
-  },
-  {
-    id: 'messari-token-unlocks',
-    label: 'Messari token unlock events',
-    method: 'GET',
-    url: `${base}/messari/token-unlocks`,
-    params: [
-      { key: 'assetId', value: 'arbitrum', enabled: true, description: 'Messari asset ID (e.g. arbitrum, aptos)' },
-    ],
-  },
-  {
-    id: 'messari-timeseries',
-    label: 'Messari timeseries (price)',
-    method: 'GET',
-    url: `${base}/messari/timeseries`,
-    params: [
-      { key: 'assetId', value: 'bitcoin', enabled: true, description: 'Asset slug (e.g. bitcoin, ethereum)' },
-      { key: 'datasetSlug', value: 'price', enabled: true, description: 'Dataset (e.g. price, volume)' },
-      { key: 'granularity', value: '1d', enabled: true, description: '5m, 15m, 1h, 1d' },
-    ],
-  },
-  {
-    id: 'messari-fundraising',
-    label: 'Messari fundraising rounds',
-    method: 'GET',
-    url: `${base}/messari/fundraising`,
-    params: [
-      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
-      { key: 'roundTypes', value: '', enabled: false, description: 'seed, series-a, series-b, etc.' },
-    ],
-  },
-  {
-    id: 'messari-fundraising-investors',
-    label: 'Messari fundraising investors',
-    method: 'GET',
-    url: `${base}/messari/fundraising/investors`,
-    params: [
-      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
-    ],
-  },
-  {
-    id: 'messari-stablecoins',
-    label: 'Messari stablecoins',
-    method: 'GET',
-    url: `${base}/messari/stablecoins`,
-    params: [
-      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
-    ],
-  },
-  {
-    id: 'messari-networks',
-    label: 'Messari networks',
-    method: 'GET',
-    url: `${base}/messari/networks`,
-    params: [
-      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
-    ],
-  },
-  {
-    id: 'messari-x-users',
-    label: 'Messari X-users (influencers)',
-    method: 'GET',
-    url: `${base}/messari/x-users`,
-    params: [
-      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
-    ],
-  },
 ];
 };
 
@@ -1215,20 +582,15 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
   if (url.includes(new URL(purchBase).origin)) return { slug: 'purch-vault', name: 'Purch Vault' };
   if (id.startsWith('nansen-')) return { slug: 'nansen', name: 'Nansen' };
   if (id.startsWith('purch-')) return { slug: 'purch-vault', name: 'Purch Vault' };
-  if (id.startsWith('binance-') || id === 'correlation-matrix') return { slug: 'binance', name: 'Binance' };
-  if (id.startsWith('kraken-')) return { slug: 'kraken', name: 'Kraken' };
-  if (id.startsWith('kucoin-')) return { slug: 'kucoin', name: 'KuCoin' };
-  if (id.startsWith('okx-')) return { slug: 'okx', name: 'OKX' };
+  if (id.startsWith('agent-')) return { slug: 'agent', name: 'Syra Agent' };
+  if (id.startsWith('binance-')) return { slug: 'binance', name: 'Binance' };
   if (id.startsWith('8004scan-')) return { slug: '8004scan', name: '8004scan' };
   if (id.startsWith('8004-')) return { slug: '8004', name: '8004' };
-  if (id.startsWith('coingecko-')) return { slug: 'coingecko', name: 'CoinGecko' };
-  if (id.startsWith('coinmarketcap-')) return { slug: 'coinmarketcap', name: 'CoinMarketCap' };
-  if (id.startsWith('messari-')) return { slug: 'messari', name: 'Messari' };
   if (id.startsWith('x-') && (id === 'x-feed' || id === 'x-user' || id === 'x-search-recent')) return { slug: 'x', name: 'X (Twitter)' };
   if (id.startsWith('jupiter-')) return { slug: 'jupiter', name: 'Jupiter' };
   if (id.startsWith('squid-')) return { slug: 'squid', name: 'Squid' };
   if (id.startsWith('heylol-')) return { slug: 'heylol', name: 'HeyLol' };
-  const tokenDexIds = ['token-risk', 'token-risk-alerts', 'token-statistic', 'token-report', 'token-god-mode', 'bubblemaps-maps', 'dexscreener', 'trending-jupiter'];
+  const tokenDexIds = ['token-god-mode', 'bubblemaps-maps', 'trending-jupiter'];
   if (tokenDexIds.some((t) => id === t)) return { slug: 'tokens-dex', name: 'Tokens & DEX' };
   return { slug: 'syra-core', name: 'Syra Core' };
 }
@@ -1243,7 +605,20 @@ export function getExampleFlowGroups(): ExampleFlowGroup[] {
     if (!cur) bySlug.set(slug, { name, count: 1 });
     else cur.count += 1;
   }
-  const order = ['syra-core', 'tokens-dex', 'binance', '8004', '8004scan', 'kraken', 'kucoin', 'okx', 'coingecko', 'coinmarketcap', 'messari', 'nansen', 'x', 'jupiter', 'squid', 'purch-vault', 'heylol'];
+  const order = [
+    'syra-core',
+    'tokens-dex',
+    'agent',
+    'binance',
+    '8004',
+    '8004scan',
+    'nansen',
+    'x',
+    'jupiter',
+    'squid',
+    'purch-vault',
+    'heylol',
+  ];
   const result: ExampleFlowGroup[] = [];
   for (const slug of order) {
     const cur = bySlug.get(slug);
@@ -1316,66 +691,12 @@ function getApiEndpoints(): string[] {
     `${base}/browser-use`,
     `${base}/analytics/summary`,
     `${base}/smart-money`,
-    `${base}/dexscreener`,
     `${base}/token-god-mode`,
     `${base}/trending-jupiter`,
     `${base}/jupiter/swap/order`,
     `${base}/squid/route`,
     `${base}/squid/status`,
-    `${base}/token-report`,
-    `${base}/token-statistic`,
-    `${base}/token-risk/alerts`,
     `${base}/bubblemaps/maps`,
-    `${base}/binance/correlation`,
-    `${base}/binance/correlation-matrix`,
-    `${base}/binance/spot/ticker/24hr`,
-    `${base}/binance/spot/depth`,
-    `${base}/binance/spot/exchange-info`,
-    `${base}/binance/spot/account`,
-    `${base}/binance/spot/order`,
-    `${base}/kraken/ticker`,
-    `${base}/kraken/orderbook`,
-    `${base}/kraken/ohlc`,
-    `${base}/kraken/trades`,
-    `${base}/kraken/status`,
-    `${base}/kraken/server-time`,
-    `${base}/kucoin/ticker`,
-    `${base}/kucoin/stats`,
-    `${base}/kucoin/orderbook`,
-    `${base}/kucoin/trades`,
-    `${base}/kucoin/candles`,
-    `${base}/kucoin/symbols`,
-    `${base}/kucoin/currencies`,
-    `${base}/kucoin/server-time`,
-    `${base}/okx/ticker`,
-    `${base}/okx/tickers`,
-    `${base}/okx/books`,
-    `${base}/okx/candles`,
-    `${base}/okx/trades`,
-    `${base}/okx/funding-rate`,
-    `${base}/okx/open-interest`,
-    `${base}/okx/mark-price`,
-    `${base}/okx/time`,
-    `${base}/okx/dex/price`,
-    `${base}/okx/dex/prices`,
-    `${base}/okx/dex/kline`,
-    `${base}/okx/dex/trades`,
-    `${base}/okx/dex/index`,
-    `${base}/okx/dex/signal-chains`,
-    `${base}/okx/dex/signal-list`,
-    `${base}/okx/dex/memepump-chains`,
-    `${base}/okx/dex/memepump-tokens`,
-    `${base}/okx/dex/memepump-token-details`,
-    `${base}/okx/dex/memepump-token-dev-info`,
-    `${base}/okx/dex/memepump-similar-tokens`,
-    `${base}/okx/dex/memepump-token-bundle-info`,
-    `${base}/okx/dex/memepump-aped-wallet`,
-    `${base}/coingecko/simple-price`,
-    `${base}/coingecko/onchain/token-price`,
-    `${base}/coingecko/onchain/search-pools`,
-    `${base}/coingecko/onchain/trending-pools`,
-    `${base}/coingecko/onchain/token`,
-    `${base}/coinmarketcap`,
     `${base}/8004/stats`,
     `${base}/8004/leaderboard`,
     `${base}/8004/agents/search`,
@@ -1387,30 +708,11 @@ function getApiEndpoints(): string[] {
     `${base}/8004scan/agents/search`,
     `${base}/8004scan/agent`,
     `${base}/8004scan/feedbacks`,
-    `${base}/messari/ai`,
-    `${base}/messari/assets`,
-    `${base}/messari/assets/details`,
-    `${base}/messari/assets/metrics`,
-    `${base}/messari/ath`,
-    `${base}/messari/roi`,
-    `${base}/messari/timeseries`,
-    `${base}/messari/signal`,
-    `${base}/messari/mindshare-gainers`,
-    `${base}/messari/mindshare-losers`,
-    `${base}/messari/news`,
-    `${base}/messari/token-unlocks`,
-    `${base}/messari/token-unlocks/assets`,
-    `${base}/messari/token-unlocks/vesting`,
-    `${base}/messari/fundraising`,
-    `${base}/messari/fundraising/investors`,
-    `${base}/messari/fundraising/projects`,
-    `${base}/messari/fundraising/mna`,
-    `${base}/messari/stablecoins`,
-    `${base}/messari/networks`,
-    `${base}/messari/x-users`,
     `${base}/heylol/feed`,
     `${base}/heylol/profile/me`,
     `${base}/heylol/search`,
+    `${base}/agent/tools`,
+    `${base}/agent/tools/call`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
@@ -1426,8 +728,8 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
   try {
     const path = new URL(url).pathname.toLowerCase();
     if (path === '/brain') return 'POST'; // Brain supports GET (query) and POST (body); default POST
-    if (path === '/binance/spot/order') return 'POST'; // Place order is POST
-    if (path === '/messari/ai') return 'POST'; // Messari AI chat is POST
+    if (path === '/agent/tools/call') return 'POST';
+    if (path === '/agent/tools' || path.endsWith('/agent/tools')) return 'GET';
   } catch {
     // ignore
   }
@@ -1441,6 +743,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
     const known: Record<string, RequestParam[]> = {
       '/dashboard-summary': [{ key: 'period', value: '1D', enabled: true, description: '1H, 4H, 1D, 1W' }],
       '/binance-ticker': [],
+      '/agent/tools': [],
       '/x/feed': [
         { key: 'username', value: 'syra_agent', enabled: true, description: 'X username' },
         { key: 'max_results', value: '5', enabled: true, description: 'Tweets to return (3–20)' },
@@ -1460,13 +763,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/sundown-digest': [],
       '/check-status': [],
       '/mpp/v1/check-status': [],
-      '/brain': [{ key: 'question', value: 'What is the latest BTC news?', enabled: true, description: 'Natural language question (e.g. trending pools on Solana, BTC price)' }],
-      '/token-statistic': [],
-      '/token-risk/alerts': [
-        { key: 'rugScoreMin', value: '80', enabled: true, description: 'Min normalised risk score (0-100)' },
-        { key: 'source', value: 'new_tokens,recent,trending,verified', enabled: true, description: 'Comma-separated sources' },
-        { key: 'limit', value: '20', enabled: true, description: 'Max tokens to check (1-50)' },
-      ],
+      '/brain': [{ key: 'question', value: 'What is the latest BTC news?', enabled: true, description: 'Natural language question (e.g. Jupiter trending, BTC news)' }],
       '/analytics/summary': [],
       '/signal': [{ key: 'token', value: 'bitcoin', enabled: true, description: 'e.g. solana, bitcoin' }],
       '/exa-search': [{ key: 'query', value: 'latest crypto news', enabled: true, description: 'e.g. latest news on Nvidia, crypto market' }],
@@ -1479,41 +776,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'task', value: 'What is the top post on Hacker News right now?', enabled: true, description: 'Natural language task for the browser agent (required)' },
         { key: 'start_url', value: '', enabled: false, description: 'Optional start URL' },
       ],
-      '/messari/ai': [{ key: 'question', value: 'What is the latest on Bitcoin?', enabled: true, description: 'Natural language question about crypto' }],
-      '/messari/assets': [
-        { key: 'limit', value: '20', enabled: true, description: 'Max results' },
-        { key: 'assetSlugs', value: '', enabled: false, description: 'Filter by slugs (e.g. bitcoin,ethereum)' },
-      ],
-      '/messari/assets/details': [{ key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' }],
-      '/messari/assets/metrics': [],
-      '/messari/ath': [{ key: 'slugs', value: 'bitcoin,ethereum,solana', enabled: true, description: 'Comma-separated asset slugs' }],
-      '/messari/roi': [{ key: 'slugs', value: 'bitcoin,ethereum', enabled: true, description: 'Comma-separated asset slugs' }],
-      '/messari/timeseries': [
-        { key: 'assetId', value: 'bitcoin', enabled: true, description: 'Asset ID or slug (e.g. bitcoin, ethereum)' },
-        { key: 'datasetSlug', value: 'price', enabled: true, description: 'Dataset slug (e.g. price, volume)' },
-        { key: 'granularity', value: '1d', enabled: true, description: '5m, 15m, 1h, 1d' },
-      ],
-      '/messari/signal': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
-      '/messari/mindshare-gainers': [{ key: 'period', value: '24h', enabled: true, description: '24h or 7d' }],
-      '/messari/mindshare-losers': [{ key: 'period', value: '24h', enabled: true, description: '24h or 7d' }],
-      '/messari/news': [
-        { key: 'assetSlugs', value: '', enabled: false, description: 'Filter by asset slugs' },
-        { key: 'limit', value: '10', enabled: true, description: 'Max results' },
-      ],
-      '/messari/token-unlocks': [{ key: 'assetId', value: '', enabled: true, description: 'Messari asset ID (required)' }],
-      '/messari/token-unlocks/assets': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
-      '/messari/token-unlocks/vesting': [{ key: 'assetId', value: 'arbitrum', enabled: true, description: 'Messari asset ID (e.g. arbitrum, aptos)' }],
-      '/messari/fundraising': [
-        { key: 'limit', value: '10', enabled: true, description: 'Max results' },
-        { key: 'roundTypes', value: '', enabled: false, description: 'seed, series-a, series-b, etc.' },
-      ],
-      '/messari/fundraising/investors': [{ key: 'limit', value: '10', enabled: true, description: 'Max results' }],
-      '/messari/fundraising/projects': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
-      '/messari/fundraising/mna': [{ key: 'limit', value: '10', enabled: true, description: 'Max results' }],
-      '/messari/stablecoins': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
-      '/messari/networks': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
-      '/messari/x-users': [{ key: 'limit', value: '20', enabled: true, description: 'Max results' }],
-      '/token-report': [{ key: 'address', value: '', enabled: true, description: 'Token contract address' }],
       '/token-god-mode': [{ key: 'tokenAddress', value: '', enabled: true, description: 'Token address for research' }],
       '/x402/vault/search': [
         { key: 'q', value: 'development', enabled: true, description: 'Search query (optional)' },
@@ -1560,125 +822,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       ],
       '/api/v1/perp-screener': [],
       '/bubblemaps/maps': [{ key: 'address', value: '', enabled: true, description: 'Solana token contract address' }],
-      '/binance/correlation': [{ key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT, ETHUSDT' }],
-      '/binance/correlation-matrix': [],
-      '/binance/spot/ticker/24hr': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional; omit for all' }],
-      '/binance/spot/depth': [
-        { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'e.g. BTCUSDT' },
-        { key: 'limit', value: '100', enabled: true, description: '5, 10, 20, 50, 100, 500, 1000' },
-      ],
-      '/binance/spot/exchange-info': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional' }],
-      '/binance/spot/account': [],
-      '/binance/spot/order': [
-        { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'Trading pair' },
-        { key: 'side', value: 'BUY', enabled: true, description: 'BUY or SELL' },
-        { key: 'type', value: 'MARKET', enabled: true, description: 'MARKET, LIMIT, etc.' },
-        { key: 'quantity', value: '0.001', enabled: true, description: 'Base quantity or quoteOrderQty' },
-      ],
-      '/kraken/ticker': [{ key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair(s) comma-separated (default BTCUSD)' }],
-      '/kraken/orderbook': [
-        { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
-        { key: 'count', value: '25', enabled: true, description: 'Depth (default 25)' },
-      ],
-      '/kraken/ohlc': [
-        { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
-        { key: 'interval', value: '60', enabled: true, description: 'Minutes (default 60)' },
-      ],
-      '/kraken/trades': [
-        { key: 'pair', value: 'BTCUSD', enabled: true, description: 'Pair (default BTCUSD)' },
-        { key: 'count', value: '100', enabled: true, description: 'Count (default 100)' },
-      ],
-      '/kraken/status': [],
-      '/kraken/server-time': [],
-      '/kucoin/ticker': [{ key: 'symbol', value: 'BTC-USDT', enabled: false, description: 'Optional; omit for all tickers' }],
-      '/kucoin/stats': [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
-      '/kucoin/orderbook': [
-        { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
-        { key: 'level', value: 'level2_20', enabled: true, description: 'level2_20 or level2_100' },
-      ],
-      '/kucoin/trades': [{ key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' }],
-      '/kucoin/candles': [
-        { key: 'symbol', value: 'BTC-USDT', enabled: true, description: 'Symbol (default BTC-USDT)' },
-        { key: 'type', value: '1min', enabled: true, description: '1min, 1hour, 1day, etc.' },
-        { key: 'pageSize', value: '100', enabled: true, description: 'Candles (max 1500)' },
-      ],
-      '/kucoin/symbols': [],
-      '/kucoin/currencies': [],
-      '/kucoin/server-time': [],
-      '/okx/ticker': [{ key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (e.g. BTC-USDT, ETH-USDT-SWAP)' }],
-      '/okx/tickers': [{ key: 'instType', value: 'SPOT', enabled: true, description: 'SPOT, SWAP, FUTURES, OPTION, MARGIN' }],
-      '/okx/books': [
-        { key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID (default BTC-USDT)' },
-        { key: 'sz', value: '20', enabled: true, description: 'Depth (default 20, max 400)' },
-      ],
-      '/okx/candles': [
-        { key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID' },
-        { key: 'bar', value: '1H', enabled: true, description: '1m, 3m, 5m, 15m, 30m, 1H, 2H, 4H, 6H, 12H, 1D, 1W, 1M' },
-        { key: 'limit', value: '100', enabled: true, description: 'Candles (default 100, max 300)' },
-      ],
-      '/okx/trades': [
-        { key: 'instId', value: 'BTC-USDT', enabled: true, description: 'Instrument ID' },
-        { key: 'limit', value: '100', enabled: true, description: 'Trades (default 100, max 500)' },
-      ],
-      '/okx/funding-rate': [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Perpetual swap instId' }],
-      '/okx/open-interest': [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Perpetual swap instId' }],
-      '/okx/mark-price': [{ key: 'instId', value: 'BTC-USDT-SWAP', enabled: true, description: 'Derivatives instId' }],
-      '/okx/time': [],
-      '/okx/dex/price': [
-        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain (ethereum, solana, base)' },
-      ],
-      '/okx/dex/prices': [
-        { key: 'tokens', value: '', enabled: true, description: 'Comma chainIndex:address or addresses' },
-        { key: 'chain', value: 'solana', enabled: false, description: 'Default chain' },
-      ],
-      '/okx/dex/kline': [
-        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-        { key: 'bar', value: '1H', enabled: true, description: '1m, 1H, 1D' },
-        { key: 'limit', value: '100', enabled: true, description: 'Max 299' },
-      ],
-      '/okx/dex/trades': [
-        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-        { key: 'limit', value: '100', enabled: true, description: 'Max 500' },
-      ],
-      '/okx/dex/index': [
-        { key: 'address', value: '', enabled: true, description: 'Token address (empty for native)' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      ],
-      '/okx/dex/signal-chains': [],
-      '/okx/dex/signal-list': [
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-        { key: 'walletType', value: '1,2,3', enabled: false, description: '1=Smart Money, 2=KOL, 3=Whale' },
-        { key: 'minAmountUsd', value: '', enabled: false, description: 'Min USD' },
-      ],
-      '/okx/dex/memepump-chains': [],
-      '/okx/dex/memepump-tokens': [
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-        { key: 'stage', value: 'NEW', enabled: true, description: 'NEW, MIGRATING, MIGRATED' },
-      ],
-      '/okx/dex/memepump-token-details': [
-        { key: 'address', value: '', enabled: true, description: 'Token address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      ],
-      '/okx/dex/memepump-token-dev-info': [
-        { key: 'address', value: '', enabled: true, description: 'Token address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      ],
-      '/okx/dex/memepump-similar-tokens': [
-        { key: 'address', value: '', enabled: true, description: 'Token address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      ],
-      '/okx/dex/memepump-token-bundle-info': [
-        { key: 'address', value: '', enabled: true, description: 'Token address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-      ],
-      '/okx/dex/memepump-aped-wallet': [
-        { key: 'address', value: '', enabled: true, description: 'Token address' },
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
-        { key: 'wallet', value: '', enabled: false, description: 'Wallet to highlight' },
-      ],
       '/jupiter/swap/order': [
         { key: 'inputMint', value: 'So11111111111111111111111111111111111111112', enabled: true, description: 'Input token mint (SOL wrapped)' },
         { key: 'outputMint', value: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', enabled: true, description: 'Output token mint (USDC)' },
@@ -1701,36 +844,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'fromChainId', value: '', enabled: true, description: 'Source chain ID' },
         { key: 'toChainId', value: '', enabled: true, description: 'Destination chain ID' },
         { key: 'quoteId', value: '', enabled: false, description: 'quoteId from route (Coral V2)' },
-      ],
-      '/coingecko/simple-price': [
-        { key: 'symbols', value: 'btc,eth,sol', enabled: true, description: 'Comma-separated symbols (or use ids)' },
-        { key: 'ids', value: 'bitcoin', enabled: false, description: 'Comma-separated CoinGecko ids (e.g. bitcoin,ethereum); default when symbols omitted' },
-        { key: 'vs_currencies', value: 'usd', enabled: true, description: 'e.g. usd' },
-        { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
-        { key: 'include_24hr_vol', value: 'true', enabled: false, description: 'true/false' },
-        { key: 'include_24hr_change', value: 'true', enabled: false, description: 'true/false' },
-      ],
-      '/coingecko/onchain/token-price': [
-        { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
-        { key: 'address', value: '', enabled: true, description: 'Token contract address (comma for multiple)' },
-        { key: 'include_market_cap', value: 'true', enabled: false, description: 'true/false' },
-      ],
-      '/coingecko/onchain/search-pools': [
-        { key: 'query', value: 'pump', enabled: true, description: 'Search query (name, symbol, or contract address)' },
-        { key: 'network', value: 'solana', enabled: true, description: 'e.g. solana, base' },
-        { key: 'page', value: '1', enabled: false, description: 'Page number' },
-        { key: 'include', value: 'base_token,quote_token,dex', enabled: false, description: 'Comma-separated' },
-      ],
-      '/coingecko/onchain/trending-pools': [
-        { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana' },
-        { key: 'duration', value: '5m', enabled: true, description: 'e.g. 5m' },
-        { key: 'page', value: '1', enabled: false, description: 'Page number' },
-      ],
-      '/coingecko/onchain/token': [
-        { key: 'network', value: 'base', enabled: true, description: 'e.g. base, solana, eth' },
-        { key: 'address', value: '', enabled: true, description: 'Token contract address' },
-        { key: 'include', value: 'top_pools', enabled: false, description: 'e.g. top_pools' },
-        { key: 'include_composition', value: 'true', enabled: false, description: 'true/false' },
       ],
       '/8004/stats': [],
       '/8004/leaderboard': [
@@ -1767,18 +880,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/heylol/feed': [],
       '/heylol/profile/me': [],
       '/heylol/search': [{ key: 'q', value: '', enabled: true, description: 'Search query' }],
-      '/coinmarketcap': [
-        { key: 'endpoint', value: 'quotes-latest', enabled: true, description: 'quotes-latest, listing-latest, dex-pairs-quotes-latest, dex-search, mcp' },
-        { key: 'id', value: '1', enabled: true, description: 'CMC id (e.g. 1 for Bitcoin, 1027 for Ethereum)' },
-        { key: 'slug', value: 'bitcoin', enabled: false, description: 'Slug for quotes/listing (e.g. bitcoin)' },
-        { key: 'symbol', value: 'BTC', enabled: false, description: 'Symbol(s) for quotes/listing (e.g. BTC,ETH)' },
-        { key: 'start', value: '1', enabled: true, description: 'Start rank for listing (default 1)' },
-        { key: 'limit', value: '10', enabled: true, description: 'Limit for listing (default 10)' },
-        { key: 'convert', value: 'USD', enabled: true, description: 'Convert to (default USD)' },
-        { key: 'q', value: 'pepe', enabled: true, description: 'Search query for dex-search (e.g. pepe, sol)' },
-        { key: 'chain_id', value: '8453', enabled: true, description: 'Chain id for DEX (e.g. 8453 for Base)' },
-        { key: 'pair_address', value: '0x3548029694fbb241d45fb24ba0cd9c9d4e745f16', enabled: true, description: 'Pair address for DEX pairs quotes (WETH/USDC on Base)' },
-      ],
     };
     const exact = known[path];
     if (exact) return exact.map((p) => ({ ...p }));

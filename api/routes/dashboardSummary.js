@@ -5,8 +5,10 @@
  * Returns: metrics (volume24h, activeTraders, whaleMoves, tvlTracked + change %), flowIndex (chart).
  */
 import express from "express";
-import { dexscreenerRequests } from "../request/dexscreener.request.js";
 import { rugcheckRequests } from "../request/rugcheck.request.js";
+
+/** Public DexScreener URL (same as legacy proxy); dashboard calls upstream directly. */
+const DEXSCREENER_TOKEN_PROFILES_URL = "https://api.dexscreener.com/token-profiles/latest/v1";
 
 const BINANCE_API = "https://api.binance.com/api/v3";
 const PERIOD_MS = {
@@ -52,7 +54,7 @@ async function fetchRugcheckStats(url) {
 /** Fetch Dexscreener token-profiles; returns { items, tvlSum } (items = array). */
 async function fetchDexscreenerTokenProfiles() {
   try {
-    const res = await fetch(dexscreenerRequests[0].url);
+    const res = await fetch(DEXSCREENER_TOKEN_PROFILES_URL);
     if (!res.ok) return { items: [], tvlSum: 0 };
     const data = await res.json();
     const items = Array.isArray(data) ? data : data?.data ?? data?.tokens ?? [];

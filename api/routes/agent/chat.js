@@ -70,18 +70,13 @@ CRITICAL RULES — READ CAREFULLY:
 3. When in doubt, SELECT A TOOL. It is far better to call a tool unnecessarily than to miss a tool call and return stale/wrong data.
 
 QUICK ROUTING GUIDE (use this to pick the right tool fast):
-— Price of BTC/ETH/SOL by name/symbol → coingecko-simple-price
-— Price of a token by contract address → coingecko-onchain-token-price OR okx-dex-price
-— "What's the price of X" (any token) → coingecko-simple-price (by symbol) or okx-dex-price / coingecko-onchain-token-price (by address)
-— OKX DEX price (on-chain price by address) → okx-dex-price
-— Trending tokens/pools → coingecko-trending-pools OR trending-jupiter
-— Token data/info by address → coingecko-onchain-token
-— Search for a pool/token → coingecko-search-pools
+— Live spot prices, market stats, or token safety from public sources are NOT exposed as Syra tools; for broad “what’s the price of X” without a dedicated tool, prefer exa-search for web context or explain the user can use an external price feed / playground proxy to upstream APIs.
+— Trending Solana tokens / momentum → trending-jupiter
+— Bundled dashboard (trending + Nansen smart money + Binance correlation) → analytics-summary
 — News / latest updates → news
 — Market sentiment → sentiment
 — Trading signal → signal
-— Smart money / whale activity → smart-money, nansen-smart-money-*, or okx-dex-signal-list
-— Token report / safety → token-report
+— Smart money / whale activity → smart-money or nansen-smart-money-* (and other nansen-* tools as appropriate)
 — Swap / buy / sell tokens → jupiter-swap-order
 — Web search / research → exa-search
 — Any question starting with "what's the...", "give me...", "show me...", "how much is...", "current..." about market data → ALWAYS select a tool
@@ -99,21 +94,12 @@ PARAM RULES:
 - For the "exa-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for Exa search, web search, or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
 - For the "website-crawl" tool set "params": {"url": "<starting URL from user>"} when the user asks to crawl a website, summarize a site, get content from a URL, or ingest a docs site (e.g. "crawl https://example.com/docs", "summarize this website"). Extract the URL from the message; if no URL is given, do not select this tool. Optional: "limit" (e.g. 20), "depth" (e.g. 2).
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
-- For the "coingecko-search-pools" tool set "params": {"query": "<search term from user>", "network": "solana"} or "base" when the user asks to search pools/tokens (e.g. "search pools for pump", "find token X on Solana").
-- For the "coingecko-trending-pools" tool always set "params": {"network": "solana", "duration": "5m"} when the user asks for trending pools (e.g. "give me coingecko trending pools"). Only use a different network if the user explicitly says "on Base" or "on Ethereum".
-- For the "coingecko-onchain-token" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address from user>"} when the user asks for token data by contract address.
-- For the "coingecko-simple-price" tool set "params": {"symbols": "btc,eth,sol"} or {"ids": "bitcoin,ethereum,solana"} when the user asks for the price of BTC/ETH/SOL or other coins by symbol or name; optionally include_market_cap, include_24hr_vol, include_24hr_change.
-- For the "coingecko-onchain-token-price" tool set "params": {"network": "base"|"solana"|"eth", "address": "<contract address>"} when the user asks for the price of a token by its contract address (or multiple addresses comma-separated).
+- For "trending-jupiter" set "params": {} when the user asks for trending tokens on Jupiter / Solana momentum (this endpoint has no query params).
+- For "analytics-summary" set "params": {} when the user wants a combined view: Jupiter trending, Nansen smart money, Binance correlation.
 - For Nansen wallet/profiler tools (nansen-address-current-balance, nansen-address-historical-balances, nansen-profiler-counterparties) set "params": {"chain": "solana", "address": "<wallet address from user>"}.
 - For Nansen smart-money tools (nansen-smart-money-netflow, nansen-smart-money-holdings, nansen-smart-money-dex-trades) set "params": {"chains": "[\"solana\"]"} or extract chain from user question.
 - For Nansen TGM/token tools (nansen-tgm-holders, nansen-tgm-flow-intelligence, nansen-tgm-flows, nansen-tgm-dex-trades, nansen-tgm-pnl-leaderboard) set "params": {"chain": "solana", "token_address": "<token contract address from user>"}; add date_from/date_to for flows or pnl-leaderboard if user specifies a date range.
 - For "nansen-token-screener" set "params": {"chain": "solana"} or chain from user.
-- For KuCoin spot tools (kucoin-ticker, kucoin-stats, kucoin-orderbook, kucoin-trades, kucoin-candles) set "params": {"symbol": "BTC-USDT"} or the symbol from the user's question (e.g. "ETH-USDT", "SOL-USDT"). Omit symbol for kucoin-ticker to get all tickers. For kucoin-orderbook optional "level": "level2_20" or "level2_100". For kucoin-candles optional "type": "1min", "1hour", "1day", etc., "pageSize": 100.
-- For OKX CEX market tools (okx-ticker, okx-candles, okx-trades, etc.) set "params": {"instId": "BTC-USDT"} or the appropriate instrument ID from the user's question (e.g. "SOL-USDT", "ETH-USDT-SWAP").
-- For OKX DEX on-chain tools (okx-dex-price, okx-dex-kline, okx-dex-trades, okx-dex-index) set "params": {"address": "<token contract address>", "chain": "solana"} or "ethereum" or "base". Omit address to use default token.
-- For "okx-dex-signal-list" set "params": {"chain": "solana", "walletType": "1,2,3"} to get all signal types (Smart Money, KOL, Whale) in ONE call. Do NOT make separate calls per wallet type.
-- For "okx-dex-memepump-tokens" set "params": {"chain": "solana", "stage": "NEW"} or "MIGRATING" or "MIGRATED".
-- For other okx-dex-memepump-* tools set "params": {"address": "<token contract address>", "chain": "solana"}.
 - For "purch-vault-search" set "params": {"q": "<search query>"} or {"category": "development"} or {"productType": "skill"} when the user asks to search Purch Vault for skills, knowledge, or personas. Optional: category (marketing, development, automation, career, ios, productivity), productType (skill, knowledge, persona), minPrice, maxPrice, limit.
 - For "purch-vault-buy" set "params": {"slug": "<item slug from search>"} when the user asks to buy a Purch Vault item (e.g. after search). Slug is required (e.g. "faith"); optional email.
 - For "tempo-token-list" set "params": {"chainId": "4217"} or {"chainId": "42431"} when the user asks for Tempo tokens, contract addresses on Tempo, official token list, or which stablecoins exist on Tempo mainnet vs testnet. Default chainId is 4217 (mainnet) if not specified.
@@ -438,23 +424,29 @@ export function formatToolResultForLlm(data, toolId) {
       // fallback to raw below
     }
   }
-  // CoinGecko trending pools: only present real API data; never allow the LLM to invent pools/prices
-  if (toolId === 'coingecko-trending-pools' && data && typeof data === 'object') {
-    const pools = Array.isArray(data.data) ? data.data : [];
-    if (pools.length === 0) {
-      return '[The trending pools API returned no data. Do NOT invent or make up token names, prices, or tables. Tell the user that trending pools could not be loaded and suggest trying again later.]';
+  // Jupiter trending (Corbits): only present real API data
+  if (toolId === 'trending-jupiter' && data && typeof data === 'object') {
+    const mints = Array.isArray(data.contractAddresses) ? data.contractAddresses : [];
+    if (mints.length === 0 && !data.tokenSummary && !data.newsSummary) {
+      return '[The trending Jupiter API returned no data. Do NOT invent token names or prices. Tell the user trending data could not be loaded and suggest trying again later.]';
     }
     try {
-      const lines = ['Trending pools (live data from CoinGecko):'];
-      for (const item of pools.slice(0, 15)) {
-        const attrs = item?.attributes || item;
-        const name = attrs.name || attrs.base_token_symbol || item?.id || '—';
-        const priceCh = attrs.price_change_percentage?.h24 ?? attrs.price_change_percentage ?? '—';
-        const vol = attrs.volume_usd?.h24 ?? attrs.volume_usd ?? '—';
-        const liq = attrs.liquidity_usd ?? attrs.fdv_usd ?? '—';
-        lines.push(`- ${name} | 24h change: ${priceCh} | volume: ${vol} | liquidity: ${liq}`);
+      const lines = ['Trending on Jupiter (live data):'];
+      const summaries = Array.isArray(data.tokenSummary) ? data.tokenSummary : [];
+      const news = Array.isArray(data.newsSummary) ? data.newsSummary : [];
+      for (let i = 0; i < Math.min(15, Math.max(mints.length, summaries.length)); i++) {
+        const mint = mints[i];
+        const sum = summaries[i];
+        const line = typeof sum === 'string' && sum.trim() ? sum.trim().slice(0, 500) : mint ? `mint: ${mint}` : '—';
+        lines.push(`- ${line}`);
       }
-      if (pools.length > 15) lines.push(`... and ${pools.length - 15} more pools.`);
+      if (news.length > 0) {
+        lines.push('News snippets:');
+        for (const n of news.slice(0, 5)) {
+          if (typeof n === 'string' && n.trim()) lines.push(`  • ${n.trim().slice(0, 300)}`);
+        }
+      }
+      if (mints.length > 15) lines.push(`... and ${mints.length - 15} more entries.`);
       return lines.join('\n');
     } catch {
       // fallback to raw below
@@ -476,7 +468,7 @@ export function formatToolResultForLlm(data, toolId) {
 function condensedAnalyticsSummary(summary) {
   const lines = [];
   const sections = summary.sections && typeof summary.sections === 'object' ? summary.sections : {};
-  const sectionOrder = ['price', 'volume', 'correlation', 'tokenRisk', 'onChain', 'memecoin'];
+  const sectionOrder = ['price', 'correlation', 'onChain'];
   for (const key of sectionOrder) {
     const section = sections[key];
     if (!section || typeof section !== 'object') continue;
@@ -734,28 +726,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             ([k, v]) => typeof k === 'string' && v != null && v !== ''
           ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
         );
-        // Default coingecko-trending-pools to same network/duration so "give me trending pools" is consistent
-        if (matched.toolId === 'coingecko-trending-pools') {
-          if (!params.network) params.network = 'solana';
-          if (!params.duration) params.duration = '5m';
-        }
         if (!tool) continue;
-        // OKX DEX: normalize param names to match API playground (address, chain, walletType, etc.) so agent and playground send same request shape
-        if (tool.path && tool.path.startsWith('/okx/dex')) {
-          const addr =
-            params.address ??
-            params.contract_address ??
-            params.contractAddress ??
-            params.token_address ??
-            params.tokenContractAddress ??
-            params.token_contract_address;
-          if (addr) params.address = typeof addr === 'string' ? addr : String(addr);
-          const wt =
-            params.walletType ??
-            params.wallet_type ??
-            params['wallet-type'];
-          if (wt != null && wt !== '') params.walletType = typeof wt === 'string' ? wt : String(wt);
-        }
         // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount) or infer from message.
         if (matched.toolId === 'jupiter-swap-order') {
           const agentAddr = await getAgentAddress(anonymousId);
@@ -924,7 +895,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
           const budgetExceeded = result.budgetExceeded === true;
           const isBackendError =
-            /Kraken request failed|timeout|CLI|502|503|request failed/i.test(err) ||
+            /timeout|CLI|502|503|request failed/i.test(err) ||
             /403|401|Forbidden|permission\s*(issue|error)|temporarily unavailable|service.*unavailable/i.test(err);
           let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
           if (budgetExceeded) {
@@ -963,8 +934,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           }
           const formatted = formatToolResultForLlm(toolData, tool.id);
           const presentInstruction =
-            tool.id === 'coingecko-trending-pools'
-              ? 'Present this trending pools data to the user in a clear table or list. Use ONLY the data below—do not invent token names, prices, or percentages.'
+            tool.id === 'trending-jupiter'
+              ? 'Present this Jupiter trending data in a clear list or table. Use ONLY the data below—do not invent token names, prices, or percentages.'
               : 'Present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.';
           toolResults.push(
             `[Result from paid tool "${tool.name}" — ${presentInstruction}]\n\n${formatted}`

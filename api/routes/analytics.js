@@ -1,7 +1,7 @@
 /**
  * Analytics: KPI dashboard (grant metrics) + V2 summary (x402 paid).
  * GET /analytics/kpi, /analytics/errors – dashboard (no payment).
- * GET/POST /analytics/summary – x402 paid, full data from dexscreener, token-statistic, etc.
+ * GET/POST /analytics/summary – x402 paid: trending Jupiter, smart money, Binance correlation
  */
 import express from "express";
 import PaidApiCall from "../models/PaidApiCall.js";
@@ -13,8 +13,6 @@ import { X402_API_PRICE_ANALYTICS_SUMMARY_USD } from "../config/x402Pricing.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 import {
-  fetchDexscreener,
-  fetchTokenStatistic,
   fetchTrendingJupiter,
   fetchSmartMoney,
   fetchBinanceCorrelation,
@@ -533,7 +531,7 @@ function wrapRejected(err) {
 const summaryPaymentOptions = {
   price: X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   description:
-    "Analytics summary: full data from dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation",
+    "Analytics summary: trending-jupiter, smart-money (Nansen), Binance correlation",
   method: "GET",
   discoverable: true,
   resource: "/analytics/summary",
@@ -543,7 +541,7 @@ const summaryPaymentOptions = {
     updatedAt: { type: "string", description: "ISO timestamp" },
     sections: {
       type: "object",
-      description: "Price, volume, correlation, token risk, on-chain data",
+      description: "Trending tokens, correlation, smart money flows",
     },
   },
 };
@@ -551,40 +549,29 @@ const summaryPaymentOptions = {
 /**
  * GET /summary
  * POST /summary
- * x402 V2: payment required. Returns full data from all included tools after payment.
+ * x402 V2: payment required. Bundles trending Jupiter, Nansen smart money, Binance correlation.
  * skipSettle: if true, do not call settlePaymentAndSetResponse (for /summary/dev).
  */
 async function handleSummary(req, res, options = {}) {
   try {
-    const [
-      dexscreenerResult,
-      tokenStatisticResult,
-      trendingJupiterResult,
-      smartMoneyResult,
-      binanceCorrelationResult,
-    ] = await Promise.allSettled([
-      fetchDexscreener(),
-      fetchTokenStatistic(),
+    const [trendingJupiterResult, smartMoneyResult, binanceCorrelationResult] = await Promise.allSettled([
       fetchTrendingJupiter(),
       fetchSmartMoney(),
       fetchBinanceCorrelation(),
     ]);
 
-    const dexscreener = dexscreenerResult.status === "fulfilled"
-      ? wrapFulfilled(dexscreenerResult.value)
-      : wrapRejected(dexscreenerResult.reason);
-    const tokenStatistic = tokenStatisticResult.status === "fulfilled"
-      ? wrapFulfilled(tokenStatisticResult.value)
-      : wrapRejected(tokenStatisticResult.reason);
-    const trendingJupiter = trendingJupiterResult.status === "fulfilled"
-      ? wrapFulfilled(trendingJupiterResult.value)
-      : wrapRejected(trendingJupiterResult.reason);
-    const smartMoney = smartMoneyResult.status === "fulfilled"
-      ? wrapFulfilled(smartMoneyResult.value)
-      : wrapRejected(smartMoneyResult.reason);
-    const binanceCorrelation = binanceCorrelationResult.status === "fulfilled"
-      ? wrapFulfilled(binanceCorrelationResult.value)
-      : wrapRejected(binanceCorrelationResult.reason);
+    const trendingJupiter =
+      trendingJupiterResult.status === "fulfilled"
+        ? wrapFulfilled(trendingJupiterResult.value)
+        : wrapRejected(trendingJupiterResult.reason);
+    const smartMoney =
+      smartMoneyResult.status === "fulfilled"
+        ? wrapFulfilled(smartMoneyResult.value)
+        : wrapRejected(smartMoneyResult.reason);
+    const binanceCorrelation =
+      binanceCorrelationResult.status === "fulfilled"
+        ? wrapFulfilled(binanceCorrelationResult.value)
+        : wrapRejected(binanceCorrelationResult.reason);
 
     const summary = {
       api: "v2",
@@ -592,22 +579,12 @@ async function handleSummary(req, res, options = {}) {
       updatedAt: new Date().toISOString(),
       sections: {
         price: {
-          title: "Price & market data",
-          dexscreener,
+          title: "Trending & momentum",
           trendingJupiter,
-        },
-        volume: {
-          title: "Volume & liquidity",
-          dexscreener,
-          tokenStatistic,
         },
         correlation: {
           title: "Correlation",
           binance: binanceCorrelation,
-        },
-        tokenRisk: {
-          title: "Token risk & safety",
-          tokenStatistic,
         },
         onChain: {
           title: "On-chain & flow",

@@ -345,8 +345,6 @@ All of these require a **token or contract address** (Solana where noted).
 | Tool | Parameters | Description |
 |------|------------|-------------|
 | `syra_v2_x_kol` | `address` (required) — Solana token contract address | KOL/influencer mentions and sentiment for a token on X. |
-| `syra_v2_token_report` | `address` (required) | Rugcheck token report. |
-| `syra_v2_token_risk_alerts` | `rugScoreMin` (optional, default 80), `source` (optional), `limit` (optional, default 20) | Token risk alerts: tokens from Rugcheck with risk score ≥ threshold. Use with dev routes to call without payment. |
 | `syra_v2_token_god_mode` | `tokenAddress` (required) | Nansen token god mode: deep research for a token. |
 | `syra_v2_bubblemaps_maps` | `address` (required) — Solana token contract address | Bubblemaps holder/concentration map data. |
 
@@ -364,11 +362,9 @@ All of these require a **token or contract address** (Solana where noted).
 | `syra_v2_sundown_digest` | Daily sundown digest (crypto roundup). |
 | `syra_v2_gems` | Hidden gem crypto projects trending on X/Twitter. |
 | `syra_v2_crypto_kol` | Latest insights from top crypto KOLs. |
-| `syra_v2_token_statistic` | Rugcheck token statistics (new, recent, trending, verified). |
 | `syra_v2_smart_money` | Smart money tracking: net flow, holdings, DEX trades, DCA. |
-| `syra_v2_dexscreener` | DEXScreener: token profiles, community takeovers, ads, boosted tokens. |
 | `syra_v2_trending_jupiter` | Trending tokens on Jupiter. |
-| `syra_v2_analytics_summary` | Full analytics summary (dexscreener, token-statistic, trending-jupiter, smart-money, binance correlation, memecoin screens). |
+| `syra_v2_analytics_summary` | Analytics summary: trending Jupiter, Nansen smart money, Binance correlation. |
 
 ### Squid Router (cross-chain)
 
@@ -383,31 +379,6 @@ All of these require a **token or contract address** (Solana where noted).
 |------|------------|-------------|
 | `syra_v2_binance_correlation` | `symbol` (optional, default: `"BTCUSDT"`) — e.g. `ETHUSDT` | Top correlated assets for a symbol. |
 | `syra_v2_binance_correlation_matrix` | `symbol` (optional) | Full Binance correlation matrix. |
-
-### Kraken market (no auth)
-
-| Tool | Parameters | Description |
-|------|------------|-------------|
-| `syra_v2_kraken_ticker` | `pair` (optional, default: `"BTCUSD"`) — comma-separated for multiple | Kraken spot ticker. |
-| `syra_v2_kraken_orderbook` | `pair` (optional), `count` (optional, default: 25) | Kraken order book. |
-| `syra_v2_kraken_ohlc` | `pair` (optional), `interval` (optional, default: 60) | Kraken OHLC candles. |
-| `syra_v2_kraken_trades` | `pair` (optional), `count` (optional, default: 100) | Kraken recent trades. |
-| `syra_v2_kraken_status` | — | Kraken system status. |
-| `syra_v2_kraken_server_time` | — | Kraken server time. |
-
-### OKX market (no auth)
-
-| Tool | Parameters | Description |
-|------|------------|-------------|
-| `syra_v2_okx_ticker` | `instId` (optional, default: `"BTC-USDT"`) | OKX single ticker (spot or swap). |
-| `syra_v2_okx_tickers` | `instType` (optional, default: `"SPOT"`) — SPOT, SWAP, FUTURES, OPTION, MARGIN | OKX all tickers by type. |
-| `syra_v2_okx_books` | `instId` (optional), `sz` (optional, default: 20, max 400) | OKX order book snapshot. |
-| `syra_v2_okx_candles` | `instId` (optional), `bar` (optional, default: 1H), `limit` (optional, default: 100) | OKX OHLC candles. |
-| `syra_v2_okx_trades` | `instId` (optional), `limit` (optional, default: 100, max 500) | OKX recent trades. |
-| `syra_v2_okx_funding_rate` | `instId` (optional, default: `"BTC-USDT-SWAP"`) | OKX funding rate for perpetual swap. |
-| `syra_v2_okx_open_interest` | `instId` (optional, default: `"BTC-USDT-SWAP"`) | OKX open interest. |
-| `syra_v2_okx_mark_price` | `instId` (optional, default: `"BTC-USDT-SWAP"`) | OKX mark price for derivatives. |
-| `syra_v2_okx_time` | — | OKX server time. |
 
 ### Memecoin screens (all no-parameter)
 
@@ -474,9 +445,7 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_sundown_digest` | `/sundown-digest` |
 | `syra_v2_gems` | `/gems` |
 | `syra_v2_crypto_kol` | `/crypto-kol` |
-| `syra_v2_token_statistic` | `/token-statistic` |
 | `syra_v2_smart_money` | `/smart-money` |
-| `syra_v2_dexscreener` | `/dexscreener` |
 | `syra_v2_trending_jupiter` | `/trending-jupiter` |
 | `syra_v2_analytics_summary` | `/analytics/summary` |
 | `syra_v2_squid_route` | `POST /squid/route` (body: fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress, slippage) |
@@ -486,33 +455,10 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_x_search` | `/x-search` |
 | `syra_v2_exa_search` | `/exa-search` |
 | `syra_v2_x_kol` | `/x-kol` |
-| `syra_v2_token_report` | `/token-report` |
-| `syra_v2_token_risk_alerts` | `/token-risk/alerts` |
 | `syra_v2_token_god_mode` | `/token-god-mode` |
 | `syra_v2_bubblemaps_maps` | `/bubblemaps/maps` |
 | `syra_v2_binance_correlation` | `/binance/correlation` |
 | `syra_v2_binance_correlation_matrix` | `/binance/correlation-matrix` |
-| `syra_v2_kraken_ticker` | `/kraken/ticker` |
-| `syra_v2_kraken_orderbook` | `/kraken/orderbook` |
-| `syra_v2_kraken_ohlc` | `/kraken/ohlc` |
-| `syra_v2_kraken_trades` | `/kraken/trades` |
-| `syra_v2_kraken_status` | `/kraken/status` |
-| `syra_v2_kraken_server_time` | `/kraken/server-time` |
-| `syra_v2_okx_ticker` | `/okx/ticker` |
-| `syra_v2_okx_tickers` | `/okx/tickers` |
-| `syra_v2_okx_books` | `/okx/books` |
-| `syra_v2_okx_candles` | `/okx/candles` |
-| `syra_v2_okx_trades` | `/okx/trades` |
-| `syra_v2_okx_funding_rate` | `/okx/funding-rate` |
-| `syra_v2_okx_open_interest` | `/okx/open-interest` |
-| `syra_v2_okx_mark_price` | `/okx/mark-price` |
-| `syra_v2_okx_time` | `/okx/time` |
-| `syra_v2_coingecko_simple_price` | `/coingecko/simple-price` |
-| `syra_v2_coingecko_onchain_token_price` | `/coingecko/onchain/token-price` |
-| `syra_v2_coingecko_search_pools` | `/coingecko/onchain/search-pools` |
-| `syra_v2_coingecko_trending_pools` | `/coingecko/onchain/trending-pools` |
-| `syra_v2_coingecko_onchain_token` | `/coingecko/onchain/token` |
-| `syra_v2_coinmarketcap` | `/coinmarketcap` |
 | `syra_v2_memecoin_fastest_holder_growth` | `/memecoin/fastest-holder-growth` |
 | `syra_v2_memecoin_most_mentioned_smart_money_x` | `/memecoin/most-mentioned-by-smart-money-x` |
 | `syra_v2_memecoin_accumulating_before_cex_rumors` | `/memecoin/accumulating-before-CEX-rumors` |

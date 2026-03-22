@@ -78,10 +78,9 @@ export const navigation: NavItem[] = [
         ],
       },
       {
-        title: "Partner: DexScreener & Jupiter",
+        title: "Partner: Jupiter",
         defaultCollapsed: false,
         items: [
-          { title: "DexScreener", href: api("dexscreener") },
           { title: "Trending Jupiter", href: api("trending-jupiter") },
           { title: "Jupiter Swap Order", href: api("jupiter-swap-order") },
         ],
@@ -100,55 +99,15 @@ export const navigation: NavItem[] = [
         items: [{ title: "Purch Vault API", href: api("purch-vault") }],
       },
       {
-        title: "Partner: Rugcheck",
-        defaultCollapsed: false,
-        items: [
-          { title: "Token Report", href: api("token-report") },
-          { title: "Token Statistic", href: api("token-statistic") },
-          { title: "Token Risk Alerts", href: api("token-risk-alerts") },
-        ],
-      },
-      {
-        title: "Partner: Kraken",
-        defaultCollapsed: false,
-        items: [{ title: "Kraken Market", href: api("kraken-market") }],
-      },
-      {
-        title: "Partner: KuCoin",
-        defaultCollapsed: false,
-        items: [{ title: "KuCoin Spot Market", href: api("kucoin-market") }],
-      },
-      {
-        title: "Partner: OKX",
-        defaultCollapsed: false,
-        items: [
-          { title: "OKX Market", href: api("okx-market") },
-          { title: "OKX DEX Market", href: api("okx-dex-market") },
-        ],
-      },
-      {
-        title: "Partner: Bubblemaps & Binance",
+        title: "Partner: Bubblemaps & agent-only partners",
         defaultCollapsed: false,
         items: [
           { title: "Bubblemaps Maps", href: api("bubblemaps-maps") },
-          { title: "Binance Correlation", href: api("binance-correlation") },
-          { title: "Binance Spot", href: api("binance-spot") },
+          {
+            title: "Agent tools: Binance, Giza, Bankr, Neynar, SIWA",
+            href: api("agent-tools-partners"),
+          },
         ],
-      },
-      {
-        title: "Partner: CoinGecko",
-        defaultCollapsed: false,
-        items: [{ title: "CoinGecko API", href: api("coingecko-onchain") }],
-      },
-      {
-        title: "Partner: CoinMarketCap",
-        defaultCollapsed: false,
-        items: [{ title: "CoinMarketCap API", href: api("coinmarketcap") }],
-      },
-      {
-        title: "Partner: Messari",
-        defaultCollapsed: false,
-        items: [{ title: "Messari API", href: api("messari") }],
       },
       {
         title: "8004 Agent Registry",

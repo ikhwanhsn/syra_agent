@@ -21,6 +21,7 @@ import {
 } from '../../libs/agentWallet.js';
 import { sendTempoPayout } from '../../libs/tempoPayout.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
+import { runAgentPartnerDirectTool } from '../../libs/agentPartnerDirectTools.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -221,20 +222,6 @@ router.post('/call', async (req, res) => {
       params = { ...params, anonymousId };
     }
 
-    // OKX DEX: normalize param names to match API playground (address, chain, walletType) so agent and playground send same request shape
-    if (tool.path && tool.path.startsWith('/okx/dex')) {
-      const addr =
-        params.address ??
-        params.contract_address ??
-        params.contractAddress ??
-        params.token_address ??
-        params.tokenContractAddress ??
-        params.token_contract_address;
-      if (addr) params.address = typeof addr === 'string' ? addr : String(addr);
-      const wt = params.walletType ?? params.wallet_type ?? params['wallet-type'];
-      if (wt != null && wt !== '') params.walletType = typeof wt === 'string' ? wt : String(wt);
-    }
-
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
     if (tool.nansenPath) {
       const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
@@ -251,6 +238,23 @@ router.post('/call', async (req, res) => {
         success: true,
         toolId: tool.id,
         data: result.data,
+      });
+    }
+
+    // Binance, Giza, Bankr, Neynar, SIWA — no public HTTP routes; run server-side with same libs as former routes
+    if (tool.agentDirect) {
+      const out = await runAgentPartnerDirectTool(toolId, params, { host: req.get('host') });
+      if (!out.ok) {
+        return res.status(out.status ?? 502).json({
+          success: false,
+          error: out.error,
+          toolId: tool.id,
+        });
+      }
+      return res.status(out.httpStatus ?? 200).json({
+        success: true,
+        toolId: tool.id,
+        data: out.data,
       });
     }
 

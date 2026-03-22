@@ -15,30 +15,17 @@ import {
   X402_DISPLAY_PRICE_NEWS_USD,
   X402_DISPLAY_PRICE_NANSEN_USD,
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
-  X402_DISPLAY_PRICE_DEXSCREENER_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
-  X402_DISPLAY_PRICE_COINGECKO_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
   X402_DISPLAY_PRICE_BROWSER_USE_USD,
-  X402_DISPLAY_PRICE_COINMARKETCAP_USD,
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
-  X402_DISPLAY_PRICE_KRAKEN_USD,
-  X402_DISPLAY_PRICE_KUCOIN_USD,
-  X402_DISPLAY_PRICE_OKX_USD,
   X402_DISPLAY_PRICE_GIZA_USD,
-  X402_DISPLAY_PRICE_MESSARI_USD,
-  X402_DISPLAY_PRICE_MESSARI_AI_USD,
-  X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD,
-  X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD,
-  X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD,
-  X402_DISPLAY_PRICE_MESSARI_VESTING_USD,
-  X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD,
   X402_DISPLAY_PRICE_PURCH_VAULT_USD,
   X402_DISPLAY_PRICE_QUICKNODE_USD,
   X402_DISPLAY_PRICE_BANKR_USD,
@@ -112,29 +99,7 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/exa-search')) return X402_DISPLAY_PRICE_EXA_SEARCH_USD;
   if (p.startsWith('/crawl')) return X402_DISPLAY_PRICE_CRAWL_USD;
   if (p.startsWith('/analytics/summary')) return X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD;
-  if (p.startsWith('/coingecko/')) return X402_DISPLAY_PRICE_COINGECKO_USD;
-  if (p.startsWith('/coinmarketcap')) return X402_DISPLAY_PRICE_COINMARKETCAP_USD;
-  if (p.startsWith('/kraken/')) return X402_DISPLAY_PRICE_KRAKEN_USD;
-  if (p.startsWith('/kucoin/')) return X402_DISPLAY_PRICE_KUCOIN_USD;
-  if (p.startsWith('/okx/')) return X402_DISPLAY_PRICE_OKX_USD;
   if (p.startsWith('/giza/')) return X402_DISPLAY_PRICE_GIZA_USD;
-  if (p.startsWith('/messari/ai')) return X402_DISPLAY_PRICE_MESSARI_AI_USD;
-  if (p.startsWith('/messari/signal')) return X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD;
-  if (p.startsWith('/messari/token-unlocks/vesting')) return X402_DISPLAY_PRICE_MESSARI_VESTING_USD;
-  if (p.startsWith('/messari/fundraising/investors')) return X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD;
-  if (p.startsWith('/messari/timeseries') || p.startsWith('/messari/token-unlocks') || p.startsWith('/messari/fundraising')) {
-    return X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD;
-  }
-  if (
-    p.startsWith('/messari/mindshare') ||
-    p.startsWith('/messari/news') ||
-    p.startsWith('/messari/x-users') ||
-    p.startsWith('/messari/stablecoins') ||
-    p.startsWith('/messari/networks')
-  ) {
-    return X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD;
-  }
-  if (p.startsWith('/messari/')) return X402_DISPLAY_PRICE_MESSARI_USD;
   if (p.startsWith('/8004scan') || p === '/erc8004') return X402_DISPLAY_PRICE_8004SCAN_USD;
   if (p.startsWith('/8004')) return X402_DISPLAY_PRICE_8004_USD;
   if (p.startsWith('/heylol')) return X402_DISPLAY_PRICE_HEYLOL_USD;
@@ -146,7 +111,6 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/jupiter/swap/order')) return X402_DISPLAY_PRICE_JUPITER_SWAP_USD;
   if (p.startsWith('/squid/route')) return X402_DISPLAY_PRICE_SQUID_ROUTE_USD;
   if (p.startsWith('/squid/status')) return X402_DISPLAY_PRICE_SQUID_STATUS_USD;
-  if (p.startsWith('/dexscreener')) return X402_DISPLAY_PRICE_DEXSCREENER_USD;
   if (p.startsWith('/smart-money/') || p.startsWith('/nansen/smart-money/')) return X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD;
   if (p.startsWith('/nansen/')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/smart-money') || p.startsWith('/token-god-mode')) return X402_DISPLAY_PRICE_NANSEN_USD;

@@ -85,11 +85,6 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             .filter(([k, v]) => typeof k === "string" && v != null && v !== "")
             .map(([k, v]) => [k, typeof v === "string" ? v : String(v)])
         );
-        if (matched.toolId === "coingecko-trending-pools") {
-          if (!params.network) params.network = "solana";
-          if (!params.duration) params.duration = "5m";
-        }
-
         const url = `${baseUrl}${tool.path}`;
         const method = tool.method || "GET";
         const result = await callToolWithTreasury(
@@ -108,8 +103,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           toolUsages.push({ name: tool.name, status: "complete" });
           const formatted = formatToolResultForLlm(result.data, tool.id);
           const presentInstruction =
-            tool.id === "coingecko-trending-pools"
-              ? "Present this trending pools data in a clear table or list. Use ONLY the data below."
+            tool.id === "trending-jupiter"
+              ? "Present this Jupiter trending data in a clear table or list. Use ONLY the data below."
               : "Present this in clear, human-readable form. Use headings, bullet points or markdown tables.";
           toolResults.push(
             `[Result from paid tool "${tool.name}" — ${presentInstruction}]\n\n${formatted}`

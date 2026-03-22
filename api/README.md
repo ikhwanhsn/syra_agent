@@ -22,7 +22,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 
 - **Exposes Syra's data and intelligence** — signals, research, news, sentiment, gems, KOL/crypto-KOL, browse, events, leaderboard, and sundown digest.
 - **Integrates with x402 & FareMeter** — pay-per-use and Solana payment flows for API access.
-- **Connects to external data** — Binance (OHLC, correlation), DexScreener, Nansen (smart money, token god mode), RugCheck, Bubblemaps, Jupiter (trending), and others.
+- **Connects to external data** — Nansen (smart money, token god mode), Bubblemaps, Jupiter (trending), and others; **Binance correlation** is also included in **GET /analytics/summary**; deeper Binance spot / **Giza / Bankr / Neynar / SIWA** run only via **POST /agent/tools/call** (see `api/config/agentTools.js`).
 - **Runs Syra agents** — Solana agent, check-status, and create-signal for on-chain verified signals.
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
@@ -221,7 +221,7 @@ If neither env var is set, these routes return **503** with a message to configu
 
 ## Bankr (optional)
 
-The API can proxy **Bankr** (api.bankr.bot) so agents and MCP clients can check wallet balances, submit natural language prompts, and poll job results via x402. Uses a single **server-side** API key so the Syra agent shares one Bankr-backed wallet.
+The API integrates **Bankr** (api.bankr.bot) with a **server-side** `BANKR_API_KEY`. There are **no public** `/bankr/*` URLs on Syra. Use the Syra Agent: **GET /agent/tools** and **POST /agent/tools/call** with tool IDs `bankr-balances`, `bankr-prompt`, `bankr-job`, `bankr-job-cancel` (see `api/config/agentTools.js` and `api/libs/agentPartnerDirectTools.js`).
 
 ### Setup
 
@@ -231,16 +231,7 @@ In `api/.env` set:
 
 Optional: **`BANKR_API_URL`** (default `https://api.bankr.bot`), **`BANKR_TIMEOUT_MS`** (default 30000).
 
-### Endpoints (x402)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/bankr/balances` | Query param: `chains` (optional, e.g. `base,solana`). Returns wallet balances across chains. |
-| POST | `/bankr/prompt` | Body: `{ "prompt": "...", "threadId"?: "..." }`. Submits prompt; returns **202** with `jobId` and `threadId`. Poll `GET /bankr/job/:jobId` for result. |
-| GET | `/bankr/job/:jobId` | Returns job status and, when completed, `response` and `richData`. |
-| POST | `/bankr/job/:jobId/cancel` | Cancels a pending/processing job. |
-
-If `BANKR_API_KEY` is not set, these routes return **503**. MCP tools: `syra_v2_bankr_balances`, `syra_v2_bankr_prompt`, `syra_v2_bankr_job`, `syra_v2_bankr_job_cancel`.
+If `BANKR_API_KEY` is not set, agent tool calls return an error when those tools are invoked.
 
 ---
 
@@ -252,29 +243,13 @@ The **`/erc8004`** path is an alias for the same 8004scan router used at `/8004s
 
 ## Neynar (Farcaster API, optional)
 
-Proxy to **Neynar** Farcaster API for user lookup, feeds, cast, and search. Set **`NEYNAR_API_KEY`** in `api/.env` (get a key at [dev.neynar.com](https://dev.neynar.com)).
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/neynar/user` | Query: `username` or `fids` (comma-separated). |
-| GET | `/neynar/feed` | Query: `feed_type`, `fid`, `channel_id`, `limit`, `cursor`. |
-| GET | `/neynar/cast` | Query: `identifier` or `hash` (cast hash or URL). |
-| GET | `/neynar/search` | Query: `q` (required), `limit`, `channel_id`, `cursor`. |
-
-MCP tools: `syra_v2_neynar_user`, `syra_v2_neynar_feed`, `syra_v2_neynar_cast`, `syra_v2_neynar_search`.
+**Neynar** is integrated for Farcaster user, feed, cast, and search. Set **`NEYNAR_API_KEY`** in `api/.env` (get a key at [dev.neynar.com](https://dev.neynar.com)). There are **no public** `/neynar/*` URLs on Syra — use agent tool IDs `neynar-user`, `neynar-feed`, `neynar-cast`, `neynar-search` via **POST /agent/tools/call**.
 
 ---
 
 ## SIWA (Sign-In With Agent, optional)
 
-**SIWA** lets ERC-8004 agents authenticate with services. Set **`RECEIPT_SECRET`** (min 32 chars) and **`SIWA_RPC_URL`** (or **`ETH_RPC_URL`**) in `api/.env`. Optional **`SIWA_DOMAIN`** (default `api.syraa.fun`). Requires **`@buildersgarden/siwa`** (already in dependencies).
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/siwa/nonce` | Body: `{ "address", "agentId", "agentRegistry"? }`. Returns nonce for the agent to sign. |
-| POST | `/siwa/verify` | Body: `{ "message", "signature" }`. Verifies SIWA message and returns `valid`, `agentId`, optional `receipt`. |
-
-MCP tools: `syra_v2_siwa_nonce`, `syra_v2_siwa_verify`.
+**SIWA** lets ERC-8004 agents authenticate with services. Set **`RECEIPT_SECRET`** (min 32 chars) and **`SIWA_RPC_URL`** (or **`ETH_RPC_URL`**) in `api/.env`. Optional **`SIWA_DOMAIN`** (default `api.syraa.fun`). Requires **`@buildersgarden/siwa`** (already in dependencies). There are **no public** `/siwa/*` URLs on Syra — use agent tools **`siwa-nonce`** and **`siwa-verify`** via **POST /agent/tools/call**.
 
 ---
 

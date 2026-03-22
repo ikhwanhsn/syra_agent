@@ -66,9 +66,6 @@ export const X402_API_PRICE_NANSEN_USD = price(0.01);
 /** Nansen Premium / Smart Money tier — $0.05/call (counterparties, holders, leaderboards, smart-money netflow/holdings/dex-trades) */
 export const X402_API_PRICE_NANSEN_PREMIUM_USD = price(0.05);
 
-/** DexScreener endpoints */
-export const X402_API_PRICE_DEXSCREENER_USD = price(0.01);
-
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
@@ -76,9 +73,6 @@ export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 export const X402_API_PRICE_SQUID_ROUTE_USD = price(0.02);
 /** Squid Router cross-chain transaction status */
 export const X402_API_PRICE_SQUID_STATUS_USD = price(0.01);
-
-/** CoinGecko x402 (onchain search pools, trending pools, token by address) */
-export const X402_API_PRICE_COINGECKO_USD = price(0.01);
 
 /** EXA search (dynamic web search via Exa AI) */
 export const X402_API_PRICE_EXA_SEARCH_USD = price(0.01);
@@ -88,18 +82,6 @@ export const X402_API_PRICE_CRAWL_USD = price(0.05);
 
 /** Browser Use Cloud – AI browser task (run natural language task, get output) */
 export const X402_API_PRICE_BROWSER_USE_USD = price(0.08);
-
-/** CoinMarketCap x402 (quotes latest, listing latest, DEX pairs quotes, DEX search, MCP) — $0.01/request per CMC docs */
-export const X402_API_PRICE_COINMARKETCAP_USD = price(0.01);
-
-/** Kraken market (ticker, orderbook, ohlc, trades, status, server-time) via kraken-cli — no auth */
-export const X402_API_PRICE_KRAKEN_USD = price(0.01);
-
-/** OKX market (ticker, tickers, books, candles, trades, funding-rate, open-interest, etc.) via OKX API v5 — no auth */
-export const X402_API_PRICE_OKX_USD = price(0.01);
-
-/** KuCoin spot market (ticker, orderbook, trades, klines, stats, symbols, currencies, server-time) via KuCoin REST — no auth */
-export const X402_API_PRICE_KUCOIN_USD = price(0.01);
 
 /** 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection) */
 export const X402_API_PRICE_8004_USD = price(0.01);
@@ -122,21 +104,6 @@ export const X402_API_PRICE_X_USD = price(0.01);
 /** Giza Agent SDK — DeFi yield optimization (protocols, agent, portfolio, apr, activate, withdraw, etc.) */
 export const X402_API_PRICE_GIZA_USD = price(0.01);
 
-/** Messari x402 — standard tier (asset details, ATH, ROI) — upstream $0.10/req */
-export const X402_API_PRICE_MESSARI_USD = price(0.01);
-/** Messari x402 — AI chat completions — upstream $0.25/req */
-export const X402_API_PRICE_MESSARI_AI_USD = price(0.03);
-/** Messari x402 — signal/mindshare tier — upstream $0.35/req */
-export const X402_API_PRICE_MESSARI_SIGNAL_USD = price(0.04);
-/** Messari x402 — premium tier (signal assets, news, x-users) — upstream $0.55/req */
-export const X402_API_PRICE_MESSARI_PREMIUM_USD = price(0.06);
-/** Messari x402 — timeseries/events tier (asset timeseries, token unlocks events, fundraising) — upstream $0.15/req */
-export const X402_API_PRICE_MESSARI_TIMESERIES_USD = price(0.02);
-/** Messari x402 — vesting schedule tier — upstream $0.75/req */
-export const X402_API_PRICE_MESSARI_VESTING_USD = price(0.08);
-/** Messari x402 — fundraising investors tier — upstream $0.25/req */
-export const X402_API_PRICE_MESSARI_INVESTOR_USD = price(0.03);
-
 /** Purch Vault — marketplace for agent skills/knowledge/personas; $0.01 per API call (search, buy, download) */
 export const X402_API_PRICE_PURCH_VAULT_USD = price(0.01);
 
@@ -153,12 +120,10 @@ export const X402_API_PRICE_NEYNAR_USD = price(0.01);
 export const X402_API_PRICE_SIWA_USD = price(0.01);
 
 /**
- * Analytics summary: sum of all tools included in GET/POST /analytics/summary.
- * (dexscreener + token-statistic + trending-jupiter + smart-money + binance correlation)
+ * Analytics summary: sum of tools included in GET/POST /analytics/summary.
+ * (trending-jupiter + smart-money + binance correlation)
  */
 export const X402_API_PRICE_ANALYTICS_SUMMARY_USD =
-  X402_API_PRICE_DEXSCREENER_USD +
-  X402_API_PRICE_USD + // token-statistic
   X402_API_PRICE_USD + // trending-jupiter
   X402_API_PRICE_NANSEN_USD + // smart-money
   X402_API_PRICE_USD; // binance correlation
@@ -170,18 +135,12 @@ export const X402_DISPLAY_PRICE_NEWS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_RESEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_DEXSCREENER_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_COINGECKO_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_CRAWL_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BROWSER_USE_USD = 0.08 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_COINMARKETCAP_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_KRAKEN_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_OKX_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_KUCOIN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;
@@ -189,21 +148,12 @@ export const X402_DISPLAY_PRICE_HEYLOL_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BRAIN_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_X_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_GIZA_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_AI_USD = 0.03 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_SIGNAL_USD = 0.04 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_PREMIUM_USD = 0.06 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_TIMESERIES_USD = 0.02 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_VESTING_USD = 0.08 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_MESSARI_INVESTOR_USD = 0.03 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PURCH_VAULT_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_QUICKNODE_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BANKR_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NEYNAR_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SIWA_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
-  X402_DISPLAY_PRICE_DEXSCREENER_USD +
-  X402_DISPLAY_PRICE_USD +
   X402_DISPLAY_PRICE_USD +
   X402_DISPLAY_PRICE_NANSEN_USD +
   X402_DISPLAY_PRICE_USD;
