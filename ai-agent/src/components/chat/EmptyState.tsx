@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Code, Lightbulb, FileText, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Sparkles,
+  Code,
+  Lightbulb,
+  FileText,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { agentToolsApi, type AgentTool } from "@/lib/chatApi";
 import {
