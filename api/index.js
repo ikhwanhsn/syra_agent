@@ -156,6 +156,8 @@ const CORS_OPTIONS_REGULAR = {
     if (allowed.has(origin) || allowed.has(normalized)) return cb(null, true);
     return cb(null, false);
   },
+  // Required when browsers use fetch(..., { credentials: "include" }) — e.g. ai-agent trading experiment page
+  credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",

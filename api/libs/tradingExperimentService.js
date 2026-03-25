@@ -36,6 +36,56 @@ function mongoMatchSuite(suite) {
   return { suite: EXPERIMENT_SUITE_SECONDARY };
 }
 
+const EXPERIMENT_RUN_STATUSES = new Set([
+  "open",
+  "win",
+  "loss",
+  "expired",
+  "skipped_non_buy",
+  "skipped_invalid_levels",
+  "error",
+]);
+
+const MAX_RUN_FILTER_LEN = 64;
+
+/** @param {string} s */
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * @param {string} suiteNorm
+ * @param {{ status?: string; agentId?: number; symbol?: string; signal?: string }} f
+ * @returns {Record<string, unknown>}
+ */
+function buildListRunsFilter(suiteNorm, f) {
+  const suiteQ = mongoMatchSuite(suiteNorm);
+  /** @type {Record<string, unknown>[]} */
+  const parts = [suiteQ];
+
+  const st = typeof f.status === "string" ? f.status.trim() : "";
+  if (st && EXPERIMENT_RUN_STATUSES.has(st)) {
+    parts.push({ status: st });
+  }
+
+  if (f.agentId != null && Number.isInteger(f.agentId) && f.agentId >= 0 && f.agentId <= 99) {
+    parts.push({ agentId: f.agentId });
+  }
+
+  const sym = typeof f.symbol === "string" ? f.symbol.trim().slice(0, MAX_RUN_FILTER_LEN) : "";
+  if (sym.length > 0) {
+    parts.push({ symbol: new RegExp(escapeRegex(sym), "i") });
+  }
+
+  const sig = typeof f.signal === "string" ? f.signal.trim().slice(0, MAX_RUN_FILTER_LEN) : "";
+  if (sig.length > 0) {
+    parts.push({ clearSignal: new RegExp(escapeRegex(sig), "i") });
+  }
+
+  if (parts.length === 1) return parts[0];
+  return { $and: parts };
+}
+
 /** Max 1m candles fetched per open position per validation tick (10s default). */
 const VALIDATION_1M_BATCH = 150;
 
@@ -544,16 +594,30 @@ export async function getExperimentStats(opts = {}) {
 }
 
 /**
- * @param {{ limit?: number }} [opts]
+ * Paginated recent runs for a suite (newest first).
+ * @param {{
+ *   limit?: number;
+ *   offset?: number;
+ *   suite?: string;
+ *   status?: string;
+ *   agentId?: number;
+ *   symbol?: string;
+ *   signal?: string;
+ * }} [opts]
  */
 export async function listRecentRuns(opts = {}) {
   const limit = Math.min(200, Math.max(1, Number(opts.limit) || 50));
+  const offset = Math.max(0, Number(opts.offset) || 0);
   const suiteNorm = normalizeSuite(opts.suite);
-  const runs = await TradingExperimentRun.find({
-    ...mongoMatchSuite(suiteNorm),
-  })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
-  return runs;
+  const filter = buildListRunsFilter(suiteNorm, {
+    status: opts.status,
+    agentId: opts.agentId,
+    symbol: opts.symbol,
+    signal: opts.signal,
+  });
+  const [runs, total] = await Promise.all([
+    TradingExperimentRun.find(filter).sort({ createdAt: -1 }).skip(offset).limit(limit).lean(),
+    TradingExperimentRun.countDocuments(filter),
+  ]);
+  return { runs, total };
 }

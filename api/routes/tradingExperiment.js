@@ -63,8 +63,25 @@ export function createTradingExperimentRouter() {
   router.get("/runs", async (req, res) => {
     try {
       const limit = req.query.limit != null ? Number(req.query.limit) : 50;
-      const runs = await listRecentRuns({ limit, suite: req.query.suite });
-      res.json({ success: true, data: { runs } });
+      const offset = req.query.offset != null ? Number(req.query.offset) : 0;
+      const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
+      const symbol = typeof req.query.symbol === "string" ? req.query.symbol : "";
+      const signal = typeof req.query.signal === "string" ? req.query.signal : "";
+      let agentId = undefined;
+      if (req.query.agentId != null && String(req.query.agentId).trim() !== "") {
+        const n = Number(req.query.agentId);
+        if (Number.isInteger(n) && n >= 0 && n <= 99) agentId = n;
+      }
+      const { runs, total } = await listRecentRuns({
+        limit,
+        offset,
+        suite: req.query.suite,
+        ...(status ? { status } : {}),
+        ...(agentId !== undefined ? { agentId } : {}),
+        ...(symbol.trim() ? { symbol: symbol.trim() } : {}),
+        ...(signal.trim() ? { signal: signal.trim() } : {}),
+      });
+      res.json({ success: true, data: { runs, total } });
     } catch (e) {
       res.status(500).json({
         success: false,

@@ -4,6 +4,27 @@ const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/trading-age
 
 export type TradingExperimentSuiteId = "primary" | "secondary" | "multi_resource";
 
+export function normalizeExperimentSuite(raw: string | null | undefined): TradingExperimentSuiteId {
+  const s = String(raw || "primary")
+    .trim()
+    .toLowerCase();
+  if (s === "secondary" || s === "multi_resource" || s === "primary") return s;
+  return "primary";
+}
+
+/** Matches API / Mongo enum for experiment run `status`. */
+export const TRADING_EXPERIMENT_RUN_STATUSES = [
+  "open",
+  "win",
+  "loss",
+  "expired",
+  "skipped_non_buy",
+  "skipped_invalid_levels",
+  "error",
+] as const;
+
+export type TradingExperimentRunStatus = (typeof TRADING_EXPERIMENT_RUN_STATUSES)[number];
+
 export interface TradingExperimentSuiteMeta {
   id: TradingExperimentSuiteId;
   title: string;
@@ -31,6 +52,8 @@ export interface TradingExperimentAgentStats {
   winRate: number | null;
   winRatePct: number | null;
   openPositions: number;
+  /** Multi-resource suite: CEX key. */
+  cexSource?: string | null;
 }
 
 export interface TradingExperimentRunRow {
@@ -95,17 +118,42 @@ export async function fetchTradingExperimentStats(
   return body.data;
 }
 
-export async function fetchTradingExperimentRuns(
-  limit = 50,
-  suite: TradingExperimentSuiteId = "primary",
-): Promise<TradingExperimentRunRow[]> {
-  const q = new URLSearchParams({ limit: String(limit), suite });
+export async function fetchTradingExperimentRuns(options: {
+  limit?: number;
+  offset?: number;
+  suite?: TradingExperimentSuiteId;
+  status?: string;
+  agentId?: number;
+  symbol?: string;
+  signal?: string;
+} = {}): Promise<{ runs: TradingExperimentRunRow[]; total: number }> {
+  const limit = options.limit ?? 50;
+  const offset = options.offset ?? 0;
+  const suite = options.suite ?? "primary";
+  const q = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    suite,
+  });
+  const st = options.status?.trim();
+  if (st) q.set("status", st);
+  if (options.agentId != null && Number.isInteger(options.agentId)) {
+    q.set("agentId", String(options.agentId));
+  }
+  const sym = options.symbol?.trim();
+  if (sym) q.set("symbol", sym);
+  const sig = options.signal?.trim();
+  if (sig) q.set("signal", sig);
   const res = await fetch(`${base()}/runs?${q}`, { credentials: "include" });
-  const { ok, body } = await parseJson<{ success?: boolean; data?: { runs: TradingExperimentRunRow[] }; error?: string }>(res);
-  if (!ok || !body.success || !body.data?.runs) {
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { runs: TradingExperimentRunRow[]; total?: number };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data?.runs || typeof body.data.total !== "number") {
     throw new Error(body.error || "Failed to load runs");
   }
-  return body.data.runs;
+  return { runs: body.data.runs, total: body.data.total };
 }
 
 /**
