@@ -60,6 +60,7 @@ import { createHeyLolRouter } from "./routes/heylol.js";
 import { createBrainRouter } from "./routes/brain.js";
 import { createQuicknodeRouter } from "./routes/partner/quicknode/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
+import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
@@ -110,6 +111,7 @@ const CORS_ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:5174", // internal dashboard
   "http://localhost:5175",
+  "http://localhost:3001",
   "https://api.syraa.fun",
   "https://syraa.fun",
   "https://www.syraa.fun",
@@ -233,6 +235,7 @@ function isPreviewRoute(p) {
   if (p.startsWith("/preview")) return true;
   if (p.startsWith("/dashboard-summary")) return true;
   if (p.startsWith("/binance-ticker")) return true;
+  if (p.startsWith("/streamflow-locks")) return true;
   return false;
 }
 
@@ -496,7 +499,8 @@ app.use(
         p.startsWith("/og") ||
         p.startsWith("/info") ||
         p.startsWith("/playground") ||
-        p.startsWith("/prediction-game")
+        p.startsWith("/prediction-game") ||
+        p.startsWith("/streamflow-locks")
       );
     },
   ),
@@ -769,6 +773,7 @@ app.use("/prediction-game", createPredictionGameRouter());
 
 // Playground share: save/load request config by content-based slug (same request => same link)
 app.use("/playground", await createPlaygroundShareRouter());
+app.use("/streamflow-locks", await createStreamflowLocksRouter());
 
 // MPP / AgentCash discovery — canonical OpenAPI (https://www.mppscan.com/discovery)
 app.get("/openapi.json", (_req, res) => {
