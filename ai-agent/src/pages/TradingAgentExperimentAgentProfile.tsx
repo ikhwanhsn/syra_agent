@@ -141,29 +141,40 @@ export default function TradingAgentExperimentAgentProfile() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
-          <Link to={backHref}>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Experiment
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <FlaskConical className="w-5 h-5 text-primary shrink-0" />
-            <h1 className="text-lg font-semibold truncate">
-              {strategy ? strategy.name : agentIdValid ? `Agent #${parsedAgentId}` : "Agent profile"}
-            </h1>
+      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
+        <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Link to={backHref}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                title="Back to experiment"
+                aria-label="Back to experiment"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2 min-w-0">
+              <FlaskConical className="w-5 h-5 text-primary shrink-0" />
+              <h1 className="text-sm font-bold text-foreground truncate">
+                {strategy ? strategy.name : agentIdValid ? `Agent #${parsedAgentId}` : "Agent profile"}
+              </h1>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsDarkMode((d) => !d)}
-            aria-label="Toggle theme"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
-          <WalletNav />
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => setIsDarkMode((d) => !d)}
+              title={isDarkMode ? "Light mode" : "Dark mode"}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <WalletNav />
+          </div>
         </div>
       </header>
 
@@ -198,12 +209,11 @@ export default function TradingAgentExperimentAgentProfile() {
                 <p className="text-sm text-muted-foreground font-mono">Agent #{parsedAgentId}</p>
                 <h2 className="text-2xl font-semibold tracking-tight mt-1">{strategy.name}</h2>
                 <p className="text-sm text-muted-foreground mt-2">
-                  <span className="font-medium text-foreground">{strategy.token}</span> · {strategy.bar} bars ·{" "}
-                  {strategy.limit} klines lookback
-                  {strategy.source ? (
+                  {strategy.token} · {strategy.bar} · {strategy.limit} bars
+                  {agent.cexSource ? (
                     <>
                       {" "}
-                      · <span className="font-mono text-xs">{strategy.source}</span>
+                      · <span className="font-mono text-xs">{agent.cexSource}</span>
                     </>
                   ) : null}
                 </p>
