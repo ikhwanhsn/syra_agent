@@ -47,12 +47,22 @@ const tradingExperimentRunSchema = new mongoose.Schema(
     /** Trimmed snapshot for UI */
     summary: { type: mongoose.Schema.Types.Mixed, default: null },
     errorMessage: { type: String, default: null },
+    /** When suite is `user_custom`: link to {@link UserCustomStrategy} and owner wallet (normalized). */
+    userStrategyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "UserCustomStrategy",
+      default: null,
+      index: true,
+      sparse: true,
+    },
+    userWalletAddress: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true },
 );
 
 tradingExperimentRunSchema.index({ agentId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ suite: 1, agentId: 1, status: 1, createdAt: -1 });
+tradingExperimentRunSchema.index({ userStrategyId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ createdAt: -1 });
 
 const TradingExperimentRun =

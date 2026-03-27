@@ -10,9 +10,12 @@ import {
   normalizeSuite,
   getStrategiesForSuite,
 } from "../config/tradingExperimentStrategies.js";
+import UserCustomStrategy from "../models/UserCustomStrategy.js";
 import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSignalAnalysis.js";
 import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
 import { fetchExperimentValidation1mKlines } from "./cexExperimentKlines.js";
+import { extractSignalFields } from "./experimentSignalExtract.js";
+import { runUserCustomSignalCycle } from "./userCustomStrategyService.js";
 
 /**
  * @param {string | undefined | null} suite
@@ -150,30 +153,6 @@ function scanCandlesForTpSl(candles, stopLoss, firstTarget) {
 }
 
 /**
- * @param {Record<string, unknown>} report
- */
-function extractSignalFields(report) {
-  const qs = /** @type {Record<string, unknown> | undefined} */ (report?.quickSummary);
-  const mo = /** @type {Record<string, unknown> | undefined} */ (report?.marketOverview);
-  const clearSignal = String(qs?.signal ?? "HOLD").toUpperCase();
-  const entry = parseFloat(String(qs?.entry ?? ""));
-  const stopLoss = parseFloat(String(qs?.stopLoss ?? ""));
-  const firstTarget = parseFloat(String(qs?.firstTarget ?? ""));
-  const priceRaw = mo?.currentPrice;
-  const priceAtSignal = parseFloat(String(priceRaw ?? ""));
-  const confidence = qs?.confidence != null ? String(qs.confidence) : null;
-
-  return {
-    clearSignal,
-    entry: Number.isFinite(entry) ? entry : null,
-    stopLoss: Number.isFinite(stopLoss) ? stopLoss : null,
-    firstTarget: Number.isFinite(firstTarget) ? firstTarget : null,
-    priceAtSignal: Number.isFinite(priceAtSignal) ? priceAtSignal : null,
-    confidence,
-  };
-}
-
-/**
  * @param {unknown[][]} candles ascending
  * @param {number} stopLoss
  * @param {number} firstTarget
@@ -200,7 +179,7 @@ async function countOpenForAgent(agentId, suiteNorm) {
 }
 
 /**
- * Run all strategies for one suite once: create run rows (BUY → open; else skipped).
+ * Run all strategies for one suite once: create run rows (BUY → open; non-BUY except HOLD → skipped).
  * @param {{ suite?: string | null }} [opts]
  * @returns {Promise<{ created: number; errors: string[]; suite: string }>}
  */
@@ -254,6 +233,11 @@ export async function runExperimentSignalCycle(opts = {}) {
         reasoning: report?.tradingRecommendation?.reasoning,
         action: report?.tradingRecommendation?.action,
       };
+
+      if (ex.clearSignal === "HOLD") {
+        // HOLD means no actionable position; skip persistence to keep experiment ledger focused.
+        continue;
+      }
 
       if (ex.clearSignal !== "BUY") {
         await TradingExperimentRun.create({
@@ -370,12 +354,32 @@ export async function resolveOpenExperimentRuns() {
 
   for (const run of openRuns) {
     try {
-      const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
-      const lookAhead = strat?.lookAheadBars ?? 48;
+      /** @type {number} */
+      let lookAhead = 48;
 
-      const cexNorm = run.cexSource ? normalizeSignalCexSource(run.cexSource) : null;
-      if (cexNorm && cexNorm !== "binance") {
-        continue;
+      if (run.userStrategyId) {
+        const us = await UserCustomStrategy.findById(run.userStrategyId).lean();
+        if (!us) {
+          await TradingExperimentRun.updateOne(
+            { _id: run._id, status: "open" },
+            {
+              status: "error",
+              errorMessage: "custom strategy removed",
+              resolvedAt: new Date(),
+            },
+          );
+          resolved += 1;
+          continue;
+        }
+        lookAhead = us.lookAheadBars ?? 48;
+      } else {
+        const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
+        lookAhead = strat?.lookAheadBars ?? 48;
+
+        const cexNorm = run.cexSource ? normalizeSignalCexSource(run.cexSource) : null;
+        if (cexNorm && cexNorm !== "binance") {
+          continue;
+        }
       }
 
       if (run.anchorCloseMs == null || run.stopLoss == null || run.firstTarget == null) {
@@ -437,8 +441,33 @@ export async function resolveOpenExperimentRunsIncremental1m() {
   for (const run of openRuns) {
     try {
       touched += 1;
-      const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
-      const maxHoldMs = maxHoldMsForStrategy(strat);
+
+      /** @type {{ bar?: string; lookAheadBars?: number }} */
+      let stratCfg;
+      if (run.userStrategyId) {
+        const us = await UserCustomStrategy.findById(run.userStrategyId).lean();
+        if (!us) {
+          const u = await TradingExperimentRun.updateOne(
+            { _id: run._id, status: "open" },
+            {
+              $set: {
+                status: "error",
+                errorMessage: "custom strategy removed",
+                resolvedAt: new Date(),
+              },
+            },
+          );
+          if (u.modifiedCount) resolved += 1;
+          continue;
+        }
+        stratCfg = { bar: us.bar, lookAheadBars: us.lookAheadBars };
+      } else {
+        const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
+        stratCfg = strat
+          ? { bar: strat.bar, lookAheadBars: strat.lookAheadBars }
+          : { bar: run.bar, lookAheadBars: 48 };
+      }
+      const maxHoldMs = maxHoldMsForStrategy(stratCfg);
 
       if (run.anchorCloseMs == null || run.stopLoss == null || run.firstTarget == null) {
         const u = await TradingExperimentRun.updateOne(
@@ -539,11 +568,13 @@ export async function runFullExperimentCycle() {
   errors.push(...res.errors);
   const sig = await runAllExperimentSignalCycles();
   errors.push(...sig.errors);
+  const userSig = await runUserCustomSignalCycle();
+  errors.push(...userSig.errors);
   return {
-    sampled: sig.created,
+    sampled: sig.created + userSig.created,
     resolved: res.resolved,
     errors,
-    bySuite: sig.bySuite,
+    bySuite: { ...sig.bySuite, user_custom: userSig.created },
   };
 }
 

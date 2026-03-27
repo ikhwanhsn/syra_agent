@@ -60,6 +60,9 @@ export interface TradingExperimentRunRow {
   _id: string;
   suite?: string | null;
   cexSource?: string | null;
+  /** User custom strategy run */
+  userStrategyId?: string | null;
+  userWalletAddress?: string | null;
   agentId: number;
   agentName: string;
   token: string;
@@ -242,4 +245,142 @@ export async function postTradingExperimentSignalTick(
     throw new Error(body.error || "Signal tick failed");
   }
   return body.data;
+}
+
+/** Max custom strategy agents per connected wallet (enforced server-side). */
+export const MAX_USER_CUSTOM_STRATEGIES_PER_WALLET = 5;
+
+export interface UserCustomStrategyDoc {
+  _id: string;
+  walletAddress: string;
+  name: string;
+  token: string;
+  bar: string;
+  limit: number;
+  lookAheadBars: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UserCustomStrategyAgentStats {
+  strategyId: string;
+  name: string;
+  token: string;
+  bar: string;
+  limit: number;
+  lookAheadBars: number;
+  wins: number;
+  losses: number;
+  decided: number;
+  winRate: number | null;
+  winRatePct: number | null;
+  openPositions: number;
+}
+
+export async function fetchUserCustomStrategies(walletAddress: string): Promise<{
+  strategies: UserCustomStrategyDoc[];
+  count: number;
+  maxAgents: number;
+}> {
+  const q = new URLSearchParams({ walletAddress });
+  const res = await fetch(`${base()}/custom/strategies?${q}`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { strategies: UserCustomStrategyDoc[]; count: number; maxAgents: number };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data?.strategies) {
+    throw new Error(body.error || "Failed to load custom strategies");
+  }
+  return {
+    strategies: body.data.strategies,
+    count: body.data.count,
+    maxAgents: body.data.maxAgents,
+  };
+}
+
+export async function createUserCustomStrategy(payload: {
+  walletAddress: string;
+  name: string;
+  token: string;
+  bar: string;
+  limit: number;
+  lookAheadBars: number;
+}): Promise<UserCustomStrategyDoc> {
+  const res = await fetch(`${base()}/custom/strategies`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { strategy: UserCustomStrategyDoc };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data?.strategy) {
+    throw new Error(body.error || "Failed to create strategy");
+  }
+  return body.data.strategy;
+}
+
+export async function deleteUserCustomStrategy(
+  walletAddress: string,
+  strategyId: string,
+): Promise<void> {
+  const q = new URLSearchParams({ walletAddress });
+  const res = await fetch(`${base()}/custom/strategies/${encodeURIComponent(strategyId)}?${q}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const { ok, body } = await parseJson<{ success?: boolean; error?: string }>(res);
+  if (!ok || !body.success) {
+    throw new Error(body.error || "Failed to delete strategy");
+  }
+}
+
+export async function fetchUserCustomStats(walletAddress: string): Promise<{
+  wallet: string;
+  maxAgents: number;
+  agents: UserCustomStrategyAgentStats[];
+}> {
+  const q = new URLSearchParams({ walletAddress });
+  const res = await fetch(`${base()}/custom/stats?${q}`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { wallet: string; maxAgents: number; agents: UserCustomStrategyAgentStats[] };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data?.agents) {
+    throw new Error(body.error || "Failed to load custom stats");
+  }
+  return body.data;
+}
+
+export async function fetchUserCustomRuns(options: {
+  walletAddress: string;
+  limit?: number;
+  offset?: number;
+  strategyId?: string;
+  status?: string;
+}): Promise<{ runs: TradingExperimentRunRow[]; total: number }> {
+  const q = new URLSearchParams({
+    walletAddress: options.walletAddress,
+    limit: String(options.limit ?? 20),
+    offset: String(options.offset ?? 0),
+  });
+  const st = options.status?.trim();
+  if (st) q.set("status", st);
+  const sid = options.strategyId?.trim();
+  if (sid) q.set("strategyId", sid);
+  const res = await fetch(`${base()}/custom/runs?${q}`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: { runs: TradingExperimentRunRow[]; total?: number };
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data?.runs || typeof body.data.total !== "number") {
+    throw new Error(body.error || "Failed to load custom runs");
+  }
+  return { runs: body.data.runs, total: body.data.total };
 }

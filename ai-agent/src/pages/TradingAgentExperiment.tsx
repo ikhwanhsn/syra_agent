@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -14,6 +14,8 @@ import {
   Play,
   Sun,
   Moon,
+  Users,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
@@ -25,11 +27,18 @@ import {
   TRADING_EXPERIMENT_RUN_STATUSES,
   postTradingExperimentRunCycle,
   postTradingExperimentValidateTick,
+  MAX_USER_CUSTOM_STRATEGIES_PER_WALLET,
+  createUserCustomStrategy,
+  deleteUserCustomStrategy,
+  fetchUserCustomStats,
+  fetchUserCustomRuns,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
   type TradingExperimentSuiteId,
   type TradingExperimentSuiteMeta,
+  type UserCustomStrategyAgentStats,
 } from "@/lib/tradingExperimentApi";
+import { useWalletContext } from "@/contexts/WalletContext";
 import {
   Table,
   TableBody,
@@ -49,7 +58,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { TradingExperimentChartsPanel } from "@/components/experiment/TradingExperimentChartsPanel";
+import { ExperimentTokenCombobox } from "@/components/experiment/ExperimentTokenCombobox";
 
 const RUNS_PAGE_SIZE = 20;
 const CHART_RUN_SAMPLE = 200;
@@ -58,7 +75,7 @@ const RUN_FILTER_ALL = "all";
 /** Resolved wins+losses at or above this count use full win-rate ranking. */
 const LEADERBOARD_MIN_DECIDED = 5;
 
-type PageView = "lab" | "leaderboard";
+type PageView = "lab" | "leaderboard" | "charts" | "my_agents";
 
 function leaderboardTier(a: TradingExperimentAgentStats): 0 | 1 | 2 {
   if (a.decided === 0) return 2;
@@ -125,6 +142,27 @@ export default function TradingAgentExperiment() {
       ? import.meta.env.VITE_TRADING_EXPERIMENT_CRON_SECRET
       : undefined;
 
+  const { publicKey, baseConnected, baseAddress, effectiveChain } = useWalletContext();
+  const walletAddress = useMemo(() => {
+    if (effectiveChain === "base" && baseConnected && baseAddress) return baseAddress;
+    if (publicKey) return publicKey.toBase58();
+    return null;
+  }, [effectiveChain, baseConnected, baseAddress, publicKey]);
+
+  const [myAgents, setMyAgents] = useState<UserCustomStrategyAgentStats[]>([]);
+  const [myRuns, setMyRuns] = useState<TradingExperimentRunRow[]>([]);
+  const [myRunsTotal, setMyRunsTotal] = useState(0);
+  const [myLoading, setMyLoading] = useState(false);
+  const [myError, setMyError] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formToken, setFormToken] = useState("bitcoin");
+  const [formBar, setFormBar] = useState("1h");
+  const [formLimit, setFormLimit] = useState("200");
+  const [formLookAhead, setFormLookAhead] = useState("48");
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
   useEffect(() => {
     if (symbolDebounceFirst.current) {
       symbolDebounceFirst.current = false;
@@ -152,6 +190,10 @@ export default function TradingAgentExperiment() {
   }, [signalInput]);
 
   const load = useCallback(async () => {
+    if (pageView === "my_agents") {
+      setLoading(false);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -192,6 +234,33 @@ export default function TradingAgentExperiment() {
     debouncedSymbol,
     debouncedSignal,
   ]);
+
+  const loadMyAgents = useCallback(async () => {
+    if (!walletAddress) {
+      setMyAgents([]);
+      setMyRuns([]);
+      setMyRunsTotal(0);
+      return;
+    }
+    setMyError(null);
+    setMyLoading(true);
+    try {
+      const stats = await fetchUserCustomStats(walletAddress);
+      setMyAgents(stats.agents);
+      const runData = await fetchUserCustomRuns({ walletAddress, limit: 15 });
+      setMyRuns(runData.runs);
+      setMyRunsTotal(runData.total);
+    } catch (e) {
+      setMyError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMyLoading(false);
+    }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    if (pageView !== "my_agents") return;
+    loadMyAgents();
+  }, [pageView, loadMyAgents]);
 
   const rankedAgents = useMemo(() => sortAgentsForLeaderboard(agents), [agents]);
 
@@ -261,6 +330,54 @@ export default function TradingAgentExperiment() {
 
   const agentProfileHref = (agentId: number) =>
     `/experiment/trading-agent/agent/${agentId}?suite=${encodeURIComponent(activeSuite)}`;
+
+  const onCreateMyStrategy = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!walletAddress) return;
+    const limit = Number(formLimit);
+    const lookAheadBars = Number(formLookAhead);
+    if (!formName.trim()) {
+      setMyError("Name is required");
+      return;
+    }
+    if (!Number.isFinite(limit) || !Number.isFinite(lookAheadBars)) {
+      setMyError("Limit and look-ahead bars must be numbers");
+      return;
+    }
+    setCreating(true);
+    setMyError(null);
+    try {
+      await createUserCustomStrategy({
+        walletAddress,
+        name: formName.trim(),
+        token: formToken.trim() || "bitcoin",
+        bar: formBar,
+        limit,
+        lookAheadBars,
+      });
+      setFormName("");
+      setCreateModalOpen(false);
+      await loadMyAgents();
+    } catch (err) {
+      setMyError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const onDeleteMyStrategy = async (strategyId: string) => {
+    if (!walletAddress) return;
+    setDeletingId(strategyId);
+    setMyError(null);
+    try {
+      await deleteUserCustomStrategy(walletAddress, strategyId);
+      await loadMyAgents();
+    } catch (err) {
+      setMyError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const onRunCycle = async () => {
     setRunningCycle(true);
@@ -355,6 +472,10 @@ export default function TradingAgentExperiment() {
             <TabsTrigger value="charts" className="text-xs sm:text-sm gap-1.5">
               <BarChart3 className="h-3.5 w-3.5 opacity-70" aria-hidden />
               Charts
+            </TabsTrigger>
+            <TabsTrigger value="my_agents" className="text-xs sm:text-sm gap-1.5">
+              <Users className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              My agents
             </TabsTrigger>
           </TabsList>
 
@@ -886,6 +1007,238 @@ export default function TradingAgentExperiment() {
               loading={loading}
               agentProfileHref={agentProfileHref}
             />
+          </TabsContent>
+
+          <TabsContent value="my_agents" className="mt-6 space-y-8 outline-none">
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary shrink-0" aria-hidden />
+                Your strategy agents
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
+                Create up to{" "}
+                <strong className="text-foreground">{MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}</strong> custom agents per
+                wallet. Each uses Binance spot OHLC + the same Syra engine as the lab; the server samples signals on the
+                hourly job and validates TP/SL on 1m data with the global experiment cron. Win rate = wins / (wins +
+                losses).
+              </p>
+            </section>
+
+            {!walletAddress ? (
+              <p className="text-sm text-muted-foreground border border-dashed border-border rounded-lg px-4 py-6 text-center">
+                Connect your Solana or Base wallet to create agents and view stats.
+              </p>
+            ) : null}
+
+            {walletAddress ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
+                <p className="text-xs text-muted-foreground">
+                  Agents: {myAgents.length} / {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => setCreateModalOpen(true)}
+                  disabled={myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                >
+                  Create agent
+                </Button>
+              </div>
+            ) : null}
+
+            <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create strategy agent</DialogTitle>
+                  <DialogDescription>
+                    Build one custom strategy for this wallet. Limit: {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} agents.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onCreateMyStrategy} className="space-y-4">
+                  {myError ? (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {myError}
+                    </div>
+                  ) : null}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="my-agent-name">Name</Label>
+                      <Input
+                        id="my-agent-name"
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        placeholder="e.g. My BTC 1h swing"
+                        maxLength={80}
+                        required
+                      />
+                    </div>
+                    <ExperimentTokenCombobox
+                      id="my-agent-token"
+                      label="Token"
+                      value={formToken}
+                      onChange={setFormToken}
+                    />
+                    <div className="space-y-2">
+                      <Label>Bar</Label>
+                      <Select value={formBar} onValueChange={setFormBar}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["15m", "30m", "1h", "4h", "1d"].map((b) => (
+                            <SelectItem key={b} value={b}>
+                              {b}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="my-agent-limit">Kline limit</Label>
+                      <Input
+                        id="my-agent-limit"
+                        type="number"
+                        min={50}
+                        max={500}
+                        value={formLimit}
+                        onChange={(e) => setFormLimit(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="my-agent-la">Look-ahead bars</Label>
+                      <Input
+                        id="my-agent-la"
+                        type="number"
+                        min={1}
+                        max={720}
+                        value={formLookAhead}
+                        onChange={(e) => setFormLookAhead(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={creating || myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                    >
+                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Create agent
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {walletAddress ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold">Win rates</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadMyAgents()}
+                    disabled={myLoading}
+                    className="gap-2"
+                  >
+                    {myLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Refresh
+                  </Button>
+                </div>
+                {myLoading && myAgents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                  </p>
+                ) : null}
+                {!myLoading && myAgents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground border border-dashed border-border rounded-lg px-4 py-6 text-center">
+                    No custom agents yet. Click "Create agent" to add one.
+                  </p>
+                ) : null}
+                {myAgents.length > 0 ? (
+                  <div className="rounded-md border border-border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Pair</TableHead>
+                          <TableHead>Bar</TableHead>
+                          <TableHead className="text-right">W</TableHead>
+                          <TableHead className="text-right">L</TableHead>
+                          <TableHead className="text-right">Win %</TableHead>
+                          <TableHead className="text-right">Open</TableHead>
+                          <TableHead className="w-12 text-right" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {myAgents.map((a: UserCustomStrategyAgentStats) => (
+                          <TableRow key={a.strategyId}>
+                            <TableCell className="font-medium">{a.name}</TableCell>
+                            <TableCell className="text-muted-foreground">{a.token}</TableCell>
+                            <TableCell className="text-muted-foreground">{a.bar}</TableCell>
+                            <TableCell className="text-right tabular-nums">{a.wins}</TableCell>
+                            <TableCell className="text-right tabular-nums">{a.losses}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">
+                              {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{a.openPositions}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                title="Delete agent"
+                                disabled={deletingId === a.strategyId || a.openPositions > 0}
+                                onClick={() => onDeleteMyStrategy(a.strategyId)}
+                              >
+                                {deletingId === a.strategyId ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Delete is disabled while an experiment run is <strong className="text-foreground">open</strong> for that
+                  agent.
+                </p>
+              </div>
+            ) : null}
+
+            {walletAddress && myRuns.length > 0 ? (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold">Recent runs ({myRunsTotal})</h3>
+                <div className="rounded-md border border-border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Signal</TableHead>
+                        <TableHead>Symbol</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myRuns.map((r) => (
+                        <TableRow key={r._id}>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {formatTime(r.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-xs">{statusOptionLabel(r.status)}</TableCell>
+                          <TableCell className="font-mono text-xs">{r.clearSignal}</TableCell>
+                          <TableCell className="text-xs">{r.symbol}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ) : null}
           </TabsContent>
         </Tabs>
       </main>

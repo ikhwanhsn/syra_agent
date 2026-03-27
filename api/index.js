@@ -882,11 +882,20 @@ app.listen(PORT, () => {
       .catch((err) => console.warn("[Trading experiment] validate failed:", err?.message || err));
 
   const runSignal = () =>
-    import("./libs/tradingExperimentService.js")
-      .then(({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles())
-      .then((out) => {
+    Promise.all([
+      import("./libs/tradingExperimentService.js").then(({ runAllExperimentSignalCycles }) =>
+        runAllExperimentSignalCycles(),
+      ),
+      import("./libs/userCustomStrategyService.js").then(({ runUserCustomSignalCycle }) =>
+        runUserCustomSignalCycle(),
+      ),
+    ])
+      .then(([out, userOut]) => {
         if (out.errors?.length) {
           console.warn("[Trading experiment] signal errors:", out.errors.slice(0, 3));
+        }
+        if (userOut.errors?.length) {
+          console.warn("[Trading experiment] user custom signal errors:", userOut.errors.slice(0, 3));
         }
       })
       .catch((err) => console.warn("[Trading experiment] signal failed:", err?.message || err));

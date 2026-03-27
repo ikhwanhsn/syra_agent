@@ -8,6 +8,8 @@ export const EXPERIMENT_SUITE_PRIMARY = "primary";
 export const EXPERIMENT_SUITE_SECONDARY = "secondary";
 /** All /signal CEX sources × multiple bars; per-venue OHLC + same engine; isolated ledger. */
 export const EXPERIMENT_SUITE_MULTI_RESOURCE = "multi_resource";
+/** Wallet-owned custom strategies; isolated ledger + runs reference {@link UserCustomStrategy}. */
+export const EXPERIMENT_SUITE_USER_CUSTOM = "user_custom";
 
 export const TRADING_EXPERIMENT_STRATEGIES = Object.freeze([
   { id: 0, name: "BTC swing 1h", token: "bitcoin", bar: "1h", limit: 200, lookAheadBars: 48 },

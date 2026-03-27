@@ -18,6 +18,14 @@ import {
   normalizeSuite,
   EXPERIMENT_SUITES_META,
 } from "../config/tradingExperimentStrategies.js";
+import {
+  createUserCustomStrategy,
+  listUserCustomStrategies,
+  deleteUserCustomStrategy,
+  getUserCustomStrategyStats,
+  listUserCustomRuns,
+  runUserCustomSignalCycle,
+} from "../libs/userCustomStrategyService.js";
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.TRADING_EXPERIMENT_CRON_SECRET || "").trim();
@@ -54,6 +62,96 @@ export function createTradingExperimentRouter() {
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  /** Wallet-scoped custom strategies (max 5 per wallet). */
+  router.get("/custom/strategies", async (req, res) => {
+    try {
+      const walletAddress =
+        typeof req.query.walletAddress === "string" ? req.query.walletAddress : "";
+      const data = await listUserCustomStrategies(walletAddress);
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(400).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/custom/strategies", async (req, res) => {
+    try {
+      const walletAddress =
+        typeof req.body?.walletAddress === "string" ? req.body.walletAddress : "";
+      const created = await createUserCustomStrategy(walletAddress, req.body || {});
+      res.status(201).json({ success: true, data: { strategy: created } });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const status =
+        msg.includes("Maximum") && msg.includes("custom strategy") ? 409 : 400;
+      res.status(status).json({ success: false, error: msg });
+    }
+  });
+
+  router.delete("/custom/strategies/:id", async (req, res) => {
+    try {
+      const walletAddress =
+        typeof req.query.walletAddress === "string"
+          ? req.query.walletAddress
+          : typeof req.body?.walletAddress === "string"
+            ? req.body.walletAddress
+            : "";
+      const data = await deleteUserCustomStrategy(walletAddress, req.params.id);
+      res.json({ success: true, data });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const status =
+        msg.includes("Cannot delete") || msg.includes("open")
+          ? 409
+          : msg.includes("not found")
+            ? 404
+            : 400;
+      res.status(status).json({ success: false, error: msg });
+    }
+  });
+
+  router.get("/custom/stats", async (req, res) => {
+    try {
+      const walletAddress =
+        typeof req.query.walletAddress === "string" ? req.query.walletAddress : "";
+      const data = await getUserCustomStrategyStats(walletAddress);
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(400).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.get("/custom/runs", async (req, res) => {
+    try {
+      const walletAddress =
+        typeof req.query.walletAddress === "string" ? req.query.walletAddress : "";
+      const limit = req.query.limit != null ? Number(req.query.limit) : 50;
+      const offset = req.query.offset != null ? Number(req.query.offset) : 0;
+      const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
+      const strategyId =
+        typeof req.query.strategyId === "string" ? req.query.strategyId.trim() : "";
+      const { runs, total } = await listUserCustomRuns({
+        walletRaw: walletAddress,
+        limit,
+        offset,
+        ...(status ? { status } : {}),
+        ...(strategyId ? { strategyId } : {}),
+      });
+      res.json({ success: true, data: { runs, total } });
+    } catch (e) {
+      res.status(400).json({
         success: false,
         error: e instanceof Error ? e.message : String(e),
       });
@@ -123,10 +221,23 @@ export function createTradingExperimentRouter() {
         raw == null || raw === ""
           ? "all"
           : String(raw).trim().toLowerCase();
-      const data =
-        mode === "all" || mode === "both"
-          ? await runAllExperimentSignalCycles()
-          : await runExperimentSignalCycle({ suite: raw });
+      if (mode === "all" || mode === "both") {
+        const [out, userOut] = await Promise.all([
+          runAllExperimentSignalCycles(),
+          runUserCustomSignalCycle(),
+        ]);
+        const errors = [...out.errors, ...userOut.errors];
+        res.json({
+          success: true,
+          data: {
+            created: out.created + userOut.created,
+            errors,
+            bySuite: { ...out.bySuite, user_custom: userOut.created },
+          },
+        });
+        return;
+      }
+      const data = await runExperimentSignalCycle({ suite: raw });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
