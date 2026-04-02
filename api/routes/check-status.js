@@ -1,8 +1,12 @@
 import express from "express";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_CHECK_STATUS_USD } from "../config/x402Pricing.js";
+import {
+  requirePaymentSapEscrowOrExact,
+  settleSapEscrowOrFacilitator,
+} from "../utils/sapEscrowPayment.js";
 
-const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader, runBuybackForRequest } = await getV2Payment();
+const { requirePayment } = await getV2Payment();
 
 const statusPayload = { status: "ok", message: "Check status server is running" };
 
@@ -24,31 +28,26 @@ export async function createCheckStatusRouter() {
     router.get("/dev", (_req, res) => res.status(200).json(statusPayload));
   }
 
-  // GET endpoint with x402scan compatible schema
-  router.get(
-    "/",
-    requirePayment({ ...paymentOptions, method: "GET" }),
-    async (req, res) => {
-      const { payload, accepted } = req.x402Payment;
-      const settle = await settlePaymentWithFallback(payload, accepted);
-      res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
-      runBuybackForRequest(req);
-      res.status(200).json(statusPayload);
-    }
-  );
+  const payGet = requirePaymentSapEscrowOrExact(requirePayment, { ...paymentOptions, method: "GET" });
+  const payPost = requirePaymentSapEscrowOrExact(requirePayment, { ...paymentOptions, method: "POST" });
 
-  // POST endpoint
-  router.post(
-    "/",
-    requirePayment({ ...paymentOptions, method: "POST" }),
-    async (req, res) => {
-      const { payload, accepted } = req.x402Payment;
-      const settle = await settlePaymentWithFallback(payload, accepted);
-      res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
-      runBuybackForRequest(req);
-      res.status(200).json(statusPayload);
-    }
-  );
+  router.get("/", payGet, async (req, res) => {
+    await settleSapEscrowOrFacilitator(
+      res,
+      req,
+      JSON.stringify({ resource: "/check-status", method: "GET" })
+    );
+    res.status(200).json(statusPayload);
+  });
+
+  router.post("/", payPost, async (req, res) => {
+    await settleSapEscrowOrFacilitator(
+      res,
+      req,
+      JSON.stringify({ resource: "/check-status", method: "POST" })
+    );
+    res.status(200).json(statusPayload);
+  });
 
   return router;
 }

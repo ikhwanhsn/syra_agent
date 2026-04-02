@@ -81,7 +81,7 @@ function isFacilitatorErrorFromThrow(e) {
   return false;
 }
 
-function getPaymentSignatureHeaderFromReq(req) {
+export function getPaymentSignatureHeaderFromReq(req) {
   const h =
     String(req.header("PAYMENT-SIGNATURE") || req.header("payment-signature") || "").trim() ||
     String(req.header("x-payment") || req.header("X-Payment") || "").trim();

@@ -331,8 +331,8 @@ export const DashboardPreview = () => {
             <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
               <defs>
                 <linearGradient id="colorScorePos" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="hsl(190, 100%, 50%)" stopOpacity={0} />
-                  <stop offset="100%" stopColor="hsl(220, 100%, 60%)" stopOpacity={0.4} />
+                  <stop offset="0%" stopColor="hsl(190, 95%, 44%)" stopOpacity={0} />
+                  <stop offset="100%" stopColor="hsl(220, 95%, 52%)" stopOpacity={0.4} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="index" hide />
@@ -356,7 +356,7 @@ export const DashboardPreview = () => {
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="hsl(200, 100%, 55%)"
+                stroke="hsl(200, 95%, 48%)"
                 strokeWidth={2}
                 dot={false}
                 animationDuration={1000}

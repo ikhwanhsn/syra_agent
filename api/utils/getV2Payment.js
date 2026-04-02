@@ -17,5 +17,6 @@ export async function getV2Payment() {
     usdToMicroUsdc: mod.usdToMicroUsdc,
     microUsdcToUsd: mod.microUsdcToUsd,
     getX402Handler: mod.getX402Handler,
+    getPaymentSignatureHeaderFromReq: mod.getPaymentSignatureHeaderFromReq,
   };
 }

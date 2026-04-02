@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
   BarChart3,
   ChevronLeft,
   ChevronRight,
@@ -93,42 +96,248 @@ function leaderboardTierFromDecided(decided: number): 0 | 1 | 2 {
   return 0;
 }
 
-function leaderboardTier(a: TradingExperimentAgentStats): 0 | 1 | 2 {
-  return leaderboardTierFromDecided(a.decided);
+type SortOrder = "asc" | "desc";
+
+type LabSortKey = "id" | "name" | "cex" | "pair" | "bar" | "wins" | "losses" | "winRate" | "open";
+
+type LeaderboardSortKey =
+  | "rank"
+  | "agent"
+  | "pair"
+  | "bar"
+  | "wins"
+  | "losses"
+  | "winRate"
+  | "open"
+  | "sample";
+
+type MyAgentsWinSortKey = "name" | "pair" | "bar" | "wins" | "losses" | "winRate" | "open";
+
+type MyRunsSortKey = "time" | "status" | "signal" | "symbol";
+
+function defaultOrderLab(key: LabSortKey): SortOrder {
+  if (key === "name" || key === "pair" || key === "bar" || key === "cex") return "asc";
+  return "desc";
 }
 
-function leaderboardTierCustom(a: UserCustomStrategyAgentStats): 0 | 1 | 2 {
-  return leaderboardTierFromDecided(a.decided);
+function defaultOrderLeaderboard(key: LeaderboardSortKey): SortOrder {
+  if (key === "agent" || key === "pair" || key === "bar") return "asc";
+  return "desc";
 }
 
-function sortAgentsForLeaderboard(list: TradingExperimentAgentStats[]): TradingExperimentAgentStats[] {
+function defaultOrderMyAgentsWin(key: MyAgentsWinSortKey): SortOrder {
+  if (key === "name" || key === "pair" || key === "bar") return "asc";
+  return "desc";
+}
+
+function defaultOrderMyRuns(key: MyRunsSortKey): SortOrder {
+  if (key === "time") return "desc";
+  return "asc";
+}
+
+function applyOrder(c: number, order: SortOrder): number {
+  return order === "desc" ? -c : c;
+}
+
+function sortLabAgents(
+  list: TradingExperimentAgentStats[],
+  key: LabSortKey,
+  order: SortOrder,
+): TradingExperimentAgentStats[] {
   return [...list].sort((x, y) => {
-    const tx = leaderboardTier(x);
-    const ty = leaderboardTier(y);
-    if (tx !== ty) return tx - ty;
-    const rx = x.winRate ?? -1;
-    const ry = y.winRate ?? -1;
-    if (ry !== rx) return ry - rx;
-    if (y.wins !== x.wins) return y.wins - x.wins;
-    if (y.decided !== x.decided) return y.decided - x.decided;
+    let cmp = 0;
+    switch (key) {
+      case "id":
+        cmp = x.agentId - y.agentId;
+        break;
+      case "name":
+        cmp = x.name.localeCompare(y.name);
+        break;
+      case "cex":
+        cmp = (x.cexSource ?? "").localeCompare(y.cexSource ?? "");
+        break;
+      case "pair":
+        cmp = x.token.localeCompare(y.token);
+        break;
+      case "bar":
+        cmp = x.bar.localeCompare(y.bar);
+        break;
+      case "wins":
+        cmp = x.wins - y.wins;
+        break;
+      case "losses":
+        cmp = x.losses - y.losses;
+        break;
+      case "winRate": {
+        const nx = x.winRate ?? -1;
+        const ny = y.winRate ?? -1;
+        cmp = nx - ny;
+        break;
+      }
+      case "open":
+        cmp = x.openPositions - y.openPositions;
+        break;
+      default:
+        cmp = 0;
+    }
+    if (cmp !== 0) return applyOrder(cmp, order);
     return x.agentId - y.agentId;
   });
 }
 
-function sortCustomAgentsForLeaderboard(
+function sortLeaderboardRows(
+  list: LeaderboardViewRow[],
+  key: LeaderboardSortKey,
+  order: SortOrder,
+  scope: LeaderboardScope,
+): LeaderboardViewRow[] {
+  return [...list].sort((a, b) => {
+    let cmp = 0;
+    switch (key) {
+      case "rank":
+        if (scope === "global") {
+          cmp = Number(a.idLabel) - Number(b.idLabel);
+        } else {
+          cmp = a.idLabel.localeCompare(b.idLabel);
+        }
+        break;
+      case "agent":
+        cmp = a.name.localeCompare(b.name);
+        break;
+      case "pair":
+        cmp = a.token.localeCompare(b.token);
+        break;
+      case "bar":
+        cmp = a.bar.localeCompare(b.bar);
+        break;
+      case "wins":
+        cmp = a.wins - b.wins;
+        break;
+      case "losses":
+        cmp = a.losses - b.losses;
+        break;
+      case "winRate": {
+        const na = a.winRatePct ?? -1;
+        const nb = b.winRatePct ?? -1;
+        cmp = na - nb;
+        break;
+      }
+      case "open":
+        cmp = a.openPositions - b.openPositions;
+        break;
+      case "sample":
+        cmp = leaderboardTierFromDecided(a.decided) - leaderboardTierFromDecided(b.decided);
+        break;
+      default:
+        cmp = 0;
+    }
+    if (cmp !== 0) return applyOrder(cmp, order);
+    if (scope === "global") return Number(a.idLabel) - Number(b.idLabel);
+    return a.idLabel.localeCompare(b.idLabel);
+  });
+}
+
+function sortMyAgentsWinList(
   list: UserCustomStrategyAgentStats[],
+  key: MyAgentsWinSortKey,
+  order: SortOrder,
 ): UserCustomStrategyAgentStats[] {
   return [...list].sort((x, y) => {
-    const tx = leaderboardTierCustom(x);
-    const ty = leaderboardTierCustom(y);
-    if (tx !== ty) return tx - ty;
-    const rx = x.winRate ?? -1;
-    const ry = y.winRate ?? -1;
-    if (ry !== rx) return ry - rx;
-    if (y.wins !== x.wins) return y.wins - x.wins;
-    if (y.decided !== x.decided) return y.decided - x.decided;
+    let cmp = 0;
+    switch (key) {
+      case "name":
+        cmp = x.name.localeCompare(y.name);
+        break;
+      case "pair":
+        cmp = x.token.localeCompare(y.token);
+        break;
+      case "bar":
+        cmp = x.bar.localeCompare(y.bar);
+        break;
+      case "wins":
+        cmp = x.wins - y.wins;
+        break;
+      case "losses":
+        cmp = x.losses - y.losses;
+        break;
+      case "winRate": {
+        const nx = x.winRate ?? -1;
+        const ny = y.winRate ?? -1;
+        cmp = nx - ny;
+        break;
+      }
+      case "open":
+        cmp = x.openPositions - y.openPositions;
+        break;
+      default:
+        cmp = 0;
+    }
+    if (cmp !== 0) return applyOrder(cmp, order);
     return x.strategyId.localeCompare(y.strategyId);
   });
+}
+
+function sortMyRunsRows(list: TradingExperimentRunRow[], key: MyRunsSortKey, order: SortOrder): TradingExperimentRunRow[] {
+  return [...list].sort((x, y) => {
+    let cmp = 0;
+    switch (key) {
+      case "time": {
+        const tx = x.createdAt ? new Date(x.createdAt).getTime() : 0;
+        const ty = y.createdAt ? new Date(y.createdAt).getTime() : 0;
+        cmp = tx - ty;
+        break;
+      }
+      case "status":
+        cmp = x.status.localeCompare(y.status);
+        break;
+      case "signal":
+        cmp = x.clearSignal.localeCompare(y.clearSignal);
+        break;
+      case "symbol":
+        cmp = x.symbol.localeCompare(y.symbol);
+        break;
+      default:
+        cmp = 0;
+    }
+    if (cmp !== 0) return applyOrder(cmp, order);
+    return x._id.localeCompare(y._id);
+  });
+}
+
+function SortableTableHead(props: {
+  label: string;
+  sortKey: string;
+  activeKey: string;
+  order: SortOrder;
+  onSort: (key: string) => void;
+  align?: "left" | "right";
+  className?: string;
+}) {
+  const { label, sortKey, activeKey, order, onSort, align = "left", className } = props;
+  const isActive = activeKey === sortKey;
+  return (
+    <TableHead className={cn(align === "right" && "text-right", className)}>
+      <button
+        type="button"
+        className={cn(
+          "inline-flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground -mx-2 px-2 py-1 rounded-md hover:bg-muted/60 transition-colors",
+          align === "right" ? "w-full justify-end" : "w-full justify-start",
+        )}
+        onClick={() => onSort(sortKey)}
+      >
+        <span>{label}</span>
+        {isActive ? (
+          order === "desc" ? (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          ) : (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-40" aria-hidden />
+        )}
+      </button>
+    </TableHead>
+  );
 }
 
 function statusOptionLabel(s: string) {
@@ -240,6 +449,15 @@ export default function TradingAgentExperiment() {
   const [myAgentsTablePage, setMyAgentsTablePage] = useState(1);
   const [myRunsPage, setMyRunsPage] = useState(1);
 
+  const [labSortKey, setLabSortKey] = useState<LabSortKey>("winRate");
+  const [labSortOrder, setLabSortOrder] = useState<SortOrder>("desc");
+  const [lbSortKey, setLbSortKey] = useState<LeaderboardSortKey>("winRate");
+  const [lbSortOrder, setLbSortOrder] = useState<SortOrder>("desc");
+  const [myWinSortKey, setMyWinSortKey] = useState<MyAgentsWinSortKey>("winRate");
+  const [myWinSortOrder, setMyWinSortOrder] = useState<SortOrder>("desc");
+  const [myRunsSortKey, setMyRunsSortKey] = useState<MyRunsSortKey>("time");
+  const [myRunsSortOrder, setMyRunsSortOrder] = useState<SortOrder>("desc");
+
   const [labFilterSearch, setLabFilterSearch] = useState("");
   const [labFilterToken, setLabFilterToken] = useState<string>("all");
   const [labFilterBar, setLabFilterBar] = useState<string>("all");
@@ -331,16 +549,9 @@ export default function TradingAgentExperiment() {
     loadMyAgents();
   }, [pageView, loadMyAgents]);
 
-  const rankedAgents = useMemo(() => sortAgentsForLeaderboard(agents), [agents]);
-
-  const rankedMyLeaderboardAgents = useMemo(
-    () => sortCustomAgentsForLeaderboard(myAgents),
-    [myAgents],
-  );
-
-  const rankedLeaderboardRows: LeaderboardViewRow[] = useMemo(() => {
+  const baseLeaderboardRows: LeaderboardViewRow[] = useMemo(() => {
     if (leaderboardScope === "global") {
-      return rankedAgents.map((a) => ({
+      return agents.map((a) => ({
         key: `g-${a.agentId}`,
         name: a.name,
         subLabel: `#${a.agentId} · ${a.token} · ${a.bar}`,
@@ -355,7 +566,7 @@ export default function TradingAgentExperiment() {
         profileHref: `/experiment/trading-agent/agent/${a.agentId}?suite=${encodeURIComponent(activeSuite)}`,
       }));
     }
-    return rankedMyLeaderboardAgents.map((a) => ({
+    return myAgents.map((a) => ({
       key: `m-${a.strategyId}`,
       name: a.name,
       subLabel: `#${a.strategyId.slice(-6)} · ${a.token} · ${a.bar}`,
@@ -369,11 +580,11 @@ export default function TradingAgentExperiment() {
       openPositions: a.openPositions,
       profileHref: null,
     }));
-  }, [leaderboardScope, rankedAgents, rankedMyLeaderboardAgents, activeSuite]);
+  }, [leaderboardScope, agents, myAgents, activeSuite]);
 
   const filteredLeaderboardRows = useMemo(() => {
     const q = normalizeTableSearch(lbFilterSearch);
-    return rankedLeaderboardRows.filter((row) => {
+    return baseLeaderboardRows.filter((row) => {
       if (lbFilterToken !== "all" && row.token !== lbFilterToken) return false;
       if (lbFilterBar !== "all" && row.bar !== lbFilterBar) return false;
       if (lbFilterSample !== "any") {
@@ -386,7 +597,12 @@ export default function TradingAgentExperiment() {
       const hay = `${row.name} ${row.subLabel} ${row.idLabel} ${row.token} ${row.bar}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [rankedLeaderboardRows, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
+  }, [baseLeaderboardRows, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
+
+  const sortedLeaderboardRows = useMemo(
+    () => sortLeaderboardRows(filteredLeaderboardRows, lbSortKey, lbSortOrder, leaderboardScope),
+    [filteredLeaderboardRows, lbSortKey, lbSortOrder, leaderboardScope],
+  );
 
   const filteredLabAgents = useMemo(() => {
     const q = normalizeTableSearch(labFilterSearch);
@@ -405,6 +621,11 @@ export default function TradingAgentExperiment() {
     });
   }, [agents, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen, activeSuite]);
 
+  const sortedLabAgents = useMemo(
+    () => sortLabAgents(filteredLabAgents, labSortKey, labSortOrder),
+    [filteredLabAgents, labSortKey, labSortOrder],
+  );
+
   const filteredMyAgentsWin = useMemo(() => {
     const q = normalizeTableSearch(myWinSearch);
     return myAgents.filter((a) => {
@@ -416,6 +637,16 @@ export default function TradingAgentExperiment() {
     });
   }, [myAgents, myWinSearch, myWinToken, myWinBar]);
 
+  const sortedMyAgentsWin = useMemo(
+    () => sortMyAgentsWinList(filteredMyAgentsWin, myWinSortKey, myWinSortOrder),
+    [filteredMyAgentsWin, myWinSortKey, myWinSortOrder],
+  );
+
+  const sortedMyRuns = useMemo(
+    () => sortMyRunsRows(myRuns, myRunsSortKey, myRunsSortOrder),
+    [myRuns, myRunsSortKey, myRunsSortOrder],
+  );
+
   const labTokenOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.token)), [agents]);
   const labBarOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.bar)), [agents]);
   const labCexOptions = useMemo(
@@ -424,12 +655,12 @@ export default function TradingAgentExperiment() {
   );
 
   const lbTokenOptions = useMemo(
-    () => sortedUniqueStrings(rankedLeaderboardRows.map((r) => r.token)),
-    [rankedLeaderboardRows],
+    () => sortedUniqueStrings(baseLeaderboardRows.map((r) => r.token)),
+    [baseLeaderboardRows],
   );
   const lbBarOptions = useMemo(
-    () => sortedUniqueStrings(rankedLeaderboardRows.map((r) => r.bar)),
-    [rankedLeaderboardRows],
+    () => sortedUniqueStrings(baseLeaderboardRows.map((r) => r.bar)),
+    [baseLeaderboardRows],
   );
 
   const myWinTokenOptions = useMemo(() => sortedUniqueStrings(myAgents.map((a) => a.token)), [myAgents]);
@@ -451,45 +682,57 @@ export default function TradingAgentExperiment() {
 
   const pagedLeaderboardRows = useMemo(() => {
     const start = (leaderboardPage - 1) * TABLE_PAGE_SIZE;
-    return filteredLeaderboardRows.slice(start, start + TABLE_PAGE_SIZE);
-  }, [filteredLeaderboardRows, leaderboardPage]);
+    return sortedLeaderboardRows.slice(start, start + TABLE_PAGE_SIZE);
+  }, [sortedLeaderboardRows, leaderboardPage]);
 
   const pagedLabAgents = useMemo(() => {
     const start = (labPage - 1) * TABLE_PAGE_SIZE;
-    return filteredLabAgents.slice(start, start + TABLE_PAGE_SIZE);
-  }, [filteredLabAgents, labPage]);
+    return sortedLabAgents.slice(start, start + TABLE_PAGE_SIZE);
+  }, [sortedLabAgents, labPage]);
 
   const pagedMyAgentsWin = useMemo(() => {
     const start = (myAgentsTablePage - 1) * TABLE_PAGE_SIZE;
-    return filteredMyAgentsWin.slice(start, start + TABLE_PAGE_SIZE);
-  }, [filteredMyAgentsWin, myAgentsTablePage]);
+    return sortedMyAgentsWin.slice(start, start + TABLE_PAGE_SIZE);
+  }, [sortedMyAgentsWin, myAgentsTablePage]);
 
   useEffect(() => {
     setLeaderboardPage(1);
   }, [activeSuite, leaderboardScope, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
 
   useEffect(() => {
-    const maxP = Math.max(1, Math.ceil(filteredLeaderboardRows.length / TABLE_PAGE_SIZE));
+    const maxP = Math.max(1, Math.ceil(sortedLeaderboardRows.length / TABLE_PAGE_SIZE));
     setLeaderboardPage((p) => Math.min(Math.max(1, p), maxP));
-  }, [filteredLeaderboardRows.length]);
+  }, [sortedLeaderboardRows.length]);
 
   useEffect(() => {
     setLabPage(1);
   }, [activeSuite, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen]);
 
   useEffect(() => {
-    const maxP = Math.max(1, Math.ceil(filteredLabAgents.length / TABLE_PAGE_SIZE));
+    setLabPage(1);
+  }, [labSortKey, labSortOrder]);
+
+  useEffect(() => {
+    setLeaderboardPage(1);
+  }, [lbSortKey, lbSortOrder]);
+
+  useEffect(() => {
+    setMyAgentsTablePage(1);
+  }, [myWinSortKey, myWinSortOrder]);
+
+  useEffect(() => {
+    const maxP = Math.max(1, Math.ceil(sortedLabAgents.length / TABLE_PAGE_SIZE));
     setLabPage((p) => Math.min(Math.max(1, p), maxP));
-  }, [filteredLabAgents.length]);
+  }, [sortedLabAgents.length]);
 
   useEffect(() => {
     setMyAgentsTablePage(1);
   }, [walletAddress, myAgents.length, myWinSearch, myWinToken, myWinBar]);
 
   useEffect(() => {
-    const maxP = Math.max(1, Math.ceil(filteredMyAgentsWin.length / TABLE_PAGE_SIZE));
+    const maxP = Math.max(1, Math.ceil(sortedMyAgentsWin.length / TABLE_PAGE_SIZE));
     setMyAgentsTablePage((p) => Math.min(Math.max(1, p), maxP));
-  }, [filteredMyAgentsWin.length]);
+  }, [sortedMyAgentsWin.length]);
 
   useEffect(() => {
     setMyRunsPage(1);
@@ -543,6 +786,54 @@ export default function TradingAgentExperiment() {
 
   const agentProfileHref = (agentId: number) =>
     `/experiment/trading-agent/agent/${agentId}?suite=${encodeURIComponent(activeSuite)}`;
+
+  const onLabSort = useCallback((key: string) => {
+    const k = key as LabSortKey;
+    setLabSortKey((prev) => {
+      if (prev === k) {
+        setLabSortOrder((o) => (o === "desc" ? "asc" : "desc"));
+        return prev;
+      }
+      setLabSortOrder(defaultOrderLab(k));
+      return k;
+    });
+  }, []);
+
+  const onLbSort = useCallback((key: string) => {
+    const k = key as LeaderboardSortKey;
+    setLbSortKey((prev) => {
+      if (prev === k) {
+        setLbSortOrder((o) => (o === "desc" ? "asc" : "desc"));
+        return prev;
+      }
+      setLbSortOrder(defaultOrderLeaderboard(k));
+      return k;
+    });
+  }, []);
+
+  const onMyWinSort = useCallback((key: string) => {
+    const k = key as MyAgentsWinSortKey;
+    setMyWinSortKey((prev) => {
+      if (prev === k) {
+        setMyWinSortOrder((o) => (o === "desc" ? "asc" : "desc"));
+        return prev;
+      }
+      setMyWinSortOrder(defaultOrderMyAgentsWin(k));
+      return k;
+    });
+  }, []);
+
+  const onMyRunsSort = useCallback((key: string) => {
+    const k = key as MyRunsSortKey;
+    setMyRunsSortKey((prev) => {
+      if (prev === k) {
+        setMyRunsSortOrder((o) => (o === "desc" ? "asc" : "desc"));
+        return prev;
+      }
+      setMyRunsSortOrder(defaultOrderMyRuns(k));
+      return k;
+    });
+  }, []);
 
   const onCreateMyStrategy = async (e: FormEvent) => {
     e.preventDefault();
@@ -886,15 +1177,17 @@ export default function TradingAgentExperiment() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Name</TableHead>
-                    {activeSuite === "multi_resource" ? <TableHead>CEX</TableHead> : null}
-                    <TableHead>Pair</TableHead>
-                    <TableHead>Bar</TableHead>
-                    <TableHead className="text-right">W</TableHead>
-                    <TableHead className="text-right">L</TableHead>
-                    <TableHead className="text-right">Win %</TableHead>
-                    <TableHead className="text-right">Open</TableHead>
+                    <SortableTableHead label="#" sortKey="id" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                    <SortableTableHead label="Name" sortKey="name" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                    {activeSuite === "multi_resource" ? (
+                      <SortableTableHead label="CEX" sortKey="cex" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                    ) : null}
+                    <SortableTableHead label="Pair" sortKey="pair" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                    <SortableTableHead label="Bar" sortKey="bar" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                    <SortableTableHead label="W" sortKey="wins" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                    <SortableTableHead label="L" sortKey="losses" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                    <SortableTableHead label="Win %" sortKey="winRate" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                    <SortableTableHead label="Open" sortKey="open" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -985,7 +1278,7 @@ export default function TradingAgentExperiment() {
 
           <TabsContent value="leaderboard" className="mt-6 space-y-3 outline-none">
             <div className="space-y-3">
-            {rankedLeaderboardRows.length > 0 ? (
+            {baseLeaderboardRows.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
                   <div className="flex flex-wrap items-end gap-2 sm:gap-3">
@@ -1070,15 +1363,22 @@ export default function TradingAgentExperiment() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-14">Rank</TableHead>
-                        <TableHead>Agent</TableHead>
-                        <TableHead>Pair</TableHead>
-                        <TableHead>Bar</TableHead>
-                        <TableHead className="text-right">W</TableHead>
-                        <TableHead className="text-right">L</TableHead>
-                        <TableHead className="text-right">Win %</TableHead>
-                        <TableHead className="text-right">Open</TableHead>
-                        <TableHead className="text-right">Sample</TableHead>
+                        <SortableTableHead
+                          className="w-14"
+                          label="Rank"
+                          sortKey="rank"
+                          activeKey={lbSortKey}
+                          order={lbSortOrder}
+                          onSort={onLbSort}
+                        />
+                        <SortableTableHead label="Agent" sortKey="agent" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                        <SortableTableHead label="Pair" sortKey="pair" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                        <SortableTableHead label="Bar" sortKey="bar" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                        <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                        <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                        <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                        <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                        <SortableTableHead label="Sample" sortKey="sample" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1165,15 +1465,22 @@ export default function TradingAgentExperiment() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-14">Rank</TableHead>
-                      <TableHead>Agent</TableHead>
-                      <TableHead>Pair</TableHead>
-                      <TableHead>Bar</TableHead>
-                      <TableHead className="text-right">W</TableHead>
-                      <TableHead className="text-right">L</TableHead>
-                      <TableHead className="text-right">Win %</TableHead>
-                      <TableHead className="text-right">Open</TableHead>
-                      <TableHead className="text-right">Sample</TableHead>
+                      <SortableTableHead
+                        className="w-14"
+                        label="Rank"
+                        sortKey="rank"
+                        activeKey={lbSortKey}
+                        order={lbSortOrder}
+                        onSort={onLbSort}
+                      />
+                      <SortableTableHead label="Agent" sortKey="agent" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                      <SortableTableHead label="Pair" sortKey="pair" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                      <SortableTableHead label="Bar" sortKey="bar" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                      <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                      <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                      <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                      <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                      <SortableTableHead label="Sample" sortKey="sample" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1378,14 +1685,16 @@ export default function TradingAgentExperiment() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Pair</TableHead>
-                      <TableHead>Bar</TableHead>
-                      <TableHead className="text-right">W</TableHead>
-                      <TableHead className="text-right">L</TableHead>
-                      <TableHead className="text-right">Win %</TableHead>
-                      <TableHead className="text-right">Open</TableHead>
-                      <TableHead className="w-12 text-right" />
+                      <SortableTableHead label="Name" sortKey="name" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
+                      <SortableTableHead label="Pair" sortKey="pair" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
+                      <SortableTableHead label="Bar" sortKey="bar" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
+                      <SortableTableHead label="W" sortKey="wins" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                      <SortableTableHead label="L" sortKey="losses" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                      <SortableTableHead label="Win %" sortKey="winRate" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                      <SortableTableHead label="Open" sortKey="open" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                      <TableHead className="w-12 text-right">
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1467,14 +1776,16 @@ export default function TradingAgentExperiment() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Pair</TableHead>
-                          <TableHead>Bar</TableHead>
-                          <TableHead className="text-right">W</TableHead>
-                          <TableHead className="text-right">L</TableHead>
-                          <TableHead className="text-right">Win %</TableHead>
-                          <TableHead className="text-right">Open</TableHead>
-                          <TableHead className="w-12 text-right" />
+                          <SortableTableHead label="Name" sortKey="name" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
+                          <SortableTableHead label="Pair" sortKey="pair" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
+                          <SortableTableHead label="Bar" sortKey="bar" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
+                          <SortableTableHead label="W" sortKey="wins" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                          <SortableTableHead label="L" sortKey="losses" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                          <SortableTableHead label="Win %" sortKey="winRate" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                          <SortableTableHead label="Open" sortKey="open" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
+                          <TableHead className="w-12 text-right">
+                            <span className="sr-only">Actions</span>
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1623,10 +1934,10 @@ export default function TradingAgentExperiment() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Signal</TableHead>
-                        <TableHead>Symbol</TableHead>
+                        <SortableTableHead label="Time" sortKey="time" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
+                        <SortableTableHead label="Status" sortKey="status" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
+                        <SortableTableHead label="Signal" sortKey="signal" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
+                        <SortableTableHead label="Symbol" sortKey="symbol" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1655,7 +1966,7 @@ export default function TradingAgentExperiment() {
                         </TableRow>
                       ) : null}
                       {!myLoading &&
-                        myRuns.map((r) => (
+                        sortedMyRuns.map((r) => (
                           <TableRow key={r._id}>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatTime(r.createdAt)}

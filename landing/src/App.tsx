@@ -13,6 +13,7 @@ import Articles from "./pages/Articles";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <ScrollToTopButton />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

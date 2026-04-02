@@ -542,16 +542,16 @@ export const TokenSection = () => {
 
       <style>{`
         .gold-text {
-          background: linear-gradient(135deg, #FFD700, #FFA500);
+          background: linear-gradient(135deg, #d4af37, #d97706);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
 
         .glass-card {
-          background: rgba(255, 255, 255, 0.03);
+          background: rgba(255, 255, 255, 0.025);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         @keyframes pulse-glow {
@@ -561,10 +561,6 @@ export const TokenSection = () => {
 
         .animate-pulse-glow {
           animation: pulse-glow 3s ease-in-out infinite;
-        }
-
-        :root {
-          --neon-gold: 45 100% 51%;
         }
 
         .text-neon-gold {
@@ -604,7 +600,7 @@ export const TokenSection = () => {
         }
 
         .to-amber-600\/20 {
-          --tw-gradient-to: hsl(30 100% 40% / 0.2);
+          --tw-gradient-to: hsl(30 95% 36% / 0.2);
         }
 
         .from-neon-gold\/30 {
@@ -612,7 +608,7 @@ export const TokenSection = () => {
         }
 
         .to-amber-500\/30 {
-          --tw-gradient-to: hsl(38 100% 50% / 0.3);
+          --tw-gradient-to: hsl(38 90% 44% / 0.3);
         }
 
         .shadow-neon-gold {

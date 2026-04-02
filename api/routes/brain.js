@@ -13,8 +13,12 @@ import {
 import { getAgentTool, getCapabilitiesList } from "../config/agentTools.js";
 import { callJatevo } from "../libs/jatevo.js";
 import { resolveAgentBaseUrl } from "./agent/utils.js";
+import {
+  requirePaymentSapEscrowOrExact,
+  settleSapEscrowOrFacilitator,
+} from "../utils/sapEscrowPayment.js";
 
-const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+const { requirePayment, getPaymentSignatureHeaderFromReq } = await getV2Payment();
 
 const MAX_TOOLS_PER_REQUEST = 3;
 const MAX_TOKENS_WITH_TOOLS = 4096;
@@ -28,11 +32,20 @@ const outputSchema = {
 
 const questionDescription = "Natural language question (e.g. latest BTC news, trending pools on Solana)";
 
-/** Shared brain logic: runs tool selection, tool calls, LLM; calls settlePaymentAndSetResponse and sends JSON. */
+/** Shared brain logic: tool selection, treasury-paid tool calls, LLM; then settle (PayAI exact or SAP escrow). */
 async function runBrain(req, res, question) {
   try {
     const apiMessages = [{ role: "user", content: question }];
-    const matchedTools = await selectToolsWithLlm(question);
+    let matchedTools = await selectToolsWithLlm(question);
+    if (!matchedTools || matchedTools.length === 0) {
+      const likelyNeedsLiveData =
+        /\b(price|narrative|narratives|news|today|market|solana|trending|latest|current|signal|sentiment|token|defi|btc|eth|volume|ecosystem|headline)\b/i.test(
+          question
+        );
+      if (likelyNeedsLiveData) {
+        matchedTools = [{ toolId: "news", params: { ticker: "general" } }];
+      }
+    }
     const capabilitiesList = getCapabilitiesList().join("\n");
 
     const systemContent = [
@@ -127,7 +140,12 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     };
     const { response } = await callJatevo(apiMessages, jatevoOptions);
 
-    await settlePaymentAndSetResponse(res, req);
+    const servicePayload = JSON.stringify({
+      resource: "/brain",
+      question: question.slice(0, 500),
+      at: new Date().toISOString(),
+    });
+    await settleSapEscrowOrFacilitator(res, req, servicePayload);
     res.json({
       success: true,
       response: response || "I couldn't generate a response. Please try again.",
@@ -183,32 +201,47 @@ export async function createBrainRouter() {
     outputSchema,
   };
 
-  router.get(
-    "/",
-    requirePayment(getPaymentOptions),
-    async (req, res) => {
-      const question = (req.query.question ?? "").trim();
-      if (!question) {
-        res.status(400).json({ success: false, error: "question is required (query param)" });
-        return;
-      }
-      await runBrain(req, res, question);
-    }
-  );
+  const payGet = requirePaymentSapEscrowOrExact(requirePayment, getPaymentOptions);
+  const payPost = requirePaymentSapEscrowOrExact(requirePayment, postPaymentOptions);
 
-  router.post(
-    "/",
-    requirePayment(postPaymentOptions),
-    async (req, res) => {
-      const body = req.body && typeof req.body === "object" ? req.body : {};
-      const question = (body.question ?? "").trim();
-      if (!question) {
-        res.status(400).json({ success: false, error: "question is required (body)" });
-        return;
+  /** Require `question` before charging: unpaid → 402; paid without question → 400 (no settlement). */
+  function validateBrainQuestionGet(req, res, next) {
+    const q = (req.query.question ?? "").trim();
+    const hasExact = getPaymentSignatureHeaderFromReq(req);
+    const hasSap = String(req.headers["x-payment-protocol"] || "").trim() === "SAP-x402";
+    if (!q) {
+      if (!hasExact && !hasSap) {
+        return requirePayment(getPaymentOptions)(req, res, () => {});
       }
-      await runBrain(req, res, question);
+      return res.status(400).json({ success: false, error: "question is required (query param)" });
     }
-  );
+    return next();
+  }
+
+  function validateBrainQuestionPost(req, res, next) {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const q = (body.question ?? "").trim();
+    const hasExact = getPaymentSignatureHeaderFromReq(req);
+    const hasSap = String(req.headers["x-payment-protocol"] || "").trim() === "SAP-x402";
+    if (!q) {
+      if (!hasExact && !hasSap) {
+        return requirePayment(postPaymentOptions)(req, res, () => {});
+      }
+      return res.status(400).json({ success: false, error: "question is required (body)" });
+    }
+    return next();
+  }
+
+  router.get("/", validateBrainQuestionGet, payGet, async (req, res) => {
+    const question = (req.query.question ?? "").trim();
+    await runBrain(req, res, question);
+  });
+
+  router.post("/", validateBrainQuestionPost, payPost, async (req, res) => {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const question = (body.question ?? "").trim();
+    await runBrain(req, res, question);
+  });
 
   return router;
 }

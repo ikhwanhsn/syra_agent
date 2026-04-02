@@ -18,6 +18,9 @@
  *   - SYRA_SAP_AGENT_ID — Optional DID-style id (default: did:sap:syra).
  *   - SAP_SKIP_INDEX — Set to "1" to skip discovery index transactions after registration.
  *
+ * After registration, publish HTTP tool descriptors for SAP discovery:
+ *   npm run publish-sap-tools
+ *
  * Usage:
  *   cd api && node -r dotenv/config scripts/register-sap-agent.js
  */

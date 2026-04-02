@@ -16,6 +16,7 @@
     "give-8004-feedback-reachable": "node scripts/give-8004-feedback-reachable.js",
     "generate-tempo-wallet": "node scripts/generate-tempo-wallet.js",
     "register-sap": "node -r dotenv/config scripts/register-sap-agent.js",
+    "publish-sap-tools": "node -r dotenv/config scripts/publish-sap-tools.js",
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js"
   },
   "dependencies": {
