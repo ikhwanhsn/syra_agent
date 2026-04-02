@@ -207,15 +207,7 @@ export async function listUserCustomRuns(opts) {
   const st = typeof opts.status === "string" ? opts.status.trim() : "";
   if (
     st &&
-    [
-      "open",
-      "win",
-      "loss",
-      "expired",
-      "skipped_non_buy",
-      "skipped_invalid_levels",
-      "error",
-    ].includes(st)
+    ["open", "win", "loss", "expired", "skipped_invalid_levels", "error"].includes(st)
   ) {
     filter.status = st;
   }
@@ -229,7 +221,7 @@ export async function listUserCustomRuns(opts) {
 }
 
 /**
- * Sample signals for all user custom strategies (hourly cron). Skips HOLD (no row).
+ * Sample signals for all user custom strategies (hourly cron). Skips HOLD and non-BUY (no row); BUY only for spot-long.
  * @returns {Promise<{ created: number; errors: string[] }>}
  */
 export async function runUserCustomSignalCycle() {
@@ -288,11 +280,7 @@ export async function runUserCustomSignalCycle() {
       };
 
       if (ex.clearSignal !== "BUY") {
-        await TradingExperimentRun.create({
-          ...baseRow,
-          status: "skipped_non_buy",
-        });
-        created += 1;
+        // Spot-long only: skip SELL and other non-BUY signals without persisting.
         continue;
       }
 

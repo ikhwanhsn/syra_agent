@@ -15,7 +15,8 @@
     "register-8004-with-collection": "node scripts/register-8004-agent-with-collection.js",
     "give-8004-feedback-reachable": "node scripts/give-8004-feedback-reachable.js",
     "generate-tempo-wallet": "node scripts/generate-tempo-wallet.js",
-    "register-sap": "node -r dotenv/config scripts/register-sap-agent.js"
+    "register-sap": "node -r dotenv/config scripts/register-sap-agent.js",
+    "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

@@ -15,6 +15,7 @@ import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSigna
 import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
 import { fetchExperimentValidation1mKlines } from "./cexExperimentKlines.js";
 import { extractSignalFields } from "./experimentSignalExtract.js";
+import { experimentBuyPassesSmartGate } from "./experimentSignalGate.js";
 import { runUserCustomSignalCycle } from "./userCustomStrategyService.js";
 
 /**
@@ -44,7 +45,6 @@ const EXPERIMENT_RUN_STATUSES = new Set([
   "win",
   "loss",
   "expired",
-  "skipped_non_buy",
   "skipped_invalid_levels",
   "error",
 ]);
@@ -179,7 +179,8 @@ async function countOpenForAgent(agentId, suiteNorm) {
 }
 
 /**
- * Run all strategies for one suite once: create run rows (BUY → open; non-BUY except HOLD → skipped).
+ * Run all strategies for one suite once: create run rows only for spot-long (BUY with valid levels → open;
+ * invalid BUY levels → skipped_invalid_levels). HOLD and non-BUY (e.g. SELL) are not persisted.
  * @param {{ suite?: string | null }} [opts]
  * @returns {Promise<{ created: number; errors: string[]; suite: string }>}
  */
@@ -234,31 +235,17 @@ export async function runExperimentSignalCycle(opts = {}) {
         action: report?.tradingRecommendation?.action,
       };
 
+      if (!experimentBuyPassesSmartGate(ex, s.experimentGate)) {
+        continue;
+      }
+
       if (ex.clearSignal === "HOLD") {
         // HOLD means no actionable position; skip persistence to keep experiment ledger focused.
         continue;
       }
 
       if (ex.clearSignal !== "BUY") {
-        await TradingExperimentRun.create({
-          suite: suiteNorm,
-          agentId: s.id,
-          agentName: s.name,
-          token: s.token,
-          bar: s.bar,
-          limit: s.limit,
-          symbol,
-          anchorCloseMs,
-          clearSignal: ex.clearSignal,
-          entry: ex.entry,
-          stopLoss: ex.stopLoss,
-          firstTarget: ex.firstTarget,
-          priceAtSignal: ex.priceAtSignal,
-          confidence: ex.confidence,
-          status: "skipped_non_buy",
-          summary,
-        });
-        created += 1;
+        // Spot-long experiment: do not record SELL or other non-BUY signals.
         continue;
       }
 

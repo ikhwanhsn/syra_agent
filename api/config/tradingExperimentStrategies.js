@@ -1,8 +1,11 @@
 /**
- * Ten Binance spot OHLC + CryptoAnalysisEngine variants for trading experiment lab.
+ * Binance spot OHLC + CryptoAnalysisEngine variants for trading experiment lab.
  * Each row is one "agent"; cron/run-cycle evaluates all.
  *
  * lookAheadBars: max forward candles to check for TP/SL after signal anchor.
+ *
+ * experimentGate (optional): only persist BUY when engine confidence meets minConfidence
+ * (LOW ≤ MEDIUM ≤ HIGH). Omit for legacy “any BUY with valid levels” behavior.
  */
 export const EXPERIMENT_SUITE_PRIMARY = "primary";
 export const EXPERIMENT_SUITE_SECONDARY = "secondary";
@@ -22,6 +25,97 @@ export const TRADING_EXPERIMENT_STRATEGIES = Object.freeze([
   { id: 7, name: "BTC 30m", token: "bitcoin", bar: "30m", limit: 200, lookAheadBars: 72 },
   { id: 8, name: "ETH 4h", token: "ethereum", bar: "4h", limit: 200, lookAheadBars: 24 },
   { id: 9, name: "SOL 4h", token: "solana", bar: "4h", limit: 200, lookAheadBars: 24 },
+  // Smart batch v2: distinct assets × bars × windows × confidence gates (compare win rates).
+  {
+    id: 10,
+    name: "BTC sniper 1h",
+    token: "bitcoin",
+    bar: "1h",
+    limit: 220,
+    lookAheadBars: 36,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 11,
+    name: "ETH balanced 4h",
+    token: "ethereum",
+    bar: "4h",
+    limit: 200,
+    lookAheadBars: 48,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 12,
+    name: "SOL scout 15m",
+    token: "solana",
+    bar: "15m",
+    limit: 240,
+    lookAheadBars: 160,
+    experimentGate: { minConfidence: "LOW" },
+  },
+  {
+    id: 13,
+    name: "BTC deep 30m",
+    token: "bitcoin",
+    bar: "30m",
+    limit: 280,
+    lookAheadBars: 80,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 14,
+    name: "BNB core 1h",
+    token: "bnb",
+    bar: "1h",
+    limit: 200,
+    lookAheadBars: 52,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 15,
+    name: "LINK macro 4h",
+    token: "chainlink",
+    bar: "4h",
+    limit: 240,
+    lookAheadBars: 72,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 16,
+    name: "AVAX impulse 1h",
+    token: "avalanche",
+    bar: "1h",
+    limit: 140,
+    lookAheadBars: 44,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 17,
+    name: "MATIC steady 1h",
+    token: "polygon",
+    bar: "1h",
+    limit: 200,
+    lookAheadBars: 56,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 18,
+    name: "DOT rhythm 2h",
+    token: "polkadot",
+    bar: "2h",
+    limit: 200,
+    lookAheadBars: 64,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 19,
+    name: "LTC slow 1d",
+    token: "litecoin",
+    bar: "1d",
+    limit: 160,
+    lookAheadBars: 40,
+    experimentGate: { minConfidence: "HIGH" },
+  },
 ]);
 
 /** Second isolated experiment: own win rate ledger; same Binance + engine + hourly/10s mechanics. */
@@ -132,7 +226,7 @@ export const EXPERIMENT_SUITES_META = Object.freeze([
   {
     id: EXPERIMENT_SUITE_PRIMARY,
     title: "Experiment 1 — original",
-    description: "BTC/ETH/SOL-focused matrix (default).",
+    description: "Core matrix + 10 smart-gated agents (ids 10–19) with varied assets, bars, and confidence floors.",
   },
   {
     id: EXPERIMENT_SUITE_SECONDARY,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -6,12 +6,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FlaskConical,
-  ListFilter,
   Loader2,
-  Medal,
   Trophy,
   RefreshCw,
-  Play,
   Sun,
   Moon,
   Users,
@@ -20,18 +17,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
 import {
-  fetchTradingExperimentRuns,
   fetchTradingExperimentStats,
   fetchTradingExperimentSuites,
   normalizeExperimentSuite,
-  TRADING_EXPERIMENT_RUN_STATUSES,
-  postTradingExperimentRunCycle,
-  postTradingExperimentValidateTick,
   MAX_USER_CUSTOM_STRATEGIES_PER_WALLET,
   createUserCustomStrategy,
   deleteUserCustomStrategy,
   fetchUserCustomStats,
   fetchUserCustomRuns,
+  TRADING_EXPERIMENT_RUN_STATUSES,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
   type TradingExperimentSuiteId,
@@ -68,19 +62,43 @@ import {
 import { TradingExperimentChartsPanel } from "@/components/experiment/TradingExperimentChartsPanel";
 import { ExperimentTokenCombobox } from "@/components/experiment/ExperimentTokenCombobox";
 
-const RUNS_PAGE_SIZE = 20;
-const CHART_RUN_SAMPLE = 200;
-const RUN_FILTER_ALL = "all";
-
 /** Resolved wins+losses at or above this count use full win-rate ranking. */
 const LEADERBOARD_MIN_DECIDED = 5;
 
+const TABLE_PAGE_SIZE = 10;
+
 type PageView = "lab" | "leaderboard" | "charts" | "my_agents";
 
-function leaderboardTier(a: TradingExperimentAgentStats): 0 | 1 | 2 {
-  if (a.decided === 0) return 2;
-  if (a.decided < LEADERBOARD_MIN_DECIDED) return 1;
+type LeaderboardScope = "global" | "mine";
+
+/** Row shape shared by global + custom agent leaderboard UIs. */
+type LeaderboardViewRow = {
+  key: string;
+  name: string;
+  subLabel: string;
+  token: string;
+  bar: string;
+  idLabel: string;
+  wins: number;
+  losses: number;
+  decided: number;
+  winRatePct: number | null;
+  openPositions: number;
+  profileHref: string | null;
+};
+
+function leaderboardTierFromDecided(decided: number): 0 | 1 | 2 {
+  if (decided === 0) return 2;
+  if (decided < LEADERBOARD_MIN_DECIDED) return 1;
   return 0;
+}
+
+function leaderboardTier(a: TradingExperimentAgentStats): 0 | 1 | 2 {
+  return leaderboardTierFromDecided(a.decided);
+}
+
+function leaderboardTierCustom(a: UserCustomStrategyAgentStats): 0 | 1 | 2 {
+  return leaderboardTierFromDecided(a.decided);
 }
 
 function sortAgentsForLeaderboard(list: TradingExperimentAgentStats[]): TradingExperimentAgentStats[] {
@@ -97,6 +115,22 @@ function sortAgentsForLeaderboard(list: TradingExperimentAgentStats[]): TradingE
   });
 }
 
+function sortCustomAgentsForLeaderboard(
+  list: UserCustomStrategyAgentStats[],
+): UserCustomStrategyAgentStats[] {
+  return [...list].sort((x, y) => {
+    const tx = leaderboardTierCustom(x);
+    const ty = leaderboardTierCustom(y);
+    if (tx !== ty) return tx - ty;
+    const rx = x.winRate ?? -1;
+    const ry = y.winRate ?? -1;
+    if (ry !== rx) return ry - rx;
+    if (y.wins !== x.wins) return y.wins - x.wins;
+    if (y.decided !== x.decided) return y.decided - x.decided;
+    return x.strategyId.localeCompare(y.strategyId);
+  });
+}
+
 function statusOptionLabel(s: string) {
   return s.replace(/_/g, " ");
 }
@@ -110,6 +144,64 @@ function formatTime(iso: string | undefined) {
   }
 }
 
+function normalizeTableSearch(s: string): string {
+  return s.trim().toLowerCase();
+}
+
+function sortedUniqueStrings(values: string[]): string[] {
+  return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+}
+
+function ExperimentTablePagination(props: {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  loading?: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  const { page, pageSize, totalItems, loading = false, onPageChange } = props;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalItems);
+  if (totalItems === 0) return null;
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-xs text-muted-foreground tabular-nums">
+        {start}–{end} of {totalItems}
+      </p>
+      {totalPages > 1 ? (
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1"
+            disabled={loading || page <= 1}
+            onClick={() => onPageChange(page - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums px-1">
+            Page {page} / {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1"
+            disabled={loading || page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function TradingAgentExperiment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isDarkMode, setIsDarkMode] = useState(
@@ -118,29 +210,9 @@ export default function TradingAgentExperiment() {
   const [activeSuite, setActiveSuite] = useState<TradingExperimentSuiteId>("primary");
   const [suiteMeta, setSuiteMeta] = useState<TradingExperimentSuiteMeta[]>([]);
   const [agents, setAgents] = useState<TradingExperimentAgentStats[]>([]);
-  const [chartSampleRuns, setChartSampleRuns] = useState<TradingExperimentRunRow[]>([]);
-  const [runs, setRuns] = useState<TradingExperimentRunRow[]>([]);
-  const [runsTotal, setRunsTotal] = useState(0);
-  const [runsPage, setRunsPage] = useState(1);
-  const [filterStatus, setFilterStatus] = useState(RUN_FILTER_ALL);
-  const [filterAgentId, setFilterAgentId] = useState(RUN_FILTER_ALL);
-  const [symbolInput, setSymbolInput] = useState("");
-  const [signalInput, setSignalInput] = useState("");
-  const [debouncedSymbol, setDebouncedSymbol] = useState("");
-  const [debouncedSignal, setDebouncedSignal] = useState("");
-  const symbolDebounceFirst = useRef(true);
-  const signalDebounceFirst = useRef(true);
   const [pageView, setPageView] = useState<PageView>("lab");
   const [loading, setLoading] = useState(true);
-  const [runningCycle, setRunningCycle] = useState(false);
-  const [runningValidate, setRunningValidate] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cycleMessage, setCycleMessage] = useState<string | null>(null);
-
-  const cronSecret =
-    typeof import.meta.env.VITE_TRADING_EXPERIMENT_CRON_SECRET === "string"
-      ? import.meta.env.VITE_TRADING_EXPERIMENT_CRON_SECRET
-      : undefined;
 
   const { publicKey, baseConnected, baseAddress, effectiveChain } = useWalletContext();
   const walletAddress = useMemo(() => {
@@ -162,32 +234,33 @@ export default function TradingAgentExperiment() {
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [labPage, setLabPage] = useState(1);
+  const [myAgentsTablePage, setMyAgentsTablePage] = useState(1);
+  const [myRunsPage, setMyRunsPage] = useState(1);
 
-  useEffect(() => {
-    if (symbolDebounceFirst.current) {
-      symbolDebounceFirst.current = false;
-      setDebouncedSymbol(symbolInput.trim());
-      return;
-    }
-    const h = window.setTimeout(() => {
-      setDebouncedSymbol(symbolInput.trim());
-      setRunsPage(1);
-    }, 400);
-    return () => window.clearTimeout(h);
-  }, [symbolInput]);
+  const [labFilterSearch, setLabFilterSearch] = useState("");
+  const [labFilterToken, setLabFilterToken] = useState<string>("all");
+  const [labFilterBar, setLabFilterBar] = useState<string>("all");
+  const [labFilterCex, setLabFilterCex] = useState<string>("all");
+  const [labFilterOpen, setLabFilterOpen] = useState<"any" | "open" | "flat">("any");
 
-  useEffect(() => {
-    if (signalDebounceFirst.current) {
-      signalDebounceFirst.current = false;
-      setDebouncedSignal(signalInput.trim());
-      return;
-    }
-    const h = window.setTimeout(() => {
-      setDebouncedSignal(signalInput.trim());
-      setRunsPage(1);
-    }, 400);
-    return () => window.clearTimeout(h);
-  }, [signalInput]);
+  const [lbFilterSearch, setLbFilterSearch] = useState("");
+  const [lbFilterToken, setLbFilterToken] = useState<string>("all");
+  const [lbFilterBar, setLbFilterBar] = useState<string>("all");
+  const [lbFilterSample, setLbFilterSample] = useState<"any" | "0" | "1" | "2">("any");
+
+  const [myWinSearch, setMyWinSearch] = useState("");
+  const [myWinToken, setMyWinToken] = useState<string>("all");
+  const [myWinBar, setMyWinBar] = useState<string>("all");
+
+  const [myRunsStatus, setMyRunsStatus] = useState<string>("");
+  const [myRunsStrategyId, setMyRunsStrategyId] = useState<string>("");
+
+  const [chartFilterSearch, setChartFilterSearch] = useState("");
+  const [chartFilterToken, setChartFilterToken] = useState<string>("all");
+  const [chartFilterBar, setChartFilterBar] = useState<string>("all");
 
   const load = useCallback(async () => {
     if (pageView === "my_agents") {
@@ -198,27 +271,20 @@ export default function TradingAgentExperiment() {
     setLoading(true);
     try {
       if (pageView === "leaderboard") {
+        if (leaderboardScope === "mine") {
+          if (!walletAddress) {
+            setMyAgents([]);
+            return;
+          }
+          const custom = await fetchUserCustomStats(walletAddress);
+          setMyAgents(custom.agents);
+        } else {
+          const stats = await fetchTradingExperimentStats(activeSuite);
+          setAgents(stats.agents);
+        }
+      } else {
         const stats = await fetchTradingExperimentStats(activeSuite);
         setAgents(stats.agents);
-      } else {
-        const offset = (runsPage - 1) * RUNS_PAGE_SIZE;
-        const agentNum =
-          filterAgentId !== RUN_FILTER_ALL ? Number(filterAgentId) : undefined;
-        const [stats, runData] = await Promise.all([
-          fetchTradingExperimentStats(activeSuite),
-          fetchTradingExperimentRuns({
-            limit: RUNS_PAGE_SIZE,
-            offset,
-            suite: activeSuite,
-            ...(filterStatus !== RUN_FILTER_ALL ? { status: filterStatus } : {}),
-            ...(agentNum != null && Number.isInteger(agentNum) ? { agentId: agentNum } : {}),
-            ...(debouncedSymbol ? { symbol: debouncedSymbol } : {}),
-            ...(debouncedSignal ? { signal: debouncedSignal } : {}),
-          }),
-        ]);
-        setAgents(stats.agents);
-        setRuns(runData.runs);
-        setRunsTotal(runData.total);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -228,11 +294,8 @@ export default function TradingAgentExperiment() {
   }, [
     pageView,
     activeSuite,
-    runsPage,
-    filterStatus,
-    filterAgentId,
-    debouncedSymbol,
-    debouncedSignal,
+    leaderboardScope,
+    walletAddress,
   ]);
 
   const loadMyAgents = useCallback(async () => {
@@ -247,7 +310,13 @@ export default function TradingAgentExperiment() {
     try {
       const stats = await fetchUserCustomStats(walletAddress);
       setMyAgents(stats.agents);
-      const runData = await fetchUserCustomRuns({ walletAddress, limit: 15 });
+      const runData = await fetchUserCustomRuns({
+        walletAddress,
+        limit: TABLE_PAGE_SIZE,
+        offset: (myRunsPage - 1) * TABLE_PAGE_SIZE,
+        status: myRunsStatus.trim() || undefined,
+        strategyId: myRunsStrategyId.trim() || undefined,
+      });
       setMyRuns(runData.runs);
       setMyRunsTotal(runData.total);
     } catch (e) {
@@ -255,7 +324,7 @@ export default function TradingAgentExperiment() {
     } finally {
       setMyLoading(false);
     }
-  }, [walletAddress]);
+  }, [walletAddress, myRunsPage, myRunsStatus, myRunsStrategyId]);
 
   useEffect(() => {
     if (pageView !== "my_agents") return;
@@ -264,23 +333,182 @@ export default function TradingAgentExperiment() {
 
   const rankedAgents = useMemo(() => sortAgentsForLeaderboard(agents), [agents]);
 
-  const hasRunFilters =
-    filterStatus !== RUN_FILTER_ALL ||
-    filterAgentId !== RUN_FILTER_ALL ||
-    debouncedSymbol.length > 0 ||
-    debouncedSignal.length > 0;
+  const rankedMyLeaderboardAgents = useMemo(
+    () => sortCustomAgentsForLeaderboard(myAgents),
+    [myAgents],
+  );
 
-  const clearRunFilters = () => {
-    setFilterStatus(RUN_FILTER_ALL);
-    setFilterAgentId(RUN_FILTER_ALL);
-    setSymbolInput("");
-    setSignalInput("");
-    setDebouncedSymbol("");
-    setDebouncedSignal("");
-    symbolDebounceFirst.current = true;
-    signalDebounceFirst.current = true;
-    setRunsPage(1);
-  };
+  const rankedLeaderboardRows: LeaderboardViewRow[] = useMemo(() => {
+    if (leaderboardScope === "global") {
+      return rankedAgents.map((a) => ({
+        key: `g-${a.agentId}`,
+        name: a.name,
+        subLabel: `#${a.agentId} · ${a.token} · ${a.bar}`,
+        token: a.token,
+        bar: a.bar,
+        idLabel: String(a.agentId),
+        wins: a.wins,
+        losses: a.losses,
+        decided: a.decided,
+        winRatePct: a.winRatePct,
+        openPositions: a.openPositions,
+        profileHref: `/experiment/trading-agent/agent/${a.agentId}?suite=${encodeURIComponent(activeSuite)}`,
+      }));
+    }
+    return rankedMyLeaderboardAgents.map((a) => ({
+      key: `m-${a.strategyId}`,
+      name: a.name,
+      subLabel: `#${a.strategyId.slice(-6)} · ${a.token} · ${a.bar}`,
+      token: a.token,
+      bar: a.bar,
+      idLabel: a.strategyId,
+      wins: a.wins,
+      losses: a.losses,
+      decided: a.decided,
+      winRatePct: a.winRatePct,
+      openPositions: a.openPositions,
+      profileHref: null,
+    }));
+  }, [leaderboardScope, rankedAgents, rankedMyLeaderboardAgents, activeSuite]);
+
+  const filteredLeaderboardRows = useMemo(() => {
+    const q = normalizeTableSearch(lbFilterSearch);
+    return rankedLeaderboardRows.filter((row) => {
+      if (lbFilterToken !== "all" && row.token !== lbFilterToken) return false;
+      if (lbFilterBar !== "all" && row.bar !== lbFilterBar) return false;
+      if (lbFilterSample !== "any") {
+        const tier = leaderboardTierFromDecided(row.decided);
+        if (lbFilterSample === "0" && tier !== 0) return false;
+        if (lbFilterSample === "1" && tier !== 1) return false;
+        if (lbFilterSample === "2" && tier !== 2) return false;
+      }
+      if (!q) return true;
+      const hay = `${row.name} ${row.subLabel} ${row.idLabel} ${row.token} ${row.bar}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [rankedLeaderboardRows, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
+
+  const filteredLabAgents = useMemo(() => {
+    const q = normalizeTableSearch(labFilterSearch);
+    return agents.filter((a) => {
+      if (labFilterToken !== "all" && a.token !== labFilterToken) return false;
+      if (labFilterBar !== "all" && a.bar !== labFilterBar) return false;
+      if (activeSuite === "multi_resource" && labFilterCex !== "all") {
+        const cex = (a.cexSource ?? "").trim();
+        if (cex !== labFilterCex) return false;
+      }
+      if (labFilterOpen === "open" && a.openPositions <= 0) return false;
+      if (labFilterOpen === "flat" && a.openPositions > 0) return false;
+      if (!q) return true;
+      const hay = `${a.name} ${a.agentId} ${a.token} ${a.bar}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [agents, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen, activeSuite]);
+
+  const filteredMyAgentsWin = useMemo(() => {
+    const q = normalizeTableSearch(myWinSearch);
+    return myAgents.filter((a) => {
+      if (myWinToken !== "all" && a.token !== myWinToken) return false;
+      if (myWinBar !== "all" && a.bar !== myWinBar) return false;
+      if (!q) return true;
+      const hay = `${a.name} ${a.strategyId} ${a.token} ${a.bar}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [myAgents, myWinSearch, myWinToken, myWinBar]);
+
+  const labTokenOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.token)), [agents]);
+  const labBarOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.bar)), [agents]);
+  const labCexOptions = useMemo(
+    () => sortedUniqueStrings(agents.map((a) => (a.cexSource ?? "").trim()).filter(Boolean)),
+    [agents],
+  );
+
+  const lbTokenOptions = useMemo(
+    () => sortedUniqueStrings(rankedLeaderboardRows.map((r) => r.token)),
+    [rankedLeaderboardRows],
+  );
+  const lbBarOptions = useMemo(
+    () => sortedUniqueStrings(rankedLeaderboardRows.map((r) => r.bar)),
+    [rankedLeaderboardRows],
+  );
+
+  const myWinTokenOptions = useMemo(() => sortedUniqueStrings(myAgents.map((a) => a.token)), [myAgents]);
+  const myWinBarOptions = useMemo(() => sortedUniqueStrings(myAgents.map((a) => a.bar)), [myAgents]);
+
+  const chartTokenOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.token)), [agents]);
+  const chartBarOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.bar)), [agents]);
+
+  const filteredChartAgents = useMemo(() => {
+    const q = normalizeTableSearch(chartFilterSearch);
+    return agents.filter((a) => {
+      if (chartFilterToken !== "all" && a.token !== chartFilterToken) return false;
+      if (chartFilterBar !== "all" && a.bar !== chartFilterBar) return false;
+      if (!q) return true;
+      const hay = `${a.name} ${a.agentId} ${a.token} ${a.bar}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [agents, chartFilterSearch, chartFilterToken, chartFilterBar]);
+
+  const pagedLeaderboardRows = useMemo(() => {
+    const start = (leaderboardPage - 1) * TABLE_PAGE_SIZE;
+    return filteredLeaderboardRows.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredLeaderboardRows, leaderboardPage]);
+
+  const pagedLabAgents = useMemo(() => {
+    const start = (labPage - 1) * TABLE_PAGE_SIZE;
+    return filteredLabAgents.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredLabAgents, labPage]);
+
+  const pagedMyAgentsWin = useMemo(() => {
+    const start = (myAgentsTablePage - 1) * TABLE_PAGE_SIZE;
+    return filteredMyAgentsWin.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredMyAgentsWin, myAgentsTablePage]);
+
+  useEffect(() => {
+    setLeaderboardPage(1);
+  }, [activeSuite, leaderboardScope, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
+
+  useEffect(() => {
+    const maxP = Math.max(1, Math.ceil(filteredLeaderboardRows.length / TABLE_PAGE_SIZE));
+    setLeaderboardPage((p) => Math.min(Math.max(1, p), maxP));
+  }, [filteredLeaderboardRows.length]);
+
+  useEffect(() => {
+    setLabPage(1);
+  }, [activeSuite, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen]);
+
+  useEffect(() => {
+    const maxP = Math.max(1, Math.ceil(filteredLabAgents.length / TABLE_PAGE_SIZE));
+    setLabPage((p) => Math.min(Math.max(1, p), maxP));
+  }, [filteredLabAgents.length]);
+
+  useEffect(() => {
+    setMyAgentsTablePage(1);
+  }, [walletAddress, myAgents.length, myWinSearch, myWinToken, myWinBar]);
+
+  useEffect(() => {
+    const maxP = Math.max(1, Math.ceil(filteredMyAgentsWin.length / TABLE_PAGE_SIZE));
+    setMyAgentsTablePage((p) => Math.min(Math.max(1, p), maxP));
+  }, [filteredMyAgentsWin.length]);
+
+  useEffect(() => {
+    setMyRunsPage(1);
+  }, [myRunsStatus, myRunsStrategyId]);
+
+  useEffect(() => {
+    setChartFilterSearch("");
+    setChartFilterToken("all");
+    setChartFilterBar("all");
+  }, [activeSuite]);
+
+  useEffect(() => {
+    setMyRunsPage(1);
+  }, [walletAddress]);
+
+  useEffect(() => {
+    const maxP = Math.max(1, Math.ceil(myRunsTotal / TABLE_PAGE_SIZE));
+    setMyRunsPage((p) => Math.min(Math.max(1, p), maxP));
+  }, [myRunsTotal]);
 
   useEffect(() => {
     fetchTradingExperimentSuites()
@@ -307,25 +535,10 @@ export default function TradingAgentExperiment() {
     }
   }, [isDarkMode]);
 
-  const activeSuiteDescription = suiteMeta.find((m) => m.id === activeSuite)?.description;
-
-  const resetSuiteFilters = () => {
-    setRunsPage(1);
-    setFilterStatus(RUN_FILTER_ALL);
-    setFilterAgentId(RUN_FILTER_ALL);
-    setSymbolInput("");
-    setSignalInput("");
-    setDebouncedSymbol("");
-    setDebouncedSignal("");
-    symbolDebounceFirst.current = true;
-    signalDebounceFirst.current = true;
-  };
-
   const onSuiteChange = (v: string) => {
     const id = v as TradingExperimentSuiteId;
     setActiveSuite(id);
     setSearchParams({ suite: id });
-    resetSuiteFilters();
   };
 
   const agentProfileHref = (agentId: number) =>
@@ -357,6 +570,7 @@ export default function TradingAgentExperiment() {
       });
       setFormName("");
       setCreateModalOpen(false);
+      setMyRunsPage(1);
       await loadMyAgents();
     } catch (err) {
       setMyError(err instanceof Error ? err.message : String(err));
@@ -379,42 +593,27 @@ export default function TradingAgentExperiment() {
     }
   };
 
-  const onRunCycle = async () => {
-    setRunningCycle(true);
-    setCycleMessage(null);
-    try {
-      const out = await postTradingExperimentRunCycle(cronSecret);
-      const by =
-        out.bySuite && Object.keys(out.bySuite).length > 0
-          ? ` (${Object.entries(out.bySuite)
-              .map(([k, v]) => `${k}=${v}`)
-              .join(", ")})`
-          : "";
-      setCycleMessage(
-        `Validated + sampled: resolved ${out.resolved}, new rows ${out.sampled}${by}${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
-      );
-      await load();
-    } catch (e) {
-      setCycleMessage(e instanceof Error ? e.message : String(e));
-    } finally {
-      setRunningCycle(false);
-    }
-  };
+  const showLeaderboardScopeSelect = pageView === "leaderboard";
 
-  const onValidateTick = async () => {
-    setRunningValidate(true);
-    setCycleMessage(null);
-    try {
-      const out = await postTradingExperimentValidateTick(cronSecret);
-      setCycleMessage(
-        `1m validation: closed ${out.resolved} / ${out.touched} open${out.errors.length ? ` — ${out.errors.length} error(s)` : ""}`,
-      );
-      await load();
-    } catch (e) {
-      setCycleMessage(e instanceof Error ? e.message : String(e));
-    } finally {
-      setRunningValidate(false);
-    }
+  const showExperimentSelect =
+    pageView === "lab" ||
+    pageView === "charts" ||
+    (pageView === "leaderboard" && leaderboardScope === "global");
+
+  const experimentSelectOptions = useMemo((): TradingExperimentSuiteMeta[] => {
+    const base =
+      suiteMeta.length > 0
+        ? suiteMeta
+        : [
+            { id: "primary", title: "Experiment 1", description: "" },
+            { id: "secondary", title: "Experiment 2", description: "" },
+          ];
+    if (base.some((m) => m.id === activeSuite)) return base;
+    return [...base, { id: activeSuite, title: activeSuite, description: "" }];
+  }, [suiteMeta, activeSuite]);
+
+  const onLeaderboardScopeChange = (v: string) => {
+    setLeaderboardScope(v as LeaderboardScope);
   };
 
   return (
@@ -460,24 +659,121 @@ export default function TradingAgentExperiment() {
           onValueChange={(v) => setPageView(v as PageView)}
           className="w-full"
         >
-          <TabsList className="h-auto min-h-10 flex-wrap gap-1 p-1 w-full sm:w-auto">
-            <TabsTrigger value="lab" className="text-xs sm:text-sm gap-1.5">
-              <FlaskConical className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              Lab
-            </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="text-xs sm:text-sm gap-1.5">
-              <Trophy className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              Leaderboard
-            </TabsTrigger>
-            <TabsTrigger value="charts" className="text-xs sm:text-sm gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              Charts
-            </TabsTrigger>
-            <TabsTrigger value="my_agents" className="text-xs sm:text-sm gap-1.5">
-              <Users className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              My agents
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <TabsList className="grid h-10 w-full max-w-md grid-cols-4 gap-1 p-1 sm:w-[32rem] sm:max-w-none sm:shrink-0">
+              <TabsTrigger
+                value="lab"
+                className="min-w-0 px-1.5 text-xs sm:text-sm gap-1 data-[state=active]:shadow-sm"
+              >
+                <FlaskConical className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                <span className="truncate">Lab</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="leaderboard"
+                className="min-w-0 px-1.5 text-xs sm:text-sm gap-1 data-[state=active]:shadow-sm"
+              >
+                <Trophy className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                <span className="truncate">Leaderboard</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="charts"
+                className="min-w-0 px-1.5 text-xs sm:text-sm gap-1 data-[state=active]:shadow-sm"
+              >
+                <BarChart3 className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                <span className="truncate">Charts</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="my_agents"
+                className="min-w-0 px-1.5 text-xs sm:text-sm gap-1 data-[state=active]:shadow-sm"
+              >
+                <Users className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                <span className="truncate">My agents</span>
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex flex-nowrap items-center justify-end gap-1.5 sm:gap-2 w-full sm:w-auto sm:min-w-0 sm:flex-1 min-w-0 overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:thin]">
+              {showLeaderboardScopeSelect ? (
+                <Select value={leaderboardScope} onValueChange={onLeaderboardScopeChange}>
+                  <SelectTrigger
+                    id="leaderboard-scope"
+                    aria-label="Ranking scope"
+                    title="Ranking: all agents or your wallet agents only"
+                    className="h-9 w-[9.5rem] sm:w-[10.5rem] shrink-0 text-sm [&>span]:truncate"
+                  >
+                    <SelectValue placeholder="Ranking" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">All agents</SelectItem>
+                    <SelectItem value="mine">My agents</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {showExperimentSelect ? (
+                <Select value={activeSuite} onValueChange={onSuiteChange}>
+                  <SelectTrigger
+                    id="experiment-suite"
+                    aria-label="Experiment suite"
+                    title={experimentSelectOptions.find((m) => m.id === activeSuite)?.title ?? "Select experiment"}
+                    className="h-9 w-[10.5rem] sm:w-[12.5rem] shrink-0 text-sm [&>span]:truncate"
+                  >
+                    <SelectValue placeholder="Experiment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {experimentSelectOptions.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {pageView !== "my_agents" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 shrink-0 p-0 sm:h-9 sm:w-auto sm:gap-2 sm:px-3"
+                  onClick={() => load()}
+                  disabled={loading}
+                  title="Refresh"
+                  aria-label="Refresh"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  <span className="hidden sm:inline">Refresh</span>
+                </Button>
+              ) : null}
+              {pageView === "my_agents" && walletAddress ? (
+                <div className="flex flex-nowrap items-center gap-1.5 shrink-0">
+                  <span className="text-xs text-muted-foreground tabular-nums pr-0.5 max-sm:hidden">
+                    {myAgents.length}/{MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-9 shrink-0 px-2 sm:px-3"
+                    onClick={() => setCreateModalOpen(true)}
+                    disabled={myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                    title="Create agent"
+                  >
+                    <span className="hidden min-[400px]:inline">Create</span>
+                    <span className="min-[400px]:hidden">+</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 shrink-0 p-0 sm:h-9 sm:w-auto sm:gap-2 sm:px-3"
+                    onClick={() => loadMyAgents()}
+                    disabled={myLoading}
+                    title="Refresh"
+                    aria-label="Refresh"
+                  >
+                    {myLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    <span className="hidden sm:inline">Refresh</span>
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </div>
 
         {error ? (
           <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -485,437 +781,386 @@ export default function TradingAgentExperiment() {
           </div>
         ) : null}
 
-          <TabsContent value="lab" className="mt-6 space-y-10 outline-none">
-            <Tabs value={activeSuite} onValueChange={onSuiteChange} className="w-full">
-              <TabsList className="h-auto min-h-10 flex-wrap gap-1 p-1">
-                <TabsTrigger value="primary" className="text-xs sm:text-sm">
-                  {suiteMeta.find((m) => m.id === "primary")?.title ?? "Experiment 1"}
-                </TabsTrigger>
-                <TabsTrigger value="secondary" className="text-xs sm:text-sm">
-                  {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Experiment 2"}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-        <section className="space-y-3">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">Two isolated experiments</strong> (tabs above): separate agent matrices
-            and win-rate ledgers. Each uses <strong className="text-foreground">Binance spot OHLC</strong> + the same Syra
-            engine as <code className="text-xs bg-muted px-1 rounded">/signal</code> (no x402). The server samples new
-            BUYs for <strong className="text-foreground">both</strong> suites on the hourly job;{" "}
-            <strong className="text-foreground">TP/SL validation</strong> runs every ~10s on{" "}
-            <strong className="text-foreground">1m</strong> klines for <strong className="text-foreground">all</strong>{" "}
-            open positions. Win rate = wins / (wins + losses) within the selected tab only.
-          </p>
-          {activeSuiteDescription ? (
-            <p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-3">{activeSuiteDescription}</p>
-          ) : null}
-          <div className="flex flex-wrap gap-2 items-center">
-            <Button variant="outline" size="sm" onClick={() => load()} disabled={loading} className="gap-2">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Refresh
-            </Button>
-            <Button size="sm" onClick={onValidateTick} disabled={runningValidate} variant="secondary" className="gap-2">
-              {runningValidate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Validate (1m tick)
-            </Button>
-            <Button size="sm" onClick={onRunCycle} disabled={runningCycle} className="gap-2">
-              {runningCycle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Full cycle
-            </Button>
-            {cycleMessage && (
-              <span className="text-xs text-muted-foreground max-w-md">{cycleMessage}</span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Server: <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_SIGNAL_CRON_MS=3600000</code> (hourly
-            samples) and{" "}
-            <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_VALIDATE_CRON_MS=10000</code> (10s 1m TP/SL).
-            Legacy: only <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_MS</code> runs a combined
-            full cycle on that interval (if the two new vars are unset). Secret:{" "}
-            <code className="bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_SECRET</code> → header{" "}
-            <code className="bg-muted px-1 rounded">x-trading-experiment-secret</code> on POST{" "}
-            <code className="bg-muted px-1 rounded">/validate-tick</code>,{" "}
-            <code className="bg-muted px-1 rounded">/signal-tick</code>,{" "}
-            <code className="bg-muted px-1 rounded">/run-cycle</code>.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-base font-semibold mb-3">Agents & win rate</h2>
-          <div className="rounded-md border border-border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Name</TableHead>
-                  {activeSuite === "multi_resource" ? <TableHead>CEX</TableHead> : null}
-                  <TableHead>Pair</TableHead>
-                  <TableHead>Bar</TableHead>
-                  <TableHead className="text-right">W</TableHead>
-                  <TableHead className="text-right">L</TableHead>
-                  <TableHead className="text-right">Win %</TableHead>
-                  <TableHead className="text-right">Open</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agents.map((a) => (
-                  <TableRow key={a.agentId}>
-                    <TableCell className="font-mono text-muted-foreground">{a.agentId}</TableCell>
-                    <TableCell className="font-medium">
-                      <Link
-                        to={agentProfileHref(a.agentId)}
-                        className="text-primary hover:underline underline-offset-2"
-                      >
-                        {a.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{a.token}</TableCell>
-                    <TableCell className="text-muted-foreground">{a.bar}</TableCell>
-                    <TableCell className="text-right tabular-nums">{a.wins}</TableCell>
-                    <TableCell className="text-right tabular-nums">{a.losses}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{a.openPositions}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
-
-        <section>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
-            <h2 className="text-base font-semibold">Recent runs</h2>
-            {!loading && runsTotal > 0 ? (
-              <p className="text-sm text-muted-foreground tabular-nums">
-                {(runsPage - 1) * RUNS_PAGE_SIZE + 1}–{Math.min(runsPage * RUNS_PAGE_SIZE, runsTotal)} of {runsTotal}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <ListFilter className="h-4 w-4 text-muted-foreground" aria-hidden />
-                Filter runs
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs"
-                disabled={!hasRunFilters}
-                onClick={clearRunFilters}
-              >
-                Clear filters
-              </Button>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <Label htmlFor="run-filter-status" className="text-xs text-muted-foreground">
-                  Status
-                </Label>
-                <Select
-                  value={filterStatus}
-                  onValueChange={(v) => {
-                    setFilterStatus(v);
-                    setRunsPage(1);
-                  }}
-                >
-                  <SelectTrigger id="run-filter-status" className="h-9 text-sm">
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={RUN_FILTER_ALL}>All statuses</SelectItem>
-                    {TRADING_EXPERIMENT_RUN_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {statusOptionLabel(s)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="run-filter-agent" className="text-xs text-muted-foreground">
-                  Agent
-                </Label>
-                <Select
-                  value={filterAgentId}
-                  onValueChange={(v) => {
-                    setFilterAgentId(v);
-                    setRunsPage(1);
-                  }}
-                >
-                  <SelectTrigger id="run-filter-agent" className="h-9 text-sm">
-                    <SelectValue placeholder="All agents" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={RUN_FILTER_ALL}>All agents</SelectItem>
-                    {[...agents]
-                      .sort((a, b) => a.agentId - b.agentId)
-                      .map((a) => (
-                        <SelectItem key={a.agentId} value={String(a.agentId)}>
-                          <span className="font-mono">{a.agentId}</span> {a.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="run-filter-symbol" className="text-xs text-muted-foreground">
-                  Symbol contains
-                </Label>
-                <Input
-                  id="run-filter-symbol"
-                  className="h-9 text-sm"
-                  placeholder="e.g. BTCUSDT"
-                  value={symbolInput}
-                  onChange={(e) => setSymbolInput(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="run-filter-signal" className="text-xs text-muted-foreground">
-                  Signal contains
-                </Label>
-                <Input
-                  id="run-filter-signal"
-                  className="h-9 text-sm"
-                  placeholder="e.g. BUY"
-                  value={signalInput}
-                  onChange={(e) => setSignalInput(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-md border border-border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Agent</TableHead>
-                  {activeSuite === "multi_resource" ? <TableHead>CEX</TableHead> : null}
-                  <TableHead>Symbol</TableHead>
-                  <TableHead>Signal</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Entry</TableHead>
-                  <TableHead className="text-right">SL</TableHead>
-                  <TableHead className="text-right">TP1</TableHead>
-                  <TableHead>Resolution</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {runs.length === 0 && !loading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={activeSuite === "multi_resource" ? 10 : 9}
-                      className="text-center text-muted-foreground py-8"
+          <TabsContent value="lab" className="mt-6 space-y-3 outline-none">
+            <div className="space-y-3">
+            {agents.length > 0 ? (
+              <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+                <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                  <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[240px]">
+                    <Label htmlFor="lab-search" className="text-xs text-muted-foreground">
+                      Search
+                    </Label>
+                    <Input
+                      id="lab-search"
+                      value={labFilterSearch}
+                      onChange={(e) => setLabFilterSearch(e.target.value)}
+                      placeholder="Name, ID, pair…"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5 w-[min(100%,140px)] sm:w-[140px]">
+                    <Label className="text-xs text-muted-foreground">Pair</Label>
+                    <Select value={labFilterToken} onValueChange={setLabFilterToken}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All pairs</SelectItem>
+                        {labTokenOptions.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 w-[min(100%,120px)] sm:w-[120px]">
+                    <Label className="text-xs text-muted-foreground">Bar</Label>
+                    <Select value={labFilterBar} onValueChange={setLabFilterBar}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {labBarOptions.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {activeSuite === "multi_resource" ? (
+                    <div className="space-y-1.5 w-[min(100%,140px)] sm:w-[140px]">
+                      <Label className="text-xs text-muted-foreground">CEX</Label>
+                      <Select value={labFilterCex} onValueChange={setLabFilterCex}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          {labCexOptions.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  <div className="space-y-1.5 min-w-[min(100%,160px)] sm:min-w-[168px]">
+                    <Label className="text-xs text-muted-foreground">Open positions</Label>
+                    <Select
+                      value={labFilterOpen}
+                      onValueChange={(v) => setLabFilterOpen(v as "any" | "open" | "flat")}
                     >
-                      {hasRunFilters ? (
-                        "No runs match these filters. Try clearing filters or changing page."
-                      ) : (
-                        <>
-                          No runs yet. Run a server cycle or enable{" "}
-                          <code className="text-xs bg-muted px-1 rounded">TRADING_EXPERIMENT_CRON_MS</code>.
-                        </>
-                      )}
-                    </TableCell>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any</SelectItem>
+                        <SelectItem value="open">Has open</SelectItem>
+                        <SelectItem value="flat">None open</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9"
+                    onClick={() => {
+                      setLabFilterSearch("");
+                      setLabFilterToken("all");
+                      setLabFilterBar("all");
+                      setLabFilterCex("all");
+                      setLabFilterOpen("any");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            <div className="rounded-md border border-border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Name</TableHead>
+                    {activeSuite === "multi_resource" ? <TableHead>CEX</TableHead> : null}
+                    <TableHead>Pair</TableHead>
+                    <TableHead>Bar</TableHead>
+                    <TableHead className="text-right">W</TableHead>
+                    <TableHead className="text-right">L</TableHead>
+                    <TableHead className="text-right">Win %</TableHead>
+                    <TableHead className="text-right">Open</TableHead>
                   </TableRow>
-                ) : (
-                  runs.map((r) => (
-                    <TableRow key={r._id}>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                        {formatTime(r.createdAt)}
+                </TableHeader>
+                <TableBody>
+                  {loading && agents.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={activeSuite === "multi_resource" ? 9 : 8}
+                        className="text-center text-muted-foreground py-10"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
+                          Loading…
+                        </span>
                       </TableCell>
-                      <TableCell className="text-sm max-w-[140px] sm:max-w-none">
-                        <span className="font-mono text-muted-foreground">{r.agentId}</span>{" "}
-                        <Link
-                          to={agentProfileHref(r.agentId)}
-                          className="text-primary hover:underline underline-offset-2 truncate inline-block align-bottom max-w-[100px] sm:max-w-none sm:inline"
-                          title={r.agentName}
+                    </TableRow>
+                  ) : null}
+                  {!loading && agents.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={activeSuite === "multi_resource" ? 9 : 8}
+                        className="text-center text-muted-foreground py-10"
+                      >
+                        No agents for this experiment.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {!loading && agents.length > 0 && filteredLabAgents.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={activeSuite === "multi_resource" ? 9 : 8}
+                        className="text-center text-muted-foreground py-10"
+                      >
+                        No agents match these filters.{" "}
+                        <button
+                          type="button"
+                          className="text-primary underline underline-offset-2 font-medium"
+                          onClick={() => {
+                            setLabFilterSearch("");
+                            setLabFilterToken("all");
+                            setLabFilterBar("all");
+                            setLabFilterCex("all");
+                            setLabFilterOpen("any");
+                          }}
                         >
-                          {r.agentName}
+                          Clear filters
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {pagedLabAgents.map((a) => (
+                    <TableRow key={a.agentId}>
+                      <TableCell className="font-mono text-muted-foreground">{a.agentId}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link
+                          to={agentProfileHref(a.agentId)}
+                          className="text-foreground font-medium hover:text-primary hover:underline underline-offset-2"
+                        >
+                          {a.name}
                         </Link>
                       </TableCell>
                       {activeSuite === "multi_resource" ? (
-                        <TableCell className="text-xs font-mono text-muted-foreground">{r.cexSource ?? "—"}</TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">
+                          {a.cexSource ?? "—"}
+                        </TableCell>
                       ) : null}
-                      <TableCell className="font-mono text-xs">{r.symbol}</TableCell>
-                      <TableCell>{r.clearSignal}</TableCell>
-                      <TableCell>
-                        <span
-                          className={cn(
-                            "text-xs font-medium px-1.5 py-0.5 rounded",
-                            r.status === "win" && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-                            r.status === "loss" && "bg-red-500/15 text-red-600 dark:text-red-400",
-                            r.status === "open" && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-                            (r.status === "skipped_non_buy" || r.status === "skipped_invalid_levels") &&
-                              "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {r.status}
-                        </span>
+                      <TableCell className="text-muted-foreground">{a.token}</TableCell>
+                      <TableCell className="text-muted-foreground">{a.bar}</TableCell>
+                      <TableCell className="text-right tabular-nums">{a.wins}</TableCell>
+                      <TableCell className="text-right tabular-nums">{a.losses}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-xs">
-                        {r.entry != null ? r.entry.toFixed(4) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-xs">
-                        {r.stopLoss != null ? r.stopLoss.toFixed(4) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-xs">
-                        {r.firstTarget != null ? r.firstTarget.toFixed(4) : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
-                        {r.resolution ?? "—"}
-                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{a.openPositions}</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          {runsTotal > RUNS_PAGE_SIZE || runsPage > 1 ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4">
-              <p className="text-xs text-muted-foreground">
-                Page {runsPage} of {Math.max(1, Math.ceil(runsTotal / RUNS_PAGE_SIZE))}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  disabled={loading || runsPage <= 1}
-                  onClick={() => setRunsPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  disabled={loading || runsPage * RUNS_PAGE_SIZE >= runsTotal}
-                  onClick={() => setRunsPage((p) => p + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          ) : null}
-        </section>
+            <ExperimentTablePagination
+              page={labPage}
+              pageSize={TABLE_PAGE_SIZE}
+              totalItems={filteredLabAgents.length}
+              loading={loading}
+              onPageChange={setLabPage}
+            />
+            </div>
           </TabsContent>
 
-          <TabsContent value="leaderboard" className="mt-6 space-y-8 outline-none">
-            <Tabs value={activeSuite} onValueChange={onSuiteChange} className="w-full">
-              <TabsList className="h-auto min-h-10 flex-wrap gap-1 p-1">
-                <TabsTrigger value="primary" className="text-xs sm:text-sm">
-                  {suiteMeta.find((m) => m.id === "primary")?.title ?? "Experiment 1"}
-                </TabsTrigger>
-                <TabsTrigger value="secondary" className="text-xs sm:text-sm">
-                  {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Experiment 2"}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <section className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-base font-semibold flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-amber-500 shrink-0" aria-hidden />
-                  Who&apos;s ahead
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => load()} disabled={loading} className="gap-2">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Refresh
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
-                Agents with at least{" "}
-                <strong className="text-foreground">{LEADERBOARD_MIN_DECIDED}</strong> resolved outcomes (wins +
-                losses) are ranked by <strong className="text-foreground">win rate</strong>, then wins. Others show as
-                building a sample or waiting for first trade. Open positions are not counted until closed.
-              </p>
-              {activeSuiteDescription ? (
-                <p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-3">{activeSuiteDescription}</p>
-              ) : null}
-            </section>
-
-            {!loading && rankedAgents.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center border border-dashed border-border rounded-lg">
-                No agents loaded for this experiment yet.
-              </p>
-            ) : null}
-
-            {rankedAgents.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-3">
-                {rankedAgents.slice(0, 3).map((a, i) => {
-                  const tier = leaderboardTier(a);
-                  const rank = i + 1;
-                  const border =
-                    rank === 1
-                      ? "border-amber-500/50 bg-amber-500/5"
-                      : rank === 2
-                        ? "border-slate-400/40 bg-slate-500/5"
-                        : "border-amber-800/30 bg-amber-950/10";
-                  return (
-                    <div
-                      key={a.agentId}
-                      className={cn(
-                        "rounded-xl border p-4 flex flex-col gap-2 min-h-[140px]",
-                        border,
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-2xl font-bold tabular-nums text-muted-foreground">#{rank}</span>
-                        {rank <= 3 ? (
-                          <Medal
-                            className={cn(
-                              "h-7 w-7 shrink-0",
-                              rank === 1 && "text-amber-500",
-                              rank === 2 && "text-slate-400",
-                              rank === 3 && "text-amber-700 dark:text-amber-600",
-                            )}
-                            aria-hidden
-                          />
-                        ) : null}
-                      </div>
-                      <Link
-                        to={agentProfileHref(a.agentId)}
-                        className="font-semibold leading-tight text-foreground hover:text-primary hover:underline underline-offset-2"
-                      >
-                        {a.name}
-                      </Link>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        #{a.agentId} · {a.token} · {a.bar}
-                      </p>
-                      <div className="mt-auto pt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-                        <span className="text-lg font-semibold tabular-nums">
-                          {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
-                        </span>
-                        <span className="text-muted-foreground tabular-nums">
-                          {a.wins}W / {a.losses}L
-                          {a.openPositions > 0 ? ` · ${a.openPositions} open` : ""}
-                        </span>
-                      </div>
-                      {tier === 1 ? (
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Building sample</span>
-                      ) : null}
-                      {tier === 2 ? (
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">No closes yet</span>
-                      ) : null}
+          <TabsContent value="leaderboard" className="mt-6 space-y-3 outline-none">
+            <div className="space-y-3">
+            {rankedLeaderboardRows.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+                  <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                    <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[240px]">
+                      <Label htmlFor="lb-search" className="text-xs text-muted-foreground">
+                        Search
+                      </Label>
+                      <Input
+                        id="lb-search"
+                        value={lbFilterSearch}
+                        onChange={(e) => setLbFilterSearch(e.target.value)}
+                        placeholder="Agent, pair, ID…"
+                        className="h-9"
+                      />
                     </div>
-                  );
-                })}
+                    <div className="space-y-1.5 w-[min(100%,140px)] sm:w-[140px]">
+                      <Label className="text-xs text-muted-foreground">Pair</Label>
+                      <Select value={lbFilterToken} onValueChange={setLbFilterToken}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All pairs</SelectItem>
+                          {lbTokenOptions.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5 w-[min(100%,120px)] sm:w-[120px]">
+                      <Label className="text-xs text-muted-foreground">Bar</Label>
+                      <Select value={lbFilterBar} onValueChange={setLbFilterBar}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          {lbBarOptions.map((b) => (
+                            <SelectItem key={b} value={b}>
+                              {b}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5 min-w-[min(100%,200px)] sm:min-w-[200px]">
+                      <Label className="text-xs text-muted-foreground">Sample size</Label>
+                      <Select
+                        value={lbFilterSample}
+                        onValueChange={(v) => setLbFilterSample(v as "any" | "0" | "1" | "2")}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any</SelectItem>
+                          <SelectItem value="0">{`${LEADERBOARD_MIN_DECIDED}+ resolved`}</SelectItem>
+                          <SelectItem value="1">{`<${LEADERBOARD_MIN_DECIDED} resolved`}</SelectItem>
+                          <SelectItem value="2">No resolved yet</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9"
+                      onClick={() => {
+                        setLbFilterSearch("");
+                        setLbFilterToken("all");
+                        setLbFilterBar("all");
+                        setLbFilterSample("any");
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+                <div className="rounded-md border border-border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-14">Rank</TableHead>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>Pair</TableHead>
+                        <TableHead>Bar</TableHead>
+                        <TableHead className="text-right">W</TableHead>
+                        <TableHead className="text-right">L</TableHead>
+                        <TableHead className="text-right">Win %</TableHead>
+                        <TableHead className="text-right">Open</TableHead>
+                        <TableHead className="text-right">Sample</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeaderboardRows.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
+                            No agents match these filters.{" "}
+                            <button
+                              type="button"
+                              className="text-primary underline underline-offset-2 font-medium"
+                              onClick={() => {
+                                setLbFilterSearch("");
+                                setLbFilterToken("all");
+                                setLbFilterBar("all");
+                                setLbFilterSample("any");
+                              }}
+                            >
+                              Clear filters
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {filteredLeaderboardRows.length > 0 &&
+                        pagedLeaderboardRows.map((row, idx) => {
+                        const tier = leaderboardTierFromDecided(row.decided);
+                        const tierLabel =
+                          tier === 0 ? `${LEADERBOARD_MIN_DECIDED}+` : tier === 1 ? `<${LEADERBOARD_MIN_DECIDED}` : "—";
+                        const idDisplay =
+                          leaderboardScope === "global" ? `#${row.idLabel}` : `…${row.idLabel.slice(-6)}`;
+                        const globalRank = (leaderboardPage - 1) * TABLE_PAGE_SIZE + idx + 1;
+                        return (
+                          <TableRow
+                            key={row.key}
+                            className={cn(
+                              globalRank === 1 && "bg-amber-500/5",
+                              globalRank === 2 && "bg-slate-500/5",
+                              globalRank === 3 && "bg-amber-950/10",
+                            )}
+                          >
+                            <TableCell className="font-semibold tabular-nums text-muted-foreground">{globalRank}</TableCell>
+                            <TableCell>
+                              {row.profileHref ? (
+                                <Link
+                                  to={row.profileHref}
+                                  className="font-medium text-foreground hover:text-primary hover:underline underline-offset-2"
+                                >
+                                  {row.name}
+                                </Link>
+                              ) : (
+                                <span className="font-medium text-foreground">{row.name}</span>
+                              )}
+                              <span
+                                className="font-mono text-xs text-muted-foreground ml-2 max-w-[100px] inline-block align-bottom truncate"
+                                title={leaderboardScope === "mine" ? row.idLabel : undefined}
+                              >
+                                {idDisplay}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{row.token}</TableCell>
+                            <TableCell className="text-muted-foreground">{row.bar}</TableCell>
+                            <TableCell className="text-right tabular-nums">{row.wins}</TableCell>
+                            <TableCell className="text-right tabular-nums">{row.losses}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">
+                              {row.winRatePct != null ? `${row.winRatePct}%` : "—"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{row.openPositions}</TableCell>
+                            <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{tierLabel}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <ExperimentTablePagination
+                  page={leaderboardPage}
+                  pageSize={TABLE_PAGE_SIZE}
+                  totalItems={filteredLeaderboardRows.length}
+                  loading={loading}
+                  onPageChange={setLeaderboardPage}
+                />
               </div>
-            ) : null}
-
-            {rankedAgents.length > 0 ? (
+            ) : (
               <div className="rounded-md border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -932,119 +1177,119 @@ export default function TradingAgentExperiment() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rankedAgents.map((a, idx) => {
-                      const tier = leaderboardTier(a);
-                      const tierLabel =
-                        tier === 0 ? `${LEADERBOARD_MIN_DECIDED}+` : tier === 1 ? `<${LEADERBOARD_MIN_DECIDED}` : "—";
-                      return (
-                        <TableRow
-                          key={a.agentId}
-                          className={cn(
-                            idx === 0 && "bg-amber-500/5",
-                            idx === 1 && "bg-slate-500/5",
-                            idx === 2 && "bg-amber-950/10",
-                          )}
-                        >
-                          <TableCell className="font-semibold tabular-nums text-muted-foreground">{idx + 1}</TableCell>
-                          <TableCell>
-                            <Link
-                              to={agentProfileHref(a.agentId)}
-                              className="font-medium text-primary hover:underline underline-offset-2"
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
+                        {loading ? (
+                          <span className="inline-flex items-center justify-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
+                            Loading…
+                          </span>
+                        ) : leaderboardScope === "mine" && !walletAddress ? (
+                          "Connect your Solana or Base wallet to see your agents here."
+                        ) : leaderboardScope === "mine" && walletAddress ? (
+                          <>
+                            No custom agents yet. Open the{" "}
+                            <button
+                              type="button"
+                              className="text-primary underline underline-offset-2 font-medium"
+                              onClick={() => setPageView("my_agents")}
                             >
-                              {a.name}
-                            </Link>
-                            <span className="font-mono text-xs text-muted-foreground ml-2">#{a.agentId}</span>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{a.token}</TableCell>
-                          <TableCell className="text-muted-foreground">{a.bar}</TableCell>
-                          <TableCell className="text-right tabular-nums">{a.wins}</TableCell>
-                          <TableCell className="text-right tabular-nums">{a.losses}</TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">
-                            {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">{a.openPositions}</TableCell>
-                          <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{tierLabel}</TableCell>
-                        </TableRow>
-                      );
-                    })}
+                              My agents
+                            </button>{" "}
+                            tab to create one.
+                          </>
+                        ) : (
+                          "No agents loaded for this experiment yet."
+                        )}
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </div>
-            ) : null}
+            )}
+            </div>
           </TabsContent>
 
-          <TabsContent value="charts" className="mt-6 space-y-8 outline-none">
-            <Tabs value={activeSuite} onValueChange={onSuiteChange} className="w-full">
-              <TabsList className="h-auto min-h-10 flex-wrap gap-1 p-1">
-                <TabsTrigger value="primary" className="text-xs sm:text-sm">
-                  {suiteMeta.find((m) => m.id === "primary")?.title ?? "Experiment 1"}
-                </TabsTrigger>
-                <TabsTrigger value="secondary" className="text-xs sm:text-sm">
-                  {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Experiment 2"}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <section className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-base font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary shrink-0" aria-hidden />
-                  Visual overview
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => load()} disabled={loading} className="gap-2">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Refresh
-                </Button>
+          <TabsContent value="charts" className="mt-6 space-y-3 outline-none">
+            <div className="space-y-3">
+            {agents.length > 0 ? (
+              <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+                <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                  <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[240px]">
+                    <Label htmlFor="chart-search" className="text-xs text-muted-foreground">
+                      Search
+                    </Label>
+                    <Input
+                      id="chart-search"
+                      value={chartFilterSearch}
+                      onChange={(e) => setChartFilterSearch(e.target.value)}
+                      placeholder="Name, ID, pair…"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5 w-[min(100%,140px)] sm:w-[140px]">
+                    <Label className="text-xs text-muted-foreground">Pair</Label>
+                    <Select value={chartFilterToken} onValueChange={setChartFilterToken}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All pairs</SelectItem>
+                        {chartTokenOptions.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 w-[min(100%,120px)] sm:w-[120px]">
+                    <Label className="text-xs text-muted-foreground">Bar</Label>
+                    <Select value={chartFilterBar} onValueChange={setChartFilterBar}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {chartBarOptions.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9"
+                    onClick={() => {
+                      setChartFilterSearch("");
+                      setChartFilterToken("all");
+                      setChartFilterBar("all");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
               </div>
-              {activeSuiteDescription ? (
-                <p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-3">{activeSuiteDescription}</p>
-              ) : null}
-            </section>
-
+            ) : null}
             <TradingExperimentChartsPanel
-              agents={agents}
-              chartRuns={chartSampleRuns}
+              agents={filteredChartAgents}
+              chartRuns={[]}
               loading={loading}
               agentProfileHref={agentProfileHref}
+              emptyMessage={
+                !loading && agents.length > 0 && filteredChartAgents.length === 0
+                  ? "No agents match these filters."
+                  : undefined
+              }
             />
+            </div>
           </TabsContent>
 
-          <TabsContent value="my_agents" className="mt-6 space-y-8 outline-none">
-            <section className="space-y-2">
-              <h2 className="text-base font-semibold flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary shrink-0" aria-hidden />
-                Your strategy agents
-              </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
-                Create up to{" "}
-                <strong className="text-foreground">{MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}</strong> custom agents per
-                wallet. Each uses Binance spot OHLC + the same Syra engine as the lab; the server samples signals on the
-                hourly job and validates TP/SL on 1m data with the global experiment cron. Win rate = wins / (wins +
-                losses).
-              </p>
-            </section>
-
-            {!walletAddress ? (
-              <p className="text-sm text-muted-foreground border border-dashed border-border rounded-lg px-4 py-6 text-center">
-                Connect your Solana or Base wallet to create agents and view stats.
-              </p>
-            ) : null}
-
-            {walletAddress ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
-                <p className="text-xs text-muted-foreground">
-                  Agents: {myAgents.length} / {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
-                </p>
-                <Button
-                  type="button"
-                  onClick={() => setCreateModalOpen(true)}
-                  disabled={myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
-                >
-                  Create agent
-                </Button>
-              </div>
-            ) : null}
-
+          <TabsContent value="my_agents" className="mt-6 space-y-6 outline-none">
             <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
@@ -1128,32 +1373,96 @@ export default function TradingAgentExperiment() {
               </DialogContent>
             </Dialog>
 
-            {walletAddress ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold">Win rates</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadMyAgents()}
-                    disabled={myLoading}
-                    className="gap-2"
-                  >
-                    {myLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    Refresh
-                  </Button>
-                </div>
-                {myLoading && myAgents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-                  </p>
-                ) : null}
-                {!myLoading && myAgents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground border border-dashed border-border rounded-lg px-4 py-6 text-center">
-                    No custom agents yet. Click "Create agent" to add one.
-                  </p>
-                ) : null}
-                {myAgents.length > 0 ? (
+            {!walletAddress ? (
+              <div className="rounded-md border border-border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Pair</TableHead>
+                      <TableHead>Bar</TableHead>
+                      <TableHead className="text-right">W</TableHead>
+                      <TableHead className="text-right">L</TableHead>
+                      <TableHead className="text-right">Win %</TableHead>
+                      <TableHead className="text-right">Open</TableHead>
+                      <TableHead className="w-12 text-right" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                        Connect your Solana or Base wallet to create agents and view stats.
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  {myAgents.length > 0 ? (
+                    <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+                      <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                        <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[240px]">
+                          <Label htmlFor="my-win-search" className="text-xs text-muted-foreground">
+                            Search
+                          </Label>
+                          <Input
+                            id="my-win-search"
+                            value={myWinSearch}
+                            onChange={(e) => setMyWinSearch(e.target.value)}
+                            placeholder="Name, strategy ID…"
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5 w-[min(100%,140px)] sm:w-[140px]">
+                          <Label className="text-xs text-muted-foreground">Pair</Label>
+                          <Select value={myWinToken} onValueChange={setMyWinToken}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All pairs</SelectItem>
+                              {myWinTokenOptions.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {t}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5 w-[min(100%,120px)] sm:w-[120px]">
+                          <Label className="text-xs text-muted-foreground">Bar</Label>
+                          <Select value={myWinBar} onValueChange={setMyWinBar}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All</SelectItem>
+                              {myWinBarOptions.map((b) => (
+                                <SelectItem key={b} value={b}>
+                                  {b}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-9"
+                          onClick={() => {
+                            setMyWinSearch("");
+                            setMyWinToken("all");
+                            setMyWinBar("all");
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="rounded-md border border-border overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -1169,50 +1478,147 @@ export default function TradingAgentExperiment() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {myAgents.map((a: UserCustomStrategyAgentStats) => (
-                          <TableRow key={a.strategyId}>
-                            <TableCell className="font-medium">{a.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{a.token}</TableCell>
-                            <TableCell className="text-muted-foreground">{a.bar}</TableCell>
-                            <TableCell className="text-right tabular-nums">{a.wins}</TableCell>
-                            <TableCell className="text-right tabular-nums">{a.losses}</TableCell>
-                            <TableCell className="text-right tabular-nums font-medium">
-                              {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">{a.openPositions}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                title="Delete agent"
-                                disabled={deletingId === a.strategyId || a.openPositions > 0}
-                                onClick={() => onDeleteMyStrategy(a.strategyId)}
-                              >
-                                {deletingId === a.strategyId ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
+                        {myLoading && myAgents.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                              <span className="inline-flex items-center justify-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
+                                Loading…
+                              </span>
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : null}
+                        {!myLoading && myAgents.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                              No custom agents yet. Use Create agent in the toolbar to add one.
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                        {!myLoading && myAgents.length > 0 && filteredMyAgentsWin.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                              No agents match these filters.{" "}
+                              <button
+                                type="button"
+                                className="text-primary underline underline-offset-2 font-medium"
+                                onClick={() => {
+                                  setMyWinSearch("");
+                                  setMyWinToken("all");
+                                  setMyWinBar("all");
+                                }}
+                              >
+                                Clear filters
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                        {!myLoading &&
+                          myAgents.length > 0 &&
+                          filteredMyAgentsWin.length > 0 &&
+                          pagedMyAgentsWin.map((a: UserCustomStrategyAgentStats) => (
+                            <TableRow key={a.strategyId}>
+                              <TableCell className="font-medium">{a.name}</TableCell>
+                              <TableCell className="text-muted-foreground">{a.token}</TableCell>
+                              <TableCell className="text-muted-foreground">{a.bar}</TableCell>
+                              <TableCell className="text-right tabular-nums">{a.wins}</TableCell>
+                              <TableCell className="text-right tabular-nums">{a.losses}</TableCell>
+                              <TableCell className="text-right tabular-nums font-medium">
+                                {a.winRatePct != null ? `${a.winRatePct}%` : "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">{a.openPositions}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  title={
+                                    a.openPositions > 0
+                                      ? "Delete disabled while a run is open"
+                                      : "Delete agent"
+                                  }
+                                  disabled={deletingId === a.strategyId || a.openPositions > 0}
+                                  onClick={() => onDeleteMyStrategy(a.strategyId)}
+                                >
+                                  {deletingId === a.strategyId ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
                       </TableBody>
                     </Table>
                   </div>
-                ) : null}
-                <p className="text-xs text-muted-foreground">
-                  Delete is disabled while an experiment run is <strong className="text-foreground">open</strong> for that
-                  agent.
-                </p>
-              </div>
-            ) : null}
+                  {myAgents.length > 0 ? (
+                    <ExperimentTablePagination
+                      page={myAgentsTablePage}
+                      pageSize={TABLE_PAGE_SIZE}
+                      totalItems={filteredMyAgentsWin.length}
+                      loading={myLoading}
+                      onPageChange={setMyAgentsTablePage}
+                    />
+                  ) : null}
+                </div>
 
-            {walletAddress && myRuns.length > 0 ? (
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Recent runs ({myRunsTotal})</h3>
+                <div className="space-y-3">
+                <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+                  <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                    <div className="space-y-1.5 w-[min(100%,200px)] sm:w-[200px]">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <Select
+                        value={myRunsStatus.trim() ? myRunsStatus : "all"}
+                        onValueChange={(v) => setMyRunsStatus(v === "all" ? "" : v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All statuses</SelectItem>
+                          {TRADING_EXPERIMENT_RUN_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {statusOptionLabel(s)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5 min-w-[min(100%,220px)] sm:min-w-[240px] flex-1 sm:max-w-[320px]">
+                      <Label className="text-xs text-muted-foreground">Strategy</Label>
+                      <Select
+                        value={myRunsStrategyId.trim() ? myRunsStrategyId : "all"}
+                        onValueChange={(v) => setMyRunsStrategyId(v === "all" ? "" : v)}
+                      >
+                        <SelectTrigger className="h-9 [&>span]:truncate">
+                          <SelectValue placeholder="All strategies" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All strategies</SelectItem>
+                          {myAgents.map((a) => (
+                            <SelectItem key={a.strategyId} value={a.strategyId}>
+                              {a.name.length > 40 ? `${a.name.slice(0, 38)}…` : a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9"
+                      onClick={() => {
+                        setMyRunsStatus("");
+                        setMyRunsStrategyId("");
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
                 <div className="rounded-md border border-border overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -1224,21 +1630,54 @@ export default function TradingAgentExperiment() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {myRuns.map((r) => (
-                        <TableRow key={r._id}>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {formatTime(r.createdAt)}
+                      {myLoading && myRuns.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            <Loader2 className="h-4 w-4 animate-spin inline mr-2" aria-hidden />
+                            Loading…
                           </TableCell>
-                          <TableCell className="text-xs">{statusOptionLabel(r.status)}</TableCell>
-                          <TableCell className="font-mono text-xs">{r.clearSignal}</TableCell>
-                          <TableCell className="text-xs">{r.symbol}</TableCell>
                         </TableRow>
-                      ))}
+                      ) : null}
+                      {!myLoading && myRunsTotal === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            {myRunsStatus.trim() || myRunsStrategyId.trim()
+                              ? "No runs match these filters."
+                              : "No experiment runs for this wallet yet."}
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {!myLoading && myRunsTotal > 0 && myRuns.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            No runs on this page match the current filters.
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {!myLoading &&
+                        myRuns.map((r) => (
+                          <TableRow key={r._id}>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatTime(r.createdAt)}
+                            </TableCell>
+                            <TableCell className="text-xs">{statusOptionLabel(r.status)}</TableCell>
+                            <TableCell className="font-mono text-xs">{r.clearSignal}</TableCell>
+                            <TableCell className="text-xs">{r.symbol}</TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </div>
+                <ExperimentTablePagination
+                  page={myRunsPage}
+                  pageSize={TABLE_PAGE_SIZE}
+                  totalItems={myRunsTotal}
+                  loading={myLoading}
+                  onPageChange={setMyRunsPage}
+                />
+                </div>
               </div>
-            ) : null}
+            )}
           </TabsContent>
         </Tabs>
       </main>

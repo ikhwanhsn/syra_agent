@@ -1,6 +1,6 @@
 /**
  * One observation from the trading agent experiment (Binance OHLC + signal engine).
- * BUY rows with status "open" await forward resolution (TP/SL/expired).
+ * Spot-long only: persisted signals are BUY (open / win / loss / expired / skipped_invalid_levels / error).
  */
 import mongoose from "mongoose";
 
@@ -27,15 +27,7 @@ const tradingExperimentRunSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: [
-        "open",
-        "win",
-        "loss",
-        "expired",
-        "skipped_non_buy",
-        "skipped_invalid_levels",
-        "error",
-      ],
+      enum: ["open", "win", "loss", "expired", "skipped_invalid_levels", "error"],
       index: true,
     },
     resolution: { type: String, default: null },

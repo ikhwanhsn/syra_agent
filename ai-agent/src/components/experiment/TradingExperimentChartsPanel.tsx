@@ -26,6 +26,8 @@ type Props = {
   chartRuns: TradingExperimentRunRow[];
   loading: boolean;
   agentProfileHref: (agentId: number) => string;
+  /** When agents is empty, overrides the default empty copy (e.g. chart filters). */
+  emptyMessage?: string;
 };
 
 const winRateConfig = {
@@ -56,7 +58,6 @@ const STATUS_COLORS: Record<string, string> = {
   loss: "hsl(0 70% 50%)",
   open: "hsl(38 92% 50%)",
   expired: "hsl(240 5% 55%)",
-  skipped_non_buy: "hsl(240 10% 40%)",
   skipped_invalid_levels: "hsl(240 10% 35%)",
   error: "hsl(280 60% 50%)",
 };
@@ -66,7 +67,13 @@ function shortAgentLabel(a: TradingExperimentAgentStats) {
   return `#${a.agentId} ${name}`;
 }
 
-export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agentProfileHref }: Props) {
+export function TradingExperimentChartsPanel({
+  agents,
+  chartRuns,
+  loading,
+  agentProfileHref,
+  emptyMessage,
+}: Props) {
   const winRateRows = useMemo(
     () =>
       [...agents]
@@ -127,8 +134,6 @@ export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agent
     return sorted.slice(-16);
   }, [chartRuns]);
 
-  const openTotal = useMemo(() => agents.reduce((s, a) => s + a.openPositions, 0), [agents]);
-
   const maxDecided = useMemo(() => Math.max(1, ...agents.map((a) => a.decided)), [agents]);
 
   const bubbleFieldBubbles = useMemo(
@@ -161,19 +166,13 @@ export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agent
   if (agents.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-12 text-center border border-dashed border-border rounded-lg">
-        No agents in this suite yet.
+        {emptyMessage ?? "No agents in this suite yet."}
       </p>
     );
   }
 
   return (
-    <div className="space-y-10">
-      <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
-        Visual summary for the selected experiment. Win rates use{" "}
-        <strong className="text-foreground">closed</strong> trades only. The status chart and timeline use up to the{" "}
-        <strong className="text-foreground">200 most recent runs</strong> in this suite (all agents).
-      </p>
-
+    <div className="space-y-8">
       <TradingExperimentBubbleField
         bubbles={bubbleFieldBubbles}
         isLoading={loading}
@@ -181,11 +180,6 @@ export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agent
       />
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Win rate by agent</h3>
-        <p className="text-xs text-muted-foreground">
-          Sorted by win %. Agents with no resolved outcomes show 0% bar; hover for record. Click name in table below
-          for profile.
-        </p>
         <div className="rounded-xl border border-border bg-card/50 p-2 sm:p-4 overflow-x-auto">
           <ChartContainer config={winRateConfig} className="h-[min(420px,70vh)] w-full min-w-[320px] aspect-auto">
             <BarChart
@@ -231,11 +225,6 @@ export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agent
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section className="space-y-3">
-          <h3 className="text-sm font-semibold">Closed outcomes (suite total)</h3>
-          <p className="text-xs text-muted-foreground">
-            Sum of wins vs losses across all agents. Open positions:{" "}
-            <strong className="text-foreground">{openTotal}</strong> (not shown here).
-          </p>
           {aggregateWl.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-lg">No wins or losses yet.</p>
           ) : (
@@ -264,8 +253,6 @@ export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agent
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-sm font-semibold">Run status (recent sample)</h3>
-          <p className="text-xs text-muted-foreground">Counts from latest fetched batch of runs.</p>
           {statusBars.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-lg">No runs in sample.</p>
           ) : (
@@ -289,10 +276,6 @@ export function TradingExperimentChartsPanel({ agents, chartRuns, loading, agent
       </div>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Activity by day</h3>
-        <p className="text-xs text-muted-foreground">
-          Stacked run counts per calendar day (UTC) from the recent sample, up to 16 days.
-        </p>
         {dailyActivity.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-lg">
             No dated runs in sample.

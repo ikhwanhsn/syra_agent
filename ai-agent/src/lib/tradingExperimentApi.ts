@@ -18,7 +18,6 @@ export const TRADING_EXPERIMENT_RUN_STATUSES = [
   "win",
   "loss",
   "expired",
-  "skipped_non_buy",
   "skipped_invalid_levels",
   "error",
 ] as const;

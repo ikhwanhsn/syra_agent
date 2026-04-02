@@ -342,7 +342,7 @@ export default function TradingAgentExperimentAgentProfile() {
                               r.status === "win" && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
                               r.status === "loss" && "bg-red-500/15 text-red-600 dark:text-red-400",
                               r.status === "open" && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-                              (r.status === "skipped_non_buy" || r.status === "skipped_invalid_levels") &&
+                              r.status === "skipped_invalid_levels" &&
                                 "bg-muted text-muted-foreground",
                             )}
                           >
