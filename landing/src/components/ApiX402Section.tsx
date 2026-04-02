@@ -2,7 +2,16 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { ExternalLink, MessageSquare, Shield, TrendingUp, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { LINK_PLAYGROUND, LINK_DOCS } from "../../config/global";
+
+const categoryIconThemes = [
+  "bg-accent/12 text-accent border border-accent/25",
+  "bg-neon-gold/12 text-neon-gold border border-neon-gold/25",
+  "bg-success/12 text-success border border-success/25",
+] as const;
+
+const keyPointDots = ["bg-accent", "bg-neon-gold", "bg-success", "bg-accent"] as const;
 
 const apiCategories = [
   {
@@ -24,7 +33,7 @@ const apiCategories = [
 
 const keyPoints = [
   "Pay per request — no subscriptions",
-  "Solana-native payments",
+  "x402 & MPP on Solana",
   "REST-style, any HTTP client",
   "Instant access after payment",
 ];
@@ -81,8 +90,8 @@ function X402FlowIllustration() {
           <circle cx="240" cy="110" r="38" fill="hsl(var(--card))" stroke="hsl(var(--accent))" strokeWidth="2" />
           <circle cx="240" cy="110" r="32" fill="hsl(var(--accent) / 0.12)" stroke="hsl(var(--accent) / 0.6)" strokeWidth="1.5" />
           <text x="240" y="96" textAnchor="middle" fill="hsl(var(--accent))" style={{ fontSize: 14, fontFamily: "system-ui", fontWeight: 700 }}>2</text>
-          <text x="240" y="112" textAnchor="middle" fill="hsl(var(--accent))" style={{ fontSize: 13, fontFamily: "system-ui", fontWeight: 700 }}>402 Pay</text>
-          <text x="240" y="124" textAnchor="middle" fill="hsl(var(--muted-foreground))" style={{ fontSize: 10, fontFamily: "system-ui", whiteSpace: "nowrap" }}>Solana</text>
+          <text x="240" y="111" textAnchor="middle" fill="hsl(var(--accent))" style={{ fontSize: 12, fontFamily: "system-ui", fontWeight: 700 }}>402 Pay</text>
+          <text x="240" y="125" textAnchor="middle" fill="hsl(var(--muted-foreground))" style={{ fontSize: 9, fontFamily: "system-ui", whiteSpace: "nowrap" }}>x402 · MPP</text>
         </motion.g>
 
         {/* Node 3: Get data */}
@@ -104,8 +113,9 @@ export const ApiX402Section = () => {
 
   return (
     <section id="api" className="relative py-14 sm:py-20 lg:py-28 overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] bg-accent/8 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-neon-gold/5 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[420px] bg-accent/12 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[380px] h-[380px] bg-neon-gold/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[280px] h-[280px] bg-success/8 rounded-full blur-[85px] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
@@ -118,9 +128,9 @@ export const ApiX402Section = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4 }}
-              className="inline-block text-primary text-xs sm:text-sm font-medium tracking-widest uppercase mb-3 sm:mb-4"
+              className="section-eyebrow-gradient inline-block text-xs sm:text-sm font-medium tracking-widest uppercase mb-3 sm:mb-4"
             >
-              HTTP 402
+              x402 & MPP
             </motion.span>
             <motion.h2
               initial={{ opacity: 0, y: 16 }}
@@ -136,7 +146,7 @@ export const ApiX402Section = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="text-muted-foreground text-sm sm:text-base lg:text-lg max-w-lg mx-auto lg:mx-0 mb-5 sm:mb-6 leading-relaxed"
             >
-              Syra APIs use the HTTP 402 Payment Required standard: call an endpoint, pay with Solana when prompted, then receive the response. No subscriptions—pay only for what you use.
+              Syra APIs use HTTP 402 Payment Required with x402 and MPP (Machine Payments Protocol) discovery: call an endpoint, pay on Solana when prompted, then receive the response. No subscriptions—pay only for what you use.
             </motion.p>
 
             {/* API categories */}
@@ -146,12 +156,17 @@ export const ApiX402Section = () => {
               transition={{ duration: 0.4, delay: 0.12 }}
               className="mb-6 sm:mb-8 space-y-3 sm:space-y-4"
             >
-              <p className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">
-                Available via x402
+              <p className="section-eyebrow-gradient text-xs sm:text-sm font-medium uppercase tracking-wider mb-2 sm:mb-3">
+                Available via x402 & MPP
               </p>
-              {apiCategories.map((cat) => (
+              {apiCategories.map((cat, ci) => (
                 <div key={cat.label} className="flex gap-3 items-start">
-                  <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div
+                    className={cn(
+                      "mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg",
+                      categoryIconThemes[ci % categoryIconThemes.length],
+                    )}
+                  >
                     <cat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                   <div className="min-w-0">
@@ -181,9 +196,9 @@ export const ApiX402Section = () => {
                 href={LINK_DOCS}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-medium rounded-xl border border-border bg-transparent text-foreground hover:bg-secondary/50 transition-all"
+                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-medium rounded-xl border border-accent/35 bg-accent/[0.06] text-foreground hover:bg-accent/10 hover:border-accent/50 transition-all"
               >
-                <FileText className="h-4 w-4 shrink-0" />
+                <FileText className="h-4 w-4 shrink-0 text-accent" />
                 Documentation
               </a>
             </motion.div>
@@ -196,7 +211,7 @@ export const ApiX402Section = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="order-1 lg:order-2 flex items-center justify-center min-w-0 w-full"
           >
-            <div className="glass-card p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl w-full max-w-lg overflow-x-auto overflow-y-hidden">
+            <div className="glass-card border border-accent/20 p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl w-full max-w-lg overflow-x-auto overflow-y-hidden shadow-[0_0_40px_-12px_hsl(var(--accent)/0.15)]">
               <div className="min-w-[280px] w-full">
                 <X402FlowIllustration />
               </div>
@@ -209,15 +224,15 @@ export const ApiX402Section = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.4, delay: 0.35 }}
-          className="mt-10 sm:mt-16 pt-8 sm:pt-10 border-t border-border"
+          className="mt-10 sm:mt-16 pt-8 sm:pt-10 border-t border-accent/15"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {keyPoints.map((point) => (
+            {keyPoints.map((point, ki) => (
               <div
                 key={point}
-                className="flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-card/60 border border-border text-xs sm:text-sm lg:text-base text-muted-foreground"
+                className="flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-card/60 border border-border/80 hover:border-accent/20 transition-colors text-xs sm:text-sm lg:text-base text-muted-foreground"
               >
-                <span className="flex h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <span className={cn("flex h-2 w-2 shrink-0 rounded-full", keyPointDots[ki % keyPointDots.length])} />
                 <span className="min-w-0">{point}</span>
               </div>
             ))}

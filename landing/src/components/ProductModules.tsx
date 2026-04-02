@@ -41,6 +41,22 @@ const modules = [
   },
 ];
 
+const iconColors = ["text-accent", "text-neon-gold", "text-success", "text-neon-gold", "text-accent"];
+
+const chipStyles = [
+  "border border-accent/25 bg-accent/12 text-accent",
+  "border border-neon-gold/25 bg-neon-gold/12 text-neon-gold",
+  "border border-success/25 bg-success/12 text-success",
+];
+
+const hoverStyles = [
+  "hover:border-accent/35 hover:shadow-[0_0_36px_-8px_hsl(var(--accent)/0.18)]",
+  "hover:border-neon-gold/35 hover:shadow-[0_0_36px_-8px_hsl(var(--neon-gold)/0.16)]",
+  "hover:border-success/35 hover:shadow-[0_0_36px_-8px_hsl(var(--success)/0.16)]",
+  "hover:border-neon-gold/30 hover:shadow-[0_0_36px_-8px_hsl(var(--neon-gold)/0.14)]",
+  "hover:border-accent/30 hover:shadow-[0_0_36px_-8px_hsl(var(--accent)/0.14)]",
+];
+
 export const ProductModules = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -48,9 +64,10 @@ export const ProductModules = () => {
   return (
     <section id="product" className="relative py-24 overflow-hidden">
       {/* Background gradients - theme colors */}
-      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-neon-purple/12 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-1/3 right-0 w-[450px] h-[450px] bg-neon-gold/7 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/3 w-[300px] h-[300px] bg-accent/6 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-1/2 left-0 w-[520px] h-[520px] bg-neon-purple/14 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/3 right-0 w-[480px] h-[480px] bg-neon-gold/11 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/3 w-[340px] h-[340px] bg-accent/10 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-1/4 right-1/4 w-[280px] h-[280px] bg-success/8 rounded-full blur-[90px] pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className="text-center mb-16">
@@ -58,7 +75,7 @@ export const ProductModules = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block text-primary text-sm font-medium mb-4 tracking-wider uppercase"
+            className="section-eyebrow-gradient inline-block text-sm font-medium mb-4 tracking-wider uppercase"
           >
             Core Infrastructure
           </motion.span>
@@ -90,7 +107,7 @@ export const ProductModules = () => {
               initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.3 + index * 0.15 }}
-              className={`glass-card p-8 rounded-2xl hover:border-accent/20 hover:shadow-[0_0_30px_hsl(var(--accent)/0.06)] ${
+              className={`glass-card rounded-2xl p-8 transition-all duration-300 ${hoverStyles[index % hoverStyles.length]} ${
                 index % 2 === 0 ? "" : "lg:flex-row-reverse"
               }`}
             >
@@ -101,7 +118,7 @@ export const ProductModules = () => {
                 <div className="lg:w-1/3 flex justify-center">
                   <div className={`relative w-32 h-32 rounded-2xl bg-gradient-to-br ${module.gradient} p-0.5`}>
                     <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center">
-                      <module.icon className="w-16 h-16 text-primary" strokeWidth={1.5} />
+                      <module.icon className={`w-16 h-16 ${iconColors[index % iconColors.length]}`} strokeWidth={1.5} />
                     </div>
                     {/* Glow */}
                     <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${module.gradient} opacity-20 blur-xl -z-10`} />
@@ -117,10 +134,10 @@ export const ProductModules = () => {
                     {module.description}
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-                    {module.features.map((feature) => (
+                    {module.features.map((feature, fi) => (
                       <span
                         key={feature}
-                        className="px-3 py-1 text-xs rounded-full bg-primary/10 text-primary border border-primary/20"
+                        className={`rounded-full px-3 py-1 text-xs ${chipStyles[(index + fi) % chipStyles.length]}`}
                       >
                         {feature}
                       </span>

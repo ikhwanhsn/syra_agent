@@ -34,7 +34,7 @@ function PartnerLink({
       target="_blank"
       rel="noopener noreferrer"
       tabIndex={tabFocusable ? undefined : -1}
-      className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-background/70 sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 md:gap-4 md:px-5 md:py-3 lg:px-6 lg:py-4"
+      className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-accent/50 hover:bg-accent/[0.04] hover:shadow-[0_0_24px_-8px_hsl(var(--accent)/0.2)] sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 md:gap-4 md:px-5 md:py-3 lg:px-6 lg:py-4"
     >
       <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-background/60 sm:h-10 sm:w-10 sm:rounded-lg md:h-11 md:w-11 lg:h-14 lg:w-14 lg:rounded-xl">
         <img
@@ -91,16 +91,16 @@ export const PartnersAndIntegrations = () => {
   return (
     <section
       id="partners"
-      className="relative border-b border-border/40 bg-muted/5 py-12 sm:py-16"
+      className="relative border-b border-accent/10 bg-muted/5 py-12 sm:py-16"
     >
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.07] via-neon-gold/[0.04] to-transparent" />
       <div className="relative px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div ref={ref} className="mb-8 text-center">
           <motion.span
             initial={{ opacity: 0, y: 12 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.45 }}
-            className="mb-2 inline-block text-xs font-medium uppercase tracking-wider text-primary sm:text-sm"
+            className="section-eyebrow-gradient mb-2 inline-block text-xs font-medium uppercase tracking-wider sm:text-sm"
           >
             Ecosystem
           </motion.span>

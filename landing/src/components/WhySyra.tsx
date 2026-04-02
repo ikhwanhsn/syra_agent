@@ -111,9 +111,9 @@ const comparisonData = [
 ];
 
 const renderStatus = (status: boolean | string) => {
-  if (status === true) return <Check className="w-5 h-5 text-green-400" />;
-  if (status === false) return <X className="w-5 h-5 text-red-400/50" />;
-  return <Minus className="w-5 h-5 text-yellow-400" />;
+  if (status === true) return <Check className="h-5 w-5 text-success" />;
+  if (status === false) return <X className="h-5 w-5 text-destructive/60" />;
+  return <Minus className="h-5 w-5 text-warning" />;
 };
 
 export const WhySyra = () => {
@@ -122,15 +122,16 @@ export const WhySyra = () => {
 
   return (
     <section className="relative py-24 overflow-hidden">
-      <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-accent/7 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/3 left-0 w-[350px] h-[350px] bg-neon-gold/6 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/4 right-0 w-[420px] h-[420px] bg-accent/11 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/3 left-0 w-[380px] h-[380px] bg-neon-gold/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/4 w-[280px] h-[280px] bg-success/8 rounded-full blur-[85px] pointer-events-none" />
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block mb-4 text-sm font-medium tracking-wider uppercase text-primary"
+            className="section-eyebrow-gradient mb-4 inline-block text-sm font-medium tracking-wider uppercase"
           >
             Why Choose Syra
           </motion.span>
@@ -153,14 +154,18 @@ export const WhySyra = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-              className={`p-6 text-center transition-all duration-300 glass-card rounded-2xl group ${
-                index % 3 === 0 ? "hover:border-accent/25" : index % 3 === 1 ? "hover:border-neon-gold/25" : "hover:border-primary/30"
+              className={`glass-card group rounded-2xl p-6 text-center transition-all duration-300 ${
+                index % 3 === 0
+                  ? "hover:border-accent/35 hover:shadow-[0_0_32px_-10px_hsl(var(--accent)/0.18)]"
+                  : index % 3 === 1
+                    ? "hover:border-neon-gold/35 hover:shadow-[0_0_32px_-10px_hsl(var(--neon-gold)/0.16)]"
+                    : "hover:border-success/35 hover:shadow-[0_0_32px_-10px_hsl(var(--success)/0.16)]"
               }`}
             >
-              <div className={`flex items-center justify-center mx-auto mb-4 transition-transform w-14 h-14 rounded-xl group-hover:scale-110 ${
-                index % 3 === 0 ? "bg-accent/10" : index % 3 === 1 ? "bg-neon-gold/10" : "bg-primary/10"
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
+                index % 3 === 0 ? "bg-accent/10" : index % 3 === 1 ? "bg-neon-gold/10" : "bg-success/10"
               }`}>
-                <prop.icon className={`w-7 h-7 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-primary"}`} />
+                <prop.icon className={`h-7 w-7 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-success"}`} />
               </div>
               <h3 className="mb-2 text-lg font-semibold">{prop.title}</h3>
               <p className="text-sm text-muted-foreground">
@@ -175,7 +180,7 @@ export const WhySyra = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="p-8 overflow-hidden glass-card rounded-2xl"
+          className="glass-card overflow-hidden rounded-2xl border border-accent/10 p-8"
         >
           <h3 className="mb-8 text-2xl font-bold text-center">
             How Syra <span className="neon-text">Compares</span>
@@ -207,7 +212,7 @@ export const WhySyra = () => {
                   {comparisonData.map((row, i) => (
                     <tr
                       key={row.feature}
-                      className="transition-colors border-b border-border/50 hover:bg-primary/5"
+                      className="border-b border-border/50 transition-colors hover:bg-accent/[0.04]"
                     >
                       <td className="px-4 py-4 text-sm">{row.feature}</td>
                       <td className="px-4 py-4">

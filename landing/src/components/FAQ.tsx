@@ -52,7 +52,8 @@ export const FAQ = () => {
 
   return (
     <section id="faq" className="relative py-24 overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 h-[280px] w-[280px] rounded-full bg-neon-gold/8 blur-[90px] pointer-events-none" />
       <div className="max-w-4xl px-4 mx-auto sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
@@ -78,16 +79,16 @@ export const FAQ = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="p-6 glass-card md:p-8 rounded-2xl"
+          className="glass-card rounded-2xl border border-accent/15 p-6 shadow-[0_0_36px_-12px_hsl(var(--accent)/0.1)] md:p-8"
         >
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="border-border"
+                className="border-border data-[state=open]:border-accent/10"
               >
-                <AccordionTrigger className="relative z-10 py-6 text-left transition-colors hover:text-primary">
+                <AccordionTrigger className="relative z-10 py-6 text-left transition-colors hover:text-accent">
                   <span className="text-base font-medium">{faq.question}</span>
                 </AccordionTrigger>
                 <AccordionContent className="pb-6 text-muted-foreground">

@@ -4,6 +4,7 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { FileText, ExternalLink, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { articles } from "@/data/articles";
 
 export const ArticlesSection = () => {
@@ -20,7 +21,7 @@ export const ArticlesSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block mb-4 text-sm font-medium tracking-wider uppercase text-primary"
+            className="section-eyebrow-gradient mb-4 inline-block text-sm font-medium tracking-wider uppercase"
           >
             Articles
           </motion.span>
@@ -36,22 +37,29 @@ export const ArticlesSection = () => {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {articles.map((article, index) => (
+          {articles.map((article, index) => {
+            const hoverRing = [
+              "hover:border-accent/40 hover:shadow-[0_0_32px_-10px_hsl(var(--accent)/0.2)]",
+              "hover:border-neon-gold/40 hover:shadow-[0_0_32px_-10px_hsl(var(--neon-gold)/0.18)]",
+              "hover:border-success/40 hover:shadow-[0_0_32px_-10px_hsl(var(--success)/0.18)]",
+            ];
+            return (
             <motion.div
               key={article.id}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-              className={`rounded-2xl transition-all duration-300 glass-card overflow-hidden group ${
+              className={cn(
+                "group glass-card overflow-hidden rounded-2xl transition-all duration-300",
                 article.comingSoon
-                  ? "opacity-80 cursor-default"
-                  : "hover:border-accent/25 cursor-pointer"
-              }`}
+                  ? "cursor-default opacity-80"
+                  : cn("cursor-pointer border border-transparent", hoverRing[index % hoverRing.length]),
+              )}
             >
               {article.comingSoon ? (
                 <div className="flex flex-col h-full p-6">
-                  <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-muted/50">
-                    <FileText className="w-6 h-6 text-muted-foreground" />
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
+                    <FileText className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <h3 className="mb-2 text-lg font-semibold">{article.title}</h3>
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -66,23 +74,52 @@ export const ArticlesSection = () => {
                   rel={article.external ? "noopener noreferrer" : undefined}
                   className="flex flex-col h-full p-6"
                 >
-                  <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
-                    <FileText className="w-6 h-6 text-accent" />
+                  <div
+                    className={cn(
+                      "mb-4 flex h-12 w-12 items-center justify-center rounded-xl border transition-colors",
+                      index % 3 === 0 && "border-accent/25 bg-accent/10 group-hover:bg-accent/20",
+                      index % 3 === 1 && "border-neon-gold/25 bg-neon-gold/10 group-hover:bg-neon-gold/20",
+                      index % 3 === 2 && "border-success/25 bg-success/10 group-hover:bg-success/20",
+                    )}
+                  >
+                    <FileText
+                      className={cn(
+                        "h-6 w-6",
+                        index % 3 === 0 && "text-accent",
+                        index % 3 === 1 && "text-neon-gold",
+                        index % 3 === 2 && "text-success",
+                      )}
+                    />
                   </div>
-                  <h3 className="mb-2 text-lg font-semibold group-hover:text-accent transition-colors">
+                  <h3
+                    className={cn(
+                      "mb-2 text-lg font-semibold transition-colors",
+                      index % 3 === 0 && "group-hover:text-accent",
+                      index % 3 === 1 && "group-hover:text-neon-gold",
+                      index % 3 === 2 && "group-hover:text-success",
+                    )}
+                  >
                     {article.title}
                   </h3>
                   <p className="mb-4 text-sm text-muted-foreground flex-1">
                     {article.description}
                   </p>
-                  <span className="inline-flex items-center gap-2 text-sm font-medium text-accent">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-2 text-sm font-medium",
+                      index % 3 === 0 && "text-accent",
+                      index % 3 === 1 && "text-neon-gold",
+                      index % 3 === 2 && "text-success",
+                    )}
+                  >
                     Read more
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="h-4 w-4" />
                   </span>
                 </a>
               )}
             </motion.div>
-          ))}
+            );
+          })}
         </div>
 
         <motion.div
@@ -91,7 +128,7 @@ export const ArticlesSection = () => {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="mt-12 text-center"
         >
-          <Button variant="outline" size="lg" asChild className="gap-2">
+          <Button variant="outline" size="lg" asChild className="gap-2 border-accent/30 hover:border-accent/50 hover:bg-accent/5">
             <Link to="/articles">
               See all
               <ArrowRight className="w-4 h-4" />

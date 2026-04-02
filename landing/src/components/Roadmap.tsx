@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Check, Circle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // const roadmapData = [
 //   {
@@ -182,15 +183,16 @@ export const Roadmap = () => {
 
   return (
     <section id="roadmap" className="relative py-24 overflow-hidden">
-      <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-accent/6 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-0 w-[350px] h-[350px] bg-neon-gold/5 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/4 right-0 w-[420px] h-[420px] bg-accent/11 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-0 w-[380px] h-[380px] bg-neon-gold/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-success/8 rounded-full blur-[90px] pointer-events-none" />
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block mb-4 text-sm font-medium tracking-wider uppercase text-primary"
+            className="section-eyebrow-gradient mb-4 inline-block text-sm font-medium tracking-wider uppercase"
           >
             Roadmap
           </motion.span>
@@ -207,7 +209,7 @@ export const Roadmap = () => {
 
         <div className="relative">
           {/* Timeline line */}
-          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent -translate-y-1/2" />
+          <div className="pointer-events-none absolute left-0 right-0 top-1/2 hidden h-0.5 -translate-y-1/2 bg-gradient-to-r from-transparent via-accent/40 to-transparent lg:block" />
 
           {roadmapData.map((year, yearIndex) => (
             <motion.div
@@ -236,12 +238,12 @@ export const Roadmap = () => {
                     {/* Status indicator */}
                     <div className="flex items-center gap-2 mb-3">
                       {q.status === "completed" ? (
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20">
-                          <Check className="w-4 h-4 text-green-400" />
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success/20">
+                          <Check className="h-4 w-4 text-success" />
                         </div>
                       ) : q.status === "current" ? (
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20">
-                          <Circle className="w-4 h-4 text-primary animate-pulse" />
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20">
+                          <Circle className="h-4 w-4 animate-pulse text-accent" />
                         </div>
                       ) : (
                         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted">
@@ -256,19 +258,28 @@ export const Roadmap = () => {
                     <h4 className="mb-3 text-lg font-semibold">{q.title}</h4>
 
                     <ul className="space-y-2">
-                      {q.items.map((item) => (
+                      {q.items.map((item, li) => (
                         <li
                           key={item}
                           className="flex items-start gap-2 text-sm text-muted-foreground"
                         >
-                          <span className="w-1 h-1 mt-2 rounded-full bg-primary shrink-0" />
+                          <span
+                            className={cn(
+                              "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
+                              (li + qIndex) % 3 === 0
+                                ? "bg-accent"
+                                : (li + qIndex) % 3 === 1
+                                  ? "bg-neon-gold"
+                                  : "bg-success",
+                            )}
+                          />
                           {item}
                         </li>
                       ))}
                     </ul>
 
                     {q.status === "current" && (
-                      <div className="absolute top-0 right-0 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-bl">
+                      <div className="absolute right-0 top-0 rounded-bl bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground shadow-[0_0_12px_hsl(var(--accent)/0.35)]">
                         Now
                       </div>
                     )}

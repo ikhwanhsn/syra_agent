@@ -168,6 +168,11 @@
     @apply opacity-100;
   }
 
+  /* Shared label for section subtitles — accent, gold, success */
+  .section-eyebrow-gradient {
+    @apply bg-gradient-to-r from-accent/90 via-neon-gold/80 to-success/90 bg-clip-text text-transparent;
+  }
+
   .neon-text {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-primary);

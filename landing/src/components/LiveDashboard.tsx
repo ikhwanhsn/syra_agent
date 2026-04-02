@@ -11,7 +11,17 @@ import {
   ResponsiveContainer,
   TooltipProps,
 } from "recharts";
+import { cn } from "@/lib/utils";
 import { API_BASE, getApiHeaders } from "../../config/global";
+
+const statCardAccents = [
+  "border-accent/20 hover:border-accent/35",
+  "border-neon-gold/20 hover:border-neon-gold/35",
+  "border-success/20 hover:border-success/35",
+  "border-accent/15 hover:border-accent/30",
+] as const;
+
+const statIconColors = ["text-accent", "text-neon-gold", "text-success", "text-accent"] as const;
 
 type DashboardMetrics = {
   volume24h: string;
@@ -141,7 +151,7 @@ export const LiveDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block mb-4 text-sm font-medium tracking-wider uppercase text-primary"
+            className="section-eyebrow-gradient mb-4 inline-block text-sm font-medium tracking-wider uppercase"
           >
             Live Dashboard
           </motion.span>
@@ -160,13 +170,15 @@ export const LiveDashboard = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="p-8 glass-card rounded-2xl"
+          className="glass-card border border-accent/15 p-8 rounded-2xl shadow-[0_0_40px_-14px_hsl(var(--accent)/0.12)]"
         >
           {/* Top section: stable when changing period — no blink; only content below updates after skeleton/data ready */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-4 min-w-[10rem]">
-              <span className="w-3 h-3 rounded-full bg-green-400 shrink-0" />
-              <span className="text-sm text-muted-foreground">Live Data Feed</span>
+              <span className="h-3 w-3 shrink-0 rounded-full bg-success shadow-[0_0_12px_hsl(var(--success)/0.65)] animate-pulse" />
+              <span className="text-sm text-muted-foreground">
+                <span className="font-medium text-accent">Live</span> Data Feed
+              </span>
             </div>
             <div className="flex gap-2">
               {["1H", "4H", "1D", "1W"].map((period) => (
@@ -175,8 +187,8 @@ export const LiveDashboard = () => {
                   disabled={loading && !data}
                   className={`px-4 py-2 text-xs rounded-lg transition-colors relative z-10 w-12 ${
                     displayedPeriod === period
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      ? "bg-accent text-accent-foreground shadow-[0_0_16px_-4px_hsl(var(--accent)/0.5)]"
+                      : "bg-secondary text-secondary-foreground hover:bg-accent/10 hover:text-accent"
                   } disabled:opacity-70 disabled:cursor-wait`}
                   onClick={() => setTimeFrame(period)}
                 >
@@ -220,20 +232,26 @@ export const LiveDashboard = () => {
                 animate={{ opacity: 1 }}
                 className={`grid grid-cols-2 gap-4 mb-8 lg:grid-cols-4 relative transition-opacity duration-200 ${isRefreshing ? "opacity-90" : ""}`}
               >
-                {STATS.map((stat) => {
+                {STATS.map((stat, si) => {
                   const change = metrics ? (metrics[stat.changeKey] as number) : 0;
                   const positive = change >= 0;
                   return (
-                    <div key={stat.label} className="p-4 glass-card rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <stat.icon className="w-4 h-4 text-muted-foreground" />
+                    <div
+                      key={stat.label}
+                      className={cn(
+                        "glass-card rounded-xl border p-4 transition-colors",
+                        statCardAccents[si % statCardAccents.length],
+                      )}
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <stat.icon className={cn("h-4 w-4", statIconColors[si % statIconColors.length])} />
                         <span className="text-xs text-muted-foreground">{stat.label}</span>
                       </div>
                       <div className="text-xl font-bold text-foreground">
                         {formatValue(stat, metrics ?? undefined)}
                       </div>
                       <div
-                        className={`text-xs ${positive ? "text-green-400" : "text-red-400"}`}
+                        className={`text-xs ${positive ? "text-success" : "text-destructive"}`}
                       >
                         {formatChange(change)}
                       </div>
@@ -250,15 +268,17 @@ export const LiveDashboard = () => {
               initial={isDataReady ? { opacity: 0 } : false}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.25 }}
-              className="p-6 glass-card rounded-xl"
+              className="glass-card border border-neon-gold/15 p-6 rounded-xl"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium">Smart Money Flow Index</span>
-                <span className="flex items-center gap-2 text-xs text-primary">
+                <span className="text-sm font-medium">
+                  Smart Money <span className="text-accent">Flow</span> Index
+                </span>
+                <span className="flex items-center gap-2 text-xs text-neon-gold">
                   {isRefreshing ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-neon-gold shadow-[0_0_8px_hsl(var(--neon-gold)/0.6)]" />
                   )}
                   {isRefreshing ? "Updating…" : "Updating live"}
                 </span>

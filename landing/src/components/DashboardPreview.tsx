@@ -208,7 +208,7 @@ export const DashboardPreview = () => {
       {/* Glow effect behind dashboard */}
       <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-3xl" />
 
-      <div className="relative w-full max-w-full p-4 sm:p-6 mx-auto sm:mx-0 glass-card rounded-2xl min-w-0">
+      <div className="glass-card relative mx-auto min-w-0 w-full max-w-full rounded-2xl border border-accent/20 p-4 shadow-[0_0_40px_-12px_hsl(var(--accent)/0.14)] sm:mx-0 sm:p-6">
         {/* Dashboard Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">

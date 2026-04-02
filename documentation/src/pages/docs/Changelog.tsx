@@ -17,7 +17,7 @@ const changelogEntries: { period: string; items: string[] }[] = [
   {
     period: "February 2026",
     items: [
-      "MPP (multi-party payment) support across paid API flows",
+      "MPP (Machine Payments Protocol) support across paid API flows",
       "Tempo network integration for payments",
       "KuCoin venue support for trading signals",
       "Purch Vault and Messari x402-backed data paths",

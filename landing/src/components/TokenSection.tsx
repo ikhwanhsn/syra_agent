@@ -173,6 +173,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -280,8 +281,9 @@ export const TokenSection = () => {
   return (
     <section id="token" className="relative py-24 overflow-hidden">
       {/* Background - theme colors */}
-      <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-neon-gold/8 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-1/3 left-0 w-[400px] h-[400px] bg-accent/6 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-[620px] h-[620px] bg-neon-gold/11 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-[420px] h-[420px] bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[320px] h-[320px] bg-success/8 rounded-full blur-[95px] pointer-events-none" />
 
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
         <div ref={ref} className="mb-16 text-center">
@@ -289,7 +291,7 @@ export const TokenSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block mb-4 text-sm font-medium tracking-wider uppercase text-neon-gold"
+            className="section-eyebrow-gradient mb-4 inline-block text-sm font-medium tracking-wider uppercase"
           >
             Token Utility
           </motion.span>
@@ -450,17 +452,36 @@ export const TokenSection = () => {
 
           {/* Utilities Grid */}
           <div className="grid gap-4 sm:grid-cols-2">
-            {utilities.map((util, index) => (
+            {utilities.map((util, index) => {
+              const t = index % 3;
+              const borderHover =
+                t === 0
+                  ? "hover:border-accent/40 hover:shadow-[0_0_28px_-8px_hsl(var(--accent)/0.18)]"
+                  : t === 1
+                    ? "hover:border-neon-gold/40 hover:shadow-[0_0_28px_-8px_hsl(var(--neon-gold)/0.16)]"
+                    : "hover:border-success/40 hover:shadow-[0_0_28px_-8px_hsl(var(--success)/0.16)]";
+              const iconBox =
+                t === 0
+                  ? "bg-accent/10 group-hover:bg-accent/20"
+                  : t === 1
+                    ? "bg-neon-gold/10 group-hover:bg-neon-gold/20"
+                    : "bg-success/10 group-hover:bg-success/20";
+              const iconClass = t === 0 ? "text-accent" : t === 1 ? "text-neon-gold" : "text-success";
+              const accentText = iconClass;
+              return (
               <motion.div
                 key={util.title}
                 initial={{ opacity: 0, y: 30 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                className="p-5 transition-all duration-300 glass-card rounded-xl group hover:border-neon-gold/30"
+                className={cn(
+                  "group rounded-xl glass-card p-5 transition-all duration-300 border border-transparent",
+                  borderHover,
+                )}
               >
                 <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center w-10 h-10 transition-colors rounded-lg bg-neon-gold/10 shrink-0 group-hover:bg-neon-gold/20">
-                    <util.icon className="w-5 h-5 text-neon-gold" />
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors", iconBox)}>
+                    <util.icon className={cn("h-5 w-5", iconClass)} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="mb-1 font-semibold">{util.title}</h3>
@@ -468,7 +489,7 @@ export const TokenSection = () => {
                       {util.description}
                     </p>
                     {util.highlight && (
-                      <span className="text-xs font-medium text-neon-gold">
+                      <span className={cn("text-xs font-medium", accentText)}>
                         {util.highlight}
                       </span>
                     )}
@@ -477,7 +498,7 @@ export const TokenSection = () => {
                         href={util.solscanUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-neon-gold hover:underline"
+                        className={cn("mt-3 inline-flex items-center gap-1.5 text-xs font-medium hover:underline", accentText)}
                         title="View burns on Solscan"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -487,7 +508,8 @@ export const TokenSection = () => {
                   </div>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -496,17 +518,17 @@ export const TokenSection = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="p-8 mt-16 glass-card rounded-2xl"
+          className="glass-card mt-16 rounded-2xl border border-neon-gold/15 p-8"
         >
           <div className="grid gap-8 text-center md:grid-cols-4">
             {[
-              { label: "Total Supply", value: "1B" },
-              { label: "Circulating", value: "995M" },
-              { label: "Staked", value: "(soon)" },
-              { label: "Burned", value: "5M+" },
+              { label: "Total Supply", value: "1B", valueClass: "gold-text" },
+              { label: "Circulating", value: "995M", valueClass: "text-accent" },
+              { label: "Staked", value: "(soon)", valueClass: "text-muted-foreground" },
+              { label: "Burned", value: "5M+", valueClass: "text-success" },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="mb-1 text-3xl font-bold gold-text">
+                <div className={cn("mb-1 text-3xl font-bold", stat.valueClass)}>
                   {stat.value}
                 </div>
                 <div className="text-sm text-muted-foreground">

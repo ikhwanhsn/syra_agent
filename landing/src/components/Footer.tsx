@@ -16,7 +16,6 @@ const footerLinks = {
     { label: "Agent", href: LINK_AGENT },
     { label: "API Docs", href: LINK_DOCS },
     { label: "Playground", href: LINK_PLAYGROUND },
-    { label: "Analytics", href: "/analytics", internal: true },
     { label: "Leaderboard", href: "/leaderboard", internal: true },
   ],
   resources: [
@@ -54,7 +53,7 @@ export const Footer = () => {
           className="relative p-12 overflow-hidden text-center glass-card rounded-3xl"
         >
           {/* Background glow - theme colors */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-neon-gold/8" />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/12 via-neon-gold/10 to-success/10" />
 
           <div className="relative z-10">
             <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
@@ -114,14 +113,14 @@ export const Footer = () => {
                     {"internal" in link && link.internal ? (
                       <Link
                         to={link.href}
-                        className="text-sm transition-colors text-muted-foreground hover:text-primary"
+                        className="text-sm text-muted-foreground transition-colors hover:text-accent"
                       >
                         {link.label}
                       </Link>
                     ) : (
                       <a
                         href={link.href}
-                        className="text-sm transition-colors text-muted-foreground hover:text-primary"
+                        className="text-sm text-muted-foreground transition-colors hover:text-accent"
                       >
                         {link.label}
                       </a>

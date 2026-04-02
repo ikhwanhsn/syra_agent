@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { API_BASE } from "../../config/global";
+
+const statBarColors = ["bg-accent", "bg-neon-gold", "bg-success", "bg-accent"] as const;
 
 const STAT_LABELS = [
   { key: "users", label: "Users", suffix: "+", decimals: 0 },
@@ -133,6 +136,12 @@ export const HeroStats = () => {
             <div className="text-xs tracking-wider uppercase md:text-sm text-muted-foreground">
               {label}
             </div>
+            <div
+              className={cn(
+                "mx-auto mt-2 h-1 w-10 rounded-full opacity-90",
+                statBarColors[index % statBarColors.length],
+              )}
+            />
           </motion.div>
         ))}
       </div>

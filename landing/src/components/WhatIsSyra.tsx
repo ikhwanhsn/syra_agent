@@ -42,15 +42,16 @@ export const WhatIsSyra = () => {
 
   return (
     <section id="about" className="relative py-24 overflow-hidden">
-      <div className="absolute top-1/4 left-0 w-[400px] h-[400px] bg-accent/8 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-0 w-[350px] h-[350px] bg-neon-gold/6 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/4 left-0 w-[420px] h-[420px] bg-accent/12 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-0 w-[380px] h-[380px] bg-neon-gold/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-success/8 rounded-full blur-[90px] pointer-events-none -translate-x-1/2" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div ref={ref} className="text-center mb-16">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="inline-block text-primary text-sm font-medium mb-4 tracking-wider uppercase"
+            className="section-eyebrow-gradient inline-block text-sm font-medium mb-4 tracking-wider uppercase"
           >
             What is Syra
           </motion.span>
@@ -85,13 +86,17 @@ export const WhatIsSyra = () => {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
               className={`glass-card p-6 rounded-2xl group transition-all duration-300 ${
-                index % 3 === 0 ? "hover:border-accent/30" : index % 3 === 1 ? "hover:border-neon-gold/25" : "hover:border-primary/30"
+                index % 3 === 0
+                  ? "hover:border-accent/40 hover:shadow-[0_0_32px_-10px_hsl(var(--accent)/0.2)]"
+                  : index % 3 === 1
+                    ? "hover:border-neon-gold/40 hover:shadow-[0_0_32px_-10px_hsl(var(--neon-gold)/0.18)]"
+                    : "hover:border-success/40 hover:shadow-[0_0_32px_-10px_hsl(var(--success)/0.18)]"
               }`}
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${
-                index % 3 === 0 ? "bg-accent/10 group-hover:bg-accent/20" : index % 3 === 1 ? "bg-neon-gold/10 group-hover:bg-neon-gold/20" : "bg-primary/10 group-hover:bg-primary/20"
+                index % 3 === 0 ? "bg-accent/10 group-hover:bg-accent/20" : index % 3 === 1 ? "bg-neon-gold/10 group-hover:bg-neon-gold/20" : "bg-success/10 group-hover:bg-success/20"
               }`}>
-                <feature.icon className={`w-6 h-6 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-primary"}`} />
+                <feature.icon className={`w-6 h-6 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-success"}`} />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-foreground">
                 {feature.title}
