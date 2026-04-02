@@ -172,10 +172,60 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check, ExternalLink } from "lucide-react";
+import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-const SOLSCAN_TOKEN_URL =
-  "https://solscan.io/token/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump?activity_type=ACTIVITY_SPL_BURN&exclude_amount_zero=true&remove_spam=false&page_size=10";
+/** Native SOL mint for Raydium / swap deep links */
+const WSOL_MINT = "So11111111111111111111111111111111111111112";
+
+const SYRA_TOKEN_MINT = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
+
+const SOLSCAN_TOKEN_URL = `https://solscan.io/token/${SYRA_TOKEN_MINT}?activity_type=ACTIVITY_SPL_BURN&exclude_amount_zero=true&remove_spam=false&page_size=10`;
+
+const SYRA_BUY_VENUES: readonly {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+}[] = [
+  {
+    id: "jupiter",
+    label: "Jupiter",
+    description: "Official token page — open Swap to buy",
+    // /swap?inputMint=&outputMint= is ignored by Jupiter’s SPA; /tokens/{mint} resolves correctly.
+    href: `https://jup.ag/tokens/${SYRA_TOKEN_MINT}`,
+  },
+  {
+    id: "dexscreener",
+    label: "DexScreener",
+    description: "Charts & pooled liquidity",
+    href: `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`,
+  },
+  {
+    id: "pumpfun",
+    label: "Pump.fun",
+    description: "Trade on Pump",
+    href: `https://pump.fun/coin/${SYRA_TOKEN_MINT}`,
+  },
+  {
+    id: "raydium",
+    label: "Raydium",
+    description: "Swap on Raydium",
+    href: `https://raydium.io/swap/?inputMint=${WSOL_MINT}&outputMint=${SYRA_TOKEN_MINT}`,
+  },
+  {
+    id: "birdeye",
+    label: "Birdeye",
+    description: "Token page & swap",
+    href: `https://birdeye.so/token/${SYRA_TOKEN_MINT}?chain=solana`,
+  },
+];
 
 const utilities = [
   {
@@ -213,8 +263,9 @@ export const TokenSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [copied, setCopied] = useState(false);
-  
-  const tokenAddress = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
+  const [buyOpen, setBuyOpen] = useState(false);
+
+  const tokenAddress = SYRA_TOKEN_MINT;
   
   const copyToClipboard = async () => {
     try {
@@ -282,26 +333,69 @@ export const TokenSection = () => {
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={copyToClipboard}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-300 border rounded-lg border-neon-gold/30 bg-neon-gold/10 text-neon-gold hover:bg-neon-gold/20 hover:border-neon-gold/50 hover:scale-105 shrink-0"
-                  title="Copy address"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setBuyOpen(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-300 border rounded-lg border-neon-gold/50 bg-neon-gold/15 text-neon-gold hover:bg-neon-gold/25 hover:border-neon-gold/70 hover:scale-[1.02]"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Buy</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyToClipboard}
+                    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-300 border rounded-lg border-neon-gold/30 bg-neon-gold/10 text-neon-gold hover:bg-neon-gold/20 hover:border-neon-gold/50 hover:scale-[1.02]"
+                    title="Copy address"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
+
+          <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
+            <DialogContent className="border-neon-gold/20 bg-background sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  Buy <span className="gold-text">$SYRA</span>
+                </DialogTitle>
+                <DialogDescription>
+                  Pick a venue below. Each link opens in a new tab. Confirm the mint matches your
+                  copied contract address before you swap.
+                </DialogDescription>
+              </DialogHeader>
+              <ul className="grid gap-2 py-1">
+                {SYRA_BUY_VENUES.map((venue) => (
+                  <li key={venue.id}>
+                    <a
+                      href={venue.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-left transition-colors hover:border-neon-gold/40 hover:bg-muted/50"
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-medium text-foreground">{venue.label}</span>
+                        <span className="block text-xs text-muted-foreground">{venue.description}</span>
+                      </span>
+                      <ExternalLink className="h-4 w-4 shrink-0 text-neon-gold" aria-hidden />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </DialogContent>
+          </Dialog>
 
           {/* Reward Leaderboard Button - hidden */}
           <motion.div

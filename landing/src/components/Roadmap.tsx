@@ -122,7 +122,7 @@ const roadmapData = [
           "$SYRA staking for API discounts",
           "Token buyback & burn program launch",
         ],
-        status: "current",
+        status: "completed",
       },
       {
         quarter: "Q2",
@@ -133,7 +133,7 @@ const roadmapData = [
           "Multi-chain expansion (Base, Arbitrum, Polygon)",
           "Cross-agent learning network",
         ],
-        status: "upcoming",
+        status: "current",
       },
       {
         quarter: "Q3",

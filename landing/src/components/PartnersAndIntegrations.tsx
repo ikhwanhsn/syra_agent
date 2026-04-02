@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
 const PARTNERS = [
@@ -16,89 +15,124 @@ const PARTNERS = [
   { name: "Binance", slug: "binance", href: "https://binance.com" },
   { name: "Messari", slug: "messari", href: "https://messari.io" },
   { name: "Pump", slug: "pump", href: "https://pump.fun" },
-];
+] as const;
 
 const LOGO_PLACEHOLDER = "/images/partners/placeholder.svg";
 
+type Partner = (typeof PARTNERS)[number];
+
+function PartnerLink({
+  partner,
+  tabFocusable = true,
+}: {
+  partner: Partner;
+  tabFocusable?: boolean;
+}) {
+  return (
+    <a
+      href={partner.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      tabIndex={tabFocusable ? undefined : -1}
+      className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-background/70 sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 md:gap-4 md:px-5 md:py-3 lg:px-6 lg:py-4"
+    >
+      <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-background/60 sm:h-10 sm:w-10 sm:rounded-lg md:h-11 md:w-11 lg:h-14 lg:w-14 lg:rounded-xl">
+        <img
+          src={`/images/partners/${partner.slug}.png`}
+          alt=""
+          className="h-6 w-6 object-contain sm:h-8 sm:w-8 md:h-9 md:w-9 lg:h-11 lg:w-11"
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src !== LOGO_PLACEHOLDER) {
+              target.src = LOGO_PLACEHOLDER;
+            }
+          }}
+        />
+      </div>
+      <span className="text-xs font-medium text-muted-foreground whitespace-nowrap sm:text-sm md:text-base lg:text-lg">
+        {partner.name}
+      </span>
+    </a>
+  );
+}
+
+function MarqueeTrack({ labelledBy }: { labelledBy: string }) {
+  return (
+    <div
+      className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
+      role="region"
+      aria-labelledby={labelledBy}
+    >
+      <div className="flex w-max animate-marquee motion-reduce:animate-none">
+        <div className="flex shrink-0 items-center gap-3 pr-3 sm:gap-5 sm:pr-5 md:gap-6 md:pr-6 lg:gap-8 lg:pr-8">
+          {PARTNERS.map((partner) => (
+            <PartnerLink key={partner.slug} partner={partner} />
+          ))}
+        </div>
+        <div className="flex shrink-0 items-center gap-3 pr-3 sm:gap-5 sm:pr-5 md:gap-6 md:pr-6 lg:gap-8 lg:pr-8" aria-hidden>
+          {PARTNERS.map((partner) => (
+            <PartnerLink
+              key={`${partner.slug}-dup`}
+              partner={partner}
+              tabFocusable={false}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const PartnersAndIntegrations = () => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
+  const headingId = "partners-heading";
 
   return (
     <section
       id="partners"
-      className="relative py-24 overflow-hidden"
+      className="relative border-b border-border/40 bg-muted/5 py-12 sm:py-16"
     >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/6 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/3 right-0 w-[300px] h-[300px] bg-accent/6 rounded-full blur-[80px] pointer-events-none" />
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative">
-        <div ref={ref} className="mb-16 text-center">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent" />
+      <div className="relative px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div ref={ref} className="mb-8 text-center">
           <motion.span
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5 }}
-            className="inline-block mb-4 text-sm font-medium tracking-wider uppercase text-primary"
+            transition={{ duration: 0.45 }}
+            className="mb-2 inline-block text-xs font-medium uppercase tracking-wider text-primary sm:text-sm"
           >
             Ecosystem
           </motion.span>
-
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            id={headingId}
+            initial={{ opacity: 0, y: 12 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl"
+            transition={{ duration: 0.45, delay: 0.05 }}
+            className="mb-2 text-2xl font-bold sm:text-3xl lg:text-4xl"
           >
             Partners & <span className="neon-text">Integrations</span>
           </motion.h2>
-
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="max-w-2xl mx-auto text-muted-foreground"
+            transition={{ duration: 0.45, delay: 0.1 }}
+            className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base"
           >
             Syra integrates with leading protocols and data providers to deliver
             institutional-grade intelligence and execution.
           </motion.p>
         </div>
+      </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="grid grid-cols-3 gap-6 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6"
-        >
-          {PARTNERS.map((partner, index) => (
-            <motion.a
-              key={partner.slug}
-              href={partner.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.4, delay: 0.1 + index * 0.03 }}
-              className="flex flex-col items-center justify-center p-6 rounded-2xl glass-card hover:border-accent/30 transition-all duration-300 group"
-            >
-              <div className="relative flex items-center justify-center w-16 h-16 mb-3 overflow-hidden rounded-xl bg-background/50">
-                <img
-                  src={`/images/partners/${partner.slug}.png`}
-                  alt={`${partner.name} logo`}
-                  className="object-contain w-10 h-10 transition-transform duration-300 group-hover:scale-110"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (target.src !== LOGO_PLACEHOLDER) {
-                      target.src = LOGO_PLACEHOLDER;
-                    }
-                  }}
-                />
-              </div>
-              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors text-center">
-                {partner.name}
-              </span>
-            </motion.a>
-          ))}
-        </motion.div>
+      <div className="hidden flex-wrap items-center justify-center gap-2 px-3 motion-reduce:flex sm:gap-4 md:gap-6">
+        {PARTNERS.map((partner) => (
+          <PartnerLink key={partner.slug} partner={partner} />
+        ))}
+      </div>
+      <div className="motion-reduce:hidden">
+        <MarqueeTrack labelledBy={headingId} />
       </div>
     </section>
   );
-};
+}

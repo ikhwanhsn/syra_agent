@@ -133,6 +133,10 @@ export default {
           "90%": { opacity: "1" },
           "100%": { transform: "translateY(-100%)", opacity: "0" },
         },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -148,6 +152,7 @@ export default {
         "orbit-slow": "orbit 50s linear infinite",
         "orbit-reverse": "orbit 40s linear infinite reverse",
         "data-stream": "data-stream 4s linear infinite",
+        marquee: "marquee 50s linear infinite",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

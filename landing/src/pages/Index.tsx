@@ -19,6 +19,7 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
+        <PartnersAndIntegrations />
         <WhatIsSyra />
         <ProductModules />
         <ApiX402Section />
@@ -26,7 +27,6 @@ const Index = () => {
         <WhySyra />
         <TokenSection />
         <Roadmap />
-        <PartnersAndIntegrations />
         <Testimonials />
         <ArticlesSection />
         <FAQ />

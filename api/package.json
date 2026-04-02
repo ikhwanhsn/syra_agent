@@ -14,14 +14,17 @@
     "create-8004-collection": "node scripts/create-8004-collection.js",
     "register-8004-with-collection": "node scripts/register-8004-agent-with-collection.js",
     "give-8004-feedback-reachable": "node scripts/give-8004-feedback-reachable.js",
-    "generate-tempo-wallet": "node scripts/generate-tempo-wallet.js"
+    "generate-tempo-wallet": "node scripts/generate-tempo-wallet.js",
+    "register-sap": "node -r dotenv/config scripts/register-sap-agent.js"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
     "@faremeter/info": "^0.14.0",
     "@faremeter/middleware": "^0.14.0",
     "@faremeter/rides": "^0.14.0",
     "@faremeter/wallet-solana": "^0.14.0",
     "@gizatech/agent-sdk": "^0.0.4",
+    "@oobe-protocol-labs/synapse-sap-sdk": "^0.6.3",
     "@solana/pay": "^0.2.6",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
