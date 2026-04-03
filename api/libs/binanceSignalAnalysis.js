@@ -46,6 +46,10 @@ const TOKEN_TO_SYMBOL = {
   dot: "DOTUSDT",
   litecoin: "LTCUSDT",
   ltc: "LTCUSDT",
+  tron: "TRXUSDT",
+  trx: "TRXUSDT",
+  shib: "SHIBUSDT",
+  "shiba-inu": "SHIBUSDT",
 };
 
 /** OKX-style bar → Binance interval (Binance uses lowercase h/d; 1M = monthly). */

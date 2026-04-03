@@ -31,6 +31,10 @@ const TOKEN_TO_INST = {
   dot: "DOT-USDT",
   litecoin: "LTC-USDT",
   ltc: "LTC-USDT",
+  tron: "TRX-USDT",
+  trx: "TRX-USDT",
+  shib: "SHIB-USDT",
+  "shiba-inu": "SHIB-USDT",
 };
 
 /**

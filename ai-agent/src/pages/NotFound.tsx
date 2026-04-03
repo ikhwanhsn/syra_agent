@@ -39,7 +39,7 @@ const NotFound = () => {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="gap-2 min-w-[160px]">
-            <Link to="/marketplace">
+            <Link to="/dashboard/marketplace/prompts">
               <Store className="h-4 w-4" />
               Marketplace
             </Link>

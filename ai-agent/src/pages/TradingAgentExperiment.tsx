@@ -45,6 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +68,9 @@ import { ExperimentTokenCombobox } from "@/components/experiment/ExperimentToken
 
 /** Resolved wins+losses at or above this count use full win-rate ranking. */
 const LEADERBOARD_MIN_DECIDED = 5;
+
+/** Client route for trading experiment (under dashboard). */
+const TRADING_EXPERIMENT_ROUTE_BASE = "/dashboard/trading-experiment";
 
 const TABLE_PAGE_SIZE = 10;
 
@@ -411,7 +415,7 @@ function ExperimentTablePagination(props: {
   );
 }
 
-export default function TradingAgentExperiment() {
+export default function TradingAgentExperiment({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isDarkMode, setIsDarkMode] = useState(
     () => !document.documentElement.classList.contains("light"),
@@ -563,7 +567,7 @@ export default function TradingAgentExperiment() {
         decided: a.decided,
         winRatePct: a.winRatePct,
         openPositions: a.openPositions,
-        profileHref: `/experiment/trading-agent/agent/${a.agentId}?suite=${encodeURIComponent(activeSuite)}`,
+        profileHref: `${TRADING_EXPERIMENT_ROUTE_BASE}/agent/${a.agentId}?suite=${encodeURIComponent(activeSuite)}`,
       }));
     }
     return myAgents.map((a) => ({
@@ -771,12 +775,13 @@ export default function TradingAgentExperiment() {
   }, [load]);
 
   useEffect(() => {
+    if (embedded) return;
     if (isDarkMode) {
       document.documentElement.classList.remove("light");
     } else {
       document.documentElement.classList.add("light");
     }
-  }, [isDarkMode]);
+  }, [embedded, isDarkMode]);
 
   const onSuiteChange = (v: string) => {
     const id = v as TradingExperimentSuiteId;
@@ -785,7 +790,7 @@ export default function TradingAgentExperiment() {
   };
 
   const agentProfileHref = (agentId: number) =>
-    `/experiment/trading-agent/agent/${agentId}?suite=${encodeURIComponent(activeSuite)}`;
+    `${TRADING_EXPERIMENT_ROUTE_BASE}/agent/${agentId}?suite=${encodeURIComponent(activeSuite)}`;
 
   const onLabSort = useCallback((key: string) => {
     const k = key as LabSortKey;
@@ -908,43 +913,50 @@ export default function TradingAgentExperiment() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
-        <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Link to="/">
+    <div
+      className={cn(
+        "bg-background text-foreground",
+        embedded ? "flex flex-col flex-1 min-h-0" : "min-h-screen",
+      )}
+    >
+      {!embedded && (
+        <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
+          <div className={cn(DASHBOARD_CONTENT_SHELL, "flex items-center justify-between gap-2 sm:gap-4")}>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Link to="/">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  title="Back to chat"
+                  aria-label="Back to chat"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2 min-w-0">
+                <FlaskConical className="w-5 h-5 text-primary shrink-0" />
+                <h1 className="text-sm font-bold text-foreground truncate">Trading agent experiment</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 shrink-0"
-                title="Back to chat"
-                aria-label="Back to chat"
+                onClick={() => setIsDarkMode((d) => !d)}
+                title={isDarkMode ? "Light mode" : "Dark mode"}
+                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
-                <ArrowLeft className="w-5 h-5" />
+                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-            </Link>
-            <div className="flex items-center gap-2 min-w-0">
-              <FlaskConical className="w-5 h-5 text-primary shrink-0" />
-              <h1 className="text-sm font-bold text-foreground truncate">Trading agent experiment</h1>
+              <WalletNav />
             </div>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              onClick={() => setIsDarkMode((d) => !d)}
-              title={isDarkMode ? "Light mode" : "Dark mode"}
-              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
-            <WalletNav />
-          </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <main className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6 space-y-8 flex-1 min-h-0")}>
         <Tabs
           value={pageView}
           onValueChange={(v) => setPageView(v as PageView)}

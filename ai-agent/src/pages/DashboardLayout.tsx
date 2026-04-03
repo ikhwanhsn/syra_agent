@@ -1,48 +1,92 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, NavLink } from "react-router-dom";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import { FileText, Bot, ArrowLeft, Moon, Sun, PanelLeftClose, PanelLeft, Menu, Twitter, Send, BookOpen, ExternalLink } from "lucide-react";
+import {
+  LayoutDashboard,
+  Trophy,
+  FlaskConical,
+  Scale,
+  ArrowLeft,
+  Moon,
+  Sun,
+  PanelLeftClose,
+  PanelLeft,
+  Menu,
+  Twitter,
+  BookOpen,
+  ExternalLink,
+  FileText,
+  Bot,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
 
-const SIDEBAR_SECTIONS = [
+const MARKETPLACE_SECTIONS = [
   { path: "prompts", label: "Prompts", icon: FileText },
   { path: "agents", label: "Agents", icon: Bot },
 ] as const;
 
-const PAGE_TITLES: Record<string, string> = {
+const DASHBOARD_SECTIONS = [
+  { path: "leaderboard", label: "Leaderboard", icon: Trophy },
+  { path: "trading-experiment", label: "Trading experiment", icon: FlaskConical },
+  { path: "arbitrage-experiment", label: "Arbitrage experiment", icon: Scale },
+] as const;
+
+const MARKETPLACE_PAGE_TITLES: Record<string, string> = {
   prompts: "Prompts",
   agents: "Agents",
 };
 
 const CONNECT_LINKS = [
   { href: "https://x.com/syra_agent", icon: Twitter, label: "X" },
-  // { href: "https://t.me/syra_ai", icon: Send, label: "Telegram" }, // hidden: focus on website
   { href: "https://docs.syraa.fun", icon: BookOpen, label: "Docs" },
   { href: "https://syraa.fun", icon: ExternalLink, label: "Website" },
 ];
 
-interface MarketplaceSidebarContentProps {
+function dashboardPageTitle(pathname: string): string {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] !== "dashboard") return "Overview";
+  if (parts[1] === "marketplace") {
+    const key = parts[2] ?? "prompts";
+    return MARKETPLACE_PAGE_TITLES[key] ?? "Prompts";
+  }
+  if (parts[1] === "trading-experiment" && parts[2] === "agent") return "Agent profile";
+  if (parts[1] === "overview") return "Overview";
+  if (parts[1] === "leaderboard") return "Leaderboard";
+  if (parts[1] === "trading-experiment") return "Trading experiment";
+  if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
+  return "Overview";
+}
+
+interface DashboardSidebarContentProps {
   onNavigate?: () => void;
   showHeader?: boolean;
   currentSection?: string;
   onCollapse?: () => void;
 }
 
-function MarketplaceSidebarContent({ onNavigate, showHeader = true, currentSection = "Prompts", onCollapse }: MarketplaceSidebarContentProps) {
+function DashboardSidebarContent({
+  onNavigate,
+  showHeader = true,
+  currentSection = "Overview",
+  onCollapse,
+}: DashboardSidebarContentProps) {
   return (
     <>
       {showHeader && (
         <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-border shrink-0">
-          <Link to="/" className="flex items-center gap-2 flex-1 min-w-0 no-underline text-inherit hover:opacity-90 transition-opacity">
+          <Link
+            to="/dashboard/overview"
+            className="flex items-center gap-2 flex-1 min-w-0 no-underline text-inherit hover:opacity-90 transition-opacity"
+          >
             <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden bg-card shrink-0 border border-border">
-              <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
+              <LayoutDashboard className="w-5 h-5 text-primary" aria-hidden />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-foreground truncate">Marketplace</h1>
+              <h1 className="font-semibold text-foreground truncate">Dashboard</h1>
               <p className="text-xs text-muted-foreground truncate">{currentSection}</p>
             </div>
           </Link>
@@ -73,13 +117,35 @@ function MarketplaceSidebarContent({ onNavigate, showHeader = true, currentSecti
             Back to agent
           </Link>
           <div className="pt-3 pb-0.5">
-            <p className="px-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Sections</p>
+            <p className="px-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Marketplace</p>
           </div>
           <div className="space-y-0.5">
-            {SIDEBAR_SECTIONS.map(({ path, label, icon: Icon }) => (
+            {MARKETPLACE_SECTIONS.map(({ path, label, icon: Icon }) => (
               <NavLink
                 key={path}
                 to={`/dashboard/marketplace/${path}`}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-medium text-left transition-colors",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+                  )
+                }
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{label}</span>
+              </NavLink>
+            ))}
+          </div>
+          <div className="pt-3 pb-0.5">
+            <p className="px-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Sections</p>
+          </div>
+          <div className="space-y-0.5">
+            {DASHBOARD_SECTIONS.map(({ path, label, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={`/dashboard/${path}`}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-medium text-left transition-colors",
@@ -99,26 +165,26 @@ function MarketplaceSidebarContent({ onNavigate, showHeader = true, currentSecti
       <div className="p-2 sm:p-3 border-t border-border shrink-0">
         <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Connect</p>
         <div className="flex flex-wrap gap-1 px-1">
-            {CONNECT_LINKS.map(({ href, icon: Icon, label: ariaLabel }) => (
-              <a
-                key={href}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                title={ariaLabel}
-                aria-label={ariaLabel}
-              >
-                <Icon className="w-4 h-4" />
-              </a>
-            ))}
+          {CONNECT_LINKS.map(({ href, icon: Icon, label: ariaLabel }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title={ariaLabel}
+              aria-label={ariaLabel}
+            >
+              <Icon className="w-4 h-4" />
+            </a>
+          ))}
         </div>
       </div>
     </>
   );
 }
 
-export default function MarketplaceLayout() {
+export default function DashboardLayout() {
   const location = useLocation();
   const [isDarkMode, setIsDarkMode] = useState(() => !document.documentElement.classList.contains("light"));
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -133,8 +199,7 @@ export default function MarketplaceLayout() {
     }
   }, [isDarkMode]);
 
-  const pathSegment = location.pathname.split("/").filter(Boolean)[1] ?? "prompts";
-  const pageTitle = PAGE_TITLES[pathSegment] ?? "Prompts";
+  const pageTitle = dashboardPageTitle(location.pathname);
 
   const handleToggleSidebar = () => {
     if (sidebarCollapsed) {
@@ -168,7 +233,7 @@ export default function MarketplaceLayout() {
           <PanelLeft className="w-4 h-4" />
         </Button>
         <div className="min-w-0 hidden sm:block">
-          <h1 className="text-sm font-semibold text-foreground truncate">Marketplace</h1>
+          <h1 className="text-sm font-semibold text-foreground truncate">Dashboard</h1>
           <p className="text-xs text-muted-foreground truncate">{pageTitle}</p>
         </div>
       </div>
@@ -189,7 +254,7 @@ export default function MarketplaceLayout() {
   );
 
   const scrollableContent = (
-    <div className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin">
+    <div className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin flex flex-col">
       <Outlet />
     </div>
   );
@@ -211,7 +276,7 @@ export default function MarketplaceLayout() {
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <MarketplaceSidebarContent
+          <DashboardSidebarContent
             onNavigate={() => setSidebarOpen(false)}
             showHeader={true}
             currentSection={pageTitle}
@@ -236,7 +301,7 @@ export default function MarketplaceLayout() {
               className={cn(sidebarCollapsed && "min-w-0")}
             >
               <aside className="flex flex-col h-full min-w-0 bg-card border-r border-border">
-                <MarketplaceSidebarContent
+                <DashboardSidebarContent
                   showHeader={true}
                   currentSection={pageTitle}
                   onCollapse={() => sidebarPanelRef.current?.collapse()}

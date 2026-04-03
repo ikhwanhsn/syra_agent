@@ -94,6 +94,10 @@ const TOKEN_COINBASE = {
   eth: "ETH-USD",
   solana: "SOL-USD",
   sol: "SOL-USD",
+  tron: "TRX-USD",
+  trx: "TRX-USD",
+  shib: "SHIB-USD",
+  "shiba-inu": "SHIB-USD",
 };
 
 const TOKEN_KRAKEN = {
@@ -101,8 +105,12 @@ const TOKEN_KRAKEN = {
   btc: "XBTUSDT",
   ethereum: "ETHUSDT",
   eth: "ETHUSDT",
-  solana: "SOLUSD",
-  sol: "SOLUSD",
+  solana: "SOLUSDT",
+  sol: "SOLUSDT",
+  tron: "TRXUSDT",
+  trx: "TRXUSDT",
+  shib: "SHIBUSDT",
+  "shiba-inu": "SHIBUSDT",
 };
 
 const TOKEN_KUCOIN = {
@@ -112,6 +120,10 @@ const TOKEN_KUCOIN = {
   eth: "ETH-USDT",
   solana: "SOL-USDT",
   sol: "SOL-USDT",
+  tron: "TRX-USDT",
+  trx: "TRX-USDT",
+  shib: "SHIB-USDT",
+  "shiba-inu": "SHIB-USDT",
 };
 
 const TOKEN_UPBIT = {
@@ -121,6 +133,10 @@ const TOKEN_UPBIT = {
   eth: "KRW-ETH",
   solana: "KRW-SOL",
   sol: "KRW-SOL",
+  tron: "KRW-TRX",
+  trx: "KRW-TRX",
+  shib: "KRW-SHIB",
+  "shiba-inu": "KRW-SHIB",
 };
 
 const TOKEN_CDC = {
@@ -130,6 +146,10 @@ const TOKEN_CDC = {
   eth: "ETH_USDT",
   solana: "SOL_USDT",
   sol: "SOL_USDT",
+  tron: "TRX_USDT",
+  trx: "TRX_USDT",
+  shib: "SHIB_USDT",
+  "shiba-inu": "SHIB_USDT",
 };
 
 function pickTokenMapKey(token) {
@@ -166,7 +186,7 @@ function coinbaseRow(c) {
   return [tsMs, open, high, low, close, vol, vol, parseFloat(String(vol)) * parseFloat(String(close))];
 }
 
-function resolveCoinbaseProduct(token, instId) {
+export function resolveCoinbaseProduct(token, instId) {
   if (instId && String(instId).trim()) return String(instId).trim().toUpperCase();
   const k = pickTokenMapKey(token);
   if (TOKEN_COINBASE[k]) return TOKEN_COINBASE[k];
@@ -225,7 +245,7 @@ function barToBybitInterval(bar) {
   return map[b] || map[lower] || "60";
 }
 
-function resolveBybitSymbol(token, instId) {
+export function resolveBybitSymbol(token, instId) {
   if (instId && String(instId).trim()) {
     return String(instId).trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
@@ -277,7 +297,7 @@ function barToKrakenInterval(bar) {
   return map[b] || 60;
 }
 
-function resolveKrakenPair(token, instId) {
+export function resolveKrakenPair(token, instId) {
   if (instId && String(instId).trim()) return String(instId).trim().toUpperCase();
   const k = pickTokenMapKey(token);
   return TOKEN_KRAKEN[k] || "XBTUSDT";
@@ -398,7 +418,7 @@ function barToKucoinType(bar) {
   return map[b] || "1hour";
 }
 
-function resolveKucoinSymbol(token, instId) {
+export function resolveKucoinSymbol(token, instId) {
   if (instId && String(instId).trim()) return String(instId).trim().toUpperCase();
   const k = pickTokenMapKey(token);
   return TOKEN_KUCOIN[k] || `${k.toUpperCase()}-USDT`;
@@ -448,7 +468,7 @@ async function buildKucoinReport(params) {
 
 const UPBIT_BASE = process.env.UPBIT_API_BASE_URL || "https://api.upbit.com";
 
-function resolveUpbitMarket(token, instId) {
+export function resolveUpbitMarket(token, instId) {
   if (instId && String(instId).trim()) return String(instId).trim().toUpperCase();
   const k = pickTokenMapKey(token);
   return TOKEN_UPBIT[k] || `KRW-${k.toUpperCase().slice(0, 10)}`;
@@ -505,7 +525,7 @@ async function buildUpbitReport(params) {
 
 const CRYPTOCOM_BASE = process.env.CRYPTOCOM_EXCHANGE_API_URL || "https://api.crypto.com/exchange/v1";
 
-function resolveCryptocomInstrument(token, instId) {
+export function resolveCryptocomInstrument(token, instId) {
   if (instId && String(instId).trim()) return String(instId).trim().toUpperCase();
   const k = pickTokenMapKey(token);
   return TOKEN_CDC[k] || `${k.toUpperCase()}_USDT`;

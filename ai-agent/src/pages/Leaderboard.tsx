@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
 import { agentLeaderboardApi, type AgentLeaderboardEntry } from "@/lib/chatApi";
 import { cn } from "@/lib/utils";
+import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
+
+export interface LeaderboardProps {
+  /** When true, render without full-page chrome (used inside Dashboard layout). */
+  embedded?: boolean;
+}
 
 type SortKey = "messages" | "chats" | "recent" | "tools" | "volume";
 
@@ -57,7 +63,7 @@ function RankIcon({ rank }: { rank: number }) {
 
 type LeaderboardTab = "user" | "agent";
 
-export default function Leaderboard() {
+export default function Leaderboard({ embedded = false }: LeaderboardProps) {
   const [isDarkMode, setIsDarkMode] = useState(() => !document.documentElement.classList.contains("light"));
   const [activeTab, setActiveTab] = useState<LeaderboardTab>("user");
   const [sort, setSort] = useState<SortKey>("messages");
@@ -73,12 +79,13 @@ export default function Leaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (embedded) return;
     if (isDarkMode) {
       document.documentElement.classList.remove("light");
     } else {
       document.documentElement.classList.add("light");
     }
-  }, [isDarkMode]);
+  }, [embedded, isDarkMode]);
 
   useEffect(() => {
     if (activeTab !== "user") return;
@@ -124,36 +131,43 @@ export default function Leaderboard() {
   })();
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background min-h-0">
-      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Link to="/">
-            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" title="Back to agent" aria-label="Back to agent">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2 min-w-0">
-            <Trophy className="w-5 h-5 text-primary shrink-0" />
-            <h1 className="text-sm font-bold text-foreground truncate">Leaderboard</h1>
+    <div
+      className={cn(
+        "flex flex-col bg-background min-h-0",
+        embedded ? "flex-1 min-h-0" : "h-screen overflow-hidden"
+      )}
+    >
+      {!embedded && (
+        <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Link to="/">
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" title="Back to agent" aria-label="Back to agent">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2 min-w-0">
+              <Trophy className="w-5 h-5 text-primary shrink-0" />
+              <h1 className="text-sm font-bold text-foreground truncate">Leaderboard</h1>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            title={isDarkMode ? "Light mode" : "Dark mode"}
-            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
-          <WalletNav />
-        </div>
-      </header>
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              title={isDarkMode ? "Light mode" : "Dark mode"}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <WalletNav />
+          </div>
+        </header>
+      )}
 
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6")}>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">Top Leaderboard</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Top users by activity. Click a column header to sort.

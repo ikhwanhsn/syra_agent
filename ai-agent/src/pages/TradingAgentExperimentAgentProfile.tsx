@@ -33,9 +33,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const RUNS_PAGE_SIZE = 15;
+
+const TRADING_EXPERIMENT_ROUTE_BASE = "/dashboard/trading-experiment";
 
 function formatTime(iso: string | undefined) {
   if (!iso) return "—";
@@ -46,7 +49,7 @@ function formatTime(iso: string | undefined) {
   }
 }
 
-export default function TradingAgentExperimentAgentProfile() {
+export default function TradingAgentExperimentAgentProfile({ embedded = false }: { embedded?: boolean }) {
   const { agentId: agentIdParam } = useParams<{ agentId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const suite = normalizeExperimentSuite(searchParams.get("suite"));
@@ -130,55 +133,63 @@ export default function TradingAgentExperimentAgentProfile() {
   }, [load]);
 
   useEffect(() => {
+    if (embedded) return;
     if (isDarkMode) {
       document.documentElement.classList.remove("light");
     } else {
       document.documentElement.classList.add("light");
     }
-  }, [isDarkMode]);
+  }, [embedded, isDarkMode]);
 
-  const backHref = `/experiment/trading-agent?suite=${encodeURIComponent(suite)}`;
+  const backHref = `${TRADING_EXPERIMENT_ROUTE_BASE}?suite=${encodeURIComponent(suite)}`;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
-        <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Link to={backHref}>
+    <div
+      className={cn(
+        "bg-background text-foreground",
+        embedded ? "flex flex-col flex-1 min-h-0" : "min-h-screen",
+      )}
+    >
+      {!embedded && (
+        <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
+          <div className={cn(DASHBOARD_CONTENT_SHELL, "flex items-center justify-between gap-2 sm:gap-4")}>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Link to={backHref}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  title="Back to experiment"
+                  aria-label="Back to experiment"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2 min-w-0">
+                <FlaskConical className="w-5 h-5 text-primary shrink-0" />
+                <h1 className="text-sm font-bold text-foreground truncate">
+                  {strategy ? strategy.name : agentIdValid ? `Agent #${parsedAgentId}` : "Agent profile"}
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 shrink-0"
-                title="Back to experiment"
-                aria-label="Back to experiment"
+                onClick={() => setIsDarkMode((d) => !d)}
+                title={isDarkMode ? "Light mode" : "Dark mode"}
+                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
-                <ArrowLeft className="w-5 h-5" />
+                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-            </Link>
-            <div className="flex items-center gap-2 min-w-0">
-              <FlaskConical className="w-5 h-5 text-primary shrink-0" />
-              <h1 className="text-sm font-bold text-foreground truncate">
-                {strategy ? strategy.name : agentIdValid ? `Agent #${parsedAgentId}` : "Agent profile"}
-              </h1>
+              <WalletNav />
             </div>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              onClick={() => setIsDarkMode((d) => !d)}
-              title={isDarkMode ? "Light mode" : "Dark mode"}
-              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
-            <WalletNav />
-          </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <main className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6 space-y-8 flex-1 min-h-0")}>
         {!agentIdValid ? (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Invalid agent id in URL.

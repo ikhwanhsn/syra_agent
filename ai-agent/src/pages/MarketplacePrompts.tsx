@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
 import { useToast } from "@/hooks/use-toast";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { marketplaceApi, userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
@@ -776,7 +777,7 @@ export default function MarketplacePrompts() {
   });
 
   return (
-    <div className="w-full max-w-6xl xl:max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 space-y-4">
+    <div className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6 space-y-4")}>
       <div>
         <h2 className="text-base font-semibold text-foreground mb-0.5">Prompts</h2>
         <p className="text-sm text-muted-foreground">

@@ -3,6 +3,12 @@
  *
  * Env (optional):
  * - TRADING_EXPERIMENT_CRON_SECRET: if set, POST /run-cycle and POST /validate-tick require header x-trading-experiment-secret
+ * - COINMARKETCAP_API_KEY: enables live top-10 list for GET /cmc-top (arbitrage experiment); otherwise a static fallback list is used
+ * - BINANCE_DATA_API_BASE_URL: optional fallback for Binance ticker (default https://data-api.binance.vision/api/v3) when api.binance.com fails
+ * - OKX_API_BASE_URL: optional OKX REST host (default https://www.okx.com)
+ * - CEX_PUBLIC_FETCH_UA: optional User-Agent for CEX public WS handshakes / KuCoin bullet POST (default: browser-like Chrome UA)
+ * - CEX_WS_TICKER_TIMEOUT_MS: max wait per venue for first WS ticker (default 14000)
+ * - BINANCE_WS_BASE_URL, BINANCE_WS_DATA_URL, OKX_WS_URL, BYBIT_WS_SPOT_URL, etc.: override public WS endpoints if needed
  */
 import express from "express";
 import {
@@ -26,6 +32,8 @@ import {
   listUserCustomRuns,
   runUserCustomSignalCycle,
 } from "../libs/userCustomStrategyService.js";
+import { fetchCexArbitrageSnapshot } from "../libs/cexArbitrageSnapshot.js";
+import { fetchCmcTopTradableAssets } from "../libs/coinmarketcapTop.js";
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.TRADING_EXPERIMENT_CRON_SECRET || "").trim();
@@ -54,6 +62,43 @@ export function createTradingExperimentRouter() {
 
   router.get("/suites", (_req, res) => {
     res.json({ success: true, data: { suites: EXPERIMENT_SUITES_META } });
+  });
+
+  /**
+   * CoinMarketCap-style top tradable assets (stablecoins skipped). Uses CMC API when COINMARKETCAP_API_KEY is set.
+   * Query: limit (default 10, max 25).
+   */
+  router.get("/cmc-top", async (req, res) => {
+    try {
+      const n =
+        req.query.limit != null && String(req.query.limit).trim() !== ""
+          ? Number(req.query.limit)
+          : 10;
+      const data = await fetchCmcTopTradableAssets({ limit: n });
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(502).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  /**
+   * Cross-venue real-time ticker prices (public last trade / ticker endpoints per CEX).
+   * Query: token (Syra slug, e.g. bitcoin, solana, shib).
+   */
+  router.get("/arbitrage-snapshot", async (req, res) => {
+    try {
+      const token = typeof req.query.token === "string" ? req.query.token : undefined;
+      const data = await fetchCexArbitrageSnapshot({ token });
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   });
 
   router.get("/stats", async (req, res) => {
