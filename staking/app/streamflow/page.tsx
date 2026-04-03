@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletButton } from "@/components/WalletButton";
 import { useTheme } from "@/app/ThemeContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { StakingPageHeader } from "@/components/StakingPageHeader";
 import { useStreamflowStaking } from "@/hooks/useStreamflowStaking";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { CONFIG } from "@/constants/config";
@@ -23,25 +21,6 @@ function formatCompactBalance(value: string): string {
   if (num >= 1_000_000) return `${Math.floor(num / 1_000_000)}M`;
   if (num >= 1_000) return `${Math.floor(num / 1_000)}K`;
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
-
-function NavbarLogo() {
-  const [failed, setFailed] = React.useState(false);
-  if (failed) {
-    return <span className="text-xl font-bold text-foreground">Staking dApp</span>;
-  }
-  return (
-    <Image
-      src="/logo.jpg"
-      alt="Staking dApp"
-      width={140}
-      height={36}
-      className="h-9 w-auto object-contain"
-      style={{ width: "auto" }}
-      priority
-      onError={() => setFailed(true)}
-    />
-  );
 }
 
 export default function StreamflowStakingPage() {
@@ -119,18 +98,7 @@ export default function StreamflowStakingPage() {
       className="min-h-screen bg-background text-foreground"
       data-theme={theme}
     >
-      <header className="border-b border-border/60 bg-card/40 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <div className="flex items-center gap-6">
-            <NavbarLogo />
-            <span className="text-sm font-medium text-foreground">Streamflow locks</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <WalletButton />
-          </div>
-        </div>
-      </header>
+      <StakingPageHeader />
 
       <main className="mx-auto max-w-5xl space-y-10 px-4 py-10">
         <section className="space-y-3">

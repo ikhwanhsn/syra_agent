@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import connectMongoose from '../config/mongoose.js';
 import StreamflowLock from '../models/StreamflowLock.js';
+import { sumAmountRaw, computeOperatorStats } from '../services/streamflowLockAggregates.js';
 
 function toPositiveInt(value, fallback) {
   const n = Number.parseInt(String(value ?? ''), 10);
@@ -103,6 +104,57 @@ export async function createStreamflowLocksRouter() {
       res.json({ success: true, data: result });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message || 'Bulk upsert failed' });
+    }
+  });
+
+  /** Public aggregate for dashboards (no wallet PII). */
+  router.get('/stats/summary', async (req, res) => {
+    try {
+      const mint = String(req.query.mint || '').trim();
+      const network = req.query.network === 'devnet' ? 'devnet' : 'mainnet';
+      if (!mint) {
+        res.status(400).json({ success: false, error: 'mint is required' });
+        return;
+      }
+      const filter = { mint, network, closed: false };
+      const locks = await StreamflowLock.find(filter).select('amountRaw').lean();
+      const openLockCount = locks.length;
+      const totalAmountRaw = sumAmountRaw(locks);
+      res.json({
+        success: true,
+        data: {
+          network,
+          mint,
+          openLockCount,
+          totalAmountRaw,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message || 'Summary failed' });
+    }
+  });
+
+  /**
+   * Operator-only registry analytics. Requires STREAMFLOW_LOCKS_OPERATOR_KEY on the API server.
+   */
+  router.get('/stats/operator', async (req, res) => {
+    try {
+      const key = String(req.headers['x-operator-key'] || '').trim();
+      const expected = process.env.STREAMFLOW_LOCKS_OPERATOR_KEY;
+      if (!expected || key !== expected) {
+        res.status(403).json({ success: false, error: 'Forbidden' });
+        return;
+      }
+      const mint = String(req.query.mint || '').trim();
+      const network = req.query.network === 'devnet' ? 'devnet' : 'mainnet';
+      if (!mint) {
+        res.status(400).json({ success: false, error: 'mint is required' });
+        return;
+      }
+      const data = await computeOperatorStats(mint, network);
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message || 'Operator stats failed' });
     }
   });
 

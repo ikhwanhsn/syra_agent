@@ -61,6 +61,7 @@ import { createBrainRouter } from "./routes/brain.js";
 import { createQuicknodeRouter } from "./routes/partner/quicknode/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
+import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
@@ -268,6 +269,7 @@ function isPreviewRoute(p) {
   if (p.startsWith("/dashboard-summary")) return true;
   if (p.startsWith("/binance-ticker")) return true;
   if (p.startsWith("/streamflow-locks")) return true;
+  if (p.startsWith("/staking")) return true;
   return false;
 }
 
@@ -532,7 +534,8 @@ app.use(
         p.startsWith("/info") ||
         p.startsWith("/playground") ||
         p.startsWith("/prediction-game") ||
-        p.startsWith("/streamflow-locks")
+        p.startsWith("/streamflow-locks") ||
+        p.startsWith("/staking")
       );
     },
   ),
@@ -806,6 +809,7 @@ app.use("/prediction-game", createPredictionGameRouter());
 // Playground share: save/load request config by content-based slug (same request => same link)
 app.use("/playground", await createPlaygroundShareRouter());
 app.use("/streamflow-locks", await createStreamflowLocksRouter());
+app.use("/staking", await createStakingAppRouter());
 
 // MPP / AgentCash discovery — canonical OpenAPI (https://www.mppscan.com/discovery)
 app.get("/openapi.json", (_req, res) => {
