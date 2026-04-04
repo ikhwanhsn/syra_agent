@@ -608,12 +608,19 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     [filteredLeaderboardRows, lbSortKey, lbSortOrder, leaderboardScope],
   );
 
+  const labCexOptions = useMemo(
+    () => sortedUniqueStrings(agents.map((a) => (a.cexSource ?? "").trim()).filter(Boolean)),
+    [agents],
+  );
+  const showLabCexUi = activeSuite === "multi_resource" && labCexOptions.length > 1;
+  const labTableColSpan = 8 + (showLabCexUi ? 1 : 0);
+
   const filteredLabAgents = useMemo(() => {
     const q = normalizeTableSearch(labFilterSearch);
     return agents.filter((a) => {
       if (labFilterToken !== "all" && a.token !== labFilterToken) return false;
       if (labFilterBar !== "all" && a.bar !== labFilterBar) return false;
-      if (activeSuite === "multi_resource" && labFilterCex !== "all") {
+      if (showLabCexUi && labFilterCex !== "all") {
         const cex = (a.cexSource ?? "").trim();
         if (cex !== labFilterCex) return false;
       }
@@ -623,7 +630,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
       const hay = `${a.name} ${a.agentId} ${a.token} ${a.bar}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [agents, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen, activeSuite]);
+  }, [agents, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen, showLabCexUi]);
 
   const sortedLabAgents = useMemo(
     () => sortLabAgents(filteredLabAgents, labSortKey, labSortOrder),
@@ -653,10 +660,6 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
 
   const labTokenOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.token)), [agents]);
   const labBarOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.bar)), [agents]);
-  const labCexOptions = useMemo(
-    () => sortedUniqueStrings(agents.map((a) => (a.cexSource ?? "").trim()).filter(Boolean)),
-    [agents],
-  );
 
   const lbTokenOptions = useMemo(
     () => sortedUniqueStrings(baseLeaderboardRows.map((r) => r.token)),
@@ -1133,7 +1136,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       </SelectContent>
                     </Select>
                   </div>
-                  {activeSuite === "multi_resource" ? (
+                  {showLabCexUi ? (
                     <div className="space-y-1.5 w-[min(100%,140px)] sm:w-[140px]">
                       <Label className="text-xs text-muted-foreground">CEX</Label>
                       <Select value={labFilterCex} onValueChange={setLabFilterCex}>
@@ -1191,7 +1194,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   <TableRow>
                     <SortableTableHead label="#" sortKey="id" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
                     <SortableTableHead label="Name" sortKey="name" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
-                    {activeSuite === "multi_resource" ? (
+                    {showLabCexUi ? (
                       <SortableTableHead label="CEX" sortKey="cex" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
                     ) : null}
                     <SortableTableHead label="Pair" sortKey="pair" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
@@ -1206,7 +1209,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   {loading && agents.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={activeSuite === "multi_resource" ? 9 : 8}
+                        colSpan={labTableColSpan}
                         className="text-center text-muted-foreground py-10"
                       >
                         <span className="inline-flex items-center gap-2">
@@ -1219,7 +1222,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   {!loading && agents.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={activeSuite === "multi_resource" ? 9 : 8}
+                        colSpan={labTableColSpan}
                         className="text-center text-muted-foreground py-10"
                       >
                         No agents for this experiment.
@@ -1229,7 +1232,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   {!loading && agents.length > 0 && filteredLabAgents.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={activeSuite === "multi_resource" ? 9 : 8}
+                        colSpan={labTableColSpan}
                         className="text-center text-muted-foreground py-10"
                       >
                         No agents match these filters.{" "}
@@ -1260,7 +1263,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           {a.name}
                         </Link>
                       </TableCell>
-                      {activeSuite === "multi_resource" ? (
+                      {showLabCexUi ? (
                         <TableCell className="text-xs font-mono text-muted-foreground">
                           {a.cexSource ?? "—"}
                         </TableCell>

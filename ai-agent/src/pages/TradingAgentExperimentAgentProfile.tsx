@@ -204,6 +204,9 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
             <TabsTrigger value="secondary" className="text-xs sm:text-sm">
               {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Experiment 2"}
             </TabsTrigger>
+            <TabsTrigger value="multi_resource" className="text-xs sm:text-sm">
+              {suiteMeta.find((m) => m.id === "multi_resource")?.title ?? "Experiment 3"}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -221,7 +224,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                 <h2 className="text-2xl font-semibold tracking-tight mt-1">{strategy.name}</h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   {strategy.token} · {strategy.bar} · {strategy.limit} bars
-                  {agent.cexSource ? (
+                  {agent.cexSource && suite !== "multi_resource" ? (
                     <>
                       {" "}
                       · <span className="font-mono text-xs">{agent.cexSource}</span>
@@ -288,7 +291,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                   <dt className="text-muted-foreground">Look-ahead bars</dt>
                   <dd className="tabular-nums">{strategy.lookAheadBars}</dd>
                 </div>
-                {agent.cexSource ? (
+                {agent.cexSource && suite !== "multi_resource" ? (
                   <div>
                     <dt className="text-muted-foreground">CEX source</dt>
                     <dd className="font-mono text-xs">{agent.cexSource}</dd>

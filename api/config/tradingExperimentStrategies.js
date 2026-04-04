@@ -9,7 +9,7 @@
  */
 export const EXPERIMENT_SUITE_PRIMARY = "primary";
 export const EXPERIMENT_SUITE_SECONDARY = "secondary";
-/** All /signal CEX sources × multiple bars; per-venue OHLC + same engine; isolated ledger. */
+/** Binance-only multi-timeframe BTC (1m–1d); same engine as primary; isolated ledger. */
 export const EXPERIMENT_SUITE_MULTI_RESOURCE = "multi_resource";
 /** Wallet-owned custom strategies; isolated ledger + runs reference {@link UserCustomStrategy}. */
 export const EXPERIMENT_SUITE_USER_CUSTOM = "user_custom";
@@ -116,6 +116,96 @@ export const TRADING_EXPERIMENT_STRATEGIES = Object.freeze([
     lookAheadBars: 40,
     experimentGate: { minConfidence: "HIGH" },
   },
+  // Batch v3: ten extra Binance spot agents (ids 20–29) for faster win-rate discovery.
+  {
+    id: 20,
+    name: "XRP velocity 15m",
+    token: "xrp",
+    bar: "15m",
+    limit: 220,
+    lookAheadBars: 140,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 21,
+    name: "DOGE wave 30m",
+    token: "dogecoin",
+    bar: "30m",
+    limit: 200,
+    lookAheadBars: 80,
+    experimentGate: { minConfidence: "LOW" },
+  },
+  {
+    id: 22,
+    name: "ADA structure 4h",
+    token: "cardano",
+    bar: "4h",
+    limit: 200,
+    lookAheadBars: 30,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 23,
+    name: "TRX flow 1h",
+    token: "tron",
+    bar: "1h",
+    limit: 200,
+    lookAheadBars: 48,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 24,
+    name: "SHIB micro 15m",
+    token: "shib",
+    bar: "15m",
+    limit: 260,
+    lookAheadBars: 200,
+    experimentGate: { minConfidence: "LOW" },
+  },
+  {
+    id: 25,
+    name: "BNB sprint 15m",
+    token: "bnb",
+    bar: "15m",
+    limit: 200,
+    lookAheadBars: 100,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 26,
+    name: "BTC pulse 2h",
+    token: "bitcoin",
+    bar: "2h",
+    limit: 200,
+    lookAheadBars: 48,
+  },
+  {
+    id: 27,
+    name: "ETH glide 30m",
+    token: "ethereum",
+    bar: "30m",
+    limit: 260,
+    lookAheadBars: 90,
+    experimentGate: { minConfidence: "HIGH" },
+  },
+  {
+    id: 28,
+    name: "SOL drift 2h",
+    token: "solana",
+    bar: "2h",
+    limit: 180,
+    lookAheadBars: 56,
+    experimentGate: { minConfidence: "MEDIUM" },
+  },
+  {
+    id: 29,
+    name: "LINK snap 15m",
+    token: "chainlink",
+    bar: "15m",
+    limit: 220,
+    lookAheadBars: 120,
+    experimentGate: { minConfidence: "HIGH" },
+  },
 ]);
 
 /** Second isolated experiment: own win rate ledger; same Binance + engine + hourly/10s mechanics. */
@@ -132,17 +222,8 @@ export const TRADING_EXPERIMENT_STRATEGIES_SECONDARY = Object.freeze([
   { id: 9, name: "AVAX 1h", token: "avalanche", bar: "1h", limit: 200, lookAheadBars: 48 },
 ]);
 
-const MULTI_RESOURCE_CEX_SOURCES = Object.freeze([
-  "binance",
-  "coinbase",
-  "okx",
-  "bybit",
-  "kraken",
-  "bitget",
-  "kucoin",
-  "upbit",
-  "cryptocom",
-]);
+/** Trading experiment lab uses Binance spot data only (no other venues). */
+const MULTI_RESOURCE_CEX_SOURCES = Object.freeze(["binance"]);
 
 const MULTI_RESOURCE_BARS = Object.freeze(["1m", "15m", "1h", "4h", "1d"]);
 
@@ -226,7 +307,8 @@ export const EXPERIMENT_SUITES_META = Object.freeze([
   {
     id: EXPERIMENT_SUITE_PRIMARY,
     title: "Experiment 1 — original",
-    description: "Core matrix + 10 smart-gated agents (ids 10–19) with varied assets, bars, and confidence floors.",
+    description:
+      "Core matrix + smart-gated agents (ids 10–19) + ten extra Binance variants (ids 20–29): more pairs, bars, and confidence floors for quicker win-rate comparison.",
   },
   {
     id: EXPERIMENT_SUITE_SECONDARY,
@@ -235,8 +317,8 @@ export const EXPERIMENT_SUITES_META = Object.freeze([
   },
   {
     id: EXPERIMENT_SUITE_MULTI_RESOURCE,
-    title: "Experiment 3 — all CEX × timeframes",
+    title: "Experiment 3 — Binance BTC timeframes",
     description:
-      "Every /signal spot source (binance, coinbase, okx, ...) x bars 1m, 15m, 1h, 4h, 1d on BTC. Hourly samples + 10s TP/SL on each venue's 1m data.",
+      "Binance spot BTC across bars 1m, 15m, 1h, 4h, 1d. Hourly samples + 10s TP/SL validation on Binance 1m data.",
   },
 ]);
