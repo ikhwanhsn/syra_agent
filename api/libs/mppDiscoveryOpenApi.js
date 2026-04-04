@@ -1,5 +1,5 @@
 /**
- * OpenAPI 3.1 document for MPP / AgentCash discovery (GET /openapi.json).
+ * OpenAPI 3.1 document for MPP / AgentCash discovery (GET /mpp-openapi.json).
  * @see https://www.mppscan.com/discovery — openapi, info.description, info.guidance (required), paths with x-payment-info + 402.
  *
  * Paths mirror **canonical x402 URLs** (same as GET /.well-known/x402). Settlement is x402 v2 (HTTP 402);

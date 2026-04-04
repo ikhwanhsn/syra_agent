@@ -88,7 +88,8 @@ The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) 
 **Catalog:**
 
 - **`GET /.well-known/x402`** — x402 resource list (unchanged).
-- **`GET /openapi.json`** — full **OpenAPI 3.1** MPP discovery document: one entry per paid route (from **agent tools** + [`x402DiscoveryResourcePaths.js`](./config/x402DiscoveryResourcePaths.js)), with `info.guidance`, `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), **`402`**, optional **query parameters** (GET) and **JSON requestBody** (POST) to satisfy discovery validators.
+- **`GET /openapi.json`** — minimal **OpenAPI 3.1** for the **public non-x402** signal API only (`GET` / `POST` **`/api/signal`**). Same document as repo-root `openapi.json` (`npm run openapi` in `api/`).
+- **`GET /mpp-openapi.json`** — full **OpenAPI 3.1** MPP discovery document: one entry per paid route (from **agent tools** + [`x402DiscoveryResourcePaths.js`](./config/x402DiscoveryResourcePaths.js)), with `info.guidance`, `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), **`402`**, optional **query parameters** (GET) and **JSON requestBody** (POST) to satisfy discovery validators.
 - **`GET` / `POST` [`/mpp/v1/check-status`](https://api.syraa.fun/mpp/v1/check-status)** — MPP-branded health check (same tier as `/check-status`).
 
 To **register**, deploy then validate:

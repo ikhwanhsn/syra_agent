@@ -6,7 +6,10 @@ import { requireApiKey } from "./utils/apiKeyAuth.js";
 import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createSignalRouterRegular } from "./routes/signal.js";
+import {
+  createPublicSignalApiRouter,
+  createSignalRouterRegular,
+} from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createJatevoRouter } from "./routes/jatevo.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
@@ -67,6 +70,7 @@ import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
 import connectMongoose from "./config/mongoose.js";
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
+import { buildPublicSignalOpenApi } from "./libs/publicSignalOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -216,7 +220,7 @@ const CORS_OPTIONS_REGULAR = {
 // Preview/landing routes (/preview/*, /dashboard-summary, /binance-ticker, /x) get permissive CORS; x402 routes skip rate limit.
 function isX402Route(p) {
   if (!p) return false;
-  if (p === "/openapi.json") return true;
+  if (p === "/openapi.json" || p === "/mpp-openapi.json") return true;
   if (p.startsWith("/.well-known")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
@@ -262,6 +266,11 @@ function isPlaygroundProxyRoute(p) {
   return p === "/api/playground-proxy";
 }
 
+/** Public non-x402 signal API — permissive CORS for proxies and third-party clients. */
+function isPublicSignalApiRoute(p) {
+  return p === "/api/signal" || p.startsWith("/api/signal/");
+}
+
 /** Preview/landing routes (no v1/regular): allow any origin for dev/staging landings. */
 function isPreviewRoute(p) {
   if (!p) return false;
@@ -279,6 +288,7 @@ app.use((req, res, next) => {
     isAgentRoute(req.path) ||
     isHeyLolRoute(req.path) ||
     isPlaygroundProxyRoute(req.path) ||
+    isPublicSignalApiRoute(req.path) ||
     isPreviewRoute(req.path)
       ? CORS_OPTIONS_X402
       : CORS_OPTIONS_REGULAR;
@@ -748,6 +758,7 @@ app.use("/v1", (req, res) => {
 });
 
 // x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
+app.use("/api/signal", await createPublicSignalApiRouter());
 app.use("/signal", await createV2SignalRouter());
 app.use("/exa-search", await createV2ExaSearchRouter());
 app.use("/crawl", await createCrawlRouter());
@@ -812,7 +823,15 @@ app.use("/streamflow-locks", await createStreamflowLocksRouter());
 app.use("/staking", await createStakingAppRouter());
 
 // MPP / AgentCash discovery — canonical OpenAPI (https://www.mppscan.com/discovery)
+// Minimal OpenAPI — public non-x402 /api/signal only (strict schema importers / proxies)
 app.get("/openapi.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res.json(buildPublicSignalOpenApi());
+});
+
+// MPP / AgentCash discovery (was previously at /openapi.json)
+app.get("/mpp-openapi.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=300");
   res.json(buildMppDiscoveryOpenApi());
