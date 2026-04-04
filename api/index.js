@@ -70,7 +70,7 @@ import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
 import connectMongoose from "./config/mongoose.js";
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
-import { buildPublicSignalOpenApi } from "./libs/publicSignalOpenApi.js";
+import { buildGatewayOpenApi } from "./libs/gatewayOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -823,11 +823,11 @@ app.use("/streamflow-locks", await createStreamflowLocksRouter());
 app.use("/staking", await createStakingAppRouter());
 
 // MPP / AgentCash discovery — canonical OpenAPI (https://www.mppscan.com/discovery)
-// Minimal OpenAPI — public non-x402 /api/signal only (strict schema importers / proxies)
+// OpenAPI 3.1 — gateway catalog (10+ ops: signal, preview, dashboard, x402 news/sentiment, brain, etc.)
 app.get("/openapi.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=300");
-  res.json(buildPublicSignalOpenApi());
+  res.json(buildGatewayOpenApi());
 });
 
 // MPP / AgentCash discovery (was previously at /openapi.json)

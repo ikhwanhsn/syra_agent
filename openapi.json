@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Syra Public Signal API",
+    "title": "Syra API",
     "version": "1.0.0",
-    "description": "Single endpoint: trading signal from CEX OHLC + Syra engine, or n8n webhook when configured. **No x402 payment.** When the server sets `API_KEY` or `API_KEYS`, send `X-API-Key`, `api-key`, or `Authorization: Bearer`. Docs: https://docs.syraa.fun"
+    "description": "Syra gateway: preview and dashboard routes may require `X-API-Key` / Bearer when the server sets `API_KEY`.\n\n**x402** routes return **HTTP 402** until paid (Solana/Base USDC); no `x-payment-info` in this spec — see https://docs.syraa.fun.\n\nPaid catalog with full discovery: `GET /mpp-openapi.json`."
   },
   "servers": [
     {
@@ -16,7 +16,8 @@
         "tags": [
           "Signal"
         ],
-        "summary": "Get trading signal",
+        "summary": "Public signal (no x402)",
+        "description": "Same engine as /signal without micropayment. API key if server sets API_KEY.",
         "operationId": "getPublicSignal",
         "parameters": [
           {
@@ -36,7 +37,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Data source. Default: binance (spot OHLC + engine). CEX: binance, coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). Use n8n or webhook for legacy n8n webhook."
+            "description": "Data source. Default: binance. CEX: binance, coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
           },
           {
             "name": "instId",
@@ -45,7 +46,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Venue symbol override, e.g. BTCUSDT, BTC-USDT (OKX), BTC-USD (Coinbase), XBTUSDT (Kraken)."
+            "description": "Venue symbol override (e.g. BTCUSDT, BTC-USDT)."
           },
           {
             "name": "bar",
@@ -54,7 +55,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Candle interval (venue-specific; e.g. 1m, 1h, 4h, 1d)."
+            "description": "Candle interval (e.g. 1m, 1h, 4h, 1d)."
           },
           {
             "name": "limit",
@@ -63,7 +64,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Number of candles (venue max varies; default 200)."
+            "description": "Candle count (default ~200)."
           }
         ],
         "responses": {
@@ -91,15 +92,7 @@
                     },
                     "meta": {
                       "type": "object",
-                      "additionalProperties": true,
-                      "properties": {
-                        "token": {
-                          "type": "string"
-                        },
-                        "source": {
-                          "type": "string"
-                        }
-                      }
+                      "additionalProperties": true
                     },
                     "error": {
                       "type": "string"
@@ -135,7 +128,7 @@
         "tags": [
           "Signal"
         ],
-        "summary": "Get trading signal (JSON body)",
+        "summary": "Public signal via JSON body",
         "operationId": "postPublicSignal",
         "requestBody": {
           "required": false,
@@ -190,15 +183,7 @@
                     },
                     "meta": {
                       "type": "object",
-                      "additionalProperties": true,
-                      "properties": {
-                        "token": {
-                          "type": "string"
-                        },
-                        "source": {
-                          "type": "string"
-                        }
-                      }
+                      "additionalProperties": true
                     },
                     "error": {
                       "type": "string"
@@ -210,7 +195,7 @@
             }
           },
           "500": {
-            "description": "Upstream or configuration error",
+            "description": "Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -230,12 +215,635 @@
           }
         }
       }
+    },
+    "/info": {
+      "get": {
+        "tags": [
+          "Info"
+        ],
+        "summary": "Gateway info",
+        "operationId": "getInfo",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/info/stats": {
+      "get": {
+        "tags": [
+          "Info"
+        ],
+        "summary": "Public usage stats",
+        "operationId": "getInfoStats",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/news": {
+      "get": {
+        "tags": [
+          "Preview"
+        ],
+        "summary": "News preview (no x402)",
+        "operationId": "getPreviewNews",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "general"
+            },
+            "description": "Ticker symbol or general for broad feed."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/sentiment": {
+      "get": {
+        "tags": [
+          "Preview"
+        ],
+        "summary": "Sentiment preview (no x402)",
+        "operationId": "getPreviewSentiment",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "general"
+            },
+            "description": "Ticker symbol or general for broad feed."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preview/signal": {
+      "get": {
+        "tags": [
+          "Preview"
+        ],
+        "summary": "Signal preview (no x402)",
+        "operationId": "getPreviewSignal",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "bitcoin"
+            },
+            "description": "Asset name for signal routing (e.g. bitcoin, solana)."
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Data source. Default: binance. CEX: binance, coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
+          },
+          {
+            "name": "instId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Venue symbol override (e.g. BTCUSDT, BTC-USDT)."
+          },
+          {
+            "name": "bar",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Candle interval (e.g. 1m, 1h, 4h, 1d)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Candle count (default ~200)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard-summary": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Dashboard KPI summary",
+        "operationId": "getDashboardSummary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binance-ticker": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Binance ticker prices",
+        "operationId": "getBinanceTicker",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prediction-game/health": {
+      "get": {
+        "tags": [
+          "Prediction game"
+        ],
+        "summary": "Prediction game health",
+        "operationId": "getPredictionGameHealth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/news": {
+      "get": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Crypto news",
+        "operationId": "getNews",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "general"
+            },
+            "description": "Ticker symbol or general for broad feed."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Crypto news (POST)",
+        "operationId": "postNews",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Request body — see https://docs.syraa.fun for fields."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      }
+    },
+    "/sentiment": {
+      "get": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Sentiment",
+        "operationId": "getSentiment",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "general"
+            },
+            "description": "Ticker symbol or general for broad feed."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Sentiment (POST)",
+        "operationId": "postSentiment",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Request body — see https://docs.syraa.fun for fields."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      }
+    },
+    "/event": {
+      "get": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Crypto events",
+        "operationId": "getEvent",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "general"
+            },
+            "description": "Ticker symbol or general for broad feed."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Crypto events (POST)",
+        "operationId": "postEvent",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Request body — see https://docs.syraa.fun for fields."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      }
+    },
+    "/check-status": {
+      "get": {
+        "tags": [
+          "Gateway (x402)"
+        ],
+        "summary": "API health / check-status",
+        "operationId": "getCheckStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Gateway (x402)"
+        ],
+        "summary": "Check-status (POST)",
+        "operationId": "postCheckStatus",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Request body — see https://docs.syraa.fun for fields."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      }
+    },
+    "/brain": {
+      "get": {
+        "tags": [
+          "AI (x402)"
+        ],
+        "summary": "Syra Brain (GET)",
+        "operationId": "getBrain",
+        "parameters": [
+          {
+            "name": "question",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Natural language question."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AI (x402)"
+        ],
+        "summary": "Syra Brain (POST)",
+        "operationId": "postBrain",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Request body — see https://docs.syraa.fun for fields."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      }
     }
   },
   "tags": [
     {
       "name": "Signal",
-      "description": "Non-x402 signal"
+      "description": "GET/POST /api/signal — no x402"
+    },
+    {
+      "name": "Info",
+      "description": "Public info"
+    },
+    {
+      "name": "Preview",
+      "description": "No x402 mirrors of news/sentiment/signal"
+    },
+    {
+      "name": "Dashboard",
+      "description": "Dashboard helpers"
+    },
+    {
+      "name": "Prediction game",
+      "description": "Prediction game API"
+    },
+    {
+      "name": "Market data (x402)",
+      "description": "Cryptonews-backed; payment via x402"
+    },
+    {
+      "name": "Gateway (x402)",
+      "description": "Health and gateway checks"
+    },
+    {
+      "name": "AI (x402)",
+      "description": "Syra Brain Q&A"
     }
   ],
   "components": {
@@ -244,7 +852,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "Optional at runtime unless the server sets API_KEY/API_KEYS. Also: `api-key` header or `Authorization: Bearer <token>`."
+        "description": "When API_KEY is set: also `api-key` or `Authorization: Bearer`. x402 routes do not use this."
       }
     }
   }
