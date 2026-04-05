@@ -18,12 +18,10 @@ export const HeroSection = () => {
       <ParticleField />
       <OrbitRings />
 
-      {/* Gradient overlays - theme colors only */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/12 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-neon-purple/12 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-1/2 right-0 w-[420px] h-[420px] bg-accent/14 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/3 left-0 w-[380px] h-[380px] bg-neon-gold/10 rounded-full blur-[90px] pointer-events-none" />
-      <div className="absolute top-1/3 left-1/2 w-[320px] h-[320px] bg-success/8 rounded-full blur-[100px] pointer-events-none -translate-x-1/2" />
+      {/* Soft ambient light — minimal color (SAID-style canvas) */}
+      <div className="absolute top-0 left-1/4 w-[560px] h-[560px] bg-primary/[0.07] rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[480px] h-[480px] bg-primary/[0.05] rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-[380px] h-[380px] bg-accent/[0.07] rounded-full blur-[110px] pointer-events-none" />
 
       <div className="relative z-10 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -33,14 +31,14 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card border border-accent/25 bg-accent/[0.06] shadow-[0_0_28px_-10px_hsl(var(--accent)/0.35)]"
+              className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card border border-primary/15 bg-primary/[0.04] shadow-none"
             >
-              <span className="h-2 w-2 shrink-0 rounded-full bg-success shadow-[0_0_10px_hsl(var(--success)/0.7)] animate-pulse" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-success/90 shadow-[0_0_8px_hsl(var(--success)/0.45)] animate-pulse" />
               <span className="text-sm text-muted-foreground">
                 Powered by{" "}
-                <span className="font-medium text-accent">x402</span>
+                <span className="font-medium text-foreground/90">x402</span>
                 {" & "}
-                <span className="font-medium text-neon-gold">MPP</span>
+                <span className="font-medium text-foreground/90">MPP</span>
               </span>
             </motion.div>
 
