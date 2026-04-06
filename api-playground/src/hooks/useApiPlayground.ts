@@ -82,6 +82,17 @@ function getNansenBaseUrl(): string {
   return (base && base.trim()) || 'https://api.nansen.ai';
 }
 
+/** Syra API hosts the same Nansen shapes at /nansen/* (PAYER_KEYPAIR on server). POST body rules match direct Nansen. */
+function isSyraNansenGatewayUrl(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    const b = new URL(getApiBaseUrl());
+    return u.origin === b.origin && u.pathname.toLowerCase().startsWith('/nansen/');
+  } catch {
+    return false;
+  }
+}
+
 /** Purch Vault API base (marketplace for agent skills, knowledge, personas). Override via VITE_PURCH_VAULT_API_BASE_URL. */
 function getPurchVaultBaseUrl(): string {
   const base = import.meta.env.VITE_PURCH_VAULT_API_BASE_URL as string | undefined;
@@ -159,6 +170,27 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       null,
       2
     ),
+  },
+  {
+    id: 'syra-gateway-nansen-netflow',
+    label: 'Nansen smart money netflow (via Syra gateway)',
+    method: 'POST',
+    url: `${base}/nansen/smart-money/netflow`,
+    params: [
+      { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
+      { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+    ],
+    body: '',
+  },
+  {
+    id: 'syra-gateway-binance-correlation',
+    label: 'Binance correlation (via Syra gateway)',
+    method: 'GET',
+    url: `${base}/binance/correlation`,
+    params: [
+      { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'Symbol for correlation' },
+      { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+    ],
   },
   {
     id: 'dashboard-summary',
@@ -511,7 +543,108 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'email', value: 'user@example.com', enabled: true, description: 'Email for receipt' },
     ],
   },
-  // Nansen (call api.nansen.ai directly; x402 payment with wallet)
+  // Partner (Syra gateway — x402 routes on Syra API: /nansen, /binance, /bankr, /giza, /neynar, /siwa)
+  ...(function syraGatewayPartnerFlows(): ExampleFlowPreset[] {
+    const b = getApiBaseUrl();
+    return [
+      {
+        id: 'syra-gateway-nansen-current-balance',
+        label: 'Nansen: address current balance (via Syra gateway)',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/current-balance`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        ],
+        body: '',
+      },
+      {
+        id: 'syra-gateway-nansen-holdings',
+        label: 'Nansen: smart money holdings (via Syra gateway)',
+        method: 'POST',
+        url: `${b}/nansen/smart-money/holdings`,
+        params: [
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+        ],
+        body: '',
+      },
+      {
+        id: 'syra-gateway-binance-spot-ticker',
+        label: 'Binance spot 24h ticker (via Syra gateway)',
+        method: 'GET',
+        url: `${b}/binance/spot/ticker/24hr`,
+        params: [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional; omit for all tickers' }],
+      },
+      {
+        id: 'syra-gateway-bankr-balances',
+        label: 'Bankr: balances (via Syra gateway)',
+        method: 'GET',
+        url: `${b}/bankr/balances`,
+        params: [{ key: 'chains', value: 'solana,base', enabled: true, description: 'Comma-separated chains' }],
+      },
+      {
+        id: 'syra-gateway-bankr-prompt',
+        label: 'Bankr: prompt (via Syra gateway)',
+        method: 'POST',
+        url: `${b}/bankr/prompt`,
+        params: [],
+        body: JSON.stringify(
+          { prompt: 'Say hello in one sentence.', threadId: '' },
+          null,
+          2
+        ),
+      },
+      {
+        id: 'syra-gateway-giza-protocols',
+        label: 'Giza: protocols (via Syra gateway)',
+        method: 'GET',
+        url: `${b}/giza/protocols`,
+        params: [
+          {
+            key: 'token',
+            value: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+            enabled: true,
+            description: 'Token contract (USDC on Base example)',
+          },
+        ],
+      },
+      {
+        id: 'syra-gateway-neynar-user',
+        label: 'Neynar: user lookup (via Syra gateway)',
+        method: 'GET',
+        url: `${b}/neynar/user`,
+        params: [{ key: 'username', value: 'vitalik.eth', enabled: true, description: 'Farcaster username' }],
+      },
+      {
+        id: 'syra-gateway-neynar-search',
+        label: 'Neynar: search casts (via Syra gateway)',
+        method: 'GET',
+        url: `${b}/neynar/search`,
+        params: [
+          { key: 'q', value: 'crypto', enabled: true, description: 'Search query' },
+          { key: 'limit', value: '10', enabled: false, description: 'Max results' },
+        ],
+      },
+      {
+        id: 'syra-gateway-siwa-nonce',
+        label: 'SIWA: nonce (via Syra gateway)',
+        method: 'POST',
+        url: `${b}/siwa/nonce`,
+        params: [],
+        body: JSON.stringify(
+          {
+            address: '0x0000000000000000000000000000000000000000',
+            agentId: 1,
+            agentRegistry: '',
+          },
+          null,
+          2
+        ),
+      },
+    ];
+  })(),
+  // Nansen (call api.nansen.ai directly; x402 payment with wallet — same payloads as /nansen on Syra)
   ...(function nansenFlows(): ExampleFlowPreset[] {
     const nansenBase = getNansenBaseUrl();
     return [
@@ -617,6 +750,27 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
   const url = flow.url;
   const nansenBase = getNansenBaseUrl();
   const purchBase = getPurchVaultBaseUrl();
+  const syraBase = getApiBaseUrl();
+  try {
+    const u = new URL(url);
+    const b = new URL(syraBase);
+    if (u.origin === b.origin) {
+      const p = u.pathname.toLowerCase();
+      if (
+        p.startsWith('/nansen/') ||
+        p.startsWith('/binance/') ||
+        p.startsWith('/bankr/') ||
+        p.startsWith('/giza/') ||
+        p.startsWith('/neynar/') ||
+        p.startsWith('/siwa/')
+      ) {
+        return { slug: 'partner-gateway', name: 'Partner (Syra gateway)' };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  if (id.startsWith('syra-gateway-')) return { slug: 'partner-gateway', name: 'Partner (Syra gateway)' };
   if (url.includes(new URL(nansenBase).origin)) return { slug: 'nansen', name: 'Nansen' };
   if (url.includes(new URL(purchBase).origin)) return { slug: 'purch-vault', name: 'Purch Vault' };
   if (id.startsWith('nansen-')) return { slug: 'nansen', name: 'Nansen' };
@@ -650,6 +804,7 @@ export function getExampleFlowGroups(): ExampleFlowGroup[] {
     'preview',
     'tokens-dex',
     'agent',
+    'partner-gateway',
     'binance',
     '8004',
     '8004scan',
@@ -677,7 +832,7 @@ export function getExampleFlowsForGroup(groupSlug: string): ExampleFlowPreset[] 
 }
 
 /** Number of example flows to show on the Request Builder; rest are on /examples. */
-export const EXAMPLE_FLOWS_VISIBLE_COUNT = 5;
+export const EXAMPLE_FLOWS_VISIBLE_COUNT = 8;
 
 // Proxy URL for avoiding CORS issues in development
 const PROXY_BASE_URL = '/api/proxy/';
@@ -694,13 +849,14 @@ const getProxiedUrl = (url: string): string => {
 };
 
 // In production, cross-origin requests hit CORS. Use the API's playground-proxy when we're not in dev and the target is another origin.
-// Nansen is called directly (no proxy) so the user pays x402 with their wallet.
+// Nansen direct (api.nansen.ai) is called without proxy so the wallet pays x402. Syra-hosted /nansen/* uses the API origin (CORS allowed).
 function useBackendPlaygroundProxy(targetUrl: string): boolean {
   // Always use backend proxy for MPP lanes so the server can relay Tempo challenges.
   if (targetUrl.toLowerCase().includes('/mpp/')) return true;
   if (USE_PROXY) return false; // Dev proxy handles non-MPP routes
   if (typeof window === 'undefined') return false;
   if (isNansenUrl(targetUrl)) return false; // Call Nansen directly
+  if (isSyraNansenGatewayUrl(targetUrl)) return false; // Same Syra API; browser → api.syraa.fun (x402 CORS)
   const targetOrigin = getRequestOrigin(targetUrl);
   const pageOrigin = window.location.origin;
   return !!targetOrigin && targetOrigin !== pageOrigin;
@@ -712,7 +868,7 @@ function getPlaygroundProxyUrl(_targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
-// API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: direct api.nansen.ai.
+// API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: direct api.nansen.ai or Syra /nansen/*.
 // Aligned with api/index.js x402Paths and /.well-known/x402 discovery.
 function getApiEndpoints(): string[] {
   const base = getApiBaseUrl();
@@ -754,6 +910,17 @@ function getApiEndpoints(): string[] {
     `${base}/heylol/search`,
     `${base}/agent/tools`,
     `${base}/agent/tools/call`,
+    `${base}/nansen/profiler/address/current-balance`,
+    `${base}/nansen/smart-money/netflow`,
+    `${base}/nansen/smart-money/holdings`,
+    `${base}/binance/correlation`,
+    `${base}/binance/spot/ticker/24hr`,
+    `${base}/bankr/balances`,
+    `${base}/bankr/prompt`,
+    `${base}/giza/protocols`,
+    `${base}/neynar/user`,
+    `${base}/neynar/search`,
+    `${base}/siwa/nonce`,
     `${nansenBase}/api/v1/profiler/address/current-balance`,
     `${nansenBase}/api/v1/smart-money/netflow`,
     `${nansenBase}/api/v1/smart-money/holdings`,
@@ -771,6 +938,9 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
     if (path === '/brain') return 'POST'; // Brain supports GET (query) and POST (body); default POST
     if (path === '/agent/tools/call') return 'POST';
     if (path === '/agent/tools' || path.endsWith('/agent/tools')) return 'GET';
+    if (path.startsWith('/nansen/')) return 'POST';
+    if (path === '/bankr/prompt' || path.endsWith('/bankr/prompt')) return 'POST';
+    if (path.startsWith('/siwa/')) return 'POST';
   } catch {
     // ignore
   }
@@ -864,6 +1034,37 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/api/v1/smart-money/holdings': [
         { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
         { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/profiler/address/current-balance': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/nansen/smart-money/netflow': [
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/smart-money/holdings': [
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/binance/correlation': [
+        { key: 'symbol', value: 'BTCUSDT', enabled: true, description: 'Symbol for correlation' },
+        { key: 'limit', value: '10', enabled: true, description: 'Max results' },
+      ],
+      '/binance/spot/ticker/24hr': [{ key: 'symbol', value: 'BTCUSDT', enabled: false, description: 'Optional; omit for all' }],
+      '/bankr/balances': [{ key: 'chains', value: 'solana,base', enabled: true, description: 'Comma-separated chains' }],
+      '/giza/protocols': [
+        {
+          key: 'token',
+          value: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          enabled: true,
+          description: 'Token contract (0x...)',
+        },
+      ],
+      '/neynar/user': [{ key: 'username', value: 'vitalik.eth', enabled: true, description: 'Or use fids=...' }],
+      '/neynar/search': [
+        { key: 'q', value: 'crypto', enabled: true, description: 'Search query' },
+        { key: 'limit', value: '10', enabled: false, description: 'Max results' },
       ],
       '/api/v1/tgm/holders': [
         { key: 'chain', value: 'solana', enabled: true, description: 'Chain' },
@@ -1627,7 +1828,7 @@ export function useApiPlayground() {
     // Build URL with params: GET → query string; POST → body (handled below)
     let finalUrl = baseUrl;
     const enabledParams = effectiveParams.filter(p => p.enabled && p.key);
-    const isNansen = isNansenUrl(baseUrl);
+    const useNansenStylePostBody = isNansenUrl(baseUrl) || isSyraNansenGatewayUrl(baseUrl);
     if (effectiveMethod === 'GET' && enabledParams.length > 0) {
       const searchParams = new URLSearchParams();
       enabledParams.forEach(p => searchParams.append(p.key, p.value));
@@ -1687,8 +1888,8 @@ export function useApiPlayground() {
         }
       })();
       const emptyBody = !effectiveBody.trim() || /^\s*\{\s*\}\s*$/.test(effectiveBody.trim()) || /^\s*\{\s*\n?\s*\}\s*$/.test(effectiveBody.trim());
-      if (emptyBody && isNansen) {
-        // Nansen API expects POST with JSON body; build from params (parse JSON-like values)
+      if (emptyBody && useNansenStylePostBody) {
+        // Nansen API (direct or Syra /nansen/*) expects POST with JSON body; build from params (parse JSON-like values)
         const bodyObj: Record<string, unknown> = {};
         enabledParams.forEach(p => {
           const v = p.value?.trim() ?? '';

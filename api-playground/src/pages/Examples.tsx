@@ -48,7 +48,8 @@ const Examples = () => {
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Example flows</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Browse APIs by group or partner — open a group to see all endpoints and run them
+                Browse APIs by group or partner — includes Partner (Syra gateway) for /nansen, /binance, /bankr, /giza,
+                /neynar, /siwa on the Syra API, plus direct Nansen (api.nansen.ai) flows
               </p>
             </div>
           </div>
