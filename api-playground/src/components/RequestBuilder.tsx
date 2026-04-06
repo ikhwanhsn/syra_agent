@@ -51,8 +51,8 @@ const methods: HttpMethod[] = ['GET', 'POST'];
 
 const methodConfig: Record<'GET' | 'POST', { color: string; bg: string; description: string }> = {
   GET: { 
-    color: 'text-success', 
-    bg: 'bg-success/10 hover:bg-success/20 border-success/30',
+    color: 'text-accent', 
+    bg: 'bg-accent/10 hover:bg-accent/20 border-accent/30',
     description: 'Retrieve data from the API'
   },
   POST: { 
@@ -169,8 +169,11 @@ export function RequestBuilder({
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
             {wallet.connected && (
-              <Badge variant="success" className="text-xs gap-2 px-3 py-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              <Badge
+                variant="outline"
+                className="text-xs gap-2 px-3 py-1.5 border-primary/20 bg-primary/[0.06] text-foreground"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                 Ready to Pay
               </Badge>
             )}

@@ -129,7 +129,7 @@ export function PaymentModal({
                     <div className="flex flex-col items-center">
                       <div className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
-                        status === 'done' && "bg-success text-success-foreground",
+                        status === 'done' && "bg-accent text-accent-foreground",
                         status === 'current' && "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background",
                         status === 'pending' && "bg-muted text-muted-foreground"
                       )}>
@@ -144,7 +144,7 @@ export function PaymentModal({
                       </div>
                       <span className={cn(
                         "text-xs font-medium mt-1.5",
-                        status === 'done' && "text-success",
+                        status === 'done' && "text-accent",
                         status === 'current' && "text-foreground",
                         status === 'pending' && "text-muted-foreground"
                       )}>
@@ -154,7 +154,7 @@ export function PaymentModal({
                     {index < steps.length - 1 && (
                       <div className={cn(
                         "w-8 h-0.5 mx-1 mb-5 transition-colors duration-300",
-                        getStepStatus(steps[index + 1].id) !== 'pending' ? "bg-success" : "bg-muted"
+                        getStepStatus(steps[index + 1].id) !== 'pending' ? "bg-accent" : "bg-muted"
                       )} />
                     )}
                   </div>
@@ -212,17 +212,17 @@ export function PaymentModal({
               <div className={cn(
                 "p-4 rounded-xl flex items-start gap-3 transition-all duration-300",
                 isPending && "bg-warning/10 border border-warning/30",
-                isConfirmed && "bg-success/10 border border-success/30",
+                isConfirmed && "bg-accent/10 border border-accent/30",
                 isFailed && "bg-destructive/10 border border-destructive/30"
               )}>
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
                   isPending && "bg-warning/20",
-                  isConfirmed && "bg-success/20",
+                  isConfirmed && "bg-accent/20",
                   isFailed && "bg-destructive/20"
                 )}>
                   {isPending && <Loader2 className="h-5 w-5 text-warning animate-spin" />}
-                  {isConfirmed && <CheckCircle className="h-5 w-5 text-success" />}
+                  {isConfirmed && <CheckCircle className="h-5 w-5 text-accent" />}
                   {isFailed && <XCircle className="h-5 w-5 text-destructive" />}
                 </div>
                 
@@ -230,7 +230,7 @@ export function PaymentModal({
                   <p className={cn(
                     "text-sm font-semibold",
                     isPending && "text-warning",
-                    isConfirmed && "text-success",
+                    isConfirmed && "text-accent",
                     isFailed && "text-destructive"
                   )}>
                     {isPending && 'Transaction Processing...'}
@@ -276,12 +276,12 @@ export function PaymentModal({
             {/* Connected Wallet Info */}
             {wallet.connected && !isPending && !isConfirmed && (
               <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-success/5 border border-success/20 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center">
-                    <CheckCircle className="h-4 w-4 text-success" />
+                <div className="p-3 rounded-lg bg-primary/[0.06] border border-border flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center">
+                    <CheckCircle className="h-4 w-4 text-accent" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-success font-medium">Wallet Connected</p>
+                    <p className="text-xs text-foreground font-medium">Wallet Connected</p>
                     <p className="text-xs font-mono text-muted-foreground truncate">{walletContext.address}</p>
                   </div>
                   <div className="text-right shrink-0">
@@ -319,7 +319,7 @@ export function PaymentModal({
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : isConfirmed ? (
-              <Button variant="success" className="w-full h-11 gap-2 text-sm font-semibold" disabled>
+              <Button variant="secondary" className="w-full h-11 gap-2 text-sm font-semibold" disabled>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Fetching API Response...
               </Button>

@@ -339,7 +339,7 @@ export function HistoryPanel({
                         <div className={cn(
                           "w-5 h-5 rounded-full flex items-center justify-center shrink-0",
                           item.status === 'payment_required' && "bg-warning/20",
-                          item.status === 'success' && "bg-success/20",
+                          item.status === 'success' && "bg-accent/12",
                           item.status === 'error' && "bg-destructive/20",
                           item.status === 'loading' && "bg-muted",
                           item.status === 'idle' && "bg-muted"
@@ -347,7 +347,7 @@ export function HistoryPanel({
                           <StatusIcon className={cn(
                             "h-3 w-3",
                             item.status === 'payment_required' && "text-warning",
-                            item.status === 'success' && "text-success",
+                            item.status === 'success' && "text-accent",
                             item.status === 'error' && "text-destructive",
                             item.status === 'loading' && "text-muted-foreground animate-spin",
                             item.status === 'idle' && "text-muted-foreground"

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Copy, Check, Clock, FileText, Zap, CheckCircle, XCircle, Wallet, ArrowRight, Timer, HardDrive, Code2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Copy, Check, Clock, FileText, Zap, CheckCircle, XCircle, Wallet, ArrowRight, Timer, HardDrive, Code2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,6 +7,7 @@ import { JsonEditor } from '@/components/JsonEditor';
 import { ApiResponse, RequestStatus, PaymentDetails } from '@/types/api';
 import { cn } from '@/lib/utils';
 import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
+import { shouldShowNonX402Hint } from '@/lib/nonX402ResponseHint';
 
 interface ResponseViewerProps {
   response?: ApiResponse;
@@ -15,6 +16,8 @@ interface ResponseViewerProps {
   /** Matches main playground lane detection (URL or response). */
   paymentLane?: PlaygroundPaymentLane;
   onPayAndRetry?: () => void;
+  /** Re-run the current request (e.g. after changing URL or for a flaky gateway). */
+  onResend?: () => void | Promise<void>;
 }
 
 function formatBytes(bytes: number): string {
@@ -51,10 +54,16 @@ export function ResponseViewer({
   paymentDetails,
   paymentLane = 'x402',
   onPayAndRetry,
+  onResend,
 }: ResponseViewerProps) {
   const [activeTab, setActiveTab] = useState('body');
   const [viewMode, setViewMode] = useState<'pretty' | 'raw'>('pretty');
   const [copied, setCopied] = useState(false);
+  const [nonX402HintDismissed, setNonX402HintDismissed] = useState(false);
+
+  useEffect(() => {
+    setNonX402HintDismissed(false);
+  }, [response?.status, response?.time, response?.body]);
 
   const handleCopy = async () => {
     if (response?.body) {
@@ -76,7 +85,7 @@ export function ResponseViewer({
   // Loading state - fixed header, scrollable content below; on mobile use min-height so section is visible in scroll
   if (status === 'loading') {
     return (
-      <div className="flex flex-col min-h-[280px] lg:h-full lg:min-h-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
         <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
@@ -107,7 +116,7 @@ export function ResponseViewer({
   // Idle state - on mobile use min-height so Response section is visible when scrolling
   if (status === 'idle' || !response) {
     return (
-      <div className="flex flex-col min-h-[280px] lg:h-full lg:min-h-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
         <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
@@ -139,22 +148,27 @@ export function ResponseViewer({
   const isPaymentRequired = response.status === 402 && status !== 'success';
   const StatusIcon = getStatusIcon(response.status);
   const isSuccess = response.status >= 200 && response.status < 300;
+  const showNonX402Hint =
+    status === 'success' &&
+    isSuccess &&
+    shouldShowNonX402Hint(response, paymentLane) &&
+    !nonX402HintDismissed;
 
   return (
-    <div className="flex flex-col min-h-[280px] lg:h-full lg:min-h-0 overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
       {/* Header with Status - fixed */}
       <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn(
             "w-9 h-9 rounded-lg flex items-center justify-center",
             isPaymentRequired && "bg-warning/20",
-            isSuccess && "bg-success/20",
+            isSuccess && "bg-accent/15",
             !isPaymentRequired && !isSuccess && "bg-destructive/20"
           )}>
             <StatusIcon className={cn(
               "h-4.5 w-4.5",
               isPaymentRequired && "text-warning",
-              isSuccess && "text-success",
+              isSuccess && "text-accent",
               !isPaymentRequired && !isSuccess && "text-destructive"
             )} />
           </div>
@@ -192,6 +206,42 @@ export function ResponseViewer({
           <span className="font-mono font-medium text-foreground">{formatBytes(response.size)}</span>
         </div>
       </div>
+
+      {showNonX402Hint && (
+        <div
+          className="shrink-0 mb-4 rounded-lg border border-border bg-muted/25 px-3 py-3 sm:px-4 sm:py-3.5"
+          role="status"
+        >
+          <div className="flex gap-3">
+            <Info className="h-5 w-5 text-accent shrink-0 mt-0.5" aria-hidden />
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="text-sm font-medium text-foreground">This does not look like an x402 or MPP API</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                The playground expects an HTTP <span className="font-mono text-foreground/90">402</span> payment
+                challenge with JSON (x402), or a JSON payload from an MPP route. You may be on the API root, docs, or
+                another HTML page. Use a specific paid endpoint from your provider&apos;s documentation, or send again
+                if you expected a different response.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                {onResend ? (
+                  <Button type="button" variant="neon" size="sm" className="h-9" onClick={() => void onResend()}>
+                    Send again
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => setNonX402HintDismissed(true)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Required Card - fixed */}
       {isPaymentRequired && paymentDetails && (
@@ -258,10 +308,10 @@ export function ResponseViewer({
         </div>
       )}
 
-      {/* Tabs - Body/Headers; ensure body viewer has good height for UX */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-[280px] lg:min-h-[360px] overflow-hidden">
+      {/* Tabs - Body/Headers; flex-1 + min-h-0 so content sits flush under tabs (no dead vertical space) */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Tab Header - Responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-2">
           <TabsList className="bg-secondary/30 w-fit p-1 gap-1 shrink-0">
             <TabsTrigger value="body" className="data-[state=active]:bg-primary/20 gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -299,7 +349,7 @@ export function ResponseViewer({
             </div>
             <Button variant="ghost" size="icon-sm" onClick={handleCopy} className="h-9 w-9 shrink-0">
               {copied ? (
-                <Check className="h-4 w-4 text-success" />
+                <Check className="h-4 w-4 text-accent" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
@@ -323,7 +373,7 @@ export function ResponseViewer({
 
           <TabsContent 
             value="headers" 
-            className="m-0 absolute inset-0 overflow-auto custom-scrollbar"
+            className="m-0 mt-0 pt-0 absolute inset-0 overflow-auto custom-scrollbar data-[state=inactive]:hidden"
           >
             <div className="space-y-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
               {Object.entries(response.headers || {}).length > 0 ? (

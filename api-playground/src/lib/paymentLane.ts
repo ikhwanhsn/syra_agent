@@ -27,6 +27,11 @@ function isMppFromBody(body: string | undefined): boolean {
   }
 }
 
+/** True when response headers or JSON body indicate the MPP test lane. */
+export function responseSignalsMppLane(response: ApiResponse): boolean {
+  return isMppFromHeaders(response.headers) || isMppFromBody(response.body);
+}
+
 function isMppFromHeaders(headers: Record<string, string> | undefined): boolean {
   const lane = getHeaderCaseInsensitive(headers, 'x-syra-payment-lane');
   return Boolean(lane?.toLowerCase().includes('mpp'));

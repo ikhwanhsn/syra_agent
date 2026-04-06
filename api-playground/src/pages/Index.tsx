@@ -421,13 +421,16 @@ const Index = () => {
               })
             }}
           >
-            <div className="glass-panel h-auto min-h-[50vh] lg:h-full lg:min-h-[400px] p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel h-auto min-h-[50vh] lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
               <ResponseViewer
                 response={response}
                 status={status}
                 paymentDetails={effectivePaymentDetails}
                 paymentLane={paymentLane}
                 onPayAndRetry={() => setIsPaymentModalOpen(true)}
+                onResend={() => {
+                  void sendRequest();
+                }}
               />
             </div>
           </div>

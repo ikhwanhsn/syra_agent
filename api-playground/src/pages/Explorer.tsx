@@ -32,15 +32,8 @@ import { TopBar } from '@/components/TopBar';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { formatDistanceToNow, format } from 'date-fns';
-
-function getPlaygroundApiBase(): string {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3000';
-  }
-  return 'https://api.syraa.fun';
-}
 
 interface ShareItem {
   slug: string;
@@ -70,21 +63,21 @@ interface ExplorerCharts {
 }
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-  POST: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-  PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-  PATCH: 'bg-violet-500/20 text-violet-400 border-violet-500/40',
-  DELETE: 'bg-red-500/20 text-red-400 border-red-500/40',
+  GET: 'bg-accent/15 text-accent border-accent/25',
+  POST: 'bg-warning/15 text-warning border-warning/25',
+  PUT: 'bg-warning/15 text-warning border-warning/25',
+  PATCH: 'bg-primary/12 text-primary border-primary/22',
+  DELETE: 'bg-destructive/15 text-destructive border-destructive/25',
 };
 
 const CHART_METHOD_COLORS: Record<string, string> = {
-  GET: 'hsl(142 76% 46%)',
-  POST: 'hsl(217 91% 60%)',
-  PUT: 'hsl(38 92% 50%)',
-  PATCH: 'hsl(258 90% 66%)',
-  DELETE: 'hsl(0 84% 60%)',
+  GET: 'hsl(var(--accent))',
+  POST: 'hsl(var(--warning))',
+  PUT: 'hsl(var(--warning))',
+  PATCH: 'hsl(var(--primary))',
+  DELETE: 'hsl(var(--destructive))',
 };
-const CHAIN_COLORS = ['hsl(142 76% 46%)', 'hsl(217 91% 60%)'];
+const CHAIN_COLORS = ['hsl(var(--accent))', 'hsl(var(--neon-blue))'];
 
 const PAGE_SIZES = [20, 50, 100];
 
@@ -104,7 +97,7 @@ const Explorer = () => {
   const [charts, setCharts] = useState<ExplorerCharts | null>(null);
   const [chartsLoading, setChartsLoading] = useState(true);
 
-  const base = getPlaygroundApiBase();
+  const base = resolveApiBaseUrl();
 
   const fetchStats = useCallback(async () => {
     try {
@@ -361,7 +354,7 @@ const Explorer = () => {
                 <p className="text-xs text-muted-foreground">by chain</p>
               </div>
               <div className="rounded-xl border border-border/50 bg-card/50 p-4 flex flex-col gap-1 min-w-0">
-                <span className="text-xs font-bold text-[#0052FF]">Base</span>
+                <span className="text-xs font-bold text-foreground">Base</span>
                 <p className="text-xl lg:text-2xl font-bold text-foreground tabular-nums">{(charts?.byChain?.find((c) => c.chain === 'base')?.count ?? 0).toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">by chain</p>
               </div>

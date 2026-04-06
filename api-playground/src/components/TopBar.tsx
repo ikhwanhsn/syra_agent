@@ -110,7 +110,7 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
               <span className="text-muted-foreground/50">→</span>
               <span className="text-xs font-medium text-warning">2. Pay (402)</span>
               <span className="text-muted-foreground/50">→</span>
-              <span className="text-xs font-medium text-success">3. Get Data</span>
+              <span className="text-xs font-medium text-accent">3. Get Data</span>
             </div>
           </div>
 
@@ -124,8 +124,8 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
                     className={cn(
                       "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
                       paymentNetwork === 'base'
-                        ? "bg-[#0052FF]/10 border-[#0052FF]/30 text-[#0052FF]"
-                        : "bg-primary/10 border-primary/30 text-primary"
+                        ? "bg-primary/[0.08] border-primary/20 text-foreground"
+                        : "bg-accent/10 border-accent/25 text-accent"
                     )}
                   >
                     <span className="w-2 h-2 rounded-full bg-current" />
@@ -207,9 +207,9 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
                 const handleDisconnect = isBase ? () => walletContext.disconnectBase() : () => walletContext.disconnect();
                 return (
                   <div className="flex items-center gap-3">
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
-                      <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                      <span className="text-xs font-medium text-success">Connected</span>
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/[0.08] border border-border text-foreground">
+                      <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                      <span className="text-xs font-medium">Connected</span>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

@@ -33,6 +33,18 @@ function escapeAttr(s: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/** True when the whole buffer parses as JSON (object/array/primitive). */
+function isValidJsonDocument(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  try {
+    JSON.parse(t);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 interface JsonEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -126,9 +138,9 @@ export function JsonEditor({
       const escaped = escapeHtml(content);
       const attr = escapeAttr(content);
       if (isImage) {
-        return `: <span class="text-success image-url-preview cursor-help underline decoration-dotted decoration-success/50" data-image-url="${attr}">"${escaped}"</span>`;
+        return `: <span class="text-accent image-url-preview cursor-help underline decoration-dotted decoration-accent/40" data-image-url="${attr}">"${escaped}"</span>`;
       }
-      return `: <span class="text-success">"${escaped}"</span>`;
+      return `: <span class="text-foreground/90">"${escaped}"</span>`;
     })
     .replace(/: (\d+)/g, ': <span class="text-warning">$1</span>')
     .replace(/: (true|false)/g, ': <span class="text-primary">$1</span>')
@@ -157,7 +169,7 @@ export function JsonEditor({
             className="h-7 w-7 bg-secondary/80 backdrop-blur-sm"
           >
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-success" />
+              <Check className="h-3.5 w-3.5 text-accent" />
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}
@@ -170,7 +182,7 @@ export function JsonEditor({
         <div className={cn(
           "absolute bottom-2 right-2 flex items-center gap-1.5 text-xs px-2 py-1 rounded-md z-10",
           "bg-secondary/80 backdrop-blur-sm transition-colors",
-          isValid ? "text-success" : "text-destructive"
+          isValid ? "text-accent" : "text-destructive"
         )}>
           {isValid ? (
             <>
@@ -196,10 +208,18 @@ export function JsonEditor({
         onMouseLeave={readOnly ? handleBodyMouseLeave : undefined}
       >
         {readOnly ? (
-          <pre
-            className="p-4 text-sm w-full min-h-full overflow-x-auto"
-            dangerouslySetInnerHTML={{ __html: highlightedValue || '<span class="text-muted-foreground">No content</span>' }}
-          />
+          !value.trim() ? (
+            <pre className="p-4 text-sm text-muted-foreground">No content</pre>
+          ) : !isValidJsonDocument(value) ? (
+            <pre className="p-4 text-sm w-full max-w-full whitespace-pre-wrap break-words text-foreground/95 font-mono overflow-x-auto">
+              {value}
+            </pre>
+          ) : (
+            <pre
+              className="p-4 text-sm w-full max-w-full whitespace-pre-wrap break-words overflow-x-auto text-foreground/95"
+              dangerouslySetInnerHTML={{ __html: highlightedValue }}
+            />
+          )
         ) : (
           <textarea
             value={value}

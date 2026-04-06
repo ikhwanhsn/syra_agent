@@ -25,14 +25,10 @@ import {
   X402Response,
   X402PaymentOption,
 } from '@/lib/x402Client';
+import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 
-// Resolve API base URL at runtime: when app is opened from localhost use localhost:3000, else api.syraa.fun (override via VITE_API_BASE_URL)
 function getApiBaseUrl(): string {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3000';
-  }
-  return 'https://api.syraa.fun';
+  return resolveApiBaseUrl();
 }
 
 /** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (playground.syraa.fun). */

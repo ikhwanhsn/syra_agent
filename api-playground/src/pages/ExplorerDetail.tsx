@@ -17,15 +17,8 @@ import { TopBar } from '@/components/TopBar';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { format } from 'date-fns';
-
-function getPlaygroundApiBase(): string {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3000';
-  }
-  return 'https://api.syraa.fun';
-}
 
 interface ShareDetail {
   slug: string;
@@ -42,11 +35,11 @@ interface ShareDetail {
 }
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-  POST: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-  PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-  PATCH: 'bg-violet-500/20 text-violet-400 border-violet-500/40',
-  DELETE: 'bg-red-500/20 text-red-400 border-red-500/40',
+  GET: 'bg-accent/15 text-accent border-accent/25',
+  POST: 'bg-warning/15 text-warning border-warning/25',
+  PUT: 'bg-warning/15 text-warning border-warning/25',
+  PATCH: 'bg-primary/12 text-primary border-primary/22',
+  DELETE: 'bg-destructive/15 text-destructive border-destructive/25',
 };
 
 const ExplorerDetail = () => {
@@ -57,7 +50,7 @@ const ExplorerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const base = getPlaygroundApiBase();
+  const base = resolveApiBaseUrl();
 
   useEffect(() => {
     if (!slug) {
@@ -177,7 +170,9 @@ const ExplorerDetail = () => {
                       <span
                         className={cn(
                           'text-xs font-medium rounded border px-2 py-0.5 shrink-0',
-                          data.sharedByChain === 'base' ? 'bg-[#0052FF]/10 border-[#0052FF]/30 text-[#0052FF]' : 'bg-primary/10 border-primary/30 text-primary'
+                          data.sharedByChain === 'base'
+                            ? 'bg-primary/[0.08] border-primary/20 text-foreground'
+                            : 'bg-accent/10 border-accent/25 text-accent'
                         )}
                       >
                         {data.sharedByChain}

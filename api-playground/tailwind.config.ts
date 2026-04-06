@@ -64,6 +64,8 @@ export default {
           "purple-glow": "hsl(var(--neon-purple-glow))",
           blue: "hsl(var(--neon-blue))",
           "blue-glow": "hsl(var(--neon-blue-glow))",
+          cyan: "hsl(var(--neon-cyan))",
+          gold: "hsl(var(--neon-gold))",
         },
         glass: {
           bg: "hsl(var(--glass-bg))",

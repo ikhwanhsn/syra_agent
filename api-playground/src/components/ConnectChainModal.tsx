@@ -62,8 +62,8 @@ export function ConnectChainModal({ isOpen, onClose, onPick }: ConnectChainModal
             onClick={() => handlePick('solana')}
           >
             <span className="flex items-center gap-2 font-semibold">
-              <span className="w-8 h-8 rounded-lg bg-[#9945FF]/20 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-[#9945FF]" />
+              <span className="w-8 h-8 rounded-lg bg-accent/12 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-accent" />
               </span>
               Solana
             </span>
@@ -74,13 +74,13 @@ export function ConnectChainModal({ isOpen, onClose, onPick }: ConnectChainModal
           <Button
             variant="outline"
             className={cn(
-              'h-auto flex flex-col items-start gap-1.5 p-4 text-left border-2 hover:border-[#0052FF]/50 hover:bg-[#0052FF]/5 transition-colors min-w-0 w-full'
+              'h-auto flex flex-col items-start gap-1.5 p-4 text-left border-2 hover:border-primary/35 hover:bg-primary/[0.06] transition-colors min-w-0 w-full'
             )}
             onClick={() => handlePick('base')}
           >
             <span className="flex items-center gap-2 font-semibold">
-              <span className="w-8 h-8 rounded-lg bg-[#0052FF]/20 flex items-center justify-center">
-                <span className="text-[#0052FF] font-bold text-sm">B</span>
+              <span className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center border border-border">
+                <span className="text-primary font-bold text-sm">B</span>
               </span>
               Base
             </span>

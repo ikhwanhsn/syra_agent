@@ -30,15 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { RequestParam } from '@/types/api';
-
-// --- Helpers (aligned with useApiPlayground) ---
-function getApiBaseUrl(): string {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3000';
-  }
-  return 'https://api.syraa.fun';
-}
+import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -58,7 +50,7 @@ function useBackendPlaygroundProxy(targetUrl: string): boolean {
 }
 
 function getPlaygroundProxyUrl(_targetUrl: string): string {
-  return `${getApiBaseUrl()}/api/playground-proxy`;
+  return `${resolveApiBaseUrl()}/api/playground-proxy`;
 }
 
 /** Default endpoint IDs for batch test. */
@@ -1019,7 +1011,7 @@ export default function BatchTest() {
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Success</p>
-                <p className="text-2xl font-bold text-success">{stats.success}</p>
+                <p className="text-2xl font-bold text-accent">{stats.success}</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Errors</p>
@@ -1154,7 +1146,7 @@ export default function BatchTest() {
                             </span>
                           )}
                           {r.status === 'success' && (
-                            <span className="inline-flex items-center gap-1 text-success">
+                            <span className="inline-flex items-center gap-1 text-accent">
                               <CheckCircle className="h-3.5 w-3.5" /> OK
                             </span>
                           )}

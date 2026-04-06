@@ -12,14 +12,7 @@ import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { extractPaymentDetailsFromOption } from '@/lib/x402Client';
 import { CheckCircle2, XCircle, AlertCircle, Loader2, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-function getApiBaseUrl(): string {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3000';
-  }
-  return 'https://api.syraa.fun';
-}
+import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -49,7 +42,7 @@ function useBackendPlaygroundProxy(targetUrl: string): boolean {
 }
 
 function getPlaygroundProxyUrl(_targetUrl: string): string {
-  return `${getApiBaseUrl()}/api/playground-proxy`;
+  return `${resolveApiBaseUrl()}/api/playground-proxy`;
 }
 
 async function fetch402(
@@ -222,11 +215,11 @@ export default function FormatValidator() {
           )}
 
           {result && !fetchError && (
-            <Card className={cn(result.valid ? 'border-green-500/30' : 'border-destructive/30')}>
+            <Card className={cn(result.valid ? 'border-accent/35' : 'border-destructive/30')}>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   {result.valid ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-5 w-5 text-accent" />
                   ) : (
                     <XCircle className="h-5 w-5 text-destructive" />
                   )}
