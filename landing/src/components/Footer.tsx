@@ -50,13 +50,13 @@ export const Footer = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative p-12 overflow-hidden text-center glass-card rounded-3xl"
+          className="relative overflow-hidden rounded-3xl p-6 text-center glass-card sm:p-10 lg:p-12"
         >
           {/* Background glow - theme colors */}
           <div className="absolute inset-0 bg-gradient-to-r from-accent/12 via-neon-gold/10 to-success/10" />
 
           <div className="relative z-10">
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+            <h2 className="mb-4 text-2xl font-bold sm:text-3xl md:text-4xl">
               Ready to Trade <span className="neon-text">Smarter?</span>
             </h2>
             <p className="max-w-2xl mx-auto mb-8 text-muted-foreground">

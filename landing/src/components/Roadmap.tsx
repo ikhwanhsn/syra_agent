@@ -227,7 +227,7 @@ export const Roadmap = () => {
                 {year.quarters.map((q, qIndex) => (
                   <div
                     key={q.quarter}
-                    className={`glass-card p-6 rounded-xl relative border-l-4 ${
+                    className={`glass-card relative rounded-xl border-l-4 p-4 sm:p-6 ${
                       q.status === "completed"
                         ? "border-l-success/40"
                         : q.status === "current"

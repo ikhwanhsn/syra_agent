@@ -289,7 +289,7 @@ export const DashboardPreview = () => {
           </div>
 
           {/* Total Sentiment Stats - Add this section */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="p-2 border rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
               <div className="text-[10px] text-green-400/70 mb-0.5">
                 Positive

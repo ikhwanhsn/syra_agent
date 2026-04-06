@@ -31,11 +31,11 @@ export const Navbar = () => {
       className="fixed top-0 left-0 right-0 z-[9999]"
     >
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <nav className="px-6 py-4 mt-4 pointer-events-auto glass-card">
+        <nav className="px-3 py-3 mt-2 pointer-events-auto glass-card sm:mt-4 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <Link
               to="/"
-              className="relative z-10 text-2xl font-bold cursor-pointer text-foreground"
+              className="relative z-10 cursor-pointer text-foreground"
             >
               <SyraLogo />
             </Link>

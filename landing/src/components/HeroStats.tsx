@@ -96,7 +96,7 @@ export const HeroStats = () => {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.6 }}
-      className="w-4/5 p-6 mx-auto mt-12 sm:mx-0 sm:w-full glass-card"
+      className="mx-auto mt-10 w-full max-w-lg glass-card p-4 sm:mt-12 sm:p-6 lg:mx-0 lg:max-w-none"
     >
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
         {STAT_LABELS.map(({ key, label, suffix, decimals }, index) => (

@@ -518,7 +518,7 @@ export const TokenSection = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="glass-card mt-16 rounded-2xl border border-neon-gold/15 p-8"
+          className="glass-card mt-16 rounded-2xl border border-neon-gold/15 p-4 sm:p-6 md:p-8"
         >
           <div className="grid gap-8 text-center md:grid-cols-4">
             {[

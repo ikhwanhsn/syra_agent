@@ -170,22 +170,22 @@ export const LiveDashboard = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="glass-card border border-accent/15 p-8 rounded-2xl shadow-[0_0_40px_-14px_hsl(var(--accent)/0.12)]"
+          className="glass-card rounded-2xl border border-accent/15 p-4 shadow-[0_0_40px_-14px_hsl(var(--accent)/0.12)] sm:p-6 md:p-8"
         >
           {/* Top section: stable when changing period — no blink; only content below updates after skeleton/data ready */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-4 min-w-[10rem]">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 max-w-full items-center gap-3 sm:gap-4">
               <span className="h-3 w-3 shrink-0 rounded-full bg-success shadow-[0_0_12px_hsl(var(--success)/0.65)] animate-pulse" />
               <span className="text-sm text-muted-foreground">
                 <span className="font-medium text-accent">Live</span> Data Feed
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 flex-wrap justify-end gap-2">
               {["1H", "4H", "1D", "1W"].map((period) => (
                 <button
                   key={period}
                   disabled={loading && !data}
-                  className={`px-4 py-2 text-xs rounded-lg transition-colors relative z-10 w-12 ${
+                  className={`relative z-10 w-11 rounded-lg px-3 py-2 text-xs transition-colors sm:w-12 sm:px-4 ${
                     displayedPeriod === period
                       ? "bg-accent text-accent-foreground shadow-[0_0_16px_-4px_hsl(var(--accent)/0.5)]"
                       : "bg-secondary text-secondary-foreground hover:bg-accent/10 hover:text-accent"
@@ -268,7 +268,7 @@ export const LiveDashboard = () => {
               initial={isDataReady ? { opacity: 0 } : false}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.25 }}
-              className="glass-card border border-neon-gold/15 p-6 rounded-xl"
+              className="glass-card rounded-xl border border-neon-gold/15 p-4 sm:p-6"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium">

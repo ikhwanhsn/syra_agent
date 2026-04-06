@@ -145,12 +145,20 @@
 
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 100px;
+    scroll-padding-top: 5.5rem;
+    overflow-x: clip;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      scroll-padding-top: 6.25rem;
+    }
   }
 
   body {
     @apply antialiased bg-background text-foreground font-space;
     background: var(--gradient-dark);
+    overflow-x: clip;
   }
 }
 

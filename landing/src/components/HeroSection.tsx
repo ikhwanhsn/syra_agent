@@ -10,7 +10,7 @@ export const HeroSection = () => {
   return (
     <section
       id="home"
-      className="relative flex items-center justify-center min-h-screen pt-24 pb-16 overflow-hidden"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden pt-20 pb-12 sm:pt-24 sm:pb-16"
     >
       {/* Background Elements */}
       <div className="absolute inset-0 opacity-60 grid-pattern" />
@@ -24,9 +24,9 @@ export const HeroSection = () => {
       <div className="absolute top-1/2 right-0 w-[380px] h-[380px] bg-accent/[0.07] rounded-full blur-[110px] pointer-events-none" />
 
       <div className="relative z-10 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
+        <div className="grid min-w-0 items-center gap-8 sm:gap-12 lg:grid-cols-2">
           {/* Left Content */}
-          <div className="text-center lg:text-left">
+          <div className="min-w-0 text-center lg:text-left">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -59,7 +59,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="w-4/5 mx-auto mb-8 text-lg sm:max-w-xl text-muted-foreground lg:mx-0"
+              className="mx-auto mb-8 w-full max-w-xl text-base text-muted-foreground sm:text-lg lg:mx-0"
             >
               Institutional-grade intelligence, automated execution, and
               real-time decisions. Track smart money, analyze sentiment, and
@@ -132,7 +132,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, x: 60 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="relative"
+            className="relative min-w-0 w-full"
           >
             <DashboardPreview />
           </motion.div>

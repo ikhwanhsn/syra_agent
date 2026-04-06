@@ -180,30 +180,34 @@ export const WhySyra = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="glass-card overflow-hidden rounded-2xl border border-accent/10 p-8"
+          className="glass-card overflow-hidden rounded-2xl border border-accent/10 p-4 sm:p-6 md:p-8"
         >
-          <h3 className="mb-8 text-2xl font-bold text-center">
+          <h3 className="mb-6 text-center text-xl font-bold sm:mb-8 sm:text-2xl">
             How Syra <span className="neon-text">Compares</span>
           </h3>
 
-          <div className="relative z-10 w-full overflow-x-auto overscroll-x-contain">
-            <div className="min-w-[600px]">
+          <p className="mb-3 text-center text-xs text-muted-foreground sm:hidden">
+            Swipe horizontally to see all columns
+          </p>
+
+          <div className="relative z-10 w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] touch-pan-x">
+            <div className="min-w-[520px] sm:min-w-[600px]">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="px-4 py-4 font-medium text-left text-muted-foreground">
+                    <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-4 sm:text-sm">
                       Feature
                     </th>
-                    <th className="px-4 py-4 text-center">
-                      <span className="font-bold neon-text">SYRA</span>
+                    <th className="px-2 py-3 text-center sm:px-4 sm:py-4">
+                      <span className="text-sm font-bold neon-text sm:text-base">SYRA</span>
                     </th>
-                    <th className="px-4 py-4 text-center text-muted-foreground">
+                    <th className="px-2 py-3 text-center text-xs text-muted-foreground sm:px-4 sm:py-4 sm:text-sm">
                       Arkham
                     </th>
-                    <th className="px-4 py-4 text-center text-muted-foreground">
+                    <th className="px-2 py-3 text-center text-xs text-muted-foreground sm:px-4 sm:py-4 sm:text-sm">
                       Nansen
                     </th>
-                    <th className="px-4 py-4 text-center text-muted-foreground">
+                    <th className="px-2 py-3 text-center text-xs text-muted-foreground sm:px-4 sm:py-4 sm:text-sm">
                       DEXScreener
                     </th>
                   </tr>
@@ -214,23 +218,25 @@ export const WhySyra = () => {
                       key={row.feature}
                       className="border-b border-border/50 transition-colors hover:bg-accent/[0.04]"
                     >
-                      <td className="px-4 py-4 text-sm">{row.feature}</td>
-                      <td className="px-4 py-4">
+                      <td className="px-2 py-3 text-xs sm:px-4 sm:py-4 sm:text-sm">
+                        {row.feature}
+                      </td>
+                      <td className="px-2 py-3 sm:px-4 sm:py-4">
                         <div className="flex justify-center">
                           {renderStatus(row.syra)}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-2 py-3 sm:px-4 sm:py-4">
                         <div className="flex justify-center">
                           {renderStatus(row.arkham)}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-2 py-3 sm:px-4 sm:py-4">
                         <div className="flex justify-center">
                           {renderStatus(row.nansen)}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-2 py-3 sm:px-4 sm:py-4">
                         <div className="flex justify-center">
                           {renderStatus(row.dexscreener)}
                         </div>
