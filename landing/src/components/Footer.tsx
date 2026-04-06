@@ -53,7 +53,7 @@ export const Footer = () => {
           className="relative overflow-hidden rounded-3xl p-6 text-center glass-card sm:p-10 lg:p-12"
         >
           {/* Background glow - theme colors */}
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/12 via-neon-gold/10 to-success/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-foreground/[0.04] via-muted/50 to-foreground/[0.04]" />
 
           <div className="relative z-10">
             <h2 className="mb-4 text-2xl font-bold sm:text-3xl md:text-4xl">
@@ -113,14 +113,14 @@ export const Footer = () => {
                     {"internal" in link && link.internal ? (
                       <Link
                         to={link.href}
-                        className="text-sm text-muted-foreground transition-colors hover:text-accent"
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}
                       </Link>
                     ) : (
                       <a
                         href={link.href}
-                        className="text-sm text-muted-foreground transition-colors hover:text-accent"
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}
                       </a>

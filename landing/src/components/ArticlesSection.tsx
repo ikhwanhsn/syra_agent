@@ -85,7 +85,7 @@ export const ArticlesSection = () => {
                     <FileText
                       className={cn(
                         "h-6 w-6",
-                        index % 3 === 0 && "text-accent",
+                        index % 3 === 0 && "text-primary",
                         index % 3 === 1 && "text-neon-gold",
                         index % 3 === 2 && "text-success",
                       )}
@@ -94,7 +94,7 @@ export const ArticlesSection = () => {
                   <h3
                     className={cn(
                       "mb-2 text-lg font-semibold transition-colors",
-                      index % 3 === 0 && "group-hover:text-accent",
+                      index % 3 === 0 && "group-hover:text-primary",
                       index % 3 === 1 && "group-hover:text-neon-gold",
                       index % 3 === 2 && "group-hover:text-success",
                     )}
@@ -107,7 +107,7 @@ export const ArticlesSection = () => {
                   <span
                     className={cn(
                       "inline-flex items-center gap-2 text-sm font-medium",
-                      index % 3 === 0 && "text-accent",
+                      index % 3 === 0 && "text-primary",
                       index % 3 === 1 && "text-neon-gold",
                       index % 3 === 2 && "text-success",
                     )}

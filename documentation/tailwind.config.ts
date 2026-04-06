@@ -13,10 +13,10 @@
        },
      },
      extend: {
-       fontFamily: {
-         sans: ["Inter", "system-ui", "sans-serif"],
-         mono: ["JetBrains Mono", "Consolas", "monospace"],
-       },
+      fontFamily: {
+        sans: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "Consolas", "monospace"],
+      },
        colors: {
          border: "hsl(var(--border))",
          input: "hsl(var(--input))",
@@ -69,14 +69,23 @@
            bg: "hsl(var(--code-bg))",
            border: "hsl(var(--code-border))",
          },
-         success: "hsl(var(--success))",
-         warning: "hsl(var(--warning))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
        },
-       borderRadius: {
-         lg: "var(--radius)",
-         md: "calc(var(--radius) - 2px)",
-         sm: "calc(var(--radius) - 4px)",
-       },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      ringOffsetColor: {
+        card: "hsl(var(--card))",
+      },
        keyframes: {
          "accordion-down": {
            from: { height: "0" },

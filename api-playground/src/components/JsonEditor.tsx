@@ -132,18 +132,18 @@ export function JsonEditor({
 
   // Syntax highlighting for JSON; string values that are image URLs get a hoverable span
   const highlightedValue = value
-    .replace(/"([^"]+)":/g, (_, key) => `<span class="text-accent">"${escapeHtml(key)}"</span>:`)
+    .replace(/"([^"]+)":/g, (_, key) => `<span class="text-primary">"${escapeHtml(key)}"</span>:`)
     .replace(/: "([^"]*)"/g, (_, content) => {
       const isImage = isImageUrl(content);
       const escaped = escapeHtml(content);
       const attr = escapeAttr(content);
       if (isImage) {
-        return `: <span class="text-accent image-url-preview cursor-help underline decoration-dotted decoration-accent/40" data-image-url="${attr}">"${escaped}"</span>`;
+        return `: <span class="text-primary image-url-preview cursor-help underline decoration-dotted decoration-primary/40" data-image-url="${attr}">"${escaped}"</span>`;
       }
       return `: <span class="text-foreground/90">"${escaped}"</span>`;
     })
-    .replace(/: (\d+)/g, ': <span class="text-warning">$1</span>')
-    .replace(/: (true|false)/g, ': <span class="text-primary">$1</span>')
+    .replace(/: (\d+)/g, ': <span class="text-muted-foreground">$1</span>')
+    .replace(/: (true|false)/g, ': <span class="text-foreground">$1</span>')
     .replace(/: (null)/g, ': <span class="text-muted-foreground">$1</span>');
 
   return (
@@ -169,7 +169,7 @@ export function JsonEditor({
             className="h-7 w-7 bg-secondary/80 backdrop-blur-sm"
           >
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-accent" />
+              <Check className="h-3.5 w-3.5 text-primary" />
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}
@@ -182,7 +182,7 @@ export function JsonEditor({
         <div className={cn(
           "absolute bottom-2 right-2 flex items-center gap-1.5 text-xs px-2 py-1 rounded-md z-10",
           "bg-secondary/80 backdrop-blur-sm transition-colors",
-          isValid ? "text-accent" : "text-destructive"
+          isValid ? "text-primary" : "text-destructive"
         )}>
           {isValid ? (
             <>

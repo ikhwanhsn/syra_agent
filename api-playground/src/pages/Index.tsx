@@ -387,7 +387,6 @@ const Index = () => {
                 onParamsChange={setParams}
                 onSend={sendRequest}
                 onTryDemo={tryDemo}
-                onExampleFlow={runExampleFlow}
                 onCreateShareLink={createShareLink}
                 onAfterShare={handleAfterShare}
               />

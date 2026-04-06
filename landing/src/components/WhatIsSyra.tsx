@@ -96,7 +96,11 @@ export const WhatIsSyra = () => {
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${
                 index % 3 === 0 ? "bg-accent/10 group-hover:bg-accent/20" : index % 3 === 1 ? "bg-neon-gold/10 group-hover:bg-neon-gold/20" : "bg-success/10 group-hover:bg-success/20"
               }`}>
-                <feature.icon className={`w-6 h-6 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-success"}`} />
+                <feature.icon
+                    className={`w-6 h-6 stroke-[2] ${
+                      index % 3 === 0 ? "text-primary" : "text-foreground"
+                    }`}
+                  />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-foreground">
                 {feature.title}

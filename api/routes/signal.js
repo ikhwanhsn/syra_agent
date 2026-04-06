@@ -21,6 +21,15 @@ async function fetchN8nSignal(token) {
 }
 
 /**
+ * When default source is Binance and Binance is throttling, try Coinbase spot candles (same engine).
+ * @param {unknown} err
+ */
+function isBinanceThrottleOrTransient(err) {
+  const msg = String(err?.message || err);
+  return /429|418|rate limit|too many|way too many|-1003|-1015|Binance klines/i.test(msg);
+}
+
+/**
  * @param {{ token?: string; source?: string; instId?: string; bar?: string; limit?: string|number }} input
  */
 export async function loadSignal(input) {
@@ -41,13 +50,30 @@ export async function loadSignal(input) {
 
   const cexKey = raw === "" ? "binance" : normalizeSignalCexSource(raw);
   if (cexKey) {
-    const { source, meta, report } = await buildCexSignalReport(cexKey, {
+    const params = {
       token,
       instId: input.instId,
       bar: input.bar || undefined,
       limit: limitOpt,
-    });
-    return { signal: { ...report, source, ...meta } };
+    };
+    try {
+      const { source, meta, report } = await buildCexSignalReport(cexKey, params);
+      return { signal: { ...report, source, ...meta } };
+    } catch (firstErr) {
+      if (raw === "" && cexKey === "binance" && isBinanceThrottleOrTransient(firstErr)) {
+        try {
+          // Coinbase uses different product ids; only token-based mapping is safe here.
+          const { source, meta, report } = await buildCexSignalReport("coinbase", {
+            ...params,
+            instId: undefined,
+          });
+          return { signal: { ...report, source, ...meta } };
+        } catch {
+          throw firstErr;
+        }
+      }
+      throw firstErr;
+    }
   }
 
   const signal = await fetchN8nSignal(token);

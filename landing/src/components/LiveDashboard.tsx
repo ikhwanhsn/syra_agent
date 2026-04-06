@@ -21,7 +21,7 @@ const statCardAccents = [
   "border-accent/15 hover:border-accent/30",
 ] as const;
 
-const statIconColors = ["text-accent", "text-neon-gold", "text-success", "text-accent"] as const;
+const statIconColors = ["text-primary", "text-foreground", "text-foreground", "text-primary"] as const;
 
 type DashboardMetrics = {
   volume24h: string;
@@ -50,9 +50,9 @@ const STATS = [
   { key: "tvlTracked" as const, label: "$ TVL Tracked", icon: DollarSign, valueKey: "tvlTracked" as const, changeKey: "tvlChangePct" as const },
 ];
 
-/* Match landing top section: accent (teal) + neon-purple (slate) from gradient-primary */
-const INFLOW_COLOR = "hsl(var(--accent))";
-const OUTFLOW_COLOR = "hsl(var(--neon-purple))";
+/* Primary / muted — readable in light & dark (avoid --accent text on light: ~94% L) */
+const INFLOW_COLOR = "hsl(var(--primary))";
+const OUTFLOW_COLOR = "hsl(var(--muted-foreground))";
 
 function FlowChartTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
@@ -177,7 +177,7 @@ export const LiveDashboard = () => {
             <div className="flex min-w-0 max-w-full items-center gap-3 sm:gap-4">
               <span className="h-3 w-3 shrink-0 rounded-full bg-success shadow-[0_0_12px_hsl(var(--success)/0.65)] animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                <span className="font-medium text-accent">Live</span> Data Feed
+                <span className="font-medium text-primary">Live</span> Data Feed
               </span>
             </div>
             <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -188,7 +188,7 @@ export const LiveDashboard = () => {
                   className={`relative z-10 w-11 rounded-lg px-3 py-2 text-xs transition-colors sm:w-12 sm:px-4 ${
                     displayedPeriod === period
                       ? "bg-accent text-accent-foreground shadow-[0_0_16px_-4px_hsl(var(--accent)/0.5)]"
-                      : "bg-secondary text-secondary-foreground hover:bg-accent/10 hover:text-accent"
+                      : "bg-secondary text-secondary-foreground hover:bg-accent/10 hover:text-foreground"
                   } disabled:opacity-70 disabled:cursor-wait`}
                   onClick={() => setTimeFrame(period)}
                 >
@@ -272,7 +272,7 @@ export const LiveDashboard = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium">
-                  Smart Money <span className="text-accent">Flow</span> Index
+                  Smart Money <span className="text-primary">Flow</span> Index
                 </span>
                 <span className="flex items-center gap-2 text-xs text-neon-gold">
                   {isRefreshing ? (

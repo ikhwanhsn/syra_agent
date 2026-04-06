@@ -86,7 +86,7 @@
 //           >
 //             <div className="relative">
 //               {/* Outer glow ring */}
-//               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-neon-gold to-amber-500 opacity-20 blur-2xl animate-pulse-glow" />
+//               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-neon-gold to-accent opacity-20 blur-2xl animate-pulse-glow" />
 
 //               {/* Token circle */}
 //               <div className="relative flex items-center justify-center w-64 h-64 border rounded-full bg-gradient-to-br from-neon-gold/20 to-amber-600/20 border-neon-gold/30">
@@ -172,7 +172,8 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Flame, Vote, Lock, TrendingUp, Coins, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
+import { Flame, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
+import syraLogo from "/images/logo.jpg";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -281,7 +282,7 @@ export const TokenSection = () => {
   return (
     <section id="token" className="relative py-24 overflow-hidden">
       {/* Background - theme colors */}
-      <div className="absolute top-1/2 right-0 w-[620px] h-[620px] bg-neon-gold/11 rounded-full blur-[150px] pointer-events-none" />
+      <div className="pointer-events-none absolute top-1/2 right-0 h-[620px] w-[620px] rounded-full bg-foreground/[0.04] blur-[150px]" />
       <div className="absolute top-1/3 left-0 w-[420px] h-[420px] bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[320px] h-[320px] bg-success/8 rounded-full blur-[95px] pointer-events-none" />
 
@@ -425,27 +426,35 @@ export const TokenSection = () => {
             className="relative flex justify-center"
           >
             <div className="relative">
-              {/* Outer glow ring */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-neon-gold to-amber-500 opacity-20 blur-2xl animate-pulse-glow" />
+              {/* Neutral pulse (no gold / amber) */}
+              <div className="animate-pulse-glow absolute inset-0 rounded-full bg-foreground/[0.08] blur-3xl" />
 
-              {/* Token circle */}
-              <div className="relative flex items-center justify-center w-64 h-64 border rounded-full bg-gradient-to-br from-neon-gold/20 to-amber-600/20 border-neon-gold/30">
-                <div className="flex items-center justify-center w-48 h-48 border rounded-full bg-gradient-to-br from-neon-gold/30 to-amber-500/30 border-neon-gold/40">
-                  <div className="text-center">
-                    <Coins className="w-16 h-16 mx-auto mb-2 text-neon-gold" />
-                    <span className="text-3xl font-bold gold-text">$SYRA</span>
+              {/* Outer ring — grayscale only */}
+              <div className="relative flex h-64 w-64 items-center justify-center rounded-full border border-foreground/20 bg-gradient-to-b from-muted/50 to-muted/20 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.08)]">
+                {/* Inner ring */}
+                <div className="flex h-52 w-52 items-center justify-center rounded-full border border-foreground/25 bg-card/70 p-1.5">
+                  {/* Circular logo plate (matches black + white mark) */}
+                  <div className="relative h-44 w-44 overflow-hidden rounded-full bg-black ring-1 ring-inset ring-foreground/15">
+                    <img
+                      src={syraLogo}
+                      alt="SYRA"
+                      width={176}
+                      height={176}
+                      className="h-full w-full select-none object-contain p-3 sm:p-4 pointer-events-none"
+                      draggable={false}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Orbiting elements */}
+              {/* Orbiting dot */}
               <motion.div
-                className="absolute top-0 -translate-x-1/2 -translate-y-1/2 left-1/2"
+                className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 style={{ transformOrigin: "center 128px" }}
               >
-                <div className="w-4 h-4 rounded-full shadow-lg bg-neon-gold shadow-neon-gold/50" />
+                <div className="h-4 w-4 rounded-full bg-foreground shadow-[0_0_14px_hsl(var(--foreground)/0.45)]" />
               </motion.div>
             </div>
           </motion.div>
@@ -466,8 +475,8 @@ export const TokenSection = () => {
                   : t === 1
                     ? "bg-neon-gold/10 group-hover:bg-neon-gold/20"
                     : "bg-success/10 group-hover:bg-success/20";
-              const iconClass = t === 0 ? "text-accent" : t === 1 ? "text-neon-gold" : "text-success";
-              const accentText = iconClass;
+              const iconClass = "text-primary";
+              const accentText = "text-primary";
               return (
               <motion.div
                 key={util.title}
@@ -481,7 +490,7 @@ export const TokenSection = () => {
               >
                 <div className="flex items-start gap-4">
                   <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors", iconBox)}>
-                    <util.icon className={cn("h-5 w-5", iconClass)} />
+                    <util.icon className={cn("h-5 w-5 stroke-[2.1]", iconClass)} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="mb-1 font-semibold">{util.title}</h3>
@@ -523,7 +532,7 @@ export const TokenSection = () => {
           <div className="grid gap-8 text-center md:grid-cols-4">
             {[
               { label: "Total Supply", value: "1B", valueClass: "gold-text" },
-              { label: "Circulating", value: "995M", valueClass: "text-accent" },
+              { label: "Circulating", value: "995M", valueClass: "text-primary" },
               { label: "Staked", value: "(soon)", valueClass: "text-muted-foreground" },
               { label: "Burned", value: "5M+", valueClass: "text-success" },
             ].map((stat) => (
@@ -542,16 +551,20 @@ export const TokenSection = () => {
 
       <style>{`
         .gold-text {
-          background: linear-gradient(135deg, #d4af37, #d97706);
+          background: linear-gradient(
+            135deg,
+            hsl(var(--foreground) / 0.98),
+            hsl(var(--muted-foreground))
+          );
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
 
         .glass-card {
-          background: rgba(255, 255, 255, 0.025);
+          background: hsl(var(--glass-bg) / 0.92);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.04);
+          border: 1px solid hsl(var(--glass-border) / 0.85);
         }
 
         @keyframes pulse-glow {
@@ -600,7 +613,7 @@ export const TokenSection = () => {
         }
 
         .to-amber-600\/20 {
-          --tw-gradient-to: hsl(30 95% 36% / 0.2);
+          --tw-gradient-to: hsl(var(--foreground) / 0.1);
         }
 
         .from-neon-gold\/30 {
@@ -608,7 +621,7 @@ export const TokenSection = () => {
         }
 
         .to-amber-500\/30 {
-          --tw-gradient-to: hsl(38 90% 44% / 0.3);
+          --tw-gradient-to: hsl(var(--foreground) / 0.14);
         }
 
         .shadow-neon-gold {

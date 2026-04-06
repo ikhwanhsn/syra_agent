@@ -54,10 +54,12 @@ const features = [
 export default function DocsHome() {
   return (
     <DocsLayout>
-      <div className="relative pb-12 mb-12 border-b border-border">
-        <div className="absolute inset-0 -z-10 bg-hero-gradient" />
+      {/* Full-bleed hero: cancel main padding so bg matches edge-to-edge (no side “stripes”) */}
+      <div className="relative -mx-4 px-4 pb-12 mb-12 border-b border-border sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:-mx-10 xl:px-10 2xl:-mx-12 2xl:px-12">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-background" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-gradient" aria-hidden />
 
-        <div className="max-w-3xl">
+        <div className="relative w-full max-w-none">
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
@@ -207,7 +209,9 @@ export default function DocsHome() {
 
       <footer className="pt-8 pb-8 sm:pb-0 border-t border-border text-sm text-muted-foreground safe-bottom">
         <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
-          <div className="max-w-xl">Syra — AI Trading Intelligence for Solana. Built for clarity and structured reasoning.</div>
+          <div className="min-w-0 max-w-3xl text-balance">
+            Syra — AI Trading Intelligence for Solana. Built for clarity and structured reasoning.
+          </div>
           <div className="flex flex-wrap gap-4">
             <a href="https://agent.syraa.fun" className="hover:text-primary transition-colors">
               Agent

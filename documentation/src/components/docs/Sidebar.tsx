@@ -179,7 +179,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside
         className={cn(
           "fixed left-0 top-14 sm:top-16 z-50 flex flex-col w-[min(280px,85vw)] sm:w-64 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] border-r border-border transition-transform duration-300 ease-out lg:translate-x-0",
-          "bg-[var(--syra-card)] safe-left safe-bottom",
+          "bg-card safe-left safe-bottom",
           "lg:w-64 lg:h-[calc(100vh-4rem)] lg:top-16",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
@@ -238,7 +238,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               href="https://x.com/syra_agent"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--syra-card)] transition-colors duration-150"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card transition-colors duration-150"
               title="X (Twitter)"
               aria-label="X (Twitter)"
             >
@@ -249,7 +249,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               href="https://t.me/syra_ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--syra-card)] transition-colors duration-150"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card transition-colors duration-150"
               title="Telegram"
               aria-label="Telegram"
             >
@@ -260,7 +260,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               href="https://docs.syraa.fun"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--syra-card)] transition-colors duration-150"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card transition-colors duration-150"
               title="Documentation"
               aria-label="Documentation"
             >
@@ -270,7 +270,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               href="https://syraa.fun"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--syra-card)] transition-colors duration-150"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card transition-colors duration-150"
               title="Website"
               aria-label="Website"
             >

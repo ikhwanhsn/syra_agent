@@ -88,7 +88,7 @@ export const FAQ = () => {
                 value={`item-${index}`}
                 className="border-border data-[state=open]:border-accent/10"
               >
-                <AccordionTrigger className="relative z-10 py-6 text-left transition-colors hover:text-accent">
+                <AccordionTrigger className="relative z-10 py-6 text-left transition-colors hover:text-foreground">
                   <span className="text-base font-medium">{faq.question}</span>
                 </AccordionTrigger>
                 <AccordionContent className="pb-6 text-muted-foreground">

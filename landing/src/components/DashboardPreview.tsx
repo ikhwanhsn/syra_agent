@@ -136,22 +136,22 @@ export const DashboardPreview = () => {
         : "";
 
       return (
-        <div className="px-3 py-2 text-xs text-white border rounded-lg shadow-2xl bg-black/95 border-white/20">
+        <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-2xl">
           {date && (
-            <div className="pb-1 mb-2 font-semibold text-blue-400 border-b border-white/10">
+            <div className="mb-2 border-b border-border/60 pb-1 font-semibold text-foreground">
               {date}
             </div>
           )}
-          <div className="mb-1 font-semibold">
+          <div className="mb-1 font-semibold text-foreground">
             Score: {(payload[0].payload.score ?? 0).toFixed(1)}%
           </div>
-          <div className="text-green-400">
+          <div className="text-foreground/90">
             Positive: {payload[0].payload.positive}
           </div>
-          <div className="text-red-400">
+          <div className="text-muted-foreground">
             Negative: {payload[0].payload.negative}
           </div>
-          <div className="text-gray-400">
+          <div className="text-muted-foreground/90">
             Neutral: {payload[0].payload.neutral}
           </div>
         </div>
@@ -290,35 +290,35 @@ export const DashboardPreview = () => {
 
           {/* Total Sentiment Stats - Add this section */}
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="p-2 border rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-              <div className="text-[10px] text-green-400/70 mb-0.5">
+            <div className="p-2 border rounded-lg border-border bg-foreground/[0.04]">
+              <div className="text-[10px] text-muted-foreground mb-0.5">
                 Positive
               </div>
-              <div className="text-sm font-bold text-green-400">
+              <div className="text-sm font-bold text-foreground">
                 {dataSentiment?.sentiment?.total?.[
                   "Total Positive"
                 ]?.toLocaleString() || "---"}
               </div>
             </div>
-            <div className="p-2 border rounded-lg bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
-              <div className="text-[10px] text-red-400/70 mb-0.5">Negative</div>
-              <div className="text-sm font-bold text-red-400">
+            <div className="p-2 border rounded-lg border-border bg-muted/60">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Negative</div>
+              <div className="text-sm font-bold text-foreground/90">
                 {dataSentiment?.sentiment?.total?.[
                   "Total Negative"
                 ]?.toLocaleString() || "---"}
               </div>
             </div>
-            <div className="p-2 border rounded-lg bg-gradient-to-br from-gray-500/10 to-gray-500/5 border-gray-500/20">
-              <div className="text-[10px] text-gray-400/70 mb-0.5">Neutral</div>
-              <div className="text-sm font-bold text-gray-400">
+            <div className="p-2 border rounded-lg border-border bg-muted/40">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Neutral</div>
+              <div className="text-sm font-bold text-foreground/80">
                 {dataSentiment?.sentiment?.total?.[
                   "Total Neutral"
                 ]?.toLocaleString() || "---"}
               </div>
             </div>
-            <div className="p-2 border rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-              <div className="text-[10px] text-blue-400/70 mb-0.5">Score</div>
-              <div className="text-sm font-bold text-blue-400">
+            <div className="p-2 border rounded-lg border-border bg-accent/30">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Score</div>
+              <div className="text-sm font-bold text-primary">
                 {dataSentiment?.sentiment?.total?.["Sentiment Score"]
                   ? `${(dataSentiment.sentiment.total["Sentiment Score"] * 100).toFixed(1)}%`
                   : "---"}
@@ -331,8 +331,8 @@ export const DashboardPreview = () => {
             <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
               <defs>
                 <linearGradient id="colorScorePos" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="hsl(190, 95%, 44%)" stopOpacity={0} />
-                  <stop offset="100%" stopColor="hsl(220, 95%, 52%)" stopOpacity={0.4} />
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="index" hide />
@@ -341,7 +341,7 @@ export const DashboardPreview = () => {
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground) / 0.35)" strokeWidth={1} strokeDasharray="6 4" />
               <Tooltip
                 content={<CustomTooltip />}
-                cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
+                cursor={{ fill: "hsl(var(--foreground) / 0.08)" }}
               />
               {/* Fill only when score > 0 (no red area below zero) */}
               <Area
@@ -356,7 +356,7 @@ export const DashboardPreview = () => {
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="hsl(200, 95%, 48%)"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
                 dot={false}
                 animationDuration={1000}
@@ -406,7 +406,7 @@ export const DashboardPreview = () => {
             {
               icon: Gem,
               text: "$SYRA:",
-              color: "text-blue-400",
+              color: "text-primary",
               isNews: false,
             },
           ].map((item, i) => (

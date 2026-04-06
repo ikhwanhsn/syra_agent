@@ -1,17 +1,18 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { ExternalLink, MessageSquare, Shield, TrendingUp, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, MessageSquare, Shield, TrendingUp, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LINK_PLAYGROUND, LINK_DOCS } from "../../config/global";
+import syraLogo from "/images/logo.jpg";
 
 const categoryIconThemes = [
-  "bg-accent/12 text-accent border border-accent/25",
-  "bg-neon-gold/12 text-neon-gold border border-neon-gold/25",
-  "bg-success/12 text-success border border-success/25",
+  "border border-border bg-muted/70 text-foreground",
+  "border border-border bg-muted/70 text-foreground",
+  "border border-border bg-muted/70 text-foreground",
 ] as const;
 
-const keyPointDots = ["bg-accent", "bg-neon-gold", "bg-success", "bg-accent"] as const;
+const keyPointDots = ["bg-foreground/45", "bg-foreground/30", "bg-muted-foreground", "bg-foreground/40"] as const;
 
 const apiCategories = [
   {
@@ -38,71 +39,124 @@ const keyPoints = [
   "Instant access after payment",
 ];
 
-function X402FlowIllustration() {
+const flowEase = [0.22, 1, 0.36, 1] as const;
+
+const flowStepShadow =
+  "shadow-[0_1px_0_0_hsl(var(--foreground)/0.07),inset_0_0_0_1px_hsl(var(--foreground)/0.04)]";
+
+/** Equal-height cards — width comes from flex-1 / minmax so the row fits max-w-lg without horizontal scroll */
+const flowStepCard =
+  `flex min-h-[168px] w-full min-w-0 flex-col items-center justify-center rounded-2xl border-2 border-foreground/20 bg-card px-2 py-4 text-center sm:min-h-[176px] sm:px-2.5 ${flowStepShadow}`;
+
+function FlowArrow({ isInView, delay }: { isInView: boolean; delay: number }) {
   return (
-    <div className="w-full max-w-lg mx-auto">
-      <p className="text-center text-sm font-medium text-muted-foreground mb-4">How it works</p>
-      <svg
-        viewBox="0 0 480 220"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-auto"
-        aria-hidden
-      >
-        <defs>
-          <linearGradient id="x402-line" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
-            <stop offset="50%" stopColor="hsl(var(--accent))" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity="0.4" />
-          </linearGradient>
-          <linearGradient id="x402-glow-accent" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.4, delay, ease: flowEase }}
+      className="flex h-8 shrink-0 items-center justify-center text-muted-foreground/90 sm:h-auto sm:min-h-[176px] sm:w-6 sm:self-stretch md:w-7"
+      aria-hidden
+    >
+      <ChevronDown className="h-5 w-5 sm:hidden" strokeWidth={2} />
+      <ChevronRight className="hidden h-5 w-5 sm:block" strokeWidth={2} />
+    </motion.div>
+  );
+}
 
-        {/* Connecting line */}
-        <path
-          d="M 95 110 L 175 110 M 305 110 L 385 110"
-          stroke="url(#x402-line)"
-          strokeWidth="2.5"
-          strokeLinecap="round"
+function FlowStepText({
+  step,
+  title,
+  mono,
+  delay,
+  isInView,
+}: {
+  step: string;
+  title: string;
+  mono: string;
+  delay: number;
+  isInView: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay, ease: flowEase }}
+      className={flowStepCard}
+    >
+      <span className="text-lg font-bold tabular-nums leading-none text-foreground sm:text-xl">{step}</span>
+      <span className="mt-1.5 text-center text-[11px] font-semibold leading-snug text-foreground sm:text-xs">{title}</span>
+      <span className="mt-2 line-clamp-2 w-full max-w-full px-0.5 font-mono text-[9px] leading-tight text-muted-foreground sm:text-[10px]">
+        {mono}
+      </span>
+    </motion.div>
+  );
+}
+
+function FlowStepPay({ isInView }: { isInView: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay: 0.14, ease: flowEase }}
+      className={cn(flowStepCard, "relative gap-1")}
+    >
+      <span className="text-lg font-bold tabular-nums leading-none text-foreground sm:text-xl">2</span>
+      <div className="relative mt-0.5 flex h-[52px] w-[52px] shrink-0 items-center justify-center sm:h-[56px] sm:w-[56px]">
+        <motion.div
+          className="pointer-events-none absolute inset-[-4px] rounded-full border border-foreground/12"
+          animate={isInView ? { opacity: [0.35, 0.85, 0.35], scale: [1, 1.06, 1] } : {}}
+          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
         />
-        <circle cx="240" cy="110" r="5" fill="hsl(var(--muted-foreground) / 0.35)" />
-        <path d="M 175 106 L 183 110 L 175 114" fill="hsl(var(--muted-foreground) / 0.5)" />
-        <path d="M 297 106 L 305 110 L 297 114" fill="hsl(var(--muted-foreground) / 0.5)" />
-
-        {/* Node 1: Send request */}
-        <g>
-          <circle cx="95" cy="110" r="38" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2" />
-          <circle cx="95" cy="110" r="32" fill="hsl(var(--primary) / 0.08)" stroke="hsl(var(--primary) / 0.35)" strokeWidth="1.5" />
-          <text x="95" y="96" textAnchor="middle" fill="hsl(var(--foreground))" style={{ fontSize: 13, fontFamily: "system-ui", fontWeight: 700 }}>1</text>
-          <text x="95" y="110" textAnchor="middle" fill="hsl(var(--foreground))" style={{ fontSize: 11, fontFamily: "system-ui", fontWeight: 600, whiteSpace: "nowrap" }}>Send request</text>
-          <text x="95" y="122" textAnchor="middle" fill="hsl(var(--muted-foreground))" style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", whiteSpace: "nowrap" }}>GET /api/...</text>
-        </g>
-
-        {/* Node 2: Pay (highlighted) */}
-        <motion.g
-          animate={{ opacity: [0.92, 1, 0.92] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        <motion.div
+          className="relative flex h-full w-full items-center justify-center"
+          animate={isInView ? { y: [0, -2, 0] } : {}}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         >
-          <circle cx="240" cy="110" r="42" fill="url(#x402-glow-accent)" opacity="0.6" />
-          <circle cx="240" cy="110" r="38" fill="hsl(var(--card))" stroke="hsl(var(--accent))" strokeWidth="2" />
-          <circle cx="240" cy="110" r="32" fill="hsl(var(--accent) / 0.12)" stroke="hsl(var(--accent) / 0.6)" strokeWidth="1.5" />
-          <text x="240" y="96" textAnchor="middle" fill="hsl(var(--accent))" style={{ fontSize: 14, fontFamily: "system-ui", fontWeight: 700 }}>2</text>
-          <text x="240" y="111" textAnchor="middle" fill="hsl(var(--accent))" style={{ fontSize: 12, fontFamily: "system-ui", fontWeight: 700 }}>402 Pay</text>
-          <text x="240" y="125" textAnchor="middle" fill="hsl(var(--muted-foreground))" style={{ fontSize: 9, fontFamily: "system-ui", whiteSpace: "nowrap" }}>x402 · MPP</text>
-        </motion.g>
+          <div className="absolute inset-0 rounded-full bg-gradient-to-b from-muted/30 to-transparent opacity-90" />
+          <div className="relative z-10 h-11 w-11 overflow-hidden rounded-full bg-black ring-2 ring-foreground/15 sm:h-12 sm:w-12">
+            <img
+              src={syraLogo}
+              alt="Pay with Syra"
+              width={48}
+              height={48}
+              className="h-full w-full object-contain p-1 sm:p-1.5"
+              draggable={false}
+            />
+          </div>
+        </motion.div>
+      </div>
+      <p className="mt-1 text-[11px] font-bold leading-tight text-foreground sm:text-xs">402 Pay</p>
+      <p className="font-mono text-[9px] leading-tight text-muted-foreground sm:text-[10px]">x402 · MPP</p>
+    </motion.div>
+  );
+}
 
-        {/* Node 3: Get data */}
-        <g>
-          <circle cx="385" cy="110" r="38" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2" />
-          <circle cx="385" cy="110" r="32" fill="hsl(var(--success) / 0.08)" stroke="hsl(var(--success) / 0.4)" strokeWidth="1.5" />
-          <text x="385" y="96" textAnchor="middle" fill="hsl(var(--success))" style={{ fontSize: 13, fontFamily: "system-ui", fontWeight: 700 }}>3</text>
-          <text x="385" y="110" textAnchor="middle" fill="hsl(var(--foreground))" style={{ fontSize: 11, fontFamily: "system-ui", fontWeight: 600, whiteSpace: "nowrap" }}>Get data</text>
-          <text x="385" y="122" textAnchor="middle" fill="hsl(var(--muted-foreground))" style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", whiteSpace: "nowrap" }}>200 + JSON</text>
-        </g>
-      </svg>
+function X402FlowIllustration({ isInView }: { isInView: boolean }) {
+  return (
+    <div className="relative mx-auto w-full min-w-0 py-2">
+      <motion.p
+        initial={{ opacity: 0, y: 6 }}
+        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.4, ease: flowEase }}
+        className="mb-5 text-center text-sm font-semibold tracking-tight text-foreground sm:mb-6"
+      >
+        How it works
+      </motion.p>
+
+      {/* One pipeline: column on mobile, equal-width row on sm+ (fluid widths → no horizontal scroll) */}
+      <div className="mx-auto flex w-full max-w-[260px] flex-col sm:max-w-none sm:flex-row sm:items-stretch sm:justify-center sm:gap-0">
+        <div className="w-full min-w-0 sm:flex-1">
+          <FlowStepText step="1" title="Send request" mono="GET /api/..." delay={0.08} isInView={isInView} />
+        </div>
+        <FlowArrow isInView={isInView} delay={0.18} />
+        <div className="w-full min-w-0 sm:flex-1">
+          <FlowStepPay isInView={isInView} />
+        </div>
+        <FlowArrow isInView={isInView} delay={0.24} />
+        <div className="w-full min-w-0 sm:flex-1">
+          <FlowStepText step="3" title="Get data" mono="200 + JSON" delay={0.2} isInView={isInView} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -113,9 +167,9 @@ export const ApiX402Section = () => {
 
   return (
     <section id="api" className="relative py-14 sm:py-20 lg:py-28 overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[420px] bg-accent/12 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[380px] h-[380px] bg-neon-gold/10 rounded-full blur-[90px] pointer-events-none" />
-      <div className="absolute top-1/4 left-1/4 w-[280px] h-[280px] bg-success/8 rounded-full blur-[85px] pointer-events-none" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.04] blur-[100px]" />
+      <div className="pointer-events-none absolute bottom-1/4 right-1/4 h-[380px] w-[380px] rounded-full bg-muted/40 blur-[90px]" />
+      <div className="pointer-events-none absolute left-1/4 top-1/4 h-[280px] w-[280px] rounded-full bg-foreground/[0.03] blur-[85px]" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
@@ -167,7 +221,7 @@ export const ApiX402Section = () => {
                       categoryIconThemes[ci % categoryIconThemes.length],
                     )}
                   >
-                    <cat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <cat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.25]" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm sm:text-base font-medium text-foreground">{cat.label}</p>
@@ -198,7 +252,7 @@ export const ApiX402Section = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-medium rounded-xl border border-accent/35 bg-accent/[0.06] text-foreground hover:bg-accent/10 hover:border-accent/50 transition-all"
               >
-                <FileText className="h-4 w-4 shrink-0 text-accent" />
+                <FileText className="h-4 w-4 shrink-0 text-foreground" />
                 Documentation
               </a>
             </motion.div>
@@ -211,10 +265,8 @@ export const ApiX402Section = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="order-1 lg:order-2 flex items-center justify-center min-w-0 w-full"
           >
-            <div className="glass-card border border-accent/20 p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl w-full max-w-lg overflow-x-auto overflow-y-hidden shadow-[0_0_40px_-12px_hsl(var(--accent)/0.15)]">
-              <div className="min-w-[280px] w-full">
-                <X402FlowIllustration />
-              </div>
+            <div className="glass-card w-full max-w-lg rounded-xl border border-border/80 p-4 shadow-[0_0_36px_-16px_hsl(var(--foreground)/0.06)] sm:p-6 sm:rounded-2xl lg:p-8">
+              <X402FlowIllustration isInView={isInView} />
             </div>
           </motion.div>
         </div>
@@ -224,13 +276,13 @@ export const ApiX402Section = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.4, delay: 0.35 }}
-          className="mt-10 sm:mt-16 pt-8 sm:pt-10 border-t border-accent/15"
+          className="mt-10 border-t border-border/80 pt-8 sm:mt-16 sm:pt-10"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {keyPoints.map((point, ki) => (
               <div
                 key={point}
-                className="flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-card/60 border border-border/80 hover:border-accent/20 transition-colors text-xs sm:text-sm lg:text-base text-muted-foreground"
+                className="flex items-center gap-3 rounded-lg border border-border/80 bg-card/60 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:border-foreground/20 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm lg:text-base"
               >
                 <span className={cn("flex h-2 w-2 shrink-0 rounded-full", keyPointDots[ki % keyPointDots.length])} />
                 <span className="min-w-0">{point}</span>

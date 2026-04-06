@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Play, LayoutGrid, Share2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getExampleFlows, EXAMPLE_FLOWS_VISIBLE_COUNT } from '@/hooks/useApiPlayground';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,7 +37,6 @@ interface RequestBuilderProps {
   onParamsChange: (params: RequestParam[]) => void;
   onSend: () => void;
   onTryDemo: () => void;
-  onExampleFlow?: (flowId: string) => void;
   /** Create share link for current request; returns full URL or null. Called when user clicks Share. */
   onCreateShareLink?: () => Promise<string | null>;
   /** Called after share link is created and copied; pass the full URL so parent can update browser URL. */
@@ -50,15 +47,15 @@ interface RequestBuilderProps {
 const methods: HttpMethod[] = ['GET', 'POST'];
 
 const methodConfig: Record<'GET' | 'POST', { color: string; bg: string; description: string }> = {
-  GET: { 
-    color: 'text-accent', 
-    bg: 'bg-accent/10 hover:bg-accent/20 border-accent/30',
-    description: 'Retrieve data from the API'
+  GET: {
+    color: 'text-foreground',
+    bg: 'bg-foreground/[0.06] hover:bg-foreground/10 border-border',
+    description: 'Retrieve data from the API',
   },
-  POST: { 
-    color: 'text-warning', 
-    bg: 'bg-warning/10 hover:bg-warning/20 border-warning/30',
-    description: 'Send data to the API'
+  POST: {
+    color: 'text-foreground',
+    bg: 'bg-foreground/10 hover:bg-foreground/[0.14] border-border',
+    description: 'Send data to the API',
   },
 };
 
@@ -80,7 +77,6 @@ export function RequestBuilder({
   onParamsChange,
   onSend,
   onTryDemo,
-  onExampleFlow,
   onCreateShareLink,
   onAfterShare,
 }: RequestBuilderProps) {
@@ -147,14 +143,14 @@ export function RequestBuilder({
               className={cn(
                 'w-9 h-9 shrink-0 rounded-lg flex items-center justify-center',
                 paymentLane === 'mpp'
-                  ? 'bg-gradient-to-br from-accent/25 to-accent/10'
-                  : 'bg-gradient-to-br from-primary/20 to-accent/20'
+                  ? 'bg-gradient-to-br from-muted to-secondary/80'
+                  : 'bg-gradient-to-br from-primary/20 to-muted/50'
               )}
             >
               <Zap
                 className={cn(
                   'h-4.5 w-4.5',
-                  paymentLane === 'mpp' ? 'text-accent' : 'text-primary'
+                  paymentLane === 'mpp' ? 'text-foreground' : 'text-primary'
                 )}
               />
             </div>
@@ -171,9 +167,9 @@ export function RequestBuilder({
             {wallet.connected && (
               <Badge
                 variant="outline"
-                className="text-xs gap-2 px-3 py-1.5 border-primary/20 bg-primary/[0.06] text-foreground"
+                className="text-xs gap-2 px-3 py-1.5 border-primary/30 bg-primary/10 text-foreground"
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 Ready to Pay
               </Badge>
             )}
@@ -210,41 +206,6 @@ export function RequestBuilder({
             </Button>
           </div>
         </div>
-
-        {/* Example flows - fixed */}
-        {onExampleFlow && (
-          <div className="shrink-0 mb-3 sm:mb-4">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">
-              Example flows
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              {getExampleFlows().slice(0, EXAMPLE_FLOWS_VISIBLE_COUNT).map((flow) => (
-                <Button
-                  key={flow.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onExampleFlow(flow.id)}
-                  disabled={isLoading}
-                  className="gap-1.5 h-9 text-xs sm:text-sm"
-                >
-                  <Play className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{flow.label}</span>
-                </Button>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="gap-1.5 h-9 text-xs sm:text-sm text-muted-foreground hover:text-foreground"
-              >
-                <Link to="/examples">
-                  <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">View all</span>
-                </Link>
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Method Selector - fixed */}
         <div className="shrink-0 mb-4">

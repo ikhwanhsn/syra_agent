@@ -915,9 +915,12 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
           const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
           const budgetExceeded = result.budgetExceeded === true;
+          // Upstream / infra / rate limits: never steer users to USDC/SOL (see generic else branch).
           const isBackendError =
-            /timeout|CLI|502|503|request failed/i.test(err) ||
-            /403|401|Forbidden|permission\s*(issue|error)|temporarily unavailable|service.*unavailable/i.test(err);
+            /timeout|CLI|502|503|504|request failed|fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND/i.test(err) ||
+            /403|401|Forbidden|permission\s*(issue|error)|temporarily unavailable|service.*unavailable/i.test(err) ||
+            /rate limit|too many requests|throttl|way too many|\b429\b|\b418\b|-1003|-1015/i.test(err) ||
+            /Binance klines|Failed to fetch news|News service is temporarily/i.test(err);
           let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
           if (budgetExceeded) {
             instruction += ` This was blocked by the agent's spend limit (Sentinel budget). Tell the user their agent has hit its hourly/daily budget cap; they can try again later or adjust limits in settings.`;

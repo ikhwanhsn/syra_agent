@@ -59,16 +59,16 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
               className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-90 transition-opacity"
             >
               <div className="relative group shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/30 to-black/20 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
-                <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-neon-purple/80 to-black/60 flex items-center justify-center border border-border/30">
-                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/30 to-muted/40 blur-md opacity-50 transition-opacity group-hover:opacity-70" />
+                <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center border border-primary/40 shadow-sm shadow-primary/20">
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
                 </div>
               </div>
               <div className="hidden min-[420px]:block min-w-0">
                 <h1 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-1.5 sm:gap-2 truncate">
                   <span className="gradient-text">x402</span>
                   <span className="text-foreground truncate">Playground</span>
-                  <Badge variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 h-5 border-primary/30 text-primary bg-primary/10 shrink-0">
+                  <Badge variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 h-5 border-primary/40 text-primary bg-primary/12 shrink-0">
                     v2
                   </Badge>
                 </h1>
@@ -105,12 +105,12 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
 
           {/* Center: Flow indicator */}
           <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 border border-border/70 shadow-inner shadow-black/20">
               <span className="text-xs font-medium text-muted-foreground">1. Send Request</span>
-              <span className="text-muted-foreground/50">→</span>
-              <span className="text-xs font-medium text-warning">2. Pay (402)</span>
-              <span className="text-muted-foreground/50">→</span>
-              <span className="text-xs font-medium text-accent">3. Get Data</span>
+              <span className="text-muted-foreground/40">→</span>
+              <span className="text-xs font-medium text-primary">2. Pay (402)</span>
+              <span className="text-muted-foreground/40">→</span>
+              <span className="text-xs font-medium text-muted-foreground">3. Get Data</span>
             </div>
           </div>
 
@@ -124,8 +124,8 @@ export function TopBar({ wallet, onOpenConnectModal, onToggleSidebar, isSidebarO
                     className={cn(
                       "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
                       paymentNetwork === 'base'
-                        ? "bg-primary/[0.08] border-primary/20 text-foreground"
-                        : "bg-accent/10 border-accent/25 text-accent"
+                        ? "bg-primary/10 border-primary/25 text-foreground"
+                        : "border-border bg-muted/50 text-foreground"
                     )}
                   >
                     <span className="w-2 h-2 rounded-full bg-current" />

@@ -249,11 +249,11 @@ export default function FormatValidator() {
                   </Alert>
                 )}
                 {result.warnings.length > 0 && (
-                  <Alert className="border-amber-500/30 bg-amber-500/5">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <Alert className="border-border bg-muted/40">
+                    <AlertCircle className="h-4 w-4 text-foreground" />
                     <AlertTitle>Warnings</AlertTitle>
                     <AlertDescription asChild>
-                      <ul className="list-disc pl-4 mt-1 space-y-1 text-amber-700 dark:text-amber-400">
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
                         {result.warnings.map((w, i) => (
                           <li key={i}>{w}</li>
                         ))}

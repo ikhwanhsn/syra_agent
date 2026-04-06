@@ -30,7 +30,7 @@ const modules = [
     title: "On-chain News Intelligence",
     description: "AI-curated news aggregation with impact scoring. Cut through the noise and focus on events that actually move markets.",
     features: ["Breaking News Alerts", "Impact Scoring", "Source Verification", "Trend Detection"],
-    gradient: "from-neon-gold to-amber-500",
+    gradient: "from-neon-gold to-accent",
   },
   {
     icon: Bot,
@@ -41,12 +41,19 @@ const modules = [
   },
 ];
 
-const iconColors = ["text-accent", "text-neon-gold", "text-success", "text-neon-gold", "text-accent"];
+const iconColors = [
+  "text-primary",
+  "text-foreground",
+  "text-foreground",
+  "text-foreground",
+  "text-primary",
+];
 
+/** Shared border uses foreground so dark mode isn’t washed out (accent/30 on ~16% L accent is nearly invisible). */
 const chipStyles = [
-  "border border-accent/25 bg-accent/12 text-accent",
-  "border border-neon-gold/25 bg-neon-gold/12 text-neon-gold",
-  "border border-success/25 bg-success/12 text-success",
+  "border border-foreground/22 bg-accent/12 text-accent-foreground",
+  "border border-foreground/22 bg-neon-gold/12 text-foreground",
+  "border border-foreground/22 bg-success/12 text-foreground",
 ];
 
 const hoverStyles = [
@@ -64,8 +71,8 @@ export const ProductModules = () => {
   return (
     <section id="product" className="relative py-24 overflow-hidden">
       {/* Background gradients - theme colors */}
-      <div className="absolute top-1/2 left-0 w-[520px] h-[520px] bg-neon-purple/14 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-1/3 right-0 w-[480px] h-[480px] bg-neon-gold/11 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-0 w-[520px] h-[520px] bg-foreground/[0.06] rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/3 right-0 w-[480px] h-[480px] bg-muted/60 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 left-1/3 w-[340px] h-[340px] bg-accent/10 rounded-full blur-[80px] pointer-events-none" />
       <div className="absolute top-1/4 right-1/4 w-[280px] h-[280px] bg-success/8 rounded-full blur-[90px] pointer-events-none" />
       
@@ -118,7 +125,10 @@ export const ProductModules = () => {
                 <div className="lg:w-1/3 flex justify-center">
                   <div className={`relative w-32 h-32 rounded-2xl bg-gradient-to-br ${module.gradient} p-0.5`}>
                     <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center">
-                      <module.icon className={`w-16 h-16 ${iconColors[index % iconColors.length]}`} strokeWidth={1.5} />
+                      <module.icon
+                        className={`w-16 h-16 ${iconColors[index % iconColors.length]}`}
+                        strokeWidth={2}
+                      />
                     </div>
                     {/* Glow */}
                     <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${module.gradient} opacity-20 blur-xl -z-10`} />
@@ -133,7 +143,7 @@ export const ProductModules = () => {
                   <p className="text-muted-foreground mb-4">
                     {module.description}
                   </p>
-                  <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                  <div className="flex flex-wrap gap-2 justify-center lg:justify-start py-0.5">
                     {module.features.map((feature, fi) => (
                       <span
                         key={feature}

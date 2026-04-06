@@ -165,7 +165,11 @@ export const WhySyra = () => {
               <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
                 index % 3 === 0 ? "bg-accent/10" : index % 3 === 1 ? "bg-neon-gold/10" : "bg-success/10"
               }`}>
-                <prop.icon className={`h-7 w-7 ${index % 3 === 0 ? "text-accent" : index % 3 === 1 ? "text-neon-gold" : "text-success"}`} />
+                <prop.icon
+                  className={`h-7 w-7 stroke-[2] ${
+                    index % 3 === 0 ? "text-primary" : "text-foreground"
+                  }`}
+                />
               </div>
               <h3 className="mb-2 text-lg font-semibold">{prop.title}</h3>
               <p className="text-sm text-muted-foreground">

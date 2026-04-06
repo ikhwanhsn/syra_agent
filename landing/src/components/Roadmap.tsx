@@ -243,7 +243,7 @@ export const Roadmap = () => {
                         </div>
                       ) : q.status === "current" ? (
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20">
-                          <Circle className="h-4 w-4 animate-pulse text-accent" />
+                          <Circle className="h-4 w-4 animate-pulse text-primary" />
                         </div>
                       ) : (
                         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted">

@@ -118,6 +118,27 @@ export function resolveBinanceSymbol(token, explicitSymbol) {
   return "BTCUSDT";
 }
 
+const BINANCE_KLINES_MAX_ATTEMPTS = 4;
+const BINANCE_KLINES_BASE_DELAY_MS = 400;
+
+function sleepMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function binanceKlinesRetryableHttp(status, msg) {
+  const m = String(msg || "");
+  return (
+    status === 429 ||
+    status === 418 ||
+    /too many|rate limit|way too many|banned|IP/i.test(m)
+  );
+}
+
+function binanceKlinesRetryableBodyMsg(msg) {
+  const m = String(msg || "");
+  return /-1003|-1015|too many|rate limit|way too many/i.test(m);
+}
+
 /**
  * @param {string} symbol
  * @param {{ interval?: string; bar?: string; limit?: number; startTime?: number; endTime?: number; signal?: AbortSignal }} [opts]
@@ -137,27 +158,57 @@ export async function fetchBinanceKlinesJson(symbol, opts = {}) {
     url.searchParams.set("endTime", String(Math.floor(Number(opts.endTime))));
   }
 
-  const res = await fetch(url.toString(), {
-    headers: { Accept: "application/json" },
-    ...(opts.signal && { signal: opts.signal }),
-  });
-  const body = await res.json().catch(() => null);
+  const urlStr = url.toString();
+  let lastError;
 
-  if (!res.ok) {
-    const msg = body?.msg ?? body?.message ?? `HTTP ${res.status}`;
-    throw new Error(`Binance klines: ${msg}`);
+  for (let attempt = 0; attempt < BINANCE_KLINES_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(urlStr, {
+        headers: { Accept: "application/json" },
+        ...(opts.signal && { signal: opts.signal }),
+      });
+      const body = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const msg = body?.msg ?? body?.message ?? `HTTP ${res.status}`;
+        if (binanceKlinesRetryableHttp(res.status, msg) && attempt < BINANCE_KLINES_MAX_ATTEMPTS - 1) {
+          await sleepMs(BINANCE_KLINES_BASE_DELAY_MS * 2 ** attempt + Math.floor(Math.random() * 200));
+          continue;
+        }
+        throw new Error(`Binance klines [${res.status}]: ${msg}`);
+      }
+
+      if (body && typeof body === "object" && !Array.isArray(body)) {
+        if (body.msg) {
+          if (binanceKlinesRetryableBodyMsg(body.msg) && attempt < BINANCE_KLINES_MAX_ATTEMPTS - 1) {
+            await sleepMs(BINANCE_KLINES_BASE_DELAY_MS * 2 ** attempt + Math.floor(Math.random() * 200));
+            continue;
+          }
+          throw new Error(`Binance klines: ${body.msg}`);
+        }
+        throw new Error(`Binance klines: ${body.code ?? "unexpected JSON object"}`);
+      }
+
+      if (!Array.isArray(body)) {
+        throw new Error("Binance klines: invalid response");
+      }
+
+      return body;
+    } catch (e) {
+      lastError = e;
+      const msg = String(e?.message || e);
+      const networkRetry =
+        attempt < BINANCE_KLINES_MAX_ATTEMPTS - 1 &&
+        /ECONNRESET|ETIMEDOUT|fetch failed|network|socket/i.test(msg);
+      if (networkRetry) {
+        await sleepMs(BINANCE_KLINES_BASE_DELAY_MS * 2 ** attempt + Math.floor(Math.random() * 200));
+        continue;
+      }
+      throw e;
+    }
   }
 
-  if (body && typeof body === "object" && !Array.isArray(body)) {
-    if (body.msg) throw new Error(`Binance klines: ${body.msg}`);
-    throw new Error(`Binance klines: ${body.code ?? "unexpected JSON object"}`);
-  }
-
-  if (!Array.isArray(body)) {
-    throw new Error("Binance klines: invalid response");
-  }
-
-  return body;
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Binance klines failed"));
 }
 
 /**

@@ -70,15 +70,15 @@ export default function Articles() {
                       className="flex flex-col h-full p-6"
                     >
                       <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
-                        <FileText className="w-6 h-6 text-accent" />
+                        <FileText className="w-6 h-6 text-primary" />
                       </div>
-                      <h2 className="mb-2 text-lg font-semibold group-hover:text-accent transition-colors">
+                      <h2 className="mb-2 text-lg font-semibold group-hover:text-primary transition-colors">
                         {article.title}
                       </h2>
                       <p className="mb-4 text-sm text-muted-foreground flex-1">
                         {article.description}
                       </p>
-                      <span className="inline-flex items-center gap-2 text-sm font-medium text-accent">
+                      <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
                         Read more
                         <ExternalLink className="w-4 h-4" />
                       </span>

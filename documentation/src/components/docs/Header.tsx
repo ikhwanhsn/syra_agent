@@ -61,10 +61,7 @@ export function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
 
   return (
     <>
-      <header
-        className="sticky top-0 z-50 glass-strong border-b border-border safe-top"
-        style={{ backgroundColor: "var(--syra-card)" }}
-      >
+      <header className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl safe-top supports-[backdrop-filter]:bg-card/80">
         <div className="flex h-14 sm:h-16 items-center justify-between gap-2 px-3 sm:px-4 lg:px-6 safe-left safe-right">
           {/* Left section */}
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink-0">

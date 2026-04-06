@@ -88,8 +88,8 @@ export function ResponseViewer({
       <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
         <div className="shrink-0 flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
-              <Code2 className="h-4.5 w-4.5 text-accent" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-muted/40">
+              <Code2 className="h-4.5 w-4.5 text-primary" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-foreground">Response</h2>
@@ -101,7 +101,7 @@ export function ResponseViewer({
           <div className="text-center py-4">
             <div className="relative w-16 h-16 mx-auto mb-4">
               <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-muted/40">
                 <Clock className="h-6 w-6 text-primary animate-pulse" />
               </div>
             </div>
@@ -159,18 +159,22 @@ export function ResponseViewer({
       {/* Header with Status - fixed */}
       <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={cn(
-            "w-9 h-9 rounded-lg flex items-center justify-center",
-            isPaymentRequired && "bg-warning/20",
-            isSuccess && "bg-accent/15",
-            !isPaymentRequired && !isSuccess && "bg-destructive/20"
-          )}>
-            <StatusIcon className={cn(
-              "h-4.5 w-4.5",
-              isPaymentRequired && "text-warning",
-              isSuccess && "text-accent",
-              !isPaymentRequired && !isSuccess && "text-destructive"
-            )} />
+          <div
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-lg",
+              isPaymentRequired && "bg-muted",
+              isSuccess && "bg-primary/12",
+              !isPaymentRequired && !isSuccess && "bg-destructive/12",
+            )}
+          >
+            <StatusIcon
+              className={cn(
+                "h-4.5 w-4.5",
+                isPaymentRequired && "text-foreground",
+                isSuccess && "text-primary",
+                !isPaymentRequired && !isSuccess && "text-destructive",
+              )}
+            />
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground">Response</h2>
@@ -181,7 +185,7 @@ export function ResponseViewer({
           {paymentLane === 'mpp' && (
             <Badge
               variant="outline"
-              className="text-xs px-2 py-1 border-accent/45 text-accent bg-accent/10"
+              className="border-border bg-muted px-2 py-1 text-xs text-foreground"
             >
               MPP
             </Badge>
@@ -193,7 +197,7 @@ export function ResponseViewer({
       </div>
 
       {/* Response Metrics - fixed */}
-      <div className="shrink-0 flex flex-wrap items-center gap-3 sm:gap-4 mb-4 px-3 sm:px-4 py-2.5 rounded-lg bg-secondary/30">
+      <div className="shrink-0 flex flex-wrap items-center gap-3 sm:gap-4 mb-4 px-3 sm:px-4 py-2.5 rounded-lg bg-secondary/50 border border-border/60">
         <div className="flex items-center gap-2 text-xs">
           <Timer className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-muted-foreground">Time:</span>
@@ -213,7 +217,7 @@ export function ResponseViewer({
           role="status"
         >
           <div className="flex gap-3">
-            <Info className="h-5 w-5 text-accent shrink-0 mt-0.5" aria-hidden />
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <div className="min-w-0 flex-1 space-y-2">
               <p className="text-sm font-medium text-foreground">This does not look like an x402 or MPP API</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -245,11 +249,11 @@ export function ResponseViewer({
 
       {/* Payment Required Card - fixed */}
       {isPaymentRequired && paymentDetails && (
-        <div className="shrink-0 mb-4 rounded-xl bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border border-warning/30 overflow-hidden animate-fade-in">
+        <div className="mb-4 shrink-0 animate-fade-in overflow-hidden rounded-xl border border-border bg-gradient-to-br from-muted/60 via-card/40 to-transparent">
           {/* Header */}
-          <div className="px-3 sm:px-4 py-3 bg-warning/10 border-b border-warning/20 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
-              <Zap className="h-5 w-5 text-warning" />
+          <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-3 py-3 sm:px-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+              <Zap className="h-5 w-5 text-foreground" />
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground">
@@ -312,12 +316,12 @@ export function ResponseViewer({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Tab Header - Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-2">
-          <TabsList className="bg-secondary/30 w-fit p-1 gap-1 shrink-0">
-            <TabsTrigger value="body" className="data-[state=active]:bg-primary/20 gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
+          <TabsList className="bg-secondary/50 border border-border/50 w-fit p-1 gap-1 shrink-0">
+            <TabsTrigger value="body" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Body
             </TabsTrigger>
-            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/20 gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
+            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
               <span className="hidden sm:inline">Headers</span>
               <span className="sm:hidden">Hdrs</span>
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs shrink-0">
@@ -327,12 +331,12 @@ export function ResponseViewer({
           </TabsList>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex rounded-lg overflow-hidden border border-border">
+            <div className="flex rounded-lg overflow-hidden border border-border/70 bg-secondary/40">
               <button
                 onClick={() => setViewMode('pretty')}
                 className={cn(
                   "px-2 sm:px-3 py-2 text-xs font-medium transition-colors h-9",
-                  viewMode === 'pretty' ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                  viewMode === 'pretty' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 )}
               >
                 Pretty
@@ -341,7 +345,7 @@ export function ResponseViewer({
                 onClick={() => setViewMode('raw')}
                 className={cn(
                   "px-2 sm:px-3 py-2 text-xs font-medium transition-colors h-9",
-                  viewMode === 'raw' ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                  viewMode === 'raw' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 )}
               >
                 Raw
@@ -349,7 +353,7 @@ export function ResponseViewer({
             </div>
             <Button variant="ghost" size="icon-sm" onClick={handleCopy} className="h-9 w-9 shrink-0">
               {copied ? (
-                <Check className="h-4 w-4 text-accent" />
+                <Check className="h-4 w-4 text-primary" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
@@ -375,11 +379,11 @@ export function ResponseViewer({
             value="headers" 
             className="m-0 mt-0 pt-0 absolute inset-0 overflow-auto custom-scrollbar data-[state=inactive]:hidden"
           >
-            <div className="space-y-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
+            <div className="space-y-2 p-3 bg-card/60 rounded-lg border border-border/60">
               {Object.entries(response.headers || {}).length > 0 ? (
                 Object.entries(response.headers).map(([key, value]) => (
-                  <div key={key} className="flex flex-col sm:flex-row sm:gap-3 gap-1 text-xs sm:text-sm font-mono py-2 px-3 rounded hover:bg-secondary/50 transition-colors">
-                    <span className="text-accent shrink-0 font-semibold">{key}:</span>
+                  <div key={key} className="flex flex-col sm:flex-row sm:gap-3 gap-1 text-xs sm:text-sm font-mono py-2 px-3 rounded hover:bg-secondary/60 transition-colors">
+                    <span className="shrink-0 font-semibold text-primary">{key}:</span>
                     <span className="text-foreground break-all">{value}</span>
                   </div>
                 ))
