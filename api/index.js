@@ -49,6 +49,13 @@ import { createSquidRouteRouter as createV2SquidRouteRouter } from "./routes/par
 import { createSquidStatusRouter as createV2SquidStatusRouter } from "./routes/partner/squid/status.js";
 import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
 import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
+import { createNansenEndpointsRouter } from "./routes/partner/nansen/nansenEndpoints.js";
+import { createBinanceSpotRouter } from "./routes/partner/binance/spot.js";
+import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
+import { createBankrRouter } from "./routes/partner/bankr/index.js";
+import { createGizaRouter } from "./routes/partner/giza/index.js";
+import { createNeynarRouter } from "./routes/partner/neynar/index.js";
+import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 // NOTE: @x402/express imports disabled - using custom V1-compatible middleware instead
 // import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 // import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -247,6 +254,12 @@ function isX402Route(p) {
   if (p.startsWith("/brain")) return true;
   if (p.startsWith("/quicknode")) return true;
   if (p.startsWith("/erc8004")) return true;
+  if (p.startsWith("/nansen")) return true;
+  if (p.startsWith("/binance")) return true;
+  if (p.startsWith("/bankr")) return true;
+  if (p.startsWith("/giza")) return true;
+  if (p.startsWith("/neynar")) return true;
+  if (p.startsWith("/siwa")) return true;
   if (p === "/x" || p.startsWith("/x/")) return true;
   return false;
 }
@@ -737,7 +750,7 @@ app.get("/", (req, res) => {
 });
 
 // x402 routes (unversioned paths only; single canonical URL per endpoint)
-// Binance/Giza/Bankr/Neynar/SIWA: agent-only via POST /agent/tools/call (agentDirect), not public HTTP
+// Partner HTTP (also callable via POST /agent/tools/call when agentDirect)
 app.use("/info", await createInfoRouter());
 app.use("/", await createCryptonewsRouter());
 
@@ -793,6 +806,16 @@ app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
 app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
+
+// Nansen x402 catalog (PAYER_KEYPAIR); mirrors /nansen/* paths used by agent tools
+app.use("/nansen", await createNansenEndpointsRouter());
+// Binance: mount /binance/spot before /binance so /binance/spot/* and /binance/correlation resolve correctly
+app.use("/binance/spot", await createBinanceSpotRouter());
+app.use("/binance", await createBinanceCorrelationRouter());
+app.use("/bankr", await createBankrRouter());
+app.use("/giza", await createGizaRouter());
+app.use("/neynar", await createNeynarRouter());
+app.use("/siwa", await createSiwaRouter());
 
 // 8004 Trustless Agent Registry (read-only: liveness, integrity, discovery, introspection)
 app.use("/8004", await create8004Router());
