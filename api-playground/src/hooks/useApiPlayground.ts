@@ -76,7 +76,10 @@ function decodeBase64UrlJson(input: string): Record<string, unknown> | null {
   return null;
 }
 
-/** Nansen API base (call directly; x402 payment with wallet). Override via VITE_NANSEN_API_BASE_URL. */
+/**
+ * Legacy Nansen origin (api.nansen.ai). Playground example flows use Syra `/nansen/*` instead (same payloads, no browser CORS).
+ * Override via VITE_NANSEN_API_BASE_URL only if you paste a direct Nansen URL manually.
+ */
 function getNansenBaseUrl(): string {
   const base = import.meta.env.VITE_NANSEN_API_BASE_URL as string | undefined;
   return (base && base.trim()) || 'https://api.nansen.ai';
@@ -543,32 +546,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       { key: 'email', value: 'user@example.com', enabled: true, description: 'Email for receipt' },
     ],
   },
-  // Partner (Syra gateway — x402 routes on Syra API: /nansen, /binance, /bankr, /giza, /neynar, /siwa)
+  // Partner (Syra gateway — x402 routes on Syra API: /binance, /bankr, /giza, /neynar, /siwa; Nansen catalog is nansenFlows below)
   ...(function syraGatewayPartnerFlows(): ExampleFlowPreset[] {
     const b = getApiBaseUrl();
     return [
-      {
-        id: 'syra-gateway-nansen-current-balance',
-        label: 'Nansen: address current balance (via Syra gateway)',
-        method: 'POST',
-        url: `${b}/nansen/profiler/address/current-balance`,
-        params: [
-          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
-          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
-        ],
-        body: '',
-      },
-      {
-        id: 'syra-gateway-nansen-holdings',
-        label: 'Nansen: smart money holdings (via Syra gateway)',
-        method: 'POST',
-        url: `${b}/nansen/smart-money/holdings`,
-        params: [
-          { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
-          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
-        ],
-        body: '',
-      },
       {
         id: 'syra-gateway-binance-spot-ticker',
         label: 'Binance spot 24h ticker (via Syra gateway)',
@@ -644,92 +625,100 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       },
     ];
   })(),
-  // Nansen (call api.nansen.ai directly; x402 payment with wallet — same payloads as /nansen on Syra)
+  // Nansen (Syra gateway POST /nansen/* — same JSON body as api.nansen.ai; avoids browser CORS to nansen.ai)
   ...(function nansenFlows(): ExampleFlowPreset[] {
-    const nansenBase = getNansenBaseUrl();
+    const b = getApiBaseUrl();
     return [
       {
         id: 'nansen-address-current-balance',
         label: 'Nansen: address current balance',
         method: 'POST',
-        url: `${nansenBase}/api/v1/profiler/address/current-balance`,
+        url: `${b}/nansen/profiler/address/current-balance`,
         params: [
           { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
           { key: 'address', value: '', enabled: true, description: 'Wallet address' },
         ],
+        body: '',
       },
       {
         id: 'nansen-smart-money-netflow',
         label: 'Nansen: smart money netflow',
         method: 'POST',
-        url: `${nansenBase}/api/v1/smart-money/netflow`,
+        url: `${b}/nansen/smart-money/netflow`,
         params: [
           { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
           { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
         ],
+        body: '',
       },
       {
         id: 'nansen-smart-money-holdings',
         label: 'Nansen: smart money holdings',
         method: 'POST',
-        url: `${nansenBase}/api/v1/smart-money/holdings`,
+        url: `${b}/nansen/smart-money/holdings`,
         params: [
           { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
           { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
         ],
+        body: '',
       },
       {
         id: 'nansen-tgm-holders',
         label: 'Nansen: TGM holders',
         method: 'POST',
-        url: `${nansenBase}/api/v1/tgm/holders`,
+        url: `${b}/nansen/tgm/holders`,
         params: [
           { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
           { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
           { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON object' },
         ],
+        body: '',
       },
       {
         id: 'nansen-tgm-flow-intelligence',
         label: 'Nansen: TGM flow intelligence',
         method: 'POST',
-        url: `${nansenBase}/api/v1/tgm/flow-intelligence`,
+        url: `${b}/nansen/tgm/flow-intelligence`,
         params: [
           { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
           { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
           { key: 'timeframe', value: '1d', enabled: false, description: 'e.g. 1d' },
         ],
+        body: '',
       },
       {
         id: 'nansen-token-screener',
         label: 'Nansen: token screener',
         method: 'POST',
-        url: `${nansenBase}/api/v1/token-screener`,
+        url: `${b}/nansen/token-screener`,
         params: [
           { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
           { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
         ],
+        body: '',
       },
       {
         id: 'nansen-tgm-dex-trades',
         label: 'Nansen: TGM DEX trades',
         method: 'POST',
-        url: `${nansenBase}/api/v1/tgm/dex-trades`,
+        url: `${b}/nansen/tgm/dex-trades`,
         params: [
           { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
           { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
           { key: 'date', value: '{"from":"2025-01-01","to":"2025-12-31"}', enabled: false, description: 'JSON date range' },
         ],
+        body: '',
       },
       {
         id: 'nansen-perp-screener',
         label: 'Nansen: perp screener',
         method: 'POST',
-        url: `${nansenBase}/api/v1/perp-screener`,
+        url: `${b}/nansen/perp-screener`,
         params: [
           { key: 'date', value: '{"from":"2025-01-01","to":"2025-12-31"}', enabled: false, description: 'JSON date range' },
           { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON object' },
         ],
+        body: '',
       },
     ];
   })(),
@@ -756,6 +745,9 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
     const b = new URL(syraBase);
     if (u.origin === b.origin) {
       const p = u.pathname.toLowerCase();
+      if (p.startsWith('/nansen/') && id.startsWith('nansen-')) {
+        return { slug: 'nansen', name: 'Nansen' };
+      }
       if (
         p.startsWith('/nansen/') ||
         p.startsWith('/binance/') ||
@@ -849,13 +841,13 @@ const getProxiedUrl = (url: string): string => {
 };
 
 // In production, cross-origin requests hit CORS. Use the API's playground-proxy when we're not in dev and the target is another origin.
-// Nansen direct (api.nansen.ai) is called without proxy so the wallet pays x402. Syra-hosted /nansen/* uses the API origin (CORS allowed).
+// Syra /nansen/* shares the API origin (no proxy). api.nansen.ai does not — relay via playground-proxy to avoid browser CORS.
 function useBackendPlaygroundProxy(targetUrl: string): boolean {
   // Always use backend proxy for MPP lanes so the server can relay Tempo challenges.
   if (targetUrl.toLowerCase().includes('/mpp/')) return true;
   if (USE_PROXY) return false; // Dev proxy handles non-MPP routes
   if (typeof window === 'undefined') return false;
-  if (isNansenUrl(targetUrl)) return false; // Call Nansen directly
+  if (isNansenUrl(targetUrl)) return true; // Browser cannot fetch api.nansen.ai (CORS); server forwards to target
   if (isSyraNansenGatewayUrl(targetUrl)) return false; // Same Syra API; browser → api.syraa.fun (x402 CORS)
   const targetOrigin = getRequestOrigin(targetUrl);
   const pageOrigin = window.location.origin;
@@ -868,11 +860,10 @@ function getPlaygroundProxyUrl(_targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
-// API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: direct api.nansen.ai or Syra /nansen/*.
+// API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: Syra /nansen/* (Try demo).
 // Aligned with api/index.js x402Paths and /.well-known/x402 discovery.
 function getApiEndpoints(): string[] {
   const base = getApiBaseUrl();
-  const nansenBase = getNansenBaseUrl();
   return [
     `${base}/brain`,
     `${base}/news`,
@@ -921,10 +912,11 @@ function getApiEndpoints(): string[] {
     `${base}/neynar/user`,
     `${base}/neynar/search`,
     `${base}/siwa/nonce`,
-    `${nansenBase}/api/v1/profiler/address/current-balance`,
-    `${nansenBase}/api/v1/smart-money/netflow`,
-    `${nansenBase}/api/v1/smart-money/holdings`,
-    `${nansenBase}/api/v1/tgm/holders`,
+    `${base}/nansen/tgm/holders`,
+    `${base}/nansen/tgm/flow-intelligence`,
+    `${base}/nansen/token-screener`,
+    `${base}/nansen/tgm/dex-trades`,
+    `${base}/nansen/perp-screener`,
   ];
 }
 

@@ -48,8 +48,8 @@ const Examples = () => {
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Example flows</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Browse APIs by group or partner — includes Partner (Syra gateway) for /nansen, /binance, /bankr, /giza,
-                /neynar, /siwa on the Syra API, plus direct Nansen (api.nansen.ai) flows
+                Browse APIs by group or partner — Nansen partner data uses Syra routes under /nansen on the Syra API (same
+                payloads as Nansen; avoids browser CORS). Other partners: /binance, /bankr, /giza, /neynar, /siwa
               </p>
             </div>
           </div>
