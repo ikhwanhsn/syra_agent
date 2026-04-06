@@ -63,10 +63,10 @@ interface ExplorerCharts {
 }
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: 'bg-accent/15 text-accent border-accent/25',
+  GET: 'bg-accent/20 text-foreground border border-accent/35',
   POST: 'bg-warning/15 text-warning border-warning/25',
   PUT: 'bg-warning/15 text-warning border-warning/25',
-  PATCH: 'bg-primary/12 text-primary border-primary/22',
+  PATCH: 'bg-primary/20 text-foreground border border-primary/40',
   DELETE: 'bg-destructive/15 text-destructive border-destructive/25',
 };
 
@@ -438,7 +438,9 @@ const Explorer = () => {
                             </span>
                           </td>
                           <td className="py-2.5 px-3">
-                            <code className="text-xs text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">{item.slug}</code>
+                            <code className="text-xs text-foreground/90 font-mono bg-muted border border-border/60 px-1.5 py-0.5 rounded">
+                              {item.slug}
+                            </code>
                           </td>
                           <td className="py-2.5 px-3 text-muted-foreground text-xs">
                             <div className="flex flex-wrap gap-1.5 items-center">

@@ -35,10 +35,10 @@ interface ShareDetail {
 }
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: 'bg-accent/15 text-accent border-accent/25',
+  GET: 'bg-accent/20 text-foreground border border-accent/35',
   POST: 'bg-warning/15 text-warning border-warning/25',
   PUT: 'bg-warning/15 text-warning border-warning/25',
-  PATCH: 'bg-primary/12 text-primary border-primary/22',
+  PATCH: 'bg-primary/20 text-foreground border border-primary/40',
   DELETE: 'bg-destructive/15 text-destructive border-destructive/25',
 };
 
@@ -152,7 +152,7 @@ const ExplorerDetail = () => {
                 {data.sharedByWallet ? (
                   <>
                     <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <code className="font-mono text-sm bg-muted/50 px-2 py-1 rounded break-all" title={data.sharedByWallet}>
+                    <code className="font-mono text-sm text-foreground/90 bg-muted border border-border/60 px-2 py-1 rounded break-all" title={data.sharedByWallet}>
                       {data.sharedByWallet}
                     </code>
                     <Button
@@ -201,7 +201,9 @@ const ExplorerDetail = () => {
                 <span className={cn('rounded border px-2 py-0.5 text-xs font-medium', METHOD_COLORS[data.method] || 'bg-muted')}>
                   {data.method}
                 </span>
-                <code className="text-xs text-muted-foreground font-mono">{data.slug}</code>
+                <code className="text-xs text-foreground/90 font-mono bg-muted border border-border/60 px-1.5 py-0.5 rounded">
+                  {data.slug}
+                </code>
                 <Button
                   variant="ghost"
                   size="icon-sm"
