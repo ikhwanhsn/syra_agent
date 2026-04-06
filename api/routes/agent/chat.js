@@ -599,15 +599,24 @@ router.post('/completion', async (req, res) => {
         .filter((t) => t?.toolId && getAgentTool(t.toolId))
         .map((t) => ({ toolId: normalizeToolId(t.toolId), params: t.params || {} }));
     } else {
-      matchedTools = await selectToolsWithLlm(lastUserMessage);
+      try {
+        matchedTools = await selectToolsWithLlm(lastUserMessage);
+      } catch (toolSelectErr) {
+        console.error('[agent/chat/completion] selectToolsWithLlm threw unexpectedly:', toolSelectErr?.message || toolSelectErr);
+        matchedTools = [];
+      }
     }
 
     const capabilitiesList = getCapabilitiesList().join('\n');
 
     let useTreasuryForTools = false;
     if (anonymousId && walletConnected) {
-      const connectedWallet = await getConnectedWalletAddress(anonymousId);
-      useTreasuryForTools = !!(connectedWallet && (await isSyraHolderEligible(connectedWallet)));
+      try {
+        const connectedWallet = await getConnectedWalletAddress(anonymousId);
+        useTreasuryForTools = !!(connectedWallet && (await isSyraHolderEligible(connectedWallet)));
+      } catch (treasuryErr) {
+        console.error('[agent/chat/completion] treasury eligibility check failed:', treasuryErr?.message || treasuryErr);
+      }
     }
 
     let systemParts = [];
@@ -638,19 +647,23 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       let usdcBalance = 0;
       let solBalance = 0;
       let agentAddr = '';
-      const useClientBalances =
-        agentWalletBalances &&
-        typeof agentWalletBalances.usdcBalance === 'number' &&
-        typeof agentWalletBalances.solBalance === 'number';
-      if (useClientBalances) {
-        usdcBalance = agentWalletBalances.usdcBalance;
-        solBalance = agentWalletBalances.solBalance;
-        agentAddr = (await getAgentAddress(anonymousId)) ?? '';
-      } else {
-        const balanceResult = await getAgentBalances(anonymousId);
-        usdcBalance = balanceResult?.usdcBalance ?? 0;
-        solBalance = balanceResult?.solBalance ?? 0;
-        agentAddr = balanceResult?.agentAddress ?? '';
+      try {
+        const useClientBalances =
+          agentWalletBalances &&
+          typeof agentWalletBalances.usdcBalance === 'number' &&
+          typeof agentWalletBalances.solBalance === 'number';
+        if (useClientBalances) {
+          usdcBalance = agentWalletBalances.usdcBalance;
+          solBalance = agentWalletBalances.solBalance;
+          agentAddr = (await getAgentAddress(anonymousId)) ?? '';
+        } else {
+          const balanceResult = await getAgentBalances(anonymousId);
+          usdcBalance = balanceResult?.usdcBalance ?? 0;
+          solBalance = balanceResult?.solBalance ?? 0;
+          agentAddr = balanceResult?.agentAddress ?? '';
+        }
+      } catch (balErr) {
+        console.error('[agent/chat/completion] balance fetch for system prompt failed:', balErr?.message || balErr);
       }
       systemParts.push(
         `User's agent wallet balances: USDC $${usdcBalance.toFixed(4)}, SOL ${solBalance.toFixed(4)}. Agent wallet address: ${agentAddr || 'unknown'}.`
@@ -695,21 +708,29 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       });
     } else if (anonymousId) {
       const useTreasury = useTreasuryForTools;
-      const connectedWallet = walletConnected ? (await getConnectedWalletAddress(anonymousId)) : null;
-      // Use same balance source as system prompt (client-provided when present) so tool execution matches navbar.
+      let connectedWallet = null;
+      try {
+        connectedWallet = walletConnected ? (await getConnectedWalletAddress(anonymousId)) : null;
+      } catch (cwErr) {
+        console.error('[agent/chat/completion] getConnectedWalletAddress failed:', cwErr?.message || cwErr);
+      }
       const useClientBalancesForTools =
         agentWalletBalances &&
         typeof agentWalletBalances.usdcBalance === 'number' &&
         typeof agentWalletBalances.solBalance === 'number';
-      let usdcBalance;
-      let solBalanceForSwap;
-      if (useClientBalancesForTools) {
-        usdcBalance = agentWalletBalances.usdcBalance;
-        solBalanceForSwap = agentWalletBalances.solBalance;
-      } else {
-        const balanceInfoForSwap = await getAgentBalances(anonymousId);
-        usdcBalance = balanceInfoForSwap?.usdcBalance ?? 0;
-        solBalanceForSwap = balanceInfoForSwap?.solBalance ?? 0;
+      let usdcBalance = 0;
+      let solBalanceForSwap = 0;
+      try {
+        if (useClientBalancesForTools) {
+          usdcBalance = agentWalletBalances.usdcBalance;
+          solBalanceForSwap = agentWalletBalances.solBalance;
+        } else {
+          const balanceInfoForSwap = await getAgentBalances(anonymousId);
+          usdcBalance = balanceInfoForSwap?.usdcBalance ?? 0;
+          solBalanceForSwap = balanceInfoForSwap?.solBalance ?? 0;
+        }
+      } catch (balErr) {
+        console.error('[agent/chat/completion] tool balance fetch failed:', balErr?.message || balErr);
       }
       if (useTreasury) {
         // Treasury pays the x402 fee but swaps still use the agent wallet; don't cap balances,
@@ -984,8 +1005,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       response = result.response;
       truncated = result.truncated;
     } catch (firstError) {
-      // If a non-default model was requested and failed, log why and retry with default model so the user still gets a reply
       const requestedModel = jatevoOptions.model;
+      console.error(`[agent/chat/completion] callJatevo failed (model=${requestedModel || JATEVO_DEFAULT_MODEL}):`, firstError?.message || firstError);
       if (
         requestedModel &&
         requestedModel !== JATEVO_DEFAULT_MODEL
@@ -997,10 +1018,23 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           truncated = fallbackResult.truncated;
           usedFallbackModel = true;
         } catch (fallbackError) {
-          throw firstError;
+          console.error(`[agent/chat/completion] fallback model also failed:`, fallbackError?.message || fallbackError);
+          const err = new Error(
+            firstError?.message?.includes('JATEVO_API_KEY')
+              ? 'AI service is not configured. Please contact the administrator.'
+              : `AI model is temporarily unavailable (${firstError?.message || 'unknown error'}). Please try again in a moment.`
+          );
+          err.status = firstError?.status || 502;
+          throw err;
         }
       } else {
-        throw firstError;
+        const err = new Error(
+          firstError?.message?.includes('JATEVO_API_KEY')
+            ? 'AI service is not configured. Please contact the administrator.'
+            : `AI model is temporarily unavailable (${firstError?.message || 'unknown error'}). Please try again in a moment.`
+        );
+        err.status = firstError?.status || 502;
+        throw err;
       }
     }
 
@@ -1023,9 +1057,13 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     return res.json(payload);
   } catch (error) {
     const status = error.status || 500;
+    const msg = error.message || 'Completion failed';
+    const elapsed = Date.now() - completionStart;
+    console.error(`[agent/chat/completion] ${status} after ${elapsed}ms:`, msg, error.raw ? JSON.stringify(error.raw).slice(0, 300) : '');
     return res.status(status).json({
       success: false,
-      error: error.message || 'Completion failed',
+      error: msg,
+      ...(error.raw?.error?.type && { errorType: error.raw.error.type }),
     });
   }
 });
