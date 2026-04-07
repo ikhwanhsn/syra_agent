@@ -26,16 +26,16 @@
       content="Institutional-grade AI trading infrastructure for smart money automation."
     />
     <meta property="og:type" content="website" />
-    <!-- Same host as shared link (https://syraa.fun). X caches cards ~7d; Telegram refreshes faster. -->
-    <meta property="og:url" content="https://syraa.fun/" />
-    <!-- Same pixels as banner-website.png; unique filename forces X to refetch (query strings are unreliable on X). -->
+    <!-- Host redirects apex → www; og:url/canonical/image must match final URL or X logs WARN + split cache. -->
+    <meta property="og:url" content="https://www.syraa.fun/" />
+    <!-- Same pixels as banner-website.png; dedicated filename helps invalidate X cache (~7d). -->
     <meta
       property="og:image"
-      content="https://syraa.fun/images/syra-card-banner.png"
+      content="https://www.syraa.fun/images/syra-card-banner.png"
     />
     <meta
       property="og:image:secure_url"
-      content="https://syraa.fun/images/syra-card-banner.png"
+      content="https://www.syraa.fun/images/syra-card-banner.png"
     />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1920" />
@@ -58,18 +58,18 @@
     <!-- Must match og:image exactly; X uses twitter:* first, not only Open Graph. -->
     <meta
       name="twitter:image"
-      content="https://syraa.fun/images/syra-card-banner.png"
+      content="https://www.syraa.fun/images/syra-card-banner.png"
     />
     <meta
       name="twitter:image:src"
-      content="https://syraa.fun/images/syra-card-banner.png"
+      content="https://www.syraa.fun/images/syra-card-banner.png"
     />
     <meta
       name="twitter:image:alt"
       content="Syra — AI Trading Intelligence"
     />
 
-    <link rel="canonical" href="https://syraa.fun/" />
+    <link rel="canonical" href="https://www.syraa.fun/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
