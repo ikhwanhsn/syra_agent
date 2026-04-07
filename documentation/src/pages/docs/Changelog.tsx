@@ -39,11 +39,11 @@ const changelogEntries: { period: string; items: string[] }[] = [
 /** Items already shipped / finished in the system — update as you ship */
 const completed = [
   "Syra token ($SYRA) launch on Solana (Pump.fun)",
-  "Documentation site and API reference (docs.syra.ai)",
+  "Documentation site and API reference (docs.syraa.fun)",
   "x402 API standard and payment flow (incl. MPP and Tempo where applicable)",
   "Syra Agent at agent.syraa.fun with trading signals and supported tokens",
   "x402 Agent integration and agent discovery (x402scan)",
-  "Sentiment, News, Research, Syra Brain, and core intelligence APIs live",
+  "Sentiment, news, Syra Brain, EXA search, crawl, Browser Use, and core intelligence APIs live",
   "Multi-venue trading signals (Binance, OKX, Kraken, KuCoin, Coinbase, and additional sources)",
   "Trading experiment API and dashboard for strategy runs and analysis",
   "8004 agent integration, marketplace, and partner/agent-only tools (Nansen, Jupiter, Squid, etc.)",

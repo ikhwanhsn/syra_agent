@@ -18,14 +18,13 @@
 
 ## Purpose
 
-The **documentation** package is the **Syra documentation site** built with Docusaurus (Vite). It provides:
+The **documentation** package is the **Syra documentation site** built with **Vite**, **React**, and **React Router**. It provides:
 
-- **Getting started** — welcome, installation, core concepts.
-- **API reference** — x402 API, endpoints, payment flow.
-- **Agent docs** — Syra Agent catalog, features, trading guidance, supported tokens.
-- **Telegram bot** — setup and commands.
+- **Welcome & overview** — what Syra is and where it runs.
+- **API reference** — x402 (and MPP discovery) endpoints, payment flow, preview routes.
+- **Syra Agent** — getting started, features, trading guidance, supported tokens, catalog, system prompt.
 - **x402 Agent** — autonomous agent on x402scan.
-- **Token & community** — tokenomics, roadmap, community links.
+- **Token & community** — tokenomics, roadmap, changelog, community links.
 
 ---
 
@@ -33,8 +32,8 @@ The **documentation** package is the **Syra documentation site** built with Docu
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | Docusaurus (Vite) |
-| **UI** | React, Tailwind CSS, shadcn-ui |
+| **Build** | Vite |
+| **UI** | React, React Router, Tailwind CSS, shadcn-ui |
 | **Deploy** | Vercel (vercel.json) |
 
 ---
@@ -44,14 +43,14 @@ The **documentation** package is the **Syra documentation site** built with Docu
 ```bash
 cd documentation
 npm install
-npm start
+npm run dev
 ```
 
 | Script | Description |
 |--------|-------------|
-| `npm start` | Start dev server with hot reload |
+| `npm run dev` | Start dev server with hot reload |
 | `npm run build` | Production build |
-| `npm run serve` | Serve production build locally |
+| `npm run preview` | Preview production build locally |
 
 ---
 

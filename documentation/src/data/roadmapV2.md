@@ -1,6 +1,8 @@
 # 🚀 Roadmap
 
-Our 2025–2027 Syra Roadmap - Building AI Trading Intelligence Infrastructure with x402 payments:
+**Live product:** The gateway at [api.syraa.fun](https://api.syraa.fun) and the [API Reference](https://docs.syraa.fun/docs/api-reference) describe the current x402 surface (`GET /.well-known/x402`, OpenAPI catalogs). The quarters below are **directional** plans.
+
+Our 2025–2027 Syra Roadmap — building AI trading intelligence infrastructure with x402 payments:
 
 ## Q4 2025
 

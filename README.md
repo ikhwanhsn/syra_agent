@@ -90,11 +90,15 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 | **`frontend`** | Next.js dashboard and app |
 | **`landing`** | Marketing/landing site (Vite + React) |
 | **`ai-agent`** | AI agent web app (chat, marketplace, x402) |
-| **`docs`** / **`documentation`** | Docusaurus documentation site |
+| **`documentation`** | Documentation site (Vite + React; deployed at docs.syraa.fun) |
 | **`api-playground`** | API testing and exploration UI |
+| **`dashboard`** | Dashboard app |
+| **`landing`** | Marketing / landing site (Vite + React) |
+| **`staking`** | Staking program (scripts and app) |
 | **`prediction-game`** | Prediction game app and server |
-| **`payai-x402-example`** | PayAI x402 v2 example server |
 | **`mcp-server`** | MCP server exposing Syra API tools |
+| **`terminal`** | Terminal-related package in the monorepo |
+| **`openclaw`** | OpenClaw / x402 agent HTTP tool examples |
 
 ---
 
@@ -113,10 +117,10 @@ Syra is built for **clarity**, **consistency**, and **structured reasoning**. It
 
 ## Documentation
 
-Full documentation (getting started, commands, API, tokenomics, x402 agent) is available in the **docs** workspace and can be served via Docusaurus:
+Full documentation (welcome, API reference, Syra Agent, x402 agent, tokenomics) lives in the **`documentation`** app and is published at **[docs.syraa.fun](https://docs.syraa.fun)**.
 
-- **[docs/docs/welcome.md](docs/docs/welcome.md)** — Welcome and overview  
-- Run the docs site: `cd documentation && npm install && npm start`
+- **Local:** `cd documentation && npm install && npm run dev`  
+- **Entry route:** `/docs/welcome` (or open `/docs` for the docs home)
 
 ---
 

@@ -1,7 +1,8 @@
 /**
  * API documentation content for each x402 endpoint.
- * Base URL: https://api.syraa.fun. All x402 endpoints use unversioned paths (e.g. /news, /analytics/summary).
- * The API is implemented under api/routes/ and api/libs/ (refactored from the previous v2 folder structure).
+ * Base URL: https://api.syraa.fun. Paid routes use unversioned paths (e.g. /news, /analytics/summary).
+ * Discovery: GET /.well-known/x402, GET /openapi.json (gateway catalog), GET /mpp-openapi.json (MPP / AgentCash).
+ * Implementation lives under api/routes/ and api/libs/.
  */
 
 export interface ApiParam {
@@ -445,6 +446,92 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
         ],
         requestExample: `curl "${BASE_URL}/crawl?url=https%3A%2F%2Fblog.cloudflare.com%2F&limit=20&depth=2"`,
         responseExample: `{ "jobId": "...", "status": "completed", "records": [...] }`,
+      },
+    ],
+  }),
+
+  "browser-use": doc({
+    title: "Browser Use API",
+    overview:
+      "Run a natural-language browser automation task (Browser Use Cloud) and get structured or text output. Supports GET (query params) and POST (JSON body). Requires `BROWSER_USE_API_KEY` on the server; if unset, the API returns 503. Uses the x402 payment protocol.",
+    price: "$0.08 USD per request (production list price; non-production is lower — see 402 body)",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/browser-use",
+        description: "Execute a task. Body: task (required), optional start_url, model (bu-mini | bu-max), maxCostUsd.",
+        bodyExample: `{ "task": "What is the top post on Hacker News?", "start_url": "https://news.ycombinator.com", "model": "bu-mini" }`,
+        requestExample: `curl -X POST ${BASE_URL}/browser-use \\
+  -H "Content-Type: application/json" \\
+  -d '{"task":"What is the top story on Hacker News?"}'`,
+        responseExample: `{
+  "success": true,
+  "output": "...",
+  "id": "...",
+  "status": "stopped",
+  "liveUrl": "https://...",
+  "totalCostUsd": "0.02"
+}`,
+      },
+      {
+        method: "GET",
+        path: "/browser-use",
+        description: "Same as POST with task, start_url, model, maxCostUsd as query parameters.",
+        params: [
+          { name: "task", type: "string", required: "Yes", description: "Natural language task" },
+          { name: "start_url", type: "string", required: "No", description: "Optional start URL" },
+          { name: "model", type: "string", required: "No", description: "bu-mini (default) or bu-max" },
+          { name: "maxCostUsd", type: "string", required: "No", description: "Cost cap in USD" },
+        ],
+        requestExample: `curl "${BASE_URL}/browser-use?task=What%20is%20the%20price%20of%20SOL%20on%20CoinGecko"`,
+        responseExample: `{ "success": true, "output": "...", "id": "...", "status": "stopped" }`,
+      },
+    ],
+    paymentFlow: {
+      step1: "Initial request returns 402 with payment instructions.",
+      step2: "Complete x402 payment, then retry with PAYMENT-SIGNATURE or X-Payment header.",
+      step3: "Retry with the same payload and payment header to receive the result.",
+      response402: standard402(0.08),
+    },
+  }),
+
+  quicknode: doc({
+    title: "Quicknode RPC API",
+    overview:
+      "Proxy to Quicknode for Solana and Base: native balance, transaction status, and raw JSON-RPC. Returns 503 if `QUICKNODE_SOLANA_RPC_URL` / `QUICKNODE_BASE_RPC_URL` are not configured on the gateway. Uses the x402 payment protocol.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/quicknode/balance",
+        description: "Native balance for an address.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "solana | base" },
+          { name: "address", type: "string", required: "Yes", description: "Wallet address (base58 Solana or 0x Base)" },
+        ],
+        requestExample: `curl "${BASE_URL}/quicknode/balance?chain=solana&address=<BASE58>"`,
+        responseExample: `{ "chain": "solana", "address": "...", "balance": 1000000 }`,
+      },
+      {
+        method: "GET",
+        path: "/quicknode/transaction",
+        description: "Transaction status. Solana: signature query param. Base: txHash query param.",
+        params: [
+          { name: "chain", type: "string", required: "Yes", description: "solana | base" },
+          { name: "signature", type: "string", required: "No", description: "Solana transaction signature (required when chain=solana)" },
+          { name: "txHash", type: "string", required: "No", description: "EVM tx hash (required when chain=base)" },
+        ],
+        requestExample: `curl "${BASE_URL}/quicknode/transaction?chain=solana&signature=<SIG>"`,
+        responseExample: `{ "status": "confirmed", ... }`,
+      },
+      {
+        method: "POST",
+        path: "/quicknode/rpc",
+        description: "Forward a JSON-RPC call to the configured Quicknode endpoint for the chain.",
+        bodyExample: `{ "chain": "solana", "method": "getBalance", "params": ["<address>"] }`,
+        requestExample: `curl -X POST ${BASE_URL}/quicknode/rpc \\
+  -H "Content-Type: application/json" \\
+  -d '{"chain":"base","method":"eth_blockNumber","params":[]}'`,
+        responseExample: `{ "jsonrpc": "2.0", "id": 1, "result": "0x..." }`,
       },
     ],
   }),

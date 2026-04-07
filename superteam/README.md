@@ -43,7 +43,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 | `ai-agent/` | AI research agent UI (chat, prompts, tools). |
 | `api-playground/` | Live API demo (request builder, payment, history). |
 | `landing/` | Marketing site + **Analytics** page + Leaderboard. |
-| `docs/` | Docusaurus — API docs, getting started, x402 agent. |
+| `documentation/` | Docs site (Vite + React) — API reference, Syra Agent, x402 agent, tokenomics. |
 
 **Live URLs (production)**
 
@@ -72,7 +72,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 **What you need to do:**
 
 - [ ] **Document** all analytics-related endpoints in one place.
-  - Suggested file: `docs/docs/api documentation/analytics.md` (or new “Analytics API” section).
+  - Suggested: extend `documentation/src/data/apiDocs.ts` and sidebar (`documentation/src/data/docsNav.ts`) for analytics endpoints, or add a dedicated doc page under `documentation/src/pages/docs/`.
   - List: `/dexscreener`, `/binance/correlation`, `/token-report`, `/token-statistic`, `/trending-jupiter`, etc., with short description and example.
 - [ ] **(Optional)** Add one **summary endpoint** e.g. `GET /analytics/summary` that returns a single JSON with links or counts to price, volume, correlation, token risk — so reviewers see “one analytics API” in one call. If you skip this, the doc alone is enough.
 
@@ -105,7 +105,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 **What already exists:**
 
 - Repo is open source.
-- Docs in `docs/` (Docusaurus): API docs, general docs, x402 agent getting started.
+- Docs in `documentation/`: API reference, welcome, Syra Agent, x402 agent (published at docs.syraa.fun).
 
 **What you need to do:**
 
@@ -183,7 +183,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 
 **What already exists:**
 
-- Docusaurus API docs in `docs/docs/api documentation/`.
+- API docs live in `documentation/` (`apiDocs.ts`, `docsNav.ts`, and pages under `documentation/src/pages/docs/`).
 - Some endpoints already documented (browse, news, research, etc.).
 
 **What you need to do:**
@@ -236,7 +236,7 @@ This folder contains everything you need to finish your **$7,500 grant** milesto
 
 ### 3.4 Public roadmap and weekly updates
 
-- [ ] **Public roadmap:** Keep or add a roadmap page (e.g. `docs/docs/token/roadmap.md` or landing Roadmap section) with high-level milestones and dates.
+- [ ] **Public roadmap:** Keep or add a roadmap page (e.g. `documentation/src/data/roadmapV2.md` or landing Roadmap section) with high-level milestones and dates.
 - [ ] **Weekly progress updates:** Post once per week (e.g. GitHub Discussions, Twitter/X, or blog) with: what was done, what’s next, and KPI numbers (e.g. paid API calls, agent sessions from `/analytics/kpi`).
 
 **Deliverable:** Public roadmap + at least 4–6 weekly updates during the grant.
@@ -314,9 +314,9 @@ Copy this into your task tracker or keep it here and tick as you go.
 
 | Task | File or path |
 |------|-------------------------------|
-| Analytics API doc | `docs/docs/api documentation/` (add or edit) |
+| Analytics API doc | `documentation/src/data/apiDocs.ts` + nav (add or edit) |
 | Agent tools list | `api/config/agentTools.js` |
-| Agent catalog doc | `docs/docs/x402 agent/agent-catalog.md` or similar |
+| Agent catalog doc | `documentation/src/pages/docs/AgentCatalog.tsx` / `agentToolsCatalog.ts` |
 | System prompts | `ai-agent/src/lib/systemPrompt.ts` or agent config |
 | Root README | `README.md` (repo root) |
 | Playground | `api-playground/` |

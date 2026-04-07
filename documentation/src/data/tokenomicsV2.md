@@ -186,4 +186,4 @@ In any scenario, $SYRA holders benefit from buybacks, revenue sharing, or acquis
 > **💡 For Developers**  
 > Test our x402 APIs. No signup required. Just start calling our endpoints and pay only when you exceed the free tier.  
 >  
-> See integration examples at [docs.syra.ai/x402-quickstart](https://docs.syraa.fun/docs/advance%20&%20support/developer-and-api)
+> See the [API reference and x402 overview](https://docs.syraa.fun/docs/api-reference) on docs.syraa.fun.

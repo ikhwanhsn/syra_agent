@@ -49,6 +49,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "EXA Search", href: api("exa-search") },
           { title: "Website Crawl", href: api("crawl") },
+          { title: "Browser Use", href: api("browser-use") },
           { title: "Analytics Summary", href: api("analytics-summary") },
         ],
       },
@@ -61,12 +62,9 @@ export const navigation: NavItem[] = [
         ],
       },
       {
-        title: "KOL & Influencers",
+        title: "RPC & Infrastructure",
         defaultCollapsed: false,
-        items: [
-          { title: "X KOL", href: api("kol") },
-          { title: "Crypto KOL", href: api("crypto-kol") },
-        ],
+        items: [{ title: "Quicknode (Solana & Base)", href: api("quicknode") }],
       },
       {
         title: "Partner: Nansen",

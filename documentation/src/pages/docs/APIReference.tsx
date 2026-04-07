@@ -18,15 +18,15 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Research & Discovery",
-    slugs: ["browse", "research", "x-search", "exa-search", "crawl", "gems", "analytics-summary"],
+    slugs: ["exa-search", "crawl", "browser-use", "analytics-summary"],
   },
   {
     title: "Trading & Events",
     slugs: ["signal", "event"],
   },
   {
-    title: "KOL & Influencers",
-    slugs: ["kol", "crypto-kol"],
+    title: "RPC & Infrastructure",
+    slugs: ["quicknode"],
   },
   {
     title: "Partner: Nansen",
@@ -47,20 +47,6 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   {
     title: "Partner: Bubblemaps & agent-only partners",
     slugs: ["bubblemaps-maps", "agent-tools-partners"],
-  },
-  {
-    title: "Memecoin",
-    slugs: [
-      "memecoin-fastest-holder-growth",
-      "memecoin-most-mentioned-smart-money-x",
-      "memecoin-accumulating-before-cex-rumors",
-      "memecoin-strong-narrative-low-market-cap",
-      "memecoin-by-experienced-devs",
-      "memecoin-unusual-whale-behavior",
-      "memecoin-trending-on-x-not-dex",
-      "memecoin-organic-traction",
-      "memecoin-surviving-market-dumps",
-    ],
   },
   {
     title: "8004 Agent Registry",
@@ -85,7 +71,11 @@ export default function APIReference() {
         <div className="text-sm text-primary font-medium mb-2">API Reference</div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">x402 API Overview</h1>
         <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-          Syra x402 API reference. All endpoints use the x402 payment protocol for research, sentiment, signals, news, memecoin screens, and partner data.
+          Syra x402 API reference. Paid routes use the x402 payment protocol (and MPP discovery where advertised). Preview and dashboard helpers are free for trusted origins — see{" "}
+          <Link to="/docs/api/preview-dashboard" className="text-primary hover:underline">
+            Preview & Dashboard
+          </Link>
+          .
         </p>
       </div>
 
@@ -122,7 +112,7 @@ export default function APIReference() {
       <section id="authentication" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Authentication (x402)</h2>
         <p className="text-muted-foreground mb-4">
-          This API uses the <strong>x402 payment protocol</strong>. There is no API key; you pay per request. On first request without payment you get a 402 response with payment instructions. After completing payment, retry the same request with the payment proof in headers to receive the data.
+          <strong>Paid routes</strong> use the <strong>x402</strong> payment protocol: first request without payment returns <strong>402</strong> with instructions; retry with the payment proof (e.g. PAYMENT-SIGNATURE or X-Payment). <strong>Preview and dashboard</strong> routes (<code className="text-sm font-mono bg-muted px-1 rounded">/dashboard-summary</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/preview/*</code>, etc.) do not use x402; the gateway may inject an API key for trusted browser origins — never embed keys in client bundles.
         </p>
         <CodeBlock
           plain
