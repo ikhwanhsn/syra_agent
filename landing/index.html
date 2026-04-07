@@ -26,23 +26,23 @@
       content="Institutional-grade AI trading infrastructure for smart money automation."
     />
     <meta property="og:type" content="website" />
-    <!-- Match the URL people paste (https://syraa.fun) so X/FB key the same object. -->
+    <!-- Same host as shared link (https://syraa.fun). X caches cards ~7d; Telegram refreshes faster. -->
     <meta property="og:url" content="https://syraa.fun/" />
-    <!-- Wide hero banner (not logo.jpg). Dedicated filename avoids X cache stuck on old card art. -->
+    <!-- Same pixels as banner-website.png; unique filename forces X to refetch (query strings are unreliable on X). -->
     <meta
       property="og:image"
-      content="https://syraa.fun/images/syra-link-preview.png"
+      content="https://syraa.fun/images/syra-card-banner.png"
     />
     <meta
       property="og:image:secure_url"
-      content="https://syraa.fun/images/syra-link-preview.png"
+      content="https://syraa.fun/images/syra-card-banner.png"
     />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1536" />
-    <meta property="og:image:height" content="1024" />
+    <meta property="og:image:width" content="1920" />
+    <meta property="og:image:height" content="1080" />
     <meta
       property="og:image:alt"
-      content="Syra — AI agent trading infrastructure banner"
+      content="Syra — AI Trading Intelligence"
     />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -55,17 +55,18 @@
       name="twitter:description"
       content="Institutional-grade AI trading infrastructure for smart money automation."
     />
+    <!-- Must match og:image exactly; X uses twitter:* first, not only Open Graph. -->
     <meta
       name="twitter:image"
-      content="https://syraa.fun/images/syra-link-preview.png"
+      content="https://syraa.fun/images/syra-card-banner.png"
     />
     <meta
       name="twitter:image:src"
-      content="https://syraa.fun/images/syra-link-preview.png"
+      content="https://syraa.fun/images/syra-card-banner.png"
     />
     <meta
       name="twitter:image:alt"
-      content="Syra — AI agent trading infrastructure banner"
+      content="Syra — AI Trading Intelligence"
     />
 
     <link rel="canonical" href="https://syraa.fun/" />
