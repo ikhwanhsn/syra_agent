@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+.yarn
+
+# Next.js
+.next
+out
+
+# Build / cache
+*.tsbuildinfo
+.turbo
+
+# Anchor / Solana
+.anchor
+target
+**/*.rs.bk
+test-ledger
+
+# Environment (backup if not in root)
+.env*.local
+faucet-keypair.json
+
+# OS / IDE
+.DS_Store
+.idea
+*.log
