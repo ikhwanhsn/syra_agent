@@ -18,7 +18,9 @@
     "register-sap": "node -r dotenv/config scripts/register-sap-agent.js",
     "publish-sap-tools": "node -r dotenv/config scripts/publish-sap-tools.js",
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
-    "openapi": "node scripts/export-openapi.mjs"
+    "openapi": "node scripts/export-openapi.mjs",
+    "arena-worker": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs",
+    "arena-worker:once": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs --once"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

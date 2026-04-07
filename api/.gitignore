@@ -1,0 +1,6 @@
+.arena-credentials
+.arena-worker-state.json
+
+.agent-wallet.json
+.agent-env-template.txt
+.tempo-wallet.local.json

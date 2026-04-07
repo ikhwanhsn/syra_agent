@@ -1,0 +1,5 @@
+.env*
+.arena-credentials
+.arena-worker-state.json
+.agent-wallet.json
+node_modules
