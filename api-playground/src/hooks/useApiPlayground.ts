@@ -26,6 +26,7 @@ import {
   X402PaymentOption,
 } from '@/lib/x402Client';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
+import { BRAND_NAME } from '@/lib/branding';
 
 function getApiBaseUrl(): string {
   return resolveApiBaseUrl();
@@ -180,8 +181,9 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     method: 'POST',
     url: `${base}/nansen/smart-money/netflow`,
     params: [
-      { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
-      { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+      { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array e.g. ["solana","ethereum"]' },
+      { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters object' },
+      { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
     ],
     body: '',
   },
@@ -628,6 +630,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
   // Nansen (Syra gateway POST /nansen/* — same JSON body as api.nansen.ai; avoids browser CORS to nansen.ai)
   ...(function nansenFlows(): ExampleFlowPreset[] {
     const b = getApiBaseUrl();
+    const solWsol = 'So11111111111111111111111111111111111111112';
     return [
       {
         id: 'nansen-address-current-balance',
@@ -635,8 +638,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/profiler/address/current-balance`,
         params: [
-          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
-          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (solana, ethereum, base, bnb, arbitrum, etc.)' },
+          { key: 'address', value: '', enabled: false, description: 'Wallet address (optional if entity_name provided)' },
+          { key: 'entity_name', value: '', enabled: false, description: 'Entity name (e.g. "Vitalik Buterin")' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -646,8 +651,9 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/smart-money/netflow`,
         params: [
-          { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
-          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array e.g. ["solana","ethereum"]' },
+          { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters object' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -657,8 +663,20 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/smart-money/holdings`,
         params: [
-          { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array e.g. ["solana"]' },
-          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array e.g. ["solana"]' },
+          { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters object' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-smart-money-dex-trades',
+        label: 'Nansen: smart money DEX trades',
+        method: 'POST',
+        url: `${b}/nansen/smart-money/dex-trades`,
+        params: [
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array e.g. ["solana"]' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -668,9 +686,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/tgm/holders`,
         params: [
-          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
-          { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
-          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON object' },
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Required. Token contract address' },
+          { key: 'label_type', value: 'smart_money', enabled: false, description: 'all_holders, smart_money, whale, exchange, public_figure' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -680,9 +699,9 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/tgm/flow-intelligence`,
         params: [
-          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
-          { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
-          { key: 'timeframe', value: '1d', enabled: false, description: 'e.g. 1d' },
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Required. Token contract address' },
+          { key: 'timeframe', value: '1d', enabled: true, description: '5m, 1h, 6h, 12h, 1d, 7d' },
         ],
         body: '',
       },
@@ -692,8 +711,8 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/token-screener`,
         params: [
-          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
-          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON object' },
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -703,9 +722,47 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/tgm/dex-trades`,
         params: [
-          { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana)' },
-          { key: 'token_address', value: '', enabled: true, description: 'Token contract address' },
-          { key: 'date', value: '{"from":"2025-01-01","to":"2025-12-31"}', enabled: false, description: 'JSON date range' },
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Required. Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-flows',
+        label: 'Nansen: TGM flows',
+        method: 'POST',
+        url: `${b}/nansen/tgm/flows`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Required. Token contract address' },
+          { key: 'label', value: 'smart_money', enabled: false, description: 'smart_money, whale, exchange, public_figure' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-who-bought-sold',
+        label: 'Nansen: TGM who bought/sold',
+        method: 'POST',
+        url: `${b}/nansen/tgm/who-bought-sold`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Required. Token contract address' },
+          { key: 'buy_or_sell', value: 'BUY', enabled: true, description: 'BUY or SELL' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-transfers',
+        label: 'Nansen: TGM transfers',
+        method: 'POST',
+        url: `${b}/nansen/tgm/transfers`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (e.g. solana)' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Required. Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -715,8 +772,17 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         method: 'POST',
         url: `${b}/nansen/perp-screener`,
         params: [
-          { key: 'date', value: '{"from":"2025-01-01","to":"2025-12-31"}', enabled: false, description: 'JSON date range' },
-          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON object' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-perp-leaderboard',
+        label: 'Nansen: perp leaderboard',
+        method: 'POST',
+        url: `${b}/nansen/perp-leaderboard`,
+        params: [
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
         ],
         body: '',
       },
@@ -912,11 +978,31 @@ function getApiEndpoints(): string[] {
     `${base}/neynar/user`,
     `${base}/neynar/search`,
     `${base}/siwa/nonce`,
+    `${base}/nansen/smart-money/dex-trades`,
+    `${base}/nansen/smart-money/historical-holdings`,
+    `${base}/nansen/smart-money/dcas`,
     `${base}/nansen/tgm/holders`,
     `${base}/nansen/tgm/flow-intelligence`,
-    `${base}/nansen/token-screener`,
+    `${base}/nansen/tgm/flows`,
+    `${base}/nansen/tgm/who-bought-sold`,
     `${base}/nansen/tgm/dex-trades`,
+    `${base}/nansen/tgm/transfers`,
+    `${base}/nansen/tgm/jup-dca`,
+    `${base}/nansen/tgm/pnl-leaderboard`,
+    `${base}/nansen/tgm/perp-positions`,
+    `${base}/nansen/tgm/perp-trades`,
+    `${base}/nansen/tgm/perp-pnl-leaderboard`,
+    `${base}/nansen/token-screener`,
     `${base}/nansen/perp-screener`,
+    `${base}/nansen/perp-leaderboard`,
+    `${base}/nansen/profiler/address/historical-balances`,
+    `${base}/nansen/profiler/address/transactions`,
+    `${base}/nansen/profiler/address/related-wallets`,
+    `${base}/nansen/profiler/address/pnl-summary`,
+    `${base}/nansen/profiler/address/pnl`,
+    `${base}/nansen/profiler/address/counterparties`,
+    `${base}/nansen/profiler/perp-positions`,
+    `${base}/nansen/profiler/perp-trades`,
   ];
 }
 
@@ -1028,15 +1114,19 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
       ],
       '/nansen/profiler/address/current-balance': [
-        { key: 'chain', value: 'solana', enabled: true, description: 'Chain (e.g. solana, ethereum)' },
-        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain (solana, ethereum, base, etc.)' },
+        { key: 'address', value: '', enabled: false, description: 'Wallet address (optional if entity_name)' },
+        { key: 'entity_name', value: '', enabled: false, description: 'Entity name (e.g. "Vitalik Buterin")' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
       ],
       '/nansen/smart-money/netflow': [
-        { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array of chains' },
+        { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters' },
         { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
       ],
       '/nansen/smart-money/holdings': [
-        { key: 'chains', value: '["solana"]', enabled: true, description: 'JSON array of chains' },
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array of chains' },
+        { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters' },
         { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
       ],
       '/binance/correlation': [
@@ -1881,10 +1971,12 @@ export function useApiPlayground() {
       })();
       const emptyBody = !effectiveBody.trim() || /^\s*\{\s*\}\s*$/.test(effectiveBody.trim()) || /^\s*\{\s*\n?\s*\}\s*$/.test(effectiveBody.trim());
       if (emptyBody && useNansenStylePostBody) {
-        // Nansen API (direct or Syra /nansen/*) expects POST with JSON body; build from params (parse JSON-like values)
+        // Nansen API (direct or Syra /nansen/*) expects POST with JSON body; build from params (parse JSON-like values).
+        // Skip params with empty values — Nansen returns 422 validation errors for empty strings on optional fields.
         const bodyObj: Record<string, unknown> = {};
         enabledParams.forEach(p => {
           const v = p.value?.trim() ?? '';
+          if (!v) return;
           if (v.startsWith('{') || v.startsWith('[')) {
             try {
               bodyObj[p.key] = JSON.parse(v);
@@ -2686,11 +2778,11 @@ export function useApiPlayground() {
     if (!paymentOption) {
       setTransactionStatus({
         status: 'failed',
-        error: 'This payment challenge uses a method/network not supported by the current playground wallet flow.',
+        error: `This payment challenge uses a method/network not supported by the current ${BRAND_NAME} wallet flow.`,
       });
       toast({
         title: 'Payment method not supported yet',
-        description: 'This endpoint returns a Tempo/MPP challenge. The playground can show the amount, but it can only execute Solana or Base x402 payments right now.',
+        description: `This endpoint returns a Tempo/MPP challenge. ${BRAND_NAME} can show the amount, but it can only execute Solana or Base x402 payments right now.`,
         variant: 'destructive',
       });
       return;

@@ -727,7 +727,7 @@ export default function BatchTest() {
           <DialogHeader>
             <DialogTitle>Add endpoints</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-2">Only x402 APIs (endpoints that return 402 Payment Required) can be added. Others will be skipped.</p>
+          <p className="text-xs text-muted-foreground -mt-2">Only payment-gated APIs (HTTP 402 with x402 body) can be added. Others will be skipped.</p>
           <div className="flex flex-col gap-6 overflow-y-auto min-h-0">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Select preset endpoints</h3>
@@ -782,7 +782,7 @@ export default function BatchTest() {
                         setModalPresetChecked(new Set());
                         if (notX402.length > 0) {
                           toast({
-                            title: 'Only x402 APIs can be added',
+                            title: 'Only 402-gated APIs can be added',
                             description: `Added ${x402Ids.length} endpoint(s). ${notX402.length} did not return 402 and were skipped: ${notX402.map((r) => r.label).join(', ')}`,
                             variant: 'destructive',
                           });
@@ -825,12 +825,12 @@ export default function BatchTest() {
                         setModalPresetChecked(new Set());
                         if (notX402.length > 0) {
                           toast({
-                            title: 'Only x402 APIs can be added',
-                            description: `Added ${x402Ids.length} x402 endpoint(s). ${notX402.length} did not return 402 and were skipped: ${notX402.map((r) => r.label).join(', ')}`,
+                            title: 'Only 402-gated APIs can be added',
+                            description: `Added ${x402Ids.length} payment-gated endpoint(s). ${notX402.length} did not return 402 and were skipped: ${notX402.map((r) => r.label).join(', ')}`,
                             variant: 'destructive',
                           });
                         } else if (x402Ids.length > 0) {
-                          toast({ title: 'Added', description: `All ${x402Ids.length} x402 endpoint(s) added to batch.` });
+                          toast({ title: 'Added', description: `All ${x402Ids.length} payment-gated endpoint(s) added to batch.` });
                         }
                         setIsCheckingX402(false);
                       }}
@@ -852,7 +852,7 @@ export default function BatchTest() {
               )}
             </div>
             <div className="space-y-3 border-t border-border pt-4">
-              <h3 className="text-sm font-semibold text-foreground">Or add your own x402 API</h3>
+              <h3 className="text-sm font-semibold text-foreground">Or add your own 402-gated API</h3>
               <div className="grid gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="custom-url">API URL</Label>
@@ -913,8 +913,8 @@ export default function BatchTest() {
                     const is402 = await probeIsX402(url, customMethod, customBody || '{}');
                     if (!is402) {
                       toast({
-                        title: 'Only x402 APIs can be added',
-                        description: 'This API did not return 402 Payment Required. Only x402 APIs can be added to the batch test.',
+                        title: 'Only 402-gated APIs can be added',
+                        description: 'This API did not return 402 Payment Required. Only payment-gated (x402) endpoints can be added to the batch test.',
                         variant: 'destructive',
                       });
                       setIsCheckingX402(false);
@@ -949,9 +949,9 @@ export default function BatchTest() {
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">x402 Batch Test</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Agentic batch test</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Run many x402 APIs with one click. You pay for each 402 and see which endpoints succeed or fail, plus overall statistics. Add or remove APIs in the table toolbar and rows.
+                Run many payment-gated APIs in one pass. Pay each 402, see per-endpoint results and rollups. Add or remove URLs from the table toolbar and rows.
               </p>
             </div>
           </div>
@@ -1087,7 +1087,7 @@ export default function BatchTest() {
                   {rows.length === 0 && entries.length === 0 && (
                     <tr>
                       <td colSpan={7} className="p-6 text-center text-muted-foreground">
-                        No endpoints selected. Click <strong>Add endpoint</strong> to choose presets or add your own x402 API URL.
+                        No endpoints selected. Click <strong>Add endpoint</strong> to choose presets or add your own 402-gated API URL.
                       </td>
                     </tr>
                   )}

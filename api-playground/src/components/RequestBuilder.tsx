@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, Loader2, Sparkles, Plus, Trash2, Zap, ArrowRight, Info, Globe, FileJson, Settings2, Share2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, Plus, Trash2, ArrowRight, Info, Globe, FileJson, Settings2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface RequestBuilderProps {
   method: HttpMethod;
@@ -136,41 +137,39 @@ export function RequestBuilder({
   return (
     <TooltipProvider>
       <div className="flex flex-col min-h-0 lg:h-full lg:overflow-hidden">
-        {/* Header - fixed, does not scroll */}
-        <div className="shrink-0 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5">
+        {/* Header */}
+        <div className="shrink-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-3 min-w-0">
             <div
               className={cn(
-                'w-9 h-9 shrink-0 rounded-lg flex items-center justify-center',
-                paymentLane === 'mpp'
-                  ? 'bg-gradient-to-br from-muted to-secondary/80'
-                  : 'bg-gradient-to-br from-primary/20 to-muted/50'
+                'w-9 h-9 shrink-0 rounded-lg overflow-hidden border border-border/80 ring-1 ring-black/5 dark:ring-white/10',
+                paymentLane === 'mpp' && 'ring-accent/30 border-accent/40',
               )}
             >
-              <Zap
-                className={cn(
-                  'h-4.5 w-4.5',
-                  paymentLane === 'mpp' ? 'text-foreground' : 'text-primary'
-                )}
+              <img
+                src="/images/logo.jpg"
+                alt={BRAND_NAME}
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+                decoding="async"
               />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-semibold text-foreground truncate">Request Builder</h2>
-              <p className="text-xs text-muted-foreground">
-                {paymentLane === 'mpp'
-                  ? 'Build requests to Syra MPP routes'
-                  : 'Configure your x402 API request'}
-              </p>
+              <h2 className="text-base font-semibold text-foreground truncate">
+                {paymentLane === 'mpp' ? 'MPP request' : 'Request'}
+              </h2>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">
             {wallet.connected && (
               <Badge
                 variant="outline"
-                className="text-xs gap-2 px-3 py-1.5 border-primary/30 bg-primary/10 text-foreground"
+                className="text-[11px] sm:text-xs gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border-primary/30 bg-primary/10 text-foreground"
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                Ready to Pay
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                <span className="sm:hidden">Ready</span>
+                <span className="hidden sm:inline">Ready to pay</span>
               </Badge>
             )}
             {onCreateShareLink && (
@@ -178,7 +177,7 @@ export function RequestBuilder({
                 variant="outline"
                 size="sm"
                 disabled={isLoading || isSharing}
-                className="gap-2 h-9"
+                className="gap-1.5 h-9 px-2.5 sm:px-3"
                 onClick={async () => {
                   if (!onCreateShareLink) return;
                   setIsSharing(true);
@@ -219,7 +218,7 @@ export function RequestBuilder({
                 <p className="text-xs">
                   {paymentLane === 'mpp'
                     ? 'Syra MPP routes support GET and POST like the rest of the API'
-                    : 'x402 API supports GET for fetching data and POST for sending data'}
+                    : 'GET for reads; POST for writes (x402 & MPP payment-gated endpoints)'}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -269,7 +268,7 @@ export function RequestBuilder({
                 value={url}
                 onChange={(e) => onUrlChange(e.target.value)}
                 placeholder="https://api.example.com/v1/resource"
-                className="font-mono text-sm bg-secondary/50 border-border h-11 pl-4 pr-14 sm:pr-14 min-w-0 w-full max-w-full"
+                className="font-mono text-base sm:text-sm bg-secondary/50 border-border h-11 pl-3 sm:pl-4 pr-12 sm:pr-14 min-w-0 w-full max-w-full"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                 {isAutoDetecting && (
@@ -364,7 +363,7 @@ export function RequestBuilder({
                     <JsonEditor
                       value={body}
                       onChange={onBodyChange}
-                      placeholder='{\n  "message": "Hello, x402!",\n  "data": {}\n}'
+                      placeholder='{\n  "message": "Hello, agent!",\n  "data": {}\n}'
                       minHeight="100%"
                     />
                   </div>

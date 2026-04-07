@@ -1,5 +1,6 @@
 import { X, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface UnsupportedApiModalProps {
   isOpen: boolean;
@@ -56,10 +57,10 @@ export function UnsupportedApiModal({ isOpen, onClose }: UnsupportedApiModalProp
             <div className="p-4 rounded-lg bg-secondary/30 border border-border/50">
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Any x402 API</span>
+                <span className="text-xs text-muted-foreground">Any payment-gated API</span>
               </div>
               <p className="text-xs text-foreground">
-                This playground works with any x402-compatible API (Syra, api.syraa.fun, or any other service that uses the HTTP 402 payment protocol).
+                {`${BRAND_NAME} works with payment-gated APIs: x402 (402 + JSON body) and MPP routes on Syra — same HTTP 402 wallet flow. Syra (api.syraa.fun) and any compatible origin.`}
               </p>
             </div>
           </div>

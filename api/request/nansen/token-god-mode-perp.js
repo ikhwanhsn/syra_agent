@@ -1,8 +1,16 @@
-const BASE_URL = "https://nansen.api.corbits.dev";
-const dateRange = {
-  from: "2025-12-01",
-  to: "2025-12-30",
-};
+const BASE_URL = process.env.NANSEN_API_BASE_URL || "https://api.nansen.ai";
+
+function getDateRange(daysBack = 30) {
+  const to = new Date();
+  const from = new Date(to);
+  from.setDate(from.getDate() - daysBack);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  };
+}
+
+const dateRange = getDateRange(30);
 
 export const tokenGodModePerpRequests = [
   // 1. PERP SCREENER - Smart Money Perpetual Futures Analysis

@@ -15,6 +15,7 @@ import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import type { RequestParam } from '@/types/api';
 import { Badge } from '@/components/ui/badge';
+import { BRAND_NAME } from '@/lib/branding';
 
 const ExamplesGroup = () => {
   const { groupSlug } = useParams<{ groupSlug: string }>();
@@ -118,7 +119,7 @@ const ExamplesGroup = () => {
               <div>
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{group.name}</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {flows.length} API{flows.length !== 1 ? 's' : ''} — click Run to open the playground and send the request
+                  {flows.length} API{flows.length !== 1 ? 's' : ''} — click Run to open {BRAND_NAME} and send the request
                 </p>
               </div>
             </div>

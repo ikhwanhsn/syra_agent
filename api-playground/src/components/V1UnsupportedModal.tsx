@@ -1,5 +1,6 @@
 import { X, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface V1UnsupportedModalProps {
   isOpen: boolean;
@@ -59,7 +60,7 @@ export function V1UnsupportedModal({ isOpen, onClose }: V1UnsupportedModalProps)
                 <span className="text-xs text-muted-foreground">v1 vs v2</span>
               </div>
               <p className="text-xs text-foreground">
-                This playground supports both x402 v1 and v2. When v1 returns valid <code className="text-primary">accepts</code> (payTo, maxAmountRequired), you can pay and get the result. v2 uses <code className="text-primary">PAYMENT-SIGNATURE</code>; v1 uses <code className="text-primary">X-PAYMENT</code> with a different payload.
+                {`${BRAND_NAME} supports both x402 v1 and v2. When v1 returns valid `}<code className="text-primary">accepts</code>{` (payTo, maxAmountRequired), you can pay and get the result. v2 uses `}<code className="text-primary">PAYMENT-SIGNATURE</code>{`; v1 uses `}<code className="text-primary">X-PAYMENT</code>{` with a different payload.`}
               </p>
             </div>
           </div>

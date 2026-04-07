@@ -5,7 +5,7 @@
 import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { X402_API_PRICE_NANSEN_USD, X402_API_PRICE_NANSEN_PREMIUM_USD } from "../../../config/x402Pricing.js";
-import { payer, getSentinelPayerFetch } from "../../../libs/sentinelPayer.js";
+import { getNansenPaymentFetch } from "../../../libs/sentinelPayer.js";
 import {
   profilerAddressCurrentBalance,
   profilerAddressHistoricalBalances,
@@ -39,10 +39,13 @@ import {
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
-/** Build options for Nansen calls: Sentinel-wrapped payer.fetch and optional baseUrl from env */
-function nansenOptions() {
+let _nansenFetch = null;
+
+/** Build options for Nansen calls: @x402/fetch-based payment fetch (reads Payment-Required header) + optional baseUrl from env */
+async function nansenOptions() {
+  if (!_nansenFetch) _nansenFetch = await getNansenPaymentFetch();
   return {
-    fetch: getSentinelPayerFetch(),
+    fetch: _nansenFetch,
     ...(process.env.NANSEN_API_BASE_URL ? { baseUrl: process.env.NANSEN_API_BASE_URL } : {}),
   };
 }
@@ -73,17 +76,13 @@ function getPayload(req) {
   return out;
 }
 
-/** Factory: handler that runs fn(payload) with payer and settles payment */
+/** Factory: handler that runs fn(payload) with x402 payment fetch and settles payment */
 function handler(fn) {
   return async (req, res) => {
-    const { PAYER_KEYPAIR } = process.env;
-    if (!PAYER_KEYPAIR) {
-      return res.status(500).json({ error: "PAYER_KEYPAIR must be set" });
-    }
-    await payer.addLocalWallet(PAYER_KEYPAIR);
     try {
+      const opts = await nansenOptions();
       const payload = getPayload(req);
-      const data = await fn(payload, nansenOptions());
+      const data = await fn(payload, opts);
       await settlePaymentAndSetResponse(res, req);
       res.status(200).json(data);
     } catch (err) {

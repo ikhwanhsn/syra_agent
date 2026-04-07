@@ -13,6 +13,7 @@ import { extractPaymentDetailsFromOption } from '@/lib/x402Client';
 import { CheckCircle2, XCircle, AlertCircle, Loader2, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
+import { BRAND_NAME } from '@/lib/branding';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -165,9 +166,9 @@ export default function FormatValidator() {
                 <FlaskConical className="h-6 w-6 text-primary" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-semibold text-foreground">x402 Format Validator</h1>
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground">402 response validator</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Test if an API returns a 402 response in the correct format for the playground.
+                  {`Validate x402-shaped 402 JSON so ${BRAND_NAME} can pay and retry. MPP (machine payments) uses the same HTTP 402 wallet flow when the challenge is payable.`}
                 </p>
               </div>
             </div>
@@ -230,8 +231,8 @@ export default function FormatValidator() {
                 <CardDescription>
                   {detectedMethod ? `Detected via ${detectedMethod}. ` : ''}
                   {result.valid
-                    ? 'This endpoint returns a 402 response that the playground can parse and pay. You can use it in the playground without format errors.'
-                    : 'Fix the issues below so the playground can pay and retry correctly.'}
+                    ? `This 402 response matches what ${BRAND_NAME} expects. You can run it from the main workspace without format errors.`
+                    : `Fix the issues below so ${BRAND_NAME} can complete payment and retry.`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

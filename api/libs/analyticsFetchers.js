@@ -42,14 +42,12 @@ export async function fetchTrendingJupiter() {
 
 /** Nansen smart money (no params). Requires PAYER_KEYPAIR. */
 export async function fetchSmartMoney() {
-  const { payer, getSentinelPayerFetch } = await import("./sentinelPayer.js");
-  const PAYER_KEYPAIR = process.env.PAYER_KEYPAIR;
-  if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
-  await payer.addLocalWallet(PAYER_KEYPAIR);
+  const { getNansenPaymentFetch } = await import("./sentinelPayer.js");
+  const nansenFetch = await getNansenPaymentFetch();
 
   const responses = await Promise.all(
     smartMoneyRequests.map(({ url, payload }) =>
-      getSentinelPayerFetch()(url, {
+      nansenFetch(url, {
         method: "POST",
         headers: {
           Accept: "application/json",

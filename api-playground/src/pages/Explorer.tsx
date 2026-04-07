@@ -33,6 +33,7 @@ import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
+import { BRAND_NAME } from '@/lib/branding';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface ShareItem {
@@ -402,7 +403,7 @@ const Explorer = () => {
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <Compass className="h-12 w-12 mb-3 opacity-50" />
                 <p className="text-sm font-medium">No shared requests found</p>
-                <p className="text-xs mt-1">Share a request from the playground to see it here.</p>
+                <p className="text-xs mt-1">{`Share a request from ${BRAND_NAME} to see it here.`}</p>
               </div>
             ) : (
               <>
@@ -539,7 +540,7 @@ const Explorer = () => {
 
           {/* Info — compact */}
           <div className="mt-4 py-2 text-xs text-muted-foreground border-t border-border/30">
-            Click a row or <strong className="text-foreground">View details</strong> to open the full request. Use <strong className="text-foreground">Try</strong> to run it in the playground.
+            Click a row or <strong className="text-foreground">View details</strong> to open the full request. Use <strong className="text-foreground">Try</strong> to open it in {BRAND_NAME}.
           </div>
         </div>
       </div>

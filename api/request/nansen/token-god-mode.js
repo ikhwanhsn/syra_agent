@@ -1,11 +1,17 @@
-const BASE_URL = "https://nansen.api.corbits.dev";
-const dateRange = {
-  from: "2025-12-01",
-  to: "2025-12-30",
-};
+const BASE_URL = process.env.NANSEN_API_BASE_URL || "https://api.nansen.ai";
+
+function getDateRange(daysBack = 30) {
+  const to = new Date();
+  const from = new Date(to);
+  from.setDate(from.getDate() - daysBack);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  };
+}
 
 export const tokenGodModeRequests = [
-  // 1. FLOW INTELIGENCE - Smart Money Flow Analysis
+  // 1. FLOW INTELLIGENCE
   {
     url: `${BASE_URL}/api/v1/tgm/flow-intelligence`,
     payload: {
@@ -19,7 +25,7 @@ export const tokenGodModeRequests = [
     },
   },
 
-  // 2. HOLDERS - Current Smart Money Positions
+  // 2. HOLDERS
   {
     url: `${BASE_URL}/api/v1/tgm/holders`,
     payload: {
@@ -44,22 +50,19 @@ export const tokenGodModeRequests = [
       },
       order_by: [
         {
-          field: "address",
-          direction: "ASC",
+          field: "value_usd",
+          direction: "DESC",
         },
       ],
     },
   },
 
-  // 3. FLOW HISTORY - Detailed Smart Money Flow Analysis
+  // 3. FLOWS
   {
     url: `${BASE_URL}/api/v1/tgm/flows`,
     payload: {
       chain: "solana",
-      date: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
+      date: getDateRange(30),
       label: "smart_money",
       pagination: {
         page: 1,
@@ -77,22 +80,19 @@ export const tokenGodModeRequests = [
       order_by: [
         {
           field: "date",
-          direction: "ASC",
+          direction: "DESC",
         },
       ],
     },
   },
 
-  // 4. WHO BOUGHT/SOLD - Smart Money Transaction Analysis
+  // 4. WHO BOUGHT/SOLD
   {
     url: `${BASE_URL}/api/v1/tgm/who-bought-sold`,
     payload: {
       chain: "solana",
       buy_or_sell: "BUY",
-      date: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
+      date: getDateRange(30),
       pagination: {
         page: 1,
         per_page: 10,
@@ -106,22 +106,19 @@ export const tokenGodModeRequests = [
       order_by: [
         {
           field: "bought_volume_usd",
-          direction: "ASC",
+          direction: "DESC",
         },
       ],
     },
   },
 
-  // 5. DEX TRADES - Smart Money Transaction Analysis
+  // 5. DEX TRADES
   {
     url: `${BASE_URL}/api/v1/tgm/dex-trades`,
     payload: {
       chain: "solana",
       only_smart_money: false,
-      date: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
+      date: getDateRange(30),
       pagination: {
         page: 1,
         per_page: 10,
@@ -139,20 +136,18 @@ export const tokenGodModeRequests = [
       order_by: [
         {
           field: "block_timestamp",
-          direction: "ASC",
+          direction: "DESC",
         },
       ],
     },
   },
-  // 6. TRANSFERS - Smart Money Transfer Analysis
+
+  // 6. TRANSFERS
   {
     url: `${BASE_URL}/api/v1/tgm/transfers`,
     payload: {
       chain: "solana",
-      date: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
+      date: getDateRange(30),
       pagination: {
         page: 1,
         per_page: 10,
@@ -166,12 +161,13 @@ export const tokenGodModeRequests = [
       order_by: [
         {
           field: "block_timestamp",
-          direction: "ASC",
+          direction: "DESC",
         },
       ],
     },
   },
-  // 7. JUPITER DCAs - Smart Money Dollar-Cost Averaging
+
+  // 7. JUPITER DCAs
   {
     url: `${BASE_URL}/api/v1/tgm/jup-dca`,
     payload: {
@@ -190,15 +186,13 @@ export const tokenGodModeRequests = [
       },
     },
   },
-  // 8. PNL LEADERBOARD - Smart Money Performance Analysis
+
+  // 8. PNL LEADERBOARD
   {
     url: `${BASE_URL}/api/v1/tgm/pnl-leaderboard`,
     payload: {
       chain: "solana",
-      date: {
-        from: dateRange.from,
-        to: dateRange.to,
-      },
+      date: getDateRange(30),
       pagination: {
         page: 1,
         per_page: 10,
@@ -214,7 +208,7 @@ export const tokenGodModeRequests = [
       order_by: [
         {
           field: "pnl_usd_realised",
-          direction: "ASC",
+          direction: "DESC",
         },
       ],
     },

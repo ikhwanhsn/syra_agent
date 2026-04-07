@@ -110,8 +110,8 @@ export function PaymentModal({
                   <Zap className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-base">x402 Payment</h2>
-                  <p className="text-xs text-muted-foreground">Secure API access payment</p>
+                  <h2 className="font-semibold text-base">Complete payment</h2>
+                  <p className="text-xs text-muted-foreground">HTTP 402 · x402 or MPP (same wallet step)</p>
                 </div>
               </div>
               <Button variant="ghost" size="icon-sm" onClick={onClose} className="h-9 w-9">
@@ -201,7 +201,7 @@ export function PaymentModal({
                 <div>
                   <p className="text-sm text-warning font-medium">Incomplete Payment Details</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The API response doesn't contain valid x402 payment information. Check the response body for payment instructions.
+                    The API response does not include valid payment details (x402). Check the 402 body for accepts / pricing.
                   </p>
                 </div>
               </div>

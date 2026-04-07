@@ -1,6 +1,6 @@
 /**
- * Validates that a 402 response matches the format expected by the x402 API Playground.
- * Use this to test APIs before using them in the playground so requests don't error.
+ * Validates that a 402 response matches the format expected by Agentic Playground.
+ * Use this to test APIs before running them in the workspace so requests don't error.
  */
 
 import {
@@ -9,9 +9,10 @@ import {
   type X402Response,
   type X402PaymentOption,
 } from './x402Client';
+import { BRAND_NAME } from './branding';
 
 export interface X402FormatValidationResult {
-  /** True if the response is valid and the playground can pay and retry without format errors. */
+  /** True if the response is valid and the app can pay and retry without format errors. */
   valid: boolean;
   /** Human-readable errors (e.g. missing payTo, invalid JSON). */
   errors: string[];
@@ -26,9 +27,9 @@ export interface X402FormatValidationResult {
 }
 
 /**
- * Validate an HTTP 402 response for x402 playground compatibility.
+ * Validate an HTTP 402 response for Agentic Playground compatibility.
  * Checks: status 402, JSON body, x402Version + accepts, and that at least one
- * payment option has payTo, amount, and network so the playground can build a payment.
+ * payment option has payTo, amount, and network so the client can build a payment.
  */
 export function validateX402Format(
   statusCode: number,
@@ -41,7 +42,9 @@ export function validateX402Format(
   if (statusCode !== 402) {
     return {
       valid: false,
-      errors: [`Endpoint did not return 402 Payment Required (got ${statusCode}). Only x402 APIs return 402.`],
+      errors: [
+        `Endpoint did not return 402 Payment Required (got ${statusCode}). For ${BRAND_NAME}, the endpoint must return 402 with an x402 JSON body.`,
+      ],
       warnings: [],
       statusCode,
     };
@@ -53,7 +56,7 @@ export function validateX402Format(
   } catch {
     return {
       valid: false,
-      errors: ['Response body is not valid JSON. The playground expects a JSON 402 body.'],
+      errors: [`Response body is not valid JSON. ${BRAND_NAME} expects a JSON 402 body.`],
       warnings: [],
       statusCode: 402,
     };
@@ -107,7 +110,7 @@ export function validateX402Format(
   }
 
   if (parsed.x402Version !== 1 && parsed.x402Version !== 2) {
-    warnings.push(`x402Version ${parsed.x402Version} is non-standard; playground supports 1 and 2.`);
+    warnings.push(`x402Version ${parsed.x402Version} is non-standard; ${BRAND_NAME} supports 1 and 2.`);
   }
 
   return {

@@ -8,6 +8,7 @@ import { ApiResponse, RequestStatus, PaymentDetails } from '@/types/api';
 import { cn } from '@/lib/utils';
 import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
 import { shouldShowNonX402Hint } from '@/lib/nonX402ResponseHint';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface ResponseViewerProps {
   response?: ApiResponse;
@@ -190,7 +191,10 @@ export function ResponseViewer({
               MPP
             </Badge>
           )}
-          <Badge variant={getStatusVariant(response.status)} className="font-mono text-xs px-3 py-1.5">
+          <Badge
+            variant={getStatusVariant(response.status)}
+            className="font-mono text-xs px-2.5 sm:px-3 py-1.5 max-w-full text-left whitespace-normal break-words sm:whitespace-nowrap sm:truncate"
+          >
             {response.status} {response.statusText}
           </Badge>
         </div>
@@ -219,10 +223,10 @@ export function ResponseViewer({
           <div className="flex gap-3">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <div className="min-w-0 flex-1 space-y-2">
-              <p className="text-sm font-medium text-foreground">This does not look like an x402 or MPP API</p>
+              <p className="text-sm font-medium text-foreground">This does not look like a payment-gated (x402 / MPP) API</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                The playground expects an HTTP <span className="font-mono text-foreground/90">402</span> payment
-                challenge with JSON (x402), or a JSON payload from an MPP route. You may be on the API root, docs, or
+                {BRAND_NAME} expects an HTTP <span className="font-mono text-foreground/90">402</span> payment
+                challenge with JSON (x402), or an MPP JSON payload. You may be on the API root, docs, or
                 another HTML page. Use a specific paid endpoint from your provider&apos;s documentation, or send again
                 if you expected a different response.
               </p>
@@ -257,7 +261,7 @@ export function ResponseViewer({
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground">
-                {paymentLane === 'mpp' ? 'Payment required' : 'x402 Payment Required'}
+                {paymentLane === 'mpp' ? 'Payment required' : 'Payment required (x402)'}
               </h3>
               <p className="text-xs text-muted-foreground">
                 {paymentLane === 'mpp'

@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { format } from 'date-fns';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface ShareDetail {
   slug: string;
@@ -135,7 +136,7 @@ const ExplorerDetail = () => {
               <Button size="sm" className="gap-1.5" asChild>
                 <Link to={`/s/${data.slug}`}>
                   <Play className="h-3.5 w-3.5" />
-                  Try in playground
+                  {`Try in ${BRAND_NAME}`}
                 </Link>
               </Button>
             </div>

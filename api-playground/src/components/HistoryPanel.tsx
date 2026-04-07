@@ -6,6 +6,7 @@ import { HistoryItem, HttpMethod } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { HISTORY_DRAWER_TOP_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 
 interface HistoryPanelProps {
   history: HistoryItem[];
@@ -147,9 +148,13 @@ export function HistoryPanel({
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+        <div
+          className={cn(
+            'fixed left-0 right-0 bottom-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden',
+            HISTORY_DRAWER_TOP_CLASS,
+          )}
           onClick={onClose}
+          aria-hidden
         />
       )}
       
@@ -167,12 +172,14 @@ export function HistoryPanel({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto h-full",
-          "w-[min(384px,90vw)] sm:w-96 bg-sidebar border-r border-sidebar-border",
-          "flex flex-col overflow-hidden transition-all duration-300 ease-out",
-          "lg:translate-x-0 safe-area-inset-left",
-          isOpen ? "translate-x-0" : "-translate-x-full",
-          !isDesktopSidebarOpen && "lg:-translate-x-full lg:absolute"
+          'fixed lg:relative left-0 z-50 lg:z-auto',
+          'max-lg:bottom-0 max-lg:h-auto max-lg:max-h-none lg:inset-y-0 lg:h-full',
+          HISTORY_DRAWER_TOP_CLASS,
+          'w-[min(384px,92vw)] sm:w-96 bg-sidebar border-r border-sidebar-border',
+          'flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out',
+          'lg:translate-x-0 safe-area-inset-left',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
+          !isDesktopSidebarOpen && 'lg:-translate-x-full lg:absolute',
         )}
         style={{
           ...(isDesktop && {
@@ -292,7 +299,12 @@ export function HistoryPanel({
         </div>
 
         {/* History list - scrollable vertically */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <div
+          className={cn(
+            'flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar',
+            MAIN_CONTENT_PB_SAFE_CLASS,
+          )}
+        >
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center px-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 border border-border/50">

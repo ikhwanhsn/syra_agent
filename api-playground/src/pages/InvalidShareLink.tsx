@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Link2Off, Zap, ArrowRight, LayoutGrid, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface InvalidShareLinkProps {
   /** Optional slug that was requested (for display). */
@@ -36,7 +37,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
           <div className="rounded-xl border border-border/50 bg-secondary/30 p-4 sm:p-5">
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
               The URL you opened points to a shared API request that no longer exists or was never saved.
-              You can start fresh from the playground or pick an example flow to run.
+              {`You can start fresh in ${BRAND_NAME} or pick an example flow to run.`}
             </p>
             {slug && slug.length <= 32 && (
               <p className="text-xs font-mono text-muted-foreground/90 bg-muted/50 px-3 py-2 rounded-lg inline-block">
@@ -58,8 +59,8 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                   <Zap className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-sm font-medium text-foreground block">Go to Playground</span>
-                  <span className="text-xs text-muted-foreground">Build and send API requests</span>
+                  <span className="text-sm font-medium text-foreground block">{`Open ${BRAND_NAME}`}</span>
+                  <span className="text-xs text-muted-foreground">Main workspace — request, pay, respond</span>
                 </div>
               </div>
               <Button asChild variant="neon" size="sm" className="gap-1.5 shrink-0">
@@ -77,7 +78,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                 </div>
                 <div className="min-w-0">
                   <span className="text-sm font-medium text-foreground block">Browse examples</span>
-                  <span className="text-xs text-muted-foreground">Run v2 example flows</span>
+                  <span className="text-xs text-muted-foreground">Syra presets — payment-gated (x402)</span>
                 </div>
               </div>
               <Button asChild variant="outline" size="sm" className="gap-1.5 shrink-0">

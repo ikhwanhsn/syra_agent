@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="public/images/logo.jpg" alt="Syra — Agentic Playground" width="96" height="96" />
 
-# **Syra API Playground**
+# **Agentic Playground**
 
-### API testing and exploration UI for the Syra API
+### Payment-gated API workspace for agents and builders (Syra · HTTP 402 · x402 · MPP)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -18,15 +18,12 @@
 
 ## Purpose
 
-The **api-playground** package is a **Syra API testing and exploration UI**. It lets developers:
+**Agentic Playground** is Syra’s browser workspace to **call payment-gated APIs**: build requests, get an HTTP **402** challenge, pay with your wallet, retry with proof, and inspect JSON. It supports **x402** and **MPP** (machine payments) lanes — same wallet settlement flow for both. It shares the same **api** backend as the rest of the monorepo and is built for integration work, demos, and agent workflows.
 
-- **Call Syra API endpoints** — build and send requests (e.g. signals, research, news, browse, token report, token statistic, **token risk alerts**) from the browser.
-- **Handle x402 payments** — connect a Solana wallet and complete pay-per-request flows where endpoints are gated.
-- **Inspect responses** — view JSON and response details (e.g. via response viewer, history).
+- **Syra routes** — signals, research, news, Nansen partner flows, and more (see Example flows).
+- **x402- and MPP-compatible URLs** — probe, pay, and debug responses like a mini Postman for agentic commerce.
 
-It uses the same **api** backend as the rest of the monorepo and is useful for integration work, debugging, and demos. Built with Vite, TypeScript, React, shadcn-ui, and Tailwind.
-
-**Example flows** include: Correlation matrix, Token risk (Rugcheck stats), **Token risk alerts** (tokens above a risk threshold, e.g. `rugScoreMin=80`), **Dashboard summary**, **X feed / user / search**, News, Check status, Analytics summary, Signal, **Nansen** (address current balance, smart money netflow, TGM holders, token screener, etc.), and many more — use the Request Builder quick-select or the Examples page. All listed flows are x402 payment-gated. Nansen is called directly at api.nansen.ai (pay with your wallet on 402); the Syra Agent also calls Nansen directly with the user's agent wallet.
+Stack: Vite, TypeScript, React, shadcn-ui, Tailwind, Solana/Base wallets for settlement.
 
 ---
 
@@ -36,7 +33,7 @@ It uses the same **api** backend as the rest of the monorepo and is useful for i
 |-------|------------|
 | **Build** | Vite, TypeScript |
 | **UI** | React, shadcn-ui, Tailwind CSS |
-| **Wallet** | Solana wallet adapters (for x402) |
+| **Wallet** | Privy + adapters (HTTP 402 — x402 & MPP settlement) |
 | **Testing** | Vitest, Testing Library |
 
 ---

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Zap, ArrowRight, LayoutGrid, FileCode, Terminal, Home, SearchX, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BRAND_NAME } from '@/lib/branding';
 
 const GLITCH_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
 
@@ -84,8 +85,8 @@ const NotFound = () => {
               <Zap className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-foreground block">Playground</span>
-              <span className="text-xs text-muted-foreground">Build & send API requests</span>
+              <span className="text-sm font-medium text-foreground block">{BRAND_NAME}</span>
+              <span className="text-xs text-muted-foreground">Build, pay, and run agent-ready API calls</span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>
@@ -99,7 +100,7 @@ const NotFound = () => {
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-foreground block">Examples</span>
-              <span className="text-xs text-muted-foreground">Browse x402 example flows</span>
+              <span className="text-xs text-muted-foreground">Browse Syra example flows (payment-gated)</span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>
@@ -141,7 +142,7 @@ const NotFound = () => {
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-foreground block">Format Test</span>
-              <span className="text-xs text-muted-foreground">Check if x402 API format is correct</span>
+              <span className="text-xs text-muted-foreground">Validate 402 bodies (x402); MPP uses the same pay flow</span>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>

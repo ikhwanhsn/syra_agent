@@ -12,10 +12,11 @@ import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { PaymentDetails, RequestParam } from '@/types/api';
 import { GripVertical } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { MppLaneStrip } from '@/components/MppLaneStrip';
 import { resolvePlaygroundPaymentLane } from '@/lib/paymentLane';
 import { InvalidShareLink } from '@/pages/InvalidShareLink';
+import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
+import { cn } from '@/lib/utils';
 
 // Default payment details when we can't parse x402 response
 const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
@@ -278,7 +279,7 @@ const Index = () => {
           isSidebarOpen={isSidebarOpen}
           paymentNetwork={selectedPaymentChain}
         />
-        <div className="flex-1 flex min-h-0 pt-14 sm:pt-16">
+        <div className={cn('flex-1 flex min-h-0', MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS)}>
           <InvalidShareLink slug={attemptedSlug} />
         </div>
       </div>
@@ -296,7 +297,7 @@ const Index = () => {
           isSidebarOpen={isSidebarOpen}
           paymentNetwork={selectedPaymentChain}
         />
-        <div className="flex-1 flex items-center justify-center pt-14 sm:pt-16">
+        <div className={cn('flex-1 flex items-center justify-center', MAIN_CONTENT_PT_CLASS)}>
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             <p className="text-sm">Loading shared request…</p>
@@ -318,7 +319,13 @@ const Index = () => {
       />
 
       {/* Main Content - fills viewport below fixed navbar; on mobile panels scroll */}
-      <div className="flex-1 flex min-h-0 w-full max-w-full pt-14 sm:pt-16 overflow-hidden">
+      <div
+        className={cn(
+          'flex-1 flex min-h-0 w-full max-w-full overflow-hidden',
+          MAIN_CONTENT_PT_CLASS,
+          MAIN_CONTENT_PB_SAFE_CLASS,
+        )}
+      >
         {/* History Panel */}
         <HistoryPanel
           history={history}
@@ -337,9 +344,9 @@ const Index = () => {
         />
 
         {/* Main Panels - on mobile: single scrollable column (content-sized, not fixed); on desktop: side-by-side fixed */}
-        <div 
+        <div
           ref={panelsContainerRef}
-          className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden relative w-full max-w-full touch-pan-y"
+          className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden relative w-full max-w-full min-w-0 touch-pan-y overscroll-y-contain"
         >
           {/* Request Builder - on mobile: full content height so POST, URL, Params/Body are all visible when scrolling */}
           <div 
@@ -348,27 +355,17 @@ const Index = () => {
               ...(isDesktop && {
                 width: `${panelSplitRatio}%`,
                 flexShrink: 0,
-                minWidth: '300px',
+                minWidth: 'min(260px, 42%)',
                 maxWidth: '80%',
-              })
+              }),
             }}
           >
             <div className="glass-panel h-auto min-h-0 lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
-              <div className="shrink-0 mb-3">
-                {paymentLane === 'mpp' ? (
+              {paymentLane === 'mpp' ? (
+                <div className="shrink-0 mb-3">
                   <MppLaneStrip />
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Payment lane</span>
-                    <Badge variant="secondary" className="text-xs">
-                      x402
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Standard Syra x402 v2 resources.
-                    </span>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : null}
               <RequestBuilder
                 method={method}
                 url={url}
@@ -412,12 +409,12 @@ const Index = () => {
 
           {/* Response Viewer - taller on mobile; on desktop gets more space via default split */}
           <div 
-            className="min-w-0 flex-shrink-0 lg:flex-1 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden min-h-[55vh] lg:min-h-[420px]"
+            className="min-w-0 flex-shrink-0 lg:flex-1 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden min-h-[min(60dvh,520px)] sm:min-h-[55vh] lg:min-h-[420px]"
             style={{
               ...(isDesktop && {
                 width: `${100 - panelSplitRatio}%`,
-                minWidth: '300px',
-              })
+                minWidth: 'min(260px, 42%)',
+              }),
             }}
           >
             <div className="glass-panel h-auto min-h-[50vh] lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
