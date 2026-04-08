@@ -34,7 +34,7 @@ function PartnerLink({
       target="_blank"
       rel="noopener noreferrer"
       tabIndex={tabFocusable ? undefined : -1}
-      className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-accent/50 hover:bg-accent/[0.04] hover:shadow-[0_0_24px_-8px_hsl(var(--accent)/0.2)] sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 md:gap-4 md:px-5 md:py-3 lg:px-6 lg:py-4"
+      className="inline-flex w-[11rem] shrink-0 items-center justify-start gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-accent/50 hover:bg-accent/[0.04] hover:shadow-[0_0_24px_-8px_hsl(var(--accent)/0.2)] sm:w-[12rem] sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 md:w-[13rem] md:gap-4 md:px-5 md:py-3 lg:w-[15rem] lg:px-6 lg:py-4"
     >
       <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-background/60 sm:h-10 sm:w-10 sm:rounded-lg md:h-11 md:w-11 lg:h-14 lg:w-14 lg:rounded-xl">
         <img

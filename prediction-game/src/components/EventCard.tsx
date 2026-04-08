@@ -37,27 +37,27 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) => {
   const statusConfig = {
     joining: {
-      classes: 'bg-blue-400/20 text-blue-400 border-blue-400/30',
+      classes: 'bg-primary/15 text-primary border-primary/30',
       label: 'Joining',
       icon: Users,
     },
     predicting: {
-      classes: 'bg-yellow-400/20 text-yellow-400 border-yellow-400/30',
+      classes: 'bg-warning/15 text-warning border-warning/30',
       label: 'Predicting',
       icon: EyeOff,
     },
     waiting: {
-      classes: 'bg-amber-400/20 text-amber-400 border-amber-400/30',
+      classes: 'bg-muted text-muted-foreground border-border',
       label: 'Waiting',
       icon: Clock,
     },
     completed: {
-      classes: 'bg-green-400/20 text-green-400 border-green-400/30',
+      classes: 'bg-success/15 text-success border-success/30',
       label: 'Completed',
       icon: Trophy,
     },
     cancelled: {
-      classes: 'bg-red-400/20 text-red-400 border-red-400/30',
+      classes: 'bg-destructive/15 text-destructive border-destructive/30',
       label: 'Cancelled',
       icon: XCircle,
     },
@@ -90,7 +90,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
     <div className="event-card group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--accent)/0.3)]">
+          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--ring)/0.2)]">
             {event.tokenIcon}
           </div>
           <div>
@@ -112,7 +112,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
             <span>Prize Pool</span>
           </div>
           <div className="text-right">
-            <span className="font-bold text-accent">{event.totalPool.toFixed(2)} SOL</span>
+            <span className="font-bold text-foreground">{event.totalPool.toFixed(2)} SOL</span>
             <p className="text-xs text-muted-foreground">Entry: {event.entryFee} SOL</p>
           </div>
         </div>
@@ -136,9 +136,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${progressPercent}%`,
-                background: hasMinParticipants 
-                  ? 'linear-gradient(90deg, hsl(142 70% 45%) 0%, hsl(187 80% 45%) 100%)'
-                  : 'var(--gradient-primary)',
+                background: hasMinParticipants
+                  ? 'linear-gradient(90deg, hsl(var(--success)) 0%, hsl(var(--foreground) / 0.85) 100%)'
+                  : 'linear-gradient(90deg, hsl(var(--muted-foreground) / 0.35) 0%, hsl(var(--ring) / 0.45) 100%)',
               }}
             />
           </div>
@@ -170,8 +170,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
 
         {/* User Status */}
         {event.userJoined && event.status === 'joining' && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
-            <p className="text-xs text-green-400">You've joined this event</p>
+          <div className="bg-success/10 border border-success/25 rounded-lg p-2 text-center">
+            <p className="text-xs text-success">You've joined this event</p>
           </div>
         )}
 
@@ -185,16 +185,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, showViewButton = true }) =
 
         {/* Final Price for completed */}
         {event.status === 'completed' && event.finalPrice && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+          <div className="bg-success/10 border border-success/25 rounded-lg p-3">
             <p className="text-sm text-muted-foreground">Final Price</p>
-            <p className="font-bold text-lg text-green-400">${event.finalPrice.toLocaleString()}</p>
+            <p className="font-bold text-lg text-success">${event.finalPrice.toLocaleString()}</p>
           </div>
         )}
 
         {/* Cancelled reason */}
         {event.status === 'cancelled' && event.cancellationReason && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
-            <p className="text-xs text-red-400">{event.cancellationReason}</p>
+          <div className="bg-destructive/10 border border-destructive/25 rounded-lg p-2">
+            <p className="text-xs text-destructive">{event.cancellationReason}</p>
           </div>
         )}
 

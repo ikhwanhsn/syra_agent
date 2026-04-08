@@ -37,6 +37,36 @@ interface IndexProps {
   onOpenWalletModal: () => void;
 }
 
+const HOW_IT_WORKS_PHASE_UI: Record<
+  number,
+  { circle: string; icon: string; pill: string; check: string }
+> = {
+  1: {
+    circle: "bg-primary/15 border-primary/35",
+    icon: "text-primary",
+    pill: "bg-primary/15 text-primary",
+    check: "text-primary",
+  },
+  2: {
+    circle: "bg-warning/15 border-warning/30",
+    icon: "text-warning",
+    pill: "bg-warning/15 text-warning",
+    check: "text-warning",
+  },
+  3: {
+    circle: "bg-muted border-border",
+    icon: "text-muted-foreground",
+    pill: "bg-muted text-muted-foreground",
+    check: "text-muted-foreground",
+  },
+  4: {
+    circle: "bg-success/15 border-success/30",
+    icon: "text-success",
+    pill: "bg-success/15 text-success",
+    check: "text-success",
+  },
+};
+
 const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
   const { isConnected, walletAddress } = useWallet();
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -104,11 +134,11 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute rounded-full top-1/4 left-1/4 w-96 h-96 bg-primary/20 blur-3xl animate-pulse-glow" />
           <div
-            className="absolute rounded-full bottom-1/4 right-1/4 w-80 h-80 bg-accent/20 blur-3xl animate-pulse-glow"
+            className="absolute rounded-full bottom-1/4 right-1/4 w-80 h-80 bg-ring/20 blur-3xl animate-pulse-glow"
             style={{ animationDelay: "1s" }}
           />
           <div
-            className="absolute rounded-full top-1/2 left-1/2 w-72 h-72 bg-neon-gold/15 blur-3xl animate-pulse-glow"
+            className="absolute rounded-full top-1/2 left-1/2 w-72 h-72 bg-muted-foreground/10 blur-3xl animate-pulse-glow"
             style={{ animationDelay: "0.5s" }}
           />
         </div>
@@ -207,34 +237,34 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
 
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {/* Participant Path */}
-            <div className="glass-card p-5 sm:p-8 border-blue-500/30 hover:border-blue-500/50 transition-all duration-300 group">
+            <div className="glass-card p-5 sm:p-8 border-primary/25 hover:border-primary/40 transition-all duration-300 group">
               <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                  <Target className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/15 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <Target className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
                 </div>
                 <div>
                   <h3 className="text-xl sm:text-2xl font-bold">Join & Predict</h3>
-                  <p className="text-blue-400 text-sm">For Participants</p>
+                  <p className="text-muted-foreground text-sm">For Participants</p>
                 </div>
               </div>
 
               <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm sm:text-base">Pay Entry Fee to Join</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Small entry fee (0.1+ SOL) to compete</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm sm:text-base">Submit Your Prediction</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Predict the token price at resolution time</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm sm:text-base">Win SOL Prizes</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Top 3 closest predictions share the prize pool</p>
@@ -242,14 +272,14 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                 </li>
               </ul>
 
-              <div className="p-3 sm:p-4 bg-blue-500/10 rounded-xl mb-4 sm:mb-6">
+              <div className="p-3 sm:p-4 bg-primary/10 rounded-xl mb-4 sm:mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
                   <span className="font-semibold text-sm sm:text-base">Prize Distribution</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                  <div className="bg-yellow-500/10 rounded-lg p-2">
-                    <p className="font-bold text-yellow-400">50%</p>
+                  <div className="bg-warning/10 rounded-lg p-2">
+                    <p className="font-bold text-warning">50%</p>
                     <p className="text-xs text-muted-foreground">1st</p>
                   </div>
                   <div className="bg-gray-400/10 rounded-lg p-2">
@@ -257,14 +287,14 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     <p className="text-xs text-muted-foreground">2nd</p>
                   </div>
                   <div className="bg-orange-500/10 rounded-lg p-2">
-                    <p className="font-bold text-orange-400">20%</p>
+                    <p className="font-bold text-foreground/80">20%</p>
                     <p className="text-xs text-muted-foreground">3rd</p>
                   </div>
                 </div>
               </div>
 
               <Link to="/dashboard">
-                <Button variant="outline" className="w-full border-blue-500/50 hover:bg-blue-500/10">
+                <Button variant="outline" className="w-full border-primary/35 hover:bg-primary/10">
                   Browse Events
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -285,21 +315,21 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
 
               <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm sm:text-base">Stake SYRA to Create</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Stake tokens to unlock event creation</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm sm:text-base">Deposit Prize Pool</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Your deposit (0.5+ SOL) goes 100% to winners</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm sm:text-base">Earn from Entry Fees</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Keep 70% of all participant entry fees</p>
@@ -309,12 +339,12 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
 
               <div className="p-3 sm:p-4 bg-primary/10 rounded-xl mb-4 sm:mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <CircleDollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+                  <CircleDollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
                   <span className="font-semibold text-sm sm:text-base">Example Earnings</span>
                 </div>
                 <div className="text-sm">
                   <p className="text-muted-foreground mb-1 text-xs sm:text-sm">With 20 participants @ 0.1 SOL entry:</p>
-                  <p className="font-bold text-green-400 text-base sm:text-lg">+1.4 SOL profit</p>
+                  <p className="font-bold text-success text-base sm:text-lg">+1.4 SOL profit</p>
                   <p className="text-xs text-muted-foreground">(70% of 2 SOL entry fees)</p>
                 </div>
               </div>
@@ -344,7 +374,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
           <div className="max-w-4xl mx-auto">
             <div className="relative">
               {/* Connection Line */}
-              <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-amber-500 to-green-500 hidden md:block" />
+              <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-to-r from-primary via-muted-foreground to-success hidden md:block opacity-40" />
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                 {[
@@ -354,7 +384,6 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     title: "Joining",
                     duration: "24-96h",
                     description: "Pay entry fee to join. Event starts when minimum reached.",
-                    color: "blue",
                     features: ["Pay entry fee", "Secure spot"],
                   },
                   {
@@ -363,7 +392,6 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     title: "Predicting",
                     duration: "2-8h",
                     description: "Submit your prediction. All predictions hidden.",
-                    color: "yellow",
                     features: ["Hidden predictions", "Early bonus"],
                   },
                   {
@@ -372,7 +400,6 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     title: "Waiting",
                     duration: "12-72h",
                     description: "Predictions revealed! Await final price.",
-                    color: "amber",
                     features: ["Revealed", "Locked"],
                   },
                   {
@@ -381,44 +408,49 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     title: "Completed",
                     duration: "Instant",
                     description: "Winners determined. Top 3 share prizes!",
-                    color: "green",
                     features: ["Winners", "Prizes sent"],
                   },
-                ].map((step, index) => (
+                ].map((step) => {
+                  const ui = HOW_IT_WORKS_PHASE_UI[step.phase];
+                  return (
                   <div key={step.phase} className="relative">
-                    {/* Phase Number Circle */}
-                    <div className={`w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-3 sm:mb-4 rounded-full bg-${step.color}-500/20 border-2 border-${step.color}-500/50 flex items-center justify-center relative z-10 bg-background`}>
-                      <step.icon className={`w-7 h-7 sm:w-10 sm:h-10 text-${step.color}-400`} />
+                    <div
+                      className={`w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-3 sm:mb-4 rounded-full border-2 flex items-center justify-center relative z-10 bg-background ${ui.circle}`}
+                    >
+                      <step.icon className={`w-7 h-7 sm:w-10 sm:h-10 ${ui.icon}`} />
                     </div>
-                    
+
                     <div className="text-center">
-                      <span className={`inline-block px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-${step.color}-500/20 text-${step.color}-400 mb-1 sm:mb-2`}>
+                      <span
+                        className={`inline-block px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium mb-1 sm:mb-2 ${ui.pill}`}
+                      >
                         Phase {step.phase}
                       </span>
                       <h3 className="text-sm sm:text-lg font-bold mb-1">{step.title}</h3>
                       <p className="text-xs text-muted-foreground mb-2 sm:mb-3">{step.duration}</p>
                       <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4 hidden sm:block">{step.description}</p>
-                      
+
                       <ul className="text-xs space-y-1 hidden sm:block">
                         {step.features.map((feature, i) => (
                           <li key={i} className="flex items-center justify-center gap-1 text-muted-foreground">
-                            <CheckCircle2 className={`w-3 h-3 text-${step.color}-400`} />
+                            <CheckCircle2 className={`w-3 h-3 ${ui.check}`} />
                             {feature}
                           </li>
                         ))}
                       </ul>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             </div>
           </div>
 
           {/* Early Bonus Info */}
-          <div className="mt-10 sm:mt-16 glass-card p-4 sm:p-6 max-w-3xl mx-auto border-yellow-500/30">
+          <div className="mt-10 sm:mt-16 glass-card p-4 sm:p-6 max-w-3xl mx-auto border-warning/25">
             <div className="flex items-center gap-3 mb-3 sm:mb-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center shrink-0">
-                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-bold">Early Prediction Bonus</h3>
@@ -429,8 +461,8 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
               Your final score = Accuracy × Time Bonus. Predicting early shows conviction and earns multipliers!
             </p>
             <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 sm:p-3">
-                <p className="text-lg sm:text-2xl font-bold text-green-400">1.5x</p>
+              <div className="bg-success/10 border border-success/25 rounded-lg p-2 sm:p-3">
+                <p className="text-lg sm:text-2xl font-bold text-success">1.5x</p>
                 <p className="text-xs text-muted-foreground">0-25%</p>
               </div>
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 sm:p-3">

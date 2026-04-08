@@ -1,12 +1,29 @@
+import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Play, Trophy } from "lucide-react";
+import { ArrowRight, Trophy } from "lucide-react";
 import { ParticleField } from "./ParticleField";
 import { OrbitRings } from "./OrbitRings";
 import { HeroStats } from "./HeroStats";
 import { DashboardPreview } from "./DashboardPreview";
-import { LINK_AGENT, LINK_DEMO } from "../../config/global";
+import { Input } from "@/components/ui/input";
+import { getAgentAskUrl } from "../../config/global";
+import { cn } from "@/lib/utils";
 
 export const HeroSection = () => {
+  const [askDraft, setAskDraft] = useState("");
+
+  const openAgentWithQuestion = () => {
+    const q = askDraft.trim();
+    if (!q) return;
+    const url = getAgentAskUrl(q);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const onAskSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    openAgentWithQuestion();
+  };
+
   return (
     <section
       id="home"
@@ -66,60 +83,49 @@ export const HeroSection = () => {
               execute with precision.
             </motion.p>
 
-            {/* <motion.div
+            <motion.form
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start"
+              onSubmit={onAskSubmit}
+              className="mx-auto mb-2 flex w-full max-w-xl min-w-0 flex-col gap-3 sm:mx-0 sm:max-w-none sm:flex-row sm:items-stretch sm:gap-3 lg:justify-start"
             >
-              <a
-                href={LINK_AGENT}
-                target="_blank"
-                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-primary group"
+              <Input
+                value={askDraft}
+                onChange={(e) => setAskDraft(e.target.value)}
+                placeholder="Ask Syra anything…"
+                enterKeyHint="go"
+                autoComplete="off"
+                name="syra-ask"
+                aria-label="Question for Syra agent"
+                className={cn(
+                  "h-12 min-h-12 flex-1 rounded-xl border-border/60 bg-background/90 px-4 text-base shadow-sm backdrop-blur-sm",
+                  "placeholder:text-muted-foreground/80",
+                  "focus-visible:ring-primary/30",
+                  "dark:bg-background/50",
+                )}
+              />
+              <button
+                type="submit"
+                disabled={!askDraft.trim()}
+                className="btn-primary group inline-flex h-12 min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-0 font-semibold disabled:pointer-events-none disabled:opacity-50 sm:px-8"
               >
-                Launch Agent
-                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </a>
-              <a
-                href={LINK_DEMO}
-                target="_blank"
-                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-secondary"
-              >
-                <Play className="w-4 h-4" />
-                Watch Demo
-              </a>
-            </motion.div> */}
+                Ask
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+              </button>
+            </motion.form>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="mx-auto mb-8 max-w-xl text-center text-xs text-muted-foreground sm:text-left lg:mx-0"
+            >
+              Opens the agent in a new tab; your question is sent automatically so you can wait for the reply there.
+            </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start"
-            >
-              <a
-                href={LINK_AGENT}
-                target="_blank"
-                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-primary group"
-              >
-                Launch Agent
-                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </a>
-              <a
-                href={LINK_DEMO}
-                target="_blank"
-                className="flex items-center justify-center w-4/5 gap-2 mx-auto sm:mx-0 sm:w-auto btn-secondary"
-              >
-                <Play className="w-4 h-4" />
-                Watch Demo
-              </a>
-              <a
-                href="/leaderboard"
-                className="hidden"
-              >
-                <Trophy className="w-4 h-4" />
-                {/* Leaderboard */}
-              </a>
-            </motion.div>
+            <a href="/leaderboard" className="hidden">
+              <Trophy className="w-4 h-4" />
+            </a>
 
             {/* Stats */}
             <div className="hidden lg:block">

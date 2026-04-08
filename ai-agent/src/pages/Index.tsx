@@ -15,6 +15,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
+/** Dedupes `?q=` auto-send across React Strict Mode double-invoke in dev. */
+let lastConsumedUrlPromptParam: string | null = null;
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -740,6 +743,48 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }
     }
   };
+
+  const handleSendMessageRef = useRef(handleSendMessage);
+  handleSendMessageRef.current = handleSendMessage;
+
+  const urlPromptParam =
+    searchParams.get("q")?.trim() ||
+    searchParams.get("query")?.trim() ||
+    searchParams.get("prompt")?.trim() ||
+    "";
+
+  useEffect(() => {
+    if (!ready || !anonymousId || !urlPromptParam) return;
+    const hasQParam =
+      searchParams.has("q") || searchParams.has("query") || searchParams.has("prompt");
+    if (lastConsumedUrlPromptParam === urlPromptParam) {
+      if (hasQParam) {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("q");
+            next.delete("query");
+            next.delete("prompt");
+            return next;
+          },
+          { replace: true },
+        );
+      }
+      return;
+    }
+    lastConsumedUrlPromptParam = urlPromptParam;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("q");
+        next.delete("query");
+        next.delete("prompt");
+        return next;
+      },
+      { replace: true },
+    );
+    void handleSendMessageRef.current(urlPromptParam);
+  }, [ready, anonymousId, urlPromptParam, searchParams, setSearchParams]);
 
   const handleUpdateUserMessage = useCallback(
     (messageId: string, content: string) => {

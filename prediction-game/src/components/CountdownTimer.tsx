@@ -60,7 +60,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate, size = 'md'
     );
   }
 
-  const boxClass = `bg-secondary/80 backdrop-blur-sm rounded-lg font-mono font-bold border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_10px_hsl(187_80%_45%/0.2)] ${boxClasses[size]}`;
+  const boxClass = `bg-secondary/80 backdrop-blur-sm rounded-lg font-mono font-bold border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_12px_hsl(var(--ring)/0.2)] ${boxClasses[size]}`;
 
   return (
     <div className={`flex items-center ${sizeClasses[size]}`}>

@@ -21,6 +21,7 @@ const footerLinks = {
   resources: [
     { label: "Documentation", href: LINK_DOCS },
     { label: "Articles", href: "/articles", internal: true },
+    { label: "Brand", href: "/brand", internal: true },
   ],
   company: [
     { label: "About", href: "/#product", internal: true },

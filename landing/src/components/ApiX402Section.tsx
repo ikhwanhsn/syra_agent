@@ -44,9 +44,9 @@ const flowEase = [0.22, 1, 0.36, 1] as const;
 const flowStepShadow =
   "shadow-[0_1px_0_0_hsl(var(--foreground)/0.07),inset_0_0_0_1px_hsl(var(--foreground)/0.04)]";
 
-/** Equal-height cards — width comes from flex-1 / minmax so the row fits max-w-lg without horizontal scroll */
+/** Equal-height cards — row layout only from lg so narrow / tablet widths stay vertical */
 const flowStepCard =
-  `flex min-h-[168px] w-full min-w-0 flex-col items-center justify-center rounded-2xl border-2 border-foreground/20 bg-card px-2 py-4 text-center sm:min-h-[176px] sm:px-2.5 ${flowStepShadow}`;
+  `flex min-h-[152px] w-full min-w-0 flex-col items-center justify-center rounded-2xl border-2 border-foreground/20 bg-card px-2 py-3.5 text-center sm:min-h-[168px] sm:py-4 lg:min-h-[176px] lg:px-2.5 ${flowStepShadow}`;
 
 function FlowArrow({ isInView, delay }: { isInView: boolean; delay: number }) {
   return (
@@ -54,11 +54,11 @@ function FlowArrow({ isInView, delay }: { isInView: boolean; delay: number }) {
       initial={{ opacity: 0, scale: 0.85 }}
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.4, delay, ease: flowEase }}
-      className="flex h-8 shrink-0 items-center justify-center text-muted-foreground/90 sm:h-auto sm:min-h-[176px] sm:w-6 sm:self-stretch md:w-7"
+      className="flex h-8 shrink-0 items-center justify-center text-muted-foreground/90 lg:h-auto lg:min-h-[176px] lg:w-6 lg:self-stretch xl:w-7"
       aria-hidden
     >
-      <ChevronDown className="h-5 w-5 sm:hidden" strokeWidth={2} />
-      <ChevronRight className="hidden h-5 w-5 sm:block" strokeWidth={2} />
+      <ChevronDown className="h-5 w-5 lg:hidden" strokeWidth={2} />
+      <ChevronRight className="hidden h-5 w-5 lg:block" strokeWidth={2} />
     </motion.div>
   );
 }
@@ -143,17 +143,17 @@ function X402FlowIllustration({ isInView }: { isInView: boolean }) {
         How it works
       </motion.p>
 
-      {/* One pipeline: column on mobile, equal-width row on sm+ (fluid widths → no horizontal scroll) */}
-      <div className="mx-auto flex w-full max-w-[260px] flex-col sm:max-w-none sm:flex-row sm:items-stretch sm:justify-center sm:gap-0">
-        <div className="w-full min-w-0 sm:flex-1">
+      {/* Column until lg: readable on phones & split-view tablets; horizontal row when illustration column is wide enough */}
+      <div className="mx-auto flex w-full min-w-0 max-w-md flex-col lg:max-w-none lg:flex-row lg:items-stretch lg:justify-center lg:gap-0">
+        <div className="w-full min-w-0 lg:flex-1">
           <FlowStepText step="1" title="Send request" mono="GET /api/..." delay={0.08} isInView={isInView} />
         </div>
         <FlowArrow isInView={isInView} delay={0.18} />
-        <div className="w-full min-w-0 sm:flex-1">
+        <div className="w-full min-w-0 lg:flex-1">
           <FlowStepPay isInView={isInView} />
         </div>
         <FlowArrow isInView={isInView} delay={0.24} />
-        <div className="w-full min-w-0 sm:flex-1">
+        <div className="w-full min-w-0 lg:flex-1">
           <FlowStepText step="3" title="Get data" mono="200 + JSON" delay={0.2} isInView={isInView} />
         </div>
       </div>
@@ -166,23 +166,23 @@ export const ApiX402Section = () => {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section id="api" className="relative py-14 sm:py-20 lg:py-28 overflow-hidden">
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.04] blur-[100px]" />
-      <div className="pointer-events-none absolute bottom-1/4 right-1/4 h-[380px] w-[380px] rounded-full bg-muted/40 blur-[90px]" />
-      <div className="pointer-events-none absolute left-1/4 top-1/4 h-[280px] w-[280px] rounded-full bg-foreground/[0.03] blur-[85px]" />
+    <section id="api" className="relative overflow-hidden py-12 sm:py-16 md:py-20 lg:py-28">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(420px,90vw)] w-[min(520px,95vw)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.04] blur-[100px]" />
+      <div className="pointer-events-none absolute bottom-1/4 right-1/4 h-[min(380px,80vw)] w-[min(380px,80vw)] rounded-full bg-muted/40 blur-[90px]" />
+      <div className="pointer-events-none absolute left-1/4 top-1/4 h-[min(280px,70vw)] w-[min(280px,70vw)] rounded-full bg-foreground/[0.03] blur-[85px]" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-7xl min-w-0 px-3 sm:px-6 lg:px-8">
         <div
           ref={ref}
-          className="grid gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16 items-center"
+          className="grid min-w-0 items-center gap-8 sm:gap-10 md:grid-cols-2 md:gap-10 lg:gap-16"
         >
-          {/* Left: Copy + CTA */}
-          <div className="text-center lg:text-left order-2 lg:order-1 min-w-0">
+          {/* Copy + CTA: below illustration on small screens; left column from md */}
+          <div className="order-2 min-w-0 text-center md:order-1 md:text-left">
             <motion.span
               initial={{ opacity: 0, y: 12 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4 }}
-              className="section-eyebrow-gradient inline-block text-xs sm:text-sm font-medium tracking-widest uppercase mb-3 sm:mb-4"
+              className="section-eyebrow-gradient mb-3 inline-block text-xs font-medium uppercase tracking-widest sm:mb-4 sm:text-sm"
             >
               x402 & MPP
             </motion.span>
@@ -190,7 +190,7 @@ export const ApiX402Section = () => {
               initial={{ opacity: 0, y: 16 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.05 }}
-              className="text-2xl sm:text-3xl lg:text-4xl xl:text-[2.5rem] font-bold tracking-tight mb-4 sm:mb-6 leading-tight"
+              className="mb-4 text-balance text-2xl font-bold leading-tight tracking-tight break-words sm:mb-6 sm:text-3xl lg:text-4xl xl:text-[2.5rem]"
             >
               Request. Pay. Get data.
             </motion.h2>
@@ -198,7 +198,7 @@ export const ApiX402Section = () => {
               initial={{ opacity: 0, y: 16 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="text-muted-foreground text-sm sm:text-base lg:text-lg max-w-lg mx-auto lg:mx-0 mb-5 sm:mb-6 leading-relaxed"
+              className="mx-auto mb-5 max-w-lg text-pretty text-sm leading-relaxed break-words text-muted-foreground sm:mb-6 sm:text-base md:mx-0 lg:text-lg"
             >
               Syra APIs use HTTP 402 Payment Required with x402 and MPP (Machine Payments Protocol) discovery: call an endpoint, pay on Solana when prompted, then receive the response. No subscriptions—pay only for what you use.
             </motion.p>
@@ -208,24 +208,26 @@ export const ApiX402Section = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.12 }}
-              className="mb-6 sm:mb-8 space-y-3 sm:space-y-4"
+              className="mx-auto mb-6 max-w-lg space-y-3 sm:mb-8 sm:space-y-4 md:mx-0 md:max-w-none"
             >
-              <p className="section-eyebrow-gradient text-xs sm:text-sm font-medium uppercase tracking-wider mb-2 sm:mb-3">
+              <p className="section-eyebrow-gradient mb-2 text-balance text-xs font-medium uppercase tracking-wider sm:mb-3 sm:text-sm">
                 Available via x402 & MPP
               </p>
               {apiCategories.map((cat, ci) => (
-                <div key={cat.label} className="flex gap-3 items-start">
+                <div key={cat.label} className="flex items-start gap-3 text-left sm:gap-3.5">
                   <div
                     className={cn(
-                      "mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg",
+                      "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10",
                       categoryIconThemes[ci % categoryIconThemes.length],
                     )}
                   >
-                    <cat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.25]" />
+                    <cat.icon className="h-4 w-4 stroke-[2.25] sm:h-[1.125rem] sm:w-[1.125rem]" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm sm:text-base font-medium text-foreground">{cat.label}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{cat.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-pretty text-sm font-medium text-foreground sm:text-base">{cat.label}</p>
+                    <p className="text-pretty text-xs leading-relaxed break-words text-muted-foreground sm:text-sm">
+                      {cat.description}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -235,37 +237,37 @@ export const ApiX402Section = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.18 }}
-              className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center lg:justify-start"
+              className="flex min-w-0 flex-col flex-wrap gap-3 md:flex-row md:justify-start [&>a]:min-h-11"
             >
               <a
                 href={LINK_PLAYGROUND}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-medium rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 transition-all shadow-lg hover:shadow-accent/20"
+                className="inline-flex w-full min-w-0 items-center justify-center gap-2 whitespace-normal rounded-xl bg-accent px-5 py-3 text-center text-sm font-medium text-accent-foreground shadow-lg transition-all hover:bg-accent/90 hover:shadow-accent/20 sm:text-base md:w-auto md:min-w-[12rem] md:shrink-0"
               >
                 Open API Playground
-                <ExternalLink className="h-4 w-4 shrink-0" />
+                <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
               </a>
               <a
                 href={LINK_DOCS}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-medium rounded-xl border border-accent/35 bg-accent/[0.06] text-foreground hover:bg-accent/10 hover:border-accent/50 transition-all"
+                className="inline-flex w-full min-w-0 items-center justify-center gap-2 whitespace-normal rounded-xl border border-accent/35 bg-accent/[0.06] px-5 py-3 text-center text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-accent/10 sm:text-base md:w-auto md:min-w-[10rem] md:shrink-0"
               >
-                <FileText className="h-4 w-4 shrink-0 text-foreground" />
+                <FileText className="h-4 w-4 shrink-0 text-foreground" aria-hidden />
                 Documentation
               </a>
             </motion.div>
           </div>
 
-          {/* Right: Illustration */}
+          {/* Illustration: first on phones; right column from md */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="order-1 lg:order-2 flex items-center justify-center min-w-0 w-full"
+            className="order-1 flex w-full min-w-0 items-center justify-center md:order-2"
           >
-            <div className="glass-card w-full max-w-lg rounded-xl border border-border/80 p-4 shadow-[0_0_36px_-16px_hsl(var(--foreground)/0.06)] sm:p-6 sm:rounded-2xl lg:p-8">
+            <div className="glass-card w-full max-w-lg rounded-xl border border-border/80 p-3 shadow-[0_0_36px_-16px_hsl(var(--foreground)/0.06)] sm:p-5 sm:rounded-2xl md:max-w-none lg:p-8">
               <X402FlowIllustration isInView={isInView} />
             </div>
           </motion.div>
@@ -285,7 +287,7 @@ export const ApiX402Section = () => {
                 className="flex items-center gap-3 rounded-lg border border-border/80 bg-card/60 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:border-foreground/20 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm lg:text-base"
               >
                 <span className={cn("flex h-2 w-2 shrink-0 rounded-full", keyPointDots[ki % keyPointDots.length])} />
-                <span className="min-w-0">{point}</span>
+                <span className="min-w-0 text-pretty break-words">{point}</span>
               </div>
             ))}
           </div>

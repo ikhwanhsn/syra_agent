@@ -56,9 +56,9 @@ export function rugcheckDumpBias(report) {
   }
   const risks = r.risks ?? r.Risks;
   const riskCount = Array.isArray(risks) ? risks.length : 0;
-  const riskBump = Math.min(1, riskCount / 12) * 0.4;
+  const riskBump = Math.min(1, riskCount / 16) * 0.32;
   const combined = Math.min(1, t + riskBump);
-  return -0.35 * combined;
+  return -0.26 * combined;
 }
 
 /**
@@ -73,8 +73,8 @@ export function dexMomentumScore(pair) {
   const h1 = Number(ch.h1) || 0;
   const h6 = Number(ch.h6) || 0;
   const h24 = Number(ch.h24) || 0;
-  const blended = 0.25 * h1 + 0.5 * h6 + 0.25 * h24;
-  // squash % moves into [-1,1]
+  // Slightly 6h-heavy to align with Arena S2 horizon weights.
+  const blended = 0.2 * h1 + 0.55 * h6 + 0.25 * h24;
   return Math.tanh(blended / 25);
 }
 
@@ -92,7 +92,7 @@ export function dexBuyPressure(pair) {
   const buys = Number(t.buys) || 0;
   const sells = Number(t.sells) || 0;
   const sum = buys + sells;
-  if (sum < 4) return 0;
+  if (sum < 2) return 0;
   const ratio = buys / sum;
   return (ratio - 0.5) * 2;
 }

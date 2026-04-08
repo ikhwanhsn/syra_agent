@@ -97,37 +97,37 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
       case 'devnet':
         return {
           label: 'Devnet',
-          color: 'text-yellow-400',
-          bg: 'bg-yellow-500/20',
-          border: 'border-yellow-500/30',
-          dot: 'bg-yellow-400',
+          color: 'text-warning',
+          bg: 'bg-warning/10',
+          border: 'border-warning/25',
+          dot: 'bg-warning',
           description: 'Test Network - No real money',
         };
       case 'testnet':
         return {
           label: 'Testnet',
-          color: 'text-orange-400',
-          bg: 'bg-orange-500/20',
-          border: 'border-orange-500/30',
-          dot: 'bg-orange-400',
+          color: 'text-muted-foreground',
+          bg: 'bg-muted',
+          border: 'border-border',
+          dot: 'bg-muted-foreground',
           description: 'Test Network - No real money',
         };
       case 'mainnet-beta':
         return {
           label: 'Mainnet',
-          color: 'text-green-400',
-          bg: 'bg-green-500/20',
-          border: 'border-green-500/30',
-          dot: 'bg-green-400',
+          color: 'text-success',
+          bg: 'bg-success/10',
+          border: 'border-success/25',
+          dot: 'bg-success',
           description: 'Production - Real SOL',
         };
       default:
         return {
           label: 'Unknown',
-          color: 'text-gray-400',
-          bg: 'bg-gray-500/20',
-          border: 'border-gray-500/30',
-          dot: 'bg-gray-400',
+          color: 'text-muted-foreground',
+          bg: 'bg-muted',
+          border: 'border-border',
+          dot: 'bg-muted-foreground',
           description: 'Unknown network',
         };
     }
@@ -149,7 +149,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
       />
       
       {/* Modal */}
-      <div className="relative glass-card w-full max-w-md p-6 animate-scale-in shadow-[0_0_40px_hsl(var(--accent)/0.2)]">
+      <div className="relative glass-card w-full max-w-md p-6 animate-scale-in shadow-[0_0_40px_hsl(var(--ring)/0.15)]">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -180,10 +180,10 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
         {isConnected ? (
           <div className="space-y-4">
             {/* Wallet Address */}
-            <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)]">
+            <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--ring)/0.12)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_hsl(var(--accent)/0.3)]">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_hsl(var(--ring)/0.2)]">
                     <Wallet className="h-5 w-5 text-primary" />
                   </div>
                   <div>
@@ -220,16 +220,16 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
 
             {/* Balances */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-accent/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)] hover:scale-105">
+              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--ring)/0.12)] hover:scale-105">
                 <div className="flex items-center gap-2 mb-2">
-                  <Coins className="h-4 w-4 text-accent" />
+                  <Coins className="h-4 w-4 text-foreground" />
                   <span className="text-sm text-muted-foreground">SOL Balance</span>
                 </div>
-                <p className="text-xl font-bold text-accent">{solBalance.toFixed(4)} SOL</p>
+                <p className="text-xl font-bold text-foreground">{solBalance.toFixed(4)} SOL</p>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)] hover:scale-105">
+              <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--ring)/0.12)] hover:scale-105">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--accent)/0.4)]" />
+                  <div className="w-4 h-4 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--ring)/0.35)]" />
                   <span className="text-sm text-muted-foreground">$SYRA</span>
                 </div>
                 <p className="text-xl font-bold text-primary">{formatBalance(syraBalance)}</p>
@@ -237,7 +237,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Staking Tier */}
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--accent)/0.2)]">
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--ring)/0.15)]">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm text-muted-foreground">Staking Tier</p>
                 {stakedAmount > 0 && (
@@ -274,7 +274,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
                     key={wallet.adapter.name}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     disabled={connecting}
-                    className="w-full flex items-center gap-4 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-all duration-300 border border-border hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.15)] hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-4 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-all duration-300 border border-border hover:border-primary/40 hover:shadow-[0_0_15px_hsl(var(--ring)/0.12)] hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center transition-all duration-300 overflow-hidden">
                       {wallet.adapter.icon ? (
@@ -293,7 +293,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
                         {getWalletDescription(wallet.adapter.name)}
                       </p>
                     </div>
-                    <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
+                    <div className="px-2 py-1 bg-success/15 text-success text-xs rounded-full">
                       Detected
                     </div>
                   </button>
@@ -321,9 +321,9 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
                         window.open(url, '_blank');
                       }
                     }}
-                    className="w-full flex items-center gap-4 p-4 bg-secondary/30 hover:bg-secondary/50 rounded-lg transition-all duration-300 border border-border/50 hover:border-accent/40 hover:shadow-[0_0_15px_hsl(var(--accent)/0.1)] hover:scale-[1.01] active:scale-100"
+                    className="w-full flex items-center gap-4 p-4 bg-secondary/30 hover:bg-secondary/50 rounded-lg transition-all duration-300 border border-border/50 hover:border-primary/25 hover:shadow-[0_0_15px_hsl(var(--foreground)/0.06)] hover:scale-[1.01] active:scale-100"
                   >
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center transition-all duration-300 overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center transition-all duration-300 overflow-hidden">
                       {wallet.adapter.icon ? (
                         <img 
                           src={wallet.adapter.icon} 

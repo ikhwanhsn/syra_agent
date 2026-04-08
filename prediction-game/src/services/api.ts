@@ -352,11 +352,11 @@ export function getPhaseDisplayName(status: Event['status']): string {
 
 export function getPhaseColor(status: Event['status']): string {
   const colors: Record<Event['status'], string> = {
-    joining: 'text-blue-400',
-    predicting: 'text-yellow-400',
-    waiting: 'text-amber-400',
-    completed: 'text-green-400',
-    cancelled: 'text-red-400',
+    joining: 'text-primary',
+    predicting: 'text-warning',
+    waiting: 'text-muted-foreground',
+    completed: 'text-success',
+    cancelled: 'text-destructive',
   };
   return colors[status] || 'text-muted-foreground';
 }

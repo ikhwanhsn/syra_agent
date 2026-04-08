@@ -45,7 +45,7 @@ export const STAKING_TIERS = {
     dailyEvents: 10,
     lockDays: 7,
     creationFee: 0,
-    color: 'cyan',
+    color: 'zinc',
     emoji: '💎',
   },
 } as const;
@@ -239,22 +239,22 @@ export function getAmountToNextTier(currentAmount: number, currentTier: TierName
 
 export function getTierColor(tier: TierName): string {
   const colors: Record<TierName, string> = {
-    FREE: 'text-gray-400',
-    BRONZE: 'text-orange-400',
-    SILVER: 'text-gray-300',
-    GOLD: 'text-yellow-400',
-    DIAMOND: 'text-accent',
+    FREE: 'text-muted-foreground',
+    BRONZE: 'text-muted-foreground',
+    SILVER: 'text-foreground/80',
+    GOLD: 'text-foreground',
+    DIAMOND: 'text-primary',
   };
   return colors[tier];
 }
 
 export function getTierBgColor(tier: TierName): string {
   const colors: Record<TierName, string> = {
-    FREE: 'bg-gray-500/10 border-gray-500/30',
-    BRONZE: 'bg-orange-500/10 border-orange-500/30',
-    SILVER: 'bg-gray-400/10 border-gray-400/30',
-    GOLD: 'bg-yellow-500/10 border-yellow-500/30',
-    DIAMOND: 'bg-accent/10 border-accent/30',
+    FREE: 'bg-muted/50 border-border',
+    BRONZE: 'bg-secondary border-border',
+    SILVER: 'bg-secondary border-primary/20',
+    GOLD: 'bg-primary/10 border-primary/25',
+    DIAMOND: 'bg-primary/15 border-primary/35',
   };
   return colors[tier];
 }
