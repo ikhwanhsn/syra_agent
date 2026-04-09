@@ -1,6 +1,6 @@
 /**
- * DevFun Arena worker: polls open Pump/Dump challenges, scores with Dexscreener + Rugcheck,
- * paginated submission history, retries, optional local state dedup, deadline buffer, poll jitter.
+ * DevFun Arena worker: arena-v3 — Dexscreener trending (boosts + profiles), meta/name overlap,
+ * optional Exa narrative + rug + microstructure tape, online logistic learner (.arena-learner-state.json).
  *
  * Env:
  *   ARENA_CREDENTIALS_PATH — optional path to JSON { apiKey, agentId }; default: repo root `.arena-credentials`
@@ -13,11 +13,30 @@
  *   ARENA_DRY_RUN=1 — log payload, do not POST
  *   ARENA_MAX_PER_TICK — max submissions per wake (default 10)
  *   ARENA_DEBUG=1 — log why challenges were filtered out
+ *   ARENA_DISABLE_LEARN=1 — skip submission-history adjustments (threshold/bias/confidence)
+ *   ARENA_LEARN_MAX_ROWS — max settled rows to scan (default 160, cap 500)
  *   ARENA_SOLANA_RPC_URL or SOLANA_RPC_URL — Helius/Ankr etc. for getTokenLargestAccounts (holder concentration)
+ *   EXA_API_KEY — optional; enables Exa web/news/social narrative blend (see narrativeContext.js)
+ *   ARENA_DISABLE_NARRATIVE=1 — skip Exa narrative fetch
+ *   ARENA_NARRATIVE_WEIGHT — composite blend 0..0.35 (default 0.15)
+ *   ARENA_NARRATIVE_TIMEOUT_MS — default 12000
+ *   DEXTOOLS_API_KEY — optional; if set, attempts Dextools trending (URL may need DEXTOOLS_API_BASE_URL)
+ *   ARENA_DISABLE_SGD=1 — skip online learner train/save after tick
+ *   ARENA_LEARNER_LR — SGD step scale (default 0.06)
  *
  * Run from repo: `cd api && npm run arena-worker`
  * One shot: `cd api && npm run arena-worker:once`
  */
+import {
+  loadFeatureLog,
+  recordArenaFeatures,
+  saveFeatureLog,
+} from "./arenaFeatureLog.js";
+import {
+  loadLearnerState,
+  saveLearnerState,
+  trainLearnerFromSubmissions,
+} from "./arenaLearner.js";
 import { loadArenaCredentials } from "./credentials.js";
 import {
   fetchAllSubmittedChallengeIds,
@@ -29,14 +48,20 @@ import {
   submitPumpOrDump,
   toEpochMs,
 } from "./arenaApi.js";
-import { buildPumpDumpDecision } from "./decideSubmission.js";
+import { buildArenaV2Decision } from "./decideArenaV2.js";
+import {
+  computeLearnedAdjustments,
+  fetchSubmissionHistory,
+} from "./learnFromSubmissions.js";
 import { buildMarketContext } from "./marketContext.js";
+import { fetchNarrativeForToken } from "./narrativeContext.js";
 import {
   fetchDexscreenerForMint,
   fetchRugcheckReport,
   pickBestPair,
 } from "./marketSignals.js";
 import { retryAsync } from "./retryAsync.js";
+import { fetchTrendingSnapshot, snapshotIsUsable } from "./trendingFeeds.js";
 import {
   loadWorkerState,
   recordSuccessfulSubmission,
@@ -68,8 +93,22 @@ function resolveMint(challenge) {
 
 /**
  * @param {import('./workerState.js').ArenaWorkerState | null} state
+ * @param {import('./learnFromSubmissions.js').LearnedAdjustments | null} learned
+ * @param {import('./trendingFeeds.js').TrendingSnapshot} trendingSnapshot
+ * @param {import('./arenaLearner.js').LearnerWeights} learnerW
+ * @param {import('./arenaFeatureLog.js').FeatureLogFile} featureLog
+ * @param {boolean} dry
  */
-async function processOneChallenge(apiKey, challenge, state) {
+async function processOneChallenge(
+  apiKey,
+  challenge,
+  state,
+  learned,
+  trendingSnapshot,
+  learnerW,
+  featureLog,
+  dry
+) {
   const mint = resolveMint(challenge);
   if (!mint) {
     log("skip challenge (no mint/contract)", challenge.id);
@@ -77,11 +116,15 @@ async function processOneChallenge(apiKey, challenge, state) {
   }
 
   const t0 = Date.now();
-  const [dexJson, rugReport] = await retryAsync(
-    () =>
-      Promise.all([fetchDexscreenerForMint(mint), fetchRugcheckReport(mint)]),
-    { tries: 3, baseDelayMs: 400 }
-  );
+  const [dexJson, rugReport, narrativeContext] = await Promise.all([
+    retryAsync(() => fetchDexscreenerForMint(mint), { tries: 3, baseDelayMs: 400 }),
+    retryAsync(() => fetchRugcheckReport(mint), { tries: 3, baseDelayMs: 400 }),
+    fetchNarrativeForToken({
+      tokenName: challenge.data?.tokenName,
+      tokenSymbol: challenge.data?.tokenSymbol,
+      mint,
+    }),
+  ]);
   const pair = pickBestPair(dexJson);
   const marketContext = await buildMarketContext({
     mint,
@@ -90,7 +133,7 @@ async function processOneChallenge(apiKey, challenge, state) {
   });
   const decisionTimeMs = Math.max(1, Date.now() - t0);
 
-  const payload = buildPumpDumpDecision({
+  const { payload, features } = buildArenaV2Decision({
     pair,
     rugReport,
     tokenSymbol: challenge.data?.tokenSymbol,
@@ -100,15 +143,21 @@ async function processOneChallenge(apiKey, challenge, state) {
     challengeId: challenge.id,
     marketContext,
     priceAtRelease: challenge.data?.priceAtRelease ?? null,
+    learnedAdjustments: learned,
+    narrativeContext,
+    trendingSnapshot,
+    learnerWeights: learnerW,
   });
 
-  if (process.env.ARENA_DRY_RUN === "1") {
-    log("[dry-run]", challenge.id, mint, payload.prediction, payload.confidence);
+  if (dry) {
+    log("[dry-run]", challenge.id, mint, payload.prediction, payload.confidence, payload.reasoning.slice(0, 72));
     return;
   }
 
   const result = await submitPumpOrDump(apiKey, challenge.id, payload);
   log("submitted", challenge.id, payload.prediction, result?.submissionId ?? result);
+
+  recordArenaFeatures(challenge.id, mint, features, featureLog);
 
   if (state) {
     recordSuccessfulSubmission(challenge.id, payload.chatMessage, state);
@@ -214,11 +263,69 @@ async function tick(apiKey) {
 
   log("competition", competition.name, "| pending challenges:", open.length);
 
+  const trendingSnapshot = await fetchTrendingSnapshot();
+  if (debug) {
+    log(
+      "trending",
+      "mints",
+      trendingSnapshot.solMintsAll.size,
+      "terms",
+      trendingSnapshot.termWeights.size,
+      "boost",
+      trendingSnapshot.boostRows,
+      "prof",
+      trendingSnapshot.profileRows,
+      trendingSnapshot.error || "ok"
+    );
+  }
+  if (!snapshotIsUsable(trendingSnapshot) && debug) {
+    log("trending weak — meta signal may be thin");
+  }
+
+  /** @type {import('./arenaFeatureLog.js').FeatureLogFile} */
+  const featureLog = await loadFeatureLog();
+  const learnerW = await loadLearnerState();
+
+  /** @type {import('./learnFromSubmissions.js').LearnedAdjustments | null} */
+  let learned = null;
+  if (process.env.ARENA_DISABLE_LEARN !== "1") {
+    try {
+      const maxRows = Math.min(
+        500,
+        Math.max(40, Number.parseInt(process.env.ARENA_LEARN_MAX_ROWS || "160", 10) || 160)
+      );
+      const hist = await fetchSubmissionHistory(apiKey, competition.id, maxRows);
+      learned = computeLearnedAdjustments(hist);
+      if (debug && learned.sampleSize >= 4) {
+        log(
+          "learn",
+          "n=",
+          learned.sampleSize,
+          "pump",
+          `${learned.directionalPump.wins}/${learned.directionalPump.n}`,
+          "dump",
+          `${learned.directionalDump.wins}/${learned.directionalDump.n}`,
+          "bias",
+          learned.compositeBias.toFixed(4),
+          "dP",
+          learned.thPumpDelta.toFixed(4),
+          "dD",
+          learned.thDumpDelta.toFixed(4),
+          "cs",
+          learned.confidenceScale.toFixed(2)
+        );
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      log("learn skipped", msg);
+    }
+  }
+
   let n = 0;
   for (const ch of open) {
     if (n >= maxPer) break;
     try {
-      await processOneChallenge(apiKey, ch, state);
+      await processOneChallenge(apiKey, ch, state, learned, trendingSnapshot, learnerW, featureLog, dry);
       n += 1;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -228,6 +335,20 @@ async function tick(apiKey) {
 
   if (!dry && n === 0 && open.length > 0) {
     log("no submission this tick (errors above?)");
+  }
+
+  if (!dry && process.env.ARENA_DISABLE_SGD !== "1") {
+    try {
+      await saveFeatureLog(featureLog);
+      const trainRows = Math.min(200, Math.max(40, Number.parseInt(process.env.ARENA_LEARN_MAX_ROWS || "160", 10) || 160));
+      const hist = await fetchSubmissionHistory(apiKey, competition.id, trainRows);
+      trainLearnerFromSubmissions(hist, featureLog, learnerW, 100);
+      await saveLearnerState(learnerW);
+      if (debug) log("sgd", "learner_updates", learnerW.updates);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      log("learner train skipped", msg);
+    }
   }
 }
 

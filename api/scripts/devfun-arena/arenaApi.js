@@ -63,16 +63,16 @@ export async function listCurrentChallenges(apiKey, competitionId) {
 /**
  * @param {string} apiKey
  * @param {number} [limit] max 100 per Arena API
- * @param {string} [competitionId] optional filter
+ * @param {string} [arenaOrCompetitionId] optional filter (API expects `arenaId`; same value as list-active `id`)
  * @param {number} [offset]
  */
-export async function listSubmissions(apiKey, limit = 100, competitionId, offset = 0) {
+export async function listSubmissions(apiKey, limit = 100, arenaOrCompetitionId, offset = 0) {
   const cap = Math.min(100, Math.max(1, Math.floor(limit)));
   const q = new URLSearchParams({
     limit: String(cap),
     offset: String(Math.max(0, Math.floor(offset))),
   });
-  if (competitionId) q.set("competitionId", competitionId);
+  if (arenaOrCompetitionId) q.set("arenaId", arenaOrCompetitionId);
   return arenaFetch(apiKey, `/agent/submissions?${q}`);
 }
 

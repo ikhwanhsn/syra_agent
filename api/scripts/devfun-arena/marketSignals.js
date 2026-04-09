@@ -160,3 +160,22 @@ export function pairAgeMinutes(pair) {
   const ms = created > 1e12 ? created : created * 1000;
   return Math.max(0, (Date.now() - ms) / 60_000);
 }
+
+/**
+ * Short tape (m5/h1) running hot while 6h/24h lag → mean-reversion risk for naive longs.
+ * Returns roughly in [-1, 1]; negative means "extended short-term vs longer trend".
+ * @param {unknown} pair
+ */
+export function dexShortVsLongDivergence(pair) {
+  if (!pair || typeof pair !== "object") return 0;
+  const p = /** @type {Record<string, unknown>} */ (pair);
+  const pc = p.priceChange && typeof p.priceChange === "object" ? p.priceChange : {};
+  const ch = /** @type {Record<string, unknown>} */ (pc);
+  const m5 = Number(ch.m5) || 0;
+  const h1 = Number(ch.h1) || 0;
+  const h6 = Number(ch.h6) || 0;
+  const h24 = Number(ch.h24) || 0;
+  const shortPx = 0.55 * m5 + 0.45 * h1;
+  const longPx = 0.55 * h6 + 0.45 * h24;
+  return Math.tanh((longPx - shortPx) / 22);
+}
