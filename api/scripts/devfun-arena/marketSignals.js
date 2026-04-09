@@ -64,9 +64,23 @@ export function rugcheckDumpBias(report) {
   }
   const risks = r.risks ?? r.Risks;
   const riskCount = Array.isArray(risks) ? risks.length : 0;
-  const riskBump = Math.min(1, riskCount / 16) * 0.32;
+  const riskBump = Math.min(1, riskCount / 18) * 0.28;
   const combined = Math.min(1, t + riskBump);
-  return -0.26 * combined;
+  return -0.22 * combined;
+}
+
+/**
+ * Very short price path (m5 + h1) — closer to "right now" at challenge release.
+ * @param {unknown} pair
+ */
+export function dexNearTermScore(pair) {
+  if (!pair || typeof pair !== "object") return 0;
+  const p = /** @type {Record<string, unknown>} */ (pair);
+  const pc = p.priceChange && typeof p.priceChange === "object" ? p.priceChange : {};
+  const ch = /** @type {Record<string, unknown>} */ (pc);
+  const m5 = Number(ch.m5) || 0;
+  const h1 = Number(ch.h1) || 0;
+  return Math.tanh((0.5 * m5 + 0.5 * h1) / 16);
 }
 
 /**

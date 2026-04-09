@@ -13,6 +13,7 @@
  *   ARENA_DRY_RUN=1 — log payload, do not POST
  *   ARENA_MAX_PER_TICK — max submissions per wake (default 10)
  *   ARENA_DEBUG=1 — log why challenges were filtered out
+ *   ARENA_SOLANA_RPC_URL or SOLANA_RPC_URL — Helius/Ankr etc. for getTokenLargestAccounts (holder concentration)
  *
  * Run from repo: `cd api && npm run arena-worker`
  * One shot: `cd api && npm run arena-worker:once`
@@ -29,6 +30,7 @@ import {
   toEpochMs,
 } from "./arenaApi.js";
 import { buildPumpDumpDecision } from "./decideSubmission.js";
+import { buildMarketContext } from "./marketContext.js";
 import {
   fetchDexscreenerForMint,
   fetchRugcheckReport,
@@ -81,6 +83,11 @@ async function processOneChallenge(apiKey, challenge, state) {
     { tries: 3, baseDelayMs: 400 }
   );
   const pair = pickBestPair(dexJson);
+  const marketContext = await buildMarketContext({
+    mint,
+    priceAtRelease: challenge.data?.priceAtRelease ?? null,
+    pair,
+  });
   const decisionTimeMs = Math.max(1, Date.now() - t0);
 
   const payload = buildPumpDumpDecision({
@@ -91,6 +98,8 @@ async function processOneChallenge(apiKey, challenge, state) {
     contractAddress: mint,
     decisionTimeMs,
     challengeId: challenge.id,
+    marketContext,
+    priceAtRelease: challenge.data?.priceAtRelease ?? null,
   });
 
   if (process.env.ARENA_DRY_RUN === "1") {
