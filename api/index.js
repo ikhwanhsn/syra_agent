@@ -24,6 +24,7 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
+import { createInternalArenaWorkerRouter } from "./routes/internalArenaWorker.js";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
@@ -801,6 +802,8 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Internal dashboard: research-store, research-resume (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
+// DevFun arena: optional in-process schedule (ARENA_SCHEDULE_TICKS) + POST /tick with ARENA_CRON_SECRET
+app.use("/internal/arena-worker", createInternalArenaWorkerRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
@@ -999,5 +1002,22 @@ app.listen(PORT, () => {
   if (legacyMs >= 60_000 && validateMs < 1_000 && signalMs < 60_000) {
     console.log(`[Trading experiment] legacy full run-cycle every ${legacyMs}ms`);
     setInterval(runFull, legacyMs);
+  }
+
+  const scheduleArenaTicks =
+    process.env.ARENA_SCHEDULE_TICKS === "1" ||
+    process.env.ARENA_SCHEDULE_TICKS === "true";
+  const rawArenaMs = process.env.ARENA_TICK_INTERVAL_MS;
+  const arenaIntervalMs = scheduleArenaTicks
+    ? rawArenaMs != null && String(rawArenaMs).trim() !== ""
+      ? Number(rawArenaMs)
+      : 600_000
+    : 0;
+
+  if (scheduleArenaTicks && arenaIntervalMs >= 60_000) {
+    import("./scripts/devfun-arena/arenaTickRunner.mjs").then(({ startArenaWorkerInterval }) => {
+      console.log(`[arena-schedule] in-process tick every ${arenaIntervalMs}ms`);
+      startArenaWorkerInterval({ intervalMs: arenaIntervalMs, runImmediately: false });
+    });
   }
 });

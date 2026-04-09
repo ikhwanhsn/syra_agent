@@ -20,7 +20,8 @@
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
     "openapi": "node scripts/export-openapi.mjs",
     "arena-worker": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs",
-    "arena-worker:once": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs --once"
+    "arena-worker:once": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs --once",
+    "arena-ping": "node -r dotenv/config scripts/devfun-arena/arenaPing.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
