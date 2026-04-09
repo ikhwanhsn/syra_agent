@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SyraLogo } from "./SyraLogo";
-import { Twitter, Github, MessageCircle, FileText, Mail } from "lucide-react";
+import { Twitter, Send, FileText, Mail } from "lucide-react";
 import {
   EMAIL_SUPPORT,
   LINK_AGENT,
   LINK_DOCS,
   LINK_PLAYGROUND,
-  // LINK_TELEGRAM, // hidden: focus on website
+  LINK_TELEGRAM,
   LINK_X,
 } from "../../config/global";
 
@@ -37,8 +37,7 @@ const footerLinks = {
 
 const socials = [
   { icon: Twitter, href: LINK_X, label: "Twitter" },
-  // { icon: MessageCircle, href: LINK_TELEGRAM, label: "Telegram" }, // hidden: focus on website
-  { icon: Github, href: "#", label: "GitHub" },
+  { icon: Send, href: LINK_TELEGRAM, label: "Telegram" },
   { icon: FileText, href: LINK_DOCS, label: "Docs" },
 ];
 

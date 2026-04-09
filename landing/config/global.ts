@@ -17,7 +17,7 @@ const LINK_DOCS = "https://docs.syraa.fun";
 const LINK_PLAYGROUND = "https://playground.syraa.fun";
 // In dev, use /api so Vite proxies to localhost:3000 (run: cd api && npm run dev)
 const API_BASE = import.meta.env.DEV ? "/api" : "https://api.syraa.fun";
-// const LINK_TELEGRAM = "https://t.me/syra_ai"; // hidden: focus on website
+const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
 const EMAIL_SUPPORT = "ikhwanulhusna111@gmail.com";
 
@@ -34,6 +34,6 @@ export {
   API_BASE,
   EMAIL_SUPPORT,
   getApiHeaders,
-  // LINK_TELEGRAM,
+  LINK_TELEGRAM,
   LINK_X,
 };
