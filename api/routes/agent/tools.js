@@ -1,6 +1,6 @@
 /**
  * Agent tools: list x402 resources and call them with agent wallet (balance checked first).
- * Nansen tools call the real Nansen API (api.nansen.ai) directly; other tools call our API.
+ * Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); other tools call our API.
  * When connected wallet is a dev wallet (e.g. playground), pricing is cheaper (same as API playground).
  */
 import express from 'express';
@@ -8,6 +8,7 @@ import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../con
 import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
 import { callX402V2WithAgent, signAndSubmitSwapTransaction } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
+import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import {
   purchVaultSearch,
   purchVaultBuy,
@@ -225,6 +226,29 @@ router.post('/call', async (req, res) => {
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
     if (tool.nansenPath) {
       const result = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return res.status(status).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.zerionPath) {
+      const result = await callZerionWithAgent(
+        anonymousId,
+        tool.zerionPath,
+        tool.method || 'GET',
+        params
+      );
       if (!result.success) {
         const status = result.budgetExceeded ? 402 : 502;
         return res.status(status).json({

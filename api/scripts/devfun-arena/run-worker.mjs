@@ -1,16 +1,18 @@
 /**
  * DevFun Arena worker: polls open Pump/Dump challenges, scores with Dexscreener + Rugcheck,
- * paginated submission history, retries, local state for dedup, deadline buffer, poll jitter.
+ * paginated submission history, retries, optional local state dedup, deadline buffer, poll jitter.
  *
  * Env:
  *   ARENA_CREDENTIALS_PATH — optional path to JSON { apiKey, agentId }; default: repo root `.arena-credentials`
  *   ARENA_API_KEY / ARENA_AGENT_ID — optional instead of file
  *   ARENA_STATE_PATH — optional JSON state file; default: repo root `.arena-worker-state.json`
- *   ARENA_POLL_MS — poll interval (default 28000)
- *   ARENA_POLL_JITTER_MS — extra random 0..n ms each loop (default 3000)
- *   ARENA_DEADLINE_BUFFER_MS — skip challenge if less than this ms to deadline (default 5000)
+ *   ARENA_SKIP_LOCAL_STATE=1 — dedup from Arena API only (ignore .arena-worker-state.json IDs; fixes poisoned state)
+ *   ARENA_POLL_MS — poll interval (default 15000)
+ *   ARENA_POLL_JITTER_MS — extra random 0..n ms each loop (default 2000)
+ *   ARENA_DEADLINE_BUFFER_MS — skip if less than this ms to deadline (default 800; set 0 to disable)
  *   ARENA_DRY_RUN=1 — log payload, do not POST
- *   ARENA_MAX_PER_TICK — max submissions per wake (default 4)
+ *   ARENA_MAX_PER_TICK — max submissions per wake (default 10)
+ *   ARENA_DEBUG=1 — log why challenges were filtered out
  *
  * Run from repo: `cd api && npm run arena-worker`
  * One shot: `cd api && npm run arena-worker:once`
@@ -18,11 +20,13 @@
 import { loadArenaCredentials } from "./credentials.js";
 import {
   fetchAllSubmittedChallengeIds,
+  isExplicitlyClosedStatus,
   listActiveCompetitions,
   listCurrentChallenges,
   normalizeChallenges,
   pickFirstActiveCompetition,
   submitPumpOrDump,
+  toEpochMs,
 } from "./arenaApi.js";
 import { buildPumpDumpDecision } from "./decideSubmission.js";
 import {
@@ -46,13 +50,27 @@ function log(...args) {
   console.log(`[arena-worker ${t}]`, ...args);
 }
 
+function resolveMint(challenge) {
+  const data = challenge?.data && typeof challenge.data === "object" ? challenge.data : {};
+  const d = /** @type {Record<string, unknown>} */ (data);
+  const a =
+    typeof d.contractAddress === "string"
+      ? d.contractAddress.trim()
+      : typeof d.mint === "string"
+        ? d.mint.trim()
+        : "";
+  if (a) return a;
+  const u = challenge?.uniqueId;
+  return typeof u === "string" ? u.trim() : "";
+}
+
 /**
  * @param {import('./workerState.js').ArenaWorkerState | null} state
  */
 async function processOneChallenge(apiKey, challenge, state) {
-  const mint = challenge.data?.contractAddress;
-  if (!mint || typeof mint !== "string") {
-    log("skip challenge (no contract)", challenge.id);
+  const mint = resolveMint(challenge);
+  if (!mint) {
+    log("skip challenge (no mint/contract)", challenge.id);
     return;
   }
 
@@ -60,7 +78,7 @@ async function processOneChallenge(apiKey, challenge, state) {
   const [dexJson, rugReport] = await retryAsync(
     () =>
       Promise.all([fetchDexscreenerForMint(mint), fetchRugcheckReport(mint)]),
-    { tries: 3, baseDelayMs: 500 }
+    { tries: 3, baseDelayMs: 400 }
   );
   const pair = pickBestPair(dexJson);
   const decisionTimeMs = Math.max(1, Date.now() - t0);
@@ -91,12 +109,14 @@ async function processOneChallenge(apiKey, challenge, state) {
 
 async function tick(apiKey) {
   const dry = process.env.ARENA_DRY_RUN === "1";
+  const debug = process.env.ARENA_DEBUG === "1";
+  const skipLocalState = process.env.ARENA_SKIP_LOCAL_STATE === "1";
   const maxPer = Math.max(
     1,
-    Math.min(10, Number.parseInt(process.env.ARENA_MAX_PER_TICK || "4", 10) || 4)
+    Math.min(10, Number.parseInt(process.env.ARENA_MAX_PER_TICK || "10", 10) || 10)
   );
-  const deadlineBuffer =
-    Math.max(0, Number.parseInt(process.env.ARENA_DEADLINE_BUFFER_MS || "5000", 10)) || 5000;
+  const rawBuf = Number.parseInt(process.env.ARENA_DEADLINE_BUFFER_MS ?? "800", 10);
+  const deadlineBuffer = Number.isFinite(rawBuf) ? Math.max(0, rawBuf) : 800;
 
   const state = dry ? null : await loadWorkerState();
 
@@ -118,22 +138,65 @@ async function tick(apiKey) {
   ]);
 
   const done = new Set(apiIds);
-  if (state?.submittedChallengeIds?.length) {
+  if (!skipLocalState && state?.submittedChallengeIds?.length) {
     for (const id of state.submittedChallengeIds) done.add(id);
+  } else if (skipLocalState && debug) {
+    log("ARENA_SKIP_LOCAL_STATE=1 — using API submission list only for dedup");
   }
 
   const now = Date.now();
-  let open = normalizeChallenges(currentRaw).filter((c) => {
-    if (String(c.status).toLowerCase() !== "open") return false;
-    if (done.has(c.id)) return false;
-    if (typeof c.submissionDeadline === "number") {
-      if (c.submissionDeadline <= now) return false;
-      if (c.submissionDeadline - now < deadlineBuffer) return false;
+  const rawList = normalizeChallenges(currentRaw);
+  let closed = 0;
+  let already = 0;
+  let late = 0;
+  let soon = 0;
+
+  const open = rawList.filter((c) => {
+    if (isExplicitlyClosedStatus(c.status)) {
+      closed += 1;
+      return false;
+    }
+    if (done.has(c.id)) {
+      already += 1;
+      return false;
+    }
+    const dl = toEpochMs(c.submissionDeadline);
+    if (dl !== null) {
+      if (dl <= now) {
+        late += 1;
+        return false;
+      }
+      if (deadlineBuffer > 0 && dl - now < deadlineBuffer) {
+        soon += 1;
+        return false;
+      }
     }
     return true;
   });
 
-  open.sort((a, b) => (a.submissionDeadline ?? 0) - (b.submissionDeadline ?? 0));
+  open.sort((a, b) => {
+    const da = toEpochMs(a.submissionDeadline) ?? Number.MAX_SAFE_INTEGER;
+    const db = toEpochMs(b.submissionDeadline) ?? Number.MAX_SAFE_INTEGER;
+    return da - db;
+  });
+
+  if (debug) {
+    log(
+      "debug filter",
+      "raw=",
+      rawList.length,
+      "closed=",
+      closed,
+      "alreadyDone=",
+      already,
+      "pastDeadline=",
+      late,
+      "insideBuffer=",
+      soon,
+      "eligible=",
+      open.length
+    );
+  }
 
   if (open.length === 0) {
     log("no open challenges to submit", competition.name || competition.id);
@@ -162,8 +225,8 @@ async function tick(apiKey) {
 async function main() {
   const creds = await loadArenaCredentials();
   const once = process.argv.includes("--once");
-  const pollMs = Math.max(12_000, Number.parseInt(process.env.ARENA_POLL_MS || "28000", 10) || 28_000);
-  const jitterMax = Math.max(0, Number.parseInt(process.env.ARENA_POLL_JITTER_MS || "3000", 10) || 3000);
+  const pollMs = Math.max(8_000, Number.parseInt(process.env.ARENA_POLL_MS || "15000", 10) || 15_000);
+  const jitterMax = Math.max(0, Number.parseInt(process.env.ARENA_POLL_JITTER_MS || "2000", 10) || 2000);
 
   log("starting", once ? "single run" : `poll ~${pollMs}ms + jitter 0-${jitterMax}ms`, "| agent", creds.agentId);
 
@@ -188,4 +251,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-

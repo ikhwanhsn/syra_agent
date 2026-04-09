@@ -6,7 +6,6 @@ import crypto from 'crypto';
 import pkg from 'random-avatar-generator';
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
-import { fundNewAgentWallet } from '../../libs/fundNewAgentWallet.js';
 import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
 
 const { AvatarGenerator } = pkg;
@@ -150,9 +149,9 @@ router.get('/:anonymousId', async (req, res) => {
  * POST /agent/wallet/connect
  * Get or create agent wallet by connected wallet address and chain.
  * Body: { walletAddress: string, chain?: "solana" | "base" }
- * - chain "solana" (default): creates Solana agent keypair, funds with $1 on first create.
- * - chain "base": creates EVM/Base agent wallet (new address on Base). No auto-fund.
- * Returns: { anonymousId, agentAddress, avatarUrl?, isNewWallet?, fundingPending? (Solana only) }
+ * - chain "solana" (default): creates Solana agent keypair on first create.
+ * - chain "base": creates EVM/Base agent wallet (new address on Base).
+ * Returns: { anonymousId, agentAddress, avatarUrl?, isNewWallet? }
  */
 router.post('/connect', async (req, res) => {
   try {
@@ -209,7 +208,7 @@ router.post('/connect', async (req, res) => {
       });
     }
 
-    // Solana: create keypair and optionally fund
+    // Solana: create keypair (user funds agent wallet themselves)
     const anonymousId = `wallet:${walletAddress}`;
     const keypair = Keypair.generate();
     const agentAddress = keypair.publicKey.toBase58();
@@ -224,17 +223,14 @@ router.post('/connect', async (req, res) => {
       avatarUrl,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       anonymousId,
       agentAddress,
       avatarUrl,
       isNewWallet: true,
-      fundingPending: true,
+      chain: 'solana',
     });
-
-    fundNewAgentWallet(agentAddress).catch(() => {});
-    return;
   } catch (error) {
     const walletAddress = req.body?.walletAddress?.trim();
     const chain = req.body?.chain === 'base' ? 'base' : 'solana';
@@ -323,18 +319,13 @@ router.post('/', async (req, res) => {
       avatarUrl,
     });
 
-    // Return immediately for better UX; fund in background (~20–60s on-chain)
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       anonymousId,
       agentAddress,
       avatarUrl,
       isNewWallet: true,
-      fundingPending: true,
     });
-
-    fundNewAgentWallet(agentAddress).catch(() => {});
-    return;
   } catch (error) {
     if (error.code === 11000) {
       const existing = await AgentWallet.findOne({ anonymousId: (req.body || {}).anonymousId?.trim() })

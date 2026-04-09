@@ -22,7 +22,7 @@ export function LoadingState({ message = "Loading…", size = "md", className }:
     >
       <div
         className={cn(
-          "rounded-full border-2 border-gray-700/80 border-t-syra-primary border-r-syra-accent/60 animate-spin",
+          "rounded-full border-2 border-gray-700/80 border-t-primary border-r-ring/60 animate-spin",
           spinnerSizes[size]
         )}
         aria-hidden
@@ -42,7 +42,7 @@ export function LoadingStateInline({ message = "Loading…", className }: { mess
       )}
     >
       <div
-        className="h-8 w-8 shrink-0 rounded-full border-2 border-gray-700 border-t-syra-primary border-r-syra-accent/50 animate-spin"
+        className="h-8 w-8 shrink-0 rounded-full border-2 border-gray-700 border-t-primary border-r-ring/50 animate-spin"
         aria-hidden
       />
       <span className="text-sm text-gray-400">{message}</span>

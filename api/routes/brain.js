@@ -9,8 +9,11 @@ import {
   selectToolsWithLlm,
   formatToolResultForLlm,
   callToolWithTreasury,
+  withLlmIdentitySystemNote,
 } from "./agent/chat.js";
 import { getAgentTool, getCapabilitiesList } from "../config/agentTools.js";
+import { JATEVO_DEFAULT_MODEL } from "../config/jatevoModels.js";
+import { callZerionWithTreasury } from "../libs/agentZerionClient.js";
 import { callJatevo } from "../libs/jatevo.js";
 import { resolveAgentBaseUrl } from "./agent/utils.js";
 import {
@@ -98,14 +101,26 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             .filter(([k, v]) => typeof k === "string" && v != null && v !== "")
             .map(([k, v]) => [k, typeof v === "string" ? v : String(v)])
         );
-        const url = `${baseUrl}${tool.path}`;
         const method = tool.method || "GET";
-        const result = await callToolWithTreasury(
-          url,
-          method,
-          method === "GET" ? params : {},
-          method === "POST" ? params : undefined
-        );
+        let result;
+        if (tool.zerionPath) {
+          const zr = await callZerionWithTreasury(tool.zerionPath, method, params);
+          result = zr.success
+            ? { status: 200, data: zr.data }
+            : {
+                status: zr.budgetExceeded ? 402 : 502,
+                error: zr.error,
+                budgetExceeded: zr.budgetExceeded,
+              };
+        } else {
+          const url = `${baseUrl}${tool.path}`;
+          result = await callToolWithTreasury(
+            url,
+            method,
+            method === "GET" ? params : {},
+            method === "POST" ? params : undefined
+          );
+        }
 
         if (result.status !== 200) {
           const err = result.error || "Request failed";
@@ -138,7 +153,10 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     const jatevoOptions = {
       max_tokens: hadToolResults ? MAX_TOKENS_WITH_TOOLS : MAX_TOKENS_DEFAULT,
     };
-    const { response } = await callJatevo(apiMessages, jatevoOptions);
+    const { response } = await callJatevo(
+      withLlmIdentitySystemNote(apiMessages, JATEVO_DEFAULT_MODEL),
+      jatevoOptions
+    );
 
     const servicePayload = JSON.stringify({
       resource: "/brain",

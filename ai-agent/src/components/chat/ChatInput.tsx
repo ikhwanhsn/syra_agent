@@ -98,9 +98,9 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
   };
 
   return (
-    <div className="w-full min-w-0 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0)] shrink-0 safe-area-bottom">
-      <div className="w-full min-w-0 max-w-4xl mx-auto px-3 py-2.5 sm:px-4 sm:py-4">
-        <div className="relative flex items-end gap-2 p-2.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-border bg-card shadow-soft transition-shadow focus-within:shadow-medium focus-within:border-primary/30 min-h-[56px] sm:min-h-[48px] min-w-0">
+    <div className="w-full min-w-0 border-t border-border bg-background/80 backdrop-blur-xl pb-[max(0.5rem,env(safe-area-inset-bottom,0))] shrink-0">
+      <div className="w-full min-w-0 max-w-4xl mx-auto py-2.5 sm:py-4 pl-[max(0.75rem,env(safe-area-inset-left,0))] pr-[max(0.75rem,env(safe-area-inset-right,0))] sm:pl-[max(1rem,env(safe-area-inset-left,0))] sm:pr-[max(1rem,env(safe-area-inset-right,0))]">
+        <div className="relative flex items-end gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-border bg-card shadow-soft transition-shadow focus-within:shadow-medium focus-within:border-primary/30 min-h-[52px] sm:min-h-[48px] min-w-0 max-w-full">
           {/* Text Input – main area, prioritized on mobile */}
           <textarea
             ref={textareaRef}

@@ -18,6 +18,7 @@ import {
 import { fetchKpiExtended, type KpiExtendedResponse } from "../api/kpiExtended";
 import { LoadingState } from "../components/LoadingState";
 import { cn } from "../lib/utils";
+import { chartTheme } from "../lib/chartTheme";
 import { Link } from "react-router-dom";
 
 function useKpiExtended() {
@@ -74,12 +75,12 @@ function MetricCard({
   change?: number;
   changeLabel?: string;
   sub?: string;
-  accent?: "primary" | "accent" | "emerald";
+  accent?: "primary" | "accent" | "success";
 }) {
   const accentColors = {
     primary: "text-syra-primary",
     accent: "text-syra-accent",
-    emerald: "text-emerald-400",
+    success: "text-success",
   };
   return (
     <Card>
@@ -92,7 +93,7 @@ function MetricCard({
           <span
             className={cn(
               "text-sm font-medium",
-              change > 0 ? "text-emerald-400" : "text-red-400"
+              change > 0 ? "text-success" : "text-destructive"
             )}
           >
             {change > 0 ? "+" : ""}
@@ -105,8 +106,6 @@ function MetricCard({
     </Card>
   );
 }
-
-const PIE_COLORS = ["#00d4ff", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
 
 function mergeDailyBySource(data: KpiExtendedResponse["revenue"]["dailyBySource"]) {
   const byDate: Record<string, { date: string; api: number; agent: number; total: number }> = {};
@@ -165,7 +164,7 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
             change={revenue.growthPct}
             changeLabel="MoM"
             sub={`Previous 30d: ${revenue.paidPrev30d.toLocaleString()}`}
-            accent="emerald"
+            accent="success"
           />
           <MetricCard
             label="Conversion rate (30d)"
@@ -194,22 +193,22 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
             <div className="h-64 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dailyMerged} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    tick={{ fill: chartTheme.tick, fontSize: 10 }}
                     tickFormatter={(v: string) => {
                       const d = new Date(v);
                       return `${d.getMonth() + 1}/${d.getDate()}`;
                     }}
                   />
-                  <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                  <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                    contentStyle={chartTheme.tooltipContentStyle}
                     labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                   />
-                  <Area type="monotone" dataKey="api" stackId="1" stroke="#00d4ff" fill="#00d4ff" fillOpacity={0.3} name="Direct API" />
-                  <Area type="monotone" dataKey="agent" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} name="Agent" />
+                  <Area type="monotone" dataKey="api" stackId="1" stroke={chartTheme.series[0]} fill={chartTheme.series[0]} fillOpacity={0.3} name="Direct API" />
+                  <Area type="monotone" dataKey="agent" stackId="1" stroke={chartTheme.series[2]} fill={chartTheme.series[2]} fillOpacity={0.3} name="Agent" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -241,11 +240,11 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
                         dataKey="value"
                       >
                         {sourceData.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          <Cell key={i} fill={chartTheme.pie[i % chartTheme.pie.length]} />
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                        contentStyle={chartTheme.tooltipContentStyle}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -255,7 +254,7 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
                     <div key={s.name} className="flex items-center gap-2">
                       <div
                         className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                        style={{ backgroundColor: chartTheme.pie[i % chartTheme.pie.length] }}
                       />
                       <span className="text-sm text-gray-300">
                         {s.name}: <span className="font-medium text-white">{s.value.toLocaleString()}</span>
@@ -283,18 +282,18 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
               <div className="h-48 sm:h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={revenue.hourlyToday} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                     <XAxis
                       dataKey="hour"
-                      tick={{ fill: "#9ca3af", fontSize: 9 }}
+                      tick={{ fill: chartTheme.tick, fontSize: 9 }}
                       tickFormatter={(v: string) => v.slice(11, 16)}
                     />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                    <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                      contentStyle={chartTheme.tooltipContentStyle}
                       labelFormatter={(v: string) => v.slice(11, 16)}
                     />
-                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} name="Paid calls" />
+                    <Bar dataKey="count" fill={chartTheme.series[1]} radius={[4, 4, 0, 0]} name="Paid calls" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -330,7 +329,9 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
                         <span
                           className={cn(
                             "inline-flex rounded px-2 py-0.5 text-xs font-medium",
-                            source === "agent" ? "bg-violet-500/20 text-violet-300" : "bg-cyan-500/20 text-cyan-300"
+                            source === "agent"
+                              ? "bg-secondary/40 text-secondary-foreground"
+                              : "bg-muted text-muted-foreground"
                           )}
                         >
                           {source === "agent" ? "Agent" : "API"}
@@ -355,17 +356,17 @@ function RevenueContent({ data }: { data: KpiExtendedResponse }) {
           Conversion funnel (30d)
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card className="border-l-4 border-l-cyan-500">
+          <Card className="border-l-4 border-l-primary">
             <span className="text-xs text-gray-500">Total API requests</span>
             <p className="mt-1 text-2xl font-bold text-white">{conversion.totalRequests30d.toLocaleString()}</p>
           </Card>
-          <Card className="border-l-4 border-l-violet-500">
+          <Card className="border-l-4 border-l-ring">
             <span className="text-xs text-gray-500">Paid requests (x402)</span>
             <p className="mt-1 text-2xl font-bold text-white">{conversion.paidRequests30d.toLocaleString()}</p>
           </Card>
-          <Card className="border-l-4 border-l-emerald-500">
+          <Card className="border-l-4 border-l-success">
             <span className="text-xs text-gray-500">Conversion rate</span>
-            <p className="mt-1 text-2xl font-bold text-emerald-400">{conversion.conversionRate}%</p>
+            <p className="mt-1 text-2xl font-bold text-success">{conversion.conversionRate}%</p>
           </Card>
         </div>
       </section>
@@ -388,7 +389,7 @@ export function RevenuePage() {
     const msg = error instanceof Error ? error.message : String(error);
     return (
       <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-        <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:p-6">
           <p className="font-semibold">Failed to load revenue data</p>
           <p className="mt-2 text-sm">{msg}</p>
           <Link to="/" className="mt-4 inline-block text-sm text-syra-primary hover:underline">

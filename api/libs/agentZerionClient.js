@@ -4,7 +4,7 @@
  * @see https://developers.zerion.io/build-with-ai/x402
  */
 import { getAgentKeypair } from './agentWallet.js';
-import { pay402AndRetry } from './agentX402Client.js';
+import { getTreasuryKeypair, pay402AndRetry } from './agentX402Client.js';
 import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
 
 const ZERION_BASE = (process.env.ZERION_API_BASE_URL || 'https://api.zerion.io').replace(/\/$/, '');
@@ -108,78 +108,98 @@ function zerionErrorMessage(status, body) {
  * @param {Record<string, string>} params - Path + query (and optional x_env for X-Env header)
  * @returns {Promise<{ success: true; data: unknown } | { success: false; error: string; budgetExceeded?: boolean }>}
  */
+/**
+ * @param {import('@solana/web3.js').Keypair} keypair
+ * @param {typeof globalThis.fetch} fetchFn - Sentinel-wrapped or raw fetch
+ */
+async function callZerionWithKeypair(keypair, fetchFn, pathTemplate, method, params) {
+  let url;
+  let xEnv;
+  try {
+    const built = buildZerionUrl(pathTemplate, params || {});
+    url = built.url;
+    xEnv = built.xEnv;
+  } catch (e) {
+    return { success: false, error: e?.message || 'Invalid Zerion request params' };
+  }
+
+  const m = (method || 'GET').toUpperCase();
+  const headers = { Accept: 'application/json' };
+  if (xEnv) headers['X-Env'] = xEnv;
+
+  const res = await fetchFn(url, { method: m, headers });
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status !== 402) {
+    if (!res.ok) {
+      return {
+        success: false,
+        error: zerionErrorMessage(res.status, data),
+      };
+    }
+    return { success: true, data };
+  }
+
+  const parsed = parse402FromZerion(res, data);
+  if (!parsed) {
+    return {
+      success: false,
+      error: '402 response missing payment options (accepts or Payment-Required header)',
+    };
+  }
+
+  let accepts = filterAcceptsForAgent(parsed.accepts);
+  const solana = accepts.filter((a) => String(a.network || '').toLowerCase().includes('solana'));
+  if (!solana.length && parsed.accepts?.length) {
+    return {
+      success: false,
+      error:
+        'Zerion offered only non-Solana payment rails; Syra pays with Solana USDC. Try again later or contact support.',
+    };
+  }
+  if (solana.length) accepts = solana;
+
+  return pay402AndRetry(
+    keypair,
+    {
+      url,
+      method: m,
+      accepts,
+      x402Version: parsed.x402Version ?? 2,
+    },
+    fetchFn
+  );
+}
+
 export async function callZerionWithAgent(anonymousId, pathTemplate, method, params) {
   try {
     const keypair = await getAgentKeypair(anonymousId);
     if (!keypair) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
-
-    let url;
-    let xEnv;
-    try {
-      const built = buildZerionUrl(pathTemplate, params || {});
-      url = built.url;
-      xEnv = built.xEnv;
-    } catch (e) {
-      return { success: false, error: e?.message || 'Invalid Zerion request params' };
-    }
-
-    const m = (method || 'GET').toUpperCase();
     const sentinelFetch = getSentinelFetch(anonymousId);
-
-    const headers = { Accept: 'application/json' };
-    if (xEnv) headers['X-Env'] = xEnv;
-
-    const initOpts = {
-      method: m,
-      headers,
-      ...(m === 'POST' && params && Object.keys(params).length ? { body: JSON.stringify(params) } : {}),
-    };
-
-    const res = await sentinelFetch(url, initOpts);
-    const data = await res.json().catch(() => ({}));
-
-    if (res.status !== 402) {
-      if (!res.ok) {
-        return {
-          success: false,
-          error: zerionErrorMessage(res.status, data),
-        };
-      }
-      return { success: true, data };
+    return await callZerionWithKeypair(keypair, sentinelFetch, pathTemplate, method, params);
+  } catch (e) {
+    const msg = e?.message || String(e);
+    if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
+      return { success: false, error: msg, budgetExceeded: true };
     }
+    return { success: false, error: msg };
+  }
+}
 
-    const parsed = parse402FromZerion(res, data);
-    if (!parsed) {
-      return {
-        success: false,
-        error: '402 response missing payment options (accepts or Payment-Required header)',
-      };
+/**
+ * Zerion x402 using treasury (AGENT_PRIVATE_KEY). Used by Syra Brain API.
+ * @returns {Promise<{ success: true; data: unknown } | { success: false; error: string; budgetExceeded?: boolean }>}
+ */
+export async function callZerionWithTreasury(pathTemplate, method, params) {
+  try {
+    const keypair = getTreasuryKeypair();
+    if (!keypair) {
+      return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
     }
-
-    let accepts = filterAcceptsForAgent(parsed.accepts);
-    const solana = accepts.filter((a) => String(a.network || '').toLowerCase().includes('solana'));
-    if (!solana.length && parsed.accepts?.length) {
-      return {
-        success: false,
-        error:
-          'Zerion offered only non-Solana payment rails; Syra agent wallet pays with Solana USDC. Try again later or contact support.',
-      };
-    }
-    if (solana.length) accepts = solana;
-
-    return pay402AndRetry(
-      keypair,
-      {
-        url,
-        method: m,
-        body: m === 'POST' ? params : undefined,
-        accepts,
-        x402Version: parsed.x402Version ?? 2,
-      },
-      sentinelFetch
-    );
+    const sentinelFetch = getSentinelFetch('treasury');
+    return await callZerionWithKeypair(keypair, sentinelFetch, pathTemplate, method, params);
   } catch (e) {
     const msg = e?.message || String(e);
     if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {

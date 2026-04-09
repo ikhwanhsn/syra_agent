@@ -15,6 +15,7 @@ import {
 import { fetchKpiExtended, type KpiExtendedResponse } from "../api/kpiExtended";
 import { LoadingState } from "../components/LoadingState";
 import { cn } from "../lib/utils";
+import { chartTheme } from "../lib/chartTheme";
 import { Link } from "react-router-dom";
 
 function useKpiExtended() {
@@ -69,13 +70,13 @@ function MetricCard({
   value: string | number;
   sub?: string;
   trend?: "up" | "down" | "neutral";
-  accent?: "primary" | "accent" | "emerald" | "amber";
+  accent?: "primary" | "accent" | "success" | "warning";
 }) {
   const accentColors = {
     primary: "text-syra-primary",
     accent: "text-syra-accent",
-    emerald: "text-emerald-400",
-    amber: "text-amber-400",
+    success: "text-success",
+    warning: "text-warning",
   };
   return (
     <Card>
@@ -84,8 +85,8 @@ function MetricCard({
         <span className={cn("text-2xl font-bold sm:text-3xl", accentColors[accent])}>
           {typeof value === "number" ? value.toLocaleString() : value}
         </span>
-        {trend === "up" && <span className="text-xs text-emerald-400">↑</span>}
-        {trend === "down" && <span className="text-xs text-red-400">↓</span>}
+        {trend === "up" && <span className="text-xs text-success">↑</span>}
+        {trend === "down" && <span className="text-xs text-destructive">↓</span>}
       </div>
       {sub && <p className="mt-1 text-xs text-gray-500">{sub}</p>}
     </Card>
@@ -131,7 +132,7 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
             label="Active users (7d)"
             value={users.uniqueUsersLast7d}
             sub={`${userGrowth7dPct}% of 30d active`}
-            accent="emerald"
+            accent="success"
           />
           <MetricCard
             label="Active users (30d)"
@@ -142,7 +143,7 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
             label="New chats (30d)"
             value={users.chatsLast30d}
             sub={`7d: ${users.chatsLast7d.toLocaleString()}`}
-            accent="amber"
+            accent="warning"
           />
         </div>
       </section>
@@ -164,12 +165,12 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
           <MetricCard
             label="Avg messages/chat"
             value={users.avgMessagesPerChat}
-            accent="emerald"
+            accent="success"
           />
           <MetricCard
             label="Max messages (single chat)"
             value={users.maxMessagesInChat}
-            accent="amber"
+            accent="warning"
           />
         </div>
       </section>
@@ -187,21 +188,21 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
               <div className="h-52 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={users.dailyActiveUsers} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#9ca3af", fontSize: 10 }}
+                      tick={{ fill: chartTheme.tick, fontSize: 10 }}
                       tickFormatter={(v: string) => {
                         const d = new Date(v);
                         return `${d.getMonth() + 1}/${d.getDate()}`;
                       }}
                     />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                    <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                      contentStyle={chartTheme.tooltipContentStyle}
                       labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                     />
-                    <Area type="monotone" dataKey="count" stroke="#00d4ff" fill="#00d4ff" fillOpacity={0.2} name="Active users" />
+                    <Area type="monotone" dataKey="count" stroke={chartTheme.series[0]} fill={chartTheme.series[0]} fillOpacity={0.2} name="Active users" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -221,21 +222,21 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
               <div className="h-52 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={users.dailyNewChats} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#9ca3af", fontSize: 10 }}
+                      tick={{ fill: chartTheme.tick, fontSize: 10 }}
                       tickFormatter={(v: string) => {
                         const d = new Date(v);
                         return `${d.getMonth() + 1}/${d.getDate()}`;
                       }}
                     />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                    <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                      contentStyle={chartTheme.tooltipContentStyle}
                       labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                     />
-                    <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="New chats" />
+                    <Bar dataKey="count" fill={chartTheme.series[2]} radius={[4, 4, 0, 0]} name="New chats" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -269,17 +270,17 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
                     <tr key={tool.name} className="border-b border-gray-800/80">
                       <td className="py-2 pr-4 font-mono text-gray-300">{tool.name}</td>
                       <td className="py-2 pr-4 text-right text-white">{tool.total.toLocaleString()}</td>
-                      <td className="py-2 pr-4 text-right text-emerald-400">{tool.completed.toLocaleString()}</td>
-                      <td className="py-2 pr-4 text-right text-red-400">{tool.errors.toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-right text-success">{tool.completed.toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-right text-destructive">{tool.errors.toLocaleString()}</td>
                       <td className="py-2 text-right">
                         <span
                           className={cn(
                             "inline-flex rounded px-2 py-0.5 text-xs font-medium",
                             tool.successRate >= 90
-                              ? "bg-emerald-500/20 text-emerald-300"
+                              ? "bg-success/15 text-success"
                               : tool.successRate >= 70
-                                ? "bg-amber-500/20 text-amber-300"
-                                : "bg-red-500/20 text-red-300"
+                                ? "bg-warning/15 text-warning"
+                                : "bg-destructive/15 text-destructive"
                           )}
                         >
                           {tool.successRate}%
@@ -311,13 +312,13 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
                   layout="vertical"
                   margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis type="number" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                  <YAxis type="category" dataKey="name" width={120} tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+                  <XAxis type="number" tick={{ fill: chartTheme.tick, fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" width={120} tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                    contentStyle={chartTheme.tooltipContentStyle}
                   />
-                  <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Chats" />
+                  <Bar dataKey="count" fill={chartTheme.series[1]} radius={[0, 4, 4, 0]} name="Chats" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -339,7 +340,7 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
           <MetricCard
             label="Shares (7d)"
             value={playground.sharesLast7d}
-            accent="emerald"
+            accent="success"
           />
           <MetricCard
             label="Shares (30d)"
@@ -353,21 +354,21 @@ function UsersContent({ data }: { data: KpiExtendedResponse }) {
               <div className="h-40 sm:h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={playground.dailyShares} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#9ca3af", fontSize: 10 }}
+                      tick={{ fill: chartTheme.tick, fontSize: 10 }}
                       tickFormatter={(v: string) => {
                         const d = new Date(v);
                         return `${d.getMonth() + 1}/${d.getDate()}`;
                       }}
                     />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                    <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                      contentStyle={chartTheme.tooltipContentStyle}
                       labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                     />
-                    <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 2 }} name="Shares" />
+                    <Line type="monotone" dataKey="count" stroke={chartTheme.series[0]} strokeWidth={2} dot={{ fill: chartTheme.series[0], r: 2 }} name="Shares" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -404,7 +405,7 @@ export function UsersPage() {
     const msg = error instanceof Error ? error.message : String(error);
     return (
       <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-        <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:p-6">
           <p className="font-semibold">Failed to load user data</p>
           <p className="mt-2 text-sm">{msg}</p>
           <Link to="/" className="mt-4 inline-block text-sm text-syra-primary hover:underline">

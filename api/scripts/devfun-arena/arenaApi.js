@@ -2,6 +2,22 @@
 
 const ARENA_BASE = "https://arena.dev.fun/api/arena";
 
+/** Normalize Arena or Dex timestamps (seconds vs ms) to epoch ms. */
+export function toEpochMs(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n < 1e12) return Math.round(n * 1000);
+  return Math.round(n);
+}
+
+/** Only exclude known terminal states; missing/unknown status still allowed to try submit. */
+export function isExplicitlyClosedStatus(status) {
+  const s = String(status ?? "")
+    .trim()
+    .toLowerCase();
+  return ["closed", "settled", "resolved", "expired", "failed", "cancelled", "canceled"].includes(s);
+}
+
 /**
  * @param {string} apiKey
  * @param {string} path
@@ -116,7 +132,8 @@ export function pickFirstActiveCompetition(listActiveResponse) {
  *   status: string;
  *   submissionDeadline: number;
  *   releasedAt: number;
- *   data?: { contractAddress?: string; tokenName?: string; tokenSymbol?: string; priceAtRelease?: number };
+ *   uniqueId?: string;
+ *   data?: { contractAddress?: string; mint?: string; tokenName?: string; tokenSymbol?: string; priceAtRelease?: number };
  * }>}
  */
 export function normalizeChallenges(currentResponse) {

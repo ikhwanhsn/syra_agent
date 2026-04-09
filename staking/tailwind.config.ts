@@ -52,8 +52,8 @@ const config: Config = {
           "linear-gradient(135deg, hsl(var(--glass-bg)) 0%, hsl(var(--card)) 100%)",
       },
       boxShadow: {
-        glow: "0 0 40px -10px hsl(var(--accent) / 0.4)",
-        "glow-sm": "0 0 20px -5px hsl(var(--accent) / 0.3)",
+        glow: "0 0 40px -10px hsl(var(--ring) / 0.22)",
+        "glow-sm": "0 0 20px -5px hsl(var(--ring) / 0.18)",
       },
     },
   },

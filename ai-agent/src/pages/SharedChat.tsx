@@ -86,7 +86,7 @@ export default function SharedChat({
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-col items-center gap-4">
           <div className="relative flex items-center justify-center w-20 h-20">
             <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: "2.5s" }} />
@@ -107,7 +107,7 @@ export default function SharedChat({
 
   if (status === "private") {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-dvh flex flex-col bg-background overscroll-none">
         {/* Subtle gradient mesh background */}
         <div
           className="fixed inset-0 pointer-events-none overflow-hidden"
@@ -160,7 +160,7 @@ export default function SharedChat({
 
   if (status === "notfound" || status === "error") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-muted">
             <MessageSquare className="h-8 w-8 text-muted-foreground" />
@@ -186,34 +186,34 @@ export default function SharedChat({
   const agentName = defaultAgents[0]?.name ?? "Syra";
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="flex items-center gap-2 min-w-0">
+    <div className="min-h-dvh flex flex-col bg-background overscroll-none">
+      <header className="shrink-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 sm:px-4 py-3 border-b border-border bg-background/80 backdrop-blur-xl pt-[max(0.75rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden bg-card">
             <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="font-semibold text-foreground truncate">
               {chat?.title ?? "Shared chat"}
             </h1>
-            <p className="text-xs text-muted-foreground">Read-only · Shared with you</p>
+            <p className="text-xs text-muted-foreground truncate">Read-only · Shared with you</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="default" size="sm" className="gap-1.5">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:flex-shrink-0">
+          <Button asChild variant="default" size="sm" className="gap-1.5 w-full sm:w-auto touch-manipulation min-h-[44px] sm:min-h-9">
             <Link to="/">
               <MessageSquare className="h-4 w-4" />
               New Chat
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto touch-manipulation min-h-[44px] sm:min-h-9">
             <Link to="/">Open in Syra</Link>
           </Button>
         </div>
       </header>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="max-w-3xl mx-auto px-4 py-6">
+      <ScrollArea className="flex-1 min-h-0 min-w-0">
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] w-full min-w-0">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />

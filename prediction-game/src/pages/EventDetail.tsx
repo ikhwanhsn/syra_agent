@@ -200,11 +200,11 @@ const EventDetail = () => {
   }
 
   const statusConfig = {
-    joining: { color: 'text-blue-400', bg: 'bg-blue-400/20', label: 'Joining Phase', icon: Users },
-    predicting: { color: 'text-yellow-400', bg: 'bg-yellow-400/20', label: 'Prediction Phase', icon: EyeOff },
-    waiting: { color: 'text-amber-400', bg: 'bg-amber-400/20', label: 'Waiting Phase', icon: Clock },
-    completed: { color: 'text-green-400', bg: 'bg-green-400/20', label: 'Completed', icon: Trophy },
-    cancelled: { color: 'text-red-400', bg: 'bg-red-400/20', label: 'Cancelled', icon: XCircle },
+    joining: { color: 'text-primary', bg: 'bg-primary/15', label: 'Joining Phase', icon: Users },
+    predicting: { color: 'text-warning', bg: 'bg-warning/15', label: 'Prediction Phase', icon: EyeOff },
+    waiting: { color: 'text-muted-foreground', bg: 'bg-muted', label: 'Waiting Phase', icon: Clock },
+    completed: { color: 'text-success', bg: 'bg-success/15', label: 'Completed', icon: Trophy },
+    cancelled: { color: 'text-destructive', bg: 'bg-destructive/15', label: 'Cancelled', icon: XCircle },
   };
 
   const status = statusConfig[event.status];
@@ -263,7 +263,7 @@ const EventDetail = () => {
                     <PiggyBank className="h-4 w-4" />
                     <span className="text-xs sm:text-sm">Total Pool</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-accent">{payoutBreakdown?.totalPool || 0} SOL</p>
+                  <p className="text-lg sm:text-xl font-bold text-foreground">{payoutBreakdown?.totalPool || 0} SOL</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     {event.creatorDeposit || event.rewardPool} + {payoutBreakdown?.entryFeesCollected || 0} fees
                   </p>
@@ -281,7 +281,7 @@ const EventDetail = () => {
                     <Trophy className="h-4 w-4" />
                     <span className="text-xs sm:text-sm">1st Prize</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-yellow-400">{payoutBreakdown?.firstPrize || 0} SOL</p>
+                  <p className="text-lg sm:text-xl font-bold text-warning">{payoutBreakdown?.firstPrize || 0} SOL</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-3 sm:p-4">
                   <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
@@ -304,7 +304,7 @@ const EventDetail = () => {
                     style={{
                       width: `${progressPercent}%`,
                       background: hasMinParticipants 
-                        ? 'linear-gradient(90deg, hsl(142 70% 45%) 0%, hsl(187 80% 45%) 100%)'
+                        ? 'linear-gradient(90deg, hsl(var(--success)) 0%, hsl(var(--foreground) / 0.85) 100%)'
                         : 'var(--gradient-primary)',
                     }}
                   />
@@ -333,16 +333,16 @@ const EventDetail = () => {
             {event.status === 'joining' && (
               <>
                 {isConnected && !userParticipant && (
-                  <div className="glass-card p-4 sm:p-5 border-blue-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-primary/25">
                     <h3 className="font-semibold mb-3 text-sm sm:text-base flex items-center gap-2">
-                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                       Join This Event
                     </h3>
                     <p className="text-muted-foreground mb-3 text-xs sm:text-sm">
                       Pay entry fee to secure your spot. Predictions start when minimum participants join.
                     </p>
-                    <div className="flex items-center gap-2 p-2 sm:p-3 bg-blue-500/10 rounded-lg mb-3">
-                      <Info className="h-4 w-4 text-blue-400" />
+                    <div className="flex items-center gap-2 p-2 sm:p-3 bg-primary/10 rounded-lg mb-3">
+                      <Info className="h-4 w-4 text-primary" />
                       <p className="text-xs sm:text-sm text-muted-foreground">
                         Entry fee: <span className="text-foreground font-semibold">{event.entryFee} SOL</span>
                       </p>
@@ -354,9 +354,9 @@ const EventDetail = () => {
                 )}
 
                 {userParticipant && (
-                  <div className="glass-card p-4 sm:p-5 border-green-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-success/25">
                     <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                       <h3 className="font-semibold text-sm sm:text-base">You've Joined!</h3>
                     </div>
                     <p className="text-muted-foreground text-xs sm:text-sm">
@@ -366,9 +366,9 @@ const EventDetail = () => {
                 )}
 
                 {isCreator && hasMinParticipants && (
-                  <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-warning/25">
                     <h3 className="font-semibold mb-2 text-sm sm:text-base flex items-center gap-2">
-                      <Play className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                      <Play className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                       Start Early
                     </h3>
                     <p className="text-muted-foreground mb-3 text-xs sm:text-sm">
@@ -386,18 +386,18 @@ const EventDetail = () => {
             {event.status === 'predicting' && (
               <>
                 {currentTimeBonus && (
-                  <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-warning/25">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                        <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                         <div>
                           <h3 className="font-semibold text-sm sm:text-base">Time Bonus</h3>
                           <p className="text-xs sm:text-sm text-muted-foreground">{currentTimeBonus.label}</p>
                         </div>
                       </div>
                       <div className={`text-2xl sm:text-3xl font-bold ${
-                        currentTimeBonus.bonus >= 1.25 ? 'text-green-400' : 
-                        currentTimeBonus.bonus >= 1.0 ? 'text-foreground' : 'text-red-400'
+                        currentTimeBonus.bonus >= 1.25 ? 'text-success' : 
+                        currentTimeBonus.bonus >= 1.0 ? 'text-foreground' : 'text-destructive'
                       }`}>
                         {currentTimeBonus.bonus}x
                       </div>
@@ -406,9 +406,9 @@ const EventDetail = () => {
                 )}
 
                 {userParticipant && !userPrediction && (
-                  <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-warning/25">
                     <h3 className="font-semibold mb-2 text-sm sm:text-base flex items-center gap-2">
-                      <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                      <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                       Submit Prediction
                     </h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-3">
@@ -434,16 +434,16 @@ const EventDetail = () => {
                 )}
 
                 {userPrediction && (
-                  <div className="glass-card p-4 sm:p-5 border-green-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-success/25">
                     <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                       <h3 className="font-semibold text-sm sm:text-base">Submitted!</h3>
                     </div>
                     <div className="bg-secondary/50 rounded-lg p-3 sm:p-4">
                       <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">Your Prediction</p>
                       <p className="text-xl sm:text-2xl font-bold">${userPrediction.predictedPrice?.toLocaleString() || '***'}</p>
                       {userPrediction.isEarlyPrediction && (
-                        <p className="text-xs sm:text-sm text-green-400 mt-1 flex items-center gap-1">
+                        <p className="text-xs sm:text-sm text-success mt-1 flex items-center gap-1">
                           <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                           Bonus: {userPrediction.timeBonus}x
                         </p>
@@ -453,7 +453,7 @@ const EventDetail = () => {
                 )}
 
                 {!userParticipant && isConnected && (
-                  <div className="glass-card p-4 sm:p-5 border-red-500/30">
+                  <div className="glass-card p-4 sm:p-5 border-destructive/25">
                     <p className="text-muted-foreground text-xs sm:text-sm">
                       You didn't join during joining phase.
                     </p>
@@ -467,7 +467,7 @@ const EventDetail = () => {
                   </h3>
                   <div className="h-1.5 sm:h-2 bg-secondary rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-yellow-400 rounded-full transition-all"
+                      className="h-full bg-warning rounded-full transition-all"
                       style={{ width: `${participants > 0 ? (predictions / participants) * 100 : 0}%` }}
                     />
                   </div>
@@ -479,7 +479,7 @@ const EventDetail = () => {
             {event.status === 'waiting' && (
               <div className="glass-card p-4 sm:p-5">
                 <h3 className="font-semibold mb-3 text-sm sm:text-base flex items-center gap-2">
-                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   Predictions ({event.predictions.length})
                 </h3>
                 <div className="space-y-1.5 sm:space-y-2 max-h-56 overflow-y-auto">
@@ -496,7 +496,7 @@ const EventDetail = () => {
                         </span>
                         {p.walletAddress === walletAddress && <span className="text-xs sm:text-sm text-primary">(You)</span>}
                         {p.isEarlyPrediction && (
-                          <span className="text-xs sm:text-sm text-green-400">{p.timeBonus}x</span>
+                          <span className="text-xs sm:text-sm text-success">{p.timeBonus}x</span>
                         )}
                       </div>
                       <span className="font-semibold">${p.predictedPrice?.toLocaleString()}</span>
@@ -519,7 +519,7 @@ const EventDetail = () => {
                 {event.winners && event.winners.length > 0 && (
                   <div className="glass-card p-4 sm:p-5">
                     <h3 className="font-semibold mb-3 text-sm sm:text-base flex items-center gap-2">
-                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                       Winners
                     </h3>
                     <div className="space-y-2 sm:space-y-3">
@@ -527,19 +527,19 @@ const EventDetail = () => {
                         <div
                           key={winner.rank}
                           className={`flex items-center justify-between p-3 sm:p-4 rounded-lg ${
-                            winner.rank === 1 ? 'bg-yellow-400/20 border border-yellow-400/30' :
-                            winner.rank === 2 ? 'bg-gray-400/20 border border-gray-400/30' :
-                            'bg-orange-400/20 border border-orange-400/30'
+                            winner.rank === 1 ? 'bg-warning/15 border border-warning/30' :
+                            winner.rank === 2 ? 'bg-muted border border-border' :
+                            'bg-secondary border border-border'
                           } ${winner.walletAddress === walletAddress ? 'ring-2 ring-primary' : ''}`}
                         >
                           <div className="flex items-center gap-2 sm:gap-3">
                             <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
-                              winner.rank === 1 ? 'bg-yellow-400/30' : 
-                              winner.rank === 2 ? 'bg-gray-400/30' : 'bg-orange-400/30'
+                              winner.rank === 1 ? 'bg-warning/25' :
+                              winner.rank === 2 ? 'bg-muted' : 'bg-secondary'
                             }`}>
                               <Medal className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                                winner.rank === 1 ? 'text-yellow-400' :
-                                winner.rank === 2 ? 'text-gray-400' : 'text-orange-400'
+                                winner.rank === 1 ? 'text-warning' :
+                                winner.rank === 2 ? 'text-muted-foreground' : 'text-foreground/80'
                               }`} />
                             </div>
                             <div>
@@ -552,7 +552,7 @@ const EventDetail = () => {
                               </p>
                             </div>
                           </div>
-                          <span className="font-bold text-accent text-base sm:text-lg">{winner.prize} SOL</span>
+                          <span className="font-bold text-foreground text-base sm:text-lg">{winner.prize} SOL</span>
                         </div>
                       ))}
                     </div>
@@ -560,8 +560,8 @@ const EventDetail = () => {
                 )}
 
                 {event.winners?.find(w => w.walletAddress === walletAddress) && (
-                  <div className="glass-card p-4 sm:p-5 text-center bg-green-500/10 border border-green-500/30">
-                    <p className="text-green-400 font-semibold text-sm sm:text-base">
+                  <div className="glass-card p-4 sm:p-5 text-center bg-success/10 border border-success/25">
+                    <p className="text-success font-semibold text-sm sm:text-base">
                       🎉 You won {event.winners.find(w => w.walletAddress === walletAddress)?.prize} SOL!
                     </p>
                   </div>
@@ -571,9 +571,9 @@ const EventDetail = () => {
 
             {/* CANCELLED */}
             {event.status === 'cancelled' && (
-              <div className="glass-card p-4 sm:p-5 border-red-500/30">
+              <div className="glass-card p-4 sm:p-5 border-destructive/25">
                 <div className="flex items-center gap-2 mb-2">
-                  <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" />
+                  <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                   <h3 className="font-semibold text-sm sm:text-base">Cancelled</h3>
                 </div>
                 <p className="text-muted-foreground text-xs sm:text-sm">
@@ -605,31 +605,31 @@ const EventDetail = () => {
             )}
 
             {/* Prize Breakdown */}
-            <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+            <div className="glass-card p-4 sm:p-5 border-warning/25">
               <div className="flex items-center gap-2 mb-3">
-                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                 <h3 className="font-semibold text-sm sm:text-base">Prizes</h3>
               </div>
               <div className="space-y-2 sm:space-y-3">
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 sm:p-3 text-center">
+                <div className="bg-warning/10 border border-warning/25 rounded-lg p-2 sm:p-3 text-center">
                   <p className="text-xs sm:text-sm text-muted-foreground">🥇 1st</p>
-                  <p className="font-bold text-yellow-400 text-base sm:text-lg">{payoutBreakdown?.firstPrize || 0} SOL</p>
+                  <p className="font-bold text-warning text-base sm:text-lg">{payoutBreakdown?.firstPrize || 0} SOL</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">🥈 2nd</p>
                     <p className="font-bold text-sm sm:text-base">{payoutBreakdown?.secondPrize || 0} SOL</p>
                   </div>
-                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 sm:p-3 text-center">
+                  <div className="bg-muted border border-border rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">🥉 3rd</p>
-                    <p className="font-bold text-sm sm:text-base text-orange-400">{payoutBreakdown?.thirdPrize || 0} SOL</p>
+                    <p className="font-bold text-sm sm:text-base text-foreground/85">{payoutBreakdown?.thirdPrize || 0} SOL</p>
                   </div>
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-border/50 text-xs sm:text-sm text-muted-foreground space-y-1">
                 <div className="flex justify-between">
                   <span>Creator</span>
-                  <span className="text-blue-400 font-medium">{payoutBreakdown?.creatorPayout || 0} SOL</span>
+                  <span className="text-primary font-medium">{payoutBreakdown?.creatorPayout || 0} SOL</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Platform</span>
@@ -640,26 +640,26 @@ const EventDetail = () => {
 
             {/* Time Bonus Info */}
             {event.status === 'predicting' && (
-              <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+              <div className="glass-card p-4 sm:p-5 border-warning/25">
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                   <h3 className="font-semibold text-sm sm:text-base">Early Bonus</h3>
                 </div>
                 <div className="grid grid-cols-4 gap-1 sm:gap-2 text-center">
-                  <div className="bg-green-500/10 rounded p-1.5 sm:p-2">
-                    <p className="font-bold text-green-400 text-xs sm:text-sm">1.5x</p>
+                  <div className="bg-success/10 rounded p-1.5 sm:p-2">
+                    <p className="font-bold text-success text-xs sm:text-sm">1.5x</p>
                     <p className="text-xs text-muted-foreground">0-25%</p>
                   </div>
-                  <div className="bg-blue-500/10 rounded p-1.5 sm:p-2">
-                    <p className="font-bold text-blue-400 text-xs sm:text-sm">1.25x</p>
+                  <div className="bg-primary/10 rounded p-1.5 sm:p-2">
+                    <p className="font-bold text-primary text-xs sm:text-sm">1.25x</p>
                     <p className="text-xs text-muted-foreground">25-50%</p>
                   </div>
                   <div className="bg-secondary/50 rounded p-1.5 sm:p-2">
                     <p className="font-bold text-xs sm:text-sm">1.0x</p>
                     <p className="text-xs text-muted-foreground">50-75%</p>
                   </div>
-                  <div className="bg-red-500/10 rounded p-1.5 sm:p-2">
-                    <p className="font-bold text-red-400 text-xs sm:text-sm">0.75x</p>
+                  <div className="bg-destructive/10 rounded p-1.5 sm:p-2">
+                    <p className="font-bold text-destructive text-xs sm:text-sm">0.75x</p>
                     <p className="text-xs text-muted-foreground">75-100%</p>
                   </div>
                 </div>

@@ -100,7 +100,7 @@ function ContentBox({
   }
   if (state.status === "error") {
     return (
-      <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-sm text-red-200">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
         {state.error}
       </div>
     );
@@ -510,7 +510,7 @@ export function ResearchPage() {
           <p className="mt-1 text-xs text-gray-500 sm:text-sm">
             View saved research and generate executive summaries. Strategy panels use live X search (new X API); deep research and browse are not available.
           </p>
-          <div className="mt-2 rounded-lg border border-amber-800/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+          <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
             Connect your wallet to run live X search on strategy panels (x402 payment). Use &quot;Refresh&quot; on Resume to generate a summary from your saved panels.
           </div>
         </div>
@@ -534,11 +534,11 @@ export function ResearchPage() {
         )}
       </header>
 
-      {/* Resume — Jatevo summary of latest research */}
+      {/* Resume — LLM summary of latest research */}
       <section>
         <Panel
           title="Resume"
-          subtitle="Executive summary of all latest research (Jatevo)"
+          subtitle="Executive summary of all latest research"
           icon="📋"
           onRefresh={runResume}
           showRefresh={canInteract}
@@ -546,7 +546,7 @@ export function ResearchPage() {
           {resumeState.status === "loading" ? (
             <LoadingState message="Generating resume…" size="md" />
           ) : resumeState.status === "error" ? (
-            <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-sm text-red-200">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
               {resumeState.error}
             </div>
           ) : resumeState.status === "success" ? (
@@ -585,7 +585,7 @@ export function ResearchPage() {
                 {isLoading ? (
                   <LoadingStateInline message="Running X search…" />
                 ) : state.status === "error" ? (
-                  <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-sm text-red-200">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                     {state.error}
                   </div>
                 ) : state.status === "success" ? (

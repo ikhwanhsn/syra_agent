@@ -458,9 +458,11 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
             <p className="my-0 whitespace-pre-wrap break-words min-w-0">{message.content}</p>
           ) : (
             <>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {message.content}
-              </ReactMarkdown>
+              <div className="min-w-0 max-w-full overflow-x-auto overflow-y-visible break-words">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
               {message.isStreaming && (
                 <span className="inline-flex gap-1 ml-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />

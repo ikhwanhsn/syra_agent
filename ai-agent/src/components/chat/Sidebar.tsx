@@ -197,7 +197,8 @@ export function Sidebar({
     <aside
       className={cn(
         "flex flex-col h-full bg-card border-r border-border",
-        isOverlay && "fixed left-0 top-0 z-40 w-[280px] max-w-[min(320px,85vw)] sm:max-w-[90vw] h-screen max-h-[100dvh] transition-transform duration-300 ease-out safe-area-top safe-area-bottom overflow-y-auto",
+        isOverlay &&
+          "fixed left-0 top-0 z-40 w-[min(280px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] max-w-[min(320px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] h-dvh max-h-dvh transition-transform duration-300 ease-out safe-area-top safe-area-bottom overflow-y-auto overflow-x-hidden",
         isOverlay && (isOpen ? "translate-x-0" : "-translate-x-full"),
         isResizable && "w-full min-w-0"
       )}

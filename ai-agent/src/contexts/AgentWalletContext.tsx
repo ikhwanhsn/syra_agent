@@ -10,7 +10,6 @@ import {
 } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
-import { toast } from "sonner";
 import { agentWalletApi } from "@/lib/chatApi";
 
 const STORAGE_KEY = "syra_agent_anonymous_id";
@@ -111,8 +110,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const initRef = useRef(false);
   const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refetchTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const pendingWelcomeRef = useRef(false);
-  const [pendingWelcomeFunding, setPendingWelcomeFunding] = useState(false);
 
   // When user connects with Base: create/show agent wallet on Base chain
   useEffect(() => {
@@ -120,8 +117,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setReady(false);
       setAgentSolBalance(null);
       setAgentUsdcBalance(null);
-      pendingWelcomeRef.current = false;
-      setPendingWelcomeFunding(false);
       agentWalletApi
         .getOrCreateByWallet(connectedWalletAddress, "base")
         .then(async (res) => {
@@ -151,7 +146,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentWalletApi
         .getOrCreateByWallet(connectedWalletAddress)
         .then(async (res) => {
-          const { anonymousId: id, agentAddress: addr, avatarUrl: avatar, isNewWallet, fundingSuccess, fundingError, fundingPending } = res;
+          const { anonymousId: id, agentAddress: addr, avatarUrl: avatar } = res;
           setAnonymousId(id);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
@@ -163,30 +158,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
             setAgentSolBalance((prev) => prev);
             setAgentUsdcBalance((prev) => prev);
           }
-          if (isNewWallet === true) {
-            if (fundingPending === true) {
-              pendingWelcomeRef.current = true;
-              setPendingWelcomeFunding(true);
-              toast.info("Setting up your $1 credit…", { duration: 4000 });
-            } else if (fundingSuccess === true) {
-              toast.success("Welcome! You received $1 free ($0.50 SOL + $0.50 USDC) for testing.");
-            } else if (fundingSuccess === false) {
-              try {
-                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, addr);
-                setAgentSolBalance(solBalance);
-                setAgentUsdcBalance(usdcBalance);
-                if (usdcBalance > 0 || solBalance > 0) {
-                  toast.success("Your free $1 was added. Balance updated.");
-                } else {
-                  const reason = fundingError || "Treasury or network issue.";
-                  toast.error(`Free $1 could not be added. ${reason} You can still deposit to your agent wallet.`, { duration: 8000 });
-                }
-              } catch {
-                const reason = fundingError || "Treasury or network issue.";
-                toast.error(`Free $1 could not be added. ${reason} You can still deposit to your agent wallet.`, { duration: 8000 });
-              }
-            }
-          }
         })
         .catch(() => {})
         .finally(() => setReady(true));
@@ -194,8 +165,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     }
 
     // No wallet connected: allow chat immediately with anonymous id (from storage or new). getOrCreate runs in background.
-    pendingWelcomeRef.current = false;
-    setPendingWelcomeFunding(false);
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     let id = stored?.trim() || null;
     if (!id) {
@@ -242,34 +211,20 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentWalletApi
         .getOrCreate()
         .then(async (res) => {
-          const { anonymousId: newId, agentAddress: addr, avatarUrl: avatar, isNewWallet, fundingSuccess, fundingError, fundingPending } = res;
+          const { anonymousId: newId, agentAddress: addr, avatarUrl: avatar } = res;
           if (typeof localStorage !== "undefined") {
             localStorage.setItem(STORAGE_KEY, newId);
           }
           setAnonymousId(newId);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
-          if (isNewWallet === true) {
-            if (fundingPending === true) {
-              pendingWelcomeRef.current = true;
-              setPendingWelcomeFunding(true);
-              toast.info("Setting up your $1 credit…", { duration: 4000 });
-            } else if (fundingSuccess === true) {
-              toast.success("You received $1 free ($0.50 SOL + $0.50 USDC) for testing.");
-            } else             if (fundingSuccess === false) {
-              try {
-                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, addr);
-                setAgentSolBalance(solBalance);
-                setAgentUsdcBalance(usdcBalance);
-                if (usdcBalance > 0 || solBalance > 0) {
-                  toast.success("Your free $1 was added. Balance updated.");
-                } else {
-                  toast.error(`Free $1 could not be added. ${fundingError || "Try again or deposit manually."}`, { duration: 8000 });
-                }
-              } catch {
-                toast.error(`Free $1 could not be added. ${fundingError || "Try again or deposit manually."}`, { duration: 8000 });
-              }
-            }
+          try {
+            const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, addr);
+            setAgentSolBalance(solBalance);
+            setAgentUsdcBalance(usdcBalance);
+          } catch {
+            setAgentSolBalance(null);
+            setAgentUsdcBalance(null);
           }
         })
         .catch(() => {
@@ -328,7 +283,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!agentAddress) return;
     let cancelled = false;
-    const pollMs = pendingWelcomeFunding ? 3000 : 30000;
+    const pollMs = 30000;
     if (connectedChain === "base") {
       function fetchBase() {
         fetchAgentBalanceBase(agentAddress!)
@@ -358,11 +313,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           if (!cancelled) {
             setAgentSolBalance(sol);
             setAgentUsdcBalance(usdc);
-            if ((sol > 0 || usdc > 0) && pendingWelcomeRef.current) {
-              pendingWelcomeRef.current = false;
-              setPendingWelcomeFunding(false);
-              toast.success("Welcome! You received $1 free ($0.50 SOL + $0.50 USDC) for testing.");
-            }
           }
         })
         .catch(() => {
@@ -378,7 +328,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [agentAddress, connection, connectedChain, pendingWelcomeFunding]);
+  }, [agentAddress, connection, connectedChain]);
 
   const reportDebit = useCallback(
     (amountUsd: number) => {

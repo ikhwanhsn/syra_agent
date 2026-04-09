@@ -98,7 +98,7 @@ export function WalletButton() {
           >
             {IS_DEVNET && (
               <div className="border-b border-border px-3 py-2">
-                <span className="inline-flex rounded-lg bg-amber-500/20 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                <span className="inline-flex rounded-lg bg-warning/15 px-2 py-1 text-xs font-medium text-warning">
                   Devnet
                 </span>
               </div>

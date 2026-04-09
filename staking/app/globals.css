@@ -3,197 +3,159 @@
 @tailwind utilities;
 
 @layer base {
-  /* Light theme — dominant white */
+  /*
+   * Monochrome — aligned with landing (syraa.fun).
+   * Light = :root | Dark = .dark (next-themes).
+   */
   :root {
     --background: 0 0% 100%;
-    --foreground: 224 20% 14%;
+    --foreground: 0 0% 6%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 20% 14%;
+    --card-foreground: 0 0% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 20% 14%;
+    --popover-foreground: 0 0% 6%;
 
-    --primary: 187 70% 38%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 20% 18%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 224 12% 42%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
 
-    --accent: 187 70% 38%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 72% 46%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 0% 32%;
+    --destructive-foreground: 0 0% 98%;
 
-    --success: 142 65% 38%;
-    --success-foreground: 0 0% 100%;
+    --success: 0 0% 35%;
+    --success-foreground: 0 0% 98%;
 
-    --warning: 38 92% 45%;
-    --warning-foreground: 224 20% 12%;
+    --warning: 0 0% 38%;
+    --warning-foreground: 0 0% 98%;
 
-    --border: 220 13% 88%;
-    --input: 220 13% 91%;
-    --ring: 187 70% 38%;
+    --border: 0 0% 88%;
+    --input: 0 0% 92%;
+    --ring: 0 0% 28%;
 
     --radius: 0.75rem;
 
     --glass-bg: 0 0% 100%;
-    --glass-border: 220 13% 88%;
-    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --glass-border: 0 0% 88%;
+    --glass-shadow: 0 4px 32px rgba(0, 0, 0, 0.08);
 
-    --gradient-primary: linear-gradient(135deg, hsl(187 70% 38%) 0%, hsl(187 65% 48%) 100%);
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(0 0% 7%) 0%,
+      hsl(0 0% 28%) 48%,
+      hsl(0 0% 46%) 100%
+    );
+    --gradient-primary: var(--gradient-hero);
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 97%) 0%, hsl(0 0% 100%) 100%);
   }
 
-  /* Dark theme — dominant black/dark, high-contrast text */
   .dark,
   html.dark {
-    --background: 240 10% 4%;
+    --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 6%;
+    --card: 0 0% 5.5%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 6%;
+    --popover: 0 0% 5.5%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 187 80% 45%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 5%;
 
-    --secondary: 240 10% 12%;
-    --secondary-foreground: 0 0% 92%;
+    --secondary: 0 0% 9%;
+    --secondary-foreground: 0 0% 96%;
 
-    --muted: 240 10% 15%;
-    --muted-foreground: 0 0% 72%;
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 58%;
 
-    --accent: 187 80% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 0% 40%;
+    --destructive-foreground: 0 0% 98%;
 
-    --success: 142 70% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 0 0% 48%;
+    --success-foreground: 0 0% 98%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 0 0% 52%;
+    --warning-foreground: 0 0% 8%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 12%;
-    --ring: 187 80% 45%;
+    --border: 0 0% 14%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 45%;
 
-    --glass-bg: 240 10% 8%;
-    --glass-border: 240 10% 18%;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-bg: 0 0% 5%;
+    --glass-border: 0 0% 16%;
+    --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.55);
 
-    --gradient-primary: linear-gradient(135deg, hsl(187 80% 45%) 0%, hsl(187 75% 55%) 100%);
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(0 0% 100%) 0%,
+      hsl(0 0% 78%) 42%,
+      hsl(0 0% 52%) 100%
+    );
+    --gradient-primary: var(--gradient-hero);
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 2.5%) 0%, hsl(0 0% 5.5%) 100%);
   }
 }
 
-/* Card surface: in light mode, cards need to stand out from white page */
+/* Card surface: slightly raised from page in light mode */
 .card-surface {
   @apply rounded-xl border border-border bg-card/80 shadow-sm backdrop-blur-sm;
 }
 html:not(.dark) .card-surface {
-  background-color: #f5f6f9 !important;
-  border-color: #e1e4e9 !important;
+  background-color: hsl(var(--secondary)) !important;
+  border-color: hsl(var(--border)) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 html.dark .card-surface {
   box-shadow: none;
 }
 
-/* Navbar: more visible bottom border in light mode */
 html:not(.dark) .navbar {
-  border-bottom-color: #d1d5dc !important;
+  border-bottom-color: hsl(var(--border)) !important;
 }
 
-/* Wallet dropdown: stand out in light mode (border, background, shadow) */
 html:not(.dark) .wallet-dropdown {
-  background-color: #f8f9fb !important;
-  border-color: #d1d5dc !important;
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 html:not(.dark) .wallet-dropdown .border-border {
-  border-color: #e1e4e9 !important;
+  border-color: hsl(var(--border)) !important;
 }
 
-/* Force theme backgrounds and text — light = white, dark = readable */
 html {
   background: hsl(var(--background));
-}
-html:not(.dark) {
-  background: #ffffff;
 }
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
 html:not(.dark) body {
-  background: #ffffff;
-  color: #1a1d24;
-}
-html:not(.dark) .bg-background {
-  background-color: #ffffff !important;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
-/* Dark mode: ensure all text is high-contrast and readable */
+/* Dark: keep contrast; values track CSS variables */
 html.dark body,
 .dark body {
-  background: #0a0b0f;
-  color: #f5f5f5;
-}
-html.dark .text-foreground,
-.dark .text-foreground {
-  color: #f5f5f5 !important;
-}
-html.dark .text-muted-foreground,
-.dark .text-muted-foreground {
-  color: #b8bcc4 !important;
-}
-html.dark .text-secondary-foreground,
-.dark .text-secondary-foreground {
-  color: #e8e8e8 !important;
-}
-html.dark .text-card-foreground,
-.dark .text-card-foreground {
-  color: #f5f5f5 !important;
-}
-html.dark .bg-background,
-.dark .bg-background {
-  background-color: #0a0b0f !important;
-}
-html.dark .bg-card,
-html.dark .bg-card\/80,
-.dark .bg-card,
-.dark .bg-card\/80,
-.dark [class*="bg-card"] {
-  background-color: #0f1117 !important;
-}
-html.dark .bg-secondary,
-.dark .bg-secondary {
-  background-color: #15171e !important;
-}
-html.dark .bg-input,
-.dark .bg-input {
-  background-color: #15171e !important;
-}
-html.dark .border-border,
-.dark .border-border {
-  border-color: #2a2d36 !important;
-}
-html.dark input::placeholder,
-.dark input::placeholder,
-html.dark .placeholder-muted-foreground::placeholder,
-.dark .placeholder-muted-foreground::placeholder {
-  color: #9ca3af !important;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 /* Readability: focus ring and links */
-/* Staking toasts (Sonner) — themed success/error */
 [data-sonner-toast].staking-toast {
   font-size: 0.9375rem;
   line-height: 1.4;

@@ -20,6 +20,7 @@ import {
   signAndSubmitSwapTransaction,
 } from '../../libs/agentX402Client.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
+import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import {
   purchVaultSearch,
   purchVaultBuy,
@@ -40,6 +41,27 @@ const MAX_TOOL_RESULT_CHARS = 28_000;
 /** Higher max_tokens when we inject tool results so the model can write a full summary. */
 const MAX_TOKENS_WITH_TOOLS = 4096;
 const MAX_TOKENS_DEFAULT = 2000;
+
+/** User-facing model label for system prompts; never mention inference vendor brands to end users. */
+export function buildLlmIdentityNote(modelId) {
+  const resolved =
+    modelId && typeof modelId === 'string' && modelId.trim()
+      ? modelId.trim()
+      : JATEVO_DEFAULT_MODEL;
+  const entry = JATEVO_MODELS.find((x) => x.id === resolved);
+  const displayName = entry?.name || resolved;
+  return `LLM identity (user-facing): This turn uses the language model "${displayName}". If asked what model you are, what LLM powers Syra, or who hosts the API: answer with "${displayName}" only. Never name inference platforms, API marketplaces, hosting vendors, or third-party provider brands.`;
+}
+
+/** Clone messages with the identity note appended to the first system message (fresh copy per inference attempt). */
+export function withLlmIdentitySystemNote(apiMessages, modelId) {
+  const note = buildLlmIdentityNote(modelId);
+  const first = apiMessages[0];
+  if (first?.role === 'system' && typeof first.content === 'string') {
+    return [{ ...first, content: `${first.content}\n\n${note}` }, ...apiMessages.slice(1)];
+  }
+  return [{ role: 'system', content: note }, ...apiMessages];
+}
 
 /**
  * Use Jatevo LLM to pick up to 3 most relevant tools (and optional params) from the user question.
@@ -643,6 +665,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     systemParts.push(
       `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). NEVER include raw JSON, code blocks showing tool calls, "tool_calls:" blocks, or blocks like {"tool": "..."} or {"name": "...", "arguments": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. Tools are called automatically by the system; you must NEVER output tool_calls or function_call JSON yourself. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
     );
+    systemParts.push(
+      `Model disclosure: If asked what LLM/model powers Syra or you, answer with the language model name only (the server appends the exact name for this session before inference). Never name third-party inference or API provider brands.`
+    );
     if (anonymousId) {
       let usdcBalance = 0;
       let solBalance = 0;
@@ -820,7 +845,25 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           const nansenResult = await callNansenWithAgent(anonymousId, tool.nansenPath, params);
           result = nansenResult.success
             ? { status: 200, data: nansenResult.data }
-            : { status: 502, error: nansenResult.error };
+            : {
+                status: nansenResult.budgetExceeded ? 402 : 502,
+                error: nansenResult.error,
+                budgetExceeded: nansenResult.budgetExceeded,
+              };
+        } else if (tool.zerionPath) {
+          const zerionResult = await callZerionWithAgent(
+            anonymousId,
+            tool.zerionPath,
+            tool.method || 'GET',
+            params
+          );
+          result = zerionResult.success
+            ? { status: 200, data: zerionResult.data }
+            : {
+                status: zerionResult.budgetExceeded ? 402 : 502,
+                error: zerionResult.error,
+                budgetExceeded: zerionResult.budgetExceeded,
+              };
         } else if (tool.purchVaultPath) {
           if (tool.id === 'purch-vault-search') {
             const searchResult = await purchVaultSearch(anonymousId, params);
@@ -1004,7 +1047,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     let usedFallbackModel = false;
 
     try {
-      const result = await callJatevo(apiMessages, jatevoOptions);
+      const modelForCall = jatevoOptions.model || JATEVO_DEFAULT_MODEL;
+      const result = await callJatevo(withLlmIdentitySystemNote(apiMessages, modelForCall), jatevoOptions);
       response = result.response;
       truncated = result.truncated;
     } catch (firstError) {
@@ -1016,7 +1060,10 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       ) {
         try {
           const fallbackOptions = { ...jatevoOptions, model: JATEVO_DEFAULT_MODEL };
-          const fallbackResult = await callJatevo(apiMessages, fallbackOptions);
+          const fallbackResult = await callJatevo(
+            withLlmIdentitySystemNote(apiMessages, JATEVO_DEFAULT_MODEL),
+            fallbackOptions
+          );
           response = fallbackResult.response;
           truncated = fallbackResult.truncated;
           usedFallbackModel = true;

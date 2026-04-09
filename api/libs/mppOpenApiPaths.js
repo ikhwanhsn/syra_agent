@@ -156,6 +156,8 @@ export function buildMppOpenApiPaths() {
 
   for (const tool of AGENT_TOOLS) {
     if (tool.tempoPublic || tool.tempoPayout) continue;
+    // Zerion tools are invoked via POST /agent/tools/call (api.zerion.io x402); no GET /zerion/* on Syra.
+    if (tool.zerionPath) continue;
     const raw = tool.path;
     if (!raw || typeof raw !== 'string' || !raw.startsWith('/')) continue;
     if (raw.includes('__tempo_public__')) continue;

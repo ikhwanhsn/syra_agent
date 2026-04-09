@@ -193,16 +193,16 @@ const CreateEvent = () => {
           </div>
           
           {/* Quick Wallet Info - Desktop */}
-          <div className="hidden md:flex items-center gap-4 glass-card px-4 py-2 border-accent/30">
+          <div className="hidden md:flex items-center gap-4 glass-card px-4 py-2 border-primary/25">
             <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-accent" />
+              <Wallet className="h-4 w-4 text-foreground" />
               <span className="text-sm font-mono text-muted-foreground">
                 {walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}
               </span>
             </div>
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-accent">{solBalance.toFixed(2)} SOL</span>
+              <span className="text-sm font-bold text-foreground">{solBalance.toFixed(2)} SOL</span>
               <span className="text-sm font-bold text-primary">
                 {syraBalance >= 1_000_000 ? `${(syraBalance / 1_000_000).toFixed(1)}M` : syraBalance.toLocaleString()} SYRA
               </span>
@@ -214,10 +214,10 @@ const CreateEvent = () => {
         </div>
 
         {/* Mobile Wallet Card */}
-        <div className="md:hidden glass-card p-4 mb-4 border-accent/30">
+        <div className="md:hidden glass-card p-4 mb-4 border-primary/25">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-accent" />
+              <Wallet className="h-4 w-4 text-foreground" />
               <span className="text-sm font-mono">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</span>
             </div>
             <Button variant="ghost" size="sm" onClick={handleRefreshBalance} disabled={isRefreshing}>
@@ -227,7 +227,7 @@ const CreateEvent = () => {
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="bg-secondary/50 rounded-lg p-2 text-center">
               <p className="text-xs text-muted-foreground">SOL</p>
-              <p className="font-bold text-accent">{solBalance.toFixed(4)}</p>
+              <p className="font-bold text-foreground">{solBalance.toFixed(4)}</p>
             </div>
             <div className="bg-secondary/50 rounded-lg p-2 text-center">
               <p className="text-xs text-muted-foreground">SYRA</p>
@@ -255,7 +255,7 @@ const CreateEvent = () => {
                     onClick={() => setSelectedToken(token.symbol)}
                     className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 group ${
                       selectedToken === token.symbol
-                        ? 'border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--accent)/0.3)] scale-105'
+                        ? 'border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--ring)/0.2)] scale-105'
                         : 'border-border bg-secondary/50 hover:border-primary/40 hover:scale-105'
                     }`}
                   >
@@ -269,9 +269,9 @@ const CreateEvent = () => {
             {/* Prize Pool + Participants - Combined Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Prize Pool */}
-              <div className="glass-card p-4 sm:p-5 border-green-500/30">
+              <div className="glass-card p-4 sm:p-5 border-success/25">
                 <div className="flex items-center gap-2 mb-3">
-                  <PiggyBank className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                  <PiggyBank className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                   <h3 className="font-semibold text-sm sm:text-base">Prize Pool</h3>
                 </div>
                 <div className="space-y-3 sm:space-y-4">
@@ -303,7 +303,7 @@ const CreateEvent = () => {
                   </div>
                 </div>
                 {creatorDepositNum > 0 && (
-                  <div className={`mt-3 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${hasEnoughSol ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                  <div className={`mt-3 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${hasEnoughSol ? 'bg-success/10 border border-success/25 text-success' : 'bg-destructive/10 border border-destructive/25 text-destructive'}`}>
                     <div className="flex items-center gap-1">
                       <Coins className="h-3 w-3 sm:h-4 sm:w-4" />
                       {hasEnoughSol ? `Deposit: ${creatorDepositNum} SOL` : `Need ${creatorDepositNum} SOL (have ${solBalance.toFixed(2)})`}
@@ -315,7 +315,7 @@ const CreateEvent = () => {
               {/* Participants */}
               <div className="glass-card p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   <h3 className="font-semibold text-sm sm:text-base">Participants</h3>
                 </div>
                 <div className="space-y-3 sm:space-y-4">
@@ -348,16 +348,16 @@ const CreateEvent = () => {
             </div>
 
             {/* Phase Timing - Compact */}
-            <div className="glass-card p-4 sm:p-5 border-blue-500/30">
+            <div className="glass-card p-4 sm:p-5 border-primary/25">
               <div className="flex items-center gap-2 mb-3">
-                <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 <h3 className="font-semibold text-sm sm:text-base">Event Phases</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs sm:text-sm text-muted-foreground mb-2">
-                    <span className="text-blue-400">1.</span> Joining (max wait)
+                    <span className="text-primary">1.</span> Joining (max wait)
                   </label>
                   <div className="grid grid-cols-4 gap-1">
                     {['24', '48', '72', '96'].map((hours) => (
@@ -366,8 +366,8 @@ const CreateEvent = () => {
                         onClick={() => setJoiningDuration(hours)}
                         className={`py-1.5 sm:py-2 rounded border text-xs sm:text-sm transition-all ${
                           joiningDuration === hours
-                            ? 'border-blue-400 bg-blue-400/10 text-blue-400 font-semibold'
-                            : 'border-border bg-secondary/50 hover:border-blue-400/40'
+                            ? 'border-primary bg-primary/10 text-primary font-semibold'
+                            : 'border-border bg-secondary/50 hover:border-primary/40'
                         }`}
                       >
                         {hours}h
@@ -378,8 +378,8 @@ const CreateEvent = () => {
 
                 <div>
                   <label className="text-xs sm:text-sm text-muted-foreground mb-2 flex items-center gap-1">
-                    <span className="text-yellow-400">2.</span> Prediction
-                    <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+                    <span className="text-warning">2.</span> Prediction
+                    <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-warning" />
                   </label>
                   <div className="grid grid-cols-4 gap-1">
                     {['2', '4', '6', '8'].map((hours) => (
@@ -388,8 +388,8 @@ const CreateEvent = () => {
                         onClick={() => setPredictionDuration(hours)}
                         className={`py-1.5 sm:py-2 rounded border text-xs sm:text-sm transition-all ${
                           predictionDuration === hours
-                            ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400 font-semibold'
-                            : 'border-border bg-secondary/50 hover:border-yellow-400/40'
+                            ? 'border-warning bg-warning/10 text-warning font-semibold'
+                            : 'border-border bg-secondary/50 hover:border-warning/40'
                         }`}
                       >
                         {hours}h
@@ -400,8 +400,8 @@ const CreateEvent = () => {
 
                 <div>
                   <label className="text-xs sm:text-sm text-muted-foreground mb-2 flex items-center gap-1">
-                    <span className="text-amber-400">3.</span> Waiting
-                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400" />
+                    <span className="text-muted-foreground">3.</span> Waiting
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   </label>
                   <div className="grid grid-cols-4 gap-1">
                     {['12', '24', '48', '72'].map((hours) => (
@@ -410,8 +410,8 @@ const CreateEvent = () => {
                         onClick={() => setWaitingDuration(hours)}
                         className={`py-1.5 sm:py-2 rounded border text-xs sm:text-sm transition-all ${
                           waitingDuration === hours
-                            ? 'border-amber-400 bg-amber-400/10 text-amber-400 font-semibold'
-                            : 'border-border bg-secondary/50 hover:border-amber-400/40'
+                            ? 'border-border bg-muted text-muted-foreground font-semibold'
+                            : 'border-border bg-secondary/50 hover:border-border/40'
                         }`}
                       >
                         {hours}h
@@ -424,13 +424,13 @@ const CreateEvent = () => {
               {/* Phase Flow Summary */}
               <div className="mt-3 p-2 sm:p-3 bg-secondary/30 rounded-lg">
                 <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-blue-400">Join {joiningDuration}h</span>
+                  <span className="text-primary">Join {joiningDuration}h</span>
                   <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-yellow-400">Predict {predictionDuration}h</span>
+                  <span className="text-warning">Predict {predictionDuration}h</span>
                   <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-amber-400">Wait {waitingDuration}h</span>
+                  <span className="text-muted-foreground">Wait {waitingDuration}h</span>
                   <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-green-400">Results</span>
+                  <span className="text-success">Results</span>
                 </div>
               </div>
             </div>
@@ -473,53 +473,53 @@ const CreateEvent = () => {
           <div className="lg:col-span-5 space-y-4">
             
             {/* Payout Breakdown - Compact */}
-            <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+            <div className="glass-card p-4 sm:p-5 border-warning/25">
               <div className="flex items-center gap-2 mb-3">
-                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                 <h3 className="font-semibold text-sm sm:text-base">Payout Breakdown</h3>
               </div>
 
               {/* How It Works - Inline */}
               <div className="mb-3 p-2 sm:p-3 bg-secondary/50 rounded-lg text-xs sm:text-sm">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400">Deposit</span>
+                  <span className="px-1.5 py-0.5 rounded bg-warning/15 text-warning">Deposit</span>
                   <span className="text-muted-foreground">→ 100% to Winners</span>
                   <span className="text-muted-foreground">|</span>
-                  <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">Entry Fees</span>
+                  <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary">Entry Fees</span>
                   <span className="text-muted-foreground">→ {distribution.creator}% You + {distribution.platform}% Platform</span>
                 </div>
               </div>
 
               {/* Prize Pool */}
               <div className="mb-3">
-                <p className="text-xs sm:text-sm font-medium mb-2 text-yellow-400">Winner Prizes ({creatorDepositNum} SOL)</p>
+                <p className="text-xs sm:text-sm font-medium mb-2 text-warning">Winner Prizes ({creatorDepositNum} SOL)</p>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 sm:p-3 text-center">
+                  <div className="bg-warning/10 border border-warning/25 rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">🥇 1st</p>
-                    <p className="font-bold text-yellow-400 text-sm sm:text-base">{currentPayout.firstPrize}</p>
+                    <p className="font-bold text-warning text-sm sm:text-base">{currentPayout.firstPrize}</p>
                   </div>
                   <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">🥈 2nd</p>
                     <p className="font-bold text-sm sm:text-base">{currentPayout.secondPrize}</p>
                   </div>
-                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 sm:p-3 text-center">
+                  <div className="bg-muted border border-border rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">🥉 3rd</p>
-                    <p className="font-bold text-orange-400 text-sm sm:text-base">{currentPayout.thirdPrize}</p>
+                    <p className="font-bold text-foreground/85 text-sm sm:text-base">{currentPayout.thirdPrize}</p>
                   </div>
                 </div>
               </div>
 
               {/* Your Profit */}
               <div className="border-t border-border/50 pt-3">
-                <p className="text-xs sm:text-sm font-medium mb-2 text-green-400">Your Profit from Fees</p>
+                <p className="text-xs sm:text-sm font-medium mb-2 text-success">Your Profit from Fees</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-secondary/50 rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">@{minParticipantsNum} players</p>
-                    <p className="font-bold text-green-400 text-base sm:text-lg">{currentPayout.creatorPayout} SOL</p>
+                    <p className="font-bold text-success text-base sm:text-lg">{currentPayout.creatorPayout} SOL</p>
                   </div>
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 sm:p-3 text-center">
+                  <div className="bg-success/10 border border-success/25 rounded-lg p-2 sm:p-3 text-center">
                     <p className="text-xs sm:text-sm text-muted-foreground">@{maxParticipantsNum} players</p>
-                    <p className="font-bold text-green-400 text-base sm:text-lg">{maxPayout.creatorPayout} SOL</p>
+                    <p className="font-bold text-success text-base sm:text-lg">{maxPayout.creatorPayout} SOL</p>
                   </div>
                 </div>
               </div>
@@ -528,15 +528,15 @@ const CreateEvent = () => {
               <div className="mt-3 p-2 sm:p-3 bg-secondary/30 rounded-lg">
                 <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm text-center">
                   <div>
-                    <p className="font-bold text-yellow-400">{creatorDepositNum} SOL</p>
+                    <p className="font-bold text-warning">{creatorDepositNum} SOL</p>
                     <p className="text-muted-foreground">Winners</p>
                   </div>
                   <div>
-                    <p className="font-bold text-green-400">{maxPayout.creatorPayout} SOL</p>
+                    <p className="font-bold text-success">{maxPayout.creatorPayout} SOL</p>
                     <p className="text-muted-foreground">Your Profit</p>
                   </div>
                   <div>
-                    <p className="font-bold text-amber-400">{maxPayout.platformPayout} SOL</p>
+                    <p className="font-bold text-muted-foreground">{maxPayout.platformPayout} SOL</p>
                     <p className="text-muted-foreground">Platform</p>
                   </div>
                 </div>
@@ -544,36 +544,36 @@ const CreateEvent = () => {
             </div>
 
             {/* Early Bonus - Very Compact */}
-            <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+            <div className="glass-card p-4 sm:p-5 border-warning/25">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                   <h3 className="font-semibold text-sm sm:text-base">Early Bird Bonus</h3>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Score multiplier for early predictions</p>
               </div>
               <div className="grid grid-cols-4 gap-2">
-                <div className="bg-green-500/10 border border-green-500/30 rounded p-1.5 sm:p-2 text-center">
-                  <p className="font-bold text-green-400 text-sm sm:text-base">1.5x</p>
+                <div className="bg-success/10 border border-success/25 rounded p-1.5 sm:p-2 text-center">
+                  <p className="font-bold text-success text-sm sm:text-base">1.5x</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">0-25%</p>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded p-1.5 sm:p-2 text-center">
-                  <p className="font-bold text-blue-400 text-sm sm:text-base">1.25x</p>
+                <div className="bg-primary/10 border border-primary/25 rounded p-1.5 sm:p-2 text-center">
+                  <p className="font-bold text-primary text-sm sm:text-base">1.25x</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">25-50%</p>
                 </div>
                 <div className="bg-secondary/50 border border-border rounded p-1.5 sm:p-2 text-center">
                   <p className="font-bold text-sm sm:text-base">1.0x</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">50-75%</p>
                 </div>
-                <div className="bg-red-500/10 border border-red-500/30 rounded p-1.5 sm:p-2 text-center">
-                  <p className="font-bold text-red-400 text-sm sm:text-base">0.75x</p>
+                <div className="bg-destructive/10 border border-destructive/25 rounded p-1.5 sm:p-2 text-center">
+                  <p className="font-bold text-destructive text-sm sm:text-base">0.75x</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">75-100%</p>
                 </div>
               </div>
             </div>
 
             {/* Staking Status - Compact */}
-            <div className={`glass-card p-4 sm:p-5 ${canCreateEvent ? 'border-primary/30' : 'border-red-500/30'}`}>
+            <div className={`glass-card p-4 sm:p-5 ${canCreateEvent ? 'border-primary/30' : 'border-destructive/25'}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${getTierBgColor(currentTierName)} border`}>
@@ -594,14 +594,14 @@ const CreateEvent = () => {
               <div className="bg-secondary/50 rounded-lg p-2 sm:p-3 mb-3">
                 <div className="flex items-center justify-between text-xs sm:text-sm mb-1">
                   <span className="text-muted-foreground">Events Today</span>
-                  <span className={`font-bold ${canCreateEvent ? 'text-green-400' : 'text-red-400'}`}>
+                  <span className={`font-bold ${canCreateEvent ? 'text-success' : 'text-destructive'}`}>
                     {remainingEventsToday}/{dailyLimit}
                   </span>
                 </div>
                 {dailyLimit > 0 && (
                   <div className="h-1.5 sm:h-2 bg-secondary rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-primary to-accent transition-all"
+                      className="h-full bg-gradient-to-r from-primary to-ring transition-all"
                       style={{ width: `${(remainingEventsToday / dailyLimit) * 100}%` }}
                     />
                   </div>
@@ -629,8 +629,8 @@ const CreateEvent = () => {
 
               {/* Creation Fee */}
               {creationFee > 0 && (
-                <div className="p-2 sm:p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-3">
-                  <p className="text-xs sm:text-sm text-yellow-400 flex items-center gap-1">
+                <div className="p-2 sm:p-3 bg-warning/10 border border-warning/25 rounded-lg mb-3">
+                  <p className="text-xs sm:text-sm text-warning flex items-center gap-1">
                     <Coins className="h-3 w-3 sm:h-4 sm:w-4" />
                     Creation fee: {formatSyraAmount(creationFee)} SYRA (burned)
                   </p>
@@ -647,8 +647,8 @@ const CreateEvent = () => {
                   </Button>
                 </Link>
               ) : (
-                <div className="p-2 sm:p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <p className="text-xs sm:text-sm text-green-400 flex items-center gap-1">
+                <div className="p-2 sm:p-3 bg-success/10 border border-success/25 rounded-lg">
+                  <p className="text-xs sm:text-sm text-success flex items-center gap-1">
                     <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                     {remainingEventsToday} event{remainingEventsToday !== 1 ? 's' : ''} remaining today
                   </p>

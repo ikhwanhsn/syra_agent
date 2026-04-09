@@ -9,7 +9,6 @@ import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
-import { ShareChatModal } from "./ShareChatModal";
 import type { JatevoModel } from "@/lib/chatApi";
 
 /** Pixel threshold: if within this distance from bottom, consider "at bottom" for follow-scroll. */
@@ -44,7 +43,7 @@ interface ChatAreaProps {
   sidebarCollapsed?: boolean;
   /** When false, show connect-wallet prompt (session not ready). When true, show chat and input. */
   sessionReady?: boolean;
-  /** When false and sessionReady, show banner: connect wallet to use tools/realtime data */
+  /** When false, chat runs without a linked wallet (tools/history behavior per backend). */
   walletConnected?: boolean;
   /** Ref to focus the chat input (e.g. after new chat, after sending) */
   inputRef?: React.RefObject<ChatInputHandle | null>;
@@ -138,7 +137,7 @@ export function ChatArea({
   return (
     <div className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
       {/* Header — safe-area-top for notched devices, touch-friendly on mobile */}
-      <header className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-2.5 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[56px] sm:min-h-[52px] shrink-0 pt-[max(0.5rem,env(safe-area-inset-top))]">
+      <header className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2 sm:gap-4 px-3 py-2.5 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[56px] sm:min-h-[52px] shrink-0 pt-[max(0.5rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
         <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
           <Button
             variant="ghost"
@@ -151,7 +150,7 @@ export function ChatArea({
             <Menu className="w-5 h-5" />
           </Button>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-3 shrink-0 min-w-0 flex-wrap sm:flex-nowrap max-w-full">
           {onToggleDarkMode && (
             <Button
               variant="ghost"
@@ -221,18 +220,6 @@ export function ChatArea({
               })}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Banner: connect wallet to use tools (when chatting without wallet) */}
-      {sessionReady && !walletConnected && (
-        <div className="shrink-0 px-3 py-2 sm:px-4 border-t border-border bg-muted/40 flex items-center justify-between gap-2 flex-wrap">
-          <p className="text-sm text-muted-foreground">
-            Connect your wallet to use tools and realtime data, and to save chat history.
-          </p>
-          <Button variant="outline" size="sm" onClick={openConnectModal}>
-            Connect wallet
-          </Button>
         </div>
       )}
 

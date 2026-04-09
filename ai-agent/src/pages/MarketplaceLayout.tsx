@@ -195,7 +195,7 @@ export default function MarketplaceLayout() {
   );
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background min-h-0">
+    <div className="h-dvh min-h-dvh max-h-dvh flex flex-col overflow-hidden bg-background min-h-0 overscroll-none">
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         {sidebarOpen && (
           <div
@@ -207,7 +207,7 @@ export default function MarketplaceLayout() {
 
         <aside
           className={cn(
-            "fixed left-0 top-0 z-40 w-[280px] max-w-[85vw] sm:max-w-[90vw] h-screen flex flex-col border-r border-border bg-card transition-transform duration-300 ease-out safe-area-top safe-area-bottom lg:hidden",
+            "fixed left-0 top-0 z-40 w-[min(280px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] max-w-[min(320px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] h-dvh max-h-dvh flex flex-col border-r border-border bg-card transition-transform duration-300 ease-out safe-area-top safe-area-bottom overflow-x-hidden overflow-y-auto lg:hidden",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >

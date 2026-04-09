@@ -94,7 +94,7 @@ export const PartnersAndIntegrations = () => {
       className="relative border-b border-accent/10 bg-muted/5 py-12 sm:py-16"
     >
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.07] via-neon-gold/[0.04] to-transparent" />
-      <div className="relative px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="relative mx-auto min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8">
         <div ref={ref} className="mb-8 text-center">
           <motion.span
             initial={{ opacity: 0, y: 12 }}
@@ -123,15 +123,15 @@ export const PartnersAndIntegrations = () => {
             institutional-grade intelligence and execution.
           </motion.p>
         </div>
-      </div>
 
-      <div className="hidden flex-wrap items-center justify-center gap-2 px-3 motion-reduce:flex sm:gap-4 md:gap-6">
-        {PARTNERS.map((partner) => (
-          <PartnerLink key={partner.slug} partner={partner} />
-        ))}
-      </div>
-      <div className="motion-reduce:hidden">
-        <MarqueeTrack labelledBy={headingId} />
+        <div className="hidden min-w-0 flex-wrap items-center justify-center gap-2 motion-reduce:flex sm:gap-4 md:gap-6">
+          {PARTNERS.map((partner) => (
+            <PartnerLink key={partner.slug} partner={partner} />
+          ))}
+        </div>
+        <div className="min-w-0 motion-reduce:hidden">
+          <MarqueeTrack labelledBy={headingId} />
+        </div>
       </div>
     </section>
   );

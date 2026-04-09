@@ -7,12 +7,19 @@ const statBarColors = ["bg-accent", "bg-neon-gold", "bg-success", "bg-accent"] a
 
 const STAT_LABELS = [
   { key: "users", label: "Users", suffix: "+", decimals: 0 },
-  { key: "uptime", label: "Uptime", suffix: "%", decimals: 1 },
-  { key: "signals", label: "Signals", suffix: "+", decimals: 0 },
+  { key: "chat", label: "Chat", suffix: "+", decimals: 0 },
+  { key: "session", label: "Session", suffix: "+", decimals: 0 },
   { key: "tools", label: "Tools", suffix: "+", decimals: 0 },
 ] as const;
 
-const FALLBACK_STATS = { users: 1000, uptime: 99.9, signals: 10000, tools: 15 };
+type StatKey = (typeof STAT_LABELS)[number]["key"];
+
+const FALLBACK_STATS: Record<StatKey, number> = {
+  users: 1000,
+  chat: 1000,
+  session: 10000,
+  tools: 15,
+};
 
 const AnimatedNumber = ({
   value,
@@ -63,20 +70,21 @@ const AnimatedNumber = ({
 };
 
 export const HeroStats = () => {
-  const [stats, setStats] = useState<Record<string, number>>(FALLBACK_STATS);
+  const [stats, setStats] = useState<Record<StatKey, number>>(FALLBACK_STATS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`${API_BASE}/info/stats`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to fetch"))))
-      .then((data) => {
+      .then((data: Record<string, unknown>) => {
         if (!cancelled && data && typeof data.users === "number") {
           setStats({
-            users: data.users,
-            uptime: typeof data.uptime === "number" ? data.uptime : FALLBACK_STATS.uptime,
-            signals: typeof data.signals === "number" ? data.signals : FALLBACK_STATS.signals,
-            tools: typeof data.tools === "number" ? data.tools : FALLBACK_STATS.tools,
+            users: data.users as number,
+            chat: typeof data.chat === "number" ? (data.chat as number) : FALLBACK_STATS.chat,
+            session:
+              typeof data.session === "number" ? (data.session as number) : FALLBACK_STATS.session,
+            tools: typeof data.tools === "number" ? (data.tools as number) : FALLBACK_STATS.tools,
           });
         }
       })
@@ -110,20 +118,6 @@ export const HeroStats = () => {
             <div className="mb-1 text-2xl font-bold md:text-3xl neon-text">
               {loading ? (
                 <span>—</span>
-              ) : key === "users" && (stats.users ?? 0) < 1000 ? (
-                <AnimatedNumber
-                  value={1000}
-                  prefix=""
-                  suffix={suffix}
-                  decimals={decimals}
-                />
-              ) : key === "signals" && (stats.signals ?? 0) < 10000 ? (
-                <AnimatedNumber
-                  value={10000}
-                  prefix=""
-                  suffix={suffix}
-                  decimals={decimals}
-                />
               ) : (
                 <AnimatedNumber
                   value={stats[key] ?? 0}

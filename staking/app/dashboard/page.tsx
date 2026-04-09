@@ -81,7 +81,7 @@ export default function StakersDashboardPage() {
         ) : (
           <>
             {loadError ? (
-              <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-900 dark:text-amber-200/90">
+              <p className="rounded-xl border border-warning/25 bg-warning/10 px-4 py-3 text-sm text-foreground">
                 {loadError}
               </p>
             ) : null}

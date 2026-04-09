@@ -25,6 +25,19 @@ import { API_BASE, getApiHeaders } from "../../config/global";
 // API base for dashboard preview: env VITE_SYRA_API_URL or fallback to API_BASE (ensure trailing slash)
 const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(/\/?$/, "/");
 
+/** Cryptonews-style items may use news_url, url, or link */
+function resolveNewsArticleUrl(entry: unknown): string {
+  if (!entry || typeof entry !== "object") return "";
+  const o = entry as Record<string, unknown>;
+  for (const key of ["news_url", "url", "link"] as const) {
+    const v = o[key];
+    if (typeof v !== "string") continue;
+    const t = v.trim();
+    if (t.startsWith("http://") || t.startsWith("https://")) return t;
+  }
+  return "";
+}
+
 export const DashboardPreview = () => {
   const [counter, setCounter] = useState(0);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
@@ -379,78 +392,103 @@ export const DashboardPreview = () => {
 
         {/* Activity Feed */}
         <div className="space-y-2">
-          {[
-            {
-              icon: Zap,
-              text: dataNews?.news[counter]?.title,
-              color: "text-neon-gold",
-              isNews: true,
-            },
-            {
-              icon: Activity,
-              text: (() => {
-                const token = dataSignals?.token
-                  ? dataSignals.token.charAt(0).toUpperCase() +
-                    dataSignals.token.slice(1)
-                  : "Crypto";
-                const signal = dataSignals?.signal?.metadata?.TRADING_SIGNAL;
-                const strength = dataSignals?.signal?.metadata?.SIGNAL_STRENGTH;
+          {(() => {
+            const newsSlide = Array.isArray(dataNews?.news)
+              ? dataNews.news[counter]
+              : undefined;
+            const newsTitle =
+              typeof newsSlide?.title === "string" ? newsSlide.title : "";
+            const newsUrl = resolveNewsArticleUrl(newsSlide);
 
-                return dataSignals?.signal?.metadata
-                  ? `AI Signal: ${token} ${signal} with ${strength} confidence`
-                  : "No signal available";
-              })(),
-              color: "text-green-400",
-              isNews: false,
-            },
-            {
-              icon: Gem,
-              text: "$SYRA:",
-              color: "text-primary",
-              isNews: false,
-            },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1 + i * 0.1 }}
-              className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg glass-card min-w-0"
-            >
-              <item.icon className={`w-4 h-4 shrink-0 ${item.color}`} />
+            return [
+              {
+                icon: Zap,
+                text: newsTitle,
+                newsUrl,
+                color: "text-neon-gold",
+                isNews: true,
+              },
+              {
+                icon: Activity,
+                text: (() => {
+                  const token = dataSignals?.token
+                    ? dataSignals.token.charAt(0).toUpperCase() +
+                      dataSignals.token.slice(1)
+                    : "Crypto";
+                  const signal = dataSignals?.signal?.metadata?.TRADING_SIGNAL;
+                  const strength = dataSignals?.signal?.metadata?.SIGNAL_STRENGTH;
 
-              {/* Animated text for news only */}
-              {item.isNews ? (
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={counter}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-xs text-muted-foreground min-w-0 flex-1"
+                  return dataSignals?.signal?.metadata
+                    ? `AI Signal: ${token} ${signal} with ${strength} confidence`
+                    : "No signal available";
+                })(),
+                color: "text-green-400",
+                isNews: false,
+              },
+              {
+                icon: Gem,
+                text: "$SYRA:",
+                color: "text-primary",
+                isNews: false,
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1 + i * 0.1 }}
+                className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg glass-card min-w-0"
+              >
+                <item.icon className={`w-4 h-4 shrink-0 ${item.color}`} />
+
+                {item.isNews ? (
+                  <AnimatePresence mode="wait">
+                    {item.newsUrl ? (
+                      <motion.a
+                        key={counter}
+                        href={item.newsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                        className="min-w-0 flex-1 text-left text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
+                      >
+                        {item.text || "Loading news..."}
+                      </motion.a>
+                    ) : (
+                      <motion.span
+                        key={counter}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                        className="min-w-0 flex-1 text-xs text-muted-foreground"
+                      >
+                        {item.text || "Loading news..."}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                ) : (
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {item.text}
+                  </span>
+                )}
+
+                {item.text === "$SYRA:" && (
+                  <a
+                    href="https://dexscreener.com/solana/ha56u92pmwnh9ksqf7wwhi2xh9aqdedqsazo6m6jdbqf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative z-10 min-w-0 flex-1 text-xs text-blue-100 text-muted-foreground break-all"
                   >
-                    {item.text || "Loading news..."}
-                  </motion.span>
-                </AnimatePresence>
-              ) : (
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {item.text}
-                </span>
-              )}
-
-              {item.text === "$SYRA:" && (
-                <a
-                  href="https://dexscreener.com/solana/ha56u92pmwnh9ksqf7wwhi2xh9aqdedqsazo6m6jdbqf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative z-10 min-w-0 flex-1 text-xs text-blue-100 text-muted-foreground break-all"
-                >
-                  8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump
-                </a>
-              )}
-            </motion.div>
-          ))}
+                    8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump
+                  </a>
+                )}
+              </motion.div>
+            ));
+          })()}
         </div>
       </div>
     </div>

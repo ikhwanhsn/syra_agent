@@ -210,12 +210,12 @@ export default function DashboardLayout() {
   };
 
   const topbar = (
-    <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] sm:min-h-0 shrink-0">
+    <header className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] sm:min-h-0 shrink-0 pt-[max(0.25rem,env(safe-area-inset-top))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden h-9 w-9 shrink-0 touch-manipulation"
+          className="lg:hidden h-9 w-9 shrink-0 touch-manipulation min-h-[44px] min-w-[44px] sm:min-h-9 sm:min-w-9"
           onClick={() => setSidebarOpen(true)}
           title="Open menu"
           aria-label="Open menu"
@@ -225,19 +225,19 @@ export default function DashboardLayout() {
         <Button
           variant="ghost"
           size="icon"
-          className={cn("h-9 w-9 shrink-0 hidden", sidebarCollapsed && "lg:flex")}
+          className={cn("h-9 w-9 shrink-0 hidden min-h-[44px] min-w-[44px] sm:min-h-9 sm:min-w-9", sidebarCollapsed && "lg:flex")}
           onClick={handleToggleSidebar}
           title="Show sidebar"
           aria-label="Show sidebar"
         >
           <PanelLeft className="w-4 h-4" />
         </Button>
-        <div className="min-w-0 hidden sm:block">
+        <div className="min-w-0 flex-1 sm:flex-none">
           <h1 className="text-sm font-semibold text-foreground truncate">Dashboard</h1>
           <p className="text-xs text-muted-foreground truncate">{pageTitle}</p>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0 flex-wrap sm:flex-nowrap justify-end max-w-full">
         <Button
           variant="ghost"
           size="icon"
@@ -260,7 +260,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background min-h-0">
+    <div className="h-dvh min-h-dvh max-h-dvh flex flex-col overflow-hidden bg-background min-h-0 overscroll-none">
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         {sidebarOpen && (
           <div
@@ -272,7 +272,7 @@ export default function DashboardLayout() {
 
         <aside
           className={cn(
-            "fixed left-0 top-0 z-40 w-[280px] max-w-[85vw] sm:max-w-[90vw] h-screen flex flex-col border-r border-border bg-card transition-transform duration-300 ease-out safe-area-top safe-area-bottom lg:hidden",
+            "fixed left-0 top-0 z-40 w-[min(280px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] max-w-[min(320px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] h-dvh max-h-dvh flex flex-col border-r border-border bg-card transition-transform duration-300 ease-out safe-area-top safe-area-bottom overflow-x-hidden overflow-y-auto lg:hidden",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >

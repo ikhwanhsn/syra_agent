@@ -87,9 +87,9 @@ function chooseFetch(url, sentinelFetch) {
 
 /**
  * Get treasury keypair from AGENT_PRIVATE_KEY (base58). Used to pay for tool calls when user is a 1M+ SYRA holder.
- * @returns {Keypair | null}
+ * @returns {import('@solana/web3.js').Keypair | null}
  */
-function getTreasuryKeypair() {
+export function getTreasuryKeypair() {
   const raw = process.env.AGENT_PRIVATE_KEY;
   if (!raw || typeof raw !== 'string' || !raw.trim()) return null;
   try {

@@ -58,13 +58,13 @@ export function ConnectWalletButton() {
       <div className="relative flex items-center gap-3" ref={dropdownRef}>
         <div className="hidden sm:flex items-center gap-2">
           {wallet.canInteract ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium text-emerald-400">Connected</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-xs font-medium text-success">Connected</span>
             </div>
           ) : wallet.canViewDashboard ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <span className="text-xs font-medium text-amber-400">View only</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20">
+              <span className="text-xs font-medium text-warning">View only</span>
             </div>
           ) : null}
         </div>
@@ -99,7 +99,7 @@ export function ConnectWalletButton() {
                 <p className="text-sm font-medium text-white">
                   Wallet Connected
                   {!wallet.canInteract && wallet.canViewDashboard && (
-                    <span className="ml-1.5 text-xs font-normal text-amber-400">(View only)</span>
+                    <span className="ml-1.5 text-xs font-normal text-warning">(View only)</span>
                   )}
                 </p>
                 <p className="text-xs font-mono text-gray-500 truncate">
@@ -133,7 +133,7 @@ export function ConnectWalletButton() {
                   wallet.disconnect();
                   setDropdownOpen(false);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-800/80"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-gray-800/80"
               >
                 <IconLogOut className="h-4 w-4" />
                 Disconnect
@@ -152,8 +152,8 @@ export function ConnectWalletButton() {
       disabled={wallet.connecting}
       className={cn(
         "inline-flex items-center justify-center gap-2 h-9 px-3 rounded-lg text-sm font-semibold",
-        "bg-syra-primary text-black hover:bg-syra-primary/90",
-        "shadow-md hover:shadow-syra-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all border border-syra-primary/30",
+        "bg-primary text-primary-foreground hover:bg-primary/90",
+        "shadow-md hover:shadow-primary-glow hover:scale-[1.02] active:scale-[0.98] transition-all border border-primary/30",
         "disabled:opacity-50 disabled:pointer-events-none"
       )}
       title="Connect your Solana wallet to access the dashboard"

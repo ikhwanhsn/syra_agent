@@ -88,7 +88,7 @@ export const HeroSection = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               onSubmit={onAskSubmit}
-              className="mx-auto mb-2 flex w-full max-w-xl min-w-0 flex-col gap-3 sm:mx-0 sm:max-w-none sm:flex-row sm:items-stretch sm:gap-3 lg:justify-start"
+              className="mx-auto mb-8 flex w-full max-w-xl min-w-0 flex-col gap-3 sm:mx-0 sm:max-w-none sm:flex-row sm:items-stretch sm:gap-3 lg:justify-start"
             >
               <Input
                 value={askDraft}
@@ -114,14 +114,6 @@ export const HeroSection = () => {
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
               </button>
             </motion.form>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="mx-auto mb-8 max-w-xl text-center text-xs text-muted-foreground sm:text-left lg:mx-0"
-            >
-              Opens the agent in a new tab; your question is sent automatically so you can wait for the reply there.
-            </motion.p>
 
             <a href="/leaderboard" className="hidden">
               <Trophy className="w-4 h-4" />

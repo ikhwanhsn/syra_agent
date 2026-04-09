@@ -4,6 +4,8 @@
  */
 import express from "express";
 import { callJatevo } from "../libs/jatevo.js";
+import { withLlmIdentitySystemNote } from "./agent/chat.js";
+import { JATEVO_DEFAULT_MODEL } from "../config/jatevoModels.js";
 import DashboardResearch from "../models/DashboardResearch.js";
 
 /** Max tokens for internal research resume (Jatevo). Higher than default for full summaries. */
@@ -52,10 +54,13 @@ export async function createInternalResearchRouter() {
         { role: "user", content: `Summarize this research into an executive resume:\n\n${researchBlob.slice(0, 120000)}` },
       ];
 
-      const result = await callJatevo(messages, {
-        max_tokens: INTERNAL_RESEARCH_RESUME_MAX_TOKENS,
-        temperature: 0.4,
-      });
+      const result = await callJatevo(
+        withLlmIdentitySystemNote(messages, JATEVO_DEFAULT_MODEL),
+        {
+          max_tokens: INTERNAL_RESEARCH_RESUME_MAX_TOKENS,
+          temperature: 0.4,
+        }
+      );
 
       return res.json({ resume: result.response, truncated: result.truncated || false });
     } catch (error) {

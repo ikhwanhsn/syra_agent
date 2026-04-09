@@ -952,7 +952,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 overflow-hidden">
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 overflow-hidden">
         {/* Animated rings */}
         <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40">
           <div className="absolute inset-0 rounded-full border-2 border-accent/30 loader-app-glow" />
@@ -991,7 +991,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   };
 
   return (
-    <div className="h-screen min-h-[100dvh] flex flex-col overflow-hidden bg-background">
+    <div className="h-dvh min-h-dvh max-h-dvh flex flex-col overflow-hidden bg-background overscroll-none">
       {/* API connection error banner */}
       {apiConnectionError && (
         <Alert variant="destructive" className="rounded-none border-x-0 border-t-0 shrink-0">

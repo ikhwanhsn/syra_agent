@@ -8,7 +8,7 @@ const RUGCHECK_REPORT = "https://api.rugcheck.xyz/v1/tokens";
  */
 export function pickBestPair(dexJson) {
   const pairs = Array.isArray(dexJson?.pairs) ? dexJson.pairs : [];
-  const sol = pairs.filter((p) => p?.chainId === "solana");
+  const sol = pairs.filter((p) => String(p?.chainId || "").toLowerCase() === "solana");
   const ranked = [...sol].sort((a, b) => {
     const pa = String(a?.dexId || "").toLowerCase() === "pump.fun" ? 1 : 0;
     const pb = String(b?.dexId || "").toLowerCase() === "pump.fun" ? 1 : 0;
@@ -17,7 +17,15 @@ export function pickBestPair(dexJson) {
     const lb = Number(b?.liquidity?.usd) || 0;
     return lb - la;
   });
-  return ranked[0] ?? null;
+  if (ranked[0]) return ranked[0];
+  // Fallback: Dexscreener sometimes omits chainId; still use best-effort pair for signals.
+  if (pairs[0]) {
+    const byLiq = [...pairs].sort(
+      (a, b) => (Number(b?.liquidity?.usd) || 0) - (Number(a?.liquidity?.usd) || 0)
+    );
+    return byLiq[0] ?? null;
+  }
+  return null;
 }
 
 /**

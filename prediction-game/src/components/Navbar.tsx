@@ -62,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenWalletModal }) => {
               >
                 {link.name}
                 {isActive(link.path) && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent-blue to-accent rounded-full animate-fade-in-up" />
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-muted-foreground to-ring rounded-full animate-fade-in-up" />
                 )}
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary/0 group-hover:bg-primary/30 rounded-full transition-all duration-300" />
               </Link>

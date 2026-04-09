@@ -14,6 +14,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import Brand from "./pages/Brand";
+import Identity from "./pages/Identity";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/cookies" element={<CookiePolicy />} />
             <Route path="/brand" element={<Brand />} />
+            <Route path="/identity" element={<Identity />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

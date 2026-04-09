@@ -39,9 +39,9 @@ function typeLabel(type: StakingTxType): string {
 function typeBadgeClass(type: StakingTxType): string {
   switch (type) {
     case "stake":
-      return "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+      return "bg-success/15 text-success";
     case "unstake":
-      return "bg-amber-500/20 text-amber-600 dark:text-amber-400";
+      return "bg-warning/15 text-warning";
     case "claim":
       return "bg-primary/20 text-primary";
     default:
@@ -151,7 +151,7 @@ export function TransactionHistory({ refreshTrigger }: TransactionHistoryProps =
                       {tx.err ? (
                         <span className="text-destructive">Failed</span>
                       ) : (
-                        <span className="text-emerald-600 dark:text-emerald-400">
+                        <span className="text-success">
                           Success
                         </span>
                       )}

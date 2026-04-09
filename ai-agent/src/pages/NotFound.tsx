@@ -4,7 +4,7 @@ import { SearchX, Home, Store } from "lucide-react";
 
 const NotFound = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
       {/* Subtle gradient orbs in background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-1/4 top-1/4 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />

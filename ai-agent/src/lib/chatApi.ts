@@ -296,9 +296,6 @@ export const agentWalletApi = {
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
-    fundingSuccess?: boolean;
-    fundingError?: string;
-    fundingPending?: boolean;
     chain?: "solana" | "base";
   }> {
     const res = await fetch(`${agentWalletBase()}/connect`, {
@@ -312,9 +309,6 @@ export const agentWalletApi = {
       agentAddress: string;
       avatarUrl?: string | null;
       isNewWallet?: boolean;
-      fundingSuccess?: boolean;
-      fundingError?: string;
-      fundingPending?: boolean;
       chain?: "solana" | "base";
     }>(res);
     return {
@@ -322,9 +316,6 @@ export const agentWalletApi = {
       agentAddress: data.agentAddress,
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
-      fundingSuccess: data.fundingSuccess,
-      fundingError: data.fundingError,
-      fundingPending: data.fundingPending,
       chain: data.chain,
     };
   },
@@ -335,9 +326,6 @@ export const agentWalletApi = {
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
-    fundingSuccess?: boolean;
-    fundingError?: string;
-    fundingPending?: boolean;
   }> {
     const res = await fetch(agentWalletBase(), {
       method: "POST",
@@ -350,18 +338,12 @@ export const agentWalletApi = {
       agentAddress: string;
       avatarUrl?: string | null;
       isNewWallet?: boolean;
-      fundingSuccess?: boolean;
-      fundingError?: string;
-      fundingPending?: boolean;
     }>(res);
     return {
       anonymousId: data.anonymousId,
       agentAddress: data.agentAddress,
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
-      fundingSuccess: data.fundingSuccess,
-      fundingError: data.fundingError,
-      fundingPending: data.fundingPending,
     };
   },
 

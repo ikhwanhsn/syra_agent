@@ -22,6 +22,7 @@ const footerLinks = {
     { label: "Documentation", href: LINK_DOCS },
     { label: "Articles", href: "/articles", internal: true },
     { label: "Brand", href: "/brand", internal: true },
+    { label: "Identity", href: "/identity", internal: true },
   ],
   company: [
     { label: "About", href: "/#product", internal: true },

@@ -66,6 +66,9 @@ export const X402_API_PRICE_NANSEN_USD = price(0.01);
 /** Nansen Premium / Smart Money tier — $0.05/call (counterparties, holders, leaderboards, smart-money netflow/holdings/dex-trades) */
 export const X402_API_PRICE_NANSEN_PREMIUM_USD = price(0.05);
 
+/** Zerion API via x402 (portfolio, positions, PnL, txs, gas, chains, fungibles) — per call */
+export const X402_API_PRICE_ZERION_USD = price(0.01);
+
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
@@ -135,6 +138,7 @@ export const X402_DISPLAY_PRICE_NEWS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_RESEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_ZERION_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = 0.01 * PRODUCTION_MULT;

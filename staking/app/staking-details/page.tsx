@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/WalletButton";
-import { useTheme } from "@/app/ThemeContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useStaking } from "@/hooks/useStaking";
 import { CONFIG } from "@/constants/config";
@@ -57,7 +56,6 @@ const PERIOD_LABELS: [string, string, string] = [
 ];
 
 export default function StakingDetailsPage() {
-  const { resolved: theme } = useTheme();
   const { connected } = useWallet();
   const {
     periodStakes,
@@ -75,7 +73,7 @@ export default function StakingDetailsPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link
             href="/"
-            className={`flex items-center gap-3 no-underline hover:no-underline ${theme === "dark" ? "text-[#f5f5f5] hover:text-[#f5f5f5]" : "text-black hover:text-black"}`}
+            className="flex items-center gap-3 text-foreground no-underline hover:no-underline hover:text-foreground"
           >
             <NavbarLogo />
             <span className="text-xl font-semibold">Syra Staking</span>
@@ -168,7 +166,7 @@ export default function StakingDetailsPage() {
                     const ps = periodStakes[period];
                     const label = PERIOD_LABELS[period];
                     const pendingFormatted =
-                      info && ps.pendingRewardRaw > 0n
+                      info && ps.pendingRewardRaw > BigInt(0)
                         ? formatUnits(
                             ps.pendingRewardRaw,
                             CONFIG.rewardDecimals
@@ -187,11 +185,11 @@ export default function StakingDetailsPage() {
                                 {label}
                               </h3>
                               {ps.isLocked ? (
-                                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                                <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
                                   Locked
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
                                   Unlocked
                                 </span>
                               )}

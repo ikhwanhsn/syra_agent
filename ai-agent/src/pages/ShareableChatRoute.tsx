@@ -72,7 +72,7 @@ export default function ShareableChatRoute() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-col items-center gap-4">
           <div className="relative flex items-center justify-center w-20 h-20">
             <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: "2.5s" }} />

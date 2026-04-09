@@ -8,6 +8,7 @@ import {
   X402_API_PRICE_NEWS_USD,
   X402_API_PRICE_NANSEN_USD,
   X402_API_PRICE_NANSEN_PREMIUM_USD,
+  X402_API_PRICE_ZERION_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_SQUID_ROUTE_USD,
@@ -30,6 +31,7 @@ import {
   X402_DISPLAY_PRICE_NEWS_USD,
   X402_DISPLAY_PRICE_NANSEN_USD,
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
+  X402_DISPLAY_PRICE_ZERION_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
@@ -47,10 +49,10 @@ import {
   X402_DISPLAY_PRICE_SIWA_USD,
 } from './x402Pricing.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks' }} AgentTool */
 
 /**
- * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen tools call api.nansen.ai directly.
+ * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402).
  * priceUsd = charged amount (env-based); displayPriceUsd = real API cost shown in UI (production).
  * @type {AgentTool[]}
  */
@@ -507,6 +509,77 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
     name: 'Nansen: TGM PnL leaderboard',
     description: 'PnL leaderboard for a token (chain, date range; optional filters)',
+  },
+  // Partner: Zerion (x402 — USDC on Solana; see https://developers.zerion.io/build-with-ai/x402)
+  {
+    id: 'zerion-wallet-portfolio',
+    path: '/zerion/wallet/portfolio',
+    zerionPath: '/v1/wallets/{address}/portfolio',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: wallet portfolio',
+    description: 'Multi-chain portfolio overview for an EVM or Solana address (Zerion)',
+  },
+  {
+    id: 'zerion-wallet-positions',
+    path: '/zerion/wallet/positions',
+    zerionPath: '/v1/wallets/{address}/positions/',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: wallet positions',
+    description: 'Fungible positions (wallet + DeFi) for an address; optional filter[positions], filter[chain_ids], currency, sync',
+  },
+  {
+    id: 'zerion-wallet-pnl',
+    path: '/zerion/wallet/pnl',
+    zerionPath: '/v1/wallets/{address}/pnl',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: wallet PnL',
+    description: 'FIFO PnL (realized/unrealized, net invested) for an address; optional filter[chain_ids], since, till, currency',
+  },
+  {
+    id: 'zerion-wallet-transactions',
+    path: '/zerion/wallet/transactions',
+    zerionPath: '/v1/wallets/{address}/transactions/',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: wallet transactions',
+    description: 'Human-readable tx history; optional currency, page[size], filter[operation_types], filter[chain_ids], filter[min_mined_at]',
+  },
+  {
+    id: 'zerion-gas-prices',
+    path: '/zerion/gas-prices',
+    zerionPath: '/v1/gas-prices/',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: gas prices',
+    description: 'Current gas prices across chains; optional filter[chain_ids], filter[gas_types]',
+  },
+  {
+    id: 'zerion-chains',
+    path: '/zerion/chains',
+    zerionPath: '/v1/chains/',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: supported chains',
+    description: 'Chains supported by Zerion (ids, explorers, RPC hints); optional x_env=testnet header via param x_env',
+  },
+  {
+    id: 'zerion-fungibles',
+    path: '/zerion/fungibles',
+    zerionPath: '/v1/fungibles/',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ZERION_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
+    name: 'Zerion: fungibles list',
+    description: 'Search/list fungible assets (Zerion query params e.g. filter[search_query], page[size])',
   },
   // Partner: Jupiter, Bubblemaps, Binance
   {
@@ -1050,6 +1123,48 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /(?:nansen\s+)?(?:tgm\s+)?pnl\s+leaderboard|pnl\s+leaderboard\s+(?:for\s+)?token/i.test(text),
     },
+    // Partner: Zerion (x402)
+    {
+      toolId: 'zerion-wallet-portfolio',
+      test: () =>
+        /zerion\s+portfolio|zerion\s+wallet\s+portfolio|multi[-\s]?chain\s+portfolio|portfolio\s+(?:from|via)\s+zerion/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'zerion-wallet-positions',
+      test: () =>
+        /zerion\s+positions?|positions?\s+(?:from|via)\s+zerion|zerion\s+holdings|zerion\s+defi\s+positions?/i.test(text),
+    },
+    {
+      toolId: 'zerion-wallet-pnl',
+      test: () =>
+        /zerion\s+pnl|zerion\s+profit|pnl\s+(?:from|via)\s+zerion|zerion\s+gains?/i.test(text),
+    },
+    {
+      toolId: 'zerion-wallet-transactions',
+      test: () =>
+        /zerion\s+transactions?|zerion\s+tx|transaction\s+history\s+zerion|zerion\s+(?:wallet\s+)?activity|on[-\s]?chain\s+history\s+zerion/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'zerion-gas-prices',
+      test: () =>
+        /zerion\s+gas|gas\s+prices?\s+(?:from\s+)?zerion|zerion\s+fee\s+estimate/i.test(text),
+    },
+    {
+      toolId: 'zerion-chains',
+      test: () =>
+        /zerion\s+chains?|chains?\s+(?:from|via)\s+zerion|zerion\s+supported\s+chains?/i.test(text),
+    },
+    {
+      toolId: 'zerion-fungibles',
+      test: () =>
+        /zerion\s+fungibles?|zerion\s+token\s+search|search\s+tokens?\s+(?:on\s+)?zerion|zerion\s+asset\s+list/i.test(
+          text
+        ),
+    },
     {
       toolId: 'trending-jupiter',
       test: () =>
@@ -1284,6 +1399,7 @@ export function getCapabilitiesList() {
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const purchVault = ['purch-vault-search', 'purch-vault-buy'];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
+  const zerionX402 = AGENT_TOOLS.filter((t) => t.zerionPath).map((t) => t.id);
 
   const lines = ['Available v2 API tools (use these when the user asks for data):', ''];
 
@@ -1297,11 +1413,18 @@ export function getCapabilitiesList() {
       .filter(Boolean);
 
   lines.push('Core:', ...fmt(core), '');
-  lines.push('Partner (Nansen, Jupiter, Squid, Bubblemaps, Binance, Giza):', ...fmt(partner), '');
+  lines.push('Partner (Nansen, Zerion, Jupiter, Squid, Bubblemaps, Binance, Giza):', ...fmt(partner), '');
   lines.push('8004scan.io (ERC-8004 agent discovery):', ...fmt(eight004scan), '');
   lines.push('Purch Vault (marketplace for agent skills, knowledge, personas):', ...fmt(purchVault), '');
   if (nansenX402.length) {
     lines.push('Nansen (per-endpoint; pass chain, address, or token_address as needed):', ...fmt(nansenX402), '');
+  }
+  if (zerionX402.length) {
+    lines.push(
+      'Zerion (x402; wallet tools need param address = EVM 0x… or Solana; optional filter*, currency, page[size], x_env=testnet):',
+      ...fmt(zerionX402),
+      ''
+    );
   }
 
   return lines;
@@ -1398,6 +1521,23 @@ export function getToolsForLlmSelection() {
         'nansen-tgm-pnl-leaderboard': 'Params: chain (e.g. solana); optional date_from, date_to, filters',
       };
       if (nansenHints[t.id]) out.paramsHint = nansenHints[t.id];
+    }
+    if (t.zerionPath) {
+      const zerionHints = {
+        'zerion-wallet-portfolio':
+          'Params: address (required, EVM or Solana). Optional: filter[positions] only_simple|only_complex|no_filter, currency, sync true|false, x_env=testnet',
+        'zerion-wallet-positions':
+          'Params: address (required). Optional: filter[positions], filter[chain_ids], filter[position_types], currency, sort, sync, x_env',
+        'zerion-wallet-pnl':
+          'Params: address (required). Optional: currency, filter[chain_ids], since, till (ms timestamps)',
+        'zerion-wallet-transactions':
+          'Params: address (required). Optional: currency, page[size], filter[operation_types], filter[chain_ids], filter[min_mined_at]',
+        'zerion-gas-prices': 'Optional: filter[chain_ids], filter[gas_types]',
+        'zerion-chains': 'Optional: x_env=testnet for testnets',
+        'zerion-fungibles':
+          'Optional: filter[search_query], page[size], currency — use Zerion v1 query param names as flat keys',
+      };
+      if (zerionHints[t.id]) out.paramsHint = zerionHints[t.id];
     }
     return out;
   });

@@ -14,6 +14,7 @@ import { fetchKpi, type KpiResponse } from "../api/kpi";
 import { LoadingState } from "../components/LoadingState";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
+import { chartTheme } from "../lib/chartTheme";
 
 function useKpi() {
   return useQuery({
@@ -137,7 +138,7 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                 <span
                   className={cn(
                     "text-sm font-medium",
-                    wow.pctChange > 0 ? "text-emerald-400" : "text-red-400"
+                    wow.pctChange > 0 ? "text-success" : "text-destructive"
                   )}
                 >
                   {wow.pctChange > 0 ? "+" : ""}
@@ -158,7 +159,7 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                 <span
                   className={cn(
                     "text-sm font-medium",
-                    mom.pctChange > 0 ? "text-emerald-400" : "text-red-400"
+                    mom.pctChange > 0 ? "text-success" : "text-destructive"
                   )}
                 >
                   {mom.pctChange > 0 ? "+" : ""}
@@ -265,23 +266,19 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                   layout="vertical"
                   margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis
                     type="number"
-                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    tick={{ fill: chartTheme.tick, fontSize: 10 }}
                   />
                   <YAxis
                     type="category"
                     dataKey="name"
                     width={120}
-                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    tick={{ fill: chartTheme.tick, fontSize: 10 }}
                   />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f1117",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                    }}
+                    contentStyle={chartTheme.tooltipContentStyle}
                     formatter={(value: number, _name, props) => [
                       value.toLocaleString(),
                       props.payload?.fullPath ?? "",
@@ -289,7 +286,7 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                   />
                   <Bar
                     dataKey="count"
-                    fill="#8b5cf6"
+                    fill={chartTheme.series[2]}
                     radius={[0, 4, 4, 0]}
                   />
                 </BarChart>
@@ -311,22 +308,18 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                 data={dailyPaidCalls}
                 margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#9ca3af", fontSize: 10 }}
+                  tick={{ fill: chartTheme.tick, fontSize: 10 }}
                   tickFormatter={(v: string) => {
                     const d = new Date(v);
                     return `${d.getMonth() + 1}/${d.getDate()}`;
                   }}
                 />
-                <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f1117",
-                    border: "1px solid #374151",
-                    borderRadius: "8px",
-                  }}
+                  contentStyle={chartTheme.tooltipContentStyle}
                   labelFormatter={(v: string) =>
                     new Date(v).toLocaleDateString()
                   }
@@ -334,9 +327,9 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                 <Line
                   type="monotone"
                   dataKey="count"
-                  stroke="#00d4ff"
+                  stroke={chartTheme.series[0]}
                   strokeWidth={2}
-                  dot={{ fill: "#00d4ff", r: 2 }}
+                  dot={{ fill: chartTheme.series[0], r: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -357,22 +350,18 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                   data={insights.dailyRequests}
                   margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    tick={{ fill: chartTheme.tick, fontSize: 10 }}
                     tickFormatter={(v: string) => {
                       const d = new Date(v);
                       return `${d.getMonth() + 1}/${d.getDate()}`;
                     }}
                   />
-                  <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                  <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f1117",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                    }}
+                    contentStyle={chartTheme.tooltipContentStyle}
                     labelFormatter={(v: string) =>
                       new Date(v).toLocaleDateString()
                     }
@@ -380,9 +369,9 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
                   <Line
                     type="monotone"
                     dataKey="count"
-                    stroke="#a78bfa"
+                    stroke={chartTheme.series[3]}
                     strokeWidth={2}
-                    dot={{ fill: "#a78bfa", r: 2 }}
+                    dot={{ fill: chartTheme.series[3], r: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -407,7 +396,7 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
             </p>
             <Link
               to="/revenue"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               Open Revenue →
             </Link>
@@ -437,7 +426,7 @@ function GrowthInsightsContent({ data }: { data: KpiResponse }) {
             </p>
             <Link
               to="/health"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-warning hover:underline"
             >
               Open Health →
             </Link>
@@ -482,7 +471,7 @@ export function InsightsPage() {
     const msg = error instanceof Error ? error.message : String(error);
     return (
       <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-        <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:p-6">
           <p className="font-semibold">Failed to load insights</p>
           <p className="mt-2 text-sm">{msg}</p>
           <Link to="/" className="mt-4 inline-block text-sm text-syra-primary hover:underline">

@@ -103,10 +103,17 @@ export function buildPumpDumpDecision(input) {
     composite = -0.06;
   }
 
-  const threshold = 0.032;
-  let prediction = /** @type {'Pump' | 'Dump'} */ (
-    composite > threshold ? "Pump" : composite < -threshold ? "Dump" : mom >= 0 ? "Pump" : "Dump"
-  );
+  const threshold = 0.022;
+  /** @type {'Pump' | 'Dump'} */
+  let prediction;
+  if (composite > threshold) prediction = "Pump";
+  else if (composite < -threshold) prediction = "Dump";
+  else {
+    const micro = 0.5 * flow + 0.5 * volTrend;
+    if (micro > 0.035) prediction = "Pump";
+    else if (micro < -0.035) prediction = "Dump";
+    else prediction = mom >= 0 ? "Pump" : "Dump";
+  }
 
   const absComp = Math.abs(composite);
   let confidence = 0.4 + 0.38 * Math.min(1, absComp * 1.45);

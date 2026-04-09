@@ -208,12 +208,12 @@ const Staking = () => {
               </div>
               <div className="bg-secondary/50 rounded-lg p-2 sm:p-3">
                 <p className="text-xs sm:text-sm text-muted-foreground">Available</p>
-                <p className="text-sm sm:text-base font-bold text-accent">{formatSyraAmount(syraBalance)}</p>
+                <p className="text-sm sm:text-base font-bold text-foreground">{formatSyraAmount(syraBalance)}</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-2 sm:p-3">
                 <p className="text-xs sm:text-sm text-muted-foreground">Events</p>
                 <p className="text-sm sm:text-base font-bold">
-                  <span className={canCreateEvent ? 'text-green-400' : 'text-red-400'}>
+                  <span className={canCreateEvent ? 'text-success' : 'text-destructive'}>
                     {remainingEventsToday}
                   </span>
                   <span className="text-muted-foreground">/{dailyLimit}</span>
@@ -233,7 +233,7 @@ const Staking = () => {
               </div>
               <div className="h-1.5 sm:h-2 bg-secondary rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-primary to-ring transition-all duration-500"
                   style={{ 
                     width: `${Math.min(100, (stakedAmount / STAKING_TIERS[nextTier].minStake) * 100)}%` 
                   }}
@@ -244,10 +244,10 @@ const Staking = () => {
 
           {/* Lock status */}
           {isLocked && unlockDate && (
-            <div className="mt-3 p-2 sm:p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-center gap-2">
-              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 shrink-0" />
+            <div className="mt-3 p-2 sm:p-3 bg-warning/10 border border-warning/25 rounded-lg flex items-center gap-2">
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-warning shrink-0" />
               <div>
-                <p className="text-xs sm:text-sm font-medium text-yellow-400">Locked until {unlockDate.toLocaleDateString()}</p>
+                <p className="text-xs sm:text-sm font-medium text-warning">Locked until {unlockDate.toLocaleDateString()}</p>
               </div>
             </div>
           )}
@@ -258,10 +258,10 @@ const Staking = () => {
           {/* Left - Stake/Unstake */}
           <div className="lg:col-span-5 space-y-4">
             {/* Stake Card */}
-            <div className="glass-card p-4 sm:p-5 border-green-500/30">
+            <div className="glass-card p-4 sm:p-5 border-success/25">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-success/15 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm sm:text-base">Stake SYRA</h3>
@@ -294,8 +294,8 @@ const Staking = () => {
                 </div>
 
                 {stakeAmountNum > 0 && (
-                  <div className="p-2 sm:p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <p className="text-xs sm:text-sm text-green-400 flex items-center gap-1">
+                  <div className="p-2 sm:p-3 bg-success/10 border border-success/25 rounded-lg">
+                    <p className="text-xs sm:text-sm text-success flex items-center gap-1">
                       <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
                       New tier: <strong>{STAKING_TIERS[getNextTier(currentTierName) || currentTierName]?.name || currentTier?.name}</strong>
                     </p>
@@ -305,7 +305,7 @@ const Staking = () => {
                 <Button
                   onClick={handleStake}
                   disabled={isStaking || stakeAmountNum <= 0 || stakeAmountNum > syraBalance}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   size="sm"
                 >
                   {isStaking ? 'Staking...' : 'Stake Tokens'}
@@ -314,10 +314,10 @@ const Staking = () => {
             </div>
 
             {/* Unstake Card */}
-            <div className="glass-card p-4 sm:p-5 border-red-500/30">
+            <div className="glass-card p-4 sm:p-5 border-destructive/25">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                  <Unlock className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <Unlock className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm sm:text-base">Unstake SYRA</h3>
@@ -351,8 +351,8 @@ const Staking = () => {
                 </div>
 
                 {isLocked && (
-                  <div className="p-2 sm:p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                    <p className="text-xs sm:text-sm text-yellow-400 flex items-center gap-1">
+                  <div className="p-2 sm:p-3 bg-warning/10 border border-warning/25 rounded-lg">
+                    <p className="text-xs sm:text-sm text-warning flex items-center gap-1">
                       <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                       Locked {currentTier?.lockDays || 0} days
                     </p>
@@ -363,7 +363,7 @@ const Staking = () => {
                   onClick={handleUnstake}
                   disabled={isUnstaking || unstakeAmountNum <= 0 || unstakeAmountNum > stakedAmount || isLocked}
                   variant="outline"
-                  className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
                   size="sm"
                 >
                   {isUnstaking ? 'Unstaking...' : 'Unstake Tokens'}
@@ -377,7 +377,7 @@ const Staking = () => {
             {/* Tier Benefits Table */}
             <div className="glass-card p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                 <h3 className="text-sm sm:text-base font-semibold">Staking Tiers</h3>
               </div>
 
@@ -415,7 +415,7 @@ const Staking = () => {
                           </td>
                           <td className="py-2 sm:py-3 px-2 font-mono text-xs sm:text-sm">{formatSyraAmount(tier.minStake)}</td>
                           <td className="py-2 sm:py-3 px-2">
-                            <span className={`text-xs sm:text-sm ${tier.dailyEvents === 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            <span className={`text-xs sm:text-sm ${tier.dailyEvents === 0 ? 'text-destructive' : 'text-success'}`}>
                               {tier.dailyEvents === 0 ? 'N/A' : `${tier.dailyEvents}/day`}
                             </span>
                           </td>
@@ -423,7 +423,7 @@ const Staking = () => {
                             {tier.lockDays === 0 ? '-' : `${tier.lockDays}d`}
                           </td>
                           <td className="py-2 sm:py-3 px-2 text-xs sm:text-sm">
-                            <span className={tier.creationFee === 0 ? 'text-green-400' : ''}>
+                            <span className={tier.creationFee === 0 ? 'text-success' : ''}>
                               {tier.creationFee === 0 ? 'Free' : formatSyraAmount(tier.creationFee)}
                             </span>
                           </td>
@@ -439,20 +439,20 @@ const Staking = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="glass-card p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   <h3 className="font-semibold text-xs sm:text-sm">Why Stake?</h3>
                 </div>
                 <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
                   <li className="flex items-start gap-1.5 sm:gap-2">
-                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-success shrink-0 mt-0.5" />
                     <span>Create events & earn fees</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
-                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-success shrink-0 mt-0.5" />
                     <span>More tiers = more slots</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
-                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-success shrink-0 mt-0.5" />
                     <span>Diamond = free creation</span>
                   </li>
                 </ul>
@@ -460,20 +460,20 @@ const Staking = () => {
 
               <div className="glass-card p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                   <h3 className="font-semibold text-xs sm:text-sm">Notes</h3>
                 </div>
                 <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
                   <li className="flex items-start gap-1.5 sm:gap-2">
-                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 shrink-0 mt-0.5" />
+                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-warning shrink-0 mt-0.5" />
                     <span>Tokens locked per tier</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
-                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 shrink-0 mt-0.5" />
+                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-warning shrink-0 mt-0.5" />
                     <span>Limits reset midnight UTC</span>
                   </li>
                   <li className="flex items-start gap-1.5 sm:gap-2">
-                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 shrink-0 mt-0.5" />
+                    <Info className="h-3 w-3 sm:h-4 sm:w-4 text-warning shrink-0 mt-0.5" />
                     <span>Fees are burned</span>
                   </li>
                 </ul>

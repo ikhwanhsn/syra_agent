@@ -140,7 +140,7 @@ export function StakeCard({
             ))}
           </div>
           {!isStake && selectedOption?.isLocked && selectedOption?.unlockAt && (
-            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+            <p className="mt-2 text-sm text-warning">
               Locked until {formatUnlock(selectedOption.unlockAt)}
             </p>
           )}

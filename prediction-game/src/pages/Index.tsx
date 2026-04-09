@@ -282,11 +282,11 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                     <p className="font-bold text-warning">50%</p>
                     <p className="text-xs text-muted-foreground">1st</p>
                   </div>
-                  <div className="bg-gray-400/10 rounded-lg p-2">
-                    <p className="font-bold text-gray-300">30%</p>
+                  <div className="bg-muted rounded-lg p-2">
+                    <p className="font-bold text-foreground/80">30%</p>
                     <p className="text-xs text-muted-foreground">2nd</p>
                   </div>
-                  <div className="bg-orange-500/10 rounded-lg p-2">
+                  <div className="bg-secondary rounded-lg p-2">
                     <p className="font-bold text-foreground/80">20%</p>
                     <p className="text-xs text-muted-foreground">3rd</p>
                   </div>
@@ -465,16 +465,16 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                 <p className="text-lg sm:text-2xl font-bold text-success">1.5x</p>
                 <p className="text-xs text-muted-foreground">0-25%</p>
               </div>
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 sm:p-3">
-                <p className="text-lg sm:text-2xl font-bold text-blue-400">1.25x</p>
+              <div className="bg-primary/10 border border-primary/25 rounded-lg p-2 sm:p-3">
+                <p className="text-lg sm:text-2xl font-bold text-primary">1.25x</p>
                 <p className="text-xs text-muted-foreground">25-50%</p>
               </div>
               <div className="bg-secondary/50 border border-border rounded-lg p-2 sm:p-3">
                 <p className="text-lg sm:text-2xl font-bold">1.0x</p>
                 <p className="text-xs text-muted-foreground">50-75%</p>
               </div>
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 sm:p-3">
-                <p className="text-lg sm:text-2xl font-bold text-red-400">0.75x</p>
+              <div className="bg-destructive/10 border border-destructive/25 rounded-lg p-2 sm:p-3">
+                <p className="text-lg sm:text-2xl font-bold text-destructive">0.75x</p>
                 <p className="text-xs text-muted-foreground">75-100%</p>
               </div>
             </div>
@@ -496,9 +496,9 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             <div className="glass-card p-4 sm:p-8">
               {/* Money Sources */}
               <div className="grid sm:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-8">
-                <div className="p-4 sm:p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                <div className="p-4 sm:p-6 bg-warning/10 border border-warning/25 rounded-xl">
                   <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                    <PiggyBank className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 shrink-0" />
+                    <PiggyBank className="w-6 h-6 sm:w-8 sm:h-8 text-warning shrink-0" />
                     <div>
                       <h4 className="font-bold text-sm sm:text-lg">Creator Deposit</h4>
                       <p className="text-xs sm:text-sm text-muted-foreground">Seed money for prizes</p>
@@ -506,13 +506,13 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                   </div>
                   <div className="flex items-center justify-between text-sm sm:text-base">
                     <span className="text-muted-foreground">Where it goes:</span>
-                    <span className="font-bold text-yellow-400">100% to Winners</span>
+                    <span className="font-bold text-warning">100% to Winners</span>
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-6 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                <div className="p-4 sm:p-6 bg-primary/10 border border-primary/25 rounded-xl">
                   <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                    <Coins className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 shrink-0" />
+                    <Coins className="w-6 h-6 sm:w-8 sm:h-8 text-primary shrink-0" />
                     <div>
                       <h4 className="font-bold text-sm sm:text-lg">Entry Fees</h4>
                       <p className="text-xs sm:text-sm text-muted-foreground">Paid by participants</p>
@@ -521,11 +521,11 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                   <div className="space-y-2 text-sm sm:text-base">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Creator:</span>
-                      <span className="font-bold text-green-400">70%</span>
+                      <span className="font-bold text-success">70%</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Platform:</span>
-                      <span className="font-bold text-amber-400">30%</span>
+                      <span className="font-bold text-muted-foreground">30%</span>
                     </div>
                   </div>
                 </div>
@@ -539,16 +539,16 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                   <span className="sm:hidden">Example with 20 participants</span>
                 </h4>
                 <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
-                  <div className="p-2 sm:p-4 bg-yellow-500/10 rounded-lg">
-                    <p className="text-lg sm:text-2xl font-bold text-yellow-400">1 SOL</p>
+                  <div className="p-2 sm:p-4 bg-warning/10 rounded-lg">
+                    <p className="text-lg sm:text-2xl font-bold text-warning">1 SOL</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Prize Pool</p>
                   </div>
-                  <div className="p-2 sm:p-4 bg-green-500/10 rounded-lg">
-                    <p className="text-lg sm:text-2xl font-bold text-green-400">1.4 SOL</p>
+                  <div className="p-2 sm:p-4 bg-success/10 rounded-lg">
+                    <p className="text-lg sm:text-2xl font-bold text-success">1.4 SOL</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Creator</p>
                   </div>
-                  <div className="p-2 sm:p-4 bg-amber-500/10 rounded-lg">
-                    <p className="text-lg sm:text-2xl font-bold text-amber-400">0.6 SOL</p>
+                  <div className="p-2 sm:p-4 bg-muted rounded-lg">
+                    <p className="text-lg sm:text-2xl font-bold text-foreground/85">0.6 SOL</p>
                     <p className="text-xs sm:text-sm text-muted-foreground">Platform</p>
                   </div>
                 </div>
@@ -574,25 +574,39 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                 <div 
                   key={key} 
                   className={`glass-card p-3 sm:p-4 text-center ${
-                    key === 'DIAMOND' ? 'border-accent/50 bg-accent/5' : 
-                    key === 'GOLD' ? 'border-yellow-500/30' :
-                    key === 'SILVER' ? 'border-gray-400/30' :
-                    key === 'BRONZE' ? 'border-orange-500/30' :
-                    'border-border'
+                    key === 'DIAMOND'
+                      ? 'border-primary/40 bg-primary/8'
+                      : key === 'GOLD'
+                        ? 'border-primary/25'
+                        : key === 'SILVER'
+                          ? 'border-border'
+                          : key === 'BRONZE'
+                            ? 'border-border'
+                            : 'border-border'
                   }`}
                 >
                   <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{tier.emoji}</div>
-                  <h4 className={`font-bold text-sm sm:text-base ${
-                    key === 'DIAMOND' ? 'text-accent' :
-                    key === 'GOLD' ? 'text-yellow-400' :
-                    key === 'SILVER' ? 'text-gray-300' :
-                    key === 'BRONZE' ? 'text-orange-400' :
-                    'text-muted-foreground'
-                  }`}>{tier.name}</h4>
+                  <h4
+                    className={`font-bold text-sm sm:text-base ${
+                      key === 'DIAMOND'
+                        ? 'text-primary'
+                        : key === 'GOLD'
+                          ? 'text-foreground'
+                          : key === 'SILVER'
+                            ? 'text-foreground/85'
+                            : key === 'BRONZE'
+                              ? 'text-muted-foreground'
+                              : 'text-muted-foreground'
+                    }`}
+                  >
+                    {tier.name}
+                  </h4>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">
                     {tier.minStake === 0 ? 'No stake' : formatSyraAmount(tier.minStake)}
                   </p>
-                  <p className={`text-sm sm:text-lg font-bold ${tier.dailyEvents === 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  <p
+                    className={`text-sm sm:text-lg font-bold ${tier.dailyEvents === 0 ? 'text-destructive' : 'text-success'}`}
+                  >
                     {tier.dailyEvents === 0 ? 'N/A' : `${tier.dailyEvents}/day`}
                   </p>
                 </div>
@@ -674,8 +688,8 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             </div>
 
             <div className="glass-card p-4 sm:p-6 text-center group hover:border-primary/50 transition-all">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-2xl bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Eye className="w-6 h-6 sm:w-7 sm:h-7 text-green-400" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-2xl bg-success/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Eye className="w-6 h-6 sm:w-7 sm:h-7 text-success" />
               </div>
               <h3 className="text-base sm:text-lg font-bold mb-2">Full Transparency</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
@@ -684,8 +698,8 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
             </div>
 
             <div className="glass-card p-4 sm:p-6 text-center group hover:border-primary/50 transition-all">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-2xl bg-yellow-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Zap className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-400" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-2xl bg-warning/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Zap className="w-6 h-6 sm:w-7 sm:h-7 text-warning" />
               </div>
               <h3 className="text-base sm:text-lg font-bold mb-2">Instant Rewards</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
@@ -736,7 +750,7 @@ const Index: React.FC<IndexProps> = ({ onOpenWalletModal }) => {
                   <span>{faq.q}</span>
                 </h4>
                 <p className="text-muted-foreground pl-5 sm:pl-6 text-xs sm:text-sm">
-                  <span className="text-green-400">A:</span> {faq.a}
+                  <span className="text-muted-foreground">A:</span> {faq.a}
                 </p>
               </div>
             ))}

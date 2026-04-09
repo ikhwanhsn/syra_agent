@@ -134,7 +134,7 @@ export default function Leaderboard({ embedded = false }: LeaderboardProps) {
     <div
       className={cn(
         "flex flex-col bg-background min-h-0",
-        embedded ? "flex-1 min-h-0" : "h-screen overflow-hidden"
+        embedded ? "flex-1 min-h-0" : "h-dvh min-h-dvh max-h-dvh overflow-hidden overscroll-none"
       )}
     >
       {!embedded && (

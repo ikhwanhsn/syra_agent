@@ -18,6 +18,7 @@ import {
 import { fetchKpiExtended, type KpiExtendedResponse } from "../api/kpiExtended";
 import { LoadingState } from "../components/LoadingState";
 import { cn } from "../lib/utils";
+import { chartTheme, httpStatusColors } from "../lib/chartTheme";
 import { Link } from "react-router-dom";
 
 function useKpiExtended() {
@@ -61,18 +62,11 @@ function Card({
   );
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  "2xx": "#10b981",
-  "3xx": "#60a5fa",
-  "4xx": "#f59e0b",
-  "5xx": "#ef4444",
-};
-
 function latencyBadge(ms: number) {
-  if (ms < 200) return { label: "Excellent", color: "bg-emerald-500/20 text-emerald-300" };
-  if (ms < 500) return { label: "Good", color: "bg-cyan-500/20 text-cyan-300" };
-  if (ms < 1000) return { label: "Moderate", color: "bg-amber-500/20 text-amber-300" };
-  return { label: "Slow", color: "bg-red-500/20 text-red-300" };
+  if (ms < 200) return { label: "Excellent", color: "bg-success/15 text-success" };
+  if (ms < 500) return { label: "Good", color: "bg-muted text-muted-foreground" };
+  if (ms < 1000) return { label: "Moderate", color: "bg-warning/15 text-warning" };
+  return { label: "Slow", color: "bg-destructive/15 text-destructive" };
 }
 
 function HealthContent({ data }: { data: KpiExtendedResponse }) {
@@ -119,7 +113,7 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
           <Card>
             <span className="text-xs text-gray-500">Success rate</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className={cn("text-2xl font-bold sm:text-3xl", overallSuccessRate >= 99 ? "text-emerald-400" : overallSuccessRate >= 95 ? "text-amber-400" : "text-red-400")}>
+              <span className={cn("text-2xl font-bold sm:text-3xl", overallSuccessRate >= 99 ? "text-success" : overallSuccessRate >= 95 ? "text-warning" : "text-destructive")}>
                 {overallSuccessRate}%
               </span>
             </div>
@@ -142,7 +136,7 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
           <Card>
             <span className="text-xs text-gray-500">P99 latency</span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-amber-400 sm:text-3xl">{health.p99Latency}ms</span>
+              <span className="text-2xl font-bold text-warning sm:text-3xl">{health.p99Latency}ms</span>
               <span className={cn("rounded px-2 py-0.5 text-xs font-medium", p99Badge.color)}>{p99Badge.label}</span>
             </div>
           </Card>
@@ -174,11 +168,11 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
                         nameKey="status"
                       >
                         {health.statusCodeDistribution.map((entry) => (
-                          <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || "#6b7280"} />
+                          <Cell key={entry.status} fill={httpStatusColors[entry.status] || "#52525b"} />
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                        contentStyle={chartTheme.tooltipContentStyle}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -188,7 +182,7 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
                     <div key={d.status} className="flex items-center gap-2">
                       <div
                         className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: STATUS_COLORS[d.status] || "#6b7280" }}
+                        style={{ backgroundColor: httpStatusColors[d.status] || "#52525b" }}
                       />
                       <span className="text-sm text-gray-300">
                         {d.status}: <span className="font-medium text-white">{d.count.toLocaleString()}</span>
@@ -225,15 +219,15 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
                     layout="vertical"
                     margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis type="number" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                    <YAxis type="category" dataKey="name" width={120} tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+                    <XAxis type="number" tick={{ fill: chartTheme.tick, fontSize: 10 }} />
+                    <YAxis type="category" dataKey="name" width={120} tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                      contentStyle={chartTheme.tooltipContentStyle}
                       formatter={(value: number, name: string) => [`${value}ms`, name === "avg" ? "Avg" : "Max"]}
                     />
-                    <Bar dataKey="avg" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Avg (ms)" />
-                    <Bar dataKey="max" fill="#ef4444" radius={[0, 4, 4, 0]} name="Max (ms)" />
+                    <Bar dataKey="avg" fill={chartTheme.series[1]} radius={[0, 4, 4, 0]} name="Avg (ms)" />
+                    <Bar dataKey="max" fill={chartTheme.series[3]} radius={[0, 4, 4, 0]} name="Max (ms)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -254,24 +248,24 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
             <div className="h-64 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={health.dailyErrorRate} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    tick={{ fill: chartTheme.tick, fontSize: 10 }}
                     tickFormatter={(v: string) => {
                       const d = new Date(v);
                       return `${d.getMonth() + 1}/${d.getDate()}`;
                     }}
                   />
-                  <YAxis yAxisId="left" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: "#9ca3af", fontSize: 10 }} unit="%" />
+                  <YAxis yAxisId="left" tick={{ fill: chartTheme.tick, fontSize: 10 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: chartTheme.tick, fontSize: 10 }} unit="%" />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#0f1117", border: "1px solid #374151", borderRadius: "8px" }}
+                    contentStyle={chartTheme.tooltipContentStyle}
                     labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                   />
-                  <Area yAxisId="left" type="monotone" dataKey="total" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.1} name="Total" />
-                  <Bar yAxisId="left" dataKey="errors" fill="#ef4444" fillOpacity={0.6} radius={[2, 2, 0, 0]} name="Errors" />
-                  <Line yAxisId="right" type="monotone" dataKey="errorRate" stroke="#f59e0b" strokeWidth={2} dot={false} name="Error rate %" />
+                  <Area yAxisId="left" type="monotone" dataKey="total" stroke={chartTheme.series[0]} fill={chartTheme.series[0]} fillOpacity={0.1} name="Total" />
+                  <Bar yAxisId="left" dataKey="errors" fill={chartTheme.series[3]} fillOpacity={0.6} radius={[2, 2, 0, 0]} name="Errors" />
+                  <Line yAxisId="right" type="monotone" dataKey="errorRate" stroke={chartTheme.series[2]} strokeWidth={2} dot={false} name="Error rate %" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -304,16 +298,16 @@ function HealthContent({ data }: { data: KpiExtendedResponse }) {
                     <tr key={e.path} className="border-b border-gray-800/80">
                       <td className="py-2 pr-4 font-mono text-gray-300">{e.path}</td>
                       <td className="py-2 pr-4 text-right text-white">{e.total.toLocaleString()}</td>
-                      <td className="py-2 pr-4 text-right text-red-400">{e.errors.toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-right text-destructive">{e.errors.toLocaleString()}</td>
                       <td className="py-2 pr-4 text-right">
                         <span
                           className={cn(
                             "inline-flex rounded px-2 py-0.5 text-xs font-medium",
                             e.errorRate < 5
-                              ? "bg-emerald-500/20 text-emerald-300"
+                              ? "bg-success/15 text-success"
                               : e.errorRate < 15
-                                ? "bg-amber-500/20 text-amber-300"
-                                : "bg-red-500/20 text-red-300"
+                                ? "bg-warning/15 text-warning"
+                                : "bg-destructive/15 text-destructive"
                           )}
                         >
                           {e.errorRate}%
@@ -347,7 +341,7 @@ export function HealthPage() {
     const msg = error instanceof Error ? error.message : String(error);
     return (
       <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-        <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:p-6">
           <p className="font-semibold">Failed to load health data</p>
           <p className="mt-2 text-sm">{msg}</p>
           <Link to="/" className="mt-4 inline-block text-sm text-syra-primary hover:underline">

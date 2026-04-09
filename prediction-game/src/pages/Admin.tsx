@@ -109,22 +109,22 @@ const Admin = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'joining': return <Users className="h-4 w-4 text-blue-400" />;
-      case 'predicting': return <Eye className="h-4 w-4 text-yellow-400" />;
-      case 'waiting': return <Clock className="h-4 w-4 text-amber-400" />;
-      case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-400" />;
-      case 'cancelled': return <XCircle className="h-4 w-4 text-red-400" />;
+      case 'joining': return <Users className="h-4 w-4 text-primary" />;
+      case 'predicting': return <Eye className="h-4 w-4 text-warning" />;
+      case 'waiting': return <Clock className="h-4 w-4 text-muted-foreground" />;
+      case 'completed': return <CheckCircle2 className="h-4 w-4 text-success" />;
+      case 'cancelled': return <XCircle className="h-4 w-4 text-destructive" />;
       default: return <Activity className="h-4 w-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'joining': return 'text-blue-400 bg-blue-500/10';
-      case 'predicting': return 'text-yellow-400 bg-yellow-500/10';
-      case 'waiting': return 'text-amber-400 bg-amber-500/10';
-      case 'completed': return 'text-green-400 bg-green-500/10';
-      case 'cancelled': return 'text-red-400 bg-red-500/10';
+      case 'joining': return 'text-primary bg-primary/10';
+      case 'predicting': return 'text-warning bg-warning/10';
+      case 'waiting': return 'text-muted-foreground bg-muted';
+      case 'completed': return 'text-success bg-success/10';
+      case 'cancelled': return 'text-destructive bg-destructive/10';
       default: return 'text-muted-foreground bg-secondary';
     }
   };
@@ -165,12 +165,12 @@ const Admin = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <div className="glass-card p-3 sm:p-4 hover-lift">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-                <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+                <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Platform</p>
-                <p className="text-lg sm:text-xl font-bold text-accent">
+                <p className="text-lg sm:text-xl font-bold text-foreground">
                   {(stats?.totalPlatformEarned || 0).toFixed(2)} SOL
                 </p>
               </div>
@@ -179,12 +179,12 @@ const Admin = () => {
 
           <div className="glass-card p-3 sm:p-4 hover-lift">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <PiggyBank className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-success/15 flex items-center justify-center">
+                <PiggyBank className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Creators</p>
-                <p className="text-lg sm:text-xl font-bold text-green-400">
+                <p className="text-lg sm:text-xl font-bold text-success">
                   {(stats?.totalCreatorPaid || 0).toFixed(2)} SOL
                 </p>
               </div>
@@ -193,12 +193,12 @@ const Admin = () => {
 
           <div className="glass-card p-3 sm:p-4 hover-lift">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-warning/15 flex items-center justify-center">
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Winners</p>
-                <p className="text-lg sm:text-xl font-bold text-yellow-400">
+                <p className="text-lg sm:text-xl font-bold text-warning">
                   {(stats?.totalWinnersPaid || 0).toFixed(2)} SOL
                 </p>
               </div>
@@ -207,12 +207,12 @@ const Admin = () => {
 
           <div className="glass-card p-3 sm:p-4 hover-lift">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Volume</p>
-                <p className="text-lg sm:text-xl font-bold text-blue-400">
+                <p className="text-lg sm:text-xl font-bold text-primary">
                   {(stats?.totalPoolDistributed || 0).toFixed(2)} SOL
                 </p>
               </div>
@@ -241,33 +241,33 @@ const Admin = () => {
             </div>
 
             <div className="space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-blue-500/10">
+              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-primary/10">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Users className="h-4 w-4 text-blue-400" />
+                  <Users className="h-4 w-4 text-primary" />
                   <span className="text-xs sm:text-sm">Joining</span>
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-blue-400">{stats?.joiningEvents || 0}</span>
+                <span className="font-bold text-xs sm:text-sm text-primary">{stats?.joiningEvents || 0}</span>
               </div>
-              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-yellow-500/10">
+              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-warning/10">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Eye className="h-4 w-4 text-yellow-400" />
+                  <Eye className="h-4 w-4 text-warning" />
                   <span className="text-xs sm:text-sm">Predicting</span>
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-yellow-400">{stats?.predictingEvents || 0}</span>
+                <span className="font-bold text-xs sm:text-sm text-warning">{stats?.predictingEvents || 0}</span>
               </div>
-              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-amber-500/10">
+              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-muted">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Clock className="h-4 w-4 text-amber-400" />
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs sm:text-sm">Waiting</span>
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-amber-400">{stats?.waitingEvents || 0}</span>
+                <span className="font-bold text-xs sm:text-sm text-muted-foreground">{stats?.waitingEvents || 0}</span>
               </div>
-              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-green-500/10">
+              <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg bg-success/10">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                   <span className="text-xs sm:text-sm">Completed</span>
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-green-400">{stats?.completedEvents || 0}</span>
+                <span className="font-bold text-xs sm:text-sm text-success">{stats?.completedEvents || 0}</span>
               </div>
             </div>
 
@@ -328,10 +328,10 @@ const Admin = () => {
                 </div>
 
                 {stakingStats.totalSlashed > 0 && (
-                  <div className="mt-3 p-2 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <div className="mt-3 p-2 sm:p-3 bg-destructive/10 border border-destructive/25 rounded-lg">
                     <div className="flex items-center justify-between text-xs sm:text-sm">
-                      <span className="text-red-400">Slashed</span>
-                      <span className="font-bold text-red-400">{formatSyraAmount(stakingStats.totalSlashed)}</span>
+                      <span className="text-destructive">Slashed</span>
+                      <span className="font-bold text-destructive">{formatSyraAmount(stakingStats.totalSlashed)}</span>
                     </div>
                   </div>
                 )}
@@ -348,9 +348,9 @@ const Admin = () => {
         {/* Actions & Tools */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Phase Transitions */}
-          <div className="glass-card p-4 sm:p-5 border-yellow-500/30">
+          <div className="glass-card p-4 sm:p-5 border-warning/25">
             <div className="flex items-center gap-2 mb-2">
-              <Play className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+              <Play className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
               <h2 className="text-sm sm:text-base font-semibold">Phase Transitions</h2>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mb-3">
@@ -359,7 +359,7 @@ const Admin = () => {
             <Button
               onClick={handleProcessTransitions}
               disabled={isProcessingTransitions}
-              className="w-full bg-yellow-600 hover:bg-yellow-700"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               size="sm"
             >
               {isProcessingTransitions ? 'Processing...' : 'Process Transitions'}
@@ -367,9 +367,9 @@ const Admin = () => {
           </div>
 
           {/* Auto-Resolve */}
-          <div className="glass-card p-4 sm:p-5 border-accent/30">
+          <div className="glass-card p-4 sm:p-5 border-primary/25">
             <div className="flex items-center gap-2 mb-2">
-              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
               <h2 className="text-sm sm:text-base font-semibold">Auto-Resolve</h2>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mb-3">
@@ -378,7 +378,7 @@ const Admin = () => {
             <Button
               onClick={handleAutoResolve}
               disabled={isAutoResolving}
-              className="w-full bg-accent hover:bg-accent/90"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               size="sm"
             >
               {isAutoResolving ? 'Resolving...' : 'Auto-Resolve Events'}
@@ -386,21 +386,21 @@ const Admin = () => {
           </div>
 
           {/* Withdrawal */}
-          <div className="glass-card p-4 sm:p-5 border-green-500/30">
+          <div className="glass-card p-4 sm:p-5 border-success/25">
             <div className="flex items-center gap-2 mb-2">
-              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
               <h2 className="text-sm sm:text-base font-semibold">Platform Wallet</h2>
             </div>
             <div className="mb-3">
               <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">Available</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-400">
+              <p className="text-2xl sm:text-3xl font-bold text-success">
                 {(stats?.totalPlatformEarned || 0).toFixed(2)} SOL
               </p>
             </div>
             <Button
               onClick={handleWithdraw}
               variant="outline"
-              className="w-full border-green-500/50 hover:bg-green-500/10"
+              className="w-full border-success/40 hover:bg-success/10"
               size="sm"
             >
               <ArrowDownToLine className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
@@ -414,7 +414,7 @@ const Admin = () => {
           <div className="glass-card p-4 sm:p-5 mb-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
                 <h2 className="text-sm sm:text-base font-semibold">Top Stakers</h2>
               </div>
               <Link to="/staking">
@@ -440,9 +440,9 @@ const Admin = () => {
                     <tr key={entry.walletAddress} className="border-b border-border/50 hover:bg-secondary/30">
                       <td className="py-2 sm:py-3 px-2">
                         <span className={`font-bold text-xs sm:text-sm ${
-                          index === 0 ? 'text-yellow-400' :
-                          index === 1 ? 'text-gray-300' :
-                          index === 2 ? 'text-orange-400' :
+                          index === 0 ? 'text-warning' :
+                          index === 1 ? 'text-foreground/85' :
+                          index === 2 ? 'text-foreground/70' :
                           'text-muted-foreground'
                         }`}>
                           {index + 1}
@@ -516,12 +516,12 @@ const Admin = () => {
                         {event.creatorWallet?.slice(0, 4)}...{event.creatorWallet?.slice(-4)}
                       </td>
                       <td className="py-2 sm:py-3 px-2 text-center text-xs sm:text-sm">
-                        <span className={event.participants?.length >= event.minParticipants ? 'text-green-400' : ''}>
+                        <span className={event.participants?.length >= event.minParticipants ? 'text-success' : ''}>
                           {event.participants?.length || 0}
                         </span>
                         <span className="text-muted-foreground">/{event.maxParticipants}</span>
                       </td>
-                      <td className="py-2 sm:py-3 px-2 text-right font-bold text-xs sm:text-sm text-yellow-400">
+                      <td className="py-2 sm:py-3 px-2 text-right font-bold text-xs sm:text-sm text-warning">
                         {event.creatorDeposit}
                       </td>
                       <td className="py-2 sm:py-3 px-2 text-right text-muted-foreground text-xs sm:text-sm">
@@ -543,7 +543,7 @@ const Admin = () => {
         {/* System Info */}
         <div className="mt-4 p-3 sm:p-4 bg-secondary/30 rounded-lg">
           <h3 className="text-xs sm:text-sm font-semibold mb-1.5 flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4 text-yellow-400" />
+            <AlertTriangle className="h-4 w-4 text-warning" />
             System Info
           </h3>
           <p className="text-xs sm:text-sm text-muted-foreground">

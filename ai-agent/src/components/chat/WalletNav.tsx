@@ -165,11 +165,14 @@ export function WalletNav() {
   if (!hasAnyWallet) {
     return (
       <Button
-        className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm px-3 sm:px-3 touch-manipulation shrink-0"
+        className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm px-2.5 sm:px-3 touch-manipulation shrink-0 max-w-full"
         onClick={openConnectModal}
       >
-        <Wallet className="w-4 h-4 mr-1.5 sm:mr-2 shrink-0" />
-        Connect Wallet
+        <Wallet className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+        <span className="truncate">
+          <span className="min-[380px]:hidden">Connect</span>
+          <span className="hidden min-[380px]:inline">Connect Wallet</span>
+        </span>
       </Button>
     );
   }
@@ -182,7 +185,7 @@ export function WalletNav() {
   const hasUsdcAgent = agentUsdcDisplay != null && agentUsdcDisplay > 0;
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+    <div className="flex items-center gap-1 sm:gap-2 min-w-0 max-w-full flex-wrap justify-end sm:flex-nowrap">
       {/* Chain badge – show the chain used for this session (one chain only) */}
       {hasAnyWallet && (
         <Tooltip>
@@ -211,13 +214,13 @@ export function WalletNav() {
         <Button
           variant="outline"
           size="sm"
-          className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg font-medium text-xs sm:text-sm px-2.5 sm:px-3 gap-1.5 shrink-0 touch-manipulation"
+          className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg font-medium text-xs sm:text-sm px-2 sm:px-3 gap-1 sm:gap-1.5 shrink-0 touch-manipulation"
           onClick={() => setFuelModalOpen(true)}
           title={displayBase ? "Add USDC and ETH to agent wallet on Base" : "Add USDC and SOL to agent wallet"}
           aria-label="Fuel the agent"
         >
           <Zap className="w-4 h-4 shrink-0" />
-          <span>Fuel</span>
+          <span className="hidden min-[360px]:inline">Fuel</span>
         </Button>
       )}
       {/* Agent wallet – same height & style as connected wallet; red blink when balance reduced by tool */}
@@ -255,7 +258,7 @@ export function WalletNav() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className={`${navItemClass} min-w-0 max-w-[130px] sm:max-w-[180px] justify-between`}
+            className={`${navItemClass} min-w-0 max-w-[min(180px,calc(100vw-11rem))] sm:max-w-[180px] justify-between`}
           >
             <span className="truncate">{displayShortAddress ?? "…"}</span>
             <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 opacity-50" />

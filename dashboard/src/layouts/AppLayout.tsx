@@ -57,7 +57,7 @@ function MainContent({ wallet }: { wallet: ReturnType<typeof useWalletContext> }
     return (
       <>
         {wallet.canViewDashboard && !wallet.canInteract && (
-          <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
+          <div className="border-b border-warning/20 bg-warning/10 px-4 py-2 text-center text-sm text-foreground">
             View only — you need the admin wallet to make changes or interact.
           </div>
         )}

@@ -37,7 +37,7 @@ function StatusBadge({ statusCode }: { statusCode: number }) {
     <span
       className={cn(
         "inline-flex rounded px-2 py-0.5 text-xs font-medium",
-        is5xx ? "bg-red-500/20 text-red-300" : "bg-amber-500/20 text-amber-300"
+        is5xx ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"
       )}
     >
       {statusCode}
@@ -72,7 +72,7 @@ export function ApiErrorsPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-        <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:p-6">
           <p className="font-semibold">Failed to load API errors</p>
           <p className="mt-2 text-sm">{error instanceof Error ? error.message : String(error)}</p>
           <Link to="/" className="mt-4 inline-block text-sm text-syra-primary hover:underline">
@@ -167,7 +167,7 @@ export function ApiErrorsPage() {
                         <span
                           className={cn(
                             "inline-flex rounded px-2 py-0.5 text-xs font-medium",
-                            row.paid ? "bg-emerald-500/20 text-emerald-300" : "bg-gray-600/30 text-gray-400"
+                            row.paid ? "bg-success/15 text-success" : "bg-gray-600/30 text-gray-400"
                           )}
                         >
                           {row.paid ? "x402" : "—"}

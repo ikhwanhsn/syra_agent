@@ -16,6 +16,7 @@ import { fetchKpi, type KpiResponse } from "../api/kpi";
 import { fetchKpiExtended, type KpiExtendedResponse } from "../api/kpiExtended";
 import { LoadingState } from "../components/LoadingState";
 import { cn } from "../lib/utils";
+import { chartTheme } from "../lib/chartTheme";
 
 type OverviewTab = "summary" | "usage" | "requests";
 
@@ -168,7 +169,7 @@ function QuickGlanceSection({ extended }: { extended: KpiExtendedResponse | unde
           label="Revenue (30d)"
           value={revenue.paidCurr30d}
           sub={revenue.growthPct !== 0 ? `${revenue.growthPct > 0 ? "+" : ""}${revenue.growthPct}% MoM` : undefined}
-          accent="text-emerald-400"
+          accent="text-success"
         />
         <QuickGlanceCard
           to="/users"
@@ -184,7 +185,7 @@ function QuickGlanceSection({ extended }: { extended: KpiExtendedResponse | unde
           label="API success rate"
           value={`${successRate}%`}
           sub={`Avg ${health.avgLatency}ms / P95 ${health.p95Latency}ms`}
-          accent={successRate >= 99 ? "text-emerald-400" : successRate >= 95 ? "text-amber-400" : "text-red-400"}
+          accent={successRate >= 99 ? "text-success" : successRate >= 95 ? "text-warning" : "text-destructive"}
         />
         <QuickGlanceCard
           to="/revenue"
@@ -245,7 +246,7 @@ function DashboardContent({ data }: { data: KpiResponse }) {
         </Link>
         <Link
           to="/revenue"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-600 bg-gray-800/60 px-3 py-2 text-sm font-medium text-gray-300 hover:border-emerald-500/50 hover:bg-gray-800 hover:text-white"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-600 bg-gray-800/60 px-3 py-2 text-sm font-medium text-gray-300 hover:border-success/50 hover:bg-gray-800 hover:text-white"
         >
           Revenue →
         </Link>
@@ -334,30 +335,26 @@ function DashboardContent({ data }: { data: KpiResponse }) {
                       data={insights.dailyRequests}
                       margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                       <XAxis
                         dataKey="date"
-                        tick={{ fill: "#9ca3af", fontSize: 10 }}
+                        tick={{ fill: chartTheme.tick, fontSize: 10 }}
                         tickFormatter={(v: string) => {
                           const d = new Date(v);
                           return `${d.getMonth() + 1}/${d.getDate()}`;
                         }}
                       />
-                      <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                      <YAxis tick={{ fill: chartTheme.tick, fontSize: 10 }} />
                       <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#0f1117",
-                          border: "1px solid #374151",
-                          borderRadius: "8px",
-                        }}
+                        contentStyle={chartTheme.tooltipContentStyle}
                         labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                       />
                       <Line
                         type="monotone"
                         dataKey="count"
-                        stroke="#8b5cf6"
+                        stroke={chartTheme.series[2]}
                         strokeWidth={2}
-                        dot={{ fill: "#8b5cf6", r: 2 }}
+                        dot={{ fill: chartTheme.series[2], r: 2 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -400,7 +397,7 @@ function DashboardContent({ data }: { data: KpiResponse }) {
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
           Usage (paid){" "}
-          <span className="inline-flex rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-300">
+          <span className="inline-flex rounded bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
             x402 API
           </span>
         </h2>
@@ -436,7 +433,7 @@ function DashboardContent({ data }: { data: KpiResponse }) {
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
           Paid API calls (last 30 days){" "}
-          <span className="inline-flex rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-300">
+          <span className="inline-flex rounded bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
             x402
           </span>
         </h2>
@@ -447,30 +444,26 @@ function DashboardContent({ data }: { data: KpiResponse }) {
                 data={dailyPaidCalls}
                 margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#9ca3af", fontSize: 11 }}
+                  tick={{ fill: chartTheme.tick, fontSize: 11 }}
                   tickFormatter={(v: string) => {
                     const d = new Date(v);
                     return `${d.getMonth() + 1}/${d.getDate()}`;
                   }}
                 />
-                <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} />
+                <YAxis tick={{ fill: chartTheme.tick, fontSize: 11 }} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f1117",
-                    border: "1px solid #374151",
-                    borderRadius: "8px",
-                  }}
+                  contentStyle={chartTheme.tooltipContentStyle}
                   labelFormatter={(v: string) => new Date(v).toLocaleDateString()}
                 />
                 <Line
                   type="monotone"
                   dataKey="count"
-                  stroke="#00d4ff"
+                  stroke={chartTheme.series[0]}
                   strokeWidth={2}
-                  dot={{ fill: "#00d4ff", r: 3 }}
+                  dot={{ fill: chartTheme.series[0], r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -484,7 +477,7 @@ function DashboardContent({ data }: { data: KpiResponse }) {
       <section>
         <h2 className="mb-3 text-base font-semibold text-gray-200 sm:mb-4 sm:text-lg">
           Top endpoints by paid calls{" "}
-          <span className="inline-flex rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-300">
+          <span className="inline-flex rounded bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
             x402 API
           </span>
         </h2>
@@ -571,14 +564,14 @@ export function DashboardPage() {
       msg.toLowerCase().includes("cors");
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 sm:p-6">
+        <div className="w-full max-w-md rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:p-6">
           <p className="font-semibold">Failed to load dashboard</p>
           <p className="mt-2 text-sm">{msg}</p>
           <p className="mt-3 text-xs text-gray-400">
             Ensure VITE_API_BASE_URL is set and the API is reachable. The API injects auth for trusted origins (e.g. dashboard.syraa.fun).
           </p>
           {isFailedFetch && (
-            <p className="mt-2 text-xs text-amber-200/90">
+            <p className="mt-2 text-xs text-warning/90">
               If the dashboard is on a different domain (e.g. Vercel), add its URL to the API’s{" "}
               <code className="rounded bg-black/30 px-1">CORS_EXTRA_ORIGINS</code> env and redeploy the API.
             </p>
