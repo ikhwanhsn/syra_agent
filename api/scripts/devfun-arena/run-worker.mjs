@@ -23,6 +23,12 @@
  *   DEXTOOLS_API_KEY — optional; if set, attempts Dextools trending (URL may need DEXTOOLS_API_BASE_URL)
  *   ARENA_DISABLE_SGD=1 — skip online learner train/save after tick
  *   ARENA_LEARNER_LR — SGD step scale (default 0.06)
+ *   ARENA_SUBMIT_CONCURRENCY — process up to N challenges in parallel per tick (default 1; try 2–3 if deadlines slip)
+ *
+ * Deploy notes:
+ *   • 24/7: run `npm run arena-worker` (NO --once). `--once` exits after one tick — common “deployed but never calls again”.
+ *   • Set ARENA_API_KEY + ARENA_AGENT_ID on the host if `.arena-credentials` is not in the image.
+ *   • Slow ticks (Exa + Dex per coin) can miss windows; use ARENA_DISABLE_NARRATIVE=1 and/or ARENA_DEADLINE_BUFFER_MS=0 if logs show high `insideBuffer`/`late`.
  *
  * Run from repo: `cd api && npm run arena-worker`
  * One shot: `cd api && npm run arena-worker:once`
@@ -75,6 +81,18 @@ function sleep(ms) {
 function log(...args) {
   const t = new Date().toISOString();
   console.log(`[arena-worker ${t}]`, ...args);
+}
+
+/** Serialize `.arena-worker-state.json` writes when ARENA_SUBMIT_CONCURRENCY > 1. */
+let workerStateWriteChain = Promise.resolve();
+
+/**
+ * @param {() => Promise<void>} fn
+ */
+function enqueueWorkerStateWrite(fn) {
+  const run = workerStateWriteChain.then(fn);
+  workerStateWriteChain = run.catch(() => {});
+  return run;
 }
 
 function resolveMint(challenge) {
@@ -160,8 +178,10 @@ async function processOneChallenge(
   recordArenaFeatures(challenge.id, mint, features, featureLog);
 
   if (state) {
-    recordSuccessfulSubmission(challenge.id, payload.chatMessage, state);
-    await saveWorkerState(state);
+    await enqueueWorkerStateWrite(async () => {
+      recordSuccessfulSubmission(challenge.id, payload.chatMessage, state);
+      await saveWorkerState(state);
+    });
   }
 }
 
@@ -257,7 +277,34 @@ async function tick(apiKey) {
   }
 
   if (open.length === 0) {
-    log("no open challenges to submit", competition.name || competition.id);
+    const cname = competition.name || competition.id;
+    if (rawList.length === 0) {
+      log(
+        "no eligible challenges — arena returned 0 open rows for challenge/current (waiting for new drops, or API empty)."
+      );
+    } else {
+      log(
+        "no eligible challenges — all filtered:",
+        "raw=",
+        rawList.length,
+        "closed=",
+        closed,
+        "alreadySubmitted=",
+        already,
+        "pastDeadline=",
+        late,
+        "insideDeadlineBuffer=",
+        soon,
+        `(buffer ${deadlineBuffer}ms).`,
+        "Game:",
+        cname
+      );
+      if (soon > 0 && late === 0 && already < rawList.length) {
+        log(
+          "hint: many rows in `insideDeadlineBuffer` — worker may be too slow (narrative/Dex per coin). Try ARENA_SUBMIT_CONCURRENCY=2, ARENA_DISABLE_NARRATIVE=1, or ARENA_DEADLINE_BUFFER_MS=0"
+        );
+      }
+    }
     return;
   }
 
@@ -321,15 +368,37 @@ async function tick(apiKey) {
     }
   }
 
+  const conc = Math.min(
+    4,
+    Math.max(1, Number.parseInt(process.env.ARENA_SUBMIT_CONCURRENCY || "1", 10) || 1)
+  );
+  const batch = open.slice(0, maxPer);
   let n = 0;
-  for (const ch of open) {
-    if (n >= maxPer) break;
-    try {
-      await processOneChallenge(apiKey, ch, state, learned, trendingSnapshot, learnerW, featureLog, dry);
-      n += 1;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      log("error", ch.id, msg);
+
+  if (conc <= 1) {
+    for (const ch of batch) {
+      try {
+        await processOneChallenge(apiKey, ch, state, learned, trendingSnapshot, learnerW, featureLog, dry);
+        n += 1;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        log("error", ch.id, msg);
+      }
+    }
+  } else {
+    log("submit concurrency", conc);
+    for (let i = 0; i < batch.length; i += conc) {
+      const slice = batch.slice(i, i + conc);
+      const results = await Promise.allSettled(
+        slice.map((ch) =>
+          processOneChallenge(apiKey, ch, state, learned, trendingSnapshot, learnerW, featureLog, dry)
+        )
+      );
+      for (let j = 0; j < results.length; j++) {
+        const r = results[j];
+        if (r.status === "fulfilled") n += 1;
+        else log("error", slice[j]?.id, r.reason instanceof Error ? r.reason.message : String(r.reason));
+      }
     }
   }
 
@@ -359,6 +428,14 @@ async function main() {
   const jitterMax = Math.max(0, Number.parseInt(process.env.ARENA_POLL_JITTER_MS || "2000", 10) || 2000);
 
   log("starting", once ? "single run" : `poll ~${pollMs}ms + jitter 0-${jitterMax}ms`, "| agent", creds.agentId);
+  if (once) {
+    log(
+      "NOTE: --once performs one tick then exits. For production use `npm run arena-worker` without --once (systemd, Docker restart:unless-stopped, Railway always-on, etc.)."
+    );
+  }
+  if (process.env.ARENA_DRY_RUN === "1") {
+    log("WARNING: ARENA_DRY_RUN=1 — no POST to arena; remove for live submissions.");
+  }
 
   if (once) {
     await tick(creds.apiKey);
