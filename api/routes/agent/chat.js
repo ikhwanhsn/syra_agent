@@ -42,6 +42,17 @@ const MAX_TOOL_RESULT_CHARS = 28_000;
 const MAX_TOKENS_WITH_TOOLS = 4096;
 const MAX_TOKENS_DEFAULT = 2000;
 
+/**
+ * Enforce Syra-first branding in user-visible replies.
+ * We keep provider names out of chat output even if a model leaks them.
+ * @param {string | undefined} text
+ * @returns {string}
+ */
+function enforceSyraBranding(text) {
+  if (typeof text !== 'string' || !text.trim()) return '';
+  return text.replace(/\bjatevo(?:'s)?\b/gi, 'Syra');
+}
+
 /** User-facing model label for system prompts; never mention inference vendor brands to end users. */
 export function buildLlmIdentityNote(modelId) {
   const resolved =
@@ -668,6 +679,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     systemParts.push(
       `Model disclosure: If asked what LLM/model powers Syra or you, answer with the language model name only (the server appends the exact name for this session before inference). Never name third-party inference or API provider brands.`
     );
+    systemParts.push(
+      `Branding rule: Never mention "Jatevo" (or any variation of that provider name) in user-facing replies. Always present the assistant and platform brand as "Syra".`
+    );
     if (anonymousId) {
       let usdcBalance = 0;
       let solBalance = 0;
@@ -1090,7 +1104,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
 
     const actualModel = usedFallbackModel ? JATEVO_DEFAULT_MODEL : requestedModel;
 
-    const payload = { success: true, response };
+    const payload = { success: true, response: enforceSyraBranding(response) };
     if (truncated) payload.truncated = true;
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
     if (usedFallbackModel) payload.usedFallbackModel = true;

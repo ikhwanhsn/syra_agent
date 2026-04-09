@@ -27,6 +27,16 @@ const MAX_TOOLS_PER_REQUEST = 3;
 const MAX_TOKENS_WITH_TOOLS = 4096;
 const MAX_TOKENS_DEFAULT = 2000;
 
+/**
+ * Enforce Syra-first branding for all Brain API responses.
+ * @param {string | undefined} text
+ * @returns {string}
+ */
+function enforceSyraBranding(text) {
+  if (typeof text !== "string" || !text.trim()) return "";
+  return text.replace(/\bjatevo(?:'s)?\b/gi, "Syra");
+}
+
 const outputSchema = {
   success: { type: "boolean", description: "Whether the request succeeded" },
   response: { type: "string", description: "Syra's answer in plain text / markdown" },
@@ -61,6 +71,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
 - You CAN explain general crypto concepts, mechanisms, and strategies without tools.`,
       "Response format: Reply in clear, human-readable text. Use markdown: headings, bullet points, tables. Do not include raw JSON or code blocks of tool calls. Turn all data into plain, well-formatted prose.",
       "This request is from the Syra Brain API (single-question). Tools were run server-side; synthesize the results into one coherent answer using ONLY the tool data provided.",
+      'Branding rule: Never mention "Jatevo" (or any variation of that provider name) in user-facing replies. Always present the assistant/platform brand as "Syra".',
     ].join("\n\n");
     apiMessages.unshift({ role: "system", content: systemContent });
 
@@ -166,7 +177,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     await settleSapEscrowOrFacilitator(res, req, servicePayload);
     res.json({
       success: true,
-      response: response || "I couldn't generate a response. Please try again.",
+      response: enforceSyraBranding(response) || "I couldn't generate a response. Please try again.",
       ...(toolUsages.length > 0 && { toolUsages }),
     });
   } catch (err) {
