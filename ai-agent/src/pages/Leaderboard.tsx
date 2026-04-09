@@ -124,7 +124,7 @@ export default function Leaderboard({ embedded = false }: LeaderboardProps) {
   const pageNumbers = (() => {
     const pages: number[] = [];
     let start = Math.max(1, page - Math.floor(MAX_PAGE_BUTTONS / 2));
-    let end = Math.min(totalPages, start + MAX_PAGE_BUTTONS - 1);
+    const end = Math.min(totalPages, start + MAX_PAGE_BUTTONS - 1);
     if (end - start + 1 < MAX_PAGE_BUTTONS) start = Math.max(1, end - MAX_PAGE_BUTTONS + 1);
     for (let i = start; i <= end; i++) pages.push(i);
     return pages;

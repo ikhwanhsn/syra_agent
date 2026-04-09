@@ -2,7 +2,11 @@ import { useState, useCallback, useEffect, Fragment } from 'react';
 import { TopBar } from '@/components/TopBar';
 import { Button } from '@/components/ui/button';
 import { useWalletContext } from '@/contexts/WalletContext';
-import { getExampleFlows, getParamsForExampleFlow, type ExampleFlowPreset } from '@/hooks/useApiPlayground';
+import {
+  getExampleFlowsX402,
+  getParamsForExampleFlow,
+  type ExampleFlowPreset,
+} from '@/hooks/useApiPlayground';
 import {
   parseX402Response,
   getBestPaymentOption,
@@ -342,7 +346,7 @@ export default function BatchTest() {
   const [estimatedTotalUsd, setEstimatedTotalUsd] = useState<string | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
 
-  const allFlows = getExampleFlows();
+  const allFlows = getExampleFlowsX402();
   const flows = selectedFlowIds
     .map((id) => allFlows.find((f) => f.id === id))
     .filter((f): f is ExampleFlowPreset => f != null);

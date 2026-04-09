@@ -16,6 +16,31 @@ const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const MAINNET_RPC = import.meta.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
 const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as const;
 
+/**
+ * Curated Privy wallets only (no detected_* / full WalletConnect registry).
+ * Rabby has no supported named entry in current Privy SDK (rabby_wallet deprecated).
+ */
+const POPULAR_EVM_WALLET_LIST: string[] = [
+  'metamask',
+  'coinbase_wallet',
+  'rainbow',
+  'base_account',
+  'okx_wallet',
+];
+
+const POPULAR_SOLANA_WALLET_LIST: string[] = ['phantom', 'solflare', 'backpack'];
+
+const POPULAR_MULTICHAIN_WALLET_LIST: string[] = [
+  'phantom',
+  'metamask',
+  'solflare',
+  'backpack',
+  'coinbase_wallet',
+  'rainbow',
+  'base_account',
+  'okx_wallet',
+];
+
 /** Solana RPC connection (exported for useApiPlayground and x402Client). */
 export const connection = new Connection(MAINNET_RPC);
 
@@ -281,9 +306,8 @@ const WalletContextInner: FC<{
   const connectForChain = useCallback(
     async (chain: 'solana' | 'base') => {
       if (!privyReady) return;
-      // Explicit names only: no 'detected_solana_wallets' / 'detected_ethereum_wallets' so no discovery runs and Phantom (or other extension) does not open until the user clicks it in the modal
-      const solanaList = ['phantom', 'solflare', 'coinbase_wallet'];
-      const evmList = ['metamask', 'coinbase_wallet', 'rainbow'];
+      const solanaList = POPULAR_SOLANA_WALLET_LIST;
+      const evmList = POPULAR_EVM_WALLET_LIST;
 
       if (!authenticated) {
         loginModalJustOpenedRef.current = true;
@@ -336,7 +360,10 @@ const WalletContextInner: FC<{
       login();
       return;
     }
-    connectWallet({ walletList: ['metamask', 'coinbase_wallet', 'rainbow', 'detected_ethereum_wallets'] });
+    connectWallet({
+      walletList: [...POPULAR_EVM_WALLET_LIST],
+      walletChainType: 'ethereum-only',
+    });
   }, [authenticated, login, connectWallet]);
 
   const connectSolana = useCallback(async () => {
@@ -344,7 +371,10 @@ const WalletContextInner: FC<{
       login();
       return;
     }
-    connectWallet({ walletList: ['phantom', 'solflare', 'coinbase_wallet', 'detected_solana_wallets'] });
+    connectWallet({
+      walletList: [...POPULAR_SOLANA_WALLET_LIST],
+      walletChainType: 'solana-only',
+    });
   }, [authenticated, login, connectWallet]);
 
   // Privy doesn't support disconnecting a single chain; use full logout so UI shows disconnected
@@ -537,6 +567,12 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
 
   // When user picks chain in our modal we set connectChainOverride so Privy uses single chain and skips "Select network"
   const walletChainType = connectChainOverride ?? 'ethereum-and-solana';
+  const appearanceWalletList = useMemo(() => {
+    if (connectChainOverride === 'ethereum-only') return [...POPULAR_EVM_WALLET_LIST];
+    if (connectChainOverride === 'solana-only') return [...POPULAR_SOLANA_WALLET_LIST];
+    return [...POPULAR_MULTICHAIN_WALLET_LIST];
+  }, [connectChainOverride]);
+
   return (
     <PrivyProvider
       appId={PRIVY_APP_ID}
@@ -544,6 +580,7 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
       config={{
         appearance: {
           walletChainType,
+          walletList: appearanceWalletList,
         },
         embeddedWallets: {
           ethereum: { createOnLogin: 'users-without-wallets' },

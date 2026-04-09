@@ -54,7 +54,9 @@ $SYRA is the native payment token for accessing trading intelligence APIs via x4
 - Risk Scoring: $0.10 per analysis
 - Deep Research: $5.00 per request
 
-### 2. **Staking for Discounts (soon)**
+### 2. **Staking for Discounts (roadmap — not applied in API pricing yet)**
+
+> **Note:** x402 API prices are set in the Syra API (`x402Pricing` / `getEffectivePriceUsd`) and **do not** currently read on-chain stake or tier. The table below describes **planned** utility once staking is wired to billing.
 
 Lock $SYRA tokens to unlock tiered discounts on all x402 API calls:
 

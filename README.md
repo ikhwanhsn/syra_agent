@@ -92,13 +92,83 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 | **`ai-agent`** | AI agent web app (chat, marketplace, x402) |
 | **`documentation`** | Documentation site (Vite + React; deployed at docs.syraa.fun) |
 | **`api-playground`** | API testing and exploration UI |
-| **`dashboard`** | Dashboard app |
-| **`landing`** | Marketing / landing site (Vite + React) |
+| **`dashboard`** | Internal KPI dashboard (paid calls vs grant targets) |
 | **`staking`** | Staking program (scripts and app) |
 | **`prediction-game`** | Prediction game app and server |
 | **`mcp-server`** | MCP server exposing Syra API tools |
 | **`terminal`** | Terminal-related package in the monorepo |
 | **`openclaw`** | OpenClaw / x402 agent HTTP tool examples |
+
+---
+
+## Colosseum Frontier — hackathon submission
+
+**Hero product (what to demo):** [`api`](./api) + [`ai-agent`](./ai-agent) — Solana **x402** pay-per-call intelligence. Treat other packages (prediction-game, staking, terminal, internal dashboard) as **ecosystem**, not equal demo time.
+
+### Golden path (live)
+
+1. Open **[agent.syraa.fun](https://agent.syraa.fun)** → connect wallet (**Phantom** recommended via Privy).
+2. Open **Marketplace** (or chat) → run a **paid** tool or flow that returns **HTTP 402** first, then settles after payment.
+3. Confirm the Solana transaction on **[Solscan](https://solscan.io)** (paste signature from the UI or network tab).
+4. Discovery for integrators: **[api.syraa.fun](https://api.syraa.fun)** — `/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json` (see [api README](./api/README.md)).
+
+### Architecture (hero stack)
+
+```mermaid
+flowchart LR
+  subgraph clients [Clients]
+    AgentWeb[agent_syraa_fun]
+    Playground[playground_syraa_fun]
+    MCP[mcp_server]
+  end
+  subgraph backend [Backend]
+    SyraAPI[api_syraa_fun_x402]
+  end
+  AgentWeb -->|"402_then_pay"| SyraAPI
+  Playground --> SyraAPI
+  MCP -->|"HTTP_proxy"| SyraAPI
+```
+
+### Traction KPIs (publish these in deck and social)
+
+Aligned with [Superteam grant milestones](./superteam/README.md):
+
+| Metric | Target |
+|--------|--------|
+| Paid API calls (cumulative) | **500** |
+| Agent chat sessions with paid tool use | **200** |
+
+**Public snapshot:** [syraa.fun/analytics](https://syraa.fun/analytics) — update weekly through the hackathon window.
+
+### Production Solana RPC (Helius-class)
+
+The API **must** use an RPC that allows **`getAccountInfo`** and full blockchain reads (8004 registry, agent tooling). Many read-only keys return 403. Set in **`api/.env`** (see [api `.env.example`](./api/.env.example)):
+
+- `SOLANA_RPC_URL` — primary (recommended: **Helius** mainnet URL with API key).
+- Optional split: `SOLANA_RPC_8004_URL` or `SOLANA_RPC_BLOCKCHAIN_URL` if you isolate 8004 traffic.
+
+**Verify after deploy:** one paid agent tool, `GET /8004/agent/<ASSET>/liveness` (if registered), and `getLatestBlockhash` from the same RPC.
+
+### Phantom-first wallet UX
+
+- **ai-agent / api-playground:** Privy — enable **Phantom** in the Privy dashboard; fallback wallet order prefers **Phantom** before MetaMask for Solana flows.
+- **prediction-game:** `@solana/wallet-adapter` — **Phantom** is listed first in the modal when multiple wallets are detected.
+
+### MoonPay (fiat onramp — scoped for GTM)
+
+**Chosen over Squads for this plan** to answer “how users fund USDC for x402.” Squads remains a strong follow-on for **treasury multisig** once ops scale.
+
+**Integration steps (scope; requires MoonPay + Privy dashboard access):**
+
+1. Enable **MoonPay** (or Privy **funding** / onramp) in [Privy dashboard](https://dashboard.privy.io) for your app — follow Privy docs for **Solana USDC** or **Base USDC** funding, matching the chain your demo uses.
+2. Add a single CTA in the agent app near **Connect / Fund agent wallet** (e.g. link to Privy funding UI or MoonPay widget) with UTM params for attribution.
+3. Document in your deck: **fiat → stablecoin → x402 call** in under 2 minutes (record once MoonPay is live).
+4. Do **not** commit API secrets; use env vars and server-side session only per MoonPay/Privy requirements.
+
+### Deferred (stay honest in pitch)
+
+- **$SYRA staking → x402 discount** is **roadmap** until wired into API pricing (see [tokenomics](./documentation/src/data/tokenomicsV2.md)).
+- **MCP + automated x402 signing** — document manual pay flow for MCP; full auto-pay is a separate product milestone.
 
 ---
 

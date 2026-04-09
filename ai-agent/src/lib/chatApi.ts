@@ -185,7 +185,7 @@ export const chatApi = {
 
   /** Error message thrown when 402 is received and wallet is not connected (tools/realtime require wallet). Shown as agent's answer. */
   WALLET_REQUIRED_FOR_TOOLS:
-    "To use tools and realtime data, please connect your wallet first. You can keep chatting about crypto, web3, and blockchain without a wallet—connect when you need live data or tools.",
+    "To use tools and realtime data, connect your Solana wallet first (Phantom recommended via Connect). You can keep chatting about crypto, web3, and blockchain without a wallet—connect when you need live data or tools.",
 
   /**
    * Get LLM completion from Jatevo. Playground-style: if completion returns 402 (tool requires payment),

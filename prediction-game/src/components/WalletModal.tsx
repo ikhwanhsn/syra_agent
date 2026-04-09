@@ -9,6 +9,15 @@ import { useState, useEffect } from 'react';
 
 const CURRENT_NETWORK = NETWORK;
 
+/** Colosseum / Solana UX: list Phantom before other adapters when both are detected. */
+function sortPhantomFirst<T extends { adapter: { name: string } }>(list: T[]): T[] {
+  return [...list].sort((a, b) => {
+    if (a.adapter.name === 'Phantom') return -1;
+    if (b.adapter.name === 'Phantom') return 1;
+    return a.adapter.name.localeCompare(b.adapter.name);
+  });
+}
+
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -136,9 +145,9 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const networkConfig = getNetworkConfig();
   const explorerCluster = networkInfo === 'mainnet-beta' ? '' : `?cluster=${networkInfo}`;
 
-  // Filter installed wallets and detected wallets
-  const installedWallets = wallets.filter(w => w.readyState === 'Installed');
-  const otherWallets = wallets.filter(w => w.readyState !== 'Installed');
+  // Filter installed wallets and detected wallets; Phantom first when multiple choices
+  const installedWallets = sortPhantomFirst(wallets.filter(w => w.readyState === 'Installed'));
+  const otherWallets = sortPhantomFirst(wallets.filter(w => w.readyState !== 'Installed'));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -262,7 +271,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
         ) : (
           <div className="space-y-4">
             <p className="text-muted-foreground text-center mb-6">
-              Connect your Solana wallet to start predicting and winning SOL.
+              Connect with <span className="font-medium text-foreground">Phantom</span> (recommended) or another Solana wallet to start predicting and winning SOL.
             </p>
 
             {/* Installed Wallets */}

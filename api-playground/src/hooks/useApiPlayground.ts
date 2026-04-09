@@ -25,7 +25,7 @@ import {
   X402Response,
   X402PaymentOption,
 } from '@/lib/x402Client';
-import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
+import { resolveApiBaseUrl, resolvePurchVaultBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { BRAND_NAME } from '@/lib/branding';
 
 function getApiBaseUrl(): string {
@@ -97,10 +97,8 @@ function isSyraNansenGatewayUrl(url: string): boolean {
   }
 }
 
-/** Purch Vault API base (marketplace for agent skills, knowledge, personas). Override via VITE_PURCH_VAULT_API_BASE_URL. */
 function getPurchVaultBaseUrl(): string {
-  const base = import.meta.env.VITE_PURCH_VAULT_API_BASE_URL as string | undefined;
-  return (base && base.trim()) || 'https://api.purch.xyz';
+  return resolvePurchVaultBaseUrl();
 }
 
 function isNansenUrl(url: string): boolean {
@@ -138,6 +136,8 @@ export interface ExampleFlowPreset {
   params: RequestParam[];
   /** Optional default JSON body for POST (e.g. 8004 register-agent). */
   body?: string;
+  /** Curated x402 examples vs MPP discovery catalog (GET /mpp-openapi.json). */
+  examplePaymentCatalog?: 'x402' | 'mpp';
 }
 
 /** All API endpoint example flows (unversioned paths; resolved at runtime so dev uses localhost:3000). First N are shown on Request Builder; rest on /examples. */
@@ -306,13 +306,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [],
   },
   {
-    id: 'mpp-check-status',
-    label: 'MPP check status (v1)',
-    method: 'GET',
-    url: `${base}/mpp/v1/check-status`,
-    params: [],
-  },
-  {
     id: '8004-stats',
     label: '8004 global stats',
     method: 'GET',
@@ -356,6 +349,25 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     ),
   },
   {
+    id: '8004-agents-search',
+    label: '8004 agents search',
+    method: 'GET',
+    url: `${base}/8004/agents/search`,
+    params: [
+      { key: 'owner', value: '', enabled: false, description: 'Owner pubkey' },
+      { key: 'creator', value: '', enabled: false, description: 'Creator pubkey' },
+      { key: 'limit', value: '20', enabled: true, description: 'Max results' },
+      { key: 'offset', value: '0', enabled: false, description: 'Offset' },
+    ],
+  },
+  {
+    id: '8004-agent-by-wallet',
+    label: '8004 agent by wallet',
+    method: 'GET',
+    url: `${base}/8004/agent-by-wallet/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263`,
+    params: [],
+  },
+  {
     id: '8004scan-stats',
     label: '8004scan stats',
     method: 'GET',
@@ -387,11 +399,74 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     params: [{ key: 'q', value: 'trading', enabled: true, description: 'Search query (required)' }],
   },
   {
+    id: '8004scan-agent',
+    label: '8004scan agent by chain + token',
+    method: 'GET',
+    url: `${base}/8004scan/agent`,
+    params: [
+      { key: 'chainId', value: '', enabled: true, description: 'Chain ID (required)' },
+      { key: 'tokenId', value: '', enabled: true, description: 'Token ID (required)' },
+    ],
+  },
+  {
+    id: '8004scan-feedbacks',
+    label: '8004scan feedbacks',
+    method: 'GET',
+    url: `${base}/8004scan/feedbacks`,
+    params: [
+      { key: 'page', value: '1', enabled: false, description: 'Page' },
+      { key: 'limit', value: '25', enabled: false, description: 'Per page' },
+    ],
+  },
+  {
     id: 'heylol-feed',
     label: 'hey.lol feed',
     method: 'GET',
     url: `${base}/heylol/feed`,
     params: [],
+  },
+  {
+    id: 'heylol-profile-me',
+    label: 'hey.lol profile (me)',
+    method: 'GET',
+    url: `${base}/heylol/profile/me`,
+    params: [],
+  },
+  {
+    id: 'heylol-search',
+    label: 'hey.lol search',
+    method: 'GET',
+    url: `${base}/heylol/search`,
+    params: [{ key: 'q', value: 'agent', enabled: true, description: 'Search query' }],
+  },
+  {
+    id: 'quicknode-balance',
+    label: 'Quicknode: balance',
+    method: 'GET',
+    url: `${base}/quicknode/balance`,
+    params: [
+      { key: 'chain', value: 'solana', enabled: true, description: 'solana or base' },
+      { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+    ],
+  },
+  {
+    id: 'quicknode-transaction',
+    label: 'Quicknode: transaction status',
+    method: 'GET',
+    url: `${base}/quicknode/transaction`,
+    params: [
+      { key: 'chain', value: 'solana', enabled: true, description: 'solana or base' },
+      { key: 'signature', value: '', enabled: true, description: 'Solana signature (when chain=solana)' },
+      { key: 'txHash', value: '', enabled: false, description: 'EVM tx hash (when chain=base)' },
+    ],
+  },
+  {
+    id: 'quicknode-rpc',
+    label: 'Quicknode: JSON-RPC forward',
+    method: 'POST',
+    url: `${base}/quicknode/rpc`,
+    params: [],
+    body: JSON.stringify({ chain: 'solana', method: 'getHealth', params: [], id: 1 }, null, 2),
   },
   // Core
   {
@@ -786,10 +861,190 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         ],
         body: '',
       },
+      {
+        id: 'nansen-profiler-historical-balances',
+        label: 'Nansen: address historical balances',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/historical-balances`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-transactions',
+        label: 'Nansen: address transactions',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/transactions`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-related-wallets',
+        label: 'Nansen: related wallets',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/related-wallets`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-pnl-summary',
+        label: 'Nansen: address PnL summary',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/pnl-summary`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-pnl',
+        label: 'Nansen: address PnL',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/pnl`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-counterparties',
+        label: 'Nansen: address counterparties',
+        method: 'POST',
+        url: `${b}/nansen/profiler/address/counterparties`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-perp-positions',
+        label: 'Nansen: profiler perp positions',
+        method: 'POST',
+        url: `${b}/nansen/profiler/perp-positions`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-profiler-perp-trades',
+        label: 'Nansen: profiler perp trades',
+        method: 'POST',
+        url: `${b}/nansen/profiler/perp-trades`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-smart-money-historical-holdings',
+        label: 'Nansen: smart money historical holdings',
+        method: 'POST',
+        url: `${b}/nansen/smart-money/historical-holdings`,
+        params: [
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array of chains' },
+          { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-smart-money-dcas',
+        label: 'Nansen: smart money DCAs',
+        method: 'POST',
+        url: `${b}/nansen/smart-money/dcas`,
+        params: [
+          { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array of chains' },
+          { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-jup-dca',
+        label: 'Nansen: TGM Jupiter DCA',
+        method: 'POST',
+        url: `${b}/nansen/tgm/jup-dca`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-pnl-leaderboard',
+        label: 'Nansen: TGM PnL leaderboard',
+        method: 'POST',
+        url: `${b}/nansen/tgm/pnl-leaderboard`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-perp-positions',
+        label: 'Nansen: TGM perp positions',
+        method: 'POST',
+        url: `${b}/nansen/tgm/perp-positions`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-perp-trades',
+        label: 'Nansen: TGM perp trades',
+        method: 'POST',
+        url: `${b}/nansen/tgm/perp-trades`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
+      {
+        id: 'nansen-tgm-perp-pnl-leaderboard',
+        label: 'Nansen: TGM perp PnL leaderboard',
+        method: 'POST',
+        url: `${b}/nansen/tgm/perp-pnl-leaderboard`,
+        params: [
+          { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+          { key: 'token_address', value: solWsol, enabled: true, description: 'Token contract address' },
+          { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+        ],
+        body: '',
+      },
     ];
   })(),
 ];
 };
+
+/** Curated x402 examples only (explicit alias for Examples x402 tab and batch tests). */
+export function getExampleFlowsX402(): ExampleFlowPreset[] {
+  return getExampleFlows();
+}
 
 /** Group slug and display name for example flow grouping on /examples. */
 export interface ExampleFlowGroup {
@@ -813,6 +1068,12 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
       const p = u.pathname.toLowerCase();
       if (p.startsWith('/nansen/') && id.startsWith('nansen-')) {
         return { slug: 'nansen', name: 'Nansen' };
+      }
+      if (p.startsWith('/quicknode/')) {
+        return { slug: 'quicknode', name: 'Quicknode' };
+      }
+      if (p.startsWith('/mpp/v1/')) {
+        return { slug: 'mpp-lane', name: 'MPP v1 lane' };
       }
       if (
         p.startsWith('/nansen/') ||
@@ -840,6 +1101,7 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
   if (id.startsWith('x-') && (id === 'x-feed' || id === 'x-user' || id === 'x-search-recent')) return { slug: 'x', name: 'X (Twitter)' };
   if (id.startsWith('jupiter-')) return { slug: 'jupiter', name: 'Jupiter' };
   if (id.startsWith('squid-')) return { slug: 'squid', name: 'Squid' };
+  if (id.startsWith('quicknode-')) return { slug: 'quicknode', name: 'Quicknode' };
   if (id.startsWith('heylol-')) return { slug: 'heylol', name: 'HeyLol' };
   if (id.startsWith('preview-')) return { slug: 'preview', name: 'Free preview' };
   const tokenDexIds = ['token-god-mode', 'bubblemaps-maps', 'trending-jupiter'];
@@ -847,9 +1109,8 @@ export function getFlowGroup(flow: ExampleFlowPreset): { slug: string; name: str
   return { slug: 'syra-core', name: 'Syra Core' };
 }
 
-/** All groups with flow counts for the Examples landing page. */
-export function getExampleFlowGroups(): ExampleFlowGroup[] {
-  const flows = getExampleFlows();
+/** Build grouped cards for any example flow list (x402 curated or MPP catalog). */
+export function getExampleFlowGroupsFromFlows(flows: ExampleFlowPreset[]): ExampleFlowGroup[] {
   const bySlug = new Map<string, { name: string; count: number }>();
   for (const f of flows) {
     const { slug, name } = getFlowGroup(f);
@@ -858,6 +1119,7 @@ export function getExampleFlowGroups(): ExampleFlowGroup[] {
     else cur.count += 1;
   }
   const order = [
+    'mpp-lane',
     'syra-core',
     'preview',
     'tokens-dex',
@@ -872,6 +1134,7 @@ export function getExampleFlowGroups(): ExampleFlowGroup[] {
     'squid',
     'purch-vault',
     'heylol',
+    'quicknode',
   ];
   const result: ExampleFlowGroup[] = [];
   for (const slug of order) {
@@ -883,9 +1146,19 @@ export function getExampleFlowGroups(): ExampleFlowGroup[] {
   return result;
 }
 
+/** All groups with flow counts for the Examples x402 tab (curated flows). */
+export function getExampleFlowGroups(): ExampleFlowGroup[] {
+  return getExampleFlowGroupsFromFlows(getExampleFlows());
+}
+
 /** Flows for a single group (for /examples/:groupSlug detail page). */
 export function getExampleFlowsForGroup(groupSlug: string): ExampleFlowPreset[] {
   const flows = getExampleFlows();
+  return flows.filter((f) => getFlowGroup(f).slug === groupSlug);
+}
+
+/** MPP tab: filter a fetched MPP catalog by group slug. */
+export function filterExampleFlowsByGroupSlug(flows: ExampleFlowPreset[], groupSlug: string): ExampleFlowPreset[] {
   return flows.filter((f) => getFlowGroup(f).slug === groupSlug);
 }
 
@@ -1003,6 +1276,9 @@ function getApiEndpoints(): string[] {
     `${base}/nansen/profiler/address/counterparties`,
     `${base}/nansen/profiler/perp-positions`,
     `${base}/nansen/profiler/perp-trades`,
+    `${base}/quicknode/balance`,
+    `${base}/quicknode/transaction`,
+    `${base}/quicknode/rpc`,
   ];
 }
 
@@ -1019,6 +1295,7 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
     if (path.startsWith('/nansen/')) return 'POST';
     if (path === '/bankr/prompt' || path.endsWith('/bankr/prompt')) return 'POST';
     if (path.startsWith('/siwa/')) return 'POST';
+    if (path === '/quicknode/rpc' || path.endsWith('/quicknode/rpc')) return 'POST';
   } catch {
     // ignore
   }
@@ -1223,7 +1500,111 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       '/8004scan/feedbacks': [],
       '/heylol/feed': [],
       '/heylol/profile/me': [],
-      '/heylol/search': [{ key: 'q', value: '', enabled: true, description: 'Search query' }],
+      '/heylol/search': [{ key: 'q', value: 'agent', enabled: true, description: 'Search query' }],
+      '/quicknode/balance': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'solana or base' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address (base58 or 0x)' },
+      ],
+      '/quicknode/transaction': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'solana (signature) or base (txHash)' },
+        { key: 'signature', value: '', enabled: true, description: 'Solana transaction signature' },
+        { key: 'txHash', value: '', enabled: false, description: 'EVM tx hash when chain=base' },
+      ],
+      '/nansen/profiler/address/historical-balances': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/profiler/address/transactions': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/profiler/address/related-wallets': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/nansen/profiler/address/pnl-summary': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/nansen/profiler/address/pnl': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/nansen/profiler/address/counterparties': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/profiler/perp-positions': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+      ],
+      '/nansen/profiler/perp-trades': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        { key: 'address', value: '', enabled: true, description: 'Wallet address' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/smart-money/historical-holdings': [
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array of chains' },
+        { key: 'filters', value: '{"include_smart_money_labels":["Fund","Smart Trader"]}', enabled: false, description: 'JSON filters' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/smart-money/dcas': [
+        { key: 'chains', value: '["solana"]', enabled: true, description: 'Required. JSON array of chains' },
+        { key: 'pagination', value: '{"page":1,"per_page":25}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/tgm/jup-dca': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        {
+          key: 'token_address',
+          value: 'So11111111111111111111111111111111111111112',
+          enabled: true,
+          description: 'Token contract address',
+        },
+        { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/tgm/pnl-leaderboard': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        {
+          key: 'token_address',
+          value: 'So11111111111111111111111111111111111111112',
+          enabled: true,
+          description: 'Token contract address',
+        },
+        { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/tgm/perp-positions': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        {
+          key: 'token_address',
+          value: 'So11111111111111111111111111111111111111112',
+          enabled: true,
+          description: 'Token contract address',
+        },
+        { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/tgm/perp-trades': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        {
+          key: 'token_address',
+          value: 'So11111111111111111111111111111111111111112',
+          enabled: true,
+          description: 'Token contract address',
+        },
+        { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+      ],
+      '/nansen/tgm/perp-pnl-leaderboard': [
+        { key: 'chain', value: 'solana', enabled: true, description: 'Required. Chain' },
+        {
+          key: 'token_address',
+          value: 'So11111111111111111111111111111111111111112',
+          enabled: true,
+          description: 'Token contract address',
+        },
+        { key: 'pagination', value: '{"page":1,"per_page":10}', enabled: false, description: 'JSON pagination' },
+      ],
     };
     const exact = known[path];
     if (exact) return exact.map((p) => ({ ...p }));
@@ -2432,88 +2813,94 @@ export function useApiPlayground() {
   // Run an example flow: load preset into builder and send immediately.
   // Optional paramsOverride (e.g. from Examples page modal) is used instead of preset.params when provided.
   // Uses a tracked ID so sendRequest adds exactly one history entry (no double from batching or double-click).
-  const runExampleFlow = useCallback((flowId: string, paramsOverride?: RequestParam[]) => {
-    const preset = getExampleFlows().find((f) => f.id === flowId);
-    if (!preset) return;
-    if (status === 'loading') return;
-    // Use known params for this path when preset has none (e.g. exa-search needs query param for GET)
-    const presetOrKnownParams = preset.params.length > 0 ? preset.params : getParamsForExampleFlow(preset);
-    const effectiveParams = paramsOverride ?? presetOrKnownParams;
-    const defaultHeaders: RequestHeader[] = [
-      { key: 'Content-Type', value: 'application/json', enabled: true },
-    ];
-    // Skip the next auto-detect fetch and avoid URL effect clearing params (no double entry / pending)
-    skipNextAutoDetectRef.current = true;
-    exampleFlowJustRanRef.current = true;
-    setTimeout(() => {
-      skipNextAutoDetectRef.current = false;
-      exampleFlowJustRanRef.current = false;
-    }, 2500);
-    // Use preset method when set (e.g. POST for browser-use, crawl); else detect from URL
-    const defaultMethod = preset.method ?? getDefaultMethodForUrl(preset.url);
-    const defaultBody = preset.body ?? '{\n  \n}';
-    setMethod(defaultMethod);
-    setUrl(preset.url);
-    setParams(effectiveParams.map((p) => ({ ...p })));
-    setHeaders(defaultHeaders);
-    setBody(defaultBody);
-    setResponse(undefined);
-    setPaymentDetails(undefined);
-    setX402Response(undefined);
-    setPaymentOption(undefined);
+  const runExampleFlowFromPreset = useCallback(
+    (preset: ExampleFlowPreset, paramsOverride?: RequestParam[]) => {
+      if (status === 'loading') return;
+      const presetOrKnownParams = preset.params.length > 0 ? preset.params : getParamsForExampleFlow(preset);
+      const effectiveParams = paramsOverride ?? presetOrKnownParams;
+      const defaultHeaders: RequestHeader[] = [
+        { key: 'Content-Type', value: 'application/json', enabled: true },
+      ];
+      skipNextAutoDetectRef.current = true;
+      exampleFlowJustRanRef.current = true;
+      setTimeout(() => {
+        skipNextAutoDetectRef.current = false;
+        exampleFlowJustRanRef.current = false;
+      }, 2500);
+      const defaultMethod = preset.method ?? getDefaultMethodForUrl(preset.url);
+      const defaultBody = preset.body ?? '{\n  \n}';
+      setMethod(defaultMethod);
+      setUrl(preset.url);
+      setParams(effectiveParams.map((p) => ({ ...p })));
+      setHeaders(defaultHeaders);
+      setBody(defaultBody);
+      setResponse(undefined);
+      setPaymentDetails(undefined);
+      setX402Response(undefined);
+      setPaymentOption(undefined);
 
-    // For flows that require a non-empty query (exa-search, browse, x-search), don't send automatically when query is empty
-    const pathname = (() => {
-      try {
-        return new URL(preset.url).pathname.toLowerCase();
-      } catch {
-        return '';
-      }
-    })();
-    const queryRequiredPaths = ['/exa-search'];
-    const urlRequiredPaths = ['/crawl'];
-    const taskRequiredPaths = ['/browser-use'];
-    const queryValue = (effectiveParams.find((p) => p.key === 'query')?.value ?? '').trim();
-    const urlValue = (effectiveParams.find((p) => p.key === 'url')?.value ?? '').trim();
-    const taskValue = (effectiveParams.find((p) => p.key === 'task')?.value ?? '').trim();
-    const shouldSend =
-      (!queryRequiredPaths.includes(pathname) || !!queryValue) &&
-      (!urlRequiredPaths.includes(pathname) || !!urlValue) &&
-      (!taskRequiredPaths.includes(pathname) || !!taskValue);
+      const pathname = (() => {
+        try {
+          return new URL(preset.url).pathname.toLowerCase();
+        } catch {
+          return '';
+        }
+      })();
+      const queryRequiredPaths = ['/exa-search'];
+      const urlRequiredPaths = ['/crawl'];
+      const taskRequiredPaths = ['/browser-use'];
+      const queryValue = (effectiveParams.find((p) => p.key === 'query')?.value ?? '').trim();
+      const urlValue = (effectiveParams.find((p) => p.key === 'url')?.value ?? '').trim();
+      const taskValue = (effectiveParams.find((p) => p.key === 'task')?.value ?? '').trim();
+      const shouldSend =
+        (!queryRequiredPaths.includes(pathname) || !!queryValue) &&
+        (!urlRequiredPaths.includes(pathname) || !!urlValue) &&
+        (!taskRequiredPaths.includes(pathname) || !!taskValue);
 
-    if (shouldSend) {
-      setStatus('loading');
-      const newId = generateId();
-      newRequestIdRef.current = newId;
-      const override: RequestOverride = {
-        method: defaultMethod,
-        url: preset.url,
-        params: effectiveParams.map((p) => ({ ...p })),
-        headers: defaultHeaders,
-        body: defaultBody,
-      };
-      sendRequest(undefined, override);
-      setSelectedHistoryId(newId);
-    } else {
-      setStatus('idle');
-      if (urlRequiredPaths.includes(pathname)) {
-        toast({
-          title: 'Enter a URL to crawl',
-          description: 'Fill in the "url" param above (e.g. https://blog.cloudflare.com/) and click Send.',
-        });
-      } else if (taskRequiredPaths.includes(pathname)) {
-        toast({
-          title: 'Enter a browser task',
-          description: 'Fill in the "task" param above (e.g. What is the top post on Hacker News?) and click Send.',
-        });
+      if (shouldSend) {
+        setStatus('loading');
+        const newId = generateId();
+        newRequestIdRef.current = newId;
+        const override: RequestOverride = {
+          method: defaultMethod,
+          url: preset.url,
+          params: effectiveParams.map((p) => ({ ...p })),
+          headers: defaultHeaders,
+          body: defaultBody,
+        };
+        sendRequest(undefined, override);
+        setSelectedHistoryId(newId);
       } else {
-        toast({
-          title: 'Enter your search query',
-          description: 'Fill in the "query" param above (e.g. bitcoin insight, latest Nvidia news) and click Send.',
-        });
+        setStatus('idle');
+        if (urlRequiredPaths.includes(pathname)) {
+          toast({
+            title: 'Enter a URL to crawl',
+            description: 'Fill in the "url" param above (e.g. https://blog.cloudflare.com/) and click Send.',
+          });
+        } else if (taskRequiredPaths.includes(pathname)) {
+          toast({
+            title: 'Enter a browser task',
+            description: 'Fill in the "task" param above (e.g. What is the top post on Hacker News?) and click Send.',
+          });
+        } else {
+          toast({
+            title: 'Enter your search query',
+            description: 'Fill in the "query" param above (e.g. bitcoin insight, latest Nvidia news) and click Send.',
+          });
+        }
       }
-    }
-  }, [sendRequest, status]);
+    },
+    [sendRequest, status, toast]
+  );
+
+  const runExampleFlow = useCallback(
+    (flowId: string, paramsOverride?: RequestParam[]) => {
+      const preset = getExampleFlows().find((f) => f.id === flowId);
+      if (!preset) return;
+      runExampleFlowFromPreset(preset, paramsOverride);
+    },
+    [runExampleFlowFromPreset]
+  );
 
   // Try demo - randomly pick an API endpoint and always create new history
   const tryDemo = useCallback(() => {
@@ -2983,6 +3370,7 @@ export function useApiPlayground() {
     sendRequest: () => sendRequest(),
     tryDemo,
     runExampleFlow,
+    runExampleFlowFromPreset,
 
     // UI state
     isSidebarOpen,

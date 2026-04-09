@@ -39,51 +39,43 @@ export interface EvmSigner {
   }) => Promise<string>;
 }
 
-/** Detect installed wallet extensions (for showing only installed wallets vs. minimal list for new users). */
-function detectInstalledWallets(): { hasEthereum: boolean; hasSolana: boolean } {
-  if (typeof window === "undefined")
-    return { hasEthereum: false, hasSolana: false };
-  const w = window as Window & {
-    ethereum?: unknown;
-    phantom?: { solana?: unknown };
-    solflare?: unknown;
-    backpack?: unknown;
-  };
-  const hasEthereum = !!w.ethereum;
-  const hasSolana = !!(
-    w.phantom?.solana ||
-    w.solflare ||
-    w.backpack
-  );
-  return { hasEthereum, hasSolana };
+/**
+ * Curated Privy wallet options only (no detected_* / wallet_connect registry).
+ * Rabby is not available as a named Privy entry (see Privy docs: rabby_wallet deprecated).
+ */
+const POPULAR_EVM_WALLET_LIST: string[] = [
+  "metamask",
+  "coinbase_wallet",
+  "rainbow",
+  "base_account",
+  "okx_wallet",
+];
+
+const POPULAR_SOLANA_WALLET_LIST: string[] = [
+  "phantom",
+  "solflare",
+  "backpack",
+];
+
+/** Login / multi-chain modal when walletChainType is ethereum-and-solana. */
+const POPULAR_MULTICHAIN_WALLET_LIST: string[] = [
+  "phantom",
+  "metamask",
+  "solflare",
+  "backpack",
+  "coinbase_wallet",
+  "rainbow",
+  "base_account",
+  "okx_wallet",
+];
+
+function getPopularWalletListForChain(chain: "solana" | "base"): string[] {
+  return chain === "base"
+    ? [...POPULAR_EVM_WALLET_LIST]
+    : [...POPULAR_SOLANA_WALLET_LIST];
 }
 
-/** Wallet list for Privy: only installed wallets, or for new users (none installed) just MetaMask + Phantom. */
-function getWalletListForChain(
-  chain: "solana" | "base",
-  detected: { hasEthereum: boolean; hasSolana: boolean }
-): string[] {
-  const useDetected =
-    (chain === "base" && detected.hasEthereum) ||
-    (chain === "solana" && detected.hasSolana);
-  if (chain === "base") {
-    return useDetected ? ["detected_ethereum_wallets"] : ["metamask", "phantom"];
-  }
-  return useDetected ? ["detected_solana_wallets"] : ["metamask", "phantom"];
-}
-
-/** Default wallet list for login modal: only installed, or email + MetaMask + Phantom for new users. */
-function getDefaultWalletList(detected: {
-  hasEthereum: boolean;
-  hasSolana: boolean;
-}): string[] {
-  if (detected.hasEthereum || detected.hasSolana) {
-    return ["detected_ethereum_wallets", "detected_solana_wallets"];
-  }
-  return ["metamask", "phantom"];
-}
-
-/** Login modal: only email and wallet (no social logins); wallet list is controlled by getDefaultWalletList / getWalletListForChain. */
+/** Login modal: only email and wallet (no social logins); wallet list is curated above. */
 const MINIMAL_LOGIN_OPTIONS = { loginMethods: ["email", "wallet"] as const };
 
 const USDC_MINT = new PublicKey(
@@ -171,7 +163,9 @@ function setSiws403Origin(origin: string): void {
   try {
     if (typeof sessionStorage !== "undefined")
       sessionStorage.setItem(SIWS_403_ORIGIN_KEY, origin);
-  } catch {}
+  } catch {
+    /* sessionStorage unavailable */
+  }
 }
 
 /** Known Privy SDK keys from @privy-io/react-auth (context-CcPjcQxY) – clear all so refresh stays disconnected. */
@@ -200,8 +194,10 @@ function clearPrivyIndexedDB(): void {
           indexedDB.deleteDatabase(db.name);
         }
       });
-    }).catch(() => {});
-  } catch {}
+    }).catch(() => undefined);
+  } catch {
+    /* indexedDB unavailable */
+  }
 }
 
 function clearPrivySessionStorage(): void {
@@ -242,13 +238,17 @@ function setDisconnectedByUserFlag(): void {
   try {
     if (typeof sessionStorage !== "undefined")
       sessionStorage.setItem(DISCONNECTED_BY_USER_KEY, "1");
-  } catch {}
+  } catch {
+    /* sessionStorage unavailable */
+  }
 }
 function clearDisconnectedByUserFlag(): void {
   try {
     if (typeof sessionStorage !== "undefined")
       sessionStorage.removeItem(DISCONNECTED_BY_USER_KEY);
-  } catch {}
+  } catch {
+    /* sessionStorage unavailable */
+  }
 }
 function getDisconnectedByUserFlag(): boolean {
   try {
@@ -279,13 +279,17 @@ function getStoredPreferredChain(): "solana" | "base" | null {
     if (typeof localStorage === "undefined") return null;
     const v = localStorage.getItem(PREFERRED_CHAIN_KEY);
     if (v === "solana" || v === "base") return v;
-  } catch {}
+  } catch {
+    /* localStorage unavailable */
+  }
   return null;
 }
 function setStoredPreferredChain(chain: "solana" | "base") {
   try {
     if (typeof localStorage !== "undefined") localStorage.setItem(PREFERRED_CHAIN_KEY, chain);
-  } catch {}
+  } catch {
+    /* localStorage unavailable */
+  }
 }
 
 type WalletChainOverride = "ethereum-only" | "solana-only" | null;
@@ -301,8 +305,6 @@ const WalletContextInner: FC<{
   setPreferredChain: (v: "solana" | "base" | null) => void;
   /** When true, there was no Privy token in storage at page load (e.g. user cleared browser data) – force disconnected until user connects again. */
   noPrivyTokenOnLoad: boolean;
-  /** Detected installed wallets; used to show only installed or fallback to metamask/phantom for new users. */
-  installedWallets: { hasEthereum: boolean; hasSolana: boolean };
 }> = ({
   children,
   connectChainOverride,
@@ -312,7 +314,6 @@ const WalletContextInner: FC<{
   preferredChain,
   setPreferredChain,
   noPrivyTokenOnLoad,
-  installedWallets,
 }) => {
   const { ready: privyReady, authenticated, login, connectWallet } =
     usePrivy();
@@ -648,7 +649,7 @@ const WalletContextInner: FC<{
       setPreferredChain(chain);
       setStoredPreferredChain(chain);
       if (!privyReady) return;
-      const walletList = getWalletListForChain(chain, installedWallets);
+      const walletList = getPopularWalletListForChain(chain);
 
       if (!authenticated) {
         loginModalJustOpenedRef.current = true;
@@ -665,7 +666,7 @@ const WalletContextInner: FC<{
         chain === "base" ? "ethereum-only" : "solana-only";
       connectWallet({ walletList, walletChainType });
     },
-    [privyReady, authenticated, solanaWallets, evmWallets, login, connectWallet, setPreferredChain, installedWallets]
+    [privyReady, authenticated, solanaWallets, evmWallets, login, connectWallet, setPreferredChain]
   );
 
   useEffect(() => {
@@ -707,10 +708,10 @@ const WalletContextInner: FC<{
       return;
     }
     connectWallet({
-      walletList: getWalletListForChain("base", installedWallets),
+      walletList: getPopularWalletListForChain("base"),
       walletChainType: "ethereum-only",
     });
-  }, [authenticated, login, connectWallet, installedWallets]);
+  }, [authenticated, login, connectWallet]);
 
   const connectSolana = useCallback(async () => {
     if (!authenticated) {
@@ -718,10 +719,10 @@ const WalletContextInner: FC<{
       return;
     }
     connectWallet({
-      walletList: getWalletListForChain("solana", installedWallets),
+      walletList: getPopularWalletListForChain("solana"),
       walletChainType: "solana-only",
     });
-  }, [authenticated, login, connectWallet, installedWallets]);
+  }, [authenticated, login, connectWallet]);
 
   const disconnectBase = useCallback(async () => {
     await disconnect();
@@ -1037,6 +1038,20 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
     setPendingConnectOption(option);
   }, []);
 
+  const [preferredChain, setPreferredChainState] = useState<
+    "solana" | "base" | null
+  >(() => getStoredPreferredChain());
+  const setPreferredChain = useCallback((v: "solana" | "base" | null) => {
+    setPreferredChainState(v);
+    if (v) setStoredPreferredChain(v);
+  }, []);
+
+  const appearanceWalletList = useMemo(() => {
+    if (connectChainOverride === "ethereum-only") return [...POPULAR_EVM_WALLET_LIST];
+    if (connectChainOverride === "solana-only") return [...POPULAR_SOLANA_WALLET_LIST];
+    return [...POPULAR_MULTICHAIN_WALLET_LIST];
+  }, [connectChainOverride]);
+
   if (!PRIVY_APP_ID?.trim()) {
     return (
       <WalletContext.Provider value={FALLBACK_WALLET_STATE}>
@@ -1059,18 +1074,6 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
     );
   }
 
-  const [preferredChain, setPreferredChainState] = useState<"solana" | "base" | null>(() => getStoredPreferredChain());
-  const setPreferredChain = useCallback((v: "solana" | "base" | null) => {
-    setPreferredChainState(v);
-    if (v) setStoredPreferredChain(v);
-  }, []);
-
-  const installedWallets = useMemo(() => detectInstalledWallets(), []);
-  const defaultWalletList = useMemo(
-    () => getDefaultWalletList(installedWallets),
-    [installedWallets]
-  );
-
   const walletChainType = connectChainOverride ?? "ethereum-and-solana";
   return (
     <PrivyProvider
@@ -1079,7 +1082,7 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
       config={{
         appearance: {
           walletChainType,
-          walletList: defaultWalletList,
+          walletList: appearanceWalletList,
         },
         embeddedWallets: {
           ethereum: { createOnLogin: "users-without-wallets" },
@@ -1100,7 +1103,6 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
         preferredChain={preferredChain}
         setPreferredChain={setPreferredChain}
         noPrivyTokenOnLoad={noPrivyTokenOnLoad}
-        installedWallets={installedWallets}
       >
         {children}
       </WalletContextInner>

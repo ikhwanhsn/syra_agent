@@ -39,3 +39,9 @@ export function resolveApiBaseUrl(): string {
   }
   return PRODUCTION_DEFAULT;
 }
+
+/** Purch Vault API base (agent marketplace). Override via VITE_PURCH_VAULT_API_BASE_URL. */
+export function resolvePurchVaultBaseUrl(): string {
+  const base = import.meta.env.VITE_PURCH_VAULT_API_BASE_URL as string | undefined;
+  return (base && base.trim()) || 'https://api.purch.xyz';
+}

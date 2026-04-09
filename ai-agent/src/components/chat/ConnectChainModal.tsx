@@ -33,11 +33,13 @@ export function ConnectChainModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 min-w-0">
             <Wallet className="h-5 w-5" />
-            Connect Wallet
+            Connect wallet
           </DialogTitle>
           <DialogDescription className="min-w-0">
             Choose how you want to connect. Email opens Privy sign-in; Solana or
-            Base opens the wallet list for that network.
+            Base opens the wallet list for that network. For Solana x402 payments,
+            <span className="font-medium text-foreground"> Phantom </span>
+            is recommended (enable Phantom in your Privy dashboard).
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-2 min-w-0 overflow-hidden">
@@ -72,7 +74,7 @@ export function ConnectChainModal({
               Solana
             </span>
             <span className="text-xs text-muted-foreground">
-              Phantom, Solflare, and other Solana wallets
+              Phantom first (recommended), then Solflare and other Solana wallets
             </span>
           </Button>
           <Button

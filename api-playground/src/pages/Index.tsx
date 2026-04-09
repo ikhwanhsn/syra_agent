@@ -11,6 +11,7 @@ import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { PaymentDetails, RequestParam } from '@/types/api';
+import type { ExampleFlowPreset } from '@/hooks/useApiPlayground';
 import { GripVertical } from 'lucide-react';
 import { MppLaneStrip } from '@/components/MppLaneStrip';
 import { resolvePlaygroundPaymentLane } from '@/lib/paymentLane';
@@ -66,6 +67,7 @@ const Index = () => {
     sendRequest,
     tryDemo,
     runExampleFlow,
+    runExampleFlowFromPreset,
     isSidebarOpen,
     setIsSidebarOpen,
     paymentOptionsByChain,
@@ -200,10 +202,23 @@ const Index = () => {
     [navigate]
   );
 
-  // Run example flow when navigated from /examples with state.runFlowId (and optional runFlowParams).
-  // Only run once per flowId so we don't get double history entries (e.g. React Strict Mode double-invoke).
+  // Run example flow when navigated from /examples with state.runFlowId or full state.runFlowPreset (MPP catalog).
+  // Only run once per id so we don't get double history entries (e.g. React Strict Mode double-invoke).
   useEffect(() => {
-    const state = location.state as { runFlowId?: string; runFlowParams?: RequestParam[] } | null;
+    const state = location.state as {
+      runFlowId?: string;
+      runFlowPreset?: ExampleFlowPreset;
+      runFlowParams?: RequestParam[];
+    } | null;
+    const preset = state?.runFlowPreset;
+    if (preset) {
+      const key = `preset:${preset.id}`;
+      if (lastRunFlowIdRef.current === key) return;
+      lastRunFlowIdRef.current = key;
+      runExampleFlowFromPreset(preset, state?.runFlowParams);
+      navigate('/', { replace: true, state: {} });
+      return;
+    }
     const flowId = state?.runFlowId;
     if (!flowId) {
       lastRunFlowIdRef.current = null;
@@ -213,7 +228,7 @@ const Index = () => {
     lastRunFlowIdRef.current = flowId;
     runExampleFlow(flowId, state?.runFlowParams);
     navigate('/', { replace: true, state: {} }); // Clear state so back doesn't re-run
-  }, [location.state, runExampleFlow, navigate]);
+  }, [location.state, runExampleFlow, runExampleFlowFromPreset, navigate]);
 
   // Detect desktop viewport
   useEffect(() => {
