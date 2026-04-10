@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FileText, ExternalLink, Clock, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { ArticleCard } from "@/components/ArticleCard";
 import { articles } from "@/data/articles";
 
 export default function Articles() {
@@ -38,53 +39,12 @@ export default function Articles() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {articles.map((article, index) => (
-                <motion.div
+                <ArticleCard
                   key={article.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.08 }}
-                  className={`rounded-2xl transition-all duration-300 glass-card overflow-hidden group ${
-                    article.comingSoon
-                      ? "opacity-80 cursor-default"
-                      : "hover:border-accent/25 cursor-pointer"
-                  }`}
-                >
-                  {article.comingSoon ? (
-                    <div className="flex flex-col h-full p-6">
-                      <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-muted/50">
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <h2 className="mb-2 text-lg font-semibold">
-                        {article.title}
-                      </h2>
-                      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4 shrink-0" />
-                        Coming soon
-                      </p>
-                    </div>
-                  ) : (
-                    <a
-                      href={article.href}
-                      target={article.external ? "_blank" : undefined}
-                      rel={article.external ? "noopener noreferrer" : undefined}
-                      className="flex flex-col h-full p-6"
-                    >
-                      <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
-                        <FileText className="w-6 h-6 text-primary" />
-                      </div>
-                      <h2 className="mb-2 text-lg font-semibold group-hover:text-primary transition-colors">
-                        {article.title}
-                      </h2>
-                      <p className="mb-4 text-sm text-muted-foreground flex-1">
-                        {article.description}
-                      </p>
-                      <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
-                        Read more
-                        <ExternalLink className="w-4 h-4" />
-                      </span>
-                    </a>
-                  )}
-                </motion.div>
+                  article={article}
+                  titleAs="h2"
+                  motionTransition={{ duration: 0.5, delay: index * 0.08 }}
+                />
               ))}
             </div>
           </div>
