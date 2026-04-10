@@ -15,10 +15,17 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { LINK_DOCS } from "../../config/global";
 import {
-  SYRA_8004_AGENT_ASSET,
+  SYRA_8004_COLLECTION_URL,
+  SYRA_8004_CREATOR_ADDRESS,
   SYRA_API_PUBLIC_ORIGIN,
   SYRA_IDENTITY_NETWORK,
+  SYRA_SAP_AGENT_PDA,
+  SYRA_SAP_EXPLORER_AGENT_URL,
+  SYRA_TOKEN_MINT,
+  X402SCAN_SYRA_AGENT_URL,
+  X402SCAN_SYRA_SERVER_URL,
   syraSolscanAccountUrl,
+  syraSolscanTokenUrl,
   truncateBase58,
 } from "@/data/agentIdentity";
 
@@ -128,7 +135,8 @@ function RegistryCard({
 }
 
 export default function Identity() {
-  const asset = SYRA_8004_AGENT_ASSET;
+  const creator = SYRA_8004_CREATOR_ADDRESS;
+  const tokenMint = SYRA_TOKEN_MINT;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
@@ -180,13 +188,13 @@ export default function Identity() {
             className="mb-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
             {[
-              { label: "Identity surfaces", value: "7", hint: "Registries & discovery layers" },
+              { label: "Identity surfaces", value: "6", hint: "Token, registries & discovery layers" },
               { label: "Network", value: SYRA_IDENTITY_NETWORK, hint: "Primary anchor chain" },
-              { label: "8004 status", value: "Live", hint: "Trustless Agent Registry (Solana)" },
+              { label: "8004 collection", value: "Syra Agents", hint: "mainnet-beta / id 31" },
               {
-                label: "Agent asset (8004)",
-                value: truncateBase58(asset, 6, 6),
-                hint: "NFT / registry record",
+                label: "8004 creator / SAP agent",
+                value: truncateBase58(creator, 6, 6),
+                hint: "On-chain registry anchor",
                 mono: true,
               },
             ].map((item) => (
@@ -207,27 +215,70 @@ export default function Identity() {
             ))}
           </motion.div>
 
-          <CopyValue label="Primary public anchor — 8004 agent asset" value={asset} />
+          <div className="mt-10 space-y-10">
+            <div>
+              <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">
+                $SYRA token
+              </h2>
+              <CopyValue label="SPL mint (base58)" value={tokenMint} />
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href={syraSolscanTokenUrl(tokenMint)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  View token on Solscan
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+                <a
+                  href={`https://jup.ag/tokens/${tokenMint}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  title="Official Jupiter token page"
+                >
+                  Jupiter
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <a
-              href={syraSolscanAccountUrl(asset)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-            >
-              View on Solscan
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
-            <a
-              href="https://8004.qnt.sh"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-            >
-              8004 protocol docs
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
+            <div>
+              <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">
+                8004 & SAP anchor
+              </h2>
+              <CopyValue label="8004 creator — Synapse SAP agent pubkey (base58)" value={creator} />
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href={syraSolscanAccountUrl(creator)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  View on Solscan
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+                <a
+                  href={SYRA_8004_COLLECTION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  8004market — Syra Agents collection
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://8004.qnt.sh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  8004 protocol docs
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
           </div>
 
           <h2 className="mb-8 mt-20 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -240,13 +291,14 @@ export default function Identity() {
               subtitle="Solana"
               badge="verified"
               badgeLabel="Verified anchor"
-              description="Syra is registered on the Trustless Agent Registry for Solana (8004). Registration metadata (skills, domains, MCP endpoint, x402) is pinned off-chain (e.g. IPFS) and linked from the on-chain agent asset — the same pattern described in the 8004 skill spec."
+              description="Syra is listed on the Trustless Agent Registry for Solana (8004). The Syra Agents collection on 8004market ties registered agents to metadata (skills, domains, MCP, x402) pinned off-chain — the same pattern described in the 8004 skill spec."
               links={[
-                { label: "Solscan — agent asset", href: syraSolscanAccountUrl(asset) },
+                { label: "8004market — collection", href: SYRA_8004_COLLECTION_URL },
+                { label: "Solscan — creator / agent pubkey", href: syraSolscanAccountUrl(creator) },
                 { label: "8004.qnt.sh", href: "https://8004.qnt.sh" },
               ]}
             >
-              <CopyValue label="Agent asset (base58)" value={asset} />
+              <CopyValue label="8004 creator pubkey (base58)" value={creator} />
             </RegistryCard>
 
             <RegistryCard
@@ -256,10 +308,13 @@ export default function Identity() {
               badgeLabel="Integrated in Syra API"
               description="Syra ships SAP SDK usage and registration tooling in the monorepo (register + publish tool descriptors). SAP stores agent capabilities, x402 endpoints, and discovery metadata on Solana so other agents and dApps can verify pricing and skills on-chain."
               links={[
+                { label: "Synapse Explorer — Syra agent", href: SYRA_SAP_EXPLORER_AGENT_URL },
                 { label: "SAP register docs", href: "https://explorer.oobeprotocol.ai/docs/examples/register-agent" },
                 { label: "Syra API", href: SYRA_API_PUBLIC_ORIGIN },
               ]}
-            />
+            >
+              <CopyValue label="SAP agent PDA (base58)" value={SYRA_SAP_AGENT_PDA} />
+            </RegistryCard>
 
             <RegistryCard
               title="x402 & OpenAPI discovery"
@@ -270,25 +325,9 @@ export default function Identity() {
               links={[
                 { label: "OpenAPI catalog", href: `${SYRA_API_PUBLIC_ORIGIN}/openapi.json` },
                 { label: "Human docs", href: LINK_DOCS },
+                { label: "x402scan — Syra agent", href: X402SCAN_SYRA_AGENT_URL },
+                { label: "x402scan — Syra server", href: X402SCAN_SYRA_SERVER_URL },
               ]}
-            />
-
-            <RegistryCard
-              title="SAID Protocol"
-              subtitle="Identity layer for AI agents"
-              badge="ecosystem"
-              badgeLabel="Ecosystem standard"
-              description="SAID-style identity (agent PDAs, metadata URIs, reputation) is part of the broader Solana agent stack. Syra’s public site and agent UX follow the same design discipline: minimal chrome, verifiable links, and explorer-first references."
-              links={[{ label: "Syra documentation", href: LINK_DOCS }]}
-            />
-
-            <RegistryCard
-              title="SATI by Cascade"
-              subtitle="Solana Agent Trust Infrastructure"
-              badge="ecosystem"
-              badgeLabel="Ecosystem standard"
-              description="Trust infrastructure for high-volume agent economies: identity mints and attestations. Syra focuses on reachable MCP/x402 services and registry-backed metadata so third-party trust systems can index the same public endpoints."
-              links={[{ label: "Syra Agent", href: "https://agent.syraa.fun" }]}
             />
 
             <RegistryCard
@@ -296,8 +335,9 @@ export default function Identity() {
               subtitle="Discovery & liveness"
               badge="ecosystem"
               badgeLabel="Third-party indexers"
-              description="Frontends and monitors (for example 8004market-style directories and liveness scoring) ingest on-chain registration plus live HTTP checks. Operating reachable, documented endpoints improves discoverability and review scores over time."
+              description="Frontends and monitors (for example 8004market directories and liveness scoring) ingest on-chain registration plus live HTTP checks. Operating reachable, documented endpoints improves discoverability and review scores over time."
               links={[
+                { label: "Syra Agents on 8004market", href: SYRA_8004_COLLECTION_URL },
                 { label: "8004 skill spec", href: "https://8004.qnt.sh/skill.md" },
                 { label: "API playground", href: "https://playground.syraa.fun" },
               ]}
