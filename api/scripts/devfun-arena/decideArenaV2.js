@@ -115,7 +115,16 @@ export function buildArenaV2Decision(input) {
     modelName = "syra-arena-v3",
     modelProvider = "syra",
     frameworkName = "syra-trending-meta-learner",
-    frameworkTags = ["syra", "arena-s2", "arena-v3", "dexscreener-trending", "meta-cluster", "online-learner"],
+    frameworkTags = [
+      "syra",
+      "arena-s2",
+      "arena-v3",
+      "tape-rug-balance",
+      "learned-thresholds",
+      "dexscreener-trending",
+      "meta-cluster",
+      "online-learner",
+    ],
   } = input;
 
   const mint = String(contractAddress).trim();
@@ -131,9 +140,16 @@ export function buildArenaV2Decision(input) {
   const liq = liquidityUsd(pair);
   const ageMin = pairAgeMinutes(pair);
 
-  const tapeBase = 0.28 * near + 0.22 * mom + 0.2 * flow + 0.14 * volTrend + 0.08 * horizonDiv;
+  // Align tape weights with v1-style emphasis: short-horizon tape matters on pump.fun listings.
+  const tapeBase = 0.3 * near + 0.24 * mom + 0.2 * flow + 0.13 * volTrend + 0.08 * horizonDiv;
   const hs = marketContext?.holderSkewScore ?? 0;
-  const tape = tapeBase + 0.1 * hs;
+  const tape = tapeBase + 0.11 * hs;
+
+  const pairDex =
+    pair && typeof pair === "object"
+      ? String(/** @type {Record<string, unknown>} */ (pair).dexId || "").toLowerCase()
+      : "";
+  const isPumpFun = pairDex === "pump.fun";
 
   const narr = narrativeContext?.ok && narrativeContext.resultCount > 0 ? narrativeContext.narrativeScore : 0;
 
@@ -159,36 +175,68 @@ export function buildArenaV2Decision(input) {
 
   const trendSlot = mt.inBoost ? 0.92 : mt.inProfile ? 0.58 : mt.inAny ? 0.42 : 0;
   const metaSlot = meta * 0.38;
-  const learnSlot = (pUp - 0.5) * 1.15;
-  const techSlot = tape * 0.14;
-  const riskSlot = rug * 0.2;
+  const learnSlot = (pUp - 0.5) * 0.98;
+  // Rugcheck flags most fresh meme coins; damp its pull when tape is already hot (v1-style).
+  const rugScale = tape > 0.07 ? 0.48 : tape > 0.025 ? 0.78 : 1;
+  const techSlot = tape * 0.27;
+  const riskSlot = rug * 0.12 * rugScale;
   const narrSlot = narr * 0.1;
 
   const la = learnedAdjustments;
-  const histBias = (la?.compositeBias ?? 0) * 0.55;
+  const histBias = (la?.compositeBias ?? 0) * 0.58;
 
   let directionScore =
     trendSlot + metaSlot + learnSlot + techSlot + riskSlot + narrSlot + histBias;
+
+  // pump.fun Arena rows: short squeeze / launch momentum is informative; avoid default dump tilt.
+  if (isPumpFun) {
+    if (near > 0.12 && flow >= 0) directionScore += 0.052;
+    if (near > 0.22) directionScore += 0.042;
+    if (ageMin != null && ageMin < 55 && near > -0.06) directionScore += 0.03;
+    if (flow > 0.14 && volTrend > -0.06) directionScore += 0.034;
+  }
 
   if (horizonDiv < -0.32 && near > 0.2) directionScore -= 0.12;
   if (tokenizeTarget(name + sym).length >= 2 && meta < -0.05 && !mt.inAny) directionScore -= 0.08;
 
   f.directionScore = Math.max(-1, Math.min(1, directionScore));
 
-  const DUMP_EDGE = 0.055;
-  const PUMP_EDGE = 0.035;
+  const thP = la?.thPumpDelta ?? 0;
+  const thD = la?.thDumpDelta ?? 0;
+  const PUMP_EDGE = 0.03 + thP;
+  const DUMP_EDGE_BASE = 0.046 + thD;
+  const dumpFriction = isPumpFun ? 0.02 : 0;
+  const DUMP_EDGE = DUMP_EDGE_BASE + dumpFriction;
 
   /** @type {'Pump' | 'Dump'} */
   let prediction;
   if (directionScore >= PUMP_EDGE) prediction = "Pump";
   else if (directionScore <= -DUMP_EDGE) prediction = "Dump";
-  else prediction = pUp >= 0.5 ? "Pump" : "Dump";
+  else {
+    const tapeTilt = tape > 0.038 ? 0.12 : tape < -0.038 ? -0.12 : 0;
+    const priorBump = isPumpFun ? 0.038 : 0;
+    const blended = Math.max(0.07, Math.min(0.93, pUp + tapeTilt * 0.42 + priorBump));
+    prediction = blended >= 0.5 ? "Pump" : "Dump";
+  }
+
+  const strongBullTape = near > 0.15 && flow > 0.08 && tape > 0.055;
+  if (prediction === "Dump" && strongBullTape && directionScore > -(DUMP_EDGE + 0.058)) {
+    prediction = "Pump";
+  }
 
   const top10 = marketContext?.top10HolderPct;
   const top1 = marketContext?.top1HolderPct;
 
-  let confidence = 0.38 + 0.42 * Math.min(1, Math.abs(directionScore) * 1.15);
-  if (prediction === "Dump") confidence *= 0.9;
+  const inNeutralBand = directionScore > -DUMP_EDGE && directionScore < PUMP_EDGE;
+  let confidence = 0.38 + 0.42 * Math.min(1, Math.abs(directionScore) * 1.12);
+  if (inNeutralBand) {
+    confidence =
+      0.4 +
+      0.34 * Math.min(1, 2.2 * Math.abs(pUp - 0.5)) +
+      0.12 * Math.min(1, Math.abs(tape) * 2.4);
+  }
+  if (prediction === "Dump") confidence *= 0.92;
+  if (prediction === "Pump" && strongBullTape) confidence = Math.min(0.84, confidence + 0.04);
   if (mt.inBoost) confidence = Math.min(0.84, confidence + 0.06);
   if (meta > 0.35) confidence = Math.min(0.84, confidence + 0.04);
   if (top10 != null && top10 > 0.4) confidence -= 0.05;
@@ -197,7 +245,7 @@ export function buildArenaV2Decision(input) {
   if (ageMin != null && ageMin < 8) confidence -= 0.03;
   const confScale = la?.confidenceScale ?? 1;
   confidence *= confScale;
-  confidence = Math.min(0.84, Math.max(0.34, Math.round(confidence * 100) / 100));
+  confidence = Math.min(0.84, Math.max(0.36, Math.round(confidence * 100) / 100));
 
   const chatMessage = pickChatMessage(prediction, sym || "?", challengeId || mint);
 
@@ -206,10 +254,10 @@ export function buildArenaV2Decision(input) {
       ? `top10 ${pctStr(top10)} top1 ${pctStr(top1)}.`
       : "holders n/a.";
 
-  const trendNote = `v3 tr_b${trendBoost} tr_p${trendProfile} meta${meta.toFixed(2)} pUp${pUp.toFixed(2)} d${directionScore.toFixed(2)} snap${trendingSnapshot.solMintsAll.size}`;
+  const trendNote = `v3${isPumpFun ? " pf" : ""} tr_b${trendBoost} tr_p${trendProfile} meta${meta.toFixed(2)} pUp${pUp.toFixed(2)} d${directionScore.toFixed(2)} snap${trendingSnapshot.solMintsAll.size}`;
   const learnNote =
-    (la?.compositeBias ?? 0) !== 0 || (la?.thPumpDelta ?? 0) > 0
-      ? ` hist${(la?.compositeBias ?? 0).toFixed(2)}`
+    (la?.compositeBias ?? 0) !== 0 || (la?.thPumpDelta ?? 0) > 0 || (la?.thDumpDelta ?? 0) > 0
+      ? ` hist${(la?.compositeBias ?? 0).toFixed(2)} thP${(la?.thPumpDelta ?? 0).toFixed(3)} thD${(la?.thDumpDelta ?? 0).toFixed(3)}`
       : "";
   const narrNote = narr ? ` n${narr.toFixed(2)}` : "";
 

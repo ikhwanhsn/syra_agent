@@ -194,6 +194,18 @@ export function computeLearnedAdjustments(rows) {
     compositeBias -= Math.min(0.014, 0.004 + pumpHighConfWrong * 0.003);
   }
 
+  // Almost-all-dump playbook with poor dump WR → nudge direction score toward pump (v3 reads compositeBias + th*).
+  if (sampleSize >= 14 && dumpN >= 10) {
+    const dumpRatio = dumpN / sampleSize;
+    if (dumpRatio > 0.8 && wrDump < 0.46) {
+      compositeBias += Math.min(
+        0.022,
+        (dumpRatio - 0.8) * 0.12 + Math.max(0, 0.46 - wrDump) * 0.055,
+      );
+      thDumpDelta = Math.max(thDumpDelta, Math.min(0.022, 0.004 + (0.46 - wrDump) * 0.08));
+    }
+  }
+
   compositeBias = Math.max(-0.028, Math.min(0.028, compositeBias));
   thPumpDelta = Math.max(0, Math.min(0.028, thPumpDelta));
   thDumpDelta = Math.max(0, Math.min(0.028, thDumpDelta));
