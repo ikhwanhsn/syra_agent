@@ -7,6 +7,8 @@ export interface ArticleItem {
   comingSoon: boolean;
   /** Attribution line above the title (Syra posts on X). */
   source: string;
+  /** Public URL under `public/` (e.g. `/images/articles/foo.webp`). Omit for coming soon — card shows a placeholder instead. */
+  coverImage?: string;
 }
 
 /** Max cards in the home page “Insights & Updates” section. */
@@ -25,6 +27,7 @@ export const articles: ArticleItem[] = [
     external: true,
     comingSoon: false,
     source: SYRA_X_SOURCE_LINE,
+    coverImage: "/images/articles/article-one.webp",
   },
   {
     id: "syra-x",
@@ -36,6 +39,7 @@ export const articles: ArticleItem[] = [
     external: true,
     comingSoon: false,
     source: SYRA_X_SOURCE_LINE,
+    coverImage: "/images/articles/article-two.webp",
   },
   {
     id: "article-2",
