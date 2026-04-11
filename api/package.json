@@ -21,7 +21,8 @@
     "openapi": "node scripts/export-openapi.mjs",
     "arena-worker": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs",
     "arena-worker:once": "node -r dotenv/config scripts/devfun-arena/run-worker.mjs --once",
-    "arena-ping": "node -r dotenv/config scripts/devfun-arena/arenaPing.mjs"
+    "arena-ping": "node -r dotenv/config scripts/devfun-arena/arenaPing.mjs",
+    "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

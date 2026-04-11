@@ -10,7 +10,7 @@ const agentWalletSchema = new mongoose.Schema(
     chain: { type: String, required: false, default: 'solana', enum: ['solana', 'base'] },
     /** Agent wallet public key (Solana base58 or EVM 0x); user deposits here */
     agentAddress: { type: String, required: true },
-    /** Agent wallet secret: Solana = base58, Base = hex private key */
+    /** Agent wallet secret: Solana = base58, Base = hex. At rest may be enc:v1:… envelope (see agentWalletSecretCrypto.js). */
     agentSecretKey: { type: String, required: true },
     /** User avatar URL generated when wallet is first created */
     avatarUrl: { type: String, required: false },

@@ -6,6 +6,7 @@ import { Keypair, Connection, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { getAddress } from 'viem';
 import AgentWallet from '../models/agent/AgentWallet.js';
+import { decryptAgentSecretFromStorage } from './agentWalletSecretCrypto.js';
 
 /**
  * Get the agent keypair for an anonymous user.
@@ -17,9 +18,15 @@ export async function getAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc?.agentSecretKey) return null;
+  let plainSecret;
   try {
-    const secretKey = bs58.decode(doc.agentSecretKey);
-    return Keypair.fromSecretKey(secretKey);
+    plainSecret = decryptAgentSecretFromStorage(doc.agentSecretKey);
+  } catch (e) {
+    console.error('[agentWallet] decrypt agentSecretKey failed:', e?.message || String(e));
+    return null;
+  }
+  try {
+    return Keypair.fromSecretKey(bs58.decode(plainSecret));
   } catch {
     return null;
   }
@@ -53,8 +60,15 @@ export async function getSolanaAgentKeypair(anonymousId) {
   let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc) return null;
   if (doc.chain === 'solana' && doc.agentSecretKey) {
+    let plain;
     try {
-      return Keypair.fromSecretKey(bs58.decode(doc.agentSecretKey));
+      plain = decryptAgentSecretFromStorage(doc.agentSecretKey);
+    } catch (e) {
+      console.error('[agentWallet] decrypt agentSecretKey failed:', e?.message || String(e));
+      return null;
+    }
+    try {
+      return Keypair.fromSecretKey(bs58.decode(plain));
     } catch {
       return null;
     }
@@ -62,8 +76,15 @@ export async function getSolanaAgentKeypair(anonymousId) {
   if (doc.walletAddress) {
     doc = await AgentWallet.findOne({ walletAddress: doc.walletAddress, chain: 'solana' }).lean();
     if (doc?.agentSecretKey) {
+      let plain;
       try {
-        return Keypair.fromSecretKey(bs58.decode(doc.agentSecretKey));
+        plain = decryptAgentSecretFromStorage(doc.agentSecretKey);
+      } catch (e) {
+        console.error('[agentWallet] decrypt agentSecretKey failed:', e?.message || String(e));
+        return null;
+      }
+      try {
+        return Keypair.fromSecretKey(bs58.decode(plain));
       } catch {
         return null;
       }

@@ -7,6 +7,7 @@ import pkg from 'random-avatar-generator';
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
 import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
+import { encryptAgentSecretForStorage } from '../../libs/agentWalletSecretCrypto.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -194,7 +195,7 @@ router.post('/connect', async (req, res) => {
         walletAddress,
         chain: 'base',
         agentAddress,
-        agentSecretKey,
+        agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
         avatarUrl,
       });
 
@@ -219,7 +220,7 @@ router.post('/connect', async (req, res) => {
       walletAddress,
       chain: 'solana',
       agentAddress,
-      agentSecretKey,
+      agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
       avatarUrl,
     });
 
@@ -315,7 +316,7 @@ router.post('/', async (req, res) => {
     await AgentWallet.create({
       anonymousId,
       agentAddress,
-      agentSecretKey,
+      agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
       avatarUrl,
     });
 
