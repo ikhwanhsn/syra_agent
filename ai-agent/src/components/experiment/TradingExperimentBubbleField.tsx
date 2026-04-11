@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 
 export type AgentBubble = {
   id: number;
+  /** Shown in the orb as “#…”. Defaults to `id` when omitted (use when `id` is encoded for uniqueness). */
+  displayAgentId?: number;
   label: string;
   token: string;
   winRatePct: number | null;
@@ -166,8 +168,9 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
       const x = ov?.x ?? spiral.x;
       const y = ov?.y ?? spiral.y;
       const d = Math.round(Math.max(48, Math.min(152, b.radius * 2)));
-      const dur = 7 + (b.id % 5) * 0.45;
-      const delay = (b.id % 11) * 0.1;
+      const displayNum = b.displayAgentId ?? b.id;
+      const dur = 7 + (displayNum % 5) * 0.45;
+      const delay = (displayNum % 11) * 0.1;
       const tier = tierFor(b);
       const theme = TIER_THEME[tier];
       const z = 20 + Math.round(d);
@@ -349,15 +352,15 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
     hoveredPlaced && tooltipFixed && typeof document !== "undefined"
       ? createPortal(
           <div
-            className="pointer-events-none fixed w-max max-w-[240px] -translate-x-1/2 rounded-lg border border-border/80 bg-popover/95 px-3 py-2 text-left shadow-xl backdrop-blur-md"
+            className="pointer-events-none fixed w-max max-w-[260px] -translate-x-1/2 rounded-xl border border-white/10 bg-popover/95 px-3.5 py-2.5 text-left shadow-2xl shadow-black/40 backdrop-blur-xl"
             style={{ left: tooltipFixed.cx, top: tooltipFixed.top, zIndex: TOOLTIP_Z }}
           >
-            <p className="truncate text-xs font-semibold text-popover-foreground">{hoveredPlaced.label}</p>
+            <p className="truncate text-xs font-semibold tracking-tight text-popover-foreground">{hoveredPlaced.label}</p>
             <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
               #{hoveredPlaced.id} · {hoveredPlaced.token}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
-              <span className="rounded-md bg-muted/80 px-1.5 py-0.5 font-medium text-foreground">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+              <span className="rounded-md border border-border/50 bg-muted/80 px-1.5 py-0.5 font-medium text-foreground">
                 {hoveredPlaced.theme.label}
               </span>
               <span>
@@ -379,7 +382,7 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
       : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <style>{`
         @keyframes syra-bubble-drift {
           0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
@@ -393,23 +396,46 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
 
       {tooltipPortal}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">Agent bubble map</h3>
-          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Wheel or ± to zoom · drag background to pan · drag a bubble to reposition · click bubble (without dragging)
-            to open profile.
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 max-w-2xl space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Visualization</p>
+          <h3 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">Agent bubble map</h3>
+          <p className="text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
+            Wheel or ± to zoom · drag background to pan · drag a bubble to reposition · click a bubble (without dragging)
+            to open its profile.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-          <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => zoomStepAtCenter(-1)} aria-label="Zoom out">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/25 p-1.5 shadow-inner backdrop-blur-sm dark:bg-muted/20">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 border-border/70 bg-background/80 shadow-sm"
+            onClick={() => zoomStepAtCenter(-1)}
+            aria-label="Zoom out"
+          >
             <Minus className="h-4 w-4" />
           </Button>
-          <span className="min-w-[3rem] text-center font-mono text-xs text-muted-foreground tabular-nums">{Math.round(zoom * 100)}%</span>
-          <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => zoomStepAtCenter(1)} aria-label="Zoom in">
+          <span className="min-w-[3.25rem] rounded-lg bg-background/85 px-2 py-1.5 text-center font-mono text-xs font-medium tabular-nums text-foreground ring-1 ring-border/50">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 border-border/70 bg-background/80 shadow-sm"
+            onClick={() => zoomStepAtCenter(1)}
+            aria-label="Zoom in"
+          >
             <Plus className="h-4 w-4" />
           </Button>
-          <Button type="button" variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={resetView}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-9 gap-1.5 border border-border/50 px-3 text-xs font-medium shadow-sm"
+            onClick={resetView}
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Reset
           </Button>
@@ -419,9 +445,9 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
       <div
         ref={viewportRef}
         className={cn(
-          "relative h-[440px] w-full overflow-hidden rounded-2xl touch-none select-none",
-          "border border-white/[0.08] bg-[hsl(222_47%_6%)]",
-          "shadow-[inset_0_1px_0_0_hsla(0,0%,100%,0.06)]",
+          "relative h-[clamp(360px,48vh,560px)] min-h-[360px] w-full overflow-hidden rounded-2xl touch-none select-none",
+          "border border-border/50 bg-[hsl(222_47%_6%)] ring-1 ring-white/[0.06]",
+          "shadow-[inset_0_1px_0_0_hsla(0,0%,100%,0.07),0_28px_80px_-28px_rgba(0,0,0,0.65)]",
           isPanning ? "cursor-grabbing" : "cursor-grab",
         )}
       >
@@ -520,7 +546,7 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
                       className="font-mono text-[10px] font-semibold tracking-tight text-white/95 sm:text-[11px]"
                       style={{ textShadow: "0 1px 3px hsla(0,0%,0%,0.65)" }}
                     >
-                      #{b.id}
+                      #{b.displayAgentId ?? b.id}
                     </span>
                     <span
                       className="font-mono text-[9px] font-medium tabular-nums text-white/75 sm:text-[10px]"
@@ -534,7 +560,7 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
                     className="relative z-[1] font-mono text-[9px] font-semibold text-white/90 pointer-events-none"
                     style={{ textShadow: "0 1px 2px hsla(0,0%,0%,0.6)" }}
                   >
-                    #{b.id}
+                    #{b.displayAgentId ?? b.id}
                   </span>
                 )}
               </Link>
@@ -543,20 +569,26 @@ export function TradingExperimentBubbleField({ bubbles, getAgentHref }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
-        <span className="font-medium text-foreground/80">Legend</span>
-        {(Object.keys(TIER_THEME) as Tier[]).map((t) => (
-          <span key={t} className="inline-flex items-center gap-1.5">
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full border border-white/20 shadow-sm"
-              style={{
-                background: `radial-gradient(circle at 30% 25%, ${TIER_THEME[t].highlight}, ${TIER_THEME[t].body})`,
-              }}
-            />
-            {TIER_THEME[t].label}
-          </span>
-        ))}
-        <span className="text-muted-foreground/80">· Size = resolved (W+L)</span>
+      <div className="rounded-xl border border-border/50 bg-muted/10 px-4 py-3 shadow-sm sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground sm:text-xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground/90">Legend</span>
+            {(Object.keys(TIER_THEME) as Tier[]).map((t) => (
+              <span key={t} className="inline-flex items-center gap-2">
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full border border-white/25 shadow-sm ring-1 ring-black/20"
+                  style={{
+                    background: `radial-gradient(circle at 30% 25%, ${TIER_THEME[t].highlight}, ${TIER_THEME[t].body})`,
+                  }}
+                />
+                <span className="font-medium text-foreground/85">{TIER_THEME[t].label}</span>
+              </span>
+            ))}
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground sm:text-xs sm:text-right">
+            Bubble <span className="font-medium text-foreground/80">size</span> reflects resolved trades (W+L).
+          </p>
+        </div>
       </div>
     </div>
   );

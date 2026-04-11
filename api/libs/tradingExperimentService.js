@@ -40,6 +40,22 @@ function mongoMatchSuite(suite) {
   return { suite: EXPERIMENT_SUITE_SECONDARY };
 }
 
+/** Internal sentinel for listRecentRuns: all standard lab ledgers merged (excludes wallet custom). */
+const LIST_RUNS_ALL_STANDARD_LAB = "__standard_lab__";
+
+function mongoMatchAllStandardLabSuites() {
+  return {
+    $or: [
+      { suite: EXPERIMENT_SUITE_PRIMARY },
+      { suite: { $exists: false } },
+      { suite: null },
+      { suite: "" },
+      { suite: EXPERIMENT_SUITE_SECONDARY },
+      { suite: EXPERIMENT_SUITE_MULTI_RESOURCE },
+    ],
+  };
+}
+
 const EXPERIMENT_RUN_STATUSES = new Set([
   "open",
   "win",
@@ -62,7 +78,8 @@ function escapeRegex(s) {
  * @returns {Record<string, unknown>}
  */
 function buildListRunsFilter(suiteNorm, f) {
-  const suiteQ = mongoMatchSuite(suiteNorm);
+  const suiteQ =
+    suiteNorm === LIST_RUNS_ALL_STANDARD_LAB ? mongoMatchAllStandardLabSuites() : mongoMatchSuite(suiteNorm);
   /** @type {Record<string, unknown>[]} */
   const parts = [suiteQ];
 
@@ -626,7 +643,11 @@ export async function getExperimentStats(opts = {}) {
 export async function listRecentRuns(opts = {}) {
   const limit = Math.min(200, Math.max(1, Number(opts.limit) || 50));
   const offset = Math.max(0, Number(opts.offset) || 0);
-  const suiteNorm = normalizeSuite(opts.suite);
+  const rawSuite = typeof opts.suite === "string" ? opts.suite.trim().toLowerCase() : "";
+  const suiteNorm =
+    rawSuite === "all" || rawSuite === "lab_all" || rawSuite === "merged"
+      ? LIST_RUNS_ALL_STANDARD_LAB
+      : normalizeSuite(opts.suite);
   const filter = buildListRunsFilter(suiteNorm, {
     status: opts.status,
     agentId: opts.agentId,

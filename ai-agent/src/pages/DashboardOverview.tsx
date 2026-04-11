@@ -18,12 +18,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
+import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
 import { agentLeaderboardApi, type AgentLeaderboardEntry, userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
 import { agent8004Api } from "@/lib/agent8004Api";
 import { fetchTradingExperimentStats } from "@/lib/tradingExperimentApi";
 import { fetchArbitrageSnapshot, fetchCmcTop } from "@/lib/arbitrageExperimentApi";
 import { BUILTIN_MARKETPLACE_PROMPT_COUNT } from "@/lib/marketplaceBuiltinCount";
+import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
+import { CoinLogo } from "@/components/crypto/CoinLogo";
 
 const USER_PROMPTS_SAMPLE = 100;
 const STALE_MS = 60_000;
@@ -44,18 +46,18 @@ const leaderboardChartConfig = {
 } satisfies ChartConfig;
 
 const wlChartConfig = {
-  wins: { label: "Wins", color: "hsl(142 70% 45%)" },
-  losses: { label: "Losses", color: "hsl(0 70% 50%)" },
+  wins: { label: "Wins", color: "hsl(var(--foreground))" },
+  losses: { label: "Losses", color: "hsl(var(--muted-foreground))" },
 } satisfies ChartConfig;
 
 const venueChartConfig = {
-  ok: { label: "Live", color: "hsl(142 70% 45%)" },
-  err: { label: "Unavailable", color: "hsl(240 10% 45%)" },
+  ok: { label: "Live", color: "hsl(var(--foreground))" },
+  err: { label: "Unavailable", color: "hsl(var(--destructive))" },
 } satisfies ChartConfig;
 
 const promptMixConfig = {
   builtin: { label: "Built-in", color: "hsl(var(--primary))" },
-  community: { label: "Community", color: "hsl(38 92% 50%)" },
+  community: { label: "Community", color: "hsl(var(--muted-foreground))" },
 } satisfies ChartConfig;
 
 function aggregatePromptCategories(prompts: UserPromptItem[]): { name: string; count: number }[] {
@@ -168,14 +170,14 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
   );
 
   const CATEGORY_BAR_COLORS = [
+    "hsl(var(--foreground))",
     "hsl(var(--primary))",
-    "hsl(38 92% 50%)",
-    "hsl(142 70% 45%)",
-    "hsl(280 60% 55%)",
-    "hsl(200 80% 50%)",
-    "hsl(0 70% 55%)",
-    "hsl(240 10% 55%)",
-    "hsl(30 80% 50%)",
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--ring))",
+    "hsl(0 0% 52%)",
+    "hsl(0 0% 42%)",
+    "hsl(0 0% 62%)",
+    "hsl(0 0% 35%)",
   ];
 
   const leaderboardBarData = useMemo(
@@ -225,7 +227,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         embedded ? "flex-1 min-h-0" : "min-h-screen",
       )}
     >
-      <div className={cn(DASHBOARD_CONTENT_SHELL, "py-6 sm:py-8 space-y-8 flex-1")}>
+      <div className={cn(DASHBOARD_CONTENT_SHELL, "flex-1 space-y-8", PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM)}>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-secondary border border-border shrink-0">
@@ -514,32 +516,39 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               ) : cmcBarData.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No assets returned.</p>
               ) : (
-                <ChartContainer
-                  config={{
-                    score: { label: "Rank score", color: "hsl(var(--accent))" },
-                  }}
-                  className="h-full w-full aspect-auto"
-                >
-                  <BarChart data={cmcBarData} margin={{ left: 8, right: 8, top: 8, bottom: 48 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                    <XAxis dataKey="symbol" tickLine={false} axisLine={false} interval={0} angle={-30} textAnchor="end" height={52} />
-                    <YAxis tickLine={false} axisLine={false} width={32} />
-                    <Tooltip
-                      cursor={{ fill: "hsl(var(--muted) / 0.2)" }}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        const row = payload[0].payload as { symbol: string; rank: number; score: number };
-                        return (
-                          <div className="rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs shadow-md">
-                            <p className="font-medium text-foreground">{row.symbol}</p>
-                            <p className="text-muted-foreground">CMC rank #{row.rank}</p>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="score" fill="var(--color-score)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
+                <CoingeckoBatchImageProvider symbols={cmcBarData.map((d) => d.symbol)}>
+                  <ChartContainer
+                    config={{
+                      score: { label: "Rank score", color: "hsl(var(--accent))" },
+                    }}
+                    className="h-full w-full aspect-auto"
+                  >
+                    <BarChart data={cmcBarData} margin={{ left: 8, right: 8, top: 8, bottom: 48 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                      <XAxis dataKey="symbol" tickLine={false} axisLine={false} interval={0} angle={-30} textAnchor="end" height={52} />
+                      <YAxis tickLine={false} axisLine={false} width={32} />
+                      <Tooltip
+                        cursor={{ fill: "hsl(var(--muted) / 0.2)" }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.[0]) return null;
+                          const row = payload[0].payload as { symbol: string; rank: number; score: number };
+                          return (
+                            <div className="rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs shadow-md">
+                              <div className="flex items-center gap-2">
+                                <CoinLogo symbol={row.symbol} size="xs" />
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground">{row.symbol}</p>
+                                  <p className="text-muted-foreground">CMC rank #{row.rank}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="score" fill="var(--color-score)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ChartContainer>
+                </CoingeckoBatchImageProvider>
               )}
             </CardContent>
           </Card>

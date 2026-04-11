@@ -203,6 +203,7 @@ export function createTradingExperimentRouter() {
     }
   });
 
+  /** Query suite: primary | secondary | multi_resource | lab_all (merged standard lab, excludes wallet custom). */
   router.get("/runs", async (req, res) => {
     try {
       const limit = req.query.limit != null ? Number(req.query.limit) : 50;

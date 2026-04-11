@@ -150,20 +150,20 @@ export function ChatArea({
             <Menu className="w-5 h-5" />
           </Button>
         </div>
-        <div className="flex items-center justify-end gap-1.5 sm:gap-3 shrink-0 min-w-0 flex-wrap sm:flex-nowrap max-w-full">
+        <div className="flex max-w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-2.5">
           {onToggleDarkMode && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 touch-manipulation"
+              className="h-9 min-h-[44px] min-w-[44px] shrink-0 rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 sm:h-9 sm:min-h-0 sm:min-w-0 touch-manipulation"
               onClick={onToggleDarkMode}
               title={isDarkMode ? "Light mode" : "Dark mode"}
               aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDarkMode ? (
-                <Sun className="w-4 h-4" />
+                <Sun className="h-4 w-4 text-foreground" />
               ) : (
-                <Moon className="w-4 h-4" />
+                <Moon className="h-4 w-4 text-foreground" />
               )}
             </Button>
           )}

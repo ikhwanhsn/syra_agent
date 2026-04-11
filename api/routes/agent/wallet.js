@@ -7,6 +7,7 @@ import pkg from 'random-avatar-generator';
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
 import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
+import { withdrawSolanaAgentToRecipient } from '../../libs/agentWalletWithdrawSol.js';
 import { encryptAgentSecretForStorage } from '../../libs/agentWalletSecretCrypto.js';
 
 const { AvatarGenerator } = pkg;
@@ -118,6 +119,30 @@ router.get('/:anonymousId/balance', async (req, res) => {
     solBalance,
     usdcBalance,
   });
+});
+
+/**
+ * POST /agent/wallet/:anonymousId/withdraw
+ * Body: { recipient: string } — Solana address; must match linked walletAddress on the agent record.
+ * Sweeps USDC and most SOL from the Solana agent wallet to the recipient.
+ */
+router.post('/:anonymousId/withdraw', async (req, res) => {
+  try {
+    const anonymousId = decodeAnonymousId(req.params.anonymousId);
+    const recipient =
+      typeof req.body?.recipient === 'string' ? req.body.recipient.trim() : '';
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    }
+    if (!recipient) {
+      return res.status(400).json({ success: false, error: 'recipient is required' });
+    }
+    const { signature } = await withdrawSolanaAgentToRecipient(anonymousId, recipient);
+    return res.json({ success: true, signature });
+  } catch (error) {
+    const message = error?.message || 'Withdraw failed';
+    return res.status(400).json({ success: false, error: message });
+  }
 });
 
 /**

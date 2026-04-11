@@ -8,11 +8,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, ChevronDown, Wallet, Loader2, Zap, RefreshCw, User } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Copy,
+  ChevronDown,
+  Loader2,
+  LogOut,
+  RefreshCw,
+  User,
+  Wallet,
+  Zap,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -22,6 +30,7 @@ import {
 import { FuelAgentModal } from "./FuelAgentModal";
 import { ProfileModal } from "./ProfileModal";
 import { cn } from "@/lib/utils";
+import { CoinLogo } from "@/components/crypto/CoinLogo";
 
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
@@ -165,7 +174,7 @@ export function WalletNav() {
   if (!hasAnyWallet) {
     return (
       <Button
-        className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm px-2.5 sm:px-3 touch-manipulation shrink-0 max-w-full"
+        className="h-9 min-h-[44px] rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 sm:min-h-0 touch-manipulation shrink-0 max-w-full"
         onClick={openConnectModal}
       >
         <Wallet className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
@@ -177,26 +186,37 @@ export function WalletNav() {
     );
   }
 
+  /** Shared chrome for chain / Fuel / wallet pills (height, border, depth). */
   const navItemClass =
-    "h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg border border-border bg-background px-2.5 sm:px-3 gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm inline-flex items-center min-w-0 touch-manipulation";
+    "h-9 min-h-[44px] sm:min-h-0 rounded-xl border border-border/60 bg-muted/25 px-2.5 shadow-sm backdrop-blur-sm sm:px-3 gap-2 text-sm font-medium tabular-nums inline-flex items-center min-w-0 touch-manipulation transition-colors hover:bg-muted/40";
 
   const balanceJustReduced = lastDebitUsd != null && lastDebitUsd > 0;
   const agentUsdcDisplay = displayBase ? agentBaseUsdcBalance : agentUsdcBalance;
   const hasUsdcAgent = agentUsdcDisplay != null && agentUsdcDisplay > 0;
 
   return (
-    <div className="flex items-center gap-1 sm:gap-2 min-w-0 max-w-full flex-wrap justify-end sm:flex-nowrap">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-2.5">
       {/* Chain badge – show the chain used for this session (one chain only) */}
       {hasAnyWallet && (
         <Tooltip>
           <TooltipTrigger asChild>
             <div
               className={cn(
-                "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium shrink-0",
-                "bg-primary/10 border-primary/30 text-primary"
+                "hidden h-9 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-semibold shadow-sm sm:flex sm:min-h-0",
+                displaySolana
+                  ? "border-foreground/20 bg-muted/50 text-foreground ring-1 ring-foreground/10"
+                  : "border-border bg-muted/40 text-foreground ring-1 ring-border/80",
               )}
             >
-              <span className="w-2 h-2 rounded-full bg-current" />
+              <span
+                className={cn(
+                  "h-2 w-2 shrink-0 rounded-full",
+                  displaySolana
+                    ? "bg-foreground/80 shadow-[0_0_8px_hsl(var(--foreground)/0.35)]"
+                    : "bg-muted-foreground shadow-[0_0_8px_hsl(var(--muted-foreground)/0.35)]",
+                )}
+                aria-hidden
+              />
               {displaySolana ? "Solana" : "Base"}
             </div>
           </TooltipTrigger>
@@ -214,39 +234,46 @@ export function WalletNav() {
         <Button
           variant="outline"
           size="sm"
-          className="h-10 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg font-medium text-xs sm:text-sm px-2 sm:px-3 gap-1 sm:gap-1.5 shrink-0 touch-manipulation"
+          className={cn(
+            navItemClass,
+            "border-primary/25 bg-primary/[0.08] px-2.5 font-semibold text-foreground hover:bg-primary/[0.14] sm:px-3",
+          )}
           onClick={() => setFuelModalOpen(true)}
           title={displayBase ? "Add USDC and ETH to agent wallet on Base" : "Add USDC and SOL to agent wallet"}
           aria-label="Fuel the agent"
         >
-          <Zap className="w-4 h-4 shrink-0" />
+          <Zap className="h-4 w-4 shrink-0 text-primary" />
           <span className="hidden min-[360px]:inline">Fuel</span>
         </Button>
       )}
       {/* Agent wallet – same height & style as connected wallet; red blink when balance reduced by tool */}
       <div
-        className={`hidden md:flex ${navItemClass} max-w-[180px] lg:max-w-[220px]`}
+        className={cn("hidden max-w-[200px] md:flex md:max-w-[220px] lg:max-w-[260px]", navItemClass)}
         title="Agent wallet · Click address to copy"
       >
-        <Wallet className="w-4 h-4 shrink-0 text-muted-foreground" />
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           {agentLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
           ) : agentAddress ? (
             <button
               type="button"
               onClick={() => copyToClipboard(agentAddress, "Agent wallet address")}
-              className="font-mono text-xs text-foreground hover:text-primary truncate focus:outline-none focus:underline text-left"
+              className="min-w-0 truncate text-left font-mono text-xs text-foreground hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
             >
               {agentShortAddress ?? `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`}
             </button>
           ) : (
-            <span className="text-xs text-muted-foreground truncate">—</span>
+            <span className="truncate text-xs text-muted-foreground">—</span>
           )}
           {agentUsdcDisplay != null && (
             <span
               key={balanceJustReduced ? "blink" : "normal"}
-              className={`shrink-0 text-xs tabular-nums rounded px-0.5 ${hasUsdcAgent ? "font-semibold text-emerald-500" : "text-muted-foreground"} ${balanceJustReduced ? "balance-blink-red" : ""}`}
+              className={cn(
+                "shrink-0 border-l border-border/50 pl-2.5 text-xs tabular-nums",
+                hasUsdcAgent ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                balanceJustReduced && "balance-blink-red",
+              )}
               title="USDC balance"
             >
               ${formatUsdc(agentUsdcDisplay)}
@@ -258,20 +285,29 @@ export function WalletNav() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className={`${navItemClass} min-w-0 max-w-[min(180px,calc(100vw-11rem))] sm:max-w-[180px] justify-between`}
+            className={cn(
+              navItemClass,
+              "max-w-[min(200px,calc(100vw-10rem))] justify-between gap-1.5 font-mono text-xs sm:max-w-[200px]",
+            )}
           >
-            <span className="truncate">{displayShortAddress ?? "…"}</span>
-            <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 opacity-50" />
+            <span className="min-w-0 truncate text-foreground">{displayShortAddress ?? "…"}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground opacity-70" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)] z-[100] p-0 gap-0">
-          {/* Header with refresh */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border/60">
-            <span className="text-xs font-medium text-muted-foreground">Wallets</span>
+        <DropdownMenuContent
+          align="end"
+          className={cn(
+            "z-[100] min-w-0 w-[min(22rem,calc(100vw-1.25rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px))))] max-w-[calc(100vw-1rem)] p-0",
+            "rounded-xl border-border/60 bg-popover shadow-lg ring-1 ring-white/[0.04]",
+          )}
+        >
+          {/* Header — same horizontal inset as cards + actions */}
+          <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
+            <span className="text-sm font-semibold tracking-tight text-foreground">Wallets</span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground -mr-1"
+              className="h-9 shrink-0 gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               onClick={handleRefreshBalances}
               disabled={balanceRefreshing}
               title="Refresh all balances"
@@ -285,15 +321,20 @@ export function WalletNav() {
             </Button>
           </div>
 
-          <div className="p-3 space-y-3">
-            {/* Agent wallet card – on Base show ETH/USDC (Base); on Solana show SOL/USDC */}
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-3 px-4 py-3">
+            {/* Agent wallet */}
+            <div
+              className={cn(
+                "rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.06] via-card/90 to-muted/20 p-3.5 shadow-sm ring-1 ring-white/[0.03] dark:from-emerald-500/[0.08]",
+                "space-y-2.5 min-w-0",
+              )}
+            >
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
                 Agent wallet {displayBase ? "(Base)" : "(Solana)"}
               </p>
               {agentLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                   Creating…
                 </div>
               ) : agentAddress ? (
@@ -301,119 +342,183 @@ export function WalletNav() {
                   <button
                     type="button"
                     onClick={() => handleCopyAgent()}
-                    className="flex items-center justify-between gap-2 w-full rounded px-1.5 py-0.5 -mx-1.5 -my-0.5 hover:bg-muted/50 transition-colors text-left group"
+                    className="group flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border/60 hover:bg-muted/40"
                   >
-                    <span className="truncate font-mono text-xs text-foreground" title={agentAddress}>
+                    <span className="min-w-0 truncate font-mono text-[13px] text-foreground sm:text-sm" title={agentAddress}>
                       {agentShortAddress ?? agentAddress}
                     </span>
-                    <Copy className="h-3 w-3 shrink-0 opacity-50 group-hover:opacity-80" />
+                    <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
                   </button>
                   {displayBase ? (
-                    <div className="flex items-center gap-4 text-xs pt-0.5">
+                    <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
                       {agentBaseUsdcBalance != null && (
-                        <span className={(agentBaseUsdcBalance > 0 ? "font-medium text-emerald-600 dark:text-emerald-400" : "text-muted-foreground") + " tabular-nums"}>
-                          ${agentBaseUsdcBalance.toFixed(2)} USDC
-                        </span>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            <CoinLogo symbol="USDC" size="xs" />
+                            USDC
+                          </span>
+                          <span
+                            className={
+                              agentBaseUsdcBalance > 0
+                                ? "font-semibold text-emerald-600 dark:text-emerald-400"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            ${agentBaseUsdcBalance.toFixed(2)}
+                          </span>
+                        </div>
                       )}
                       {agentBaseEthBalance != null && (
-                        <span className="text-muted-foreground tabular-nums">{agentBaseEthBalance.toFixed(4)} ETH</span>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            <CoinLogo symbol="ETH" size="xs" />
+                            ETH
+                          </span>
+                          <span className="text-muted-foreground">{agentBaseEthBalance.toFixed(4)}</span>
+                        </div>
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 text-xs pt-0.5">
+                    <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
                       {agentUsdcBalance != null && (
-                        <span className={hasUsdc ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
-                          ${formatUsdc(agentUsdcBalance)} USDC
-                        </span>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            <CoinLogo symbol="USDC" size="xs" />
+                            USDC
+                          </span>
+                          <span className={hasUsdc ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
+                            ${formatUsdc(agentUsdcBalance)}
+                          </span>
+                        </div>
                       )}
                       {agentSolBalance != null && (
-                        <span className="text-muted-foreground tabular-nums">{agentSolBalance.toFixed(4)} SOL</span>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            <CoinLogo symbol="SOL" size="xs" />
+                            SOL
+                          </span>
+                          <span className="text-muted-foreground">{agentSolBalance.toFixed(4)}</span>
+                        </div>
                       )}
                     </div>
                   )}
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground py-1">Failed to load</p>
+                <p className="py-1 text-xs text-muted-foreground">Failed to load</p>
               )}
             </div>
 
-            {/* Connected wallet card – Solana or Base depending on what is connected */}
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            {/* Connected wallet */}
+            <div className="min-w-0 space-y-2.5 rounded-xl border border-border/70 bg-gradient-to-br from-card to-muted/25 p-3.5 shadow-sm ring-1 ring-white/[0.03]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
                 Connected wallet {displaySolana ? "(Solana)" : "(Base)"}
               </p>
               <button
                 type="button"
                 onClick={() => handleCopyWallet()}
-                className="flex items-center justify-between gap-2 w-full rounded px-1.5 py-0.5 -mx-1.5 -my-0.5 hover:bg-muted/50 transition-colors text-left group"
+                className="group flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border/60 hover:bg-muted/40"
               >
-                <span className="truncate font-mono text-xs text-foreground" title={publicKey?.toBase58() ?? baseAddress ?? undefined}>
+                <span
+                  className="min-w-0 truncate font-mono text-[13px] text-foreground sm:text-sm"
+                  title={publicKey?.toBase58() ?? baseAddress ?? undefined}
+                >
                   {displaySolana && publicKey
-                    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+                    ? (connectedWalletShort ?? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`)
                     : baseAddress
-                      ? `${baseAddress.slice(0, 6)}...${baseAddress.slice(-4)}`
+                      ? (baseShortAddress ?? `${baseAddress.slice(0, 6)}...${baseAddress.slice(-4)}`)
                       : "…"}
                 </span>
-                <Copy className="h-3 w-3 shrink-0 opacity-50 group-hover:opacity-80" />
+                <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
               </button>
               {displaySolana && userUsdcBalance != null && userSolBalance != null && (
-                <div className="flex items-center gap-4 text-xs pt-0.5">
-                  <span className={userUsdcBalance > 0 ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
-                    ${userUsdcBalance.toFixed(2)} USDC
-                  </span>
-                  <span className="text-muted-foreground tabular-nums">{userSolBalance.toFixed(4)} SOL</span>
+                <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                      <CoinLogo symbol="USDC" size="xs" />
+                      USDC
+                    </span>
+                    <span className={userUsdcBalance > 0 ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
+                      ${userUsdcBalance.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                      <CoinLogo symbol="SOL" size="xs" />
+                      SOL
+                    </span>
+                    <span className="text-muted-foreground">{userSolBalance.toFixed(4)}</span>
+                  </div>
                 </div>
               )}
               {displayBase && (baseUsdcBalance != null || baseEthBalance != null) && (
-                <div className="flex items-center gap-4 text-xs pt-0.5">
+                <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
                   {baseUsdcBalance != null && (
-                    <span className={baseUsdcBalance > 0 ? "font-medium text-emerald-600 dark:text-emerald-400 tabular-nums" : "text-muted-foreground tabular-nums"}>
-                      ${baseUsdcBalance.toFixed(2)} USDC
-                    </span>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                        <CoinLogo symbol="USDC" size="xs" />
+                        USDC
+                      </span>
+                      <span className={baseUsdcBalance > 0 ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
+                        ${baseUsdcBalance.toFixed(2)}
+                      </span>
+                    </div>
                   )}
                   {baseEthBalance != null && (
-                    <span className="text-muted-foreground tabular-nums">{baseEthBalance.toFixed(4)} ETH</span>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                        <CoinLogo symbol="ETH" size="xs" />
+                        ETH
+                      </span>
+                      <span className="text-muted-foreground">{baseEthBalance.toFixed(4)}</span>
+                    </div>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="border-t border-border/60 py-1">
-            <DropdownMenuItem 
-              className="cursor-pointer py-2.5 text-sm rounded-none focus:bg-muted/50" 
+          <div className="border-t border-border/50 px-0 pb-2 pt-1">
+            <DropdownMenuItem
+              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
               onSelect={() => {
                 setProfileModalOpen(true);
                 setOpen(false);
               }}
             >
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer py-2.5 text-sm rounded-none focus:bg-muted/50" onSelect={handleChangeWallet}>
-              Change wallet
+              <span className="flex w-8 shrink-0 justify-center">
+                <User className="h-4 w-4 opacity-80" aria-hidden />
+              </span>
+              <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="cursor-pointer py-2.5 text-sm text-destructive focus:text-destructive focus:bg-destructive/10 rounded-none"
+              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
+              onSelect={handleChangeWallet}
+            >
+              <span className="flex w-8 shrink-0 justify-center">
+                <ArrowLeftRight className="h-4 w-4 opacity-80" aria-hidden />
+              </span>
+              <span>Change wallet</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm text-destructive focus:bg-destructive/10 focus:text-destructive"
               onSelect={(e) => {
                 e.preventDefault();
                 handleDisconnect();
               }}
               disabled={disconnecting}
             >
-              {disconnecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />
-                  Disconnecting…
-                </>
-              ) : (
-                "Disconnect"
-              )}
+              <span className="flex w-8 shrink-0 justify-center">
+                {disconnecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <LogOut className="h-4 w-4 opacity-80" aria-hidden />
+                )}
+              </span>
+              <span>{disconnecting ? "Disconnecting…" : "Disconnect"}</span>
             </DropdownMenuItem>
           </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <FuelAgentModal
         open={fuelModalOpen}

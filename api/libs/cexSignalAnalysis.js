@@ -17,7 +17,7 @@
  */
 import { CryptoAnalysisEngine } from "../scripts/cryptoAnalysisEngine.js";
 import { buildBinanceSignalReport } from "./binanceSignalAnalysis.js";
-import { buildOkxSignalReport } from "./okxSignalAnalysis.js";
+import { buildOkxSignalReport, resolveOkxInstId } from "./okxSignalAnalysis.js";
 import { barDurationMsGeneric, lastClosedAnchorFromEngineRows } from "./experimentCandleAnchor.js";
 
 /**
@@ -191,7 +191,14 @@ export function resolveCoinbaseProduct(token, instId) {
   const k = pickTokenMapKey(token);
   if (TOKEN_COINBASE[k]) return TOKEN_COINBASE[k];
   if (/^[a-z]{2,6}$/.test(k)) return `${k.toUpperCase()}-USD`;
-  return "BTC-USD";
+  // Reuse OKX slug→base mapping so long slugs (dogecoin, cardano) are not misrouted to BTC.
+  const okx = resolveOkxInstId(k, undefined);
+  const dash = okx.lastIndexOf("-");
+  if (dash === -1) return "BTC-USD";
+  const base = okx.slice(0, dash);
+  const quote = okx.slice(dash + 1);
+  if (quote === "USDT") return `${base}-USD`;
+  return okx;
 }
 
 async function buildCoinbaseReport(params) {
@@ -300,7 +307,10 @@ function barToKrakenInterval(bar) {
 export function resolveKrakenPair(token, instId) {
   if (instId && String(instId).trim()) return String(instId).trim().toUpperCase();
   const k = pickTokenMapKey(token);
-  return TOKEN_KRAKEN[k] || "XBTUSDT";
+  if (TOKEN_KRAKEN[k]) return TOKEN_KRAKEN[k];
+  // Never default to XBT for unknown slugs (would report Bitcoin for every alt).
+  const okx = resolveOkxInstId(k, undefined);
+  return okx.replace(/-/g, "");
 }
 
 function krakenRow(c) {

@@ -102,14 +102,14 @@ interface ChatMessageProps {
 function getUserAvatar(messageId: string) {
   // Generate a consistent color based on message ID hash
   const colors = [
-    { gradient: "from-pink-500 to-rose-500", emoji: "✨" },
-    { gradient: "from-blue-500 to-cyan-500", emoji: "🌟" },
-    { gradient: "from-purple-500 to-pink-500", emoji: "💫" },
-    { gradient: "from-orange-500 to-yellow-500", emoji: "⭐" },
-    { gradient: "from-green-500 to-emerald-500", emoji: "🎯" },
-    { gradient: "from-indigo-500 to-purple-500", emoji: "🚀" },
-    { gradient: "from-rose-500 to-pink-500", emoji: "💎" },
-    { gradient: "from-cyan-500 to-blue-500", emoji: "👑" },
+    { gradient: "from-zinc-500 to-zinc-700", emoji: "✨" },
+    { gradient: "from-neutral-400 to-neutral-600", emoji: "🌟" },
+    { gradient: "from-stone-500 to-stone-700", emoji: "💫" },
+    { gradient: "from-zinc-400 to-zinc-600", emoji: "⭐" },
+    { gradient: "from-neutral-500 to-neutral-700", emoji: "🎯" },
+    { gradient: "from-stone-400 to-stone-600", emoji: "🚀" },
+    { gradient: "from-zinc-600 to-zinc-800", emoji: "💎" },
+    { gradient: "from-neutral-600 to-neutral-800", emoji: "👑" },
   ];
   
   // Use message ID to generate consistent hash

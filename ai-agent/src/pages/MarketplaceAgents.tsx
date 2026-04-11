@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sheet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
+import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_STANDARD, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -1302,7 +1302,7 @@ export default function MarketplaceAgents() {
   };
 
   return (
-    <div className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6")}>
+    <div className={cn(DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_STANDARD, PAGE_SAFE_AREA_BOTTOM)}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-base font-semibold text-foreground mb-0.5">Agents</h2>

@@ -367,6 +367,30 @@ export const agentWalletApi = {
   },
 
   /**
+   * Sweep Solana agent wallet USDC + excess SOL to the linked user wallet (recipient must match server record).
+   */
+  async withdrawToLinkedWallet(
+    anonymousId: string,
+    recipient: string,
+  ): Promise<{ success: boolean; signature: string }> {
+    const res = await fetch(
+      `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/withdraw`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
+        body: JSON.stringify({ recipient }),
+      },
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(
+        (data as { error?: string })?.error || res.statusText || "Withdraw failed",
+      );
+    }
+    return data as { success: boolean; signature: string };
+  },
+
+  /**
    * Pay for a 402 response using the agent wallet (playground-style).
    * Backend signs with agent keypair and returns payment header for client to retry the request.
    */

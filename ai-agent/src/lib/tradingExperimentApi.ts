@@ -4,6 +4,44 @@ const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/trading-age
 
 export type TradingExperimentSuiteId = "primary" | "secondary" | "multi_resource";
 
+/** Lab ledgers merged into one UI list (order used for sort + encoded bubble ids). */
+export const TRADING_EXPERIMENT_LAB_SUITES: readonly TradingExperimentSuiteId[] = [
+  "primary",
+  "secondary",
+  "multi_resource",
+];
+
+/** Unified lab label (suites still differ in API `?suite=` but UI presents one experiment). */
+export const EXPERIMENT_LEDGER_LABEL: Record<TradingExperimentSuiteId, string> = {
+  primary: "Experiment",
+  secondary: "Experiment",
+  multi_resource: "Experiment",
+};
+
+const ENCODED_LAB_AGENT_STRIDE = 10_000;
+
+/**
+ * Stable numeric id for chart bubbles when the same agentId exists on multiple ledgers.
+ * Decode with {@link decodeExperimentLabAgentId}.
+ */
+export function encodeExperimentLabAgentId(suite: TradingExperimentSuiteId, agentId: number): number {
+  const idx = TRADING_EXPERIMENT_LAB_SUITES.indexOf(suite);
+  const s = idx >= 0 ? idx : 0;
+  return s * ENCODED_LAB_AGENT_STRIDE + agentId;
+}
+
+export function decodeExperimentLabAgentId(encoded: number): {
+  experimentSuite: TradingExperimentSuiteId;
+  agentId: number;
+} {
+  const suiteIdx = Math.floor(encoded / ENCODED_LAB_AGENT_STRIDE);
+  const agentId = encoded % ENCODED_LAB_AGENT_STRIDE;
+  return {
+    experimentSuite: TRADING_EXPERIMENT_LAB_SUITES[suiteIdx] ?? "primary",
+    agentId,
+  };
+}
+
 export function normalizeExperimentSuite(raw: string | null | undefined): TradingExperimentSuiteId {
   const s = String(raw || "primary")
     .trim()
@@ -53,6 +91,11 @@ export interface TradingExperimentAgentStats {
   openPositions: number;
   /** Multi-resource suite: CEX key. */
   cexSource?: string | null;
+  /**
+   * When stats are merged across lab ledgers, identifies which suite this row’s runs belong to.
+   * Profile and runs APIs still use `?suite=` for this value.
+   */
+  experimentSuite?: TradingExperimentSuiteId;
 }
 
 export interface TradingExperimentRunRow {
@@ -120,10 +163,33 @@ export async function fetchTradingExperimentStats(
   return body.data;
 }
 
+/** Parallel fetch of all standard lab suites; agents are tagged with `experimentSuite`. */
+export async function fetchTradingExperimentStatsAll(): Promise<{
+  agents: TradingExperimentAgentStats[];
+}> {
+  const parts = await Promise.all(
+    TRADING_EXPERIMENT_LAB_SUITES.map((suite) => fetchTradingExperimentStats(suite)),
+  );
+  const agents = parts.flatMap((p, i) =>
+    p.agents.map((a) => ({
+      ...a,
+      experimentSuite: TRADING_EXPERIMENT_LAB_SUITES[i],
+    })),
+  );
+  return { agents };
+}
+
+/** Suite query for `/runs`: single ledger or merged standard lab (`lab_all`). */
+export type TradingExperimentRunsSuiteParam =
+  | TradingExperimentSuiteId
+  | "lab_all"
+  | "all"
+  | "merged";
+
 export async function fetchTradingExperimentRuns(options: {
   limit?: number;
   offset?: number;
-  suite?: TradingExperimentSuiteId;
+  suite?: TradingExperimentRunsSuiteParam;
   status?: string;
   agentId?: number;
   symbol?: string;

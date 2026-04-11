@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -25,6 +25,10 @@ import {
   type TradingExperimentSuiteMeta,
 } from "@/lib/tradingExperimentApi";
 import {
+  explorerRunStatusBadgeClass,
+  explorerSignalBadgeClass,
+} from "@/lib/tradingExperimentRunBadges";
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,9 +36,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
+import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_STANDARD, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
+import { CoinLogo } from "@/components/crypto/CoinLogo";
+import { Badge } from "@/components/ui/badge";
 
 const RUNS_PAGE_SIZE = 15;
 
@@ -68,6 +76,8 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
   const [runsPage, setRunsPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const runSymbols = useMemo(() => runs.map((r) => r.symbol), [runs]);
 
   const setSuite = (next: TradingExperimentSuiteId) => {
     setSearchParams({ suite: next });
@@ -189,7 +199,9 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
         </header>
       )}
 
-      <main className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6 space-y-8 flex-1 min-h-0")}>
+      <main
+        className={cn(DASHBOARD_CONTENT_SHELL, "flex-1 min-h-0 space-y-8", PAGE_PADDING_TOP_STANDARD, PAGE_SAFE_AREA_BOTTOM)}
+      >
         {!agentIdValid ? (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Invalid agent id in URL.
@@ -199,13 +211,13 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
         <Tabs value={suite} onValueChange={(v) => setSuite(v as TradingExperimentSuiteId)} className="w-full">
           <TabsList className="h-auto min-h-10 flex-wrap gap-1 p-1">
             <TabsTrigger value="primary" className="text-xs sm:text-sm">
-              {suiteMeta.find((m) => m.id === "primary")?.title ?? "Experiment 1"}
+              {suiteMeta.find((m) => m.id === "primary")?.title ?? "Original"}
             </TabsTrigger>
             <TabsTrigger value="secondary" className="text-xs sm:text-sm">
-              {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Experiment 2"}
+              {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Parallel"}
             </TabsTrigger>
             <TabsTrigger value="multi_resource" className="text-xs sm:text-sm">
-              {suiteMeta.find((m) => m.id === "multi_resource")?.title ?? "Experiment 3"}
+              {suiteMeta.find((m) => m.id === "multi_resource")?.title ?? "BTC timeframes"}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -221,7 +233,10 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground font-mono">Agent #{parsedAgentId}</p>
-                <h2 className="text-2xl font-semibold tracking-tight mt-1">{strategy.name}</h2>
+                <h2 className="text-2xl font-semibold tracking-tight mt-1 inline-flex flex-wrap items-center gap-2">
+                  <span>{strategy.name}</span>
+                  <AgentBackgroundLiveIndicator openPositions={agent.openPositions} className="translate-y-0.5" />
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   {strategy.token} · {strategy.bar} · {strategy.limit} bars
                   {agent.cexSource && suite !== "multi_resource" ? (
@@ -320,6 +335,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                 </p>
               ) : null}
             </div>
+            <CoingeckoBatchImageProvider symbols={runSymbols}>
             <div className="rounded-md border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -347,21 +363,34 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {formatTime(r.createdAt)}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{r.symbol}</TableCell>
-                        <TableCell>{r.clearSignal}</TableCell>
                         <TableCell>
-                          <span
+                          <span className="inline-flex items-center gap-2">
+                            <CoinLogo symbol={r.symbol} size="xs" />
+                            <span className="font-mono text-xs">{r.symbol}</span>
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
                             className={cn(
-                              "text-xs font-medium px-1.5 py-0.5 rounded",
-                              r.status === "win" && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-                              r.status === "loss" && "bg-red-500/15 text-red-600 dark:text-red-400",
-                              r.status === "open" && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-                              r.status === "skipped_invalid_levels" &&
-                                "bg-muted text-muted-foreground",
+                              "font-mono text-[10px] font-semibold tabular-nums",
+                              explorerSignalBadgeClass(r.clearSignal),
                             )}
                           >
+                            {r.clearSignal}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "max-w-[13rem] truncate font-mono text-[10px] font-semibold normal-case tracking-normal",
+                              explorerRunStatusBadgeClass(r.status),
+                            )}
+                            title={r.status}
+                          >
                             {r.status}
-                          </span>
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-xs">
                           {r.entry != null ? r.entry.toFixed(4) : "—"}
@@ -372,7 +401,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                         <TableCell className="text-right tabular-nums text-xs">
                           {r.firstTarget != null ? r.firstTarget.toFixed(4) : "—"}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        <TableCell className="max-w-[200px] truncate font-mono text-xs text-foreground/80 dark:text-zinc-200">
                           {r.resolution ?? "—"}
                         </TableCell>
                       </TableRow>
@@ -381,6 +410,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                 </TableBody>
               </Table>
             </div>
+            </CoingeckoBatchImageProvider>
             {runsTotal > RUNS_PAGE_SIZE || runsPage > 1 ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
                 <p className="text-xs text-muted-foreground">

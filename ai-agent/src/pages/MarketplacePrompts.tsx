@@ -31,7 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
+import {
+  DASHBOARD_CONTENT_SHELL,
+  PAGE_PADDING_TOP_PROMPTS,
+  PAGE_SAFE_AREA_BOTTOM,
+} from "@/lib/layoutConstants";
 import { useToast } from "@/hooks/use-toast";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { marketplaceApi, userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
@@ -127,6 +131,9 @@ const CATEGORY_LABELS: Record<MarketplacePrompt["category"], string> = {
   general: "General",
 };
 
+const PROMPTS_GRID =
+  "grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3";
+
 /** MongoDB ObjectId-style id (24 hex chars) = user-created prompt */
 function isUserPromptId(id: string): boolean {
   return Boolean(id && id.length === 24 && /^[a-f0-9]+$/i.test(id));
@@ -163,44 +170,66 @@ function PromptCard({
   const peopleCount = useCount > 0 ? 1 : 0;
   const displayOwner = ownerLabel ?? (isUserPromptId(item.id) ? "User" : "Syra");
 
+  const rawCategory = "category" in item ? item.category : undefined;
+  const category =
+    rawCategory && rawCategory in CATEGORY_LABELS
+      ? CATEGORY_LABELS[rawCategory as MarketplacePrompt["category"]]
+      : null;
+
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-1.5 p-2.5 rounded-lg border border-border bg-card hover:border-primary/20 hover:shadow-soft transition-all group h-full min-h-[9.5rem]",
+        "group relative flex h-full min-h-[11rem] flex-col gap-3 overflow-hidden rounded-2xl border border-border/60 bg-card/75 p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ease-out",
+        "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-accent/35 before:to-transparent",
+        "hover:border-accent/25 hover:bg-card/95 hover:shadow-[0_12px_40px_-16px_hsl(0_0%_0%/0.45)]",
         isBlinking && "prompt-card-blink"
       )}
     >
       {/* Title row: icon + title/description + action buttons */}
-      <div className="flex items-start gap-2 min-w-0 flex-1">
-        <div className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center shrink-0">
-          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-gradient-to-br from-accent/15 via-transparent to-transparent shadow-inner">
+          <Icon className="h-4 w-4 text-accent" aria-hidden />
         </div>
-        <div className="flex-1 min-w-0 min-h-[3.5rem]">
-          <h3 className="font-medium text-foreground text-sm truncate">{item.title}</h3>
-          <p className="text-xs text-muted-foreground line-clamp-3 mt-0.5 break-words" title={description || undefined}>{description || "\u00A0"}</p>
+        <div className="min-h-[3.25rem] min-w-0 flex-1 pr-1">
+          <div className="flex flex-wrap items-center gap-2 gap-y-1">
+            <h3 className="truncate text-[0.9375rem] font-semibold leading-snug tracking-tight text-foreground">
+              {item.title}
+            </h3>
+            {category ? (
+              <span className="shrink-0 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {category}
+              </span>
+            ) : null}
+          </div>
+          <p
+            className="mt-1 line-clamp-2 break-words text-xs leading-relaxed text-muted-foreground"
+            title={description || undefined}
+          >
+            {description || "\u00A0"}
+          </p>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0 pt-0.5">
+        <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
           {ownerActions ? (
             <>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 opacity-70 group-hover:opacity-100"
+                className="h-8 w-8 rounded-lg text-muted-foreground opacity-80 transition-opacity hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); ownerActions.onEdit(); }}
                 title="Edit prompt"
                 aria-label="Edit prompt"
               >
-                <Pencil className="w-3.5 h-3.5" />
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-70 group-hover:opacity-100"
+                className="h-8 w-8 rounded-lg text-muted-foreground opacity-80 transition-opacity hover:text-destructive hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); ownerActions.onDelete(); }}
                 title="Delete prompt"
                 aria-label="Delete prompt"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </>
           ) : null}
@@ -208,67 +237,76 @@ function PromptCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 opacity-70 group-hover:opacity-100"
+              className="h-8 w-8 rounded-lg text-muted-foreground opacity-80 transition-opacity hover:text-foreground hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
               title="Duplicate to your prompts"
               aria-label="Duplicate to your prompts"
             >
-              <Copy className="w-3.5 h-3.5" />
+              <Copy className="h-3.5 w-3.5" />
             </Button>
           ) : null}
           <Button
             variant="ghost"
             size="icon"
             className={cn(
-              "h-7 w-7 shrink-0 opacity-70 group-hover:opacity-100",
-              isFavorite && "text-amber-500 hover:text-amber-600"
+              "h-8 w-8 shrink-0 rounded-lg text-muted-foreground opacity-80 transition-all hover:opacity-100",
+              isFavorite && "text-amber-500 hover:text-amber-400"
             )}
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
-            <Star className={cn("w-3.5 h-3.5", isFavorite && "fill-current")} />
+            <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
           </Button>
         </div>
       </div>
-      <div className="flex items-center gap-x-2 flex-nowrap text-xs text-muted-foreground min-w-0">
-        <span className="inline-flex items-center gap-1 shrink-0" title={displayOwner === "User" && "anonymousId" in item && item.anonymousId ? "User: " + item.anonymousId : undefined}>
-          <User className="w-3.5 h-3.5 shrink-0" />
-          <span>{displayOwner}</span>
+      <div className="flex min-w-0 flex-wrap gap-2 border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
+        <span
+          className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums"
+          title={displayOwner === "User" && "anonymousId" in item && item.anonymousId ? "User: " + item.anonymousId : undefined}
+        >
+          <User className="h-3 w-3 shrink-0 opacity-70" />
+          {displayOwner}
         </span>
-        <span className="inline-flex items-center gap-1 tabular-nums shrink-0" title="People who used">
-          <Users className="w-3.5 h-3.5 shrink-0" />
+        <span className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums" title="People who used">
+          <Users className="h-3 w-3 shrink-0 opacity-70" />
           {peopleCount} people
         </span>
-        <span className="inline-flex items-center gap-1 tabular-nums shrink-0" title="Times used">
-          <Zap className="w-3.5 h-3.5 shrink-0" />
+        <span className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums" title="Times used">
+          <Zap className="h-3 w-3 shrink-0 text-accent/80" />
           {useCount} used
         </span>
-        <span className={cn("inline-flex items-center gap-1 tabular-nums shrink-0", isFavorite && "font-medium text-amber-600 dark:text-amber-500")} title="Favorites">
-          <Heart className={cn("w-3.5 h-3.5 shrink-0", isFavorite && "fill-current")} />
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums",
+            isFavorite && "font-medium text-amber-600 dark:text-amber-400"
+          )}
+          title="Favorites"
+        >
+          <Heart className={cn("h-3 w-3 shrink-0 opacity-70", isFavorite && "fill-current opacity-100")} />
           {favoriteCount} favorite
         </span>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 mt-0.5 w-full">
+      <div className="mt-auto flex w-full gap-2">
         <Button
-          variant="secondary"
+          variant="default"
           size="sm"
-          className="h-7 text-xs flex-1 min-w-0"
+          className="h-9 min-w-0 flex-1 rounded-lg border-0 bg-accent text-xs font-medium text-accent-foreground shadow-[0_0_28px_-10px_hsl(var(--accent)/0.75)] transition-shadow hover:bg-accent/92 hover:shadow-[0_0_32px_-8px_hsl(var(--accent)/0.65)]"
           onClick={onUseInAgent}
           title={item.prompt}
         >
-          <MessageSquare className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          <MessageSquare className="mr-1.5 h-3.5 w-3.5 shrink-0" />
           Use in agent
         </Button>
         {onShowDetails ? (
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-xs flex-1 min-w-0"
+            className="h-9 min-w-0 flex-1 rounded-lg border-border/70 bg-background/50 text-xs font-medium text-foreground backdrop-blur-sm hover:bg-muted/50"
             onClick={(e) => { e.stopPropagation(); onShowDetails(); }}
             title="View prompt details"
           >
-            <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            <Info className="mr-1.5 h-3.5 w-3.5 shrink-0" />
             Details
           </Button>
         ) : null}
@@ -295,33 +333,34 @@ function PaginationBar({
   const end = Math.min(page * pageSize, totalItems);
   if (totalPages <= 1) return null;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border mt-3">
-      <p className="text-xs text-muted-foreground">
-        Showing {start}–{end} of {totalItems}
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/50 pt-4">
+      <p className="text-xs tabular-nums text-muted-foreground">
+        Showing <span className="font-medium text-foreground/90">{start}</span>–
+        <span className="font-medium text-foreground/90">{end}</span> of {totalItems}
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-muted/20 p-0.5">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 rounded-lg p-0 hover:bg-background/80"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           aria-label="Previous page"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-xs text-muted-foreground px-2 tabular-nums">
-          Page {page} of {totalPages}
+        <span className="min-w-[5.5rem] px-2 text-center text-xs tabular-nums text-muted-foreground">
+          {page} / {totalPages}
         </span>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 rounded-lg p-0 hover:bg-background/80"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           aria-label="Next page"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -777,16 +816,27 @@ export default function MarketplacePrompts() {
   });
 
   return (
-    <div className={cn(DASHBOARD_CONTENT_SHELL, "py-4 sm:py-5 lg:py-6 space-y-4")}>
-      <div>
-        <h2 className="text-base font-semibold text-foreground mb-0.5">Prompts</h2>
-        <p className="text-sm text-muted-foreground">
-          Use a prompt in the agent to start a conversation. Live data prompts trigger paid tools—connect your wallet to use them. Connect your wallet to sync favorites and create or edit prompts.
-        </p>
-      </div>
+    <div className={cn(DASHBOARD_CONTENT_SHELL, "relative", PAGE_PADDING_TOP_PROMPTS, PAGE_SAFE_AREA_BOTTOM)}>
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-[min(28rem,50vh)] max-w-4xl bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,hsl(var(--accent)/0.14),transparent_65%)]"
+        aria-hidden
+      />
+      <div className="relative z-10 space-y-8">
+      <header className="space-y-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Library</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-3xl space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Prompts</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Use a prompt in the agent to start a conversation. Live data prompts trigger paid tools—connect your wallet to use them.
+              Connect your wallet to sync favorites and create or edit prompts.
+            </p>
+          </div>
+        </div>
+      </header>
 
       {/* Section tabs at top */}
-      <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-muted/40 border border-border">
+      <div className="flex flex-wrap gap-1 rounded-2xl border border-border/50 bg-muted/20 p-1 shadow-inner backdrop-blur-sm">
         {SECTIONS.map(({ id, label, icon: Icon }) => {
           const count =
             id === "all"
@@ -803,17 +853,22 @@ export default function MarketplacePrompts() {
               type="button"
               onClick={() => setActiveSection(id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "flex min-h-[2.5rem] items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 isActive
-                  ? "bg-background text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  ? "bg-background/95 text-foreground shadow-md ring-1 ring-border/70"
+                  : "text-muted-foreground hover:bg-background/45 hover:text-foreground"
               )}
             >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <Icon className={cn("h-3.5 w-3.5 shrink-0", isActive && "text-accent")} />
               <span>{label}</span>
               {count !== undefined && count > 0 && (
-                <span className={cn("text-xs tabular-nums", isActive ? "text-muted-foreground" : "text-muted-foreground/80")}>
-                  ({count})
+                <span
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-[11px] tabular-nums",
+                    isActive ? "bg-muted/80 text-muted-foreground" : "bg-muted/40 text-muted-foreground/90"
+                  )}
+                >
+                  {count}
                 </span>
               )}
             </button>
@@ -825,14 +880,16 @@ export default function MarketplacePrompts() {
       <div className="min-h-[200px]">
         {activeSection === "all" && (
           <section>
-            <div className="flex flex-wrap items-center gap-2 justify-between mb-3">
-              <p className="text-xs text-muted-foreground">
-                System prompts and community prompts. Use the sort to find what you need.
+            <div className="mb-4 flex flex-wrap items-center gap-3 justify-between">
+              <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                System prompts and community prompts. Use sort to surface what you need.
               </p>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Sort:</span>
+              <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-background/40 px-2 py-1 backdrop-blur-sm">
+                <span className="whitespace-nowrap pl-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Sort
+                </span>
                 <Select value={allSortBy} onValueChange={(v) => setAllSortBy(v as "popular" | "used" | "newest")}>
-                  <SelectTrigger className="w-[10rem] h-8 text-xs" aria-label="Sort prompts">
+                  <SelectTrigger className="h-9 w-[10.5rem] rounded-lg border-0 bg-transparent text-xs shadow-none ring-0 focus:ring-0" aria-label="Sort prompts">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-background text-foreground border-border">
@@ -858,7 +915,7 @@ export default function MarketplacePrompts() {
               const pageItems = allPromptsSorted.slice(start, start + PROMPTS_PAGE_SIZE);
               return (
                 <>
-                  <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className={PROMPTS_GRID}>
                 {pageItems.map((entry) =>
                   entry.type === "system" ? (
                     <div key={entry.item.id}>
@@ -925,14 +982,16 @@ export default function MarketplacePrompts() {
 
         {activeSection === "system" && (
           <section>
-            <p className="text-xs text-muted-foreground mb-2">Built-in prompts that work with the agent and optional paid tools.</p>
+            <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Built-in prompts that work with the agent and optional paid tools.
+            </p>
             {(() => {
               const total = systemPromptsFlat.length;
               const start = (promptPage - 1) * PROMPTS_PAGE_SIZE;
               const pageItems = systemPromptsFlat.slice(start, start + PROMPTS_PAGE_SIZE);
               return (
                 <>
-                  <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className={PROMPTS_GRID}>
                     {pageItems.map((item) => (
                       <div key={item.id}>
                         <PromptCard
@@ -981,15 +1040,15 @@ export default function MarketplacePrompts() {
 
             {/* Row: Your prompts / All tabs (left), Create prompt (right) — compact, smaller than main section tabs */}
             <div className="flex flex-wrap items-center gap-2 justify-between">
-              <div className="flex gap-0.5 p-0.5 rounded-md bg-muted/40 border border-border">
+              <div className="flex gap-0.5 rounded-xl border border-border/50 bg-muted/20 p-0.5 shadow-inner backdrop-blur-sm">
                 <button
                   type="button"
                   onClick={() => setUserListView("all")}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium h-8 transition-colors min-w-0",
+                    "flex h-8 min-w-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                     userListView === "all"
-                      ? "bg-background text-foreground shadow-sm border border-border"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                      ? "border border-border/70 bg-background/95 text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/45 hover:text-foreground"
                   )}
                 >
                   <LayoutGrid className="w-3 h-3 shrink-0" />
@@ -1002,10 +1061,10 @@ export default function MarketplacePrompts() {
                   type="button"
                   onClick={() => setUserListView("yours")}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium h-8 transition-colors min-w-0",
+                    "flex h-8 min-w-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                     userListView === "yours"
-                      ? "bg-background text-foreground shadow-sm border border-border"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                      ? "border border-border/70 bg-background/95 text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/45 hover:text-foreground"
                   )}
                 >
                   <User className="w-3 h-3 shrink-0" />
@@ -1023,10 +1082,10 @@ export default function MarketplacePrompts() {
                     setCreateModalOpen(true);
                   }}
                   size="sm"
-                  variant="secondary"
-                  className="gap-1.5 h-8 text-xs px-2.5 shrink-0"
+                  variant="default"
+                  className="h-8 shrink-0 gap-1.5 rounded-lg border-0 bg-accent px-3 text-xs font-medium text-accent-foreground shadow-sm hover:bg-accent/90"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus className="h-3.5 w-3.5" />
                   Create prompt
                 </Button>
               ) : null}
@@ -1058,7 +1117,7 @@ export default function MarketplacePrompts() {
                   const pageItems = myPrompts.slice(start, start + PROMPTS_PAGE_SIZE);
                   return (
                     <>
-                      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className={PROMPTS_GRID}>
                         {pageItems.map((item) => (
                           <PromptCard
                             key={item.id}
@@ -1114,7 +1173,7 @@ export default function MarketplacePrompts() {
                     const pageItems = userPromptsList.slice(start, start + PROMPTS_PAGE_SIZE);
                     return (
                       <>
-                        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className={PROMPTS_GRID}>
                           {pageItems.map((item) => (
                             <div key={item.id}>
                               <PromptCard
@@ -1159,9 +1218,9 @@ export default function MarketplacePrompts() {
 
         {/* Prompt details modal */}
         <Dialog open={!!detailsPrompt} onOpenChange={(open) => { if (!open) { setDetailsPrompt(null); setDetailsOnUse(null); } }}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>{detailsPrompt?.title}</DialogTitle>
+              <DialogTitle className="text-lg font-semibold tracking-tight">{detailsPrompt?.title}</DialogTitle>
               <DialogDescription className="text-muted-foreground">By {detailsPrompt?.owner}</DialogDescription>
             </DialogHeader>
             {detailsPrompt && (
@@ -1183,12 +1242,15 @@ export default function MarketplacePrompts() {
                 ) : null}
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setDetailsPrompt(null); setDetailsOnUse(null); }}>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" className="rounded-lg border-border/70" onClick={() => { setDetailsPrompt(null); setDetailsOnUse(null); }}>
                 Close
               </Button>
-              <Button onClick={() => detailsOnUse?.()} className="gap-2">
-                <MessageSquare className="w-3.5 h-3.5" />
+              <Button
+                onClick={() => detailsOnUse?.()}
+                className="gap-2 rounded-lg border-0 bg-accent text-accent-foreground shadow-md hover:bg-accent/90"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
                 Use in agent
               </Button>
             </DialogFooter>
@@ -1384,7 +1446,7 @@ export default function MarketplacePrompts() {
           <section>
             {recentPrompts.length > 0 ? (
               <>
-                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                <div className={PROMPTS_GRID}>
                   {recentPrompts
                     .slice((promptPage - 1) * PROMPTS_PAGE_SIZE, promptPage * PROMPTS_PAGE_SIZE)
                     .map((item) => (
@@ -1455,7 +1517,7 @@ export default function MarketplacePrompts() {
           <section>
             {favoritePrompts.length > 0 ? (
               <>
-                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                <div className={PROMPTS_GRID}>
                   {favoritePrompts
                     .slice((promptPage - 1) * PROMPTS_PAGE_SIZE, promptPage * PROMPTS_PAGE_SIZE)
                     .map((item) => (
@@ -1494,6 +1556,7 @@ export default function MarketplacePrompts() {
             )}
           </section>
         )}
+      </div>
       </div>
     </div>
   );

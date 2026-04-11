@@ -8,6 +8,11 @@ import {
   EXPERIMENT_SUPPORTED_TOKENS,
   filterExperimentSupportedTokens,
 } from "@/lib/experimentSupportedTokens";
+import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
+import { CoinLogo } from "@/components/crypto/CoinLogo";
+
+/** Stable list for batched CoinGecko requests in the preset dropdown. */
+const PRESET_TOKEN_SLUGS = EXPERIMENT_SUPPORTED_TOKENS.map((t) => t.slug);
 
 interface ExperimentTokenComboboxProps {
   id: string;
@@ -123,29 +128,34 @@ export function ExperimentTokenCombobox({
           className="pl-9 [&::-webkit-search-cancel-button]:hidden"
         />
         {open && !disabled && suggestions.length > 0 ? (
-          <ul
-            id={listId}
-            role="listbox"
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
-          >
-            {suggestions.map((t, i) => (
-              <li key={t.slug} role="option" aria-selected={i === highlight}>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center justify-between gap-2 rounded-sm px-2 py-2 text-left text-sm outline-none",
-                    i === highlight ? "bg-accent text-accent-foreground" : "hover:bg-accent/80",
-                  )}
-                  onMouseEnter={() => setHighlight(i)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => selectSlug(t.slug)}
-                >
-                  <span className="font-medium">{t.label}</span>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{t.slug}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <CoingeckoBatchImageProvider symbols={PRESET_TOKEN_SLUGS}>
+            <ul
+              id={listId}
+              role="listbox"
+              className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            >
+              {suggestions.map((t, i) => (
+                <li key={t.slug} role="option" aria-selected={i === highlight}>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-sm px-2 py-2 text-left text-sm outline-none",
+                      i === highlight ? "bg-accent text-accent-foreground" : "hover:bg-accent/80",
+                    )}
+                    onMouseEnter={() => setHighlight(i)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => selectSlug(t.slug)}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <CoinLogo symbol={t.slug} size="sm" fallbackSeed={t.slug} className="ring-1 ring-border/60" />
+                      <span className="truncate font-medium">{t.label}</span>
+                    </span>
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">{t.slug}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </CoingeckoBatchImageProvider>
         ) : null}
         {open && !disabled && q !== "" && suggestions.length === 0 ? (
           <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-border bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md">
