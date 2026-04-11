@@ -143,7 +143,7 @@ const roadmapData = [
           "Compliance-aware Intelligence APIs",
           "Portfolio Optimization & Explainable AI",
           "Institutional hedge fund tier with SLAs",
-          "Sports betting & prediction markets expansion",
+          "Regulatory reporting APIs & exportable compliance dashboards",
         ],
         status: "upcoming",
       },
@@ -152,7 +152,7 @@ const roadmapData = [
         title: "Scale & Innovation",
         items: [
           "Advanced ML models with feedback loops",
-          "Traditional markets expansion (forex, commodities)",
+          "Traditional markets expansion (gold, stocks, commodities)",
           "x402 Intelligence Grant Program",
           "Scale to 1,000+ autonomous agents",
         ],

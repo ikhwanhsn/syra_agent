@@ -21,5 +21,8 @@
   "devDependencies": {
     "@types/node": "^22.16.5",
     "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": ["@elizaos/plugin-ollama"]
   }
 }

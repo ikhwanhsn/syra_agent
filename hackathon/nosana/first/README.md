@@ -1,6 +1,6 @@
 # Syra Brief — Nosana × ElizaOS hackathon entry
 
-Personal **crypto briefing** agent: ElizaOS (`@elizaos/*` **1.7.x**) + **plugin-sql** + hosted LLM (OpenAI-compatible `.env`) + **custom web UI** on **`/syra-brief`** (same port as the Eliza client, usually **3000**).
+Personal **crypto briefing** agent: ElizaOS (`@elizaos/*` **1.7.x**) + **plugin-sql** + hosted LLM (OpenAI-compatible `.env`) + **custom web UI** at **`/api/agents/<AGENT_ID>/plugins/syra-brief`** (see **Step 2** — **`/api/syra-brief` alone is wrong** and returns JSON 404).
 
 - **Challenge:** [Superteam — Nosana Builders ElizaOS](https://superteam.fun/earn/listing/nosana-builders-elizaos-challenge)  
 - **Nosana blog:** [Builders Challenge ElizaOS](https://nosana.com/blog/builders-challenge-elizaos/)  
@@ -37,7 +37,8 @@ pnpm run start
 ```
 
 1. Browser: **`http://localhost:3000/`** — chat with SyraBrief (default UI).  
-2. Browser: **`http://localhost:3000/syra-brief`** — custom panel (SOL snapshot + fast chat).  
+2. **Brief panel:** call **`GET http://localhost:3000/api/agents`**, copy your agent’s `id` (UUID), then open **`http://localhost:3000/api/agents/<that-id>/plugins/syra-brief`** — custom panel (SOL snapshot + fast chat). Eliza only mounts plugin HTTP routes under that prefix; bare **`/api/syra-brief`** is not registered and returns **`API endpoint not found`**. In-app navigation to random paths can still show the SPA “Page Not Found”; use the full **`/api/agents/.../plugins/...`** URL (bookmark it).  
+   - **If the UI opened at** **`/chat/<uuid-a>/<uuid-b>`** (for example `http://localhost:3000/chat/…/…`): that is the **built-in chat client** route (world / room style context for the SPA). It is **not** the plugin base path. The Brief URL always uses the **`id` from `GET /api/agents`** for SyraBrief (`name` / `username` in the JSON). Do not assume `<uuid-a>` or `<uuid-b>` is the agent id until you match it to that response (or inspect any Network request whose path contains **`/api/agents/`** — the segment right after `agents` is the agent id).  
 3. If either fails, fix `.env` / port before Docker.
 
 Optional: `powershell -File .\scripts\check-submission.ps1` from this folder (build + quick checks).
@@ -86,7 +87,7 @@ docker push YOUR_DOCKERHUB_USER/syra-nosana-eliza-agent:latest
 In an **incognito** window (or your phone off Wi‑Fi):
 
 1. Open `MY_NOSANA_URL/` — main chat loads.  
-2. Open `MY_NOSANA_URL/syra-brief` — snapshot + Brief chat load.  
+2. Open `MY_NOSANA_URL/api/agents/<AGENT_ID>/plugins/syra-brief` — snapshot + Brief chat load (same steps as local to discover `<AGENT_ID>`).  
 3. Send one short message in each UI; note approximate latency for your demo script.
 
 ### Step 9 — GitHub (20 minutes)
@@ -114,7 +115,7 @@ Script (practice twice, then record):
 
 1. **5 s:** “SyraBrief — personal crypto briefing on Nosana + ElizaOS.”  
 2. **20 s:** Open `MY_NOSANA_URL` in a clean window; show main chat—one greeting.  
-3. **25 s:** Open `MY_NOSANA_URL/syra-brief`—show SOL snapshot + one short question + answer.  
+3. **25 s:** Open `MY_NOSANA_URL/api/agents/<AGENT_ID>/plugins/syra-brief`—show SOL snapshot + one short question + answer.  
 4. **10 s:** “Stack: ElizaOS, Docker on Nosana, Qwen via sponsor endpoint; repo link in description.”
 
 Export **1080p or 720p**, **&lt; 60 seconds**, MP4 is fine.
@@ -124,8 +125,8 @@ Export **1080p or 720p**, **&lt; 60 seconds**, MP4 is fine.
 Use this skeleton (fill brackets; stay under 300 words):
 
 > **SyraBrief** is a personal crypto briefing agent for builders who want [one sentence: your “why”]. It runs on **Nosana** decentralized compute with **ElizaOS** orchestration and a hosted **Qwen**-compatible LLM.  
-> **What it does:** [2–3 bullets: main chat + /syra-brief panel + FETCH_SOL_PRICE / disclaimers].  
-> **How it works:** Dockerized Node 23 app; `plugin-sql` for memory; OpenAI-compatible env for chat/embeddings; custom routes serve **`/syra-brief`**.  
+> **What it does:** [2–3 bullets: main chat + `/api/agents/{id}/plugins/syra-brief` panel + FETCH_SOL_PRICE / disclaimers].
+> **How it works:** Dockerized Node 23 app; `plugin-sql` for memory; OpenAI-compatible env for chat/embeddings; plugin routes under **`/api/agents/{id}/plugins/syra-brief`** (Eliza server convention).
 > **Try it:** [paste `MY_NOSANA_URL`]  
 > **Repo:** [paste GitHub URL]
 
@@ -157,7 +158,7 @@ Post on X (or platform the listing allows). Include:
 |--------|---------|
 | `src/index.ts` | Eliza **Project** (`default export`) — wires `character` + `syra-brief` plugin |
 | `src/character.ts` | **SyraBrief** persona |
-| `src/plugin.ts` | **FETCH_SOL_PRICE** + routes **`/syra-brief`** (snapshot + fast `useModel` chat) |
+| `src/plugin.ts` | **FETCH_SOL_PRICE** + routes **`/syra-brief`** (mounted by Eliza at **`/api/agents/:id/plugins/syra-brief`**) |
 | `Dockerfile` | Node **23** + **pnpm** → `pnpm run build` → `pnpm run start` |
 | `nos_job_def/nosana_eliza_job_definition.json` | Job template for Nosana |
 | `scripts/check-submission.ps1` | Optional Windows preflight |
@@ -166,7 +167,7 @@ Post on X (or platform the listing allows). Include:
 ## Custom UI
 
 - **Default client:** `/`  
-- **Syra Brief (custom):** `/syra-brief` — SOL snapshot + direct LLM chat (fast path)
+- **Syra Brief (custom):** `/api/agents/<AGENT_ID>/plugins/syra-brief` — SOL snapshot + direct LLM chat (fast path)
 
 ## Local development (short)
 
@@ -186,12 +187,12 @@ pnpm run start
 |-----------|---------------------|
 | Technical | Eliza Project, plugin actions/routes, timeouts, typed build |
 | Nosana | Docker + job JSON + credits + public URL |
-| Usefulness & UX | Main chat + `/syra-brief` + errors + snapshot |
+| Usefulness & UX | Main chat + plugins URL + errors + snapshot |
 | Creativity | Personal “briefing desk” for crypto builders |
 | Documentation | This README + `.env.example` |
 
 ## Optional upgrades (time permitting)
 
 - `@elizaos/plugin-web-search` behind an env flag  
-- Rate limit or auth on `/syra-brief/api/chat`  
+- Rate limit or auth on `/api/agents/<id>/plugins/syra-brief/chat`  
 - Extra Eliza actions (e.g. saved briefs in SQL)

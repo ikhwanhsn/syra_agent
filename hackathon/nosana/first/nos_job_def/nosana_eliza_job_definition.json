@@ -5,7 +5,7 @@
       "id": "syra-brief-agent",
       "type": "container/run",
       "args": {
-        "image": "YOUR_DOCKERHUB_USER/syra-nosana-eliza-agent:latest",
+        "image": "milyardermuda/syra-nosana-eliza-agent:latest",
         "expose": 3000,
         "env": {
           "OPENAI_API_KEY": "nosana",

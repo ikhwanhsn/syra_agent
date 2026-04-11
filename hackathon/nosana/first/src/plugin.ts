@@ -5,6 +5,18 @@ import type { Plugin, RouteRequest, RouteResponse } from '../node_modules/@eliza
 import type { IAgentRuntime } from '../node_modules/@elizaos/core/dist/types/runtime';
 import type { State } from '../node_modules/@elizaos/core/dist/types/state';
 
+/**
+ * ElizaOS matches plugin routes against the path **after** stripping
+ * `/api/agents/{agentUuid}/plugins`. Public URLs must therefore be:
+ *   `/api/agents/<AGENT_ID>/plugins/syra-brief` (+ `/snapshot`, `/chat`).
+ * A bare `/api/syra-brief` hits the REST router and returns JSON 404 ("API endpoint not found").
+ */
+export const BRIEF_PAGE_SEGMENT = '/syra-brief';
+
+export function pluginPublicBase(agentId: string): string {
+  return `/api/agents/${agentId}/plugins`;
+}
+
 const COINGECKO_SOL =
   'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true';
 
@@ -102,7 +114,8 @@ const fetchSolPriceAction: Action = {
   ],
 };
 
-function briefPageHtml(): string {
+function briefPageHtml(agentId: string): string {
+  const base = `${pluginPublicBase(agentId)}${BRIEF_PAGE_SEGMENT}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -135,7 +148,10 @@ function briefPageHtml(): string {
       <h1>Syra Brief</h1>
       <div style="margin-top:0.25rem;color:var(--muted);font-size:0.85rem;">Personal crypto briefing · ElizaOS on Nosana</div>
     </div>
-    <span class="badge">Custom UI · same container :3000</span>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;max-width:min(100%,36rem);">
+      <span class="badge">This page: <code>${base}</code></span>
+      <span class="badge" style="text-align:right;line-height:1.35;">Main Eliza UI often lives at <code>/chat/…/…</code> — a different route. Use <code>GET /api/agents</code> to find the agent <code>id</code> for plugin URLs.</span>
+    </div>
   </header>
   <main>
     <section class="card">
@@ -157,7 +173,7 @@ function briefPageHtml(): string {
       const errEl = document.getElementById('snapErr');
       errEl.textContent = '';
       try {
-        const r = await fetch('/syra-brief/api/snapshot');
+        const r = await fetch('${base}/snapshot');
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || r.statusText);
         if (j.usd == null) {
@@ -186,7 +202,7 @@ function briefPageHtml(): string {
       try {
         const ac = new AbortController();
         const t = setTimeout(() => ac.abort(), 100000);
-        const r = await fetch('/syra-brief/api/chat', {
+        const r = await fetch('${base}/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: q }),
@@ -260,17 +276,17 @@ const syraBriefPlugin: Plugin = {
   routes: [
     {
       name: 'syra-brief-ui',
-      path: '/syra-brief',
+      path: BRIEF_PAGE_SEGMENT,
       type: 'GET',
       public: true,
-      handler: async (_req: RouteRequest, res: RouteResponse) => {
+      handler: async (_req: RouteRequest, res: RouteResponse, runtime: IAgentRuntime) => {
         res.setHeader?.('Content-Type', 'text/html; charset=utf-8');
-        res.status(200).send(briefPageHtml());
+        res.status(200).send(briefPageHtml(runtime.agentId));
       },
     },
     {
       name: 'syra-brief-snapshot',
-      path: '/syra-brief/api/snapshot',
+      path: `${BRIEF_PAGE_SEGMENT}/snapshot`,
       type: 'GET',
       public: true,
       handler: async (_req: RouteRequest, res: RouteResponse) => {
@@ -280,7 +296,7 @@ const syraBriefPlugin: Plugin = {
     },
     {
       name: 'syra-brief-chat',
-      path: '/syra-brief/api/chat',
+      path: `${BRIEF_PAGE_SEGMENT}/chat`,
       type: 'POST',
       public: true,
       handler: async (req: RouteRequest, res: RouteResponse, runtime: IAgentRuntime) => {
