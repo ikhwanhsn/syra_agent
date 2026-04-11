@@ -1,0 +1,25 @@
+{
+  "name": "syra-nosana-eliza-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "elizaos start",
+    "dev": "elizaos dev"
+  },
+  "dependencies": {
+    "@elizaos/cli": "1.7.2",
+    "@elizaos/core": "1.7.2",
+    "@elizaos/plugin-bootstrap": "1.7.2",
+    "@elizaos/plugin-openai": "1.6.0",
+    "@elizaos/plugin-sql": "1.7.2",
+    "@elizaos/server": "1.7.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "typescript": "^5.9.3"
+  }
+}
