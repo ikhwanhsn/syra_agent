@@ -123,6 +123,26 @@ export default {
           from: { transform: "rotate(0deg)" },
           to: { transform: "rotate(360deg)" },
         },
+        /** Wallet → agent cue in fuel modal (vertical stack). */
+        "deposit-flow-up": {
+          "0%, 100%": { transform: "translateY(2px)", opacity: "0.35" },
+          "50%": { transform: "translateY(-5px)", opacity: "1" },
+        },
+        /** Wallet → agent cue in fuel modal (horizontal). */
+        "deposit-flow-left": {
+          "0%, 100%": { transform: "translateX(4px)", opacity: "0.35" },
+          "50%": { transform: "translateX(-4px)", opacity: "1" },
+        },
+        /** Agent → wallet cue in fuel modal (vertical stack). */
+        "withdraw-flow-down": {
+          "0%, 100%": { transform: "translateY(-2px)", opacity: "0.35" },
+          "50%": { transform: "translateY(5px)", opacity: "1" },
+        },
+        /** Agent → wallet cue in fuel modal (horizontal). */
+        "withdraw-flow-right": {
+          "0%, 100%": { transform: "translateX(-4px)", opacity: "0.35" },
+          "50%": { transform: "translateX(4px)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -131,6 +151,10 @@ export default {
         "slide-in-left": "slide-in-left 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         spin: "spin 1s linear infinite",
+        "deposit-flow-up": "deposit-flow-up 1.35s ease-in-out infinite",
+        "deposit-flow-left": "deposit-flow-left 1.35s ease-in-out infinite",
+        "withdraw-flow-down": "withdraw-flow-down 1.35s ease-in-out infinite",
+        "withdraw-flow-right": "withdraw-flow-right 1.35s ease-in-out infinite",
       },
       spacing: {
         sidebar: "var(--sidebar-width)",

@@ -6,14 +6,17 @@ import { ChatArea } from "@/components/chat/ChatArea";
 import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { cn } from "@/lib/utils";
+import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
 import { chatApi, getApiBaseUrl } from "@/lib/chatApi";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, Menu, Moon, RefreshCw, Sun } from "lucide-react";
+import DashboardSettings from "@/pages/DashboardSettings";
+import { WalletNav } from "@/components/chat/WalletNav";
+import { AppTopNavLinks } from "@/components/chat/AppTopNavLinks";
 
 /** Dedupes `?q=` auto-send across React Strict Mode double-invoke in dev. */
 let lastConsumedUrlPromptParam: string | null = null;
@@ -39,7 +42,6 @@ interface Chat {
   messages: Message[];
   shareId?: string | null;
   isPublic?: boolean;
-  modelId?: string;
 }
 
 function toMessage(m: {
@@ -63,23 +65,6 @@ function toMessage(m: {
 /** In-memory-only chat id when user is not connected (history not saved). */
 const LOCAL_CHAT_ID = "local";
 
-/** Default LLM model when none is selected (must match a Jatevo model id). */
-const DEFAULT_MODEL_ID = "glm-4.7";
-
-/** Default model list shown in the UI so user can always pick (fallback when API /models fails or before load). */
-const DEFAULT_JATEVO_MODELS: Array<{ id: string; name: string; contextWindow?: string }> = [
-  { id: "gpt-oss-120b", name: "GPT-OSS 120B", contextWindow: "32K" },
-  { id: "deepseek-v3.2", name: "DeepSeek V3.2", contextWindow: "128K" },
-  { id: "glm-4.6v", name: "GLM 4.6V", contextWindow: "131K" },
-  { id: "glm-4.7", name: "GLM 4.7", contextWindow: "128K" },
-  { id: "glm-4.7-fp8", name: "GLM 4.7 FP8", contextWindow: "128K" },
-  { id: "kimi-k2.5", name: "Kimi K2.5", contextWindow: "262K" },
-  { id: "llama-4-maverick", name: "Llama 4 Maverick", contextWindow: "128K" },
-  { id: "qwen-2.5-vl", name: "Qwen 2.5 VL", contextWindow: "128K" },
-  { id: "qwen-2.5-v1-72b", name: "Qwen 2.5 VL 72B", contextWindow: "128K" },
-  { id: "qwen-3-coder-480b", name: "Qwen 3 Coder 480B", contextWindow: "32K" },
-];
-
 function isLocalChat(id: string) {
   return id === LOCAL_CHAT_ID;
 }
@@ -90,7 +75,6 @@ export interface IndexInitialChat {
   preview: string;
   shareId?: string | null;
   isPublic?: boolean;
-  modelId?: string;
   timestamp?: string | Date;
   messages?: Array<{ id: string; role: string; content: string; timestamp: string | Date; toolUsage?: unknown }>;
 }
@@ -98,6 +82,63 @@ export interface IndexInitialChat {
 interface IndexProps {
   initialChatId?: string;
   initialChat?: IndexInitialChat;
+}
+
+interface AgentSettingsViewProps {
+  onToggleSidebar: () => void;
+  sidebarCollapsed: boolean;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
+}
+
+function AgentSettingsView({
+  onToggleSidebar,
+  sidebarCollapsed,
+  isDarkMode,
+  onToggleDarkMode,
+}: AgentSettingsViewProps) {
+  return (
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <header className="flex min-h-[56px] shrink-0 flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur-xl sm:min-h-[52px] sm:flex-nowrap sm:gap-4 sm:px-4 sm:py-3 pt-[max(0.5rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden sm:gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={
+              (sidebarCollapsed ? "" : "lg:hidden ") +
+              "h-10 w-10 shrink-0 touch-manipulation min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0"
+            }
+            onClick={onToggleSidebar}
+            title={sidebarCollapsed ? "Show sidebar" : "Open menu"}
+            aria-label={sidebarCollapsed ? "Show sidebar" : "Open menu"}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <AppTopNavLinks />
+        </div>
+        <div className="flex max-w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-2.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 min-h-[44px] min-w-[44px] shrink-0 touch-manipulation rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 sm:h-9 sm:min-h-0 sm:min-w-0"
+            onClick={onToggleDarkMode}
+            title={isDarkMode ? "Light mode" : "Dark mode"}
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? (
+              <Sun className="h-4 w-4 text-foreground" />
+            ) : (
+              <Moon className="h-4 w-4 text-foreground" />
+            )}
+          </Button>
+          <WalletNav />
+        </div>
+      </header>
+      <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <DashboardSettings layout="agent" />
+      </div>
+    </div>
+  );
 }
 
 export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
@@ -131,9 +172,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const [chatsLoading, setChatsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
   const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
-  const [jatevoModels, setJatevoModels] = useState<Array<{ id: string; name: string; contextWindow?: string }>>(
-    () => DEFAULT_JATEVO_MODELS
-  );
+
+  const isSettingsRoute = location.pathname === "/settings";
 
   // When wallet changes (anonymousId changes), clear chat state so we show the correct wallet's history.
   // Skip when restoring from /c/:shareId (initialChatId) so refresh on a chat link keeps that chat.
@@ -165,13 +205,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       setChats(
         list.map((c) => ({
           id: c.id,
-          title: c.title,
-          preview: c.preview,
+          title: capitalizeFirstLetter(c.title),
+          preview: capitalizeFirstLetter(c.preview),
           timestamp: typeof c.timestamp === "string" ? new Date(c.timestamp) : new Date(c.timestamp),
           messages: [],
           shareId: c.shareId ?? null,
           isPublic: !!c.isPublic,
-          modelId: c.modelId ?? "",
         }))
       );
     } catch (err) {
@@ -195,17 +234,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }
   }, [ready, anonymousId, walletConnected, loadChats]);
 
-  // Fetch available Jatevo LLM models for the model selector (once when session is ready). Use default list until API responds.
-  useEffect(() => {
-    if (!ready) return;
-    chatApi
-      .getModels()
-      .then(({ models }) => {
-        if (Array.isArray(models) && models.length > 0) setJatevoModels(models);
-      })
-      .catch(() => {});
-  }, [ready]);
-
   // When session is ready but wallet not connected: use a single in-memory chat (history not saved).
   // Skip when restoring from /c/:shareId so we don't overwrite the restored chat with a new one.
   useEffect(() => {
@@ -219,7 +247,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         messages: [],
         shareId: null,
         isPublic: false,
-        modelId: DEFAULT_MODEL_ID,
       };
       setChats([localChat]);
       setActiveChat(LOCAL_CHAT_ID);
@@ -233,18 +260,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const chat = await chatApi.get(id, anonymousId);
       const msgs = (chat.messages || []).map(toMessage);
       setChatMessages((prev) => ({ ...prev, [id]: msgs }));
-      setChats((prev) => {
-        const existing = prev.find((c) => c.id === id);
-        // Keep user's selection: don't overwrite with server if we already have a modelId in state
-        const modelId = existing?.modelId?.trim()
-          ? existing.modelId
-          : (chat.modelId ?? "");
-        return prev.map((c) =>
-          c.id === id
-            ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic, modelId }
-            : c
-        );
-      });
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic } : c
+        )
+      );
     } catch (err) {
       // Silently fail; messages may load on retry
     }
@@ -256,7 +276,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }
   }, [activeChat, chatMessages, loadChatMessages]);
 
-  const currentChat = chats.find((c) => c.id === activeChat);
   const messages = activeChat ? (chatMessages[activeChat] ?? []) : [];
 
   const shareIdFromQuery = searchParams.get("shareId");
@@ -274,13 +293,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           : new Date();
     const chatEntry: Chat = {
       id: initialChat.id,
-      title: initialChat.title,
-      preview: initialChat.preview,
+      title: capitalizeFirstLetter(initialChat.title),
+      preview: capitalizeFirstLetter(initialChat.preview),
       timestamp: ts,
       messages: [],
       shareId: initialChat.shareId ?? null,
       isPublic: !!initialChat.isPublic,
-      modelId: initialChat.modelId ?? "",
     };
     setChats((prev) => {
       const exists = prev.some((c) => c.id === initialChatId);
@@ -306,6 +324,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   // Update browser URL to current chat share link only after history exists (avoids blink: we use replaceState so we stay on same route and don't remount).
   useEffect(() => {
+    if (location.pathname === "/settings") return;
     if (!activeChat || isLocalChat(activeChat) || isLoading) return;
     const chat = chats.find((c) => c.id === activeChat);
     if (!chat?.shareId) return;
@@ -316,8 +335,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       fromOwner: true,
       chat: {
         id: chat.id,
-        title: chat.title,
-        preview: chat.preview,
+        title: capitalizeFirstLetter(chat.title),
+        preview: capitalizeFirstLetter(chat.preview),
         shareId: chat.shareId,
         isPublic: chat.isPublic,
         timestamp: chat.timestamp,
@@ -331,7 +350,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       },
     };
     window.history.replaceState(state, "", `/c/${chat.shareId}`);
-  }, [activeChat, chats, chatMessages, isLoading]);
+  }, [activeChat, chats, chatMessages, isLoading, location.pathname]);
 
   // Owner opened /?shareId=xyz — load that chat and clear query
   useEffect(() => {
@@ -347,13 +366,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           const exists = prev.some((c) => c.id === chatId);
           const entry = {
             id: chatId,
-            title: chat.title,
-            preview: chat.preview,
+            title: capitalizeFirstLetter(chat.title),
+            preview: capitalizeFirstLetter(chat.preview),
             timestamp: typeof chat.timestamp === "string" ? new Date(chat.timestamp) : new Date(chat.timestamp),
             messages: [],
             shareId: chat.shareId ?? null,
             isPublic: !!chat.isPublic,
-            modelId: chat.modelId ?? "",
           };
           if (exists) return prev.map((c) => (c.id === chatId ? { ...c, ...entry } : c));
           return [entry, ...prev];
@@ -379,6 +397,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   }, [shareIdFromQuery, anonymousId, ready, setSearchParams, navigate]);
 
   const handleNewChat = async () => {
+    if (location.pathname === "/settings") {
+      navigate("/", { replace: true });
+    }
     if (!anonymousId) return;
     if (!walletConnected) {
       setActiveChat(LOCAL_CHAT_ID);
@@ -391,17 +412,15 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const { chat } = await chatApi.create(anonymousId, {
         title: "New Chat",
         preview: "",
-        modelId: DEFAULT_MODEL_ID,
       });
       const newChat: Chat = {
         id: chat.id,
-        title: chat.title,
+        title: capitalizeFirstLetter(chat.title),
         timestamp: new Date(chat.timestamp),
-        preview: chat.preview,
+        preview: capitalizeFirstLetter(chat.preview),
         messages: [],
         shareId: chat.shareId ?? null,
         isPublic: !!chat.isPublic,
-        modelId: chat.modelId ?? DEFAULT_MODEL_ID,
       };
       setChats((prev) => [newChat, ...prev]);
       setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -426,21 +445,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     }
     setSidebarOpen(false);
   }, [navigate, location.pathname, setSearchParams]);
-
-  const handleSelectModel = useCallback(
-    (modelId: string) => {
-      if (!activeChat) return;
-      // Update UI immediately so the dropdown reflects the selection
-      setChats((prev) =>
-        prev.map((c) => (c.id === activeChat ? { ...c, modelId } : c))
-      );
-      if (isLocalChat(activeChat)) return;
-      if (!anonymousId) return;
-      // Persist for saved chats (fire-and-forget; UI already updated)
-      chatApi.update(activeChat, anonymousId, { modelId }).catch(() => {});
-    },
-    [activeChat, anonymousId]
-  );
 
   const handleDeleteChat = useCallback(async (id: string) => {
     if (isLocalChat(id)) {
@@ -512,17 +516,18 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
     const trimmed = newTitle.trim();
     if (!trimmed) return;
+    const normalized = capitalizeFirstLetter(trimmed);
     if (isLocalChat(id)) {
       setChats((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+        prev.map((c) => (c.id === id ? { ...c, title: normalized } : c))
       );
       return;
     }
     if (!anonymousId) return;
     try {
-      await chatApi.update(id, anonymousId, { title: trimmed });
+      await chatApi.update(id, anonymousId, { title: normalized });
       setChats((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c))
+        prev.map((c) => (c.id === id ? { ...c, title: normalized } : c))
       );
     } catch (err) {
       // Silently fail; user can retry
@@ -561,7 +566,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                   timestamp: new Date(),
                   preview: "",
                   messages: [],
-                  modelId: DEFAULT_MODEL_ID,
                 },
                 ...prev,
               ]
@@ -575,18 +579,16 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         const { chat } = await chatApi.create(anonymousId, {
           title: "New Chat",
           preview: "",
-          modelId: DEFAULT_MODEL_ID,
         });
         chatId = chat.id;
         const newChat: Chat = {
           id: chat.id,
-          title: chat.title,
+          title: capitalizeFirstLetter(chat.title),
           timestamp: new Date(chat.timestamp),
-          preview: chat.preview,
+          preview: capitalizeFirstLetter(chat.preview),
           messages: [],
           shareId: chat.shareId ?? null,
           isPublic: !!chat.isPublic,
-          modelId: chat.modelId ?? DEFAULT_MODEL_ID,
         };
         setChats((prev) => [newChat, ...prev]);
         setChatMessages((prev) => ({ ...prev, [chat.id]: [] }));
@@ -606,8 +608,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     const prevMessages = options?.replaceHistory ?? (chatMessages[chatId] ?? []);
     const nextMessages = [...prevMessages, userMessage];
     const isFirstMessage = prevMessages.length === 0;
-    const newTitle = isFirstMessage ? content.slice(0, 30) : undefined;
-    const newPreview = content.slice(0, 50);
+    const newTitle = isFirstMessage ? capitalizeFirstLetter(content.slice(0, 30)) : undefined;
+    const newPreview = capitalizeFirstLetter(content.slice(0, 50));
 
     setChatMessages((prev) => ({ ...prev, [chatId!]: nextMessages }));
     setChats((prev) =>
@@ -646,9 +648,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       content: m.content,
     }));
 
-    const effectiveModelId =
-      currentChat?.modelId?.trim() || DEFAULT_MODEL_ID || undefined;
-
     try {
       let agentWalletBalances = await getAgentWalletBalances();
       // If fresh fetch failed but navbar has balance, send displayed values so API matches UI
@@ -658,7 +657,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
-        model: effectiveModelId || undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
@@ -842,9 +840,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       content: m.content,
     }));
 
-    const effectiveModelId =
-      currentChat?.modelId?.trim() || DEFAULT_MODEL_ID || undefined;
-
     setIsLoading(true);
     try {
       let agentWalletBalances = await getAgentWalletBalances();
@@ -854,7 +849,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
-        model: effectiveModelId || undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
@@ -942,6 +936,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   // When navigating from Marketplace with a prompt, send it to the agent and clear state
   const lastAppliedPromptRef = useRef<string | null>(null);
   useEffect(() => {
+    if (location.pathname === "/settings") return;
     const prompt = location.state?.prompt;
     if (typeof prompt !== "string" || !prompt.trim()) return;
     if (lastAppliedPromptRef.current === prompt) return;
@@ -979,6 +974,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const handleSelectChat = (id: string) => {
     setActiveChat(id);
     setSidebarOpen(false);
+    if (location.pathname === "/settings") {
+      navigate("/", { replace: true });
+    }
     focusChatInput();
   };
 
@@ -1080,29 +1078,35 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           </ResizablePanel>
           <ResizableHandle withHandle className="bg-border" />
           <ResizablePanel defaultSize={MAIN_PANEL.defaultSize} minSize={MAIN_PANEL.minSize} className="min-w-0">
-            <main className="h-full flex flex-col min-w-0">
-              <ChatArea
-                messages={messages}
-                isLoading={isLoading}
-                onSendMessage={handleSendMessage}
-                onStopGeneration={handleStopGeneration}
-                onRegenerate={handleRegenerate}
-                selectedAgent={selectedAgent}
-                onSelectAgent={setSelectedAgent}
-                systemPrompt={DEFAULT_SYSTEM_PROMPT}
-                onToggleSidebar={handleToggleSidebar}
-                sidebarCollapsed={sidebarCollapsed}
-                sessionReady={sessionReady}
-                walletConnected={walletConnected}
-                inputRef={chatInputRefDesktop}
-                isDarkMode={isDarkMode}
-                onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                models={jatevoModels}
-                selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
-                onSelectModel={handleSelectModel}
-                userAvatarUrl={avatarUrl}
-                onUpdateUserMessage={handleUpdateUserMessage}
-              />
+            <main className="flex h-full min-w-0 flex-col">
+              {isSettingsRoute ? (
+                <AgentSettingsView
+                  onToggleSidebar={handleToggleSidebar}
+                  sidebarCollapsed={sidebarCollapsed}
+                  isDarkMode={isDarkMode}
+                  onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                />
+              ) : (
+                <ChatArea
+                  messages={messages}
+                  isLoading={isLoading}
+                  onSendMessage={handleSendMessage}
+                  onStopGeneration={handleStopGeneration}
+                  onRegenerate={handleRegenerate}
+                  selectedAgent={selectedAgent}
+                  onSelectAgent={setSelectedAgent}
+                  systemPrompt={DEFAULT_SYSTEM_PROMPT}
+                  onToggleSidebar={handleToggleSidebar}
+                  sidebarCollapsed={sidebarCollapsed}
+                  sessionReady={sessionReady}
+                  walletConnected={walletConnected}
+                  inputRef={chatInputRefDesktop}
+                  isDarkMode={isDarkMode}
+                  onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                  userAvatarUrl={avatarUrl}
+                  onUpdateUserMessage={handleUpdateUserMessage}
+                />
+              )}
             </main>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -1115,28 +1119,34 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           "transition-all duration-300 overflow-hidden"
         )}
       >
-        <ChatArea
-          messages={messages}
-          isLoading={isLoading}
-          onSendMessage={handleSendMessage}
-          onStopGeneration={handleStopGeneration}
-          onRegenerate={handleRegenerate}
-          selectedAgent={selectedAgent}
-          onSelectAgent={setSelectedAgent}
-          systemPrompt={DEFAULT_SYSTEM_PROMPT}
-          onToggleSidebar={() => setSidebarOpen(true)}
-          sidebarCollapsed={false}
-          sessionReady={sessionReady}
-          walletConnected={walletConnected}
-          inputRef={chatInputRefMobile}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-          models={jatevoModels}
-          selectedModelId={currentChat?.modelId ?? DEFAULT_MODEL_ID ?? ""}
-          onSelectModel={handleSelectModel}
-          userAvatarUrl={avatarUrl}
-          onUpdateUserMessage={handleUpdateUserMessage}
-        />
+        {isSettingsRoute ? (
+          <AgentSettingsView
+            onToggleSidebar={() => setSidebarOpen(true)}
+            sidebarCollapsed={false}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          />
+        ) : (
+          <ChatArea
+            messages={messages}
+            isLoading={isLoading}
+            onSendMessage={handleSendMessage}
+            onStopGeneration={handleStopGeneration}
+            onRegenerate={handleRegenerate}
+            selectedAgent={selectedAgent}
+            onSelectAgent={setSelectedAgent}
+            systemPrompt={DEFAULT_SYSTEM_PROMPT}
+            onToggleSidebar={() => setSidebarOpen(true)}
+            sidebarCollapsed={false}
+            sessionReady={sessionReady}
+            walletConnected={walletConnected}
+            inputRef={chatInputRefMobile}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            userAvatarUrl={avatarUrl}
+            onUpdateUserMessage={handleUpdateUserMessage}
+          />
+        )}
       </main>
       </div>
     </div>

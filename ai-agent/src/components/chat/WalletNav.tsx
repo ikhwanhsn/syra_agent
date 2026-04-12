@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
@@ -17,7 +18,7 @@ import {
   Loader2,
   LogOut,
   RefreshCw,
-  User,
+  Settings,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -28,7 +29,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FuelAgentModal } from "./FuelAgentModal";
-import { ProfileModal } from "./ProfileModal";
 import { cn } from "@/lib/utils";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 
@@ -69,9 +69,9 @@ export function WalletNav() {
   const displaySolana = effectiveChain === "solana";
   const displayBase = effectiveChain === "base";
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
@@ -186,7 +186,7 @@ export function WalletNav() {
     );
   }
 
-  /** Shared chrome for chain / Fuel / wallet pills (height, border, depth). */
+  /** Shared chrome for chain / agent wallet / connected wallet pills (height, border, depth). */
   const navItemClass =
     "h-9 min-h-[44px] sm:min-h-0 rounded-xl border border-border/60 bg-muted/25 px-2.5 shadow-sm backdrop-blur-sm sm:px-3 gap-2 text-sm font-medium tabular-nums inline-flex items-center min-w-0 touch-manipulation transition-colors hover:bg-muted/40";
 
@@ -229,58 +229,52 @@ export function WalletNav() {
           </TooltipContent>
         </Tooltip>
       )}
-      {/* Fuel the agent – open top-up modal (Solana or Base depending on connected chain) */}
-      {(displaySolana || displayBase) && (
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            navItemClass,
-            "border-primary/25 bg-primary/[0.08] px-2.5 font-semibold text-foreground hover:bg-primary/[0.14] sm:px-3",
-          )}
-          onClick={() => setFuelModalOpen(true)}
-          title={displayBase ? "Add USDC and ETH to agent wallet on Base" : "Add USDC and SOL to agent wallet"}
-          aria-label="Fuel the agent"
-        >
-          <Zap className="h-4 w-4 shrink-0 text-primary" />
-          <span className="hidden min-[360px]:inline">Fuel</span>
-        </Button>
-      )}
-      {/* Agent wallet – same height & style as connected wallet; red blink when balance reduced by tool */}
-      <div
-        className={cn("hidden max-w-[200px] md:flex md:max-w-[220px] lg:max-w-[260px]", navItemClass)}
-        title="Agent wallet · Click address to copy"
-      >
-        <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          {agentLoading ? (
-            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
-          ) : agentAddress ? (
-            <button
-              type="button"
-              onClick={() => copyToClipboard(agentAddress, "Agent wallet address")}
-              className="min-w-0 truncate text-left font-mono text-xs text-foreground hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
-            >
-              {agentShortAddress ?? `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`}
-            </button>
-          ) : (
-            <span className="truncate text-xs text-muted-foreground">—</span>
-          )}
-          {agentUsdcDisplay != null && (
-            <span
-              key={balanceJustReduced ? "blink" : "normal"}
-              className={cn(
-                "shrink-0 border-l border-border/50 pl-2.5 text-xs tabular-nums",
-                hasUsdcAgent ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-                balanceJustReduced && "balance-blink-red",
+      {/* Agent wallet — click opens Fuel modal (copy address from wallet menu) */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "hidden max-w-[200px] sm:flex sm:max-w-[220px] lg:max-w-[260px]",
+              navItemClass,
+              "cursor-pointer border-primary/20 bg-primary/[0.06] text-foreground hover:bg-primary/[0.12]",
+            )}
+            onClick={() => setFuelModalOpen(true)}
+            title={displayBase ? "Add USDC and ETH to your agent wallet" : "Add USDC and SOL to your agent wallet"}
+            aria-label={displayBase ? "Open add funds for agent wallet on Base" : "Open add funds for agent wallet on Solana"}
+          >
+            <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              {agentLoading ? (
+                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+              ) : agentAddress ? (
+                <span className="min-w-0 truncate text-left font-mono text-xs text-foreground">
+                  {agentShortAddress ?? `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`}
+                </span>
+              ) : (
+                <span className="truncate text-xs text-muted-foreground">—</span>
               )}
-              title="USDC balance"
-            >
-              ${formatUsdc(agentUsdcDisplay)}
-            </span>
-          )}
-        </div>
-      </div>
+              {agentUsdcDisplay != null && (
+                <span
+                  key={balanceJustReduced ? "blink" : "normal"}
+                  className={cn(
+                    "shrink-0 border-l border-border/50 pl-2.5 text-xs tabular-nums",
+                    hasUsdcAgent ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                    balanceJustReduced && "balance-blink-red",
+                  )}
+                >
+                  ${formatUsdc(agentUsdcDisplay)}
+                </span>
+              )}
+            </div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-[220px]">
+            Click to add funds to your agent wallet. Copy the agent address from the wallet menu (chevron).
+          </p>
+        </TooltipContent>
+      </Tooltip>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button
@@ -481,14 +475,26 @@ export function WalletNav() {
             <DropdownMenuItem
               className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
               onSelect={() => {
-                setProfileModalOpen(true);
                 setOpen(false);
+                setFuelModalOpen(true);
               }}
             >
               <span className="flex w-8 shrink-0 justify-center">
-                <User className="h-4 w-4 opacity-80" aria-hidden />
+                <Zap className="h-4 w-4 text-primary opacity-90" aria-hidden />
               </span>
-              <span>Profile</span>
+              <span>Add funds to agent</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
+              onSelect={() => {
+                setOpen(false);
+                navigate("/settings");
+              }}
+            >
+              <span className="flex w-8 shrink-0 justify-center">
+                <Settings className="h-4 w-4 opacity-80" aria-hidden />
+              </span>
+              <span>Profile & settings</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
@@ -523,10 +529,6 @@ export function WalletNav() {
       <FuelAgentModal
         open={fuelModalOpen}
         onOpenChange={setFuelModalOpen}
-      />
-      <ProfileModal
-        open={profileModalOpen}
-        onOpenChange={setProfileModalOpen}
       />
     </div>
   );

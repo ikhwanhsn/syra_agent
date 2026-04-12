@@ -19,7 +19,7 @@ const LINK_PLAYGROUND = "https://playground.syraa.fun";
 const API_BASE = import.meta.env.DEV ? "/api" : "https://api.syraa.fun";
 const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
-const EMAIL_SUPPORT = "ikhwanulhusna111@gmail.com";
+const EMAIL_SUPPORT = "support@syraa.fun";
 
 /** Headers for Syra API. Do not embed API keys in client code; the API injects auth for trusted origins (syraa.fun). */
 function getApiHeaders(): Record<string, string> {

@@ -13,6 +13,97 @@ import { useWalletContext } from "@/contexts/WalletContext";
 import { agentWalletApi } from "@/lib/chatApi";
 
 const STORAGE_KEY = "syra_agent_anonymous_id";
+/** Last known agent wallet snapshot when API succeeds; used if getOrCreate fails later. */
+const AGENT_WALLET_CACHE_KEY = "syra_agent_wallet_cache_v1";
+
+interface AgentWalletCachePayload {
+  v: 1;
+  anonymousId: string | null;
+  linkedWallet: string | null;
+  chain: "solana" | "base" | null;
+  agentAddress: string;
+  avatarUrl: string | null;
+  agentSolBalance: number | null;
+  agentUsdcBalance: number | null;
+  agentBaseEthBalance: number | null;
+  agentBaseUsdcBalance: number | null;
+  updatedAt: number;
+}
+
+function walletKeyMatches(stored: string | null | undefined, query: string, chain: "solana" | "base"): boolean {
+  if (!stored || !query) return false;
+  return chain === "base" ? stored.toLowerCase() === query.toLowerCase() : stored === query;
+}
+
+function readAgentWalletCache(
+  query:
+    | { kind: "guest"; anonymousId: string }
+    | { kind: "wallet"; linkedWallet: string; chain: "solana" | "base" },
+): AgentWalletCachePayload | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(AGENT_WALLET_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AgentWalletCachePayload;
+    if (parsed?.v !== 1 || typeof parsed.agentAddress !== "string" || !parsed.agentAddress) return null;
+
+    if (query.kind === "guest") {
+      if (parsed.anonymousId !== query.anonymousId) return null;
+      if (parsed.linkedWallet != null && parsed.linkedWallet !== "") return null;
+      if (parsed.chain != null) return null;
+      return parsed;
+    }
+    if (parsed.chain !== query.chain) return null;
+    if (!walletKeyMatches(parsed.linkedWallet, query.linkedWallet, query.chain)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeAgentWalletCache(
+  payload: Omit<AgentWalletCachePayload, "v" | "updatedAt"> & Partial<Pick<AgentWalletCachePayload, "updatedAt">>,
+): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const full: AgentWalletCachePayload = {
+      v: 1,
+      anonymousId: payload.anonymousId,
+      linkedWallet: payload.linkedWallet,
+      chain: payload.chain,
+      agentAddress: payload.agentAddress,
+      avatarUrl: payload.avatarUrl,
+      agentSolBalance: payload.agentSolBalance,
+      agentUsdcBalance: payload.agentUsdcBalance,
+      agentBaseEthBalance: payload.agentBaseEthBalance,
+      agentBaseUsdcBalance: payload.agentBaseUsdcBalance,
+      updatedAt: payload.updatedAt ?? Date.now(),
+    };
+    localStorage.setItem(AGENT_WALLET_CACHE_KEY, JSON.stringify(full));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function mergeCachedBalances(
+  agentAddress: string,
+  patch: Partial<
+    Pick<AgentWalletCachePayload, "agentSolBalance" | "agentUsdcBalance" | "agentBaseEthBalance" | "agentBaseUsdcBalance">
+  >,
+): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const raw = localStorage.getItem(AGENT_WALLET_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as AgentWalletCachePayload;
+    if (parsed?.v !== 1 || parsed.agentAddress !== agentAddress) return;
+    Object.assign(parsed, patch, { updatedAt: Date.now() });
+    localStorage.setItem(AGENT_WALLET_CACHE_KEY, JSON.stringify(parsed));
+  } catch {
+    /* ignore */
+  }
+}
+
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
@@ -83,6 +174,8 @@ export interface AgentWalletState {
   getAgentWalletBalances: () => Promise<{ usdcBalance: number; solBalance: number } | null>;
   /** Show debit effect (e.g. -0.01) then clear after a short delay. */
   reportDebit: (amountUsd: number) => void;
+  /** Optimistic agent SOL decrease (e.g. after withdraw-SOL); schedules chain refetch. */
+  reportNativeDebit: (amountSol: number) => void;
   /** Update avatar URL in real-time (e.g. after generating new avatar). */
   updateAvatarUrl: (newAvatarUrl: string | null) => void;
 }
@@ -124,16 +217,57 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           setAnonymousId(id);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          let eth: number | null = null;
+          let usdc: number | null = null;
           try {
-            const { ethBalance, usdcBalance } = await fetchAgentBalanceBase(addr);
-            setAgentBaseEthBalance(ethBalance);
-            setAgentBaseUsdcBalance(usdcBalance);
+            const bal = await fetchAgentBalanceBase(addr);
+            eth = bal.ethBalance;
+            usdc = bal.usdcBalance;
+            setAgentBaseEthBalance(eth);
+            setAgentBaseUsdcBalance(usdc);
           } catch {
             setAgentBaseEthBalance(null);
             setAgentBaseUsdcBalance(null);
           }
+          writeAgentWalletCache({
+            anonymousId: id,
+            linkedWallet: connectedWalletAddress,
+            chain: "base",
+            agentAddress: addr,
+            avatarUrl: avatar ?? null,
+            agentSolBalance: null,
+            agentUsdcBalance: null,
+            agentBaseEthBalance: eth,
+            agentBaseUsdcBalance: usdc,
+          });
         })
-        .catch(() => {})
+        .catch(() => {
+          const cached = readAgentWalletCache({
+            kind: "wallet",
+            linkedWallet: connectedWalletAddress,
+            chain: "base",
+          });
+          if (cached) {
+            setAnonymousId(cached.anonymousId);
+            setAgentAddress(cached.agentAddress);
+            setAvatarUrl(cached.avatarUrl ?? null);
+            setAgentBaseEthBalance(cached.agentBaseEthBalance);
+            setAgentBaseUsdcBalance(cached.agentBaseUsdcBalance);
+            void (async () => {
+              try {
+                const { ethBalance, usdcBalance } = await fetchAgentBalanceBase(cached.agentAddress);
+                setAgentBaseEthBalance(ethBalance);
+                setAgentBaseUsdcBalance(usdcBalance);
+                mergeCachedBalances(cached.agentAddress, {
+                  agentBaseEthBalance: ethBalance,
+                  agentBaseUsdcBalance: usdcBalance,
+                });
+              } catch {
+                /* keep restored values */
+              }
+            })();
+          }
+        })
         .finally(() => setReady(true));
       return;
     }
@@ -150,16 +284,54 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           setAnonymousId(id);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          let sol: number | null = null;
+          let usdc: number | null = null;
           try {
-            const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, addr);
-            setAgentSolBalance(solBalance);
-            setAgentUsdcBalance(usdcBalance);
+            const bal = await fetchAgentBalanceFromChain(connection, addr);
+            sol = bal.solBalance;
+            usdc = bal.usdcBalance;
+            setAgentSolBalance(sol);
+            setAgentUsdcBalance(usdc);
           } catch {
             setAgentSolBalance((prev) => prev);
             setAgentUsdcBalance((prev) => prev);
           }
+          writeAgentWalletCache({
+            anonymousId: id,
+            linkedWallet: connectedWalletAddress,
+            chain: "solana",
+            agentAddress: addr,
+            avatarUrl: avatar ?? null,
+            agentSolBalance: sol,
+            agentUsdcBalance: usdc,
+            agentBaseEthBalance: null,
+            agentBaseUsdcBalance: null,
+          });
         })
-        .catch(() => {})
+        .catch(() => {
+          const cached = readAgentWalletCache({
+            kind: "wallet",
+            linkedWallet: connectedWalletAddress,
+            chain: "solana",
+          });
+          if (cached) {
+            setAnonymousId(cached.anonymousId);
+            setAgentAddress(cached.agentAddress);
+            setAvatarUrl(cached.avatarUrl ?? null);
+            setAgentSolBalance(cached.agentSolBalance);
+            setAgentUsdcBalance(cached.agentUsdcBalance);
+            void (async () => {
+              try {
+                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, cached.agentAddress);
+                setAgentSolBalance(solBalance);
+                setAgentUsdcBalance(usdcBalance);
+                mergeCachedBalances(cached.agentAddress, { agentSolBalance: solBalance, agentUsdcBalance: usdcBalance });
+              } catch {
+                /* keep restored or null balances */
+              }
+            })();
+          }
+        })
         .finally(() => setReady(true));
       return;
     }
@@ -191,20 +363,52 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           const { agentAddress: addr, avatarUrl: avatar } = res;
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          let sol: number | null = null;
+          let usdc: number | null = null;
           try {
-            const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, addr);
-            setAgentSolBalance(solBalance);
-            setAgentUsdcBalance(usdcBalance);
+            const bal = await fetchAgentBalanceFromChain(connection, addr);
+            sol = bal.solBalance;
+            usdc = bal.usdcBalance;
+            setAgentSolBalance(sol);
+            setAgentUsdcBalance(usdc);
           } catch {
             setAgentSolBalance(null);
             setAgentUsdcBalance(null);
           }
+          writeAgentWalletCache({
+            anonymousId: id,
+            linkedWallet: null,
+            chain: null,
+            agentAddress: addr,
+            avatarUrl: avatar ?? null,
+            agentSolBalance: sol,
+            agentUsdcBalance: usdc,
+            agentBaseEthBalance: null,
+            agentBaseUsdcBalance: null,
+          });
         })
         .catch(() => {
-          // Keep anonymousId and ready so user can still chat; only clear agent address/balance
-          setAgentAddress(null);
-          setAgentSolBalance(null);
-          setAgentUsdcBalance(null);
+          const cached = readAgentWalletCache({ kind: "guest", anonymousId: id });
+          if (cached) {
+            setAgentAddress(cached.agentAddress);
+            setAvatarUrl(cached.avatarUrl ?? null);
+            setAgentSolBalance(cached.agentSolBalance);
+            setAgentUsdcBalance(cached.agentUsdcBalance);
+            void (async () => {
+              try {
+                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, cached.agentAddress);
+                setAgentSolBalance(solBalance);
+                setAgentUsdcBalance(usdcBalance);
+                mergeCachedBalances(cached.agentAddress, { agentSolBalance: solBalance, agentUsdcBalance: usdcBalance });
+              } catch {
+                /* keep cached balances */
+              }
+            })();
+          } else {
+            setAgentAddress(null);
+            setAgentSolBalance(null);
+            setAgentUsdcBalance(null);
+          }
         });
     } else {
       setReady(false);
@@ -218,14 +422,29 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           setAnonymousId(newId);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          let sol: number | null = null;
+          let usdc: number | null = null;
           try {
-            const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, addr);
-            setAgentSolBalance(solBalance);
-            setAgentUsdcBalance(usdcBalance);
+            const bal = await fetchAgentBalanceFromChain(connection, addr);
+            sol = bal.solBalance;
+            usdc = bal.usdcBalance;
+            setAgentSolBalance(sol);
+            setAgentUsdcBalance(usdc);
           } catch {
             setAgentSolBalance(null);
             setAgentUsdcBalance(null);
           }
+          writeAgentWalletCache({
+            anonymousId: newId,
+            linkedWallet: null,
+            chain: null,
+            agentAddress: addr,
+            avatarUrl: avatar ?? null,
+            agentSolBalance: sol,
+            agentUsdcBalance: usdc,
+            agentBaseEthBalance: null,
+            agentBaseUsdcBalance: null,
+          });
         })
         .catch(() => {
           setAnonymousId(null);
@@ -246,6 +465,10 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
         const { ethBalance, usdcBalance } = await fetchAgentBalanceBase(agentAddress);
         setAgentBaseEthBalance(ethBalance);
         setAgentBaseUsdcBalance(usdcBalance);
+        mergeCachedBalances(agentAddress, {
+          agentBaseEthBalance: ethBalance,
+          agentBaseUsdcBalance: usdcBalance,
+        });
       } catch {
         setAgentBaseEthBalance((prev) => prev);
         setAgentBaseUsdcBalance((prev) => prev);
@@ -256,6 +479,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       const { solBalance: sol, usdcBalance: usdc } = await fetchAgentBalanceFromChain(connection, agentAddress);
       setAgentSolBalance(sol);
       setAgentUsdcBalance(usdc);
+      mergeCachedBalances(agentAddress, { agentSolBalance: sol, agentUsdcBalance: usdc });
     } catch {
       setAgentSolBalance((prev) => prev);
       setAgentUsdcBalance((prev) => prev);
@@ -354,6 +578,21 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     [refetchBalance]
   );
 
+  const reportNativeDebit = useCallback(
+    (amountSol: number) => {
+      if (!Number.isFinite(amountSol) || amountSol <= 0) return;
+      refetchTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      refetchTimeoutsRef.current = [];
+      setAgentSolBalance((prev) => (prev != null ? Math.max(0, prev - amountSol) : null));
+      void refetchBalance();
+      refetchTimeoutsRef.current = [
+        setTimeout(refetchBalance, 1500),
+        setTimeout(refetchBalance, 4000),
+      ];
+    },
+    [refetchBalance]
+  );
+
   useEffect(
     () => () => {
       if (debitTimeoutRef.current) clearTimeout(debitTimeoutRef.current);
@@ -377,7 +616,19 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
 
   const updateAvatarUrl = useCallback((newAvatarUrl: string | null) => {
     setAvatarUrl(newAvatarUrl);
-  }, []);
+    if (typeof localStorage === "undefined" || !agentAddress) return;
+    try {
+      const raw = localStorage.getItem(AGENT_WALLET_CACHE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as AgentWalletCachePayload;
+      if (parsed?.v !== 1 || parsed.agentAddress !== agentAddress) return;
+      parsed.avatarUrl = newAvatarUrl;
+      parsed.updatedAt = Date.now();
+      localStorage.setItem(AGENT_WALLET_CACHE_KEY, JSON.stringify(parsed));
+    } catch {
+      /* ignore */
+    }
+  }, [agentAddress]);
 
   const value = useMemo<AgentWalletState>(
     () => ({
@@ -397,6 +648,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       refetchBalance,
       getAgentWalletBalances,
       reportDebit,
+      reportNativeDebit,
       updateAvatarUrl,
     }),
     [
@@ -416,6 +668,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       refetchBalance,
       getAgentWalletBalances,
       reportDebit,
+      reportNativeDebit,
       updateAvatarUrl,
     ]
   );

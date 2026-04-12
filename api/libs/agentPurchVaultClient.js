@@ -147,7 +147,7 @@ export async function purchVaultBuy(anonymousId, params = {}) {
       return { success: false, error: 'slug is required to buy a Purch Vault item' };
     }
     const walletAddress = (params.walletAddress && String(params.walletAddress).trim()) || keypair.publicKey.toBase58();
-    const email = (params.email && String(params.email).trim()) || 'agent@syra.fun';
+    const email = (params.email && String(params.email).trim()) || 'support@syraa.fun';
     const url = `${PURCH_VAULT_BASE.replace(/\/$/, '')}/x402/vault/buy`;
     const body = { slug, walletAddress, email };
     const result = await purchVaultRequest(keypair, url, 'POST', body, anonymousId);

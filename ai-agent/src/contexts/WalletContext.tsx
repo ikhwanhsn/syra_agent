@@ -130,6 +130,10 @@ export interface WalletContextState {
     usdcAmountUsd: number,
     ethAmountUsd: number
   ) => Promise<string> | null;
+  /** One-shot refresh of linked Solana wallet SOL + USDC (e.g. after agent deposit/withdraw). */
+  refreshSolanaBalances: () => Promise<void>;
+  /** One-shot refresh of linked Base wallet ETH + USDC. */
+  refreshBaseBalances: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextState | null>(null);
@@ -427,65 +431,41 @@ const WalletContextInner: FC<{
     if (stored && stored !== preferredChain) setPreferredChain(stored);
   }, [authenticated, solanaWallets?.length, evmWallets?.length, preferredChain, setPreferredChain]);
 
-  useEffect(() => {
+  const refreshSolanaBalances = useCallback(async () => {
     if (!publicKey || !connected) {
       setSolBalance(null);
       setUsdcBalance(null);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      try {
-        const balance = await connection.getBalance(publicKey, "confirmed");
-        if (!cancelled) setSolBalance(balance / LAMPORTS_PER_SOL);
-        const tokenAccounts =
-          await connection.getParsedTokenAccountsByOwner(publicKey, {
-            mint: USDC_MINT,
-          });
-        if (!cancelled) {
-          if (tokenAccounts.value.length > 0) {
-            const total = tokenAccounts.value.reduce(
-              (sum, acc) =>
-                sum +
-                (Number(acc.account.data.parsed.info.tokenAmount.uiAmount) || 0),
-              0
-            );
-            setUsdcBalance(total);
-          } else setUsdcBalance(0);
-        }
-      } catch {
-        if (!cancelled) setUsdcBalance(0);
-      }
-    })();
-    const interval = setInterval(() => {
-      if (!publicKey || !connected) return;
-      connection
-        .getBalance(publicKey, "confirmed")
-        .then((b) => !cancelled && setSolBalance(b / LAMPORTS_PER_SOL));
-      connection
-        .getParsedTokenAccountsByOwner(publicKey, { mint: USDC_MINT })
-        .then((ta) => {
-          if (cancelled) return;
-          if (ta.value.length > 0)
-            setUsdcBalance(
-              ta.value.reduce(
-                (s, a) =>
-                  s +
-                  (Number(a.account.data.parsed.info.tokenAmount.uiAmount) ||
-                    0),
-                0
-              )
-            );
-          else setUsdcBalance(0);
-        });
-    }, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    try {
+      const balance = await connection.getBalance(publicKey, "confirmed");
+      setSolBalance(balance / LAMPORTS_PER_SOL);
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+        mint: USDC_MINT,
+      });
+      if (tokenAccounts.value.length > 0) {
+        const total = tokenAccounts.value.reduce(
+          (sum, acc) =>
+            sum + (Number(acc.account.data.parsed.info.tokenAmount.uiAmount) || 0),
+          0,
+        );
+        setUsdcBalance(total);
+      } else setUsdcBalance(0);
+    } catch {
+      setUsdcBalance(0);
+    }
   }, [publicKey, connected]);
 
   useEffect(() => {
+    void refreshSolanaBalances();
+    if (!publicKey || !connected) return;
+    const interval = setInterval(() => {
+      void refreshSolanaBalances();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [publicKey, connected, refreshSolanaBalances]);
+
+  const refreshBaseBalances = useCallback(async () => {
     if (!baseAddress || typeof window === "undefined") {
       setBaseUsdcBalance(null);
       setBaseEthBalance(null);
@@ -499,40 +479,32 @@ const WalletContextInner: FC<{
         outputs: [{ type: "uint256" }],
       },
     ] as const;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { createPublicClient, http, formatUnits, formatEther } = await import(
-          "viem"
-        );
-        const client = createPublicClient({
-          chain: base,
-          transport: http(),
-        });
-        const [usdcRaw, ethWei] = await Promise.all([
-          client.readContract({
-            address: BASE_USDC as `0x${string}`,
-            abi,
-            functionName: "balanceOf",
-            args: [getAddress(baseAddress)],
-          }),
-          client.getBalance({ address: getAddress(baseAddress) as `0x${string}` }),
-        ]);
-        if (!cancelled) {
-          setBaseUsdcBalance(Number(formatUnits(usdcRaw, 6)));
-          setBaseEthBalance(Number(formatEther(ethWei)));
-        }
-      } catch {
-        if (!cancelled) {
-          setBaseUsdcBalance(0);
-          setBaseEthBalance(null);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const { createPublicClient, http, formatUnits, formatEther } = await import("viem");
+      const client = createPublicClient({
+        chain: base,
+        transport: http(),
+      });
+      const [usdcRaw, ethWei] = await Promise.all([
+        client.readContract({
+          address: BASE_USDC as `0x${string}`,
+          abi,
+          functionName: "balanceOf",
+          args: [getAddress(baseAddress)],
+        }),
+        client.getBalance({ address: getAddress(baseAddress) as `0x${string}` }),
+      ]);
+      setBaseUsdcBalance(Number(formatUnits(usdcRaw, 6)));
+      setBaseEthBalance(Number(formatEther(ethWei)));
+    } catch {
+      setBaseUsdcBalance(0);
+      setBaseEthBalance(null);
+    }
   }, [baseAddress]);
+
+  useEffect(() => {
+    void refreshBaseBalances();
+  }, [refreshBaseBalances]);
 
   useEffect(() => {
     const wallet = solanaWallets?.[0];
@@ -925,6 +897,8 @@ const WalletContextInner: FC<{
       requestConnect: () => {},
       effectiveChain,
       sendBaseFuelTransaction: baseAddress && evmWallet ? sendBaseFuelTransaction : null,
+      refreshSolanaBalances,
+      refreshBaseBalances,
     }),
     [
       forceDisconnected,
@@ -957,6 +931,8 @@ const WalletContextInner: FC<{
       getEvmSigner,
       setConnectChainOverride,
       openLoginModal,
+      refreshSolanaBalances,
+      refreshBaseBalances,
       effectiveChain,
       sendBaseFuelTransaction,
       baseAddress,
@@ -1012,6 +988,8 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   requestConnect: () => {},
   effectiveChain: null,
   sendBaseFuelTransaction: null,
+  refreshSolanaBalances: async () => {},
+  refreshBaseBalances: async () => {},
 };
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({

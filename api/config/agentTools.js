@@ -1432,7 +1432,7 @@ export function getCapabilitiesList() {
 
 /**
  * Tool list for LLM tool selection: id, name, description, and optional params hint.
- * Used so Jatevo can dynamically pick the right tool from the user question.
+ * Used so the LLM can dynamically pick the right tool from the user question.
  * @returns {Array<{ id: string; name: string; description: string; paramsHint?: string }>}
  */
 export function getToolsForLlmSelection() {

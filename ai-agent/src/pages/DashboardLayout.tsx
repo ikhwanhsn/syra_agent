@@ -5,7 +5,6 @@ import {
   Trophy,
   FlaskConical,
   Scale,
-  ArrowLeft,
   Moon,
   Sun,
   PanelLeftClose,
@@ -16,9 +15,11 @@ import {
   ExternalLink,
   FileText,
   Bot,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
+import { AppTopNavLinks } from "@/components/chat/AppTopNavLinks";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
@@ -106,18 +107,12 @@ function DashboardSidebarContent({
       )}
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 scrollbar-thin" onClick={onNavigate}>
         <div className="space-y-0.5 px-1 py-3 sm:px-1.5 sm:py-4">
-          <Link
-            to="/"
-            className={cn(
-              "group/back flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-[13px] font-medium tracking-tight text-muted-foreground transition-all duration-200",
-              "hover:border-border/50 hover:bg-muted/40 hover:text-foreground",
-            )}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-transparent bg-muted/35 transition-colors group-hover/back:border-border/40 group-hover/back:bg-muted/55">
-              <ArrowLeft className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-            </span>
-            <span className="truncate">Back to agent</span>
-          </Link>
+          <SidebarSectionLabel>Workspace</SidebarSectionLabel>
+          <div className="space-y-1">
+            <SidebarNavLink to="/dashboard/overview" icon={LayoutDashboard} end>
+              Overview
+            </SidebarNavLink>
+          </div>
 
           <SidebarSectionLabel>Marketplace</SidebarSectionLabel>
           <div className="space-y-1">
@@ -214,10 +209,7 @@ export default function DashboardLayout() {
         >
           <PanelLeft className="w-4 h-4" />
         </Button>
-        <div className="min-w-0 flex-1 sm:flex-none">
-          <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">Dashboard</h1>
-          <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground/90">{pageTitle}</p>
-        </div>
+        <AppTopNavLinks />
       </div>
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0 flex-wrap sm:flex-nowrap justify-end max-w-full">
         <Button

@@ -20,7 +20,8 @@ export interface ApiMessage {
   toolUsage?: { name: string; status: "running" | "complete" | "error" };
 }
 
-export interface JatevoModel {
+/** Curated OpenRouter model entry from GET /agent/chat/models */
+export interface AgentLlmModel {
   id: string;
   name: string;
   contextWindow?: string;
@@ -98,8 +99,8 @@ export const chatApi = {
     return { success: true, chat: data as ApiChat, isOwner };
   },
 
-  /** List available Jatevo LLM models for agent chat. */
-  async getModels(): Promise<{ models: JatevoModel[] }> {
+  /** List available OpenRouter LLM models for agent chat. */
+  async getModels(): Promise<{ models: AgentLlmModel[] }> {
     const res = await fetch(`${base()}/models`, { headers: getApiHeaders() });
     return handleRes(res);
   },
@@ -188,13 +189,13 @@ export const chatApi = {
     "To use tools and realtime data, connect your Solana wallet first (Phantom recommended via Connect). You can keep chatting about crypto, web3, and blockchain without a wallet—connect when you need live data or tools.",
 
   /**
-   * Get LLM completion from Jatevo. Playground-style: if completion returns 402 (tool requires payment),
+   * Get LLM completion from OpenRouter (via API). Playground-style: if completion returns 402 (tool requires payment),
    * pay with agent wallet via pay-402 then retry with payment header when walletConnected; otherwise throw WALLET_REQUIRED_FOR_TOOLS.
    */
   async completion(params: {
     messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     systemPrompt?: string;
-    /** Jatevo model id (e.g. glm-4.7, deepseek-v3.2). Omit to use default. */
+    /** OpenRouter model id (e.g. google/gemini-2.5-flash-lite). Omit to use default. */
     model?: string | null;
     /** Client anonymous id; agent wallet pays x402 (pay-402 then retry) */
     anonymousId?: string | null;
@@ -372,13 +373,29 @@ export const agentWalletApi = {
   async withdrawToLinkedWallet(
     anonymousId: string,
     recipient: string,
+    options?: {
+      asset?: "usdc" | "sol" | "both";
+      /** Max USDC to withdraw (human); omit = all available USDC for that leg. */
+      usdcAmount?: number;
+      /** Max SOL to withdraw (human); omit = all excess SOL for that leg. */
+      solAmount?: number;
+    },
   ): Promise<{ success: boolean; signature: string }> {
     const res = await fetch(
       `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/withdraw`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getApiHeaders() },
-        body: JSON.stringify({ recipient }),
+        body: JSON.stringify({
+          recipient,
+          ...(options?.asset && { asset: options.asset }),
+          ...(options?.usdcAmount != null && Number.isFinite(options.usdcAmount) && options.usdcAmount > 0
+            ? { usdcAmount: options.usdcAmount }
+            : {}),
+          ...(options?.solAmount != null && Number.isFinite(options.solAmount) && options.solAmount > 0
+            ? { solAmount: options.solAmount }
+            : {}),
+        }),
       },
     );
     const data = await res.json().catch(() => ({}));
@@ -672,7 +689,7 @@ export const agentLeaderboardApi = {
 };
 
 /**
- * Generate a unique agent description using Jatevo based on the agent name.
+ * Generate a unique agent description using the Syra API (OpenRouter) based on the agent name.
  * Uses the user's agent wallet (anonymousId) so any payment is charged to the user, not the system.
  * @param agentName - Name of the agent to describe
  * @param anonymousId - User's agent wallet id (required; connect wallet first)

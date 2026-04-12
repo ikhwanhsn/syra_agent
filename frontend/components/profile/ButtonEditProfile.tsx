@@ -100,7 +100,7 @@ export function ButtonEditProfile() {
               id="email-1"
               name="email"
               disabled={data?.user?.email}
-              placeholder="syra_labs@gmail.com"
+              placeholder="support@syraa.fun"
               value={dataSubmit.email}
               onChange={(e) =>
                 setDataSubmit({ ...dataSubmit, email: e.target.value })

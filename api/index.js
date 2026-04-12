@@ -11,7 +11,7 @@ import {
   createSignalRouterRegular,
 } from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
-import { createJatevoRouter } from "./routes/jatevo.js";
+import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
@@ -782,7 +782,7 @@ app.use("/mpp/v1", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/brain", await createBrainRouter());
 app.use("/smart-money", await createV2SmartMoneyRouter());
-app.use("/jatevo", await createJatevoRouter());
+app.use("/openrouter", await createOpenRouterChatRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());

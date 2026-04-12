@@ -1,7 +1,7 @@
 import express from 'express';
 import Chat from '../../models/agent/Chat.js';
-import { callJatevo, getJatevoModels } from '../../libs/jatevo.js';
-import { JATEVO_MODELS, JATEVO_DEFAULT_MODEL } from '../../config/jatevoModels.js';
+import { callOpenRouter, getOpenRouterModels } from '../../libs/openrouter.js';
+import { OPENROUTER_MODELS, OPENROUTER_DEFAULT_MODEL } from '../../config/openrouterModels.js';
 import {
   getAgentTool,
   getCapabilitiesList,
@@ -31,6 +31,10 @@ import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
 import { recordAgentChatUsage } from '../../libs/agentLeaderboard.js';
+import {
+  buildAgentChatDailyLimitMessage,
+  tryConsumeAgentChatDailyQuestion,
+} from '../../libs/agentChatDailyLimit.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
 
 const router = express.Router();
@@ -50,7 +54,10 @@ const MAX_TOKENS_DEFAULT = 2000;
  */
 function enforceSyraBranding(text) {
   if (typeof text !== 'string' || !text.trim()) return '';
-  return text.replace(/\bjatevo(?:'s)?\b/gi, 'Syra');
+  return text
+    .replace(/\bjatevo(?:'s)?\b/gi, 'Syra')
+    .replace(/\bopenrouter\b/gi, 'Syra')
+    .replace(/\bopen\s*router\b/gi, 'Syra');
 }
 
 /** User-facing model label for system prompts; never mention inference vendor brands to end users. */
@@ -58,8 +65,8 @@ export function buildLlmIdentityNote(modelId) {
   const resolved =
     modelId && typeof modelId === 'string' && modelId.trim()
       ? modelId.trim()
-      : JATEVO_DEFAULT_MODEL;
-  const entry = JATEVO_MODELS.find((x) => x.id === resolved);
+      : OPENROUTER_DEFAULT_MODEL;
+  const entry = OPENROUTER_MODELS.find((x) => x.id === resolved);
   const displayName = entry?.name || resolved;
   return `LLM identity (user-facing): This turn uses the language model "${displayName}". If asked what model you are, what LLM powers Syra, or who hosts the API: answer with "${displayName}" only. Never name inference platforms, API marketplaces, hosting vendors, or third-party provider brands.`;
 }
@@ -75,7 +82,7 @@ export function withLlmIdentitySystemNote(apiMessages, modelId) {
 }
 
 /**
- * Use Jatevo LLM to pick up to 3 most relevant tools (and optional params) from the user question.
+ * Use OpenRouter LLM to pick up to 3 most relevant tools (and optional params) from the user question.
  * Returns tools ordered by relevance (most relevant first).
  * @param {string} userMessage - Last user message
  * @returns {Promise<Array<{ toolId: string; params?: Record<string, string> }>>}
@@ -144,7 +151,7 @@ PARAM RULES:
   const userContent = `User question: ${userMessage.trim()}`;
 
   try {
-    const { response } = await callJatevo(
+    const { response } = await callOpenRouter(
       [
         { role: 'system', content: systemContent },
         { role: 'user', content: userContent },
@@ -571,20 +578,20 @@ export async function callToolWithTreasury(url, method, query, body) {
   return { status: 200, data: result.data };
 }
 
-// GET /models - List available Jatevo LLM models for the agent chat. Prefer Jatevo API list when available.
+// GET /models - List curated OpenRouter models for the agent chat (enriched from OpenRouter /models when possible).
 router.get('/models', async (_req, res) => {
   try {
-    const fromApi = await getJatevoModels();
+    const fromApi = await getOpenRouterModels();
     if (Array.isArray(fromApi) && fromApi.length > 0) {
       return res.json({ models: fromApi });
     }
   } catch {
     // use config fallback
   }
-  res.json({ models: JATEVO_MODELS });
+  res.json({ models: OPENROUTER_MODELS });
 });
 
-// POST /completion - Get LLM completion from Jatevo. Tool is chosen dynamically by Jatevo from the user question.
+// POST /completion - Get LLM completion from OpenRouter. Tool is chosen dynamically by the LLM from the user question.
 // Playground-style: when tool returns 402, we return 402 to client; client calls pay-402 then retries with X-Payment.
 // When client sends X-Payment, we forward it to the tool request.
 router.post('/completion', async (req, res) => {
@@ -607,6 +614,14 @@ router.post('/completion', async (req, res) => {
       role: m.role || 'user',
       content: typeof m.content === 'string' ? m.content : String(m.content ?? ''),
     }));
+
+    const quota = await tryConsumeAgentChatDailyQuestion(anonymousId);
+    if (!quota.allowed) {
+      return res.json({
+        success: true,
+        response: enforceSyraBranding(buildAgentChatDailyLimitMessage()),
+      });
+    }
 
     const lastUserMessage = apiMessages
       .filter((m) => m.role === 'user')
@@ -680,7 +695,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       `Model disclosure: If asked what LLM/model powers Syra or you, answer with the language model name only (the server appends the exact name for this session before inference). Never name third-party inference or API provider brands.`
     );
     systemParts.push(
-      `Branding rule: Never mention "Jatevo" (or any variation of that provider name) in user-facing replies. Always present the assistant and platform brand as "Syra".`
+      `Branding rule: Never mention third-party inference or API marketplace names in user-facing replies. Always present the assistant and platform brand as "Syra".`
     );
     if (anonymousId) {
       let usdcBalance = 0;
@@ -1045,37 +1060,37 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       });
     }
 
-    const jatevoOptions = { anonymousId };
+    const llmOptions = { anonymousId };
     if (modelId && typeof modelId === 'string' && modelId.trim()) {
-      jatevoOptions.model = modelId.trim();
+      llmOptions.model = modelId.trim();
     }
     if (hadToolResults) {
-      jatevoOptions.max_tokens = MAX_TOKENS_WITH_TOOLS;
+      llmOptions.max_tokens = MAX_TOKENS_WITH_TOOLS;
     } else {
-      jatevoOptions.max_tokens = MAX_TOKENS_DEFAULT;
+      llmOptions.max_tokens = MAX_TOKENS_DEFAULT;
     }
-    const requestedModel = jatevoOptions.model || JATEVO_DEFAULT_MODEL;
+    const requestedModel = llmOptions.model || OPENROUTER_DEFAULT_MODEL;
 
     let response;
     let truncated = false;
     let usedFallbackModel = false;
 
     try {
-      const modelForCall = jatevoOptions.model || JATEVO_DEFAULT_MODEL;
-      const result = await callJatevo(withLlmIdentitySystemNote(apiMessages, modelForCall), jatevoOptions);
+      const modelForCall = llmOptions.model || OPENROUTER_DEFAULT_MODEL;
+      const result = await callOpenRouter(withLlmIdentitySystemNote(apiMessages, modelForCall), llmOptions);
       response = result.response;
       truncated = result.truncated;
     } catch (firstError) {
-      const requestedModel = jatevoOptions.model;
-      console.error(`[agent/chat/completion] callJatevo failed (model=${requestedModel || JATEVO_DEFAULT_MODEL}):`, firstError?.message || firstError);
+      const requestedModelOnErr = llmOptions.model;
+      console.error(`[agent/chat/completion] callOpenRouter failed (model=${requestedModelOnErr || OPENROUTER_DEFAULT_MODEL}):`, firstError?.message || firstError);
       if (
-        requestedModel &&
-        requestedModel !== JATEVO_DEFAULT_MODEL
+        requestedModelOnErr &&
+        requestedModelOnErr !== OPENROUTER_DEFAULT_MODEL
       ) {
         try {
-          const fallbackOptions = { ...jatevoOptions, model: JATEVO_DEFAULT_MODEL };
-          const fallbackResult = await callJatevo(
-            withLlmIdentitySystemNote(apiMessages, JATEVO_DEFAULT_MODEL),
+          const fallbackOptions = { ...llmOptions, model: OPENROUTER_DEFAULT_MODEL };
+          const fallbackResult = await callOpenRouter(
+            withLlmIdentitySystemNote(apiMessages, OPENROUTER_DEFAULT_MODEL),
             fallbackOptions
           );
           response = fallbackResult.response;
@@ -1084,7 +1099,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         } catch (fallbackError) {
           console.error(`[agent/chat/completion] fallback model also failed:`, fallbackError?.message || fallbackError);
           const err = new Error(
-            firstError?.message?.includes('JATEVO_API_KEY')
+            firstError?.message?.includes('OPENROUTER_API_KEY')
               ? 'AI service is not configured. Please contact the administrator.'
               : `AI model is temporarily unavailable (${firstError?.message || 'unknown error'}). Please try again in a moment.`
           );
@@ -1093,7 +1108,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         }
       } else {
         const err = new Error(
-          firstError?.message?.includes('JATEVO_API_KEY')
+          firstError?.message?.includes('OPENROUTER_API_KEY')
             ? 'AI service is not configured. Please contact the administrator.'
             : `AI model is temporarily unavailable (${firstError?.message || 'unknown error'}). Please try again in a moment.`
         );
@@ -1101,8 +1116,6 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         throw err;
       }
     }
-
-    const actualModel = usedFallbackModel ? JATEVO_DEFAULT_MODEL : requestedModel;
 
     const payload = { success: true, response: enforceSyraBranding(response) };
     if (truncated) payload.truncated = true;
@@ -1132,11 +1145,11 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
   }
 });
 
-const JATEVO_DESC_SYSTEM = `You are a copywriter for Syra, an AI agent ecosystem and MCP (Model Context Protocol) platform.
+const AGENT_DESC_SYSTEM = `You are a copywriter for Syra, an AI agent ecosystem and MCP (Model Context Protocol) platform.
 Generate exactly one short, unique description (1-2 sentences, under 200 characters) for an AI agent.
 The description must be professional and clearly related to Syra or the agent ecosystem: MCP tools, AI agents, crypto/data tools, or Syra's marketplace. Do not use generic phrases; mention Syra, agents, or the ecosystem. Output only the description, no quotes or preamble.`;
 
-// POST /generate-description - Generate agent description using Jatevo; requires user's agent wallet (anonymousId) so payment uses user wallet not system.
+// POST /generate-description - Generate agent description via OpenRouter; requires user's agent wallet (anonymousId) so payment uses user wallet not system.
 router.post('/generate-description', async (req, res) => {
   try {
     const { anonymousId, agentName } = req.body || {};
@@ -1145,10 +1158,10 @@ router.post('/generate-description', async (req, res) => {
     }
     const name = (typeof agentName === 'string' && agentName.trim()) ? agentName.trim() : 'this agent';
     const apiMessages = [
-      { role: 'system', content: JATEVO_DESC_SYSTEM },
+      { role: 'system', content: AGENT_DESC_SYSTEM },
       { role: 'user', content: `Generate a short, unique description for an AI agent named "${name}".` },
     ];
-    const result = await callJatevo(apiMessages, { anonymousId });
+    const result = await callOpenRouter(apiMessages, { anonymousId });
     let text = typeof result.response === 'string' ? result.response.trim() : '';
     if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
     return res.json({ response: text });

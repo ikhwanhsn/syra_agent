@@ -1,6 +1,6 @@
 import express from 'express';
 import { Keypair } from '@solana/web3.js';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import crypto from 'crypto';
 import pkg from 'random-avatar-generator';
@@ -9,6 +9,7 @@ import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
 import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
 import { withdrawSolanaAgentToRecipient } from '../../libs/agentWalletWithdrawSol.js';
 import { encryptAgentSecretForStorage } from '../../libs/agentWalletSecretCrypto.js';
+import { pickSolanaConnectionForReads } from '../../libs/solanaServerRpc.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -17,19 +18,6 @@ const router = express.Router();
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const LAMPORTS_PER_SOL = 1e9;
-const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
-const RPC_TIMEOUT_MS = Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 30_000;
-
-/** Custom fetch with longer timeout so slow/unreliable RPCs don't fail with Connect Timeout. */
-function fetchWithTimeout(url, init = {}) {
-  const timeout = RPC_TIMEOUT_MS;
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  return fetch(url, {
-    ...init,
-    signal: init.signal || controller.signal,
-  }).finally(() => clearTimeout(id));
-}
 
 function generateAnonymousId() {
   return crypto.randomUUID?.() ?? crypto.randomBytes(16).toString('hex');
@@ -77,14 +65,14 @@ router.get('/:anonymousId/balance', async (req, res) => {
     return res.status(500).json({ success: false, error: 'Invalid agent wallet address' });
   }
 
-  const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
   let solLamports;
   let tokenAccounts;
   try {
-    [solLamports, tokenAccounts] = await Promise.all([
-      connection.getBalance(agentPubkey, 'confirmed'),
-      connection.getParsedTokenAccountsByOwner(agentPubkey, { mint: USDC_MAINNET }),
-    ]);
+    const picked = await pickSolanaConnectionForReads(agentPubkey);
+    solLamports = picked.lamports;
+    tokenAccounts = await picked.connection.getParsedTokenAccountsByOwner(agentPubkey, {
+      mint: USDC_MAINNET,
+    });
   } catch (err) {
     const isRpcUnavailable =
       err?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
@@ -123,21 +111,36 @@ router.get('/:anonymousId/balance', async (req, res) => {
 
 /**
  * POST /agent/wallet/:anonymousId/withdraw
- * Body: { recipient: string } — Solana address; must match linked walletAddress on the agent record.
- * Sweeps USDC and most SOL from the Solana agent wallet to the recipient.
+ * Body: { recipient: string, asset?: 'usdc'|'sol'|'both', usdcAmount?: number, solAmount?: number }
+ * — Solana address must match linked walletAddress. Amounts are optional caps in human units.
  */
 router.post('/:anonymousId/withdraw', async (req, res) => {
   try {
     const anonymousId = decodeAnonymousId(req.params.anonymousId);
     const recipient =
       typeof req.body?.recipient === 'string' ? req.body.recipient.trim() : '';
+    const assetRaw = req.body?.asset;
+    const asset =
+      assetRaw === 'usdc' || assetRaw === 'sol' || assetRaw === 'both' ? assetRaw : undefined;
+    const usdcAmount =
+      typeof req.body?.usdcAmount === 'number' && Number.isFinite(req.body.usdcAmount)
+        ? req.body.usdcAmount
+        : undefined;
+    const solAmount =
+      typeof req.body?.solAmount === 'number' && Number.isFinite(req.body.solAmount)
+        ? req.body.solAmount
+        : undefined;
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
     if (!recipient) {
       return res.status(400).json({ success: false, error: 'recipient is required' });
     }
-    const { signature } = await withdrawSolanaAgentToRecipient(anonymousId, recipient);
+    const { signature } = await withdrawSolanaAgentToRecipient(anonymousId, recipient, {
+      ...(asset && { asset }),
+      ...(usdcAmount != null && { usdcAmount }),
+      ...(solAmount != null && { solAmount }),
+    });
     return res.json({ success: true, signature });
   } catch (error) {
     const message = error?.message || 'Withdraw failed';

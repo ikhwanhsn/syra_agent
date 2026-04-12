@@ -28,7 +28,7 @@ const chatSchema = new mongoose.Schema(
     preview: { type: String, default: '' },
     agentId: { type: String, default: '' },
     systemPrompt: { type: String, default: '' },
-    /** Jatevo model id for this chat (e.g. glm-4.7, deepseek-v3.2). Empty = use default. */
+    /** OpenRouter model id for this chat (e.g. google/gemini-2.5-flash-lite). Empty = use default. */
     modelId: { type: String, default: '' },
     messages: [messageSchema],
     /** Unique shareable slug for link (e.g. /c/abc123). Private by default; isPublic controls visibility. */

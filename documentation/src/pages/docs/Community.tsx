@@ -196,10 +196,10 @@
                </span>
                <p className="text-muted-foreground pl-4 sm:pl-5">Reach out for development or partnership inquiries.</p>
                <a
-                 href="mailto:ikhwanulhusna111@gmail.com"
+                 href="mailto:support@syraa.fun"
                  className="inline-flex items-center w-fit min-h-[44px] px-3 py-2 rounded-lg bg-muted/80 text-foreground hover:bg-muted border border-border transition-colors text-sm font-medium break-all"
                >
-                 ikhwanulhusna111@gmail.com
+                 support@syraa.fun
                </a>
              </li>
            </ul>

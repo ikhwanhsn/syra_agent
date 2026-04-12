@@ -2,11 +2,32 @@
  * Agent wallet helpers: get keypair by anonymousId so the backend can pay x402
  * permissionlessly (no user signature) when the agent calls paid APIs.
  */
-import { Keypair, Connection, PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { getAddress } from 'viem';
 import AgentWallet from '../models/agent/AgentWallet.js';
 import { decryptAgentSecretFromStorage } from './agentWalletSecretCrypto.js';
+import { pickSolanaConnectionForReads } from './solanaServerRpc.js';
+
+/** Legacy rows omit `chain`; schema default is solana. Base agents use chain === 'base'. */
+function isSolanaChainDoc(doc) {
+  return doc && (doc.chain === 'solana' || doc.chain == null || doc.chain === '');
+}
+
+/**
+ * Find Solana agent row for the same linked wallet (handles legacy `chain` unset).
+ * @param {string} walletAddress
+ * @returns {Promise<object | null>}
+ */
+async function findSolanaAgentDocByWallet(walletAddress) {
+  const w = String(walletAddress || '').trim();
+  if (!w) return null;
+  let row = await AgentWallet.findOne({ walletAddress: w, chain: 'solana' }).lean();
+  if (!row) {
+    row = await AgentWallet.findOne({ walletAddress: w, chain: { $exists: false } }).lean();
+  }
+  return row;
+}
 
 /**
  * Get the agent keypair for an anonymous user.
@@ -41,9 +62,9 @@ export async function getSolanaAgentAddress(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
   let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).select('agentAddress chain walletAddress').lean();
   if (!doc) return null;
-  if (doc.chain === 'solana' && doc.agentAddress) return doc.agentAddress;
+  if (isSolanaChainDoc(doc) && doc.agentAddress) return doc.agentAddress;
   if (doc.walletAddress) {
-    const solanaDoc = await AgentWallet.findOne({ walletAddress: doc.walletAddress, chain: 'solana' }).select('agentAddress').lean();
+    const solanaDoc = await findSolanaAgentDocByWallet(doc.walletAddress);
     return solanaDoc?.agentAddress ?? null;
   }
   return null;
@@ -59,7 +80,7 @@ export async function getSolanaAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
   let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc) return null;
-  if (doc.chain === 'solana' && doc.agentSecretKey) {
+  if (isSolanaChainDoc(doc) && doc.agentSecretKey) {
     let plain;
     try {
       plain = decryptAgentSecretFromStorage(doc.agentSecretKey);
@@ -74,11 +95,11 @@ export async function getSolanaAgentKeypair(anonymousId) {
     }
   }
   if (doc.walletAddress) {
-    doc = await AgentWallet.findOne({ walletAddress: doc.walletAddress, chain: 'solana' }).lean();
-    if (doc?.agentSecretKey) {
+    const solanaDoc = await findSolanaAgentDocByWallet(doc.walletAddress);
+    if (solanaDoc?.agentSecretKey) {
       let plain;
       try {
-        plain = decryptAgentSecretFromStorage(doc.agentSecretKey);
+        plain = decryptAgentSecretFromStorage(solanaDoc.agentSecretKey);
       } catch (e) {
         console.error('[agentWallet] decrypt agentSecretKey failed:', e?.message || String(e));
         return null;
@@ -121,17 +142,6 @@ export async function getConnectedWalletAddress(anonymousId) {
 }
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
-const RPC_TIMEOUT_MS = Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 30_000;
-
-function fetchWithTimeout(url, init = {}) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
-  return fetch(url, { ...init, signal: init.signal || controller.signal }).finally(() =>
-    clearTimeout(id)
-  );
-}
-
 const LAMPORTS_PER_SOL = 1e9;
 
 /**
@@ -156,12 +166,11 @@ export async function getAgentBalances(anonymousId) {
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc || !doc.agentAddress) return null;
   try {
-    const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
     const agentPubkey = new PublicKey(doc.agentAddress);
-    const [solLamports, tokenAccountsResponse] = await Promise.all([
-      connection.getBalance(agentPubkey, 'confirmed'),
-      connection.getParsedTokenAccountsByOwner(agentPubkey, { mint: USDC_MAINNET }),
-    ]);
+    const { connection, lamports: solLamports } = await pickSolanaConnectionForReads(agentPubkey);
+    const tokenAccountsResponse = await connection.getParsedTokenAccountsByOwner(agentPubkey, {
+      mint: USDC_MAINNET,
+    });
     const solBalance = solLamports / LAMPORTS_PER_SOL;
     const accounts = Array.isArray(tokenAccountsResponse)
       ? tokenAccountsResponse

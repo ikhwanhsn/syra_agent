@@ -1,7 +1,11 @@
 import express from "express";
-import { callJatevo } from "../libs/jatevo.js";
+import { callOpenRouter } from "../libs/openrouter.js";
 
-export async function createJatevoRouter() {
+/**
+ * Minimal OpenAI-style chat proxy: POST /openrouter with body { message } or { messages, systemPrompt }.
+ * Uses server OPENROUTER_API_KEY (same stack as /agent/chat).
+ */
+export async function createOpenRouterChatRouter() {
   const router = express.Router();
 
   router.post("/", async (req, res) => {
@@ -18,7 +22,7 @@ export async function createJatevoRouter() {
         apiMessages = [{ role: "user", content: message || "Hi" }];
       }
 
-      const result = await callJatevo(apiMessages);
+      const result = await callOpenRouter(apiMessages);
       return res.json(result);
     } catch (error) {
       const status = error.status || 500;

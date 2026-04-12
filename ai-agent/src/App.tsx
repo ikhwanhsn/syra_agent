@@ -36,11 +36,13 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/settings" element={<Index />} />
                 <Route path="/marketplace/*" element={<LegacyMarketplaceRedirect />} />
                 <Route path="/c/:shareId" element={<ShareableChatRoute />} />
                 <Route path="/dashboard" element={<DashboardLayout />}>
                   <Route index element={<Navigate to="overview" replace />} />
                   <Route path="overview" element={<DashboardOverview embedded />} />
+                  <Route path="settings" element={<Navigate to="/settings" replace />} />
                   <Route path="marketplace" element={<Outlet />}>
                     <Route index element={<Navigate to="prompts" replace />} />
                     <Route path="prompts" element={<MarketplacePrompts />} />

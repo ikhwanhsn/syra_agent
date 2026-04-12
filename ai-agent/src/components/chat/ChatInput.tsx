@@ -1,13 +1,6 @@
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef, KeyboardEvent } from "react";
 import { Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export interface ChatInputHandle {
@@ -16,20 +9,11 @@ export interface ChatInputHandle {
   setValue: (value: string) => void;
 }
 
-interface ModelOption {
-  id: string;
-  name: string;
-}
-
 interface ChatInputProps {
   onSend: (message: string) => void;
   isLoading?: boolean;
   onStop?: () => void;
   placeholder?: string;
-  /** Model selector inside input (ChatGPT-style) */
-  models?: ModelOption[];
-  selectedModelId?: string;
-  onSelectModel?: (modelId: string) => void;
 }
 
 export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput(
@@ -38,39 +22,40 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
     isLoading = false,
     onStop,
     placeholder = "Message Syra Agent...",
-    models = [],
-    selectedModelId = "",
-    onSelectModel,
   },
   ref
 ) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   // Shorter placeholder for mobile to prevent truncation
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
     };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
-  
+
   const displayPlaceholder = isMobile ? "Type a message..." : placeholder;
 
-  useImperativeHandle(ref, () => ({
-    focus: () => {
-      textareaRef.current?.focus();
-    },
-    setValue: (value: string) => {
-      setMessage(value);
-      textareaRef.current?.focus();
-    },
-  }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        textareaRef.current?.focus();
+      },
+      setValue: (value: string) => {
+        setMessage(value);
+        textareaRef.current?.focus();
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -101,7 +86,6 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
     <div className="w-full min-w-0 border-t border-border bg-background/80 backdrop-blur-xl pb-[max(0.5rem,env(safe-area-inset-bottom,0))] shrink-0">
       <div className="w-full min-w-0 max-w-4xl mx-auto py-2.5 sm:py-4 pl-[max(0.75rem,env(safe-area-inset-left,0))] pr-[max(0.75rem,env(safe-area-inset-right,0))] sm:pl-[max(1rem,env(safe-area-inset-left,0))] sm:pr-[max(1rem,env(safe-area-inset-right,0))]">
         <div className="relative flex items-end gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border border-border bg-card shadow-soft transition-shadow focus-within:shadow-medium focus-within:border-primary/30 min-h-[52px] sm:min-h-[48px] min-w-0 max-w-full">
-          {/* Text Input – main area, prioritized on mobile */}
           <textarea
             ref={textareaRef}
             autoFocus
@@ -118,29 +102,6 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
             disabled={isLoading}
             aria-label="Message input"
           />
-
-          {/* Model selector – hidden on very small screens, compact on larger mobile */}
-          {models.length > 0 && onSelectModel && (
-            <Select
-              value={selectedModelId || (models[0]?.id ?? "")}
-              onValueChange={onSelectModel}
-              disabled={isLoading}
-            >
-              <SelectTrigger
-                className="hidden sm:flex h-10 sm:h-9 w-auto min-w-[80px] sm:min-w-[110px] gap-1 rounded-lg border border-border bg-muted/50 hover:bg-muted text-foreground text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-0 px-2 sm:px-3 [&>span]:truncate shrink-0 touch-manipulation min-h-[44px] sm:min-h-0"
-                title={models.find((m) => m.id === (selectedModelId || models[0]?.id))?.name ?? "Choose model"}
-              >
-                <SelectValue placeholder="Model" />
-              </SelectTrigger>
-              <SelectContent align="end" className="max-h-[70vh] overflow-y-auto">
-                {models.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
 
           {isLoading ? (
             <Button

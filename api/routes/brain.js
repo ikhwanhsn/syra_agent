@@ -12,9 +12,9 @@ import {
   withLlmIdentitySystemNote,
 } from "./agent/chat.js";
 import { getAgentTool, getCapabilitiesList } from "../config/agentTools.js";
-import { JATEVO_DEFAULT_MODEL } from "../config/jatevoModels.js";
+import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
 import { callZerionWithTreasury } from "../libs/agentZerionClient.js";
-import { callJatevo } from "../libs/jatevo.js";
+import { callOpenRouter } from "../libs/openrouter.js";
 import { resolveAgentBaseUrl } from "./agent/utils.js";
 import {
   requirePaymentSapEscrowOrExact,
@@ -34,7 +34,10 @@ const MAX_TOKENS_DEFAULT = 2000;
  */
 function enforceSyraBranding(text) {
   if (typeof text !== "string" || !text.trim()) return "";
-  return text.replace(/\bjatevo(?:'s)?\b/gi, "Syra");
+  return text
+    .replace(/\bjatevo(?:'s)?\b/gi, "Syra")
+    .replace(/\bopenrouter\b/gi, "Syra")
+    .replace(/\bopen\s*router\b/gi, "Syra");
 }
 
 const outputSchema = {
@@ -71,7 +74,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
 - You CAN explain general crypto concepts, mechanisms, and strategies without tools.`,
       "Response format: Reply in clear, human-readable text. Use markdown: headings, bullet points, tables. Do not include raw JSON or code blocks of tool calls. Turn all data into plain, well-formatted prose.",
       "This request is from the Syra Brain API (single-question). Tools were run server-side; synthesize the results into one coherent answer using ONLY the tool data provided.",
-      'Branding rule: Never mention "Jatevo" (or any variation of that provider name) in user-facing replies. Always present the assistant/platform brand as "Syra".',
+      'Branding rule: Never mention third-party inference or API marketplace names in user-facing replies. Always present the assistant/platform brand as "Syra".',
     ].join("\n\n");
     apiMessages.unshift({ role: "system", content: systemContent });
 
@@ -161,12 +164,12 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       }
     }
 
-    const jatevoOptions = {
+    const llmOptions = {
       max_tokens: hadToolResults ? MAX_TOKENS_WITH_TOOLS : MAX_TOKENS_DEFAULT,
     };
-    const { response } = await callJatevo(
-      withLlmIdentitySystemNote(apiMessages, JATEVO_DEFAULT_MODEL),
-      jatevoOptions
+    const { response } = await callOpenRouter(
+      withLlmIdentitySystemNote(apiMessages, OPENROUTER_DEFAULT_MODEL),
+      llmOptions
     );
 
     const servicePayload = JSON.stringify({

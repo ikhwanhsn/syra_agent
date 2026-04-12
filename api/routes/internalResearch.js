@@ -1,20 +1,20 @@
 /**
- * Internal dashboard: research-store (persist/load) and research-resume (Jatevo summarize).
+ * Internal dashboard: research-store (persist/load) and research-resume (OpenRouter summarize).
  * API key auth, no x402. ATXP-based research/browse/x-search endpoints have been removed.
  */
 import express from "express";
-import { callJatevo } from "../libs/jatevo.js";
+import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "./agent/chat.js";
-import { JATEVO_DEFAULT_MODEL } from "../config/jatevoModels.js";
+import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
 import DashboardResearch from "../models/DashboardResearch.js";
 
-/** Max tokens for internal research resume (Jatevo). Higher than default for full summaries. */
+/** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
 
 export async function createInternalResearchRouter() {
   const router = express.Router();
 
-  // POST /internal/research-resume — summarize latest research using Jatevo
+  // POST /internal/research-resume — summarize latest research using OpenRouter
   // Body: { panels?: Record<id, { data: { result }, lastQuery }>, customXSearch?, deepResearch?, browse? }
   router.post("/research-resume", async (req, res) => {
     try {
@@ -54,8 +54,8 @@ export async function createInternalResearchRouter() {
         { role: "user", content: `Summarize this research into an executive resume:\n\n${researchBlob.slice(0, 120000)}` },
       ];
 
-      const result = await callJatevo(
-        withLlmIdentitySystemNote(messages, JATEVO_DEFAULT_MODEL),
+      const result = await callOpenRouter(
+        withLlmIdentitySystemNote(messages, OPENROUTER_DEFAULT_MODEL),
         {
           max_tokens: INTERNAL_RESEARCH_RESUME_MAX_TOKENS,
           temperature: 0.4,

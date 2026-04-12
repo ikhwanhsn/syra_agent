@@ -169,9 +169,9 @@
 //   );
 // };
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "framer-motion";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Flame, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
 import syraLogo from "/images/logo.jpg";
 import { cn } from "@/lib/utils";
@@ -266,6 +266,37 @@ export const TokenSection = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [copied, setCopied] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+
+  const buyModalMotion = useMemo(() => {
+    const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+    return {
+      listContainer: {
+        hidden: {},
+        show: {
+          transition: reduceMotion
+            ? { staggerChildren: 0, delayChildren: 0 }
+            : { staggerChildren: 0.055, delayChildren: 0.1 },
+        },
+      },
+      listItem: {
+        hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 },
+        show: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: reduceMotion ? 0.01 : 0.38, ease },
+        },
+      },
+      header: {
+        hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 },
+        show: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: reduceMotion ? 0.01 : 0.35, ease },
+        },
+      },
+    };
+  }, [reduceMotion]);
 
   const tokenAddress = SYRA_TOKEN_MINT;
   
@@ -369,19 +400,30 @@ export const TokenSection = () => {
           </motion.div>
 
           <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
-            <DialogContent className="border-neon-gold/20 bg-background sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-xl">
-                  Buy <span className="gold-text">$SYRA</span>
-                </DialogTitle>
-                <DialogDescription>
-                  Pick a venue below. Each link opens in a new tab. Confirm the mint matches your
-                  copied contract address before you swap.
-                </DialogDescription>
-              </DialogHeader>
-              <ul className="grid gap-2 py-1">
+            <DialogContent className="overflow-hidden border-neon-gold/20 bg-background sm:max-w-md sm:rounded-2xl">
+              <motion.div
+                variants={buyModalMotion.header}
+                initial="hidden"
+                animate={buyOpen ? "show" : "hidden"}
+              >
+                <DialogHeader>
+                  <DialogTitle className="text-xl">
+                    Buy <span className="gold-text">$SYRA</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Pick a venue below. Each link opens in a new tab. Confirm the mint matches your
+                    copied contract address before you swap.
+                  </DialogDescription>
+                </DialogHeader>
+              </motion.div>
+              <motion.ul
+                className="grid gap-2 py-1"
+                variants={buyModalMotion.listContainer}
+                initial="hidden"
+                animate={buyOpen ? "show" : "hidden"}
+              >
                 {SYRA_BUY_VENUES.map((venue) => (
-                  <li key={venue.id}>
+                  <motion.li key={venue.id} variants={buyModalMotion.listItem}>
                     <a
                       href={venue.href}
                       target="_blank"
@@ -394,9 +436,9 @@ export const TokenSection = () => {
                       </span>
                       <ExternalLink className="h-4 w-4 shrink-0 text-neon-gold" aria-hidden />
                     </a>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </motion.ul>
             </DialogContent>
           </Dialog>
 

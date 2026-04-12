@@ -3,14 +3,13 @@ import { Menu, Moon, Sun } from "lucide-react";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "./WalletNav";
+import { AppTopNavLinks } from "./AppTopNavLinks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage, LoadingStepMessage } from "./ChatMessage";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
-import type { JatevoModel } from "@/lib/chatApi";
-
 /** Pixel threshold: if within this distance from bottom, consider "at bottom" for follow-scroll. */
 const SCROLL_BOTTOM_THRESHOLD = 80;
 
@@ -50,10 +49,6 @@ interface ChatAreaProps {
   /** Dark mode state and toggle for navbar */
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
-  /** Available LLM models and current selection (for AI agent chat) */
-  models?: JatevoModel[];
-  selectedModelId?: string;
-  onSelectModel?: (modelId: string) => void;
   /** User avatar URL for user messages */
   userAvatarUrl?: string | null;
   /** When user saves an edited user message in place: (messageId, newContent) => update */
@@ -76,9 +71,6 @@ export function ChatArea({
   inputRef,
   isDarkMode = true,
   onToggleDarkMode,
-  models = [],
-  selectedModelId = "",
-  onSelectModel,
   userAvatarUrl = null,
   onUpdateUserMessage,
 }: ChatAreaProps) {
@@ -138,7 +130,7 @@ export function ChatArea({
     <div className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
       {/* Header — safe-area-top for notched devices, touch-friendly on mobile */}
       <header className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2 sm:gap-4 px-3 py-2.5 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[56px] sm:min-h-[52px] shrink-0 pt-[max(0.5rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
-        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden sm:gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -149,6 +141,7 @@ export function ChatArea({
           >
             <Menu className="w-5 h-5" />
           </Button>
+          <AppTopNavLinks />
         </div>
         <div className="flex max-w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-2.5">
           {onToggleDarkMode && (
@@ -231,9 +224,6 @@ export function ChatArea({
           isLoading={isLoading}
           onStop={onStopGeneration}
           placeholder={`Message ${selectedAgent.name}...`}
-          models={models}
-          selectedModelId={selectedModelId}
-          onSelectModel={onSelectModel}
         />
       )}
     </div>

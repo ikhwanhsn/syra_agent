@@ -10,18 +10,10 @@ import {
 } from '@solana/spl-token';
 import AgentWallet from '../models/agent/AgentWallet.js';
 import { getSolanaAgentKeypair } from './agentWallet.js';
+import { pickSolanaConnectionForReads } from './solanaServerRpc.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-const RPC_URL = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || 'https://rpc.ankr.com/solana';
-const RPC_TIMEOUT_MS = Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 30_000;
-
-function fetchWithTimeout(url, init = {}) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
-  return fetch(url, { ...init, signal: init.signal || controller.signal }).finally(() =>
-    clearTimeout(id)
-  );
-}
+const LAMPORTS_PER_SOL = 1e9;
 
 /** Keep a small SOL balance on the agent for rent and future fees. */
 const MIN_AGENT_LAMPORTS = BigInt(Math.ceil(0.002 * 1e9));
@@ -30,9 +22,13 @@ const TX_FEE_BUFFER_LAMPORTS = 80_000n;
 /**
  * @param {string} anonymousId
  * @param {string} recipientBase58 - Must equal AgentWallet.walletAddress for this anonymousId
+ * @param {{ asset?: 'usdc' | 'sol' | 'both', usdcAmount?: number, solAmount?: number }} [opts]
+ *   - asset: which legs to include (default both).
+ *   - usdcAmount: max USDC to move (human units); omit = full USDC balance.
+ *   - solAmount: max SOL to move (human units); omit = sweep excess SOL (after min rent + fee buffer).
  * @returns {Promise<{ signature: string }>}
  */
-export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase58) {
+export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase58, opts = {}) {
   const id = String(anonymousId || '').trim();
   const recipientStr = String(recipientBase58 || '').trim();
   if (!id || !recipientStr) {
@@ -69,55 +65,69 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
     throw new Error('Agent wallet configuration error');
   }
 
-  const connection = new Connection(RPC_URL, {
-    commitment: 'confirmed',
-    fetch: fetchWithTimeout,
-  });
+  const { connection, lamports: lamportsBalance } = await pickSolanaConnectionForReads(agentPk);
 
-  const [lamportsBalance, tokenResp] = await Promise.all([
-    connection.getBalance(agentPk, 'confirmed'),
-    connection.getParsedTokenAccountsByOwner(agentPk, { mint: USDC_MAINNET }),
-  ]);
+  const asset = opts.asset === 'usdc' || opts.asset === 'sol' || opts.asset === 'both' ? opts.asset : 'both';
+  const usdcCapHuman =
+    typeof opts.usdcAmount === 'number' && Number.isFinite(opts.usdcAmount) && opts.usdcAmount > 0
+      ? opts.usdcAmount
+      : null;
+  const solCapHuman =
+    typeof opts.solAmount === 'number' && Number.isFinite(opts.solAmount) && opts.solAmount > 0
+      ? opts.solAmount
+      : null;
+
+  const tokenResp = await connection.getParsedTokenAccountsByOwner(agentPk, { mint: USDC_MAINNET });
 
   const tokenAccounts = tokenResp?.value ?? [];
   const instructions = [];
 
-  const userUsdcAta = await getAssociatedTokenAddress(
-    USDC_MAINNET,
-    recipient,
-    false,
-    TOKEN_PROGRAM_ID
-  );
-  const userAtaInfo = await connection.getAccountInfo(userUsdcAta, 'confirmed');
-  if (!userAtaInfo) {
-    instructions.push(
-      createAssociatedTokenAccountInstruction(
-        agentPk,
-        userUsdcAta,
-        recipient,
-        USDC_MAINNET,
-        TOKEN_PROGRAM_ID
-      )
-    );
-  }
+  const includeUsdc = asset === 'usdc' || asset === 'both';
+  const includeSol = asset === 'sol' || asset === 'both';
 
-  for (const row of tokenAccounts) {
-    const info = row?.account?.data?.parsed?.info;
-    const rawStr = info?.tokenAmount?.amount;
-    if (!rawStr) continue;
-    const raw = BigInt(rawStr);
-    if (raw <= 0n) continue;
-    const sourceAta = row.pubkey;
-    instructions.push(
-      createTransferInstruction(
-        sourceAta,
-        userUsdcAta,
-        agentPk,
-        raw,
-        [],
-        TOKEN_PROGRAM_ID
-      )
+  if (includeUsdc) {
+    const userUsdcAta = await getAssociatedTokenAddress(
+      USDC_MAINNET,
+      recipient,
+      false,
+      TOKEN_PROGRAM_ID
     );
+    const userAtaInfo = await connection.getAccountInfo(userUsdcAta, 'confirmed');
+    if (!userAtaInfo) {
+      instructions.push(
+        createAssociatedTokenAccountInstruction(
+          agentPk,
+          userUsdcAta,
+          recipient,
+          USDC_MAINNET,
+          TOKEN_PROGRAM_ID
+        )
+      );
+    }
+
+    const capRaw =
+      usdcCapHuman != null ? BigInt(Math.floor(usdcCapHuman * 1_000_000)) : null;
+
+    for (const row of tokenAccounts) {
+      const info = row?.account?.data?.parsed?.info;
+      const rawStr = info?.tokenAmount?.amount;
+      if (!rawStr) continue;
+      const raw = BigInt(rawStr);
+      if (raw <= 0n) continue;
+      const toSend = capRaw != null ? (raw < capRaw ? raw : capRaw) : raw;
+      if (toSend <= 0n) continue;
+      const sourceAta = row.pubkey;
+      instructions.push(
+        createTransferInstruction(
+          sourceAta,
+          userUsdcAta,
+          agentPk,
+          toSend,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+    }
   }
 
   const solAfterTx =
@@ -125,14 +135,20 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
       ? BigInt(lamportsBalance) - MIN_AGENT_LAMPORTS - TX_FEE_BUFFER_LAMPORTS
       : 0n;
 
-  if (solAfterTx > 0n) {
-    instructions.push(
-      SystemProgram.transfer({
-        fromPubkey: agentPk,
-        toPubkey: recipient,
-        lamports: solAfterTx,
-      })
-    );
+  if (includeSol && solAfterTx > 0n) {
+    const capLamports =
+      solCapHuman != null ? BigInt(Math.floor(solCapHuman * LAMPORTS_PER_SOL)) : null;
+    const solToSend =
+      capLamports != null ? (solAfterTx < capLamports ? solAfterTx : capLamports) : solAfterTx;
+    if (solToSend > 0n) {
+      instructions.push(
+        SystemProgram.transfer({
+          fromPubkey: agentPk,
+          toPubkey: recipient,
+          lamports: solToSend,
+        })
+      );
+    }
   }
 
   if (instructions.length === 0) {
@@ -153,10 +169,13 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
     maxRetries: 3,
   });
 
-  await connection.confirmTransaction(
-    { signature, blockhash, lastValidBlockHeight },
-    'confirmed'
-  );
+  // Return immediately so clients are not stuck on "Moving…" while RPC polls confirmation
+  // (can be tens of seconds). Confirmation still runs in the background for observability.
+  void connection
+    .confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
+    .catch((err) => {
+      console.warn('[agentWalletWithdrawSol] post-send confirm failed:', signature, err?.message || err);
+    });
 
   return { signature };
 }
