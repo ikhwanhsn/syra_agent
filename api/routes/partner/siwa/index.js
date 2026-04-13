@@ -122,7 +122,7 @@ export async function createSiwaRouter() {
           client,
         );
         nonceStore.set(result.nonce, Date.now());
-        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted);
+        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted, req);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
         runBuybackForRequest(req);
         res.json({
@@ -176,7 +176,7 @@ export async function createSiwaRouter() {
         } catch {
           // receipt optional
         }
-        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted);
+        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted, req);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
         runBuybackForRequest(req);
         res.json({ valid: true, agentId: result.agentId, address: result.address, receipt });

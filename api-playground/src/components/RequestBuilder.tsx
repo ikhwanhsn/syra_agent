@@ -156,9 +156,12 @@ export function RequestBuilder({
               />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-semibold text-foreground truncate">
+              <h2 className="font-display text-lg font-semibold text-foreground tracking-tight truncate">
                 {paymentLane === 'mpp' ? 'MPP request' : 'Request'}
               </h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                Build the call — headers, query, and body stay in sync with your URL.
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">
@@ -209,7 +212,9 @@ export function RequestBuilder({
         {/* Method Selector - fixed */}
         <div className="shrink-0 mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Method</span>
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
+              Method
+            </span>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="h-4 w-4 text-muted-foreground/50 shrink-0" />
@@ -236,12 +241,16 @@ export function RequestBuilder({
                   onClick={() => !disabled && onMethodChange(m)}
                   disabled={disabled}
                   className={cn(
-                    "flex-1 min-w-0 py-3 px-4 rounded-lg border text-sm font-semibold transition-all duration-200",
-                    "flex items-center justify-center gap-2 h-11",
-                    disabled && "opacity-50 cursor-not-allowed",
-                    isSelected 
-                      ? cn(mConfig.bg, mConfig.color, "border-current") 
-                      : "bg-secondary/50 border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    'flex-1 min-w-0 py-3 px-4 rounded-2xl border text-sm font-semibold transition-all duration-200',
+                    'flex items-center justify-center gap-2 h-11',
+                    disabled && 'opacity-50 cursor-not-allowed',
+                    isSelected
+                      ? cn(
+                          mConfig.bg,
+                          mConfig.color,
+                          'border-primary/25 shadow-sm dark:shadow-elevate-sm ring-1 ring-primary/10',
+                        )
+                      : 'bg-secondary/40 border-border/70 text-muted-foreground hover:bg-secondary/70 hover:text-foreground hover:border-border',
                   )}
                 >
                   {m === 'GET' ? <Globe className="h-4 w-4 shrink-0" /> : <FileJson className="h-4 w-4 shrink-0" />}
@@ -260,7 +269,9 @@ export function RequestBuilder({
         {/* Endpoint URL - fixed */}
         <div className="shrink-0 mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoint URL</span>
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
+              Endpoint URL
+            </span>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-3">
             <div className="flex-1 min-w-0 relative">
@@ -268,7 +279,7 @@ export function RequestBuilder({
                 value={url}
                 onChange={(e) => onUrlChange(e.target.value)}
                 placeholder="https://api.example.com/v1/resource"
-                className="font-mono text-base sm:text-sm bg-secondary/50 border-border h-11 pl-3 sm:pl-4 pr-12 sm:pr-14 min-w-0 w-full max-w-full"
+                className="font-mono text-base sm:text-sm bg-secondary/40 border-border/80 rounded-xl h-11 pl-3 sm:pl-4 pr-12 sm:pr-14 min-w-0 w-full max-w-full transition-shadow focus-visible:ring-primary/20"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                 {isAutoDetecting && (
@@ -315,11 +326,11 @@ export function RequestBuilder({
 
         {/* Tabs - on mobile: min-height so section is visible in flow; on desktop: flex-1 and scrolls internally */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-[320px] lg:min-h-0 min-w-0">
-          <TabsList className="shrink-0 bg-secondary/30 w-full sm:w-fit p-1 gap-1 flex flex-wrap !h-auto">
+          <TabsList className="shrink-0 bg-muted/25 dark:bg-black/20 border border-border/50 w-full sm:w-fit p-1 gap-1 flex flex-wrap !h-auto rounded-xl shadow-inner shadow-black/5">
             {!isGetMethod && (
               <TabsTrigger 
                 value="body" 
-                className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm"
+                className="data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 rounded-lg gap-2 px-3 py-2 text-sm"
               >
                 <FileJson className="h-4 w-4" />
                 Body
@@ -327,7 +338,7 @@ export function RequestBuilder({
             )}
             <TabsTrigger 
               value="params" 
-              className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm"
+              className="data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 rounded-lg gap-2 px-3 py-2 text-sm"
             >
               <Globe className="h-4 w-4" />
               Params
@@ -339,7 +350,7 @@ export function RequestBuilder({
             </TabsTrigger>
             <TabsTrigger 
               value="headers" 
-              className="data-[state=active]:bg-primary/20 gap-2 px-3 py-2 text-sm"
+              className="data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 rounded-lg gap-2 px-3 py-2 text-sm"
             >
               <Settings2 className="h-4 w-4" />
               Headers
@@ -379,19 +390,22 @@ export function RequestBuilder({
                   </span>
                 </div>
                 {params.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                      <Globe className="h-5 w-5 text-muted-foreground/50" />
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-2 rounded-xl border border-dashed border-border/60 bg-muted/10 dark:bg-black/15">
+                    <div className="w-11 h-11 rounded-xl bg-secondary/50 ring-1 ring-border/50 flex items-center justify-center mb-3">
+                      <Globe className="h-5 w-5 text-muted-foreground/55" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4">No query parameters added</p>
+                    <p className="text-sm font-medium text-foreground mb-1">No query parameters</p>
+                    <p className="text-xs text-muted-foreground mb-4 max-w-[240px] text-balance">
+                      Add keys for GET queries or structured fields for POST.
+                    </p>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={addParam}
-                      className="gap-2 h-9"
+                      className="gap-2 h-9 rounded-full"
                     >
                       <Plus className="h-4 w-4" />
-                      <span className="text-sm">Add Parameter</span>
+                      <span className="text-sm">Add parameter</span>
                     </Button>
                   </div>
                 ) : (
@@ -456,19 +470,22 @@ export function RequestBuilder({
                   <span className="text-xs text-muted-foreground">Custom HTTP headers for your request</span>
                 </div>
                 {headers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                      <Settings2 className="h-5 w-5 text-muted-foreground/50" />
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-2 rounded-xl border border-dashed border-border/60 bg-muted/10 dark:bg-black/15">
+                    <div className="w-11 h-11 rounded-xl bg-secondary/50 ring-1 ring-border/50 flex items-center justify-center mb-3">
+                      <Settings2 className="h-5 w-5 text-muted-foreground/55" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4">No custom headers added</p>
+                    <p className="text-sm font-medium text-foreground mb-1">No custom headers</p>
+                    <p className="text-xs text-muted-foreground mb-4 max-w-[240px] text-balance">
+                      Optional auth, correlation IDs, or content negotiation.
+                    </p>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={addHeader}
-                      className="gap-2 h-9"
+                      className="gap-2 h-9 rounded-full"
                     >
                       <Plus className="h-4 w-4" />
-                      <span className="text-sm">Add Header</span>
+                      <span className="text-sm">Add header</span>
                     </Button>
                   </div>
                 ) : (

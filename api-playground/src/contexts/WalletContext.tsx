@@ -1,5 +1,5 @@
-import { FC, ReactNode, useMemo, useCallback, createContext, useContext, useState, useEffect, useRef } from 'react';
-import { PrivyProvider, usePrivy, useLoginWithSiws } from '@privy-io/react-auth';
+import { FC, ReactNode, useMemo, useCallback, createContext, useContext, useEffect, useRef, useState } from 'react';
+import { PrivyProvider, usePrivy, useLoginWithSiws, useModalStatus } from '@privy-io/react-auth';
 import { useWallets as usePrivyEvmWallets } from '@privy-io/react-auth';
 import { useWallets as usePrivySolanaWallets, useSignTransaction, useSignMessage } from '@privy-io/react-auth/solana';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
@@ -9,6 +9,7 @@ import type { EvmSigner } from '@/lib/x402Client';
 import { createWalletClient, custom, getAddress } from 'viem';
 import { base } from 'viem/chains';
 import { toast } from '@/hooks/use-toast';
+import { ConnectChainModal, type ConnectOption } from '@/components/ConnectChainModal';
 
 // USDC token mint on mainnet
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -53,8 +54,9 @@ export interface WalletContextState {
   solBalance: number | null;
   usdcBalance: number | null;
   network: string;
-  connect: () => Promise<void>;
-  /** Connect for a specific chain so Phantom (and other multi-chain wallets) are used for that chain only. Use this for the main Connect button to avoid "Unsupported account" when Phantom is Solana. */
+  /** Opens the in-app chain picker (Solana / Base / email), then Privy. */
+  connect: () => void;
+  /** Skip the picker and open Privy for a specific chain (e.g. programmatic connect). */
   connectForChain: (chain: 'solana' | 'base') => Promise<void>;
   disconnect: () => Promise<void>;
   signTransaction: (transaction: any) => Promise<any>;
@@ -69,14 +71,14 @@ export interface WalletContextState {
   connectSolana: () => Promise<void>;
   disconnectBase: () => Promise<void>;
   getEvmSigner: () => Promise<EvmSigner | null>;
-  /** Set before opening Privy connect so provider uses single chain and skips "Select network". Clear after connect flow. */
-  setConnectChainOverride: (v: 'ethereum-only' | 'solana-only' | null) => void;
   /** Open Privy login modal (email, social, etc.) for web2 users. */
   openLoginModal: () => void;
-  /** True when Privy is mounted (after user picked an option in the chain modal). Use to know if connect/openLoginModal will work. */
+  /** True when Privy is mounted. */
   isPrivyMounted: boolean;
-  /** When Privy is not mounted yet, call this from the chain modal onPick to mount Privy and run that option once ready. */
-  requestConnect: (option: 'email' | 'solana' | 'base') => void;
+  /** After user picks Solana/Base/email in the connect chain modal (before Privy). Used to sync payment rail. */
+  setConnectChainPickListener: (handler: ((option: ConnectOption) => void) | null) => void;
+  /** Internal: run Privy flow for an option from the chain modal (Solana/Base queue until `ready`). */
+  requestConnect: (option: ConnectOption) => void;
 }
 
 const WalletContext = createContext<WalletContextState | null>(null);
@@ -110,17 +112,27 @@ function setSiws403Origin(origin: string): void {
   } catch {}
 }
 
+/** Avoid crashing the whole app if Privy/adapters ever surface a non–Solana-pubkey string. */
+function tryPublicKey(address: string | undefined | null): PublicKey | null {
+  if (!address) return null;
+  try {
+    return new PublicKey(address);
+  } catch {
+    return null;
+  }
+}
+
 type WalletChainOverride = 'ethereum-only' | 'solana-only' | null;
-type ConnectOption = 'email' | 'solana' | 'base';
 
 const WalletContextInner: FC<{
   children: ReactNode;
-  connectChainOverride: WalletChainOverride;
   setConnectChainOverride: (v: WalletChainOverride) => void;
   pendingConnectOption: ConnectOption | null;
   setPendingConnectOption: (v: ConnectOption | null) => void;
-}> = ({ children, connectChainOverride, setConnectChainOverride, pendingConnectOption, setPendingConnectOption }) => {
+  queueConnectFromChainModal: (option: 'solana' | 'base') => void;
+}> = ({ children, setConnectChainOverride, pendingConnectOption, setPendingConnectOption, queueConnectFromChainModal }) => {
   const { ready: privyReady, authenticated, login, logout, connectWallet } = usePrivy();
+  const { isOpen: privyModalOpen } = useModalStatus();
   const { generateSiwsMessage, loginWithSiws } = useLoginWithSiws();
   const { wallets: solanaWallets, ready: solanaWalletsReady } = usePrivySolanaWallets();
   const { wallets: evmWallets } = usePrivyEvmWallets();
@@ -133,6 +145,19 @@ const WalletContextInner: FC<{
   const justDisconnectedRef = useRef(false);
   /** When true, skip the SIWS effect so we don't open Phantom before the user has clicked a wallet in the login modal (e.g. "Last used" can pre-populate solanaWallets and trigger SIWS immediately) */
   const loginModalJustOpenedRef = useRef(false);
+  /**
+   * SIWS must not run on first paint / refresh: Privy can surface a linked Solana wallet while still
+   * unauthenticated, which would call `privySignMessage` and pop Phantom. Set true only after we open
+   * `login()` / `connectWallet()` from an explicit user action (never from opening the chain picker alone).
+   */
+  const allowSiwsRef = useRef(false);
+
+  const connectPickListenerRef = useRef<((option: ConnectOption) => void) | null>(null);
+  const setConnectChainPickListener = useCallback((handler: ((option: ConnectOption) => void) | null) => {
+    connectPickListenerRef.current = handler;
+  }, []);
+
+  const [chainPickerOpen, setChainPickerOpen] = useState(false);
 
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
@@ -141,8 +166,8 @@ const WalletContextInner: FC<{
   // First Solana wallet (linked/connected)
   const solanaWallet = solanaWallets?.[0] ?? null;
   const address = solanaWallet?.address ?? null;
-  const publicKey = address ? new PublicKey(address) : null;
-  const connected = !!(authenticated && solanaWallet);
+  const publicKey = useMemo(() => tryPublicKey(address), [address]);
+  const connected = !!(authenticated && solanaWallet && publicKey);
 
   // First EVM wallet for Base
   const evmWallet = evmWallets?.[0] ?? null;
@@ -222,10 +247,13 @@ const WalletContextInner: FC<{
   // When user connected a Solana wallet but is not yet authenticated, complete login via SIWS (Privy recipe: generateSiwsMessage → signMessage → loginWithSiws)
   // Use the Solana useSignMessage hook so signing works across Phantom, Solflare, etc. If origin is not allowlisted, we show workaround (email first, then connect).
   // Skip when we just disconnected: after logout, authenticated becomes false but solanaWallets can still be set briefly; running SIWS would call privySignMessage and open Phantom.
-  // Skip when we just opened the login modal: Privy can have "Last used" wallet in solanaWallets so SIWS would run and open Phantom before the user has clicked any wallet.
+  // Skip while Privy's login UI is open: "Last used" Phantom can populate solanaWallets before the user picks a wallet — do not call signMessage yet.
+  // Skip when we just opened the login modal (short overlap before `useModalStatus` flips).
   useEffect(() => {
     const wallet = solanaWallets?.[0];
     if (!privyReady || authenticated || !wallet?.address) return;
+    if (!allowSiwsRef.current) return;
+    if (privyModalOpen) return;
     if (justDisconnectedRef.current) return;
     if (loginModalJustOpenedRef.current) return;
     if (siwsAttemptedForRef.current === wallet.address) return;
@@ -279,21 +307,17 @@ const WalletContextInner: FC<{
     return () => {
       cancelled = true;
     };
-  }, [privyReady, authenticated, solanaWallets, generateSiwsMessage, loginWithSiws, privySignMessage]);
+  }, [privyReady, authenticated, privyModalOpen, solanaWallets, generateSiwsMessage, loginWithSiws, privySignMessage]);
 
-  // Only open wallet/login when user explicitly triggers (e.g. Connect Wallet button). Never call login() or connectWallet() on mount.
-  const connect = useCallback(async () => {
-    if (!privyReady) return;
-    if (!authenticated) {
-      login();
-      return;
-    }
-    connectWallet();
-  }, [privyReady, authenticated, login, connectWallet]);
+  /** Show app chain picker (Solana / Base / email) before Privy wallet list. */
+  const connect = useCallback(() => {
+    setChainPickerOpen(true);
+  }, []);
 
   const openLoginModal = useCallback(() => {
     if (privyReady) {
       loginModalJustOpenedRef.current = true;
+      allowSiwsRef.current = true;
       login();
       // Long cooldown so we don't run SIWS and open the wallet popup again after Privy already opened it when the user clicked a wallet. One popup only.
       setTimeout(() => {
@@ -302,7 +326,21 @@ const WalletContextInner: FC<{
     }
   }, [privyReady, login]);
 
-  /** Open connect/login. When unauthenticated call login() so the modal opens (connectWallet alone can error). When authenticated, open Privy's wallet-list modal only (explicit wallet names, no detected_* so the extension does not open until user clicks a wallet). */
+  const requestConnect = useCallback(
+    (option: ConnectOption) => {
+      // Do not set `allowSiwsRef` here: chain pick runs before Privy's wallet step; enabling SIWS
+      // too early races with `login()` and pops Phantom before the user chooses a wallet in Privy.
+      if (option === 'email') {
+        setConnectChainOverride(null);
+        openLoginModal();
+        return;
+      }
+      queueConnectFromChainModal(option);
+    },
+    [openLoginModal, queueConnectFromChainModal, setConnectChainOverride]
+  );
+
+  /** Open Privy for a specific chain (skips the in-app chain picker). */
   const connectForChain = useCallback(
     async (chain: 'solana' | 'base') => {
       if (!privyReady) return;
@@ -310,34 +348,38 @@ const WalletContextInner: FC<{
       const evmList = POPULAR_EVM_WALLET_LIST;
 
       if (!authenticated) {
+        if (chain === 'base') setConnectChainOverride('ethereum-only');
+        else if (chain === 'solana') setConnectChainOverride('solana-only');
         loginModalJustOpenedRef.current = true;
         login();
+        allowSiwsRef.current = true;
         setTimeout(() => {
           loginModalJustOpenedRef.current = false;
         }, 25000);
         return;
       }
+      allowSiwsRef.current = true;
       const walletList = chain === 'base' ? evmList : solanaList;
       const walletChainType = chain === 'base' ? 'ethereum-only' : 'solana-only';
       connectWallet({ walletList, walletChainType });
     },
-    [privyReady, authenticated, login, connectWallet]
+    [privyReady, authenticated, login, connectWallet, setConnectChainOverride]
   );
 
-  // When user picked an option in the chain modal before Privy was mounted, run that option now that Privy is ready
+  // After user picks Solana/Base in our modal, run connect/login once Privy is ready (handles very fast clicks before `ready`).
   useEffect(() => {
     if (!pendingConnectOption || !privyReady) return;
     const option = pendingConnectOption;
-    setPendingConnectOption(null);
     if (option === 'email') {
-      login();
+      setPendingConnectOption(null);
       return;
     }
-    // Don't set connectChainOverride so provider doesn't re-render and trigger Phantom; connectForChain passes walletChainType in the call
-    connectForChain(option);
-  }, [pendingConnectOption, privyReady, login, connectForChain, setPendingConnectOption]);
+    setPendingConnectOption(null);
+    void connectForChain(option);
+  }, [pendingConnectOption, privyReady, connectForChain, setPendingConnectOption]);
 
   const disconnect = useCallback(async () => {
+    allowSiwsRef.current = false;
     justDisconnectedRef.current = true;
     siwsAttemptedForRef.current = null;
     setSolBalance(null);
@@ -356,26 +398,12 @@ const WalletContextInner: FC<{
   }, [logout]);
 
   const connectBase = useCallback(async () => {
-    if (!authenticated) {
-      login();
-      return;
-    }
-    connectWallet({
-      walletList: [...POPULAR_EVM_WALLET_LIST],
-      walletChainType: 'ethereum-only',
-    });
-  }, [authenticated, login, connectWallet]);
+    await connectForChain('base');
+  }, [connectForChain]);
 
   const connectSolana = useCallback(async () => {
-    if (!authenticated) {
-      login();
-      return;
-    }
-    connectWallet({
-      walletList: [...POPULAR_SOLANA_WALLET_LIST],
-      walletChainType: 'solana-only',
-    });
-  }, [authenticated, login, connectWallet]);
+    await connectForChain('solana');
+  }, [connectForChain]);
 
   // Privy doesn't support disconnecting a single chain; use full logout so UI shows disconnected
   const disconnectBase = useCallback(async () => {
@@ -454,10 +482,10 @@ const WalletContextInner: FC<{
       connectSolana,
       disconnectBase,
       getEvmSigner,
-      setConnectChainOverride,
       openLoginModal,
       isPrivyMounted: true,
-      requestConnect: () => {},
+      setConnectChainPickListener,
+      requestConnect,
     }),
     [
       connection,
@@ -482,12 +510,25 @@ const WalletContextInner: FC<{
       connectSolana,
       disconnectBase,
       getEvmSigner,
-      setConnectChainOverride,
       openLoginModal,
+      setConnectChainPickListener,
+      requestConnect,
     ]
   );
 
-  return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;
+  return (
+    <>
+      <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>
+      <ConnectChainModal
+        isOpen={chainPickerOpen}
+        onClose={() => setChainPickerOpen(false)}
+        onPick={(option) => {
+          connectPickListenerRef.current?.(option);
+          requestConnect(option);
+        }}
+      />
+    </>
+  );
 };
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || '';
@@ -503,7 +544,7 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   solBalance: null,
   usdcBalance: null,
   network: 'Solana Mainnet',
-  connect: async () => {},
+  connect: () => {},
   connectForChain: async () => {},
   disconnect: async () => {},
   signTransaction: async () => { throw new Error('Wallet not configured'); },
@@ -518,28 +559,20 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   connectSolana: async () => {},
   disconnectBase: async () => {},
   getEvmSigner: async () => null,
-  setConnectChainOverride: () => {},
   openLoginModal: () => {},
   isPrivyMounted: false,
+  setConnectChainPickListener: () => {},
   requestConnect: () => {},
 };
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [connectChainOverride, setConnectChainOverride] = useState<WalletChainOverride>(null);
-  // Mount Privy only when user picks an option in the chain modal (Email/Solana/Base). Stops Phantom opening on first "Connect" click.
-  const [mountPrivy, setMountPrivy] = useState(false);
   const [pendingConnectOption, setPendingConnectOption] = useState<ConnectOption | null>(null);
 
-  const requestConnectWhenDeferred = useCallback((option: ConnectOption) => {
-    // Important: Privy config's initial `walletChainType` influences whether it
-    // injects/initializes EVM wallet plumbing (e.g. `window.ethereum`).
-    // When the user picked Solana, keep Privy "solana-only" to avoid the
-    // `Cannot redefine property: ethereum` crash in some environments.
+  const queueConnectFromChainModal = useCallback((option: 'solana' | 'base') => {
     if (option === 'base') setConnectChainOverride('ethereum-only');
-    else if (option === 'solana') setConnectChainOverride('solana-only');
-    else setConnectChainOverride(null);
+    else setConnectChainOverride('solana-only');
     setPendingConnectOption(option);
-    setMountPrivy(true);
   }, []);
 
   if (!PRIVY_APP_ID?.trim()) {
@@ -550,22 +583,6 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
     );
   }
 
-  // Don't mount Privy until user has picked an option in the chain modal. Show our modal first (Email/Solana/Base), then mount Privy.
-  if (!mountPrivy) {
-    return (
-      <WalletContext.Provider
-        value={{
-          ...FALLBACK_WALLET_STATE,
-          isPrivyMounted: false,
-          requestConnect: requestConnectWhenDeferred,
-        }}
-      >
-        {children}
-      </WalletContext.Provider>
-    );
-  }
-
-  // When user picks chain in our modal we set connectChainOverride so Privy uses single chain and skips "Select network"
   const walletChainType = connectChainOverride ?? 'ethereum-and-solana';
   const appearanceWalletList = useMemo(() => {
     if (connectChainOverride === 'ethereum-only') return [...POPULAR_EVM_WALLET_LIST];
@@ -578,6 +595,8 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
       appId={PRIVY_APP_ID}
       {...(PRIVY_CLIENT_ID ? { clientId: PRIVY_CLIENT_ID } : {})}
       config={{
+        defaultChain: base,
+        supportedChains: [base],
         appearance: {
           walletChainType,
           walletList: appearanceWalletList,
@@ -594,10 +613,10 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
       }}
     >
       <WalletContextInner
-        connectChainOverride={connectChainOverride}
         setConnectChainOverride={setConnectChainOverride}
         pendingConnectOption={pendingConnectOption}
         setPendingConnectOption={setPendingConnectOption}
+        queueConnectFromChainModal={queueConnectFromChainModal}
       >
         {children}
       </WalletContextInner>

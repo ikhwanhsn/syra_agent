@@ -24,7 +24,10 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
+import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
+import { TESTER_AGENT_CONFIG } from "./libs/testerAgent/testerAgentConfig.js";
 import { createInternalArenaWorkerRouter } from "./routes/internalArenaWorker.js";
+import { isArenaPaused } from "./scripts/devfun-arena/arenaPause.mjs";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
@@ -142,6 +145,8 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.predict.syraa.fun",
   ...CORS_EXTRA,
 ];
+/** Hoisted once — the CORS origin callback runs on every non-x402 browser request; avoid new Set() per hit. */
+const CORS_ALLOWED_ORIGINS_SET = new Set(CORS_ALLOWED_ORIGINS);
 const CORS_OPTIONS_X402 = {
   origin: "*",
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -182,9 +187,8 @@ const CORS_OPTIONS_REGULAR = {
   origin: (origin, cb) => {
     // Allow requests with no origin (e.g. same-origin, Postman, server-side)
     if (!origin) return cb(null, true);
-    const allowed = new Set(CORS_ALLOWED_ORIGINS);
     const normalized = origin.replace(/\/$/, ""); // strip trailing slash
-    if (allowed.has(origin) || allowed.has(normalized)) return cb(null, true);
+    if (CORS_ALLOWED_ORIGINS_SET.has(origin) || CORS_ALLOWED_ORIGINS_SET.has(normalized)) return cb(null, true);
     return cb(null, false);
   },
   // Required when browsers use fetch(..., { credentials: "include" }) — e.g. ai-agent trading experiment page
@@ -536,7 +540,7 @@ app.use(
     burstMax: 25,
     windowMs: 60 * 1000,
     max: 100,
-    skip: (req) => isX402Route(req.path),
+    skip: (req) => isX402Route(req.path) || (req.path || "").startsWith("/internal/tester-agent"),
   }),
 );
 
@@ -550,6 +554,13 @@ app.use(
   requireApiKey(
     (req) => {
       const p = req.path || "";
+      if (p.startsWith("/internal/tester-agent")) {
+        const secret = (process.env.TESTER_AGENT_CRON_SECRET || "").trim();
+        if (secret) {
+          const got = (req.get("x-tester-agent-cron-secret") || "").trim();
+          if (got === secret) return true;
+        }
+      }
       return (
         isX402Route(p) ||
         p === "/" ||
@@ -566,10 +577,31 @@ app.use(
 );
 
 // ZAuth x402 monitoring (before x402 routes) – telemetry & optional validation/refunds via zauthx402.com
+// Default SDK: telemetry.sampleRate=1 and includeResponseBody=true — wraps res.json/send/end and runs validation
+// on every response (adds CPU before bytes leave the process). Tune with:
+//   ZAUTH_TELEMETRY_SAMPLE_RATE=0.25  (only 25% of requests instrumented; others skip middleware entirely)
+//   ZAUTH_TELEMETRY_INCLUDE_RESPONSE_BODY=false  (skip serializing response bodies into telemetry)
 const ZAUTH_API_KEY = (process.env.ZAUTH_API_KEY || "").trim();
 if (ZAUTH_API_KEY) {
+  const zauthSampleRaw = (process.env.ZAUTH_TELEMETRY_SAMPLE_RATE || "").trim();
+  const zauthSample = zauthSampleRaw === "" ? null : Number.parseFloat(zauthSampleRaw);
+  const zauthRespBody =
+    String(process.env.ZAUTH_TELEMETRY_INCLUDE_RESPONSE_BODY || "").toLowerCase() === "false" ||
+    String(process.env.ZAUTH_TELEMETRY_INCLUDE_RESPONSE_BODY || "") === "0";
+  const zauthTelemetry =
+    (zauthSample != null && Number.isFinite(zauthSample) && zauthSample >= 0 && zauthSample <= 1) || zauthRespBody
+      ? {
+          telemetry: {
+            ...(zauthSample != null && Number.isFinite(zauthSample) && zauthSample >= 0 && zauthSample <= 1
+              ? { sampleRate: zauthSample }
+              : {}),
+            ...(zauthRespBody ? { includeResponseBody: false } : {}),
+          },
+        }
+      : {};
   app.use(
     zauthProvider(ZAUTH_API_KEY, {
+      ...zauthTelemetry,
       refund: {
         enabled: true,
         solanaPrivateKey: process.env.ZAUTH_SOLANA_PRIVATE_KEY,
@@ -800,6 +832,8 @@ app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
 // Sentinel Dashboard: spend, agents, alerts (API key auth); same storage as wrapWithSentinel
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
+// Tester agent (cron smoke); mount before /internal so paths are not swallowed by research router
+app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 // Internal dashboard: research-store, research-resume (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
 // DevFun arena: optional in-process schedule (ARENA_SCHEDULE_TICKS) + POST /tick with ARENA_CRON_SECRET
@@ -940,9 +974,9 @@ const PORT = process.env.PORT || 3000;
 // Connect to MongoDB (Mongoose) for prediction game
 connectMongoose().then(() => {}).catch(() => {});
 
-// Eager-init x402 V2 resource server so first paid request doesn't wait for facilitator /supported
-import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
-  ensureX402ResourceServerInitialized().catch(() => {});
+// Eager-init x402 V2 Corbits bundle (default facilitator) so first paid request doesn't wait for /supported
+import("./utils/x402ResourceServer.js").then(({ ensureX402CorbitsResourceServerInitialized }) => {
+  ensureX402CorbitsResourceServerInitialized().catch(() => {});
 });
 
 app.listen(PORT, () => {
@@ -1014,10 +1048,51 @@ app.listen(PORT, () => {
       : 600_000
     : 0;
 
-  if (scheduleArenaTicks && arenaIntervalMs >= 60_000) {
+  if (scheduleArenaTicks && isArenaPaused()) {
+    console.log("[arena-schedule] skipped: ARENA_PAUSED=1 (set to 0/false to resume)");
+  } else if (scheduleArenaTicks && arenaIntervalMs >= 60_000) {
     import("./scripts/devfun-arena/arenaTickRunner.mjs").then(({ startArenaWorkerInterval }) => {
       console.log(`[arena-schedule] in-process tick every ${arenaIntervalMs}ms`);
       startArenaWorkerInterval({ intervalMs: arenaIntervalMs, runImmediately: false });
     });
+  }
+
+  const testerSchedule = TESTER_AGENT_CONFIG.inProcessScheduleEnabled === true;
+  const testerIntervalMs = testerSchedule ? TESTER_AGENT_CONFIG.scheduleIntervalMs : 0;
+  if (testerSchedule && testerIntervalMs >= 60_000) {
+    const runTesterAgentCron = async () => {
+      try {
+        const { runTesterAgentSuite, computeTesterAgentSuiteTimeoutMs } = await import(
+          "./libs/testerAgent/tests.js"
+        );
+        const baseUrl = (process.env.BASE_URL || "").trim().replace(/\/+$/, "");
+        if (!baseUrl) {
+          console.warn("[tester-agent-schedule] skipped: set BASE_URL");
+          return;
+        }
+        const timeoutMs = computeTesterAgentSuiteTimeoutMs();
+        const signal =
+          typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+            ? AbortSignal.timeout(timeoutMs)
+            : undefined;
+        const report = await runTesterAgentSuite(baseUrl, { signal });
+        console.log(
+          `[tester-agent-schedule] success=${report.success} smokeProbes=${report.summary?.smokeProbeCount ?? "?"} smokeFailed=${report.summary?.smokeFailedCount ?? "?"}`
+        );
+        if (!report.success) {
+          const bad = report.results?.find((r) => !r.ok);
+          console.warn("[tester-agent-schedule] first failure:", bad?.id, bad?.error || bad?.failedIds);
+        }
+      } catch (e) {
+        console.warn("[tester-agent-schedule]", e instanceof Error ? e.message : e);
+      }
+    };
+    if (TESTER_AGENT_CONFIG.scheduleRunOnStart === true) {
+      runTesterAgentCron();
+    }
+    console.log(
+      `[tester-agent-schedule] every ${testerIntervalMs}ms (~${Math.round(testerIntervalMs / 3600000)}h); POST/GET /internal/tester-agent/run for manual`
+    );
+    setInterval(runTesterAgentCron, testerIntervalMs);
   }
 });

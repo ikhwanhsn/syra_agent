@@ -12,6 +12,7 @@ import {
   saveLearnerState,
   trainLearnerFromSubmissions,
 } from "./arenaLearner.js";
+import { isArenaPaused } from "./arenaPause.mjs";
 import {
   fetchAllSubmittedChallengeIds,
   isExplicitlyClosedStatus,
@@ -170,6 +171,10 @@ async function processOneChallenge(
  * @returns {Promise<ArenaTickResult>}
  */
 export async function runArenaWorkerTick(apiKey) {
+  if (isArenaPaused()) {
+    log("paused (ARENA_PAUSED=1)");
+    return { idle: true, reason: "arena_paused" };
+  }
   const dry = process.env.ARENA_DRY_RUN === "1";
   const debug = process.env.ARENA_DEBUG === "1";
   const skipLocalState = process.env.ARENA_SKIP_LOCAL_STATE === "1";

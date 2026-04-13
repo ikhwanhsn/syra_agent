@@ -124,7 +124,7 @@ export async function createQuicknodeRouter() {
         if (result.error) {
           return res.status(502).json({ success: false, error: result.error });
         }
-        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted);
+        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted, req);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
         runBuybackForRequest(req);
         res.json({ chain: c, address, ...result });
@@ -174,7 +174,7 @@ export async function createQuicknodeRouter() {
         if (result.error) {
           return res.status(502).json({ success: false, error: result.error });
         }
-        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted);
+        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted, req);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
         runBuybackForRequest(req);
         res.json({ chain: c, ...(c === "solana" ? { signature } : { txHash }), ...result });
@@ -219,7 +219,7 @@ export async function createQuicknodeRouter() {
         if (data.error && !data.result) {
           return res.status(502).json({ success: false, error: data.error.message || "RPC error", rpcError: data.error });
         }
-        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted);
+        const settle = await settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted, req);
         res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
         runBuybackForRequest(req);
         res.json(data);

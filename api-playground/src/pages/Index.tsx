@@ -5,7 +5,6 @@ import { HistoryPanel } from '@/components/HistoryPanel';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { PaymentModal } from '@/components/PaymentModal';
-import { ConnectChainModal, type ConnectOption } from '@/components/ConnectChainModal';
 import { UnsupportedApiModal } from '@/components/UnsupportedApiModal';
 import { V1UnsupportedModal } from '@/components/V1UnsupportedModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
@@ -61,7 +60,6 @@ const Index = () => {
     createShareLink,
     wallet,
     transactionStatus,
-    connectWallet,
     pay,
     retryAfterPayment,
     sendRequest,
@@ -88,7 +86,14 @@ const Index = () => {
     isAutoDetecting,
     allowedMethods,
   } = useApiPlayground();
-  const { setConnectChainOverride, openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
+  const { connect, setConnectChainPickListener } = useWalletContext();
+
+  useEffect(() => {
+    setConnectChainPickListener((option) => {
+      if (option !== 'email') selectPaymentChain(option);
+    });
+    return () => setConnectChainPickListener(null);
+  }, [selectPaymentChain, setConnectChainPickListener]);
 
   const paymentLane = useMemo(
     () => {
@@ -121,9 +126,6 @@ const Index = () => {
       base: null,
     };
   }, [paymentLane, paymentOptionsByChain]);
-
-  // Chain picker modal: user picks Solana or Base first, then Privy modal opens for that chain
-  const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
 
   // Panel resize state
   const [isResizingPanels, setIsResizingPanels] = useState(false);
@@ -253,13 +255,17 @@ const Index = () => {
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!panelsContainerRef.current) return;
-      
-      const containerRect = panelsContainerRef.current.getBoundingClientRect();
+
+      const el = panelsContainerRef.current;
+      const containerRect = el.getBoundingClientRect();
       const relativeX = e.clientX - containerRect.left;
       const containerWidth = containerRect.width;
-      
-      // Calculate percentage (constrain between 20% and 80%)
-      const newRatio = Math.min(Math.max(20, (relativeX / containerWidth) * 100), 80);
+      const gapStr = getComputedStyle(el).columnGap;
+      const gapPx = Number.isFinite(parseFloat(gapStr)) ? parseFloat(gapStr) : 0;
+      const inner = Math.max(1, containerWidth - gapPx);
+      // Invert: handle sits at (inner * r/100 + gapPx/2); solve for r from pointer x
+      const rawRatio = ((relativeX - gapPx / 2) / inner) * 100;
+      const newRatio = Math.min(Math.max(20, rawRatio), 80);
       setPanelSplitRatio(newRatio);
     };
 
@@ -286,15 +292,16 @@ const Index = () => {
   // Invalid share link page: /s/invalid (reached via redirect when a share link is bad or not found)
   if (isInvalidSharePage) {
     return (
-      <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
+      <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw] playground-ambient">
         <TopBar
           wallet={wallet}
-          onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+          onOpenConnectModal={() => connect()}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
           paymentNetwork={selectedPaymentChain}
+          flowStatus={status}
         />
-        <div className={cn('flex-1 flex min-h-0', MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS)}>
+        <div className={cn('flex-1 flex min-h-0 relative z-[1]', MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS)}>
           <InvalidShareLink slug={attemptedSlug} />
         </div>
       </div>
@@ -304,15 +311,16 @@ const Index = () => {
   // Loading shared request: show loading state below TopBar
   if (shareSlug && shareLoadStatus === 'loading') {
     return (
-      <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
+      <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw] playground-ambient">
         <TopBar
           wallet={wallet}
-          onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+          onOpenConnectModal={() => connect()}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
           paymentNetwork={selectedPaymentChain}
+          flowStatus="loading"
         />
-        <div className={cn('flex-1 flex items-center justify-center', MAIN_CONTENT_PT_CLASS)}>
+        <div className={cn('flex-1 flex items-center justify-center relative z-[1]', MAIN_CONTENT_PT_CLASS)}>
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             <p className="text-sm">Loading shared request…</p>
@@ -323,20 +331,21 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw]">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-hidden max-w-[100vw] playground-ambient">
       {/* Top Bar */}
       <TopBar
         wallet={wallet}
-        onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+        onOpenConnectModal={() => connect()}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isSidebarOpen={isSidebarOpen}
         paymentNetwork={selectedPaymentChain}
+        flowStatus={status}
       />
 
       {/* Main Content - fills viewport below fixed navbar; on mobile panels scroll */}
       <div
         className={cn(
-          'flex-1 flex min-h-0 w-full max-w-full overflow-hidden',
+          'flex-1 flex min-h-0 w-full max-w-full overflow-hidden relative z-[1]',
           MAIN_CONTENT_PT_CLASS,
           MAIN_CONTENT_PB_SAFE_CLASS,
         )}
@@ -358,24 +367,24 @@ const Index = () => {
           onSidebarWidthChange={setSidebarWidth}
         />
 
-        {/* Main Panels - on mobile: single scrollable column (content-sized, not fixed); on desktop: side-by-side fixed */}
+        {/* Main Panels - mobile: column; desktop: CSS Grid so tracks stay exact ratio (e.g. 50fr/50fr = true 50/50) */}
         <div
           ref={panelsContainerRef}
-          className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden relative w-full max-w-full min-w-0 touch-pan-y overscroll-y-contain"
+          className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden relative w-full max-w-full min-w-0 touch-pan-y overscroll-y-contain"
+          style={{
+            ...(isDesktop && {
+              display: 'grid',
+              gridTemplateColumns: `minmax(0, ${panelSplitRatio}fr) minmax(0, ${100 - panelSplitRatio}fr)`,
+              gridTemplateRows: 'minmax(0, 1fr)',
+              columnGap: '1rem', // keep in sync with resize rail `calc(... 1rem ...)`; mousemove uses computed gap
+            }),
+          }}
         >
           {/* Request Builder - on mobile: full content height so POST, URL, Params/Body are all visible when scrolling */}
           <div 
-            className="min-w-0 flex-shrink-0 lg:flex-initial lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden border-b lg:border-b-0 lg:border-r border-border/50"
-            style={{
-              ...(isDesktop && {
-                width: `${panelSplitRatio}%`,
-                flexShrink: 0,
-                minWidth: 'min(260px, 42%)',
-                maxWidth: '80%',
-              }),
-            }}
+            className="min-w-0 flex-shrink-0 lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden border-b lg:border-b-0 border-border/50"
           >
-            <div className="glass-panel h-auto min-h-0 lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel glass-panel-playground-main h-auto min-h-0 lg:h-full lg:min-h-0 p-4 sm:p-5 lg:p-6 overflow-visible lg:overflow-hidden flex flex-col">
               {paymentLane === 'mpp' ? (
                 <div className="shrink-0 mb-3">
                   <MppLaneStrip />
@@ -405,34 +414,45 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Resize handle - only on desktop */}
+          {/* Split rail — always-visible track + glow line; premium affordance for resize */}
           <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize request and response panels"
+            title="Drag to resize panels"
             onMouseDown={(e) => {
               e.preventDefault();
               setIsResizingPanels(true);
             }}
-            className="hidden lg:flex absolute top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-primary/30 transition-colors group/resize"
+            className="hidden lg:flex absolute top-3 bottom-3 z-20 w-5 cursor-col-resize select-none flex-col items-center justify-center group/panel-split touch-none"
             style={{
-              left: `${panelSplitRatio}%`,
+              left: isDesktop
+                ? `calc((100% - 1rem) * ${panelSplitRatio} / 100 + 0.5rem)`
+                : `${panelSplitRatio}%`,
               transform: 'translateX(-50%)',
             }}
           >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-12 rounded-md bg-background/80 backdrop-blur-sm border border-border/60 opacity-0 group-hover/resize:opacity-100 transition-opacity flex items-center justify-center">
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <div
+              className="pointer-events-none absolute inset-y-1 left-1/2 w-2.5 -translate-x-1/2 rounded-full border border-border/60 bg-muted/30 shadow-[inset_0_2px_10px_rgba(0,0,0,0.28)] dark:border-white/[0.12] dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_32px_rgba(0,0,0,0.45)]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute left-1/2 top-6 bottom-6 w-[2px] -translate-x-1/2 rounded-full bg-gradient-to-b from-primary/25 via-primary to-primary/25 opacity-90 shadow-[0_0_18px_hsl(var(--primary)/0.5),0_0_36px_hsl(var(--ring)/0.18)] dark:from-primary/30 dark:via-primary dark:to-primary/30"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute left-1/2 top-1/2 flex h-14 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-border/80 bg-background/90 shadow-lg shadow-black/30 backdrop-blur-md ring-1 ring-white/[0.08] transition-all duration-200 dark:border-white/[0.14] dark:bg-card/95 dark:shadow-black/50 opacity-[0.72] group-hover/panel-split:opacity-100 group-hover/panel-split:border-primary/40 group-hover/panel-split:ring-primary/25 group-hover/panel-split:shadow-[0_0_28px_hsl(var(--primary)/0.22)]"
+              aria-hidden
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground transition-colors group-hover/panel-split:text-primary" />
             </div>
           </div>
 
-          {/* Response Viewer - taller on mobile; on desktop gets more space via default split */}
+          {/* Response Viewer - taller on mobile; on desktop shares row with request (default 50/50) */}
           <div 
-            className="min-w-0 flex-shrink-0 lg:flex-1 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden min-h-[min(60dvh,520px)] sm:min-h-[55vh] lg:min-h-[420px]"
-            style={{
-              ...(isDesktop && {
-                width: `${100 - panelSplitRatio}%`,
-                minWidth: 'min(260px, 42%)',
-              }),
-            }}
+            className="min-w-0 flex-shrink-0 max-lg:flex-1 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden min-h-[min(60dvh,520px)] sm:min-h-[55vh] lg:min-h-0"
           >
-            <div className="glass-panel h-auto min-h-[50vh] lg:h-full lg:min-h-0 p-3 sm:p-4 lg:p-5 overflow-visible lg:overflow-hidden flex flex-col rounded-xl">
+            <div className="glass-panel glass-panel-playground-main h-auto min-h-[50vh] lg:h-full lg:min-h-0 p-4 sm:p-5 lg:p-6 overflow-visible lg:overflow-hidden flex flex-col">
               <ResponseViewer
                 response={response}
                 status={status}
@@ -456,7 +476,7 @@ const Index = () => {
           paymentDetails={effectivePaymentDetails}
           wallet={wallet}
           transactionStatus={transactionStatus}
-          onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+          onOpenConnectModal={() => connect()}
           onPay={pay}
           onRetry={retryAfterPayment}
           paymentOptionsByChain={paymentOptionsByChainForLane}
@@ -464,27 +484,6 @@ const Index = () => {
           onSelectPaymentChain={selectPaymentChain}
         />
       )}
-
-      {/* Chain picker: user picks Solana or Base, then Privy connect modal opens for that chain */}
-      <ConnectChainModal
-        isOpen={isConnectChainModalOpen}
-        onClose={() => setIsConnectChainModalOpen(false)}
-        onPick={(option) => {
-          setIsConnectChainModalOpen(false);
-          if (!isPrivyMounted) {
-            requestConnect(option);
-            if (option !== 'email') selectPaymentChain(option);
-            return;
-          }
-          if (option === 'email') {
-            openLoginModal();
-            return;
-          }
-          selectPaymentChain(option);
-          // Don't set connectChainOverride here so the provider doesn't re-render with solana-only before the modal; connectForChain passes walletChainType in the call so the modal shows the right wallets. That way Phantom doesn't open until the user clicks it in the modal.
-          connectWallet(option);
-        }}
-      />
 
       {/* Unsupported API Modal (invalid URL) */}
       <UnsupportedApiModal

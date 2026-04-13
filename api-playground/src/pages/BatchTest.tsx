@@ -22,7 +22,6 @@ import { connection } from '@/contexts/WalletContext';
 import { Play, CheckCircle, XCircle, Zap, Loader2, ChevronDown, ChevronRight, BarChart3, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { ConnectChainModal } from '@/components/ConnectChainModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -35,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { RequestParam } from '@/types/api';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
+import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -326,15 +326,21 @@ function bodyPreview(body: string, maxLen: number = 120): string {
 
 export default function BatchTest() {
   const walletContext = useWalletContext();
-  const { wallet, connectWallet, selectPaymentChain } = useApiPlayground();
-  const { openLoginModal, isPrivyMounted, requestConnect } = walletContext;
+  const { wallet, selectPaymentChain } = useApiPlayground();
+  const { connect, setConnectChainPickListener } = walletContext;
+
+  useEffect(() => {
+    setConnectChainPickListener((option) => {
+      if (option !== 'email') selectPaymentChain(option);
+    });
+    return () => setConnectChainPickListener(null);
+  }, [selectPaymentChain, setConnectChainPickListener]);
   const [selectedFlowIds, setSelectedFlowIds] = useState<string[]>(loadSelectedFlowIds);
   const [rows, setRows] = useState<BatchRow[]>([]);
   const [running, setRunning] = useState(false);
   const [stats, setStats] = useState<BatchStats | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentChain, setPaymentChain] = useState<'solana' | 'base'>('solana');
-  const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [customEndpoints, setCustomEndpoints] = useState<CustomEndpoint[]>(loadCustomEndpoints);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -699,51 +705,35 @@ export default function BatchTest() {
   const hasWallet = walletContext.connected || walletContext.baseConnected;
 
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
       <TopBar
         wallet={wallet}
-        onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+        onOpenConnectModal={() => connect()}
         onToggleSidebar={() => {}}
         isSidebarOpen={false}
         paymentNetwork={paymentChain}
+        flowStatus={running ? 'loading' : 'idle'}
       />
-      <ConnectChainModal
-        isOpen={isConnectChainModalOpen}
-        onClose={() => setIsConnectChainModalOpen(false)}
-        onPick={(option) => {
-          setIsConnectChainModalOpen(false);
-          if (!isPrivyMounted) {
-            requestConnect(option);
-            if (option !== 'email') selectPaymentChain(option);
-            return;
-          }
-          if (option === 'email') {
-            openLoginModal();
-            return;
-          }
-          selectPaymentChain(option);
-          connectWallet(option);
-        }}
-      />
-
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-lg max-h-[85dvh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-lg max-h-[85dvh] overflow-hidden flex flex-col rounded-2xl border-border/60">
           <DialogHeader>
-            <DialogTitle>Add endpoints</DialogTitle>
+            <DialogTitle className="font-display text-lg tracking-tight">Add endpoints</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-2">Only payment-gated APIs (HTTP 402 with x402 body) can be added. Others will be skipped.</p>
+          <p className="text-xs text-muted-foreground -mt-1 leading-relaxed">
+            Only payment-gated APIs (HTTP 402 with x402 body) can be added. Others will be skipped.
+          </p>
           <div className="flex flex-col gap-6 overflow-y-auto min-h-0">
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Select preset endpoints</h3>
+              <h3 className="text-sm font-semibold text-foreground tracking-tight">Select preset endpoints</h3>
               {availableToAdd.length === 0 ? (
                 <p className="text-sm text-muted-foreground">All preset endpoints are already in the batch.</p>
               ) : (
                 <>
-                  <div className="border border-border rounded-lg divide-y divide-border max-h-[220px] overflow-y-auto">
+                  <div className="border border-border/60 rounded-xl divide-y divide-border/50 max-h-[220px] overflow-y-auto custom-scrollbar bg-muted/10 dark:bg-black/15">
                     {availableToAdd.map((f) => (
                       <label
                         key={f.id}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
+                        className="flex items-center gap-3 px-3 py-2.5 hover:bg-background/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
                       >
                         <Checkbox
                           checked={modalPresetChecked.has(f.id)}
@@ -855,8 +845,8 @@ export default function BatchTest() {
                 </>
               )}
             </div>
-            <div className="space-y-3 border-t border-border pt-4">
-              <h3 className="text-sm font-semibold text-foreground">Or add your own 402-gated API</h3>
+            <div className="space-y-3 border-t border-border/60 pt-5">
+              <h3 className="text-sm font-semibold text-foreground tracking-tight">Or add your own 402-gated API</h3>
               <div className="grid gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="custom-url">API URL</Label>
@@ -865,7 +855,7 @@ export default function BatchTest() {
                     placeholder="https://api.example.com/v1/endpoint"
                     value={customUrl}
                     onChange={(e) => setCustomUrl(e.target.value)}
-                    className="font-mono text-sm"
+                    className="font-mono text-sm rounded-xl border-border/80 bg-secondary/30"
                   />
                 </div>
                 <div className="flex gap-3 items-center">
@@ -876,6 +866,7 @@ export default function BatchTest() {
                         type="button"
                         variant={customMethod === 'GET' ? 'default' : 'outline'}
                         size="sm"
+                        className="rounded-full"
                         onClick={() => setCustomMethod('GET')}
                       >
                         GET
@@ -884,6 +875,7 @@ export default function BatchTest() {
                         type="button"
                         variant={customMethod === 'POST' ? 'default' : 'outline'}
                         size="sm"
+                        className="rounded-full"
                         onClick={() => setCustomMethod('POST')}
                       >
                         POST
@@ -899,7 +891,7 @@ export default function BatchTest() {
                       placeholder='{"key": "value"}'
                       value={customBody}
                       onChange={(e) => setCustomBody(e.target.value)}
-                      className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="w-full min-h-[80px] rounded-xl border border-border/80 bg-secondary/20 px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
                 )}
@@ -946,61 +938,97 @@ export default function BatchTest() {
         </DialogContent>
       </Dialog>
 
-      <main className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-scroll overflow-x-hidden">
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0 flex flex-col gap-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border/50 shrink-0">
-              <BarChart3 className="h-6 w-6 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Agentic batch test</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Run many payment-gated APIs in one pass. Pay each 402, see per-endpoint results and rollups. Add or remove URLs from the table toolbar and rows.
-              </p>
+      <main
+        className={cn(
+          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
+          MAIN_CONTENT_PT_CLASS,
+          MAIN_CONTENT_PB_SAFE_CLASS,
+        )}
+      >
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 flex flex-col gap-8 pb-24">
+          <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+              <div className="relative shrink-0">
+                <div
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/25 via-ring/12 to-transparent blur-md opacity-80"
+                  aria-hidden
+                />
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-card/90 ring-1 ring-border/60 dark:ring-white/[0.08] shadow-md flex items-center justify-center border border-border/40">
+                  <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+                  Agentic batch test
+                </h1>
+                <p className="text-sm sm:text-[15px] text-muted-foreground mt-2 leading-relaxed max-w-3xl text-balance">
+                  Run many payment-gated APIs in one pass. Pay each 402, see per-endpoint results and rollups. Add or
+                  remove URLs from the table toolbar and rows.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              onClick={runAll}
-              disabled={running || !hasWallet || entries.length === 0}
-              className="gap-2"
-            >
-              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              {running ? 'Running…' : 'Run all'}
-            </Button>
-            {!hasWallet && <span className="text-sm text-muted-foreground">Connect a wallet to run batch.</span>}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Pay with:</span>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
-                variant={paymentChain === 'solana' ? 'default' : 'outline'}
-                size="sm"
+                variant="neon"
+                onClick={runAll}
+                disabled={running || !hasWallet || entries.length === 0}
+                className="gap-2 h-10 rounded-full px-5 font-semibold shadow-sm"
+              >
+                {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                {running ? 'Running…' : 'Run all'}
+              </Button>
+              {!hasWallet && (
+                <span className="text-sm text-muted-foreground font-medium">Connect a wallet to run batch.</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[240px]">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Pay with</span>
+              <div className="flex p-1 rounded-xl border border-border/50 bg-muted/25 dark:bg-black/20 shadow-inner shadow-black/5">
+              <button
+                type="button"
                 onClick={() => setPaymentChain('solana')}
                 disabled={running}
+                className={cn(
+                  'flex-1 sm:flex-initial rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200',
+                  paymentChain === 'solana'
+                    ? 'bg-background/90 dark:bg-white/[0.08] text-foreground shadow-sm ring-1 ring-border/60'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
               >
                 Solana
-              </Button>
-              <Button
-                variant={paymentChain === 'base' ? 'default' : 'outline'}
-                size="sm"
+              </button>
+              <button
+                type="button"
                 onClick={() => setPaymentChain('base')}
                 disabled={running}
+                className={cn(
+                  'flex-1 sm:flex-initial rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200',
+                  paymentChain === 'base'
+                    ? 'bg-background/90 dark:bg-white/[0.08] text-foreground shadow-sm ring-1 ring-border/60'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
               >
                 Base
-              </Button>
+              </button>
+              </div>
             </div>
           </div>
 
           {entries.length > 0 && (
-            <div className="rounded-xl border border-border bg-card/50 p-4 flex flex-wrap items-center gap-3">
-              <span className="text-sm font-medium text-foreground">Estimated cost to run batch:</span>
+            <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm px-4 py-3.5 sm:px-5 sm:py-4 flex flex-wrap items-center gap-3 shadow-sm dark:shadow-black/15">
+              <span className="text-sm font-semibold text-foreground">Estimated cost to run batch</span>
               {isEstimating ? (
-                <span className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span className="text-sm text-muted-foreground inline-flex items-center gap-2 font-medium">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   Estimating…
                 </span>
               ) : estimatedTotalUsd != null ? (
-                <span className="text-lg font-bold text-primary">${estimatedTotalUsd} USDC</span>
+                <span className="font-display text-xl sm:text-2xl font-semibold text-primary tabular-nums">
+                  ${estimatedTotalUsd} <span className="text-sm font-medium text-muted-foreground">USDC</span>
+                </span>
               ) : (
                 <span className="text-sm text-muted-foreground">—</span>
               )}
@@ -1008,33 +1036,42 @@ export default function BatchTest() {
           )}
 
           {stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Total</p>
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-4 shadow-sm dark:shadow-black/15">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="font-display text-2xl font-semibold text-foreground tabular-nums mt-1">{stats.total}</p>
               </div>
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Success</p>
-                <p className="text-2xl font-bold text-accent">{stats.success}</p>
+              <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-4 shadow-sm dark:shadow-black/15">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Success</p>
+                <p className="font-display text-2xl font-semibold text-success tabular-nums mt-1">{stats.success}</p>
               </div>
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Errors</p>
-                <p className="text-2xl font-bold text-destructive">{stats.error + stats.paymentFailed}</p>
+              <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-4 shadow-sm dark:shadow-black/15">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Errors</p>
+                <p className="font-display text-2xl font-semibold text-destructive tabular-nums mt-1">
+                  {stats.error + stats.paymentFailed}
+                </p>
               </div>
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Total paid</p>
-                <p className="text-2xl font-bold text-primary">${stats.totalPaidUsd}</p>
+              <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-4 shadow-sm dark:shadow-black/15">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Total paid</p>
+                <p className="font-display text-2xl font-semibold text-foreground tabular-nums mt-1">
+                  ${stats.totalPaidUsd}
+                </p>
               </div>
-              <div className="rounded-lg border border-border bg-card p-4 sm:col-span-2 sm:col-start-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Duration</p>
-                <p className="text-2xl font-bold text-foreground">{(stats.durationMs / 1000).toFixed(1)}s</p>
+              <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-4 sm:col-span-2 sm:col-start-1 shadow-sm dark:shadow-black/15">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Duration</p>
+                <p className="font-display text-2xl font-semibold text-foreground tabular-nums mt-1">
+                  {(stats.durationMs / 1000).toFixed(1)}s
+                </p>
               </div>
             </div>
           )}
 
-          <div className="rounded-xl border border-border overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-border bg-muted/20">
-              <span className="text-sm font-medium text-foreground">Endpoints to test ({entries.length})</span>
+          <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm dark:shadow-black/20">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5 border-b border-border/60 bg-muted/15 dark:bg-black/25">
+              <span className="text-sm font-semibold text-foreground tracking-tight">
+                Endpoints to test{' '}
+                <span className="tabular-nums text-muted-foreground font-medium">({entries.length})</span>
+              </span>
               <div className="flex items-center gap-2 flex-wrap">
                 {isSomeSelected && (
                   <Button
@@ -1042,10 +1079,10 @@ export default function BatchTest() {
                     size="sm"
                     onClick={removeSelected}
                     disabled={running}
-                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="gap-1.5 rounded-full h-9 text-destructive border-destructive/25 hover:bg-destructive/10"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Remove selected ({selectedIds.length})
+                    Remove ({selectedIds.length})
                   </Button>
                 )}
                 <Button
@@ -1053,52 +1090,76 @@ export default function BatchTest() {
                   size="sm"
                   onClick={() => setIsAddModalOpen(true)}
                   disabled={running}
-                  className="gap-1.5"
+                  className="gap-1.5 rounded-full h-9 font-medium"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add endpoint
                 </Button>
-                <Button variant="outline" size="sm" onClick={resetToDefault} disabled={running} className="gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetToDefault}
+                  disabled={running}
+                  className="gap-1.5 rounded-full h-9 font-medium"
+                >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Reset to default
                 </Button>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="w-10 p-2 pr-0">
+                  <tr className="border-b border-border/60 bg-muted/20 dark:bg-black/25">
+                    <th className="w-12 py-3 pl-4 pr-0">
                       <Checkbox
                         checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
                         onCheckedChange={(checked) => {
                           if (checked === true) selectAll();
                           else deselectAll();
                         }}
-                        disabled={running || flows.length === 0}
+                        disabled={running || entries.length === 0}
                         aria-label="Select all"
                       />
                     </th>
-                    <th className="text-left p-3 font-medium text-foreground">Endpoint</th>
-                    <th className="text-left p-3 font-medium text-foreground">Status</th>
-                    <th className="text-left p-3 font-medium text-foreground">Code</th>
-                    <th className="text-left p-3 font-medium text-foreground">Time</th>
-                    <th className="text-left p-3 font-medium text-foreground">Paid</th>
-                    <th className="text-left p-2 font-medium text-foreground w-[100px]">Actions</th>
+                    <th className="text-left py-3 px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Endpoint
+                    </th>
+                    <th className="text-left py-3 px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Code
+                    </th>
+                    <th className="text-left py-3 px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Time
+                    </th>
+                    <th className="text-left py-3 px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Paid
+                    </th>
+                    <th className="text-right py-3 px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground w-[108px]">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 && entries.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-6 text-center text-muted-foreground">
-                        No endpoints selected. Click <strong>Add endpoint</strong> to choose presets or add your own 402-gated API URL.
+                      <td colSpan={7} className="p-10 text-center">
+                        <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                          No endpoints selected. Use <span className="font-semibold text-foreground">Add endpoint</span>{' '}
+                          for presets or your own 402-gated URL.
+                        </p>
                       </td>
                     </tr>
                   )}
                   {rows.length === 0 &&
                     entries.map((e) => (
-                      <tr key={e.id} className="border-b border-border/50 hover:bg-muted/10">
-                        <td className="w-10 p-2 pr-0">
+                      <tr
+                        key={e.id}
+                        className="border-b border-border/40 transition-colors hover:bg-muted/10 dark:hover:bg-white/[0.02]"
+                      >
+                        <td className="w-12 py-3 pl-4 pr-0 align-middle">
                           <Checkbox
                             checked={selectedIds.includes(e.id)}
                             onCheckedChange={() => toggleSelect(e.id)}
@@ -1106,16 +1167,16 @@ export default function BatchTest() {
                             aria-label={`Select ${e.label}`}
                           />
                         </td>
-                        <td className="p-3 text-foreground">{e.label}</td>
-                        <td className="p-3 text-muted-foreground">—</td>
-                        <td className="p-3">—</td>
-                        <td className="p-3">—</td>
-                        <td className="p-3">—</td>
-                        <td className="p-2">
+                        <td className="py-3 px-4 text-foreground font-medium align-middle">{e.label}</td>
+                        <td className="py-3 px-4 text-muted-foreground align-middle">—</td>
+                        <td className="py-3 px-4 text-muted-foreground align-middle">—</td>
+                        <td className="py-3 px-4 text-muted-foreground align-middle">—</td>
+                        <td className="py-3 px-4 text-muted-foreground align-middle">—</td>
+                        <td className="py-3 px-4 text-right align-middle">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive"
                             onClick={() => removeFlow(e.id)}
                             disabled={running}
                             aria-label={`Remove ${e.label}`}
@@ -1129,11 +1190,11 @@ export default function BatchTest() {
                     <Fragment key={r.id}>
                       <tr
                         className={cn(
-                          'border-b border-border/50 hover:bg-muted/20',
-                          r.status === 'running' && 'bg-primary/5'
+                          'border-b border-border/40 transition-colors hover:bg-muted/10 dark:hover:bg-white/[0.02]',
+                          r.status === 'running' && 'bg-primary/[0.06]',
                         )}
                       >
-                        <td className="w-10 p-2 pr-0">
+                        <td className="w-12 py-3 pl-4 pr-0 align-middle">
                           <Checkbox
                             checked={selectedIds.includes(r.id)}
                             onCheckedChange={() => toggleSelect(r.id)}
@@ -1141,8 +1202,8 @@ export default function BatchTest() {
                             aria-label={`Select ${r.label}`}
                           />
                         </td>
-                        <td className="p-3 font-medium text-foreground">{r.label}</td>
-                        <td className="p-3">
+                        <td className="py-3 px-4 font-medium text-foreground align-middle">{r.label}</td>
+                        <td className="py-3 px-4 align-middle">
                           {r.status === 'pending' && <span className="text-muted-foreground">Pending</span>}
                           {r.status === 'running' && (
                             <span className="inline-flex items-center gap-1 text-primary">
@@ -1165,15 +1226,21 @@ export default function BatchTest() {
                             </span>
                           )}
                         </td>
-                        <td className="p-3 font-mono">{r.statusCode ?? '—'}</td>
-                        <td className="p-3">{r.timeMs != null ? `${r.timeMs}ms` : '—'}</td>
-                        <td className="p-3">{r.paidUsd ? `$${r.paidUsd}` : '—'}</td>
-                        <td className="p-2">
-                          <div className="flex items-center gap-0.5">
+                        <td className="py-3 px-4 font-mono text-xs text-foreground/90 tabular-nums align-middle">
+                          {r.statusCode ?? '—'}
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground tabular-nums align-middle">
+                          {r.timeMs != null ? `${r.timeMs}ms` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground font-medium align-middle">
+                          {r.paidUsd ? `$${r.paidUsd}` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right align-middle">
+                          <div className="flex items-center justify-end gap-0.5">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive"
                               onClick={() => removeFlow(r.id)}
                               disabled={running}
                               aria-label={`Remove ${r.label}`}
@@ -1184,7 +1251,7 @@ export default function BatchTest() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 rounded-lg"
                                 onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
                                 aria-label={expandedId === r.id ? 'Collapse' : 'Expand'}
                               >
@@ -1195,9 +1262,9 @@ export default function BatchTest() {
                         </td>
                       </tr>
                       {expandedId === r.id && (r.bodyRaw != null || r.error) && (
-                        <tr key={`${r.id}-exp`} className="border-b border-border/50 bg-muted/20">
-                          <td colSpan={7} className="p-4">
-                            <div className="rounded-lg bg-background border border-border p-3 font-mono text-xs overflow-auto max-h-64 whitespace-pre-wrap break-all">
+                        <tr key={`${r.id}-exp`} className="border-b border-border/40 bg-muted/15 dark:bg-black/20">
+                          <td colSpan={7} className="p-4 sm:p-5">
+                            <div className="rounded-xl bg-background/80 border border-border/60 p-4 font-mono text-xs overflow-auto max-h-64 whitespace-pre-wrap break-all shadow-inner">
                               {r.error && <p className="text-destructive mb-2">{r.error}</p>}
                               {r.bodyRaw != null && <pre className="text-foreground">{r.bodyRaw}</pre>}
                             </div>

@@ -28,8 +28,8 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/s/:slug" element={<Index />} />
               <Route path="/examples" element={<Examples />} />
-              <Route path="/examples/x402/:groupSlug" element={<ExamplesGroup />} />
-              <Route path="/examples/mpp/:groupSlug" element={<ExamplesGroup />} />
+              {/* One route so `useParams().catalog` is defined (literal path segments are not params). */}
+              <Route path="/examples/:catalog/:groupSlug" element={<ExamplesGroup />} />
               <Route path="/examples/:groupSlug" element={<ExamplesLegacyGroupRedirect />} />
               <Route path="/explorer" element={<Explorer />} />
               <Route path="/explorer/:slug" element={<ExplorerDetail />} />

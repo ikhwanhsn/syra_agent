@@ -14,6 +14,21 @@ const JUPITER_TRENDING_URL =
 const DEFAULT_CORRELATION_SYMBOL = "BTCUSDT";
 const DEFAULT_CORRELATION_LIMIT = 10;
 
+/** Outbound HTTP timeout so one slow partner cannot block /analytics/summary for ~90s. */
+function outboundSignal(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(n);
+  }
+  const c = new AbortController();
+  setTimeout(() => c.abort(new Error(`Request timed out after ${n}ms`)), n);
+  return c.signal;
+}
+
+const JUPITER_FETCH_MS = Number.parseInt(process.env.ANALYTICS_JUPITER_FETCH_MS || "16000", 10);
+const NANSEN_FETCH_MS = Number.parseInt(process.env.ANALYTICS_NANSEN_FETCH_MS || "22000", 10);
+
 /** Jupiter trending tokens (no params). Requires PAYER_KEYPAIR. */
 export async function fetchTrendingJupiter() {
   const { payer, getSentinelPayerFetch } = await import("./sentinelPayer.js");
@@ -24,6 +39,7 @@ export async function fetchTrendingJupiter() {
   const response = await getSentinelPayerFetch()(JUPITER_TRENDING_URL, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
+    signal: outboundSignal(JUPITER_FETCH_MS),
   });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
@@ -44,6 +60,7 @@ export async function fetchTrendingJupiter() {
 export async function fetchSmartMoney() {
   const { getNansenPaymentFetch } = await import("./sentinelPayer.js");
   const nansenFetch = await getNansenPaymentFetch();
+  const signal = outboundSignal(NANSEN_FETCH_MS);
 
   const responses = await Promise.all(
     smartMoneyRequests.map(({ url, payload }) =>
@@ -54,6 +71,7 @@ export async function fetchSmartMoney() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        signal,
       })
     )
   );

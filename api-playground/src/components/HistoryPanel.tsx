@@ -208,15 +208,17 @@ export function HistoryPanel({
         )}
 
         {/* Header - fixed, does not scroll */}
-        <div className="shrink-0 p-3 sm:p-4 border-b border-sidebar-border">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-accent/20 to-transparent">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/[0.08] ring-1 ring-border/50 flex items-center justify-center shadow-sm">
                 <History className="h-4.5 w-4.5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-base">Request History</h2>
-                <p className="text-xs text-muted-foreground">{history.length} requests</p>
+                <h2 className="font-display font-semibold text-base tracking-tight">Request History</h2>
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {history.length} {history.length === 1 ? 'request' : 'requests'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -263,9 +265,13 @@ export function HistoryPanel({
             </div>
           </div>
 
-          {/* Filter pills */}
+          {/* Filter segmented control */}
           {history.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1">
+            <div
+              className="flex p-1 rounded-xl bg-muted/25 dark:bg-black/20 border border-border/50 shadow-inner shadow-black/5 gap-0.5 overflow-x-auto"
+              role="tablist"
+              aria-label="Filter history"
+            >
               {[
                 { id: 'all', label: 'All', icon: Filter },
                 { id: 'payment', label: '402', icon: Zap },
@@ -274,21 +280,26 @@ export function HistoryPanel({
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === id}
                   onClick={() => setFilter(id as FilterType)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 h-8",
-                    filter === id 
-                      ? "bg-primary/15 text-primary border border-primary/20" 
-                      : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 shrink-0 h-8',
+                    filter === id
+                      ? 'bg-background/95 dark:bg-white/[0.08] text-foreground shadow-sm ring-1 ring-border/60 dark:ring-white/[0.08]'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/40',
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-3.5 w-3.5 opacity-80" />
                   {label}
                   {counts[id as FilterType] > 0 && (
-                    <span className={cn(
-                      "ml-0.5 px-1.5 py-0.5 rounded text-xs",
-                      filter === id ? "bg-primary/30" : "bg-muted"
-                    )}>
+                    <span
+                      className={cn(
+                        'ml-0.5 min-w-[1.25rem] px-1 py-0.5 rounded-md text-[10px] font-semibold tabular-nums text-center',
+                        filter === id ? 'bg-primary/12 text-primary' : 'bg-muted/80 text-muted-foreground',
+                      )}
+                    >
                       {counts[id as FilterType]}
                     </span>
                   )}
@@ -330,9 +341,10 @@ export function HistoryPanel({
                   <div
                     key={item.id}
                     className={cn(
-                      "flex flex-col sm:flex-row sm:items-start gap-2 w-full rounded-xl transition-all duration-200 overflow-hidden",
-                      "hover:bg-sidebar-accent group border border-transparent",
-                      isSelected && "bg-sidebar-accent border-primary/20 shadow-sm"
+                      'flex flex-col sm:flex-row sm:items-start gap-2 w-full rounded-2xl transition-all duration-200 overflow-hidden',
+                      'hover:bg-sidebar-accent/80 group border border-transparent',
+                      isSelected &&
+                        'bg-sidebar-accent border-border/80 dark:border-white/[0.08] shadow-md ring-1 ring-primary/10',
                     )}
                   >
                     {/* Content row - grows and truncates so buttons always fit */}

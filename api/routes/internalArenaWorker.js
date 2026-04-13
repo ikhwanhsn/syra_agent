@@ -4,6 +4,7 @@
  *
  * Env:
  *   ARENA_CRON_SECRET — required for this route; header x-arena-cron-secret: <same>
+ *   ARENA_PAUSED=1 — tick succeeds immediately with { idle, reason: arena_paused }; no API calls (between seasons)
  *   In-process schedule (no external cron): ARENA_SCHEDULE_TICKS=1 and optional ARENA_TICK_INTERVAL_MS (default 600000)
  *
  * Example crontab (every 10 minutes, Linux):

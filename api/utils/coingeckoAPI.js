@@ -20,7 +20,11 @@ export async function getCoinList() {
     return cache.list;
   }
   try {
-    const res = await fetch(COINGECKO_LIST_URL);
+    const listSignal =
+      typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+        ? AbortSignal.timeout(8000)
+        : undefined;
+    const res = await fetch(COINGECKO_LIST_URL, listSignal ? { signal: listSignal } : {});
     if (!res.ok) {
       throw new Error(`CoinGecko list failed: ${res.status}`);
     }

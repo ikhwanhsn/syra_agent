@@ -11,7 +11,6 @@ import {
   type ExampleFlowPreset,
 } from '@/hooks/useApiPlayground';
 import { TopBar } from '@/components/TopBar';
-import { ConnectChainModal } from '@/components/ConnectChainModal';
 import { QueryParamsModal } from '@/components/QueryParamsModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
@@ -20,14 +19,23 @@ import { Badge } from '@/components/ui/badge';
 import { BRAND_NAME } from '@/lib/branding';
 import { resolveApiBaseUrl, resolvePurchVaultBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { buildFullMppExampleFlowList } from '@/lib/mppOpenApiToExampleFlows';
+import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
+import { cn } from '@/lib/utils';
 
 type ExamplesCatalog = 'x402' | 'mpp';
 
 const ExamplesGroup = () => {
   const { catalog, groupSlug } = useParams<{ catalog: ExamplesCatalog; groupSlug: string }>();
   const navigate = useNavigate();
-  const { wallet, connectWallet, selectPaymentChain } = useApiPlayground();
-  const { openLoginModal, isPrivyMounted, requestConnect } = useWalletContext();
+  const { wallet, selectPaymentChain } = useApiPlayground();
+  const { connect, setConnectChainPickListener } = useWalletContext();
+
+  useEffect(() => {
+    setConnectChainPickListener((option) => {
+      if (option !== 'email') selectPaymentChain(option);
+    });
+    return () => setConnectChainPickListener(null);
+  }, [selectPaymentChain, setConnectChainPickListener]);
 
   const isMpp = catalog === 'mpp';
 
@@ -76,7 +84,6 @@ const ExamplesGroup = () => {
         ? getExampleFlowsForGroup(groupSlug)
         : [];
 
-  const [isConnectChainModalOpen, setIsConnectChainModalOpen] = useState(false);
   const [paramsModalFlow, setParamsModalFlow] = useState<ExampleFlowPreset | null>(null);
   const [paramsModalInitialParams, setParamsModalInitialParams] = useState<RequestParam[]>([]);
 
@@ -112,14 +119,15 @@ const ExamplesGroup = () => {
 
   if (!catalog || !groupSlug || (catalog !== 'x402' && catalog !== 'mpp')) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col w-full">
+      <div className="min-h-[100dvh] bg-background flex flex-col w-full playground-ambient">
         <TopBar
           wallet={wallet}
-          onOpenConnectModal={() => {}}
+          onOpenConnectModal={() => connect()}
           onToggleSidebar={() => {}}
           isSidebarOpen={false}
+          flowStatus="idle"
         />
-        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="flex-1 flex items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Invalid examples link.</p>
             <Button asChild variant="outline">
@@ -133,14 +141,15 @@ const ExamplesGroup = () => {
 
   if (!group && !(isMpp && mppLoadState === 'loading')) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col w-full">
+      <div className="min-h-[100dvh] bg-background flex flex-col w-full playground-ambient">
         <TopBar
           wallet={wallet}
-          onOpenConnectModal={() => {}}
+          onOpenConnectModal={() => connect()}
           onToggleSidebar={() => {}}
           isSidebarOpen={false}
+          flowStatus="idle"
         />
-        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="flex-1 flex items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Group not found.</p>
             <Button asChild variant="outline">
@@ -159,111 +168,144 @@ const ExamplesGroup = () => {
   const catalogLabel = isMpp ? 'MPP' : 'x402';
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
       <TopBar
         wallet={wallet}
-        onOpenConnectModal={() => setIsConnectChainModalOpen(true)}
+        onOpenConnectModal={() => connect()}
         onToggleSidebar={() => {}}
         isSidebarOpen={false}
+        flowStatus="idle"
       />
-      <ConnectChainModal
-        isOpen={isConnectChainModalOpen}
-        onClose={() => setIsConnectChainModalOpen(false)}
-        onPick={(option) => {
-          setIsConnectChainModalOpen(false);
-          if (!isPrivyMounted) {
-            requestConnect(option);
-            if (option !== 'email') selectPaymentChain(option);
-            return;
-          }
-          if (option === 'email') {
-            openLoginModal();
-            return;
-          }
-          selectPaymentChain(option);
-          connectWallet(option);
-        }}
-      />
-      <div className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-auto overflow-x-hidden">
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Link to="/examples" className="hover:text-foreground transition-colors">
+      <div
+        className={cn(
+          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
+          MAIN_CONTENT_PT_CLASS,
+          MAIN_CONTENT_PB_SAFE_CLASS,
+        )}
+      >
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-24">
+          <nav
+            className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground mb-6"
+            aria-label="Breadcrumb"
+          >
+            <Link
+              to="/examples"
+              className="rounded-full px-3 py-1 font-medium hover:text-foreground hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+            >
               Example flows
             </Link>
-            <ChevronRight className="h-4 w-4 shrink-0" />
-            <span className="text-xs font-mono text-muted-foreground/90">{catalogLabel}</span>
-            <ChevronRight className="h-4 w-4 shrink-0" />
-            <span className="text-foreground font-medium">{group?.name ?? '…'}</span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
+            <span className="rounded-full px-2.5 py-1 text-xs font-mono bg-muted/40 border border-border/50 text-muted-foreground">
+              {catalogLabel}
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
+            <span className="rounded-full px-3 py-1 font-medium text-foreground bg-background/80 dark:bg-white/[0.06] border border-border/50">
+              {group?.name ?? '…'}
+            </span>
           </nav>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center border ${
-                  isMpp
-                    ? 'bg-gradient-to-br from-accent/20 to-primary/10 border-accent/30'
-                    : 'bg-gradient-to-br from-primary/20 to-accent/20 border-border/50'
-                }`}
-              >
-                <Zap className={`h-6 w-6 ${isMpp ? 'text-accent' : 'text-primary'}`} />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{group?.name}</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {isMpp && mppLoadState === 'loading' ? (
-                    'Loading…'
-                  ) : (
-                    <>
-                      {flows.length} API{flows.length !== 1 ? 's' : ''} — {catalogLabel} — click Run to open{' '}
-                      {BRAND_NAME}
-                    </>
-                  )}
-                </p>
+          <div className="glass-panel rounded-2xl p-5 sm:p-6 mb-8 border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="relative shrink-0">
+                  <div
+                    className={cn(
+                      'absolute inset-0 rounded-2xl blur-md opacity-70',
+                      isMpp ? 'bg-gradient-to-br from-accent/25 to-primary/10' : 'bg-gradient-to-br from-primary/25 to-ring/10',
+                    )}
+                    aria-hidden
+                  />
+                  <div
+                    className={cn(
+                      'relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center border shadow-md ring-1',
+                      isMpp
+                        ? 'bg-card/90 border-accent/30 ring-accent/15'
+                        : 'bg-card/90 border-border/50 ring-border/40',
+                    )}
+                  >
+                    <Zap className={cn('h-6 w-6 sm:h-7 sm:w-7', isMpp ? 'text-accent' : 'text-primary')} />
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-foreground truncate">
+                    {group?.name}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1.5">
+                    {isMpp && mppLoadState === 'loading' ? (
+                      'Loading…'
+                    ) : (
+                      <>
+                        <span className="tabular-nums font-medium text-foreground/85">{flows.length}</span> API
+                        {flows.length !== 1 ? 's' : ''} — {catalogLabel} — Run opens in {BRAND_NAME}
+                      </>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           {isMpp && mppLoadState === 'loading' ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm">Loading MPP catalog…</p>
+            <div className="glass-panel rounded-2xl border border-border/50 flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">
+              <div className="relative w-14 h-14">
+                <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" aria-hidden />
+                <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-muted/30 ring-1 ring-border/50">
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                </div>
+              </div>
+              <p className="text-sm font-medium text-foreground">Loading MPP catalog</p>
             </div>
           ) : isMpp && mppLoadState === 'error' ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex gap-3 items-start">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Could not load MPP catalog</p>
-                <p className="text-sm text-muted-foreground mt-1">{mppErrorMessage}</p>
+            <div className="rounded-2xl border border-destructive/35 bg-destructive/[0.06] backdrop-blur-sm p-5 sm:p-6 flex gap-4 items-start shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-destructive/15 flex items-center justify-center shrink-0">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold text-foreground">Could not load MPP catalog</p>
+                <p className="text-sm text-muted-foreground mt-1.5">{mppErrorMessage}</p>
               </div>
             </div>
           ) : (
             <section>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {sortedFlows.map((flow) => {
                   const method = flow.method;
                   return (
                     <div
                       key={flow.id}
-                      className="group flex items-center justify-between gap-3 p-4 rounded-xl bg-card border border-border/60 hover:border-border hover:bg-card/80 transition-colors"
+                      className={cn(
+                        'group flex items-center justify-between gap-3 p-4 sm:p-4 rounded-2xl border transition-all duration-300',
+                        'bg-card/70 backdrop-blur-sm border-border/50',
+                        'hover:border-border hover:bg-card/90 hover:shadow-md dark:hover:shadow-elevate-sm',
+                        'hover:-translate-y-0.5',
+                      )}
                     >
                       <div className="min-w-0 flex-1">
-                        <span className="text-sm font-medium text-foreground block truncate">{flow.label}</span>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          <Badge variant="secondary" className="text-xs font-mono">
+                        <span className="text-sm font-semibold text-foreground block truncate leading-snug">
+                          {flow.label}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] font-mono font-medium px-2 py-0.5 border border-border/40"
+                          >
                             {method}
                           </Badge>
                           {isMpp ? (
-                            <Badge variant="outline" className="text-[10px] border-accent/40 text-accent">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-medium border-accent/35 text-accent bg-accent/[0.06]"
+                            >
                               MPP
                             </Badge>
                           ) : null}
                         </div>
                       </div>
                       <Button
-                        variant="outline"
+                        variant="neon"
                         size="sm"
                         onClick={() => handleRun(flow)}
-                        className="gap-1.5 shrink-0"
+                        className="gap-1.5 shrink-0 rounded-full px-3.5 h-9 font-semibold shadow-sm"
                       >
                         <Play className="h-3.5 w-3.5" />
                         Run

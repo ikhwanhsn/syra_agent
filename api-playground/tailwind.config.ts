@@ -14,8 +14,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "Fira Code", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        "elevate-sm": "0 1px 0 0 hsl(0 0% 100% / 0.04) inset, 0 1px 2px hsl(0 0% 0% / 0.24), 0 12px 40px hsl(0 0% 0% / 0.28)",
+        "elevate-md": "0 1px 0 0 hsl(0 0% 100% / 0.06) inset, 0 4px 8px hsl(0 0% 0% / 0.2), 0 24px 48px hsl(0 0% 0% / 0.35)",
       },
       colors: {
         border: "hsl(var(--border))",

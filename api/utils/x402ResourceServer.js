@@ -100,8 +100,50 @@ function newFacilitatorClient(url) {
   return u ? new HTTPFacilitatorClient({ url: u }) : new HTTPFacilitatorClient();
 }
 
+/**
+ * [Corbits facilitator](https://docs.corbits.dev/facilitator/overview) — no PayAI JWT.
+ * Payment flow: https://docs.corbits.dev/facilitator/how-it-works.md (`/accepts`, `/settle`). Burst traffic can 429; throttle clients / retries in callers (e.g. tester agent).
+ */
+const corbitsFacilitatorUrl =
+  env("CORBITS_FACILITATOR_URL") || "https://facilitator.corbits.dev";
+
+/** @param {import('@x402/core/server').x402ResourceServer} server */
+function buildResourceServerBundle(server) {
+  server.registerExtension(bazaarResourceServerExtension);
+
+  const svmScheme = new ExactSvmScheme().registerMoneyParser(async (amount, net) => {
+    if (!String(net).startsWith("solana:")) return null;
+    const mint = solanaUsdcMint || USDC_MAINNET;
+    return { asset: mint, amount: atomicUsdcFromUsd(amount) };
+  });
+  server.register("solana:*", svmScheme);
+
+  if (basePayTo && baseUsdcAsset) {
+    const evmScheme = new ExactEvmScheme().registerMoneyParser(async (amount, net) => {
+      if (!String(net).startsWith("eip155:")) return null;
+      return { asset: baseUsdcAsset, amount: atomicUsdcFromUsd(amount) };
+    });
+    server.register("eip155:*", evmScheme);
+  }
+
+  const config = {
+    solanaNetwork,
+    solanaPayTo: solanaPayTo || "",
+    ...(basePayTo && { baseNetwork, basePayTo }),
+  };
+  const assets = {
+    solanaUsdcMint: solanaUsdcMint || USDC_MAINNET,
+    ...(baseUsdcAsset && { baseUsdc: baseUsdcAsset }),
+  };
+
+  return { resourceServer: server, config, assets };
+}
+
 let resourceServerInstance = null;
 let initPromise = null;
+
+let resourceServerCorbitsInstance = null;
+let initPromiseCorbits = null;
 
 /**
  * Get the x402 resource server singleton (PayAI example–style).
@@ -130,35 +172,24 @@ export function getX402ResourceServer() {
   }
 
   const server = new x402ResourceServer(clients);
-  server.registerExtension(bazaarResourceServerExtension);
-
-  const svmScheme = new ExactSvmScheme().registerMoneyParser(async (amount, net) => {
-    if (!String(net).startsWith("solana:")) return null;
-    const mint = solanaUsdcMint || USDC_MAINNET;
-    return { asset: mint, amount: atomicUsdcFromUsd(amount) };
-  });
-  server.register("solana:*", svmScheme);
-
-  if (basePayTo && baseUsdcAsset) {
-    const evmScheme = new ExactEvmScheme().registerMoneyParser(async (amount, net) => {
-      if (!String(net).startsWith("eip155:")) return null;
-      return { asset: baseUsdcAsset, amount: atomicUsdcFromUsd(amount) };
-    });
-    server.register("eip155:*", evmScheme);
-  }
-
-  const config = {
-    solanaNetwork,
-    solanaPayTo: solanaPayTo || "",
-    ...(basePayTo && { baseNetwork, basePayTo }),
-  };
-  const assets = {
-    solanaUsdcMint: solanaUsdcMint || USDC_MAINNET,
-    ...(baseUsdcAsset && { baseUsdc: baseUsdcAsset }),
-  };
-
-  resourceServerInstance = { resourceServer: server, config, assets };
+  resourceServerInstance = buildResourceServerBundle(server);
   return resourceServerInstance;
+}
+
+/**
+ * Second singleton for experiments: verify/settle only via Corbits facilitator (no PayAI auth).
+ * Same payTo / networks as default — clients still pay your SOLANA_PAYTO / BASE_PAYTO.
+ * @see https://docs.corbits.dev/facilitator/overview
+ */
+export function getX402ResourceServerCorbits() {
+  if (resourceServerCorbitsInstance) {
+    return resourceServerCorbitsInstance;
+  }
+  const clients = [new HTTPFacilitatorClient({ url: corbitsFacilitatorUrl })];
+  const server = new x402ResourceServer(clients);
+  resourceServerCorbitsInstance = buildResourceServerBundle(server);
+  console.log(`[x402] Corbits facilitator bundle ready (${corbitsFacilitatorUrl}).`);
+  return resourceServerCorbitsInstance;
 }
 
 /**
@@ -174,4 +205,16 @@ export async function ensureX402ResourceServerInitialized() {
     });
   }
   await initPromise;
+}
+
+/** Initialize Corbits-backed resource server (for route experiments such as GET /news). */
+export async function ensureX402CorbitsResourceServerInitialized() {
+  const { resourceServer } = getX402ResourceServerCorbits();
+  if (!initPromiseCorbits) {
+    initPromiseCorbits = resourceServer.initialize().catch((e) => {
+      initPromiseCorbits = null;
+      throw e;
+    });
+  }
+  await initPromiseCorbits;
 }

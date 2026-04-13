@@ -6,6 +6,42 @@
 
 const BASE_URL = "https://cryptonews-api.com/api/v1";
 
+/**
+ * Default outbound timeout (ms). Override CRYPTONEWS_FETCH_TIMEOUT_MS.
+ * Raised from 7s — general /sentiment runs two parallel /stat calls; upstream often needs longer.
+ */
+const CRYPTONEWS_FETCH_TIMEOUT_MS = Number.parseInt(process.env.CRYPTONEWS_FETCH_TIMEOUT_MS || "15000", 10);
+
+/** /stat responses are larger (30d series × sections); default 25s. Override CRYPTONEWS_STAT_FETCH_TIMEOUT_MS. */
+const CRYPTONEWS_STAT_FETCH_TIMEOUT_MS = Number.parseInt(
+  process.env.CRYPTONEWS_STAT_FETCH_TIMEOUT_MS || "25000",
+  10
+);
+
+/**
+ * @param {string} pathname - path passed to fetchCryptoNewsApi (e.g. "/stat", "/category")
+ */
+function outboundTimeoutMsForPath(pathname) {
+  const p = String(pathname || "").replace(/\/+$/, "") || "";
+  if (p === "/stat") {
+    if (Number.isFinite(CRYPTONEWS_STAT_FETCH_TIMEOUT_MS) && CRYPTONEWS_STAT_FETCH_TIMEOUT_MS > 0) {
+      return CRYPTONEWS_STAT_FETCH_TIMEOUT_MS;
+    }
+  }
+  return CRYPTONEWS_FETCH_TIMEOUT_MS;
+}
+
+/** @param {number} ms */
+function outboundTimeoutSignal(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return undefined;
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(ms);
+  }
+  const c = new AbortController();
+  setTimeout(() => c.abort(new Error(`cryptonews request timed out after ${ms}ms`)), ms);
+  return c.signal;
+}
+
 export function getCryptonewsToken() {
   return (process.env.CRYPTO_NEWS_API_TOKEN || "").trim();
 }
@@ -42,7 +78,8 @@ export function buildUrl(pathname, params = {}) {
  */
 export async function fetchCryptoNewsApi(pathname, params = {}) {
   const url = buildUrl(pathname, params);
-  const response = await fetch(url);
+  const timeoutMs = outboundTimeoutMsForPath(pathname);
+  const response = await fetch(url, { signal: outboundTimeoutSignal(timeoutMs) });
   const data = await response.json().catch(() => ({}));
 
   if (response.status === 401 || response.status === 403) {

@@ -44,7 +44,7 @@ export async function create8004scanRouter() {
     requirePayment({ ...paymentOptions, method: "GET" }),
     async (req, res) => {
       const { payload, accepted } = req.x402Payment;
-      const settle = await settlePaymentWithFallback(payload, accepted);
+      const settle = await settlePaymentWithFallback(payload, accepted, req);
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
       runBuybackForRequest(req);
       try {

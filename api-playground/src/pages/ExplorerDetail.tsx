@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { format } from 'date-fns';
-import { BRAND_NAME } from '@/lib/branding';
+import { BRAND_NAME, MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 
 interface ShareDetail {
   slug: string;
@@ -36,11 +36,11 @@ interface ShareDetail {
 }
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: 'bg-accent/20 text-foreground border border-accent/35',
-  POST: 'bg-warning/15 text-warning border-warning/25',
-  PUT: 'bg-warning/15 text-warning border-warning/25',
-  PATCH: 'bg-primary/20 text-foreground border border-primary/40',
-  DELETE: 'bg-destructive/15 text-destructive border-destructive/25',
+  GET: 'bg-secondary/90 text-foreground border border-border/80 font-semibold',
+  POST: 'bg-warning/20 text-warning-foreground border border-warning/40 font-semibold',
+  PUT: 'bg-warning/15 text-warning border border-warning/30 font-semibold',
+  PATCH: 'bg-primary/15 text-foreground border border-primary/35 font-semibold',
+  DELETE: 'bg-destructive/20 text-destructive-foreground border border-destructive/35 font-semibold',
 };
 
 const ExplorerDetail = () => {
@@ -87,13 +87,28 @@ const ExplorerDetail = () => {
 
   if (loading && !data) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col">
-        <TopBar wallet={wallet} onOpenConnectModal={() => {}} onToggleSidebar={() => {}} isSidebarOpen={false} />
-        <div className="flex-1 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1rem)] sm:pt-[calc(4rem+env(safe-area-inset-top,0px)+1rem)] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-10 w-10 animate-spin" />
-            <p className="text-sm">Loading request…</p>
+      <div className="min-h-[100dvh] bg-background flex flex-col playground-ambient">
+        <TopBar
+          wallet={wallet}
+          onOpenConnectModal={() => {}}
+          onToggleSidebar={() => {}}
+          isSidebarOpen={false}
+          flowStatus="idle"
+        />
+        <div
+          className={cn(
+            'flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground relative z-[1]',
+            MAIN_CONTENT_PT_CLASS,
+            MAIN_CONTENT_PB_SAFE_CLASS,
+          )}
+        >
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" aria-hidden />
+            <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-card/80 ring-1 ring-border/50">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            </div>
           </div>
+          <p className="text-sm font-medium text-foreground">Loading request…</p>
         </div>
       </div>
     );
@@ -101,13 +116,27 @@ const ExplorerDetail = () => {
 
   if (error || !data) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col">
-        <TopBar wallet={wallet} onOpenConnectModal={() => {}} onToggleSidebar={() => {}} isSidebarOpen={false} />
-        <div className="flex-1 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1rem)] sm:pt-[calc(4rem+env(safe-area-inset-top,0px)+1rem)] flex items-center justify-center px-4">
-          <div className="text-center">
-            <p className="text-foreground font-medium mb-2">Request not found</p>
-            <p className="text-sm text-muted-foreground mb-4">The shared request may have been removed or the link is invalid.</p>
-            <Button variant="outline" asChild>
+      <div className="min-h-[100dvh] bg-background flex flex-col playground-ambient">
+        <TopBar
+          wallet={wallet}
+          onOpenConnectModal={() => {}}
+          onToggleSidebar={() => {}}
+          isSidebarOpen={false}
+          flowStatus="idle"
+        />
+        <div
+          className={cn(
+            'flex-1 flex items-center justify-center px-4 relative z-[1]',
+            MAIN_CONTENT_PT_CLASS,
+            MAIN_CONTENT_PB_SAFE_CLASS,
+          )}
+        >
+          <div className="glass-panel rounded-2xl p-8 max-w-md text-center border border-border/50">
+            <p className="font-display text-lg font-semibold text-foreground mb-2">Request not found</p>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              The shared request may have been removed or the link is invalid.
+            </p>
+            <Button variant="outline" className="rounded-full" asChild>
               <Link to="/explorer">Back to Explorer</Link>
             </Button>
           </div>
@@ -117,23 +146,40 @@ const ExplorerDetail = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full">
-      <TopBar wallet={wallet} onOpenConnectModal={() => {}} onToggleSidebar={() => {}} isSidebarOpen={false} />
-      <div className="flex-1 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1rem)] sm:pt-[calc(4rem+env(safe-area-inset-top,0px)+1rem)] pb-8 w-full overflow-y-auto">
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <Button variant="ghost" size="sm" asChild className="gap-2 text-muted-foreground -ml-2">
+    <div className="min-h-[100dvh] bg-background flex flex-col w-full playground-ambient relative">
+      <TopBar
+        wallet={wallet}
+        onOpenConnectModal={() => {}}
+        onToggleSidebar={() => {}}
+        isSidebarOpen={false}
+        flowStatus="idle"
+      />
+      <div
+        className={cn(
+          'flex-1 w-full overflow-y-auto relative z-[1]',
+          MAIN_CONTENT_PT_CLASS,
+          MAIN_CONTENT_PB_SAFE_CLASS,
+        )}
+      >
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-16">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="gap-2 text-muted-foreground hover:text-foreground -ml-2 rounded-full"
+            >
               <Link to="/explorer">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Explorer
               </Link>
             </Button>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={copyShareLink}>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full h-9" onClick={copyShareLink}>
                 <Copy className="h-3.5 w-3.5" />
                 Copy share link
               </Button>
-              <Button size="sm" className="gap-1.5" asChild>
+              <Button variant="neon" size="sm" className="gap-1.5 rounded-full h-9 font-semibold shadow-sm" asChild>
                 <Link to={`/s/${data.slug}`}>
                   <Play className="h-3.5 w-3.5" />
                   {`Try in ${BRAND_NAME}`}
@@ -144,8 +190,8 @@ const ExplorerDetail = () => {
 
           <div className="space-y-6">
             {/* Sharer info */}
-            <section className="rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5">
-              <h2 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+            <section className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-5 sm:p-6 shadow-sm dark:shadow-black/15">
+              <h2 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Shared by
               </h2>
@@ -196,8 +242,8 @@ const ExplorerDetail = () => {
             </section>
 
             {/* Request */}
-            <section className="rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5">
-              <h2 className="font-semibold text-foreground mb-3">Request</h2>
+            <section className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-5 sm:p-6 shadow-sm dark:shadow-black/15">
+              <h2 className="font-display text-base font-semibold text-foreground mb-4">Request</h2>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={cn('rounded border px-2 py-0.5 text-xs font-medium', METHOD_COLORS[data.method] || 'bg-muted')}>
                   {data.method}
@@ -224,8 +270,8 @@ const ExplorerDetail = () => {
 
             {/* Params */}
             {data.params.length > 0 && (
-              <section className="rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5">
-                <h2 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <section className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-5 sm:p-6 shadow-sm dark:shadow-black/15">
+                <h2 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
                   <List className="h-4 w-4" />
                   Query params ({data.params.length})
                 </h2>
@@ -254,8 +300,8 @@ const ExplorerDetail = () => {
 
             {/* Headers */}
             {data.headers.length > 0 && (
-              <section className="rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5">
-                <h2 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <section className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-5 sm:p-6 shadow-sm dark:shadow-black/15">
+                <h2 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Heading className="h-4 w-4" />
                   Headers ({data.headers.length})
                 </h2>
@@ -284,8 +330,8 @@ const ExplorerDetail = () => {
 
             {/* Body */}
             {data.body && data.body.trim() !== '' && (
-              <section className="rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5">
-                <h2 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <section className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-5 sm:p-6 shadow-sm dark:shadow-black/15">
+                <h2 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
                   <FileJson className="h-4 w-4" />
                   Body ({data.body.length} chars)
                 </h2>

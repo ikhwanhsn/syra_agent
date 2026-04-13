@@ -35,7 +35,7 @@ function neynarUnavailable(res) {
 }
 
 function settleAndRespond(req, res, payload) {
-  const settle = settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted);
+  const settle = settlePaymentWithFallback(req.x402Payment?.payload, req.x402Payment?.accepted, req);
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
   runBuybackForRequest(req);
   res.json(payload);

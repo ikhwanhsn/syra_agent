@@ -13,7 +13,7 @@ import { extractPaymentDetailsFromOption } from '@/lib/x402Client';
 import { CheckCircle2, XCircle, AlertCircle, Loader2, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
-import { BRAND_NAME } from '@/lib/branding';
+import { BRAND_NAME, MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -149,55 +149,83 @@ export default function FormatValidator() {
     }
   };
 
+  const flowStatus =
+    loading ? 'loading'
+    : fetchError || (result && !result.valid) ? 'error'
+    : result?.valid ? 'success'
+    : 'idle';
+
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
       <TopBar
         wallet={wallet}
         onOpenConnectModal={() => {}}
         onToggleSidebar={() => {}}
         isSidebarOpen={false}
         paymentNetwork={selectedPaymentChain}
+        flowStatus={flowStatus}
       />
-      <div className="flex-1 min-h-0 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))] w-full overflow-y-scroll overflow-x-hidden">
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 min-w-0">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border/50">
-                <FlaskConical className="h-6 w-6 text-primary" />
+      <div
+        className={cn(
+          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
+          MAIN_CONTENT_PT_CLASS,
+          MAIN_CONTENT_PB_SAFE_CLASS,
+        )}
+      >
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-24">
+          <div className="glass-panel rounded-2xl p-5 sm:p-6 mb-8 border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+              <div className="relative shrink-0">
+                <div
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/25 via-ring/12 to-transparent blur-md opacity-80"
+                  aria-hidden
+                />
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-card/90 ring-1 ring-border/60 dark:ring-white/[0.08] shadow-md flex items-center justify-center border border-border/40">
+                  <FlaskConical className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                </div>
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-semibold text-foreground">402 response validator</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+                  402 response validator
+                </h1>
+                <p className="text-sm sm:text-[15px] text-muted-foreground mt-2 leading-relaxed text-balance">
                   {`Validate x402-shaped 402 JSON so ${BRAND_NAME} can pay and retry. MPP (machine payments) uses the same HTTP 402 wallet flow when the challenge is payable.`}
                 </p>
               </div>
             </div>
           </div>
 
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Endpoint</CardTitle>
-              <CardDescription>
-                Enter the API URL. We'll probe both GET and POST (no payment) and validate the first method that returns a 402.
+          <Card className="mb-8 rounded-2xl border-border/50 bg-card/70 backdrop-blur-sm shadow-sm dark:shadow-black/20 overflow-hidden">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-display text-lg tracking-tight">Endpoint</CardTitle>
+              <CardDescription className="text-sm leading-relaxed mt-1.5">
+                Enter the API URL. We probe GET and POST (no payment) and validate the first method that returns a 402.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 pt-0">
               <div className="space-y-2">
-                <Label htmlFor="format-url">URL</Label>
+                <Label htmlFor="format-url" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  URL
+                </Label>
                 <Input
                   id="format-url"
                   type="url"
                   placeholder="https://api.example.com/paid-endpoint"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="font-mono text-sm"
+                  className="font-mono text-sm h-11 rounded-xl border-border/80 bg-secondary/30 focus-visible:ring-primary/25"
                 />
               </div>
 
-              <Button onClick={onTest} disabled={loading || !url.trim()} className="w-full sm:w-auto">
+              <Button
+                variant="neon"
+                onClick={onTest}
+                disabled={loading || !url.trim()}
+                className="w-full sm:w-auto h-10 rounded-full px-6 font-semibold shadow-sm gap-2"
+              >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Testing…
                   </>
                 ) : (
@@ -208,7 +236,7 @@ export default function FormatValidator() {
           </Card>
 
           {fetchError && (
-            <Alert variant="destructive" className="mb-6">
+            <Alert variant="destructive" className="mb-8 rounded-2xl border-destructive/35 bg-destructive/[0.06] backdrop-blur-sm">
               <XCircle className="h-4 w-4" />
               <AlertTitle>Request failed</AlertTitle>
               <AlertDescription>{fetchError}</AlertDescription>
@@ -216,28 +244,46 @@ export default function FormatValidator() {
           )}
 
           {result && !fetchError && (
-            <Card className={cn(result.valid ? 'border-accent/35' : 'border-destructive/30')}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  {result.valid ? (
-                    <CheckCircle2 className="h-5 w-5 text-accent" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-destructive" />
-                  )}
-                  <CardTitle className="text-base">
-                    {result.valid ? 'Format is valid' : 'Format has issues'}
-                  </CardTitle>
+            <Card
+              className={cn(
+                'rounded-2xl backdrop-blur-sm shadow-sm dark:shadow-black/20 overflow-hidden',
+                result.valid
+                  ? 'border-success/30 bg-card/70'
+                  : 'border-destructive/35 bg-card/70',
+              )}
+            >
+              <CardHeader className="pb-3 space-y-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                  <span
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1',
+                      result.valid
+                        ? 'bg-success/12 text-success ring-success/25'
+                        : 'bg-destructive/10 text-destructive ring-destructive/25',
+                    )}
+                  >
+                    {result.valid ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <XCircle className="h-5 w-5" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <CardTitle className="font-display text-lg tracking-tight">
+                      {result.valid ? 'Format is valid' : 'Format has issues'}
+                    </CardTitle>
+                    <CardDescription className="text-sm leading-relaxed">
+                      {detectedMethod ? `Detected via ${detectedMethod}. ` : ''}
+                      {result.valid
+                        ? `This 402 response matches what ${BRAND_NAME} expects. You can run it from the main workspace without format errors.`
+                        : `Fix the issues below so ${BRAND_NAME} can complete payment and retry.`}
+                    </CardDescription>
+                  </div>
                 </div>
-                <CardDescription>
-                  {detectedMethod ? `Detected via ${detectedMethod}. ` : ''}
-                  {result.valid
-                    ? `This 402 response matches what ${BRAND_NAME} expects. You can run it from the main workspace without format errors.`
-                    : `Fix the issues below so ${BRAND_NAME} can complete payment and retry.`}
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {result.errors.length > 0 && (
-                  <Alert variant="destructive">
+                  <Alert variant="destructive" className="rounded-xl border-destructive/35">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Errors</AlertTitle>
                     <AlertDescription asChild>
@@ -250,7 +296,7 @@ export default function FormatValidator() {
                   </Alert>
                 )}
                 {result.warnings.length > 0 && (
-                  <Alert className="border-border bg-muted/40">
+                  <Alert className="rounded-xl border-border/60 bg-muted/25 dark:bg-black/20">
                     <AlertCircle className="h-4 w-4 text-foreground" />
                     <AlertTitle>Warnings</AlertTitle>
                     <AlertDescription asChild>
@@ -263,7 +309,7 @@ export default function FormatValidator() {
                   </Alert>
                 )}
                 {result.valid && result.paymentOption && (
-                  <div className="rounded-lg bg-muted/30 border border-border/60 p-4 text-sm space-y-4">
+                  <div className="rounded-xl bg-muted/20 dark:bg-black/20 border border-border/50 p-4 sm:p-5 text-sm space-y-4 shadow-inner">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-foreground">Selected payment option</p>
@@ -356,7 +402,7 @@ export default function FormatValidator() {
                               return (
                                 <div
                                   key={idx}
-                                  className="rounded-md border border-border/60 bg-background/40 p-3"
+                                  className="rounded-xl border border-border/50 bg-background/50 dark:bg-card/40 p-3 sm:p-4"
                                 >
                                   <div className="flex items-start justify-between gap-4">
                                     <div className="min-w-0">

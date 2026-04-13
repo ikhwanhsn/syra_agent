@@ -4,6 +4,7 @@
  *
  * See header in arenaWorkerTick / previous run-worker docs for env vars.
  */
+import { isArenaPaused } from "./arenaPause.mjs";
 import { loadArenaCredentials } from "./credentials.js";
 import { runArenaWorkerTick } from "./arenaWorkerTick.mjs";
 
@@ -17,11 +18,20 @@ function log(...args) {
 }
 
 async function main() {
-  const creds = await loadArenaCredentials();
   const once = process.argv.includes("--once");
   const pollMs = Math.max(8_000, Number.parseInt(process.env.ARENA_POLL_MS || "15000", 10) || 15_000);
   const jitterMax = Math.max(0, Number.parseInt(process.env.ARENA_POLL_JITTER_MS || "2000", 10) || 2000);
 
+  if (isArenaPaused()) {
+    log("ARENA_PAUSED=1 — worker sleeps until unset (no credentials or arena API calls).");
+    if (once) return;
+    for (;;) {
+      const jitter = jitterMax > 0 ? Math.floor(Math.random() * (jitterMax + 1)) : 0;
+      await sleep(pollMs + jitter);
+    }
+  }
+
+  const creds = await loadArenaCredentials();
   log("starting", once ? "single run" : `poll ~${pollMs}ms + jitter 0-${jitterMax}ms`, "| agent", creds.agentId);
   if (once) {
     log(

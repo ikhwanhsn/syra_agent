@@ -52,7 +52,7 @@ export async function createMppV1Router() {
     requirePayment({ ...paymentOptions, method: "GET" }),
     async (req, res) => {
       const { payload, accepted } = req.x402Payment;
-      const settle = await settlePaymentWithFallback(payload, accepted);
+      const settle = await settlePaymentWithFallback(payload, accepted, req);
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
       res.setHeader("X-Syra-Payment-Lane", "mpp-v1");
       runBuybackForRequest(req);
@@ -65,7 +65,7 @@ export async function createMppV1Router() {
     requirePayment({ ...paymentOptions, method: "POST" }),
     async (req, res) => {
       const { payload, accepted } = req.x402Payment;
-      const settle = await settlePaymentWithFallback(payload, accepted);
+      const settle = await settlePaymentWithFallback(payload, accepted, req);
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
       res.setHeader("X-Syra-Payment-Lane", "mpp-v1");
       runBuybackForRequest(req);

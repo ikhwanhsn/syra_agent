@@ -1,6 +1,7 @@
 /**
  * Single-flight arena tick: shared by POST /internal/arena-worker/tick and API in-process schedule.
  */
+import { isArenaPaused } from "./arenaPause.mjs";
 import { loadArenaCredentials } from "./credentials.js";
 import { runArenaWorkerTick } from "./arenaWorkerTick.mjs";
 
@@ -14,6 +15,9 @@ let tickRunning = false;
  * >}
  */
 export async function tryRunArenaWorkerTick() {
+  if (isArenaPaused()) {
+    return { ok: true, data: { idle: true, reason: "arena_paused" } };
+  }
   if (tickRunning) {
     return { ok: false, skipped: true, reason: "already_running" };
   }

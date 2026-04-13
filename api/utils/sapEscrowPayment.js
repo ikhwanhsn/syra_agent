@@ -20,6 +20,7 @@ import { getEffectivePriceUsd } from "../config/x402Pricing.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { buybackAndBurnSYRA } from "./buybackAndBurnSYRA.js";
+import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 
 const require = createRequire(import.meta.url);
 const { deriveAgent, deriveEscrow } = require("@oobe-protocol-labs/synapse-sap-sdk/pda");
@@ -270,7 +271,12 @@ export async function settleSapEscrowOrFacilitator(res, req, serviceData) {
   req._requestInsightPaid = true;
   runAfterResponse(() => recordPaidApiCall(req));
   const priceUsd = req.x402Payment?.priceUsd;
-  if (typeof priceUsd === "number" && priceUsd > 0 && process.env.NODE_ENV === "production") {
+  if (
+    typeof priceUsd === "number" &&
+    priceUsd > 0 &&
+    process.env.NODE_ENV === "production" &&
+    !isTesterAgentInternalProbeRequest(req)
+  ) {
     runAfterResponse(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
   }
   return { txSignature, serviceHash: serviceHashOut, callsSettled, slot };

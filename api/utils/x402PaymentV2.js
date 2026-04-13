@@ -17,13 +17,31 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { Connection } from "@solana/web3.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
-import { getX402ResourceServer, ensureX402ResourceServerInitialized } from "./x402ResourceServer.js";
+import {
+  getX402ResourceServer,
+  ensureX402ResourceServerInitialized,
+  getX402ResourceServerCorbits,
+  ensureX402CorbitsResourceServerInitialized,
+} from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../config/x402Pricing.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { buybackAndBurnSYRA } from "./buybackAndBurnSYRA.js";
+import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+export { isTesterAgentInternalProbeRequest };
+
+/** Cap slow facilitator HTTP calls so paid routes return in seconds, not ~90s. 0 = no timeout. */
+const X402_VERIFY_FACILITATOR_TIMEOUT_MS = Number.parseInt(
+  process.env.X402_VERIFY_FACILITATOR_TIMEOUT_MS || "12000",
+  10
+);
+const X402_SETTLE_FACILITATOR_TIMEOUT_MS = Number.parseInt(
+  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "8000",
+  10
+);
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
@@ -33,7 +51,7 @@ function isSolanaNetwork(accepted) {
   return /^solana/i.test(String(accepted?.network || ""));
 }
 
-/** True if message/reason indicates PayAI facilitator 500 or internal error. */
+/** True if message/reason indicates facilitator flake (recover via local verify/settle when Solana). */
 function isFacilitatorError(msg) {
   const s = String(msg || "");
   return (
@@ -41,8 +59,24 @@ function isFacilitatorError(msg) {
     /Facilitator|Internal server error/i.test(s) ||
     /\b500\b/.test(s) ||
     (/\bsettle\b/i.test(s) && (/500|Internal|Facilitator/i.test(s))) ||
-    /failed\s*\(\s*500\s*\)/i.test(s)
+    /failed\s*\(\s*500\s*\)/i.test(s) ||
+    /transaction_simulation|simulation[_\s-]*failed|simulation failed/i.test(s) ||
+    /\bRPC\b.*\b(error|fail)/i.test(s) ||
+    /verify_timeout|settle_timeout/i.test(s) ||
+    // Corbits / strict facilitators when PAYMENT-SIGNATURE omits resource (client or discovery mismatch)
+    /missing\s+resource\s+context|v1\s+adapter/i.test(s)
   );
+}
+
+/** Race `promise` against a timer so facilitator calls cannot hang the request indefinitely. */
+function withTimeout(promise, ms, rejectMessage = "timeout") {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return promise;
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(rejectMessage)), n);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
 }
 
 /** Extract error message from thrown value (Error, string, or object with message/errorReason). */
@@ -130,9 +164,45 @@ function getPayerOrConnectedWalletForPrice(req) {
   return getPayerAddressFromReq(req);
 }
 
-async function buildPaymentRequired(resourceServer, req, options, error) {
+/**
+ * Default x402 verify/settle: Corbits (https://facilitator.corbits.dev, override CORBITS_FACILITATOR_URL).
+ * Opt out to PayAI / FACILITATOR_URL stack: X402_USE_PAYAI_FACILITATOR=true, or X402_USE_CORBITS_FACILITATOR=false,
+ * or set req.x402ResourceServerProfile = "payai" | "default" before requirePayment.
+ * Force Corbits: req.x402ResourceServerProfile = "corbits".
+ */
+function useCorbitsProfile(req) {
+  if (req?.x402ResourceServerProfile === "payai" || req?.x402ResourceServerProfile === "default") {
+    return false;
+  }
+  if (req?.x402ResourceServerProfile === "corbits") return true;
+  const truthy = (v) => {
+    const s = String(v || "").trim().toLowerCase();
+    return s === "true" || s === "1";
+  };
+  const falsy = (v) => {
+    const s = String(v || "").trim().toLowerCase();
+    return s === "false" || s === "0";
+  };
+  if (truthy(process.env.X402_USE_PAYAI_FACILITATOR)) return false;
+  if (falsy(process.env.X402_USE_CORBITS_FACILITATOR)) return false;
+  return true;
+}
+
+function getX402BundleForReq(req) {
+  return useCorbitsProfile(req) ? getX402ResourceServerCorbits() : getX402ResourceServer();
+}
+
+async function ensureX402ForReq(req) {
+  if (useCorbitsProfile(req)) {
+    await ensureX402CorbitsResourceServerInitialized();
+  } else {
+    await ensureX402ResourceServerInitialized();
+  }
+}
+
+async function buildPaymentRequired(bundle, req, options, error) {
   const adapter = new ExpressAdapter(req);
-  const { config, assets } = getX402ResourceServer();
+  const { resourceServer, config, assets } = bundle;
   const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
   const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
   const microUnits = String(Math.round(priceUsd * 1_000_000));
@@ -268,12 +338,13 @@ async function settleSolanaPaymentLocally(payload, accepted) {
 export function requirePayment(options) {
   return async (req, res, next) => {
     try {
-      await ensureX402ResourceServerInitialized();
-      const { resourceServer, config, assets } = getX402ResourceServer();
+      await ensureX402ForReq(req);
+      const bundle = getX402BundleForReq(req);
+      const { resourceServer, config, assets } = bundle;
 
       const paymentHeader = getPaymentSignatureHeaderFromReq(req);
       if (!paymentHeader) {
-        const pr = await buildPaymentRequired(resourceServer, req, options, "Payment required");
+        const pr = await buildPaymentRequired(bundle, req, options, "Payment required");
         json402(res, pr);
         return;
       }
@@ -283,7 +354,7 @@ export function requirePayment(options) {
         payload = decodePaymentSignatureHeader(paymentHeader);
       } catch (e) {
         const pr = await buildPaymentRequired(
-          resourceServer,
+          bundle,
           req,
           options,
           `Invalid PAYMENT-SIGNATURE header: ${e?.message || "failed to decode"}`
@@ -293,7 +364,7 @@ export function requirePayment(options) {
       }
 
       if (payload.x402Version !== 2 || !payload.accepted) {
-        const pr = await buildPaymentRequired(resourceServer, req, options, "Unsupported x402 payload");
+        const pr = await buildPaymentRequired(bundle, req, options, "Unsupported x402 payload");
         json402(res, pr);
         return;
       }
@@ -323,14 +394,18 @@ export function requirePayment(options) {
       );
 
       if (!matchingOption) {
-        const pr = await buildPaymentRequired(resourceServer, req, options, "Payment requirements mismatch");
+        const pr = await buildPaymentRequired(bundle, req, options, "Payment requirements mismatch");
         json402(res, pr);
         return;
       }
 
       let verify;
       try {
-        verify = await resourceServer.verifyPayment(payload, acc);
+        verify = await withTimeout(
+          resourceServer.verifyPayment(payload, acc),
+          X402_VERIFY_FACILITATOR_TIMEOUT_MS,
+          "verify_timeout"
+        );
       } catch (e) {
         const msg = e?.message || "Payment verification failed";
         if (isFacilitatorError(msg) && isSolanaNetwork(acc)) {
@@ -339,7 +414,7 @@ export function requirePayment(options) {
             verify = localVerify;
           } else if (localVerify && !localVerify.isValid) {
             const pr = await buildPaymentRequired(
-              resourceServer,
+              bundle,
               req,
               options,
               localVerify.invalidReason || "Payment verification failed"
@@ -352,12 +427,7 @@ export function requirePayment(options) {
           const userMessage = isFacilitatorError(msg)
             ? "Payment verification is temporarily unavailable. Please try again in a moment."
             : msg;
-          const pr = await buildPaymentRequired(
-            resourceServer,
-            req,
-            options,
-            userMessage
-          );
+          const pr = await buildPaymentRequired(bundle, req, options, userMessage);
           json402(res, pr);
           return;
         }
@@ -365,7 +435,7 @@ export function requirePayment(options) {
 
       if (!verify?.isValid) {
         const pr = await buildPaymentRequired(
-          resourceServer,
+          bundle,
           req,
           options,
           verify?.invalidReason || "Payment verification failed"
@@ -374,7 +444,12 @@ export function requirePayment(options) {
         return;
       }
 
-      req.x402Payment = { payload, accepted: acc, priceUsd };
+      req.x402Payment = {
+        payload,
+        accepted: acc,
+        priceUsd,
+        resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "default",
+      };
       next();
     } catch (error) {
       res.status(500).json({
@@ -389,11 +464,17 @@ export function requirePayment(options) {
  * Try facilitator settle; on 500 use local settle (verify Solana tx on-chain, like AI agent).
  * So the client always gets the resource when payment was already verified.
  */
-async function tryFacilitatorThenLocalSettle(payload, accepted) {
-  const { resourceServer } = getX402ResourceServer();
+async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
+  const profile = req?.x402Payment?.resourceServerProfile;
+  const { resourceServer } =
+    profile === "corbits" ? getX402ResourceServerCorbits() : getX402ResourceServer();
   let settle;
   try {
-    settle = await resourceServer.settlePayment(payload, accepted);
+    settle = await withTimeout(
+      resourceServer.settlePayment(payload, accepted),
+      X402_SETTLE_FACILITATOR_TIMEOUT_MS,
+      "settle_timeout"
+    );
   } catch (e) {
     const msg = getErrorMessage(e);
     if (isFacilitatorError(msg)) {
@@ -430,9 +511,9 @@ async function tryFacilitatorThenLocalSettle(payload, accepted) {
  * @param {object} accepted - from req.x402Payment.accepted
  * @returns {Promise<{ success: boolean, payer?: string, errorReason?: string }>}
  */
-export async function settlePaymentWithFallback(payload, accepted) {
+export async function settlePaymentWithFallback(payload, accepted, req) {
   try {
-    return await tryFacilitatorThenLocalSettle(payload, accepted);
+    return await tryFacilitatorThenLocalSettle(payload, accepted, req);
   } catch (e) {
     const msg = getErrorMessage(e);
     if (isFacilitatorError(msg)) {
@@ -460,12 +541,12 @@ export async function settlePaymentAndSetResponse(res, req) {
   const { payload, accepted } = req.x402Payment;
   let settle;
   try {
-    settle = await settlePaymentWithFallback(payload, accepted);
+    settle = await settlePaymentWithFallback(payload, accepted, req);
   } catch (e) {
     const msg = getErrorMessage(e);
     const looksLikeFacilitatorOrSettle =
       isFacilitatorErrorFromThrow(e) ||
-      /settle|500|Internal\s*server|Facilitator/i.test(msg);
+      /settle|500|Internal\s*server|Facilitator|simulation|transaction_simulation/i.test(msg);
     if (looksLikeFacilitatorOrSettle) {
       try {
         const local = await settleSolanaPaymentLocally(payload, accepted);
@@ -482,7 +563,12 @@ export async function settlePaymentAndSetResponse(res, req) {
   req._requestInsightPaid = true;
   runAfterResponse(() => recordPaidApiCall(req));
   const priceUsd = req.x402Payment?.priceUsd;
-  if (typeof priceUsd === "number" && priceUsd > 0 && process.env.NODE_ENV === "production") {
+  if (
+    typeof priceUsd === "number" &&
+    priceUsd > 0 &&
+    process.env.NODE_ENV === "production" &&
+    !isTesterAgentInternalProbeRequest(req)
+  ) {
     runAfterResponse(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
   }
   return settle;
@@ -517,6 +603,7 @@ export function runAfterResponse(fn) {
  */
 export function runBuybackForRequest(req) {
   if (process.env.NODE_ENV !== "production") return;
+  if (isTesterAgentInternalProbeRequest(req)) return;
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0) {
     runAfterResponse(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
@@ -526,9 +613,10 @@ export function runBuybackForRequest(req) {
 /**
  * Get the x402 resource server (for routes that need to call settlePayment manually).
  * Prefer using settlePaymentAndSetResponse(res, req) after success.
+ * @param {import('express').Request} [req] - When set, uses the same facilitator as requirePayment (Corbits vs default).
  */
-export function getX402Handler() {
-  const { resourceServer } = getX402ResourceServer();
+export function getX402Handler(req) {
+  const { resourceServer } = getX402BundleForReq(req);
   return {
     settlePayment(payload, accepted) {
       return resourceServer.settlePayment(payload, accepted);

@@ -93,21 +93,23 @@ export function ResponseViewer({
               <Code2 className="h-4.5 w-4.5 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">Response</h2>
-              <p className="text-xs text-muted-foreground">Awaiting response...</p>
+              <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">Response</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Awaiting response…</p>
             </div>
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex items-center justify-center">
-          <div className="text-center py-4">
-            <div className="relative w-16 h-16 mx-auto mb-4">
-              <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-muted/40">
-                <Clock className="h-6 w-6 text-primary animate-pulse" />
+          <div className="text-center py-6 px-4 max-w-sm">
+            <div className="relative w-[4.5rem] h-[4.5rem] mx-auto mb-5">
+              <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" />
+              <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-muted/30 ring-1 ring-border/50 shadow-md">
+                <Clock className="h-7 w-7 text-primary animate-pulse" />
               </div>
             </div>
-            <p className="text-sm font-medium text-foreground mb-2">Processing Request</p>
-            <p className="text-xs text-muted-foreground">Please wait while we fetch the response...</p>
+            <p className="font-display text-base font-semibold text-foreground mb-2 tracking-tight">Processing request</p>
+            <p className="text-sm text-muted-foreground leading-relaxed text-balance">
+              Waiting on the gateway — large payloads can take a few seconds.
+            </p>
           </div>
         </div>
       </div>
@@ -124,19 +126,25 @@ export function ResponseViewer({
               <Code2 className="h-4.5 w-4.5 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">Response</h2>
-              <p className="text-xs text-muted-foreground">No response yet</p>
+              <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">Response</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">No response yet</p>
             </div>
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar flex items-center justify-center">
-          <div className="text-center max-w-xs py-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center mb-4 mx-auto border border-border/50">
-              <FileText className="h-7 w-7 text-muted-foreground/50" />
+          <div className="text-center max-w-sm py-6 px-4">
+            <div className="relative w-[4.5rem] h-[4.5rem] mx-auto mb-5">
+              <div
+                className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/15 via-ring/10 to-transparent opacity-80 blur-md"
+                aria-hidden
+              />
+              <div className="relative w-full h-full rounded-2xl bg-card/80 ring-1 ring-border/60 dark:ring-white/[0.07] shadow-md flex items-center justify-center border border-border/40">
+                <FileText className="h-8 w-8 text-muted-foreground/45" />
+              </div>
             </div>
-            <p className="text-sm font-medium text-foreground mb-2">Ready to Send</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Configure your request and click Send to see the API response here
+            <p className="font-display text-base font-semibold text-foreground mb-2 tracking-tight">Ready to send</p>
+            <p className="text-sm text-muted-foreground leading-relaxed text-balance">
+              Configure your request and tap Send — status, timing, and JSON land here.
             </p>
           </div>
         </div>
@@ -178,8 +186,8 @@ export function ResponseViewer({
             />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">Response</h2>
-            <p className="text-xs text-muted-foreground truncate">{getStatusMessage(response.status)}</p>
+            <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">Response</h2>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">{getStatusMessage(response.status)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
@@ -201,7 +209,7 @@ export function ResponseViewer({
       </div>
 
       {/* Response Metrics - fixed */}
-      <div className="shrink-0 flex flex-wrap items-center gap-3 sm:gap-4 mb-4 px-3 sm:px-4 py-2.5 rounded-lg bg-secondary/50 border border-border/60">
+      <div className="shrink-0 flex flex-wrap items-center gap-3 sm:gap-4 mb-4 px-3 sm:px-4 py-2.5 rounded-xl bg-muted/20 dark:bg-black/20 border border-border/50 shadow-inner shadow-black/5">
         <div className="flex items-center gap-2 text-xs">
           <Timer className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-muted-foreground">Time:</span>
@@ -320,12 +328,12 @@ export function ResponseViewer({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Tab Header - Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-2">
-          <TabsList className="bg-secondary/50 border border-border/50 w-fit p-1 gap-1 shrink-0">
-            <TabsTrigger value="body" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
+          <TabsList className="bg-muted/25 dark:bg-black/20 border border-border/50 w-fit p-1 gap-1 shrink-0 rounded-xl shadow-inner shadow-black/5">
+            <TabsTrigger value="body" className="data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 rounded-lg data-[state=active]:text-foreground gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Body
             </TabsTrigger>
-            <TabsTrigger value="headers" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
+            <TabsTrigger value="headers" className="data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 rounded-lg data-[state=active]:text-foreground gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
               <span className="hidden sm:inline">Headers</span>
               <span className="sm:hidden">Hdrs</span>
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs shrink-0">

@@ -554,11 +554,15 @@ const summaryPaymentOptions = {
  */
 async function handleSummary(req, res, options = {}) {
   try {
-    const [trendingJupiterResult, smartMoneyResult, binanceCorrelationResult] = await Promise.allSettled([
+    /** Run upstream fetches and x402 settle in parallel — payment is already verified in middleware. */
+    const fetchWork = Promise.allSettled([
       fetchTrendingJupiter(),
       fetchSmartMoney(),
       fetchBinanceCorrelation(),
     ]);
+    const settleWork = options.skipSettle ? Promise.resolve(null) : settlePaymentAndSetResponse(res, req);
+    const [fetchSettled] = await Promise.all([fetchWork, settleWork]);
+    const [trendingJupiterResult, smartMoneyResult, binanceCorrelationResult] = fetchSettled;
 
     const trendingJupiter =
       trendingJupiterResult.status === "fulfilled"
@@ -593,7 +597,6 @@ async function handleSummary(req, res, options = {}) {
       },
     };
 
-    if (!options.skipSettle) await settlePaymentAndSetResponse(res, req);
     res.status(200).json(summary);
   } catch (error) {
     res.status(500).json({
