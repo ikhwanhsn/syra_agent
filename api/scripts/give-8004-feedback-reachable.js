@@ -71,12 +71,7 @@ async function main() {
   const cluster = process.env.SOLANA_CLUSTER || "mainnet-beta";
   const rpcUrl = process.env.SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
-  console.log("Agent asset:", assetBase58);
-  console.log("Client (feedback signer):", signer.publicKey.toBase58());
-  console.log("Cluster:", cluster);
-
   // 1. Liveness check (read-only)
-  console.log("\nChecking liveness...");
   const report = await getLiveness(assetBase58, { timeoutMs: 15000 });
   if (report.status !== "live") {
     console.error(
@@ -88,7 +83,6 @@ async function main() {
     }
     process.exit(1);
   }
-  console.log("Liveness OK:", report.status, "| live:", report.liveServices?.length ?? 0);
 
   // 2. Resolve feedbackUri
   let feedbackUri = process.env.FEEDBACK_URI;
@@ -109,7 +103,6 @@ async function main() {
     const cid = await ipfs.addJson(feedbackFile);
     feedbackUri = `ipfs://${cid}`;
     await ipfs.close();
-    console.log("Uploaded feedback file to IPFS:", feedbackUri);
   }
   if (!feedbackUri || feedbackUri.length > 250) {
     console.error(
@@ -125,17 +118,13 @@ async function main() {
     signer,
   });
 
-  console.log("\nSubmitting feedback: tag1=reachable, value=1, score=100...");
-  const result = await sdk.giveFeedback(asset, {
+  await sdk.giveFeedback(asset, {
     value: 1,
     valueDecimals: 0,
     tag1: Tag.reachable,
     score: 100,
     feedbackUri,
   });
-
-  console.log("Success. Transaction signature:", result?.signature ?? result);
-  console.log("New positive feedback (reachable, 100) recorded for agent:", assetBase58);
 }
 
 main().catch((e) => {

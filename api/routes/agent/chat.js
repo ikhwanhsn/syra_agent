@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Chat from '../../models/agent/Chat.js';
 import { callOpenRouter, getOpenRouterModels } from '../../libs/openrouter.js';
 import { OPENROUTER_MODELS, OPENROUTER_DEFAULT_MODEL } from '../../config/openrouterModels.js';
@@ -17,8 +18,16 @@ import {
 import {
   callX402V2WithAgent,
   callX402V2WithTreasury,
+  signAndSubmitSerializedTransaction,
   signAndSubmitSwapTransaction,
 } from '../../libs/agentX402Client.js';
+import {
+  enrichPumpfunToolParams,
+  omitParamsKeys,
+  substituteAgentToolPath,
+  PUMPFUN_TX_TOOL_IDS,
+} from '../../libs/agentPumpfunTools.js';
+import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import {
@@ -39,12 +48,84 @@ import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPub
 
 const router = express.Router();
 
+function readPositiveIntEnv(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const n = Number.parseInt(String(raw), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 const MAX_TOOLS_PER_REQUEST = 3;
-/** Max characters of tool result to send to the LLM (avoids blowing context; ~28k chars ≈ 7k tokens). */
-const MAX_TOOL_RESULT_CHARS = 28_000;
-/** Higher max_tokens when we inject tool results so the model can write a full summary. */
-const MAX_TOKENS_WITH_TOOLS = 4096;
-const MAX_TOKENS_DEFAULT = 2000;
+/** Max characters of tool result to send to the LLM (env: AGENT_CHAT_MAX_TOOL_RESULT_CHARS). */
+const MAX_TOOL_RESULT_CHARS = readPositiveIntEnv('AGENT_CHAT_MAX_TOOL_RESULT_CHARS', 20_000);
+/** Final completion max_tokens when tool results are present (env: AGENT_CHAT_MAX_COMPLETION_TOKENS_TOOLS). */
+const MAX_TOKENS_WITH_TOOLS = readPositiveIntEnv('AGENT_CHAT_MAX_COMPLETION_TOKENS_TOOLS', 2_560);
+/** Final completion max_tokens without large tool payloads (env: AGENT_CHAT_MAX_COMPLETION_TOKENS_DEFAULT). */
+const MAX_TOKENS_DEFAULT = readPositiveIntEnv('AGENT_CHAT_MAX_COMPLETION_TOKENS_DEFAULT', 1_200);
+/** Cap total OpenRouter-reported tokens per persisted chat thread (env: AGENT_CHAT_SESSION_LLM_TOKEN_CAP). */
+const AGENT_CHAT_SESSION_LLM_TOKEN_CAP = readPositiveIntEnv('AGENT_CHAT_SESSION_LLM_TOKEN_CAP', 120_000);
+/** Max characters of prior user/assistant turns; tail is preserved for recency (env: AGENT_CHAT_HISTORY_MAX_CHARS). */
+const AGENT_CHAT_HISTORY_MAX_CHARS = readPositiveIntEnv('AGENT_CHAT_HISTORY_MAX_CHARS', 40_000);
+/** Tool-router LLM max_tokens (env: AGENT_CHAT_TOOL_SELECT_MAX_TOKENS). */
+const AGENT_CHAT_TOOL_SELECT_MAX_TOKENS = readPositiveIntEnv('AGENT_CHAT_TOOL_SELECT_MAX_TOKENS', 280);
+
+/**
+ * @param {{ prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null | undefined} usage
+ * @returns {number}
+ */
+function tokensFromUsage(usage) {
+  if (!usage || typeof usage !== 'object') return 0;
+  if (typeof usage.total_tokens === 'number' && Number.isFinite(usage.total_tokens)) {
+    return usage.total_tokens;
+  }
+  const p = usage.prompt_tokens;
+  const c = usage.completion_tokens;
+  if (typeof p === 'number' && typeof c === 'number' && Number.isFinite(p) && Number.isFinite(c)) {
+    return p + c;
+  }
+  return 0;
+}
+
+/**
+ * Keep the tail of the thread within a char budget so input cost stays bounded while preserving recent context.
+ * @param {Array<{ role: string; content: string }>} msgs
+ * @param {number} maxChars
+ * @returns {{ messages: typeof msgs; trimmed: boolean }}
+ */
+function truncateConversationForLlm(msgs, maxChars) {
+  if (!Array.isArray(msgs) || msgs.length === 0) return { messages: msgs, trimmed: false };
+  const total = msgs.reduce(
+    (sum, m) => sum + (typeof m.content === 'string' ? m.content.length : 0),
+    0
+  );
+  if (total <= maxChars) return { messages: msgs, trimmed: false };
+
+  const overhead = 140;
+  const budget = Math.max(2000, maxChars - overhead);
+  const out = [];
+  let used = 0;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i];
+    const c = typeof m.content === 'string' ? m.content.length : 0;
+    if (used + c > budget && out.length > 0) break;
+    if (used + c > budget && out.length === 0) {
+      const content = typeof m.content === 'string' ? m.content : '';
+      const slice = content.slice(Math.max(0, content.length - budget));
+      out.unshift({ ...m, content: `${slice}\n\n[…message trimmed for context budget]` });
+      return { messages: out, trimmed: true };
+    }
+    out.unshift(m);
+    used += c;
+  }
+  const dropped = msgs.length - out.length;
+  if (dropped > 0) {
+    out.unshift({
+      role: 'user',
+      content: `[Context: ${dropped} earlier message(s) were omitted to stay within the context budget. Continue from the thread below — do not assume details from omitted turns unless the user repeats them.]`,
+    });
+  }
+  return { messages: out, trimmed: dropped > 0 };
+}
 
 /**
  * Enforce Syra-first branding in user-visible replies.
@@ -58,6 +139,63 @@ function enforceSyraBranding(text) {
     .replace(/\bjatevo(?:'s)?\b/gi, 'Syra')
     .replace(/\bopenrouter\b/gi, 'Syra')
     .replace(/\bopen\s*router\b/gi, 'Syra');
+}
+
+const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+
+/**
+ * Metadata for the agent UI price chart (CoinGecko OHLC via /agent/chart; DEX fallback on client for mints).
+ * @param {string} toolId
+ * @param {Record<string, string>} params
+ * @param {unknown} toolData
+ * @returns {Record<string, string>}
+ */
+function agentChartUiMeta(toolId, params, toolData) {
+  const id = typeof toolId === 'string' ? toolId : '';
+  if (id === 'pumpfun-coin' || id === 'pumpfun-coin-query') {
+    const mint = params?.mint && String(params.mint).trim();
+    if (!mint) return {};
+    /** @type {Record<string, string>} */
+    const out = { chartMint: mint };
+    if (toolData && typeof toolData === 'object') {
+      if (typeof toolData.symbol === 'string' && toolData.symbol.trim()) out.chartSymbol = toolData.symbol.trim();
+      if (typeof toolData.name === 'string' && toolData.name.trim()) out.chartName = toolData.name.trim();
+    }
+    return out;
+  }
+  if (id === 'pumpfun-sol-price') {
+    return { chartMint: WSOL_MINT, chartSymbol: 'SOL', chartName: 'Solana' };
+  }
+  if (id === 'signal') {
+    const raw = (params?.token && String(params.token).trim()) || 'bitcoin';
+    const normalized = raw.toLowerCase();
+    /** Maps signal `token` param → CoinGecko id + display labels */
+    const SIGNAL_CHART = {
+      bitcoin: { chartCoinId: 'bitcoin', chartSymbol: 'BTC', chartName: 'Bitcoin' },
+      btc: { chartCoinId: 'bitcoin', chartSymbol: 'BTC', chartName: 'Bitcoin' },
+      ethereum: { chartCoinId: 'ethereum', chartSymbol: 'ETH', chartName: 'Ethereum' },
+      eth: { chartCoinId: 'ethereum', chartSymbol: 'ETH', chartName: 'Ethereum' },
+      solana: { chartCoinId: 'solana', chartSymbol: 'SOL', chartName: 'Solana' },
+      sol: { chartCoinId: 'solana', chartSymbol: 'SOL', chartName: 'Solana' },
+    };
+    const row = SIGNAL_CHART[normalized];
+    if (row) {
+      return {
+        chartCoinId: row.chartCoinId,
+        chartSymbol: row.chartSymbol,
+        chartName: row.chartName,
+      };
+    }
+    if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized) && normalized.length <= 80) {
+      return {
+        chartCoinId: normalized,
+        chartSymbol: normalized.slice(0, 8).toUpperCase(),
+        chartName: normalized,
+      };
+    }
+    return {};
+  }
+  return {};
 }
 
 /** User-facing model label for system prompts; never mention inference vendor brands to end users. */
@@ -85,10 +223,12 @@ export function withLlmIdentitySystemNote(apiMessages, modelId) {
  * Use OpenRouter LLM to pick up to 3 most relevant tools (and optional params) from the user question.
  * Returns tools ordered by relevance (most relevant first).
  * @param {string} userMessage - Last user message
- * @returns {Promise<Array<{ toolId: string; params?: Record<string, string> }>>}
+ * @returns {Promise<{ tools: Array<{ toolId: string; params?: Record<string, string> }>; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
 export async function selectToolsWithLlm(userMessage) {
-  if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) return [];
+  if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
+    return { tools: [], usage: null };
+  }
 
   const tools = getToolsForLlmSelection();
   const toolsText = tools
@@ -103,11 +243,11 @@ export async function selectToolsWithLlm(userMessage) {
 
 CRITICAL RULES — READ CAREFULLY:
 
-1. REAL-TIME DATA ALWAYS REQUIRES TOOLS. Any question about current/live/latest prices, market data, token data, news, sentiment, trading signals, trending tokens, on-chain data, wallet balances, smart money activity, or any data that changes over time MUST select at least one tool. NEVER return {"tools": []} for these — you do NOT have access to real-time data without tools.
+1. REAL-TIME DATA ALWAYS REQUIRES TOOLS when you can satisfy the tool's parameters from the user's message. Any question about current/live/latest prices, market data, token data, news, sentiment, trading signals, trending tokens, on-chain data, wallet balances, smart money activity, or any data that changes over time MUST select at least one tool IF you can fill required params. If the user did not provide an address, mint, query, or other required field, return {"tools": []} so the assistant can ask — do NOT select tools with empty params.
 
-2. ONLY return {"tools": []} for purely conversational messages: greetings (hi, hello), "what can you do", general crypto concept explanations (e.g. "what is DeFi", "how does staking work"), opinions that don't need live data, or topics unrelated to crypto.
+2. ONLY return {"tools": []} for purely conversational messages: greetings (hi, hello), "what can you do", general crypto concept explanations (e.g. "what is DeFi", "how does staking work"), opinions that don't need live data, topics unrelated to crypto, OR when the user wants live data but has not given the identifiers the tools need (then empty tools so the assistant asks).
 
-3. When in doubt, SELECT A TOOL. It is far better to call a tool unnecessarily than to miss a tool call and return stale/wrong data.
+3. When choosing among tools for which you already have complete parameters, prefer SELECTING A TOOL over returning empty tools.
 
 QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Live spot prices, market stats, or token safety from public sources are NOT exposed as Syra tools; for broad “what’s the price of X” without a dedicated tool, prefer exa-search for web context or explain the user can use an external price feed / playground proxy to upstream APIs.
@@ -117,9 +257,10 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Market sentiment → sentiment
 — Trading signal → signal
 — Smart money / whale activity → smart-money or nansen-smart-money-* (and other nansen-* tools as appropriate)
-— Swap / buy / sell tokens → jupiter-swap-order
+— Swap / buy / sell tokens → jupiter-swap-order (general Solana); pump.fun curve/AMM → pumpfun-agents-swap
+— pump.fun: SOL/USD → pumpfun-sol-price; coin metadata → pumpfun-coin or pumpfun-coin-query (param mint); launch token → pumpfun-agents-create-coin; claim creator fees → pumpfun-collect-fees; fee sharing → pumpfun-sharing-config; tokenized agent invoice tx → pumpfun-agent-payments-build; verify invoice → pumpfun-agent-payments-verify
 — Web search / research → exa-search
-— Any question starting with "what's the...", "give me...", "show me...", "how much is...", "current..." about market data → ALWAYS select a tool
+— Questions asking for live market data → select a tool only when you can supply that tool's required params from the message (otherwise {"tools": []} so the assistant asks for a symbol, mint, or URL).
 
 Available tools (id, name, description):
 ${toolsText}
@@ -145,18 +286,25 @@ PARAM RULES:
 - For "tempo-token-list" set "params": {"chainId": "4217"} or {"chainId": "42431"} when the user asks for Tempo tokens, contract addresses on Tempo, official token list, or which stablecoins exist on Tempo mainnet vs testnet. Default chainId is 4217 (mainnet) if not specified.
 - For "tempo-network-info" set "params": {} when the user asks for Tempo RPC URL, chain ID, explorer, how to connect to Tempo, or public documentation links.
 - For "tempo-send-payout" set "params": {"amountUsd": "<number from user>"} when the user asks to receive a payout, withdrawal, or transfer on Tempo blockchain in stablecoin; optional "memo" (e.g. invoice id). Only select if the user explicitly wants money sent on Tempo. The server sends funds only to the user’s linked EVM wallet or Base agent wallet—never pass a recipient address.
+- For pump.fun coin metadata use "pumpfun-coin-query" with "params": {"mint": "<base58 mint>"} (or pumpfun-coin with same mint).
+- For pump.fun swap use "pumpfun-agents-swap" with params inputMint, outputMint, amount (string smallest units), optional user (defaults to agent wallet).
+- For pump.fun launch use "pumpfun-agents-create-coin" with name, symbol, uri, solLamports (string), optional user.
+- For pump.fun collect creator fees use "pumpfun-collect-fees" with mint, optional user.
+- For pump.fun fee sharing use "pumpfun-sharing-config" with mint, shareholders (JSON string), optional user.
+- For tokenized agent invoice payment tx use "pumpfun-agent-payments-build" with agentMint, currencyMint, amount, memo, startTime, endTime (strings), optional user.
+- For verify agent invoice use "pumpfun-agent-payments-verify" with agentMint, currencyMint, amount, memo, startTime, endTime as numbers, optional user.
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.`;
 
   const userContent = `User question: ${userMessage.trim()}`;
 
   try {
-    const { response } = await callOpenRouter(
+    const { response, usage } = await callOpenRouter(
       [
         { role: 'system', content: systemContent },
         { role: 'user', content: userContent },
       ],
-      { max_tokens: 400, temperature: 0.05 }
+      { max_tokens: AGENT_CHAT_TOOL_SELECT_MAX_TOKENS, temperature: 0.05 }
     );
 
     const raw = (response || '').trim();
@@ -184,9 +332,9 @@ PARAM RULES:
           : {};
       result.push({ toolId, params });
     }
-    return result;
+    return { tools: result, usage: usage ?? null };
   } catch (err) {
-    return [];
+    return { tools: [], usage: null };
   }
 }
 
@@ -367,6 +515,25 @@ async function normalizeJupiterAmountToBaseUnits(params) {
  * @returns {string} - String to inject into the user message for the LLM
  */
 export function formatToolResultForLlm(data, toolId) {
+  if (
+    typeof toolId === 'string' &&
+    toolId.startsWith('pumpfun-') &&
+    data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    typeof data.transaction === 'string'
+  ) {
+    const txLen = data.transaction.length;
+    const { transaction: _omit, ...rest } = data;
+    const summary = {
+      ...rest,
+      transaction: `[omitted base64 tx, ${txLen} chars — do not paste back; use submittedSignature / other fields]`,
+    };
+    const raw = JSON.stringify(summary, null, 2);
+    return raw.length <= MAX_TOOL_RESULT_CHARS
+      ? raw
+      : raw.slice(0, MAX_TOOL_RESULT_CHARS) + '\n\n[... truncated.]';
+  }
   if (toolId === 'analytics-summary' && data && typeof data === 'object' && !Array.isArray(data)) {
     try {
       return condensedAnalyticsSummary(data);
@@ -606,14 +773,45 @@ router.post('/completion', async (req, res) => {
       model: modelId,
       /** Client-provided agent wallet balances (same source as UI dropdown); use when present so chat matches what user sees */
       agentWalletBalances,
+      /** Persisted chat id — enables per-thread LLM token budget and server-side usage accounting */
+      chatId: bodyChatId,
     } = req.body || {};
     if (!Array.isArray(bodyMessages) || bodyMessages.length === 0) {
       return res.status(400).json({ success: false, error: 'messages array is required' });
     }
-    const apiMessages = bodyMessages.map((m) => ({
+    let apiMessages = bodyMessages.map((m) => ({
       role: m.role || 'user',
       content: typeof m.content === 'string' ? m.content : String(m.content ?? ''),
     }));
+    const historyCompact = truncateConversationForLlm(apiMessages, AGENT_CHAT_HISTORY_MAX_CHARS);
+    apiMessages = historyCompact.messages;
+
+    let chatIdForBudget = null;
+    let sessionTokensUsedBefore = 0;
+    const rawChatId = typeof bodyChatId === 'string' ? bodyChatId.trim() : '';
+    if (rawChatId && anonymousId && mongoose.Types.ObjectId.isValid(rawChatId)) {
+      const existing = await Chat.findOne({
+        _id: rawChatId,
+        anonymousId: String(anonymousId).trim(),
+      })
+        .select('llmSessionTokensTotal')
+        .lean();
+      if (existing) {
+        chatIdForBudget = rawChatId;
+        sessionTokensUsedBefore = Number(existing.llmSessionTokensTotal) || 0;
+      }
+    }
+    if (chatIdForBudget != null && sessionTokensUsedBefore >= AGENT_CHAT_SESSION_LLM_TOKEN_CAP) {
+      return res.json({
+        success: true,
+        response: enforceSyraBranding(
+          'This chat has reached the Syra AI usage limit for this conversation (cost control). **Start a New Chat** to keep going — your saved chats stay in the sidebar.'
+        ),
+        sessionTokenBudgetExceeded: true,
+        sessionLlmTokensUsed: sessionTokensUsedBefore,
+        sessionLlmTokenCap: AGENT_CHAT_SESSION_LLM_TOKEN_CAP,
+      });
+    }
 
     const quota = await tryConsumeAgentChatDailyQuestion(anonymousId);
     if (!quota.allowed) {
@@ -634,10 +832,13 @@ router.post('/completion', async (req, res) => {
       if (id === 'jupiter_swap_order') return 'jupiter-swap-order';
       if (id === 'squid_route') return 'squid-route';
       if (id === 'squid_status') return 'squid-status';
+      if (typeof id === 'string' && id.startsWith('pumpfun') && id.includes('_')) return id.replace(/_/g, '-');
       return id;
     };
     /** @type {Array<{ toolId: string; params?: Record<string, string> }>} */
     let matchedTools;
+    /** OpenRouter usage from tool-selection call only (null when client supplied tools or selection skipped). */
+    let toolSelectUsage = null;
     if (clientToolRequest?.toolId != null) {
       const toolId = normalizeToolId(clientToolRequest.toolId);
       matchedTools = [{ toolId, params: clientToolRequest.params || {} }];
@@ -648,7 +849,9 @@ router.post('/completion', async (req, res) => {
         .map((t) => ({ toolId: normalizeToolId(t.toolId), params: t.params || {} }));
     } else {
       try {
-        matchedTools = await selectToolsWithLlm(lastUserMessage);
+        const sel = await selectToolsWithLlm(lastUserMessage);
+        matchedTools = sel.tools;
+        toolSelectUsage = sel.usage;
       } catch (toolSelectErr) {
         console.error('[agent/chat/completion] selectToolsWithLlm threw unexpectedly:', toolSelectErr?.message || toolSelectErr);
         matchedTools = [];
@@ -738,7 +941,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     apiMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
 
     let amountChargedUsd = 0;
-    /** @type {Array<{ name: string; status: 'complete' | 'error' }>} */
+    /** @type {Array<{ name: string; status: 'complete' | 'error' | 'skipped'; costUsd?: number; included?: boolean }>} */
     let toolUsages = [];
     let hadToolResults = false;
     if (!matchedTools || matchedTools.length === 0) {
@@ -753,7 +956,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     } else if (walletConnected === false) {
       toolUsages = matchedTools.map((m) => {
         const t = getAgentTool(m.toolId);
-        return { name: t ? t.name : m.toolId, status: 'error' };
+        const costUsd = t ? getEffectivePriceUsd(t.priceUsd, null) ?? t.priceUsd : 0;
+        return { name: t ? t.name : m.toolId, status: 'error', costUsd: Number(costUsd) || 0 };
       });
       const toolIds = matchedTools.map((t) => t.toolId).join(', ');
       apiMessages.push({
@@ -802,6 +1006,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
         );
         if (!tool) continue;
+        const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
+        const requiredUsdc = effectivePrice;
         // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount) or infer from message.
         if (matched.toolId === 'jupiter-swap-order') {
           const agentAddr = await getAgentAddress(anonymousId);
@@ -847,12 +1053,19 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             const msg =
               'The user asked to swap a token that is not currently supported. For now, Syra only supports swaps involving SOL, USDC, SYRA, and BONK. Explain this limitation and ask them to choose one of these tokens.';
             toolErrors.push(msg);
-            toolUsages.push({ name: tool.name, status: 'error' });
+            toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
             continue;
           }
         }
-        const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
-        const requiredUsdc = effectivePrice;
+        if (matched.toolId.startsWith('pumpfun-')) {
+          params = await enrichPumpfunToolParams(anonymousId, matched.toolId, params);
+        }
+        const paramGateMsg = getAgentToolParamGateMessage(matched.toolId, tool.method || 'GET', params);
+        if (paramGateMsg) {
+          toolErrors.push(paramGateMsg);
+          toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
+          continue;
+        }
         // Free tools (e.g. tempo-network-info at $0) must not require USDC balance
         if (!useTreasury && requiredUsdc > 0 && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
           const msg =
@@ -860,7 +1073,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
               ? `The user's agent wallet has 0 USDC balance. The requested paid tool (${tool.name}) costs $${requiredUsdc.toFixed(4)}. Explain that they need to deposit USDC to their agent wallet to use this feature.`
               : `The user's agent wallet has insufficient USDC (balance: $${usdcBalance.toFixed(4)}, required for ${tool.name}: $${requiredUsdc.toFixed(4)}). Explain this and ask them to deposit more USDC.`;
           toolErrors.push(msg);
-          toolUsages.push({ name: tool.name, status: 'error' });
+          toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
           continue;
         }
         // hey.lol tools: backend must send anonymousId so the heylol route can resolve the agent wallet
@@ -969,16 +1182,38 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             result = { status: 502, error: `Unknown Tempo public tool: ${tool.id}` };
           }
         } else {
-          const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
+          let toolPath = tool.path;
+          let callParams = { ...params };
+          const pathSub = substituteAgentToolPath(toolPath, callParams);
+          if ('error' in pathSub && pathSub.error) {
+            toolErrors.push(
+              `[Paid tool "${tool.name}" was not run — no charge: ${pathSub.error} Explain briefly; ask the user for the missing value. Do not invent data.]`
+            );
+            toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
+            continue;
+          }
+          toolPath = pathSub.path;
+          if (pathSub.consumed?.length) {
+            callParams = omitParamsKeys(callParams, pathSub.consumed);
+          }
+          if (matched.toolId === 'signal' && !String(callParams.source || '').trim()) {
+            callParams = { ...callParams, source: 'coingecko' };
+          }
+          const url = `${resolveAgentBaseUrl(req)}${toolPath}`;
           const method = tool.method || 'GET';
           result = useTreasury
-            ? await callToolWithTreasury(url, method, method === 'GET' ? params : {}, method === 'POST' ? params : undefined)
+            ? await callToolWithTreasury(
+                url,
+                method,
+                method === 'GET' ? callParams : {},
+                method === 'POST' ? callParams : undefined
+              )
             : await callToolWithAgentWallet(
                 anonymousId,
                 url,
                 method,
-                method === 'GET' ? params : {},
-                method === 'POST' ? params : undefined,
+                method === 'GET' ? callParams : {},
+                method === 'POST' ? callParams : undefined,
                 connectedWallet
               );
         }
@@ -1009,11 +1244,10 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           }
           instruction += ` Do NOT invent or make up data (e.g. trending pools, token names, prices, or tables). Only report that the tool failed and the user should try again.`;
           toolErrors.push(instruction);
-          toolUsages.push({ name: tool.name, status: 'error' });
+          toolUsages.push({ name: tool.name, status: 'error', costUsd: effectivePrice });
         } else {
           if (!useTreasury) amountChargedUsd += effectivePrice;
           usdcBalance -= effectivePrice;
-          toolUsages.push({ name: tool.name, status: 'complete' });
           let toolData = result.data;
           // Jupiter swap: sign and submit the transaction with the agent wallet so the swap executes (agent balance reduced).
           if (matched.toolId === 'jupiter-swap-order' && toolData?.transaction) {
@@ -1027,7 +1261,29 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
                 swapError: swapErr?.message || 'Failed to submit swap transaction',
               };
             }
+          } else if (PUMPFUN_TX_TOOL_IDS.has(matched.toolId) && toolData && typeof toolData.transaction === 'string') {
+            try {
+              const { signature } = await signAndSubmitSerializedTransaction(
+                anonymousId,
+                toolData.transaction
+              );
+              toolData = { ...toolData, submittedSignature: signature, submittedOnChain: true };
+            } catch (pumpErr) {
+              toolData = {
+                ...toolData,
+                submittedOnChain: false,
+                submitError: pumpErr?.message || 'Failed to submit pump.fun transaction',
+              };
+            }
           }
+          const chartUi = agentChartUiMeta(matched.toolId, params, toolData);
+          toolUsages.push({
+            name: tool.name,
+            status: 'complete',
+            costUsd: effectivePrice,
+            ...(useTreasury && effectivePrice > 0 ? { included: true } : {}),
+            ...chartUi,
+          });
           const formatted = formatToolResultForLlm(toolData, tool.id);
           const presentInstruction =
             tool.id === 'trending-jupiter'
@@ -1051,7 +1307,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     } else {
       toolUsages = matchedTools.map((m) => {
         const t = getAgentTool(m.toolId);
-        return { name: t ? t.name : m.toolId, status: 'error' };
+        const costUsd = t ? getEffectivePriceUsd(t.priceUsd, null) ?? t.priceUsd : 0;
+        return { name: t ? t.name : m.toolId, status: 'error', costUsd: Number(costUsd) || 0 };
       });
       const toolIds = matchedTools.map((t) => t.toolId).join(', ');
       apiMessages.push({
@@ -1074,12 +1331,15 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     let response;
     let truncated = false;
     let usedFallbackModel = false;
+    /** Usage from the final main completion (after any model fallback). */
+    let mainCompletionUsage = null;
 
     try {
       const modelForCall = llmOptions.model || OPENROUTER_DEFAULT_MODEL;
       const result = await callOpenRouter(withLlmIdentitySystemNote(apiMessages, modelForCall), llmOptions);
       response = result.response;
       truncated = result.truncated;
+      mainCompletionUsage = result.usage;
     } catch (firstError) {
       const requestedModelOnErr = llmOptions.model;
       console.error(`[agent/chat/completion] callOpenRouter failed (model=${requestedModelOnErr || OPENROUTER_DEFAULT_MODEL}):`, firstError?.message || firstError);
@@ -1095,6 +1355,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           );
           response = fallbackResult.response;
           truncated = fallbackResult.truncated;
+          mainCompletionUsage = fallbackResult.usage;
           usedFallbackModel = true;
         } catch (fallbackError) {
           console.error(`[agent/chat/completion] fallback model also failed:`, fallbackError?.message || fallbackError);
@@ -1117,11 +1378,27 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       }
     }
 
+    const tokensThisTurn = tokensFromUsage(toolSelectUsage) + tokensFromUsage(mainCompletionUsage);
+    if (chatIdForBudget && anonymousId && tokensThisTurn > 0) {
+      await Chat.findOneAndUpdate(
+        { _id: chatIdForBudget, anonymousId: String(anonymousId).trim() },
+        { $inc: { llmSessionTokensTotal: tokensThisTurn } }
+      ).catch(() => {});
+    }
+
     const payload = { success: true, response: enforceSyraBranding(response) };
     if (truncated) payload.truncated = true;
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
     if (usedFallbackModel) payload.usedFallbackModel = true;
     if (toolUsages && toolUsages.length > 0) payload.toolUsages = toolUsages;
+    if (historyCompact.trimmed) payload.contextTrimmed = true;
+    if (tokensThisTurn > 0) {
+      payload.llmTokensThisTurn = tokensThisTurn;
+      if (chatIdForBudget != null) {
+        payload.sessionLlmTokensUsed = sessionTokensUsedBefore + tokensThisTurn;
+        payload.sessionLlmTokenCap = AGENT_CHAT_SESSION_LLM_TOKEN_CAP;
+      }
+    }
 
     if (anonymousId && (amountChargedUsd > 0 || (toolUsages && toolUsages.some((u) => u.status === 'complete')))) {
       const toolCallsDelta = toolUsages ? toolUsages.filter((u) => u.status === 'complete').length : 0;
@@ -1270,6 +1547,7 @@ router.get('/share/:shareId', async (req, res) => {
         content: m.content,
         timestamp: m.timestamp,
         toolUsage: m.toolUsage,
+        ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
       }));
       return res.json({
         id: chat._id.toString(),
@@ -1299,6 +1577,7 @@ router.get('/share/:shareId', async (req, res) => {
       content: m.content,
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
+      ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
     }));
     res.json({
       id: chat._id.toString(),
@@ -1428,6 +1707,7 @@ router.get('/:id', async (req, res) => {
       content: m.content,
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
+      ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
     }));
 
     res.json({
@@ -1523,6 +1803,7 @@ router.put('/:id/messages', async (req, res) => {
       content: m.content || '',
       timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
       toolUsage: m.toolUsage,
+      ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
     }));
 
     const update = { messages: normalized };
@@ -1545,6 +1826,7 @@ router.put('/:id/messages', async (req, res) => {
       content: m.content,
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
+      ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
     }));
 
     res.json({
@@ -1577,6 +1859,7 @@ router.post('/:id/messages', async (req, res) => {
       content: m.content || '',
       timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
       toolUsage: m.toolUsage,
+      ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
     }));
 
     const chat = await Chat.findOneAndUpdate(
@@ -1597,6 +1880,7 @@ router.post('/:id/messages', async (req, res) => {
       content: m.content,
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
+      ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
     }));
 
     res.json({

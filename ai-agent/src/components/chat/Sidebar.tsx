@@ -1,6 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, MessageSquare, Search, Trash2, MoreHorizontal, Pencil, PanelLeftClose, Square, Share2, Lock, Globe, Twitter, BookOpen, ExternalLink } from "lucide-react";
+import {
+  Plus,
+  MessageSquare,
+  Search,
+  Trash2,
+  MoreHorizontal,
+  Pencil,
+  PanelLeftClose,
+  Square,
+  Share2,
+  Lock,
+  Globe,
+  Twitter,
+  BookOpen,
+  ExternalLink,
+  Mail,
+  Send,
+} from "lucide-react";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,6 +29,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -23,6 +41,10 @@ interface Chat {
   shareId?: string | null;
   isPublic?: boolean;
 }
+
+/** Community & support — aligned with landing `config/global.ts`. */
+const LINK_SYRA_TELEGRAM = "https://t.me/syra_ai";
+const SYRA_SUPPORT_EMAIL = "support@syraa.fun";
 
 const MIN_TITLE_LENGTH = 8;
 const MAX_TITLE_LENGTH = 42;
@@ -519,14 +541,20 @@ export function Sidebar({
                                   <Pencil className="w-4 h-4 mr-2" />
                                   Rename
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator className="mx-1 my-1 bg-border/60" />
                                 <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
+                                  className={cn(
+                                    "font-medium",
+                                    "text-red-600 dark:text-red-400",
+                                    "focus:bg-red-500/10 focus:text-red-600 dark:focus:text-red-400",
+                                    "data-[highlighted]:bg-red-500/10 data-[highlighted]:text-red-600 dark:data-[highlighted]:text-red-400",
+                                  )}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     onDeleteChat?.(chat.id);
                                   }}
                                 >
-                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  <Trash2 className="w-4 h-4 mr-2 opacity-90" />
                                   Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -575,6 +603,16 @@ export function Sidebar({
               <Twitter className="h-4 w-4" strokeWidth={2} />
             </a>
             <a
+              href={LINK_SYRA_TELEGRAM}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-all duration-200 hover:border-border/60 hover:bg-background/80 hover:text-foreground hover:shadow-sm"
+              title="Telegram community"
+              aria-label="Telegram community"
+            >
+              <Send className="h-4 w-4" strokeWidth={2} />
+            </a>
+            <a
               href="https://docs.syraa.fun"
               target="_blank"
               rel="noopener noreferrer"
@@ -583,6 +621,14 @@ export function Sidebar({
               aria-label="Docs"
             >
               <BookOpen className="h-4 w-4" strokeWidth={2} />
+            </a>
+            <a
+              href={`mailto:${SYRA_SUPPORT_EMAIL}`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-all duration-200 hover:border-border/60 hover:bg-background/80 hover:text-foreground hover:shadow-sm"
+              title={`Email ${SYRA_SUPPORT_EMAIL}`}
+              aria-label={`Email ${SYRA_SUPPORT_EMAIL}`}
+            >
+              <Mail className="h-4 w-4" strokeWidth={2} />
             </a>
             <a
               href="https://syraa.fun"

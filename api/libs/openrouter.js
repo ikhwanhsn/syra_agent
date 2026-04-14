@@ -35,7 +35,7 @@ function resolveOpenRouterModelId(modelId) {
 /**
  * @param {Array<{ role: string; content: string }>} messages
  * @param {{ max_tokens?: number; temperature?: number; model?: string }} [options]
- * @returns {Promise<{ response: string; raw: object; truncated: boolean; finishReason: string | null }>}
+ * @returns {Promise<{ response: string; raw: object; truncated: boolean; finishReason: string | null; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
 export async function callOpenRouter(messages, options = {}) {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -108,6 +108,16 @@ export async function callOpenRouter(messages, options = {}) {
   const finishReason = choice?.finish_reason;
   const truncated = finishReason === 'length';
 
+  const u = data?.usage;
+  const usage =
+    u && typeof u === 'object'
+      ? {
+          prompt_tokens: typeof u.prompt_tokens === 'number' ? u.prompt_tokens : undefined,
+          completion_tokens: typeof u.completion_tokens === 'number' ? u.completion_tokens : undefined,
+          total_tokens: typeof u.total_tokens === 'number' ? u.total_tokens : undefined,
+        }
+      : null;
+
   return {
     response: truncated
       ? `${content}\n\n[Response was cut off due to length limit. You can ask for more or rephrase.]`
@@ -115,6 +125,7 @@ export async function callOpenRouter(messages, options = {}) {
     raw: data,
     truncated,
     finishReason: finishReason ?? null,
+    usage,
   };
 }
 

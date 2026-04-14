@@ -227,7 +227,7 @@ export function JsonEditor({
             placeholder={placeholder}
             spellCheck={false}
             className={cn(
-              'w-full h-full bg-transparent text-base sm:text-sm text-foreground resize-none',
+              'min-w-0 w-full max-w-full h-full bg-transparent text-base sm:text-sm text-foreground resize-none',
               'p-3 sm:p-4 focus:outline-none focus:ring-0',
               'placeholder:text-muted-foreground/50',
             )}

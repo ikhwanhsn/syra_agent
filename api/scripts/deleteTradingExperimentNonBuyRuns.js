@@ -30,8 +30,7 @@ async function main() {
     $or: [{ status: "skipped_non_buy" }, { clearSignal: /^sell$/i }],
   };
 
-  const res = await TradingExperimentRun.deleteMany(filter);
-  console.log(`Deleted ${res.deletedCount} trading experiment run(s) (skipped_non_buy / SELL clearSignal).`);
+  await TradingExperimentRun.deleteMany(filter);
 
   await mongoose.connection.close();
   process.exit(0);

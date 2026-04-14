@@ -10,7 +10,11 @@ import { TopBar } from '@/components/TopBar';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { resolveApiBaseUrl, resolvePurchVaultBaseUrl } from '@/lib/resolveApiBaseUrl';
+import {
+  resolveApiBaseUrl,
+  resolvePurchVaultBaseUrl,
+  resolveSyraBrowserFetchUrl,
+} from '@/lib/resolveApiBaseUrl';
 import { buildFullMppExampleFlowList } from '@/lib/mppOpenApiToExampleFlows';
 import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 import { cn } from '@/lib/utils';
@@ -37,7 +41,7 @@ const Examples = () => {
     const purch = resolvePurchVaultBaseUrl();
     setMppLoadState('loading');
     setMppErrorMessage(null);
-    fetch(`${syra.replace(/\/$/, '')}/mpp-openapi.json`)
+    fetch(resolveSyraBrowserFetchUrl(`${syra.replace(/\/$/, '')}/mpp-openapi.json`))
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
         return r.json();
@@ -62,7 +66,7 @@ const Examples = () => {
   const mppGroups = getExampleFlowGroupsFromFlows(mppFlows);
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
+    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
       <TopBar
         wallet={wallet}
         onOpenConnectModal={() => connect()}

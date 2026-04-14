@@ -32,6 +32,7 @@
     "@faremeter/wallet-solana": "^0.14.0",
     "@gizatech/agent-sdk": "^0.0.4",
     "@oobe-protocol-labs/synapse-sap-sdk": "^0.6.3",
+    "@pump-fun/agent-payments-sdk": "^3.0.2",
     "@solana/pay": "^0.2.6",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",

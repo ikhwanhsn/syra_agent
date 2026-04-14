@@ -13,11 +13,16 @@ const NANSEN_BASE = process.env.NANSEN_API_BASE_URL || 'https://api.nansen.ai';
  * Payment-Required header (base64-encoded JSON).
  * @param {Response} res - 402 response
  * @param {object} body - Parsed response body
- * @returns {{ accepts: object[]; x402Version?: number } | null}
+ * @returns {{ accepts: object[]; x402Version?: number; resource?: unknown; extensions?: Record<string, unknown> } | null}
  */
 function parse402FromNansen(res, body) {
   if (body?.accepts && Array.isArray(body.accepts) && body.accepts.length > 0) {
-    return { accepts: body.accepts, x402Version: body.x402Version ?? 2 };
+    return {
+      accepts: body.accepts,
+      x402Version: body.x402Version ?? 2,
+      resource: body.resource,
+      extensions: body.extensions,
+    };
   }
   const header =
     res.headers.get('Payment-Required') ||
@@ -28,7 +33,12 @@ function parse402FromNansen(res, body) {
       const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8'));
       const accepts = Array.isArray(decoded) ? decoded : decoded?.accepts;
       if (accepts?.length) {
-        return { accepts, x402Version: decoded.x402Version ?? 2 };
+        return {
+          accepts,
+          x402Version: decoded.x402Version ?? 2,
+          resource: decoded.resource,
+          extensions: decoded.extensions,
+        };
       }
     } catch {
       // ignore
@@ -113,6 +123,8 @@ export async function callNansenWithAgent(anonymousId, nansenPath, params) {
       body,
       accepts,
       x402Version: parsed.x402Version ?? 2,
+      resource: parsed.resource,
+      extensions: parsed.extensions,
     }, sentinelFetch);
   } catch (e) {
     const msg = e?.message || String(e);

@@ -13,4 +13,3 @@ if (!fs.existsSync(src)) {
   process.exit(1);
 }
 fs.copyFileSync(src, dest);
-console.log("Synced IDL:", dest);

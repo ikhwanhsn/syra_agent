@@ -26,6 +26,41 @@ export interface ApiRequest {
   timestamp: Date;
 }
 
+/** Parsed on-chain summary after a confirmed submit (RPC `getParsedTransaction`). */
+export interface PumpfunOnChainDetails {
+  slot?: number;
+  blockTimeIso?: string;
+  feeLamports: number;
+  feeSol: string;
+  computeUnitsConsumed?: number;
+  /** Fee payer (account index 0) SOL delta in lamports when meta balances exist */
+  feePayerSolDeltaLamports?: number;
+  feePayerSolDelta?: string;
+  /** SPL token balance changes from transaction meta (post − pre). */
+  tokenDeltas: Array<{
+    mint: string;
+    owner?: string;
+    uiChange: string;
+  }>;
+}
+
+/** Playground auto-submit of pump.fun agent `transaction` (base64) after a 200 response. */
+export interface PumpfunChainExecution {
+  attempted: boolean;
+  status:
+    | 'confirmed'
+    | 'failed'
+    | 'skipped_no_wallet'
+    | 'skipped_no_tx_field'
+    | 'skipped_parse';
+  signature?: string;
+  error?: string;
+  /** Fields Syra already returned in the JSON body (mint, quote amounts, etc.). */
+  pumpApiHints?: Record<string, string>;
+  /** Enriched from Solana RPC after the tx confirms (slot, fees, token deltas). */
+  onChainDetails?: PumpfunOnChainDetails;
+}
+
 export interface ApiResponse {
   status: number;
   statusText: string;
@@ -33,6 +68,8 @@ export interface ApiResponse {
   body: string;
   time: number;
   size: number;
+  /** When set, the playground signed & broadcast the returned Solana tx (pump.fun agent routes). */
+  pumpfunChainExecution?: PumpfunChainExecution;
 }
 
 export interface HistoryItem {

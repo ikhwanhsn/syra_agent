@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -17,10 +18,10 @@ import {
   ChevronDown,
   Loader2,
   LogOut,
+  MessageSquare,
   RefreshCw,
   Settings,
   Wallet,
-  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,6 +30,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FuelAgentModal } from "./FuelAgentModal";
+import { FeedbackModal } from "./FeedbackModal";
 import { cn } from "@/lib/utils";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 
@@ -72,6 +74,7 @@ export function WalletNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
@@ -476,18 +479,6 @@ export function WalletNav() {
               className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
               onSelect={() => {
                 setOpen(false);
-                setFuelModalOpen(true);
-              }}
-            >
-              <span className="flex w-8 shrink-0 justify-center">
-                <Zap className="h-4 w-4 text-primary opacity-90" aria-hidden />
-              </span>
-              <span>Add funds to agent</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
-              onSelect={() => {
-                setOpen(false);
                 navigate("/settings");
               }}
             >
@@ -506,18 +497,36 @@ export function WalletNav() {
               <span>Change wallet</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm text-destructive focus:bg-destructive/10 focus:text-destructive"
+              className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
+              onSelect={() => {
+                setOpen(false);
+                setFeedbackModalOpen(true);
+              }}
+            >
+              <span className="flex w-8 shrink-0 justify-center">
+                <MessageSquare className="h-4 w-4 opacity-80" aria-hidden />
+              </span>
+              <span>Feedback</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="mx-2 my-1 bg-border/60" />
+            <DropdownMenuItem
+              className={cn(
+                "cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm font-medium",
+                "text-red-600 dark:text-red-400",
+                "focus:bg-red-500/10 focus:text-red-600 dark:focus:text-red-400",
+                "data-[highlighted]:bg-red-500/10 data-[highlighted]:text-red-600 dark:data-[highlighted]:text-red-400",
+              )}
               onSelect={(e) => {
                 e.preventDefault();
                 handleDisconnect();
               }}
               disabled={disconnecting}
             >
-              <span className="flex w-8 shrink-0 justify-center">
+              <span className="flex w-8 shrink-0 justify-center text-red-600 dark:text-red-400">
                 {disconnecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  <Loader2 className="h-4 w-4 animate-spin opacity-90" aria-hidden />
                 ) : (
-                  <LogOut className="h-4 w-4 opacity-80" aria-hidden />
+                  <LogOut className="h-4 w-4 opacity-90" aria-hidden />
                 )}
               </span>
               <span>{disconnecting ? "Disconnecting…" : "Disconnect"}</span>
@@ -530,6 +539,7 @@ export function WalletNav() {
         open={fuelModalOpen}
         onOpenChange={setFuelModalOpen}
       />
+      <FeedbackModal open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen} />
     </div>
   );
 }

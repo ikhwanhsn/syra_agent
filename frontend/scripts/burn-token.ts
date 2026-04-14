@@ -52,9 +52,8 @@ export const burnToken = async ({
 
     // 5️⃣ Build and send transaction (wallet approval)
     const tx = new Transaction().add(burnIx);
-    const signature = await wallet.sendTransaction(tx, connection);
+    await wallet.sendTransaction(tx, connection);
 
-    console.log("✅ Burn successful!");
     alert("🔥 Token burned successfully!");
   } catch (err) {
     console.error("❌ Burn failed:", err instanceof Error ? err.message : "Unknown error");
@@ -111,7 +110,6 @@ export const burnTokenByAgent = async ({
 
     // 6️⃣ Check if agent holds at least 100 tokens
     if (balance < 100) {
-      console.log("❌ Agent must hold at least 100 tokens to burn.");
       return;
     }
 
@@ -125,7 +123,6 @@ export const burnTokenByAgent = async ({
       amountToBurn // in smallest unit
     );
 
-    console.log("✅ Burn successful!");
     return txSig;
   } catch (err) {
     console.error("❌ Burn failed:", err instanceof Error ? err.message : "Unknown error");

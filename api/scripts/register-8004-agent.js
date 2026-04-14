@@ -88,12 +88,9 @@ async function main() {
     signer,
   });
 
-  console.log("Uploading registration metadata to IPFS...");
   const cid = await ipfs.addJson(metadata);
   const tokenUri = `ipfs://${cid}`;
-  console.log("Token URI:", tokenUri);
 
-  console.log("Registering agent on 8004 (Solana)...");
   let result;
   try {
     result = await sdk.registerAgent(tokenUri, {
@@ -116,9 +113,6 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Registration successful.");
-  console.log("Agent asset (NFT) address:", result.asset.toBase58());
-  console.log("Transaction signature:", result.signature);
   await ipfs.close();
 }
 

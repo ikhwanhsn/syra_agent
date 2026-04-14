@@ -21,17 +21,28 @@ import { AppTopNavLinks } from "@/components/chat/AppTopNavLinks";
 /** Dedupes `?q=` auto-send across React Strict Mode double-invoke in dev. */
 let lastConsumedUrlPromptParam: string | null = null;
 
+export type ToolUsageEntry = {
+  name: string;
+  status: "running" | "complete" | "error" | "skipped";
+  /** Tool price in USD (from server catalog / effective price). */
+  costUsd?: number;
+  /** Treasury-covered call (user not charged USDC). */
+  included?: boolean;
+  chartMint?: string;
+  chartCoinId?: string;
+  chartSymbol?: string;
+  chartName?: string;
+};
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
-  toolUsage?: {
-    name: string;
-    status: "running" | "complete" | "error";
-  };
-  toolUsages?: Array<{ name: string; status: "running" | "complete" | "error" }>;
+  toolUsage?: ToolUsageEntry;
+  /** Multiple tools used in one assistant turn (optional chartMint / chartCoinId for price chart). */
+  toolUsages?: ToolUsageEntry[];
 }
 
 interface Chat {
@@ -49,8 +60,26 @@ function toMessage(m: {
   role: string;
   content: string;
   timestamp: string | Date;
-  toolUsage?: { name: string; status: string };
-  toolUsages?: Array<{ name: string; status: string }>;
+  toolUsage?: {
+    name: string;
+    status: string;
+    costUsd?: number;
+    included?: boolean;
+    chartMint?: string;
+    chartCoinId?: string;
+    chartSymbol?: string;
+    chartName?: string;
+  };
+  toolUsages?: Array<{
+    name: string;
+    status: string;
+    costUsd?: number;
+    included?: boolean;
+    chartMint?: string;
+    chartCoinId?: string;
+    chartSymbol?: string;
+    chartName?: string;
+  }>;
 }): Message {
   return {
     id: m.id,
@@ -59,6 +88,33 @@ function toMessage(m: {
     timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
     toolUsage: m.toolUsage as Message["toolUsage"],
     toolUsages: m.toolUsages as Message["toolUsages"],
+  };
+}
+
+function serializeToolUsage(u: ToolUsageEntry): ToolUsageEntry {
+  return {
+    name: u.name,
+    status: u.status,
+    ...(u.costUsd != null ? { costUsd: u.costUsd } : {}),
+    ...(u.included ? { included: true } : {}),
+    ...(u.chartMint ? { chartMint: u.chartMint } : {}),
+    ...(u.chartCoinId ? { chartCoinId: u.chartCoinId } : {}),
+    ...(u.chartSymbol ? { chartSymbol: u.chartSymbol } : {}),
+    ...(u.chartName ? { chartName: u.chartName } : {}),
+  };
+}
+
+/** Persist assistant tool rows + first tool for legacy `toolUsage` readers. */
+function messageToApiPayload(m: Message) {
+  const usages = m.toolUsages?.map(serializeToolUsage);
+  const first = usages?.[0] ?? (m.toolUsage ? serializeToolUsage(m.toolUsage) : undefined);
+  return {
+    id: m.id,
+    role: m.role,
+    content: m.content,
+    timestamp: m.timestamp,
+    toolUsage: first,
+    ...(usages?.length ? { toolUsages: usages } : {}),
   };
 }
 
@@ -657,6 +713,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        chatId:
+          walletConnected && chatId && !isLocalChat(chatId) ? chatId : undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
@@ -690,13 +748,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               .putMessages(
                 chatId!,
                 anonymousId,
-                finalMessages.map((m) => ({
-                  id: m.id,
-                  role: m.role,
-                  content: m.content,
-                  timestamp: m.timestamp,
-                  toolUsage: m.toolUsage ?? m.toolUsages?.[0],
-                })),
+                finalMessages.map(messageToApiPayload),
                 newTitle ? { title: newTitle, preview: newPreview } : undefined
               )
               .catch(() => {});
@@ -728,13 +780,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           .putMessages(
             chatId!,
             anonymousId,
-            finalMessages.map((m) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-              timestamp: m.timestamp,
-              toolUsage: m.toolUsage ?? m.toolUsages?.[0],
-            })),
+            finalMessages.map(messageToApiPayload),
             newTitle ? { title: newTitle, preview: newPreview } : undefined
           )
           .catch(() => {});
@@ -849,6 +895,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        chatId: walletConnected && !isLocalChat(chatId) ? chatId : undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
@@ -882,13 +929,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               .putMessages(
                 chatId,
                 anonymousId,
-                finalMessages.map((m) => ({
-                  id: m.id,
-                  role: m.role,
-                  content: m.content,
-                  timestamp: m.timestamp,
-                  toolUsage: m.toolUsage ?? m.toolUsages?.[0],
-                }))
+                finalMessages.map(messageToApiPayload)
               )
               .catch(() => {});
           }
@@ -920,13 +961,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           .putMessages(
             chatId,
             anonymousId,
-            finalMessages.map((m) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-              timestamp: m.timestamp,
-              toolUsage: m.toolUsage ?? m.toolUsages?.[0],
-            }))
+            finalMessages.map(messageToApiPayload)
           )
           .catch(() => {});
       }

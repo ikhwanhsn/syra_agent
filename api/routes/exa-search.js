@@ -9,6 +9,23 @@ import { X402_API_PRICE_EXA_SEARCH_USD } from "../config/x402Pricing.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
+function requireExaQuery(req, res, next) {
+  const query = (req.query.query ?? "").trim();
+  if (!query) {
+    return res.status(400).json({ success: false, error: "query is required" });
+  }
+  next();
+}
+
+function requireExaPostBody(req, res, next) {
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const query = (body.query ?? req.query?.query ?? "").trim();
+  if (!query) {
+    return res.status(400).json({ success: false, error: "query is required" });
+  }
+  next();
+}
+
 function getExaClient() {
   const key = (process.env.EXA_API_KEY || "").trim();
   if (!key) {
@@ -56,13 +73,10 @@ export async function createExaSearchRouter() {
   // GET /exa-search?query=...
   router.get(
     "/",
+    requireExaQuery,
     requirePayment(paymentOptions),
     async (req, res) => {
       const query = (req.query.query ?? "").trim();
-      if (!query) {
-        res.status(400).json({ error: "query is required" });
-        return;
-      }
 
       try {
         const exa = getExaClient();
@@ -105,15 +119,12 @@ export async function createExaSearchRouter() {
 
   router.post(
     "/",
+    requireExaPostBody,
     requirePayment(postPaymentOptions),
     async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       // Accept query from body (POST JSON) or from URL query string (e.g. playground sends params in URL)
       const query = (body.query ?? req.query?.query ?? "").trim();
-      if (!query) {
-        res.status(400).json({ error: "query is required" });
-        return;
-      }
 
       try {
         const exa = getExaClient();

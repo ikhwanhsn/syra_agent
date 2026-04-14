@@ -21,6 +21,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <WalletContextProvider>
         <TooltipProvider>
+          <div className="flex min-h-[100dvh] w-full max-w-[100vw] flex-col overflow-x-hidden">
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </div>
         </TooltipProvider>
       </WalletContextProvider>
     </QueryClientProvider>

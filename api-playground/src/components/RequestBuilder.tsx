@@ -17,6 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
 import { BRAND_NAME } from '@/lib/branding';
+import { isSyraPumpfunApiUrl } from '@/lib/pumpfunPlaygroundChainSubmit';
 
 interface RequestBuilderProps {
   method: HttpMethod;
@@ -97,6 +98,10 @@ export function RequestBuilder({
   }, [method, isGetMethod, activeTab]);
 
   const hasEnabledParams = params.filter(p => p.enabled && p.key).length > 0;
+  const pumpfunNeedsSolana = url.trim() ? isSyraPumpfunApiUrl(url) : false;
+  const sendBlockedByPumpfun = pumpfunNeedsSolana && !wallet.connected;
+  const sendDisabled = isLoading || !url.trim() || sendBlockedByPumpfun;
+
   useEffect(() => {
     if (hasEnabledParams) {
       setActiveTab('params');
@@ -303,25 +308,53 @@ export function RequestBuilder({
                 )}
               </div>
             </div>
-            <Button
-              variant="neon"
-              onClick={onSend}
-              disabled={isLoading || !url.trim()}
-              className="w-full sm:w-auto sm:min-w-28 h-11 gap-2 text-sm shrink-0"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                  <span>Sending</span>
-                </>
-              ) : (
-                <>
-                  <span>Send</span>
-                  <ArrowRight className="h-4 w-4 shrink-0" />
-                </>
-              )}
-            </Button>
+            {sendBlockedByPumpfun ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex w-full shrink-0 sm:w-auto">
+                    <Button
+                      type="button"
+                      variant="neon"
+                      disabled
+                      className="w-full sm:w-auto sm:min-w-28 h-11 gap-2 text-sm pointer-events-none opacity-60"
+                    >
+                      <span>Send</span>
+                      <ArrowRight className="h-4 w-4 shrink-0" />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-left">
+                  Pump.fun APIs require a connected Solana wallet. Connect Solana in the header (not Base-only), then
+                  send.
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="neon"
+                onClick={onSend}
+                disabled={sendDisabled}
+                className="w-full sm:w-auto sm:min-w-28 h-11 gap-2 text-sm shrink-0"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    <span>Sending</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send</span>
+                    <ArrowRight className="h-4 w-4 shrink-0" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
+          {pumpfunNeedsSolana && !wallet.connected ? (
+            <p className="mt-2 text-xs leading-relaxed text-amber-600 dark:text-amber-400/90">
+              This URL is a pump.fun route — connect a <span className="font-medium">Solana</span> wallet before
+              sending.
+            </p>
+          ) : null}
         </div>
 
         {/* Tabs - on mobile: min-height so section is visible in flow; on desktop: flex-1 and scrolls internally */}

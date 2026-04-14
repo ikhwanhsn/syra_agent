@@ -12,12 +12,26 @@ function getApiHeaders(): Record<string, string> {
 const base = () => getApiBaseUrl() + "/agent/chat";
 const agentWalletBase = () => getApiBaseUrl() + "/agent/wallet";
 
+export interface ApiToolUsageEntry {
+  name: string;
+  status: "running" | "complete" | "error" | "skipped";
+  costUsd?: number;
+  included?: boolean;
+  /** Solana mint for optional in-chat price chart (pump.fun tools). */
+  chartMint?: string;
+  /** CoinGecko id for chart (e.g. trading signal tool). */
+  chartCoinId?: string;
+  chartSymbol?: string;
+  chartName?: string;
+}
+
 export interface ApiMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string | Date;
-  toolUsage?: { name: string; status: "running" | "complete" | "error" };
+  toolUsage?: ApiToolUsageEntry;
+  toolUsages?: ApiToolUsageEntry[];
 }
 
 /** Curated OpenRouter model entry from GET /agent/chat/models */
@@ -146,6 +160,7 @@ export const chatApi = {
       content: m.content,
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
+      ...(m.toolUsages?.length ? { toolUsages: m.toolUsages } : {}),
     }));
     const body: { anonymousId: string; messages: ApiMessage[]; title?: string; preview?: string } = {
       anonymousId,
@@ -168,6 +183,7 @@ export const chatApi = {
       content: m.content,
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
+      ...(m.toolUsages?.length ? { toolUsages: m.toolUsages } : {}),
     }));
     const res = await fetch(`${base()}/${id}/messages`, {
       method: "POST",
@@ -195,6 +211,8 @@ export const chatApi = {
   async completion(params: {
     messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     systemPrompt?: string;
+    /** Persisted Mongo chat id — enables per-thread LLM token budget on the server */
+    chatId?: string | null;
     /** OpenRouter model id (e.g. google/gemini-2.5-flash-lite). Omit to use default. */
     model?: string | null;
     /** Client anonymous id; agent wallet pays x402 (pay-402 then retry) */
@@ -221,6 +239,7 @@ export const chatApi = {
         messages: params.messages,
         systemPrompt: params.systemPrompt,
         model: params.model ?? undefined,
+        chatId: params.chatId ?? undefined,
         anonymousId: params.anonymousId ?? undefined,
         toolRequest: params.toolRequest ?? undefined,
         walletConnected: params.walletConnected,
@@ -272,7 +291,7 @@ export const chatApi = {
       success: boolean;
       response: string;
       amountChargedUsd?: number;
-      toolUsages?: Array<{ name: string; status: "running" | "complete" | "error" }>;
+      toolUsages?: ApiToolUsageEntry[];
     }>(res);
     return {
       response: data.response ?? "",

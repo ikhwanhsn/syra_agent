@@ -61,8 +61,6 @@ const REWARD_PER_SECOND = Number(
 );
 
 async function main() {
-  console.log("🚀 Initializing staking pool...\n");
-
   if (!STAKING_MINT.toBase58() || STAKING_MINT.toBase58() === "11111111111111111111111111111111") {
     console.error("Set STAKING_MINT or NEXT_PUBLIC_STAKING_MINT in .env.local");
     process.exit(1);
@@ -84,7 +82,6 @@ async function main() {
 
   // Setup connection and provider
   const connection = new Connection(RPC_URL, "confirmed");
-  console.log("RPC host:", (() => { try { return new URL(RPC_URL).hostname; } catch { return "(invalid)"; } })());
 
   // Preflight: ensure RPC is reachable before sending tx
   try {
@@ -135,19 +132,8 @@ async function main() {
     true
   );
 
-  console.log("Configuration:");
-  console.log("  Program ID:", programId.toBase58());
-  console.log("  Authority:", wallet.publicKey.toBase58());
-  console.log("  Staking Mint:", STAKING_MINT.toBase58());
-  console.log("  Reward Mint:", REWARD_MINT.toBase58());
-  console.log("  Reward Per Second:", REWARD_PER_SECOND);
-  console.log("  Global Pool:", globalPool.toBase58());
-  console.log("  Staking Vault:", stakingVault.toBase58());
-  console.log("  Reward Vault:", rewardVault.toBase58());
-  console.log("");
-
   try {
-    const tx = await program.methods
+    await program.methods
       .initialize(new BN(REWARD_PER_SECOND))
       .accounts({
         globalPool,
@@ -158,9 +144,6 @@ async function main() {
         rewardVault,
       })
       .rpc();
-
-    console.log("✅ Pool initialized successfully!");
-    console.log("   Transaction:", tx);
   } catch (error) {
     console.error("❌ Initialization failed:", error?.message ?? String(error));
     throw error;

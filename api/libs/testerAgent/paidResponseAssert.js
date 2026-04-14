@@ -116,6 +116,54 @@ export function assertPaidJsonShape(path, method, data) {
     return { ok: true, summary: "swap order" };
   }
 
+  if (path === "/pumpfun/agents/swap") {
+    const r = anyKey(["transaction", "pumpMintInfo"]);
+    if (!r.ok) return { ok: false, detail: "expected pumpfun swap fields" };
+    return { ok: true, summary: "pumpfun swap" };
+  }
+
+  if (path === "/pumpfun/agents/create-coin") {
+    const r = anyKey(["transaction", "mintPublicKey"]);
+    if (!r.ok) return { ok: false, detail: "expected pumpfun create-coin fields" };
+    return { ok: true, summary: "pumpfun create" };
+  }
+
+  if (path === "/pumpfun/agents/collect-fees") {
+    const r = anyKey(["transaction", "creator", "isGraduated", "usesSharingConfig"]);
+    if (!r.ok) return { ok: false, detail: "expected pumpfun collect-fees fields" };
+    return { ok: true, summary: "pumpfun collect-fees" };
+  }
+
+  if (path === "/pumpfun/agents/sharing-config") {
+    const r = anyKey(["transaction", "mode", "sharingConfigAddress", "shareholderCount"]);
+    if (!r.ok) return { ok: false, detail: "expected pumpfun sharing-config fields" };
+    return { ok: true, summary: "pumpfun sharing" };
+  }
+
+  if (path === "/pumpfun/agent-payments/build-accept") {
+    const r = keyPresent("transaction");
+    if (!r.ok) return r;
+    return { ok: true, summary: "agent payment tx" };
+  }
+
+  if (path === "/pumpfun/agent-payments/verify") {
+    const r = keyPresent("verified");
+    if (!r.ok) return r;
+    return { ok: true, summary: "agent verify" };
+  }
+
+  if (path.startsWith("/pumpfun/coin/") || path === "/pumpfun/coin") {
+    const r = keyPresent("mint");
+    if (!r.ok) return r;
+    return { ok: true, summary: "pumpfun coin" };
+  }
+
+  if (path === "/pumpfun/sol-price") {
+    const r = anyKey(["solPrice"]);
+    if (!r.ok) return { ok: false, detail: "expected solPrice" };
+    return { ok: true, summary: "pumpfun sol" };
+  }
+
   if (path === "/squid/route") {
     const r = anyKey(["route", "transactionRequest", "requestId"]);
     if (!r.ok) return { ok: false, detail: "expected squid route payload" };

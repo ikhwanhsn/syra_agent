@@ -13,6 +13,7 @@ import {
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
+import { createAgentChartRouter } from "./routes/agent/chart.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
@@ -49,6 +50,7 @@ import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/par
 import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
 import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
 import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./routes/partner/jupiter/swap-order.js";
+import { createPumpFunRouter } from "./routes/partner/pumpfun/index.js";
 import { createSquidRouteRouter as createV2SquidRouteRouter } from "./routes/partner/squid/route.js";
 import { createSquidStatusRouter as createV2SquidStatusRouter } from "./routes/partner/squid/status.js";
 import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
@@ -246,6 +248,7 @@ function isX402Route(p) {
   if (p.startsWith("/solana-agent")) return true;
   if (p.startsWith("/trending-jupiter")) return true;
   if (p.startsWith("/jupiter")) return true;
+  if (p.startsWith("/pumpfun")) return true;
   if (p.startsWith("/squid")) return true;
   if (p.startsWith("/analytics/summary")) return true;
   if (p.startsWith("/sentiment")) return true;
@@ -817,6 +820,7 @@ app.use("/smart-money", await createV2SmartMoneyRouter());
 app.use("/openrouter", await createOpenRouterChatRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
 app.use("/agent/chat", await createAgentChatRouter());
+app.use("/agent/chart", createAgentChartRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
@@ -826,6 +830,7 @@ app.use("/token-god-mode", await createV2TokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
 app.use("/trending-jupiter", await createV2TrendingJupiterRouter());
 app.use("/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
+app.use("/pumpfun", await createPumpFunRouter());
 app.use("/squid/route", await createV2SquidRouteRouter());
 app.use("/squid/status", await createV2SquidStatusRouter());
 app.use("/create-signal", await createAgentSignalRouter());
@@ -980,8 +985,6 @@ import("./utils/x402ResourceServer.js").then(({ ensureX402CorbitsResourceServerI
 });
 
 app.listen(PORT, () => {
-  console.log(`[Syra API] listening on port ${PORT}`);
-
   const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
   const signalMs = Number(process.env.TRADING_EXPERIMENT_SIGNAL_CRON_MS || 0);
   const validateMs = Number(process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0);
@@ -1026,15 +1029,12 @@ app.listen(PORT, () => {
       .catch((err) => console.warn("[Trading experiment] cycle failed:", err?.message || err));
 
   if (validateMs >= 1_000) {
-    console.log(`[Trading experiment] validate (1m TP/SL) every ${validateMs}ms`);
     setInterval(runValidate, validateMs);
   }
   if (signalMs >= 60_000) {
-    console.log(`[Trading experiment] signal sample every ${signalMs}ms`);
     setInterval(runSignal, signalMs);
   }
   if (legacyMs >= 60_000 && validateMs < 1_000 && signalMs < 60_000) {
-    console.log(`[Trading experiment] legacy full run-cycle every ${legacyMs}ms`);
     setInterval(runFull, legacyMs);
   }
 
@@ -1048,11 +1048,8 @@ app.listen(PORT, () => {
       : 600_000
     : 0;
 
-  if (scheduleArenaTicks && isArenaPaused()) {
-    console.log("[arena-schedule] skipped: ARENA_PAUSED=1 (set to 0/false to resume)");
-  } else if (scheduleArenaTicks && arenaIntervalMs >= 60_000) {
+  if (scheduleArenaTicks && !isArenaPaused() && arenaIntervalMs >= 60_000) {
     import("./scripts/devfun-arena/arenaTickRunner.mjs").then(({ startArenaWorkerInterval }) => {
-      console.log(`[arena-schedule] in-process tick every ${arenaIntervalMs}ms`);
       startArenaWorkerInterval({ intervalMs: arenaIntervalMs, runImmediately: false });
     });
   }
@@ -1076,9 +1073,6 @@ app.listen(PORT, () => {
             ? AbortSignal.timeout(timeoutMs)
             : undefined;
         const report = await runTesterAgentSuite(baseUrl, { signal });
-        console.log(
-          `[tester-agent-schedule] success=${report.success} smokeProbes=${report.summary?.smokeProbeCount ?? "?"} smokeFailed=${report.summary?.smokeFailedCount ?? "?"}`
-        );
         if (!report.success) {
           const bad = report.results?.find((r) => !r.ok);
           console.warn("[tester-agent-schedule] first failure:", bad?.id, bad?.error || bad?.failedIds);
@@ -1090,9 +1084,6 @@ app.listen(PORT, () => {
     if (TESTER_AGENT_CONFIG.scheduleRunOnStart === true) {
       runTesterAgentCron();
     }
-    console.log(
-      `[tester-agent-schedule] every ${testerIntervalMs}ms (~${Math.round(testerIntervalMs / 3600000)}h); POST/GET /internal/tester-agent/run for manual`
-    );
     setInterval(runTesterAgentCron, testerIntervalMs);
   }
 });

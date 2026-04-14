@@ -327,8 +327,8 @@ export function ResponseViewer({
       {/* Tabs - Body/Headers; flex-1 + min-h-0 so content sits flush under tabs (no dead vertical space) */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Tab Header - Responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-2">
-          <TabsList className="bg-muted/25 dark:bg-black/20 border border-border/50 w-fit p-1 gap-1 shrink-0 rounded-xl shadow-inner shadow-black/5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 mb-2 min-w-0">
+          <TabsList className="bg-muted/25 dark:bg-black/20 border border-border/50 w-full min-w-0 flex-wrap justify-start sm:w-fit sm:flex-nowrap p-1 gap-1 shrink-0 rounded-xl shadow-inner shadow-black/5">
             <TabsTrigger value="body" className="data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 rounded-lg data-[state=active]:text-foreground gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Body
@@ -342,8 +342,8 @@ export function ResponseViewer({
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex rounded-lg overflow-hidden border border-border/70 bg-secondary/40">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3 sm:flex-nowrap shrink-0">
+            <div className="flex min-w-0 shrink-0 rounded-lg overflow-hidden border border-border/70 bg-secondary/40">
               <button
                 onClick={() => setViewMode('pretty')}
                 className={cn(

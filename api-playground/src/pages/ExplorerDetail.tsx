@@ -87,7 +87,7 @@ const ExplorerDetail = () => {
 
   if (loading && !data) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col playground-ambient">
+      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col overflow-x-hidden max-w-[100vw] playground-ambient">
         <TopBar
           wallet={wallet}
           onOpenConnectModal={() => {}}
@@ -97,7 +97,7 @@ const ExplorerDetail = () => {
         />
         <div
           className={cn(
-            'flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground relative z-[1]',
+            'flex flex-1 min-h-0 flex-col items-center justify-center gap-4 text-muted-foreground relative z-[1]',
             MAIN_CONTENT_PT_CLASS,
             MAIN_CONTENT_PB_SAFE_CLASS,
           )}
@@ -116,7 +116,7 @@ const ExplorerDetail = () => {
 
   if (error || !data) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col playground-ambient">
+      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col overflow-x-hidden max-w-[100vw] playground-ambient">
         <TopBar
           wallet={wallet}
           onOpenConnectModal={() => {}}
@@ -126,7 +126,7 @@ const ExplorerDetail = () => {
         />
         <div
           className={cn(
-            'flex-1 flex items-center justify-center px-4 relative z-[1]',
+            'flex flex-1 min-h-0 items-center justify-center px-4 relative z-[1]',
             MAIN_CONTENT_PT_CLASS,
             MAIN_CONTENT_PB_SAFE_CLASS,
           )}
@@ -146,7 +146,7 @@ const ExplorerDetail = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full playground-ambient relative">
+    <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col w-full max-w-[100vw] overflow-x-hidden playground-ambient relative">
       <TopBar
         wallet={wallet}
         onOpenConnectModal={() => {}}
@@ -156,7 +156,7 @@ const ExplorerDetail = () => {
       />
       <div
         className={cn(
-          'flex-1 w-full overflow-y-auto relative z-[1]',
+          'flex flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
           MAIN_CONTENT_PT_CLASS,
           MAIN_CONTENT_PB_SAFE_CLASS,
         )}

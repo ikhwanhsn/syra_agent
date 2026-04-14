@@ -13,7 +13,8 @@ function toMessage(m: {
   role: string;
   content: string;
   timestamp: string | Date;
-  toolUsage?: { name: string; status: string };
+  toolUsage?: { name: string; status: string; costUsd?: number; included?: boolean };
+  toolUsages?: Array<{ name: string; status: string; costUsd?: number; included?: boolean }>;
 }) {
   return {
     id: m.id,
@@ -21,6 +22,7 @@ function toMessage(m: {
     content: m.content,
     timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
     toolUsage: m.toolUsage as ApiMessage["toolUsage"],
+    toolUsages: m.toolUsages as ApiMessage["toolUsages"],
   };
 }
 

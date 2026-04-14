@@ -16,13 +16,32 @@ import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useWalletContext } from '@/contexts/WalletContext';
 import type { RequestParam } from '@/types/api';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { BRAND_NAME } from '@/lib/branding';
-import { resolveApiBaseUrl, resolvePurchVaultBaseUrl } from '@/lib/resolveApiBaseUrl';
+import {
+  resolveApiBaseUrl,
+  resolvePurchVaultBaseUrl,
+  resolveSyraBrowserFetchUrl,
+} from '@/lib/resolveApiBaseUrl';
 import { buildFullMppExampleFlowList } from '@/lib/mppOpenApiToExampleFlows';
 import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 import { cn } from '@/lib/utils';
 
 type ExamplesCatalog = 'x402' | 'mpp';
+
+/** Split `Partner: action name` into a small vendor label + primary title (reduces noise vs one long line). */
+function splitFlowLabel(label: string): { vendor: string | null; detail: string } {
+  const idx = label.indexOf(':');
+  if (idx < 1) return { vendor: null, detail: label };
+  const vendor = label.slice(0, idx).trim();
+  const detail = label.slice(idx + 1).trim();
+  if (!detail || vendor.length > 42) return { vendor: null, detail: label };
+  return { vendor, detail };
+}
 
 const ExamplesGroup = () => {
   const { catalog, groupSlug } = useParams<{ catalog: ExamplesCatalog; groupSlug: string }>();
@@ -50,7 +69,7 @@ const ExamplesGroup = () => {
     const purch = resolvePurchVaultBaseUrl();
     setMppLoadState('loading');
     setMppErrorMessage(null);
-    fetch(`${syra.replace(/\/$/, '')}/mpp-openapi.json`)
+    fetch(resolveSyraBrowserFetchUrl(`${syra.replace(/\/$/, '')}/mpp-openapi.json`))
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
         return r.json();
@@ -89,21 +108,8 @@ const ExamplesGroup = () => {
 
   const handleRun = (flow: ExampleFlowPreset) => {
     const paramsForFlow = getParamsForExampleFlow(flow);
-    if (isMpp || flow.examplePaymentCatalog === 'mpp') {
-      if (paramsForFlow.length > 0) {
-        setParamsModalFlow(flow);
-        setParamsModalInitialParams(paramsForFlow);
-      } else {
-        navigate('/', { state: { runFlowPreset: flow } });
-      }
-      return;
-    }
-    if (paramsForFlow.length > 0) {
-      setParamsModalFlow(flow);
-      setParamsModalInitialParams(paramsForFlow);
-    } else {
-      navigate('/', { state: { runFlowId: flow.id } });
-    }
+    setParamsModalFlow(flow);
+    setParamsModalInitialParams(paramsForFlow);
   };
 
   const handleRunWithParams = (params: RequestParam[]) => {
@@ -119,7 +125,7 @@ const ExamplesGroup = () => {
 
   if (!catalog || !groupSlug || (catalog !== 'x402' && catalog !== 'mpp')) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col w-full playground-ambient">
+      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col w-full max-w-[100vw] overflow-x-hidden playground-ambient">
         <TopBar
           wallet={wallet}
           onOpenConnectModal={() => connect()}
@@ -127,7 +133,7 @@ const ExamplesGroup = () => {
           isSidebarOpen={false}
           flowStatus="idle"
         />
-        <div className="flex-1 flex items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
+        <div className="flex flex-1 min-h-0 items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))] pb-[env(safe-area-inset-bottom,0px)]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Invalid examples link.</p>
             <Button asChild variant="outline">
@@ -141,7 +147,7 @@ const ExamplesGroup = () => {
 
   if (!group && !(isMpp && mppLoadState === 'loading')) {
     return (
-      <div className="min-h-[100dvh] bg-background flex flex-col w-full playground-ambient">
+      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col w-full max-w-[100vw] overflow-x-hidden playground-ambient">
         <TopBar
           wallet={wallet}
           onOpenConnectModal={() => connect()}
@@ -149,7 +155,7 @@ const ExamplesGroup = () => {
           isSidebarOpen={false}
           flowStatus="idle"
         />
-        <div className="flex-1 flex items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
+        <div className="flex flex-1 min-h-0 items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))] pb-[env(safe-area-inset-bottom,0px)]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Group not found.</p>
             <Button asChild variant="outline">
@@ -267,49 +273,90 @@ const ExamplesGroup = () => {
             </div>
           ) : (
             <section>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
                 {sortedFlows.map((flow) => {
                   const method = flow.method;
+                  const isGet = method === 'GET';
+                  const { vendor, detail } = splitFlowLabel(flow.label);
                   return (
                     <div
                       key={flow.id}
                       className={cn(
-                        'group flex items-center justify-between gap-3 p-4 sm:p-4 rounded-2xl border transition-all duration-300',
-                        'bg-card/70 backdrop-blur-sm border-border/50',
-                        'hover:border-border hover:bg-card/90 hover:shadow-md dark:hover:shadow-elevate-sm',
-                        'hover:-translate-y-0.5',
+                        'group relative flex flex-col gap-3 overflow-hidden rounded-2xl border p-4 sm:p-4',
+                        'border-border/45 bg-gradient-to-b from-card/90 to-card/55 backdrop-blur-xl',
+                        'shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05)]',
+                        'transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out',
+                        'hover:-translate-y-px hover:border-border/70 hover:from-card/95 hover:to-card/70',
+                        'hover:shadow-lg hover:shadow-black/20',
+                        'dark:hover:shadow-[0_12px_40px_-16px_rgba(0,0,0,0.65),inset_0_1px_0_hsl(0_0%_100%/0.06)]',
                       )}
                     >
-                      <div className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-foreground block truncate leading-snug">
-                          {flow.label}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          <Badge
-                            variant="secondary"
-                            className="text-[11px] font-mono font-medium px-2 py-0.5 border border-border/40"
-                          >
-                            {method}
-                          </Badge>
-                          {isMpp ? (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] font-medium border-accent/35 text-accent bg-accent/[0.06]"
-                            >
-                              MPP
-                            </Badge>
+                      <div
+                        className="pointer-events-none absolute inset-y-4 left-0 w-px rounded-full bg-primary/60 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                        aria-hidden
+                      />
+                      <div className="relative flex flex-col gap-2.5">
+                        <div
+                          className={cn(
+                            'flex min-h-[1.25rem] items-center gap-2',
+                            vendor ? 'justify-between' : 'justify-end',
+                          )}
+                        >
+                          {vendor ? (
+                            <span className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                              {vendor}
+                            </span>
                           ) : null}
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                            {isMpp ? (
+                              <Badge
+                                variant="outline"
+                                className="border-accent/35 bg-accent/[0.06] px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-accent"
+                              >
+                                MPP
+                              </Badge>
+                            ) : null}
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                'border px-1.5 py-0 font-mono text-[9px] font-bold uppercase tracking-wider',
+                                isGet
+                                  ? 'border-border/50 bg-muted/30 text-muted-foreground'
+                                  : 'border-primary/18 bg-primary/[0.09] text-foreground',
+                              )}
+                            >
+                              {method}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <Tooltip delayDuration={280}>
+                          <TooltipTrigger asChild>
+                            <h3 className="line-clamp-2 cursor-default text-left font-display text-[15px] font-medium leading-snug tracking-tight text-foreground/95 sm:text-base">
+                              {detail}
+                            </h3>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            align="start"
+                            className="max-w-[min(22rem,calc(100vw-2rem))] border-border/50 bg-popover/95 px-3 py-2 text-xs font-normal leading-relaxed text-popover-foreground shadow-2xl backdrop-blur-xl"
+                          >
+                            {flow.label}
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <div className="flex items-center justify-end pt-0.5">
+                          <Button
+                            variant="neon"
+                            size="sm"
+                            onClick={() => handleRun(flow)}
+                            className="h-9 w-full gap-1.5 rounded-full font-semibold shadow-sm transition-[box-shadow,transform] duration-200 hover:shadow-md sm:w-auto sm:px-5"
+                          >
+                            <Play className="h-3.5 w-3.5" />
+                            Run
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        variant="neon"
-                        size="sm"
-                        onClick={() => handleRun(flow)}
-                        className="gap-1.5 shrink-0 rounded-full px-3.5 h-9 font-semibold shadow-sm"
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                        Run
-                      </Button>
                     </div>
                   );
                 })}

@@ -43,10 +43,7 @@ import {
   saveWorkerState,
 } from "./workerState.js";
 
-function log(...args) {
-  const t = new Date().toISOString();
-  console.log(`[arena-worker ${t}]`, ...args);
-}
+function log(..._args) {}
 
 /** Serialize `.arena-worker-state.json` writes when ARENA_SUBMIT_CONCURRENCY > 1. */
 let workerStateWriteChain = Promise.resolve();

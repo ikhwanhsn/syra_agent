@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle, Pencil } from "lucide-react";
+import { User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle, HelpCircle, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PumpfunPriceChart } from "@/components/chat/PumpfunPriceChart";
 
 /** Context-specific step sequences — each tells a short "story" relevant to the user's question. */
 const STEP_SEQUENCES: Record<string, string[]> = {
@@ -72,7 +73,23 @@ function getStepsForMessage(userMessage: string | undefined): string[] {
   return STEP_SEQUENCES.default;
 }
 
-export type ToolUsageItem = { name: string; status: "running" | "complete" | "error" };
+export type ToolUsageItem = {
+  name: string;
+  status: "running" | "complete" | "error" | "skipped";
+  costUsd?: number;
+  included?: boolean;
+  chartMint?: string;
+  chartCoinId?: string;
+  chartSymbol?: string;
+  chartName?: string;
+};
+
+function formatToolCostUsd(n: number | undefined): string | null {
+  if (n == null || Number.isNaN(n)) return null;
+  if (n === 0) return "$0.00";
+  if (n < 0.01) return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(2)}`;
+}
 
 interface Message {
   id: string;
@@ -257,13 +274,25 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
     pre: ({ children }) => <>{children}</>,
     // Headings
     h1: ({ children, ...props }) => (
-      <h1 className="mt-6 mb-2 text-lg sm:text-xl font-bold text-foreground break-words" {...props}>{children}</h1>
+      <h1
+        className="mt-6 break-words text-balance text-xl font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-2xl"
+        {...props}
+      >
+        {children}
+      </h1>
     ),
     h2: ({ children, ...props }) => (
-      <h2 className="mt-5 mb-2 text-base sm:text-lg font-semibold text-foreground break-words" {...props}>{children}</h2>
+      <h2
+        className="mt-6 break-words border-b border-border/50 pb-2 text-lg font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-xl"
+        {...props}
+      >
+        {children}
+      </h2>
     ),
     h3: ({ children, ...props }) => (
-      <h3 className="mt-4 mb-2 text-sm sm:text-base font-semibold text-foreground break-words" {...props}>{children}</h3>
+      <h3 className="mt-6 break-words text-base font-semibold tracking-tight text-foreground first:mt-0 sm:text-lg" {...props}>
+        {children}
+      </h3>
     ),
     h4: ({ children, ...props }) => (
       <h4 className="mt-3 mb-1.5 text-sm font-semibold text-foreground" {...props}>{children}</h4>
@@ -276,22 +305,34 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
     ),
     // Lists
     ul: ({ children, ...props }) => (
-      <ul className="my-2 ml-4 list-disc space-y-1 text-foreground" {...props}>{children}</ul>
+      <ul
+        className="my-4 ml-5 list-disc space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:text-primary/40 sm:text-base"
+        {...props}
+      >
+        {children}
+      </ul>
     ),
     ol: ({ children, ...props }) => (
-      <ol className="my-2 ml-4 list-decimal space-y-1 text-foreground" {...props}>{children}</ol>
+      <ol
+        className="my-4 ml-5 list-decimal space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:font-medium marker:text-muted-foreground/70 sm:text-base"
+        {...props}
+      >
+        {children}
+      </ol>
     ),
     li: ({ children, ...props }) => (
-      <li className="pl-1 break-words min-w-0" {...props}>{children}</li>
+      <li className="min-w-0 break-words pl-1" {...props}>
+        {children}
+      </li>
     ),
     // Paragraphs and blockquote — wrap long strings like signatures
     p: ({ children, ...props }) => {
       const text = typeof children === 'string' ? children : String(children);
       const hasLongString = text.length > 50 && !text.includes(' ');
       return (
-        <p 
-          className="my-2 whitespace-pre-wrap text-foreground leading-relaxed break-words min-w-0" 
-          style={hasLongString ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
+        <p
+          className="my-3 min-w-0 max-w-full whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-foreground/95 sm:text-base"
+          style={hasLongString ? { wordBreak: "break-all", overflowWrap: "anywhere" } : undefined}
           {...props}
         >
           {children}
@@ -299,7 +340,10 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
       );
     },
     blockquote: ({ children, ...props }) => (
-      <blockquote className="my-2 border-l-4 border-primary/50 pl-4 italic text-muted-foreground" {...props}>
+      <blockquote
+        className="my-5 max-w-full rounded-r-xl border-l-2 border-primary/30 bg-muted/20 py-3 pl-4 pr-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base"
+        {...props}
+      >
         {children}
       </blockquote>
     ),
@@ -307,249 +351,327 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
       <strong className="font-semibold text-foreground" {...props}>{children}</strong>
     ),
     a: ({ href, children, ...props }) => (
-      <a href={href} className="text-primary underline hover:opacity-80" target="_blank" rel="noopener noreferrer" {...props}>
+      <a
+        href={href}
+        className="font-medium text-foreground underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary"
+        target="_blank"
+        rel="noopener noreferrer"
+        {...props}
+      >
         {children}
       </a>
     ),
+    hr: () => (
+      <hr className="my-8 h-px border-0 bg-gradient-to-r from-transparent via-border/80 to-transparent" />
+    ),
   };
+
+  const toolItems = useMemo((): ToolUsageItem[] => {
+    if (isUser) return [];
+    if (message.toolUsages?.length) return message.toolUsages;
+    if (message.toolUsage) return [message.toolUsage];
+    return [];
+  }, [isUser, message.toolUsages, message.toolUsage]);
+
+  const pumpChartFromTools = useMemo(() => {
+    const hit = toolItems.find(
+      (t) =>
+        t.status === "complete" &&
+        ((typeof t.chartMint === "string" && t.chartMint.trim().length > 0) ||
+          (typeof t.chartCoinId === "string" && t.chartCoinId.trim().length > 0)),
+    );
+    if (!hit) return null;
+    const chartTitle = hit.chartSymbol?.trim() || hit.chartName?.trim() || undefined;
+    if (hit.chartMint?.trim()) {
+      return { kind: "mint" as const, mint: hit.chartMint.trim(), title: chartTitle };
+    }
+    if (hit.chartCoinId?.trim()) {
+      return { kind: "coinId" as const, coinId: hit.chartCoinId.trim(), title: chartTitle };
+    }
+    return null;
+  }, [toolItems]);
 
   return (
     <div
       className={cn(
-        "group flex gap-3 sm:gap-4 px-3 py-4 sm:px-4 sm:py-6 animate-fade-in min-w-0 max-w-full overflow-hidden",
-        isUser ? "bg-transparent" : "bg-secondary/30"
+        "group flex min-w-0 max-w-full animate-fade-in overflow-hidden",
+        isUser
+          ? "gap-3 bg-transparent px-3 py-2 sm:gap-4 sm:px-4 sm:py-3"
+          : "items-start gap-3 py-1.5 sm:gap-4 sm:py-2",
       )}
     >
-      <div className="flex-shrink-0">
+      <div className={cn("flex-shrink-0", !isUser && "pt-1 sm:pt-1.5")}>
         {isUser ? (
           userAvatar.avatarUrl ? (
-            <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0 shadow-md ring-2 ring-background/50">
-              <img 
-                src={userAvatar.avatarUrl} 
-                alt="You" 
-                className="w-full h-full object-cover" 
-                key={userAvatar.avatarUrl} 
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card shadow-md ring-2 ring-background/50 sm:h-8 sm:w-8">
+              <img
+                src={userAvatar.avatarUrl}
+                alt="You"
+                className="h-full w-full object-cover"
+                key={userAvatar.avatarUrl}
               />
             </div>
           ) : (
-            <div className={cn(
-              "w-8 h-8 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-md ring-2 ring-background/50",
-              `bg-gradient-to-br ${userAvatar.gradient}`
-            )}>
-              <span className="text-base leading-none select-none">{userAvatar.emoji}</span>
+            <div
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-md ring-2 ring-background/50 sm:h-8 sm:w-8",
+                `bg-gradient-to-br ${userAvatar.gradient}`,
+              )}
+            >
+              <span className="select-none text-base leading-none">{userAvatar.emoji}</span>
             </div>
           )
         ) : (
           <div className="relative">
-            <div className="w-8 h-8 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card flex items-center justify-center shrink-0">
-              <img src={agentAvatar} alt={agentName} className="w-full h-full object-cover" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card shadow-md ring-1 ring-border/60 ring-offset-2 ring-offset-background sm:h-9 sm:w-9">
+              <img src={agentAvatar} alt={agentName} className="h-full w-full object-cover" />
             </div>
             {message.isStreaming && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
             )}
           </div>
         )}
       </div>
 
-      <div className="flex-1 min-w-0 overflow-hidden space-y-2">
-        <div className="flex items-center gap-2 flex-wrap min-w-0 gap-y-0.5">
-          <span className="font-medium text-sm text-foreground shrink-0">
-            {isUser ? "You" : agentName}
-          </span>
-          <span className="text-xs text-muted-foreground shrink-0">
-            {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </span>
-          {!isUser && (message.toolUsage || (message.toolUsages && message.toolUsages.length > 0)) && (() => {
-            const tools: ToolUsageItem[] = message.toolUsages?.length
-              ? message.toolUsages
-              : message.toolUsage
-                ? [message.toolUsage]
-                : [];
-            if (tools.length === 0) return null;
-            const names = tools.map((t) => t.name).join(", ");
-            return (
-              <span className="hidden sm:flex text-xs text-muted-foreground ml-auto min-w-0 items-center gap-1 overflow-hidden">
-                <Wrench className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="truncate" title={names}>{names}</span>
-              </span>
-            );
-          })()}
-        </div>
+      {isUser ? (
+        <div className="min-w-0 flex-1 space-y-1.5 overflow-hidden">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="shrink-0 text-sm font-medium text-foreground">You</span>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
 
-        {/* Tools used for this answer — section for assistant messages */}
-        {!isUser && (message.toolUsage || (message.toolUsages && message.toolUsages.length > 0)) && (() => {
-          const tools: ToolUsageItem[] = message.toolUsages?.length
-            ? message.toolUsages
-            : message.toolUsage
-              ? [message.toolUsage]
-              : [];
-          if (tools.length === 0) return null;
-          return (
-            <div className="rounded-xl border border-border bg-muted/50 overflow-hidden min-w-0">
-              <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 border-b border-border bg-muted/80 min-w-0">
-                <Wrench className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
-                  {tools.length === 1 ? "Tool used for this answer" : "Tools used for this answer"}
-                </span>
-              </div>
-              <ul className="divide-y divide-border/50">
-                {tools.map((tool, i) => (
-                  <li
-                    key={i}
-                    className={cn(
-                      "flex items-center gap-2 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-0",
-                      tool.status === "error" && "bg-destructive/5"
-                    )}
+          <div className="min-w-0 break-words leading-relaxed text-foreground">
+            {isEditing ? (
+              <div className="space-y-2">
+                <textarea
+                  ref={editTextareaRef}
+                  value={editDraft}
+                  onChange={(e) => setEditDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      saveEdit();
+                    }
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  rows={3}
+                  className="min-h-[72px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Your message..."
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={saveEdit}
+                    disabled={!editDraft.trim()}
                   >
-                    {tool.status === "running" ? (
-                      <Loader2 className="w-4 h-4 text-primary shrink-0 animate-spin" />
-                    ) : tool.status === "error" ? (
-                      <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
-                    ) : (
-                      <Check className="w-4 h-4 text-green-500 shrink-0" />
-                    )}
-                    <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1" title={tool.name}>{tool.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
-                      {tool.status === "running" ? "Running…" : tool.status === "error" ? "Error" : "Complete"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })()}
-
-        {/* Message Content - auto-detects markdown (tables, code, headings, lists) and renders rich UI */}
-        <div className="text-foreground leading-relaxed break-words min-w-0">
-          {isUser && isEditing ? (
-            <div className="space-y-2">
-              <textarea
-                ref={editTextareaRef}
-                value={editDraft}
-                onChange={(e) => setEditDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    saveEdit();
-                  }
-                  if (e.key === "Escape") cancelEdit();
-                }}
-                rows={3}
-                className="w-full min-h-[72px] px-3 py-2 rounded-lg border border-border bg-background text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                placeholder="Your message..."
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-8 gap-1.5"
-                  onClick={saveEdit}
-                  disabled={!editDraft.trim()}
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  Save
-                </Button>
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5" onClick={cancelEdit}>
-                  Cancel
-                </Button>
+                    <Check className="h-3.5 w-3.5" />
+                    Save
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5" onClick={cancelEdit}>
+                    Cancel
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : isUser ? (
-            <p className="my-0 whitespace-pre-wrap break-words min-w-0">{message.content}</p>
-          ) : (
-            <>
-              <div className="min-w-0 max-w-full overflow-x-auto overflow-y-visible break-words">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {message.content}
-                </ReactMarkdown>
-              </div>
-              {message.isStreaming && (
-                <span className="inline-flex gap-1 ml-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary typing-dot" />
-                </span>
-              )}
-            </>
-          )}
-        </div>
+            ) : (
+              <p className="my-0 min-w-0 whitespace-pre-wrap break-words">{message.content}</p>
+            )}
+          </div>
 
-        {/* User message actions: Copy, Edit (hidden while editing) */}
-        {isUser && !isEditing && (
-          <div className="flex flex-wrap items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
-              onClick={copyToClipboard}
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-              {copied ? "Copied" : "Copy"}
-            </Button>
-            {onUpdateUserMessage && (
+          {!isEditing && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
-                onClick={startEditing}
+                className="h-9 min-h-[44px] gap-1.5 touch-manipulation text-muted-foreground hover:text-foreground sm:h-8 sm:min-h-0"
+                onClick={copyToClipboard}
               >
-                <Pencil className="w-3.5 h-3.5" />
-                Edit
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy"}
               </Button>
-            )}
-          </div>
-        )}
-
-        {/* Assistant message actions: Copy, Regenerate */}
-        {!isUser && !message.isStreaming && (
-          <div className="flex flex-wrap items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
-              onClick={copyToClipboard}
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
+              {onUpdateUserMessage && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 min-h-[44px] gap-1.5 touch-manipulation text-muted-foreground hover:text-foreground sm:h-8 sm:min-h-0"
+                  onClick={startEditing}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
               )}
-              {copied ? "Copied" : "Copy"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 sm:h-8 gap-1.5 text-muted-foreground hover:text-foreground touch-manipulation min-h-[44px] sm:min-h-0"
-              onClick={() => onRegenerate?.(message.id)}
-              disabled={!onRegenerate || isRegenerateDisabled}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Regenerate
-            </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+          <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/45 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.72)] backdrop-blur-xl dark:bg-gradient-to-b dark:from-card/90 dark:via-card/50 dark:to-card/25">
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.045] to-transparent" />
+            <div className="relative space-y-3 px-4 py-4 sm:space-y-3 sm:px-6 sm:py-5">
+              <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2 border-b border-border/40 pb-3">
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-[15px] font-semibold tracking-tight text-foreground sm:text-base">
+                    {agentName}
+                  </span>
+                  <span className="text-xs tabular-nums text-muted-foreground/90">
+                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                {toolItems.length > 0 && (
+                  <span className="hidden max-w-[min(100%,14rem)] items-center gap-1.5 truncate rounded-full border border-border/50 bg-muted/25 px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
+                    <Wrench className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                    <span className="truncate" title={toolItems.map((t) => t.name).join(", ")}>
+                      {toolItems.map((t) => t.name).join(", ")}
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              {toolItems.length > 0 && (
+                <div className="min-w-0 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+                    {toolItems.length === 1 ? "Tool used" : "Tools used"}
+                  </p>
+                  <ul className="divide-y divide-border/40 rounded-xl border border-border/50 bg-muted/15">
+                    {toolItems.map((tool, i) => (
+                      <li
+                        key={i}
+                        className={cn(
+                          "flex min-w-0 items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3",
+                          tool.status === "error" && "bg-red-500/[0.06]",
+                          tool.status === "skipped" && "bg-amber-500/[0.06]",
+                        )}
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/60 ring-1 ring-border/40">
+                          {tool.status === "running" ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
+                          ) : tool.status === "error" ? (
+                            <AlertCircle className="h-4 w-4 text-red-500" aria-hidden />
+                          ) : tool.status === "skipped" ? (
+                            <HelpCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
+                          ) : (
+                            <Check className="h-4 w-4 text-emerald-500" aria-hidden />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={tool.name}>
+                          {tool.name}
+                        </span>
+                        <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                          <span
+                            className="tabular-nums text-xs font-semibold text-foreground/90"
+                            title={tool.included ? "Listed tool price (covered by SYRA treasury)" : "Tool price (USDC)"}
+                          >
+                            {formatToolCostUsd(tool.costUsd) ?? "—"}
+                          </span>
+                          {tool.included && tool.status === "complete" && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-600/95 dark:text-emerald-400/95">
+                              Included
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                            tool.status === "running" && "bg-primary/10 text-primary",
+                            tool.status === "error" && "bg-red-500/15 text-red-600 dark:text-red-400",
+                            tool.status === "skipped" &&
+                              "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                            tool.status === "complete" &&
+                              "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+                          )}
+                        >
+                          {tool.status === "running"
+                            ? "Running"
+                            : tool.status === "error"
+                              ? "Error"
+                              : tool.status === "skipped"
+                                ? "Need info"
+                                : "Complete"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {!message.isStreaming && pumpChartFromTools && (
+                <PumpfunPriceChart
+                  {...(pumpChartFromTools.kind === "mint"
+                    ? { mint: pumpChartFromTools.mint }
+                    : { coinId: pumpChartFromTools.coinId })}
+                  title={pumpChartFromTools.title}
+                />
+              )}
+
+              <div
+                className={cn(
+                  "w-full min-w-0 max-w-none break-words text-foreground text-pretty",
+                  toolItems.length > 0 && "pt-0.5",
+                )}
+              >
+                <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words [&>*:first-child]:mt-0">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+                {message.isStreaming && (
+                  <span className="ml-1 inline-flex gap-1">
+                    <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
+                  </span>
+                )}
+              </div>
+
+              {!message.isStreaming && (
+                <div className="flex flex-wrap items-center gap-1 border-t border-border/40 pt-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 min-h-[44px] gap-1.5 touch-manipulation rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:h-8 sm:min-h-0"
+                    onClick={copyToClipboard}
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 min-h-[44px] gap-1.5 touch-manipulation rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:h-8 sm:min-h-0"
+                    onClick={() => onRegenerate?.(message.id)}
+                    disabled={!onRegenerate || isRegenerateDisabled}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Regenerate
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export function SkeletonMessage() {
   return (
-    <div className="flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-secondary/30 animate-fade-in min-w-0">
-      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full skeleton-shimmer shrink-0" />
-      <div className="flex-1 min-w-0 space-y-3">
-        <div className="flex gap-2">
-          <div className="h-4 w-20 rounded skeleton-shimmer" />
-          <div className="h-4 w-12 rounded skeleton-shimmer" />
-        </div>
-        <div className="space-y-2">
-          <div className="h-4 w-full rounded skeleton-shimmer" />
-          <div className="h-4 w-4/5 rounded skeleton-shimmer" />
-          <div className="h-4 w-3/5 rounded skeleton-shimmer" />
+    <div className="flex min-w-0 animate-fade-in items-start gap-3 py-1.5 sm:gap-4 sm:py-2">
+      <div className="h-9 w-9 shrink-0 rounded-full skeleton-shimmer ring-1 ring-border/40 ring-offset-2 ring-offset-background sm:h-9 sm:w-9" />
+      <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/30 p-4 sm:p-5">
+          <div className="mb-4 flex gap-2 border-b border-border/40 pb-3">
+            <div className="h-4 w-28 rounded-md skeleton-shimmer" />
+            <div className="h-4 w-12 rounded-md skeleton-shimmer" />
+          </div>
+          <div className="space-y-2.5">
+            <div className="h-4 w-full rounded-md skeleton-shimmer" />
+            <div className="h-4 w-[92%] rounded-md skeleton-shimmer" />
+            <div className="h-4 w-[78%] rounded-md skeleton-shimmer" />
+          </div>
         </div>
       </div>
     </div>
@@ -603,29 +725,30 @@ export function LoadingStepMessage({
   const label = steps[Math.min(stepIndex, steps.length - 1)];
 
   return (
-    <div className="group flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-secondary/30 animate-fade-in min-w-0">
-      {/* Avatar — matches ChatMessage assistant with subtle pulse */}
-      <div className="flex-shrink-0">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-card loader-avatar-pulse ring-2 ring-transparent">
-          <img src="/logo.jpg" alt={agentName} className="w-full h-full object-cover" />
+    <div className="group flex min-w-0 animate-fade-in items-start gap-3 py-1.5 sm:gap-4 sm:py-2">
+      <div className="flex-shrink-0 pt-1 sm:pt-1.5">
+        <div className="loader-avatar-pulse relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-card shadow-md ring-1 ring-border/60 ring-offset-2 ring-offset-background sm:h-9 sm:w-9">
+          <img src="/logo.jpg" alt={agentName} className="h-full w-full object-cover" />
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
-        {/* Header — agent name + "Thinking" so it matches real message layout */}
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm text-foreground">{agentName}</span>
-          <span className="text-xs text-muted-foreground">Thinking</span>
-        </div>
-
-        {/* Step text in a pill — shimmer pill + text */}
-        <div
-          className={cn(
-            "inline-flex items-center px-4 py-2.5 rounded-xl loading-step-pill transition-all duration-200",
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
-          )}
-        >
-          <span className="text-sm text-foreground/90 animate-loading-blink">{label}</span>
+      <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/45 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.72)] backdrop-blur-xl dark:bg-gradient-to-b dark:from-card/90 dark:via-card/50 dark:to-card/25">
+          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.045] to-transparent" />
+          <div className="relative space-y-4 px-4 py-4 sm:px-6 sm:py-5">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-border/40 pb-3">
+              <span className="text-[15px] font-semibold tracking-tight text-foreground sm:text-base">{agentName}</span>
+              <span className="text-xs font-medium text-primary/80">Thinking</span>
+            </div>
+            <div
+              className={cn(
+                "loading-step-pill inline-flex max-w-full items-center rounded-xl px-4 py-3 transition-all duration-200",
+                isVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
+              )}
+            >
+              <span className="animate-loading-blink text-sm leading-snug text-foreground/90">{label}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -44,7 +44,6 @@ async function main() {
     await AgentWallet.updateOne({ _id: doc._id }, { $set: { agentSecretKey: enc } });
     updated += 1;
   }
-  console.log(`Done. Encrypted ${updated} document(s); skipped ${skipped} (already encrypted or empty).`);
   await mongoose.connection.close();
 }
 

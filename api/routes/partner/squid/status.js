@@ -13,6 +13,17 @@ const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 const SQUID_STATUS_URL = "https://v2.api.squidrouter.com/v2/status";
 
 /** @param {{ transactionId: string; requestId: string; fromChainId: string; toChainId: string; quoteId?: string }} params */
+function requireSquidStatusQuery(req, res, next) {
+  const { transactionId, requestId, fromChainId, toChainId } = req.query;
+  if (!transactionId || !requestId || !fromChainId || !toChainId) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required query: transactionId, requestId, fromChainId, toChainId",
+    });
+  }
+  next();
+}
+
 async function fetchSquidStatus(params) {
   const integratorId = process.env.SQUID_INTEGRATOR_ID;
   if (!integratorId) {
@@ -87,14 +98,10 @@ export async function createSquidStatusRouter() {
 
   router.get(
     "/",
+    requireSquidStatusQuery,
     requirePayment(paymentOptions),
     async (req, res) => {
       const { transactionId, requestId, fromChainId, toChainId, quoteId } = req.query;
-      if (!transactionId || !requestId || !fromChainId || !toChainId) {
-        return res.status(400).json({
-          error: "Missing required query: transactionId, requestId, fromChainId, toChainId",
-        });
-      }
       try {
         const data = await fetchSquidStatus({
           transactionId: String(transactionId),

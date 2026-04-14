@@ -68,8 +68,6 @@ const REWARD_DECIMALS = Number(
 const AMOUNT_HUMAN = Number(process.env.AMOUNT || process.argv[2] || "10000");
 
 async function main() {
-  console.log("💰 Fund reward vault\n");
-
   if (!PROGRAM_ID.toBase58() || PROGRAM_ID.toBase58() === "11111111111111111111111111111111") {
     console.error("Set NEXT_PUBLIC_STAKING_PROGRAM_ID in .env.local");
     process.exit(1);
@@ -111,16 +109,6 @@ async function main() {
     false
   );
 
-  console.log("Configuration:");
-  console.log("  RPC host:", (() => { try { return new URL(RPC_URL).hostname; } catch { return "(invalid)"; } })());
-  console.log("  Program ID:", PROGRAM_ID.toBase58());
-  console.log("  Reward mint:", REWARD_MINT.toBase58());
-  console.log("  Amount (human):", AMOUNT_HUMAN, "tokens");
-  console.log("  Amount (raw):", amountRaw.toString());
-  console.log("  Reward vault (destination):", rewardVault.toBase58());
-  console.log("  Your reward ATA (source):", sourceAta.toBase58());
-  console.log("");
-
   const sourceInfo = await connection.getAccountInfo(sourceAta);
   if (!sourceInfo) {
     console.error("❌ Your wallet has no reward token ATA. Create one and receive reward tokens first.");
@@ -139,13 +127,11 @@ async function main() {
     Number(amountRaw)
   );
   const tx = new Transaction().add(ix);
-  const sig = await connection.sendTransaction(tx, [walletKeypair], {
+  await connection.sendTransaction(tx, [walletKeypair], {
     skipPreflight: false,
     preflightCommitment: "confirmed",
     maxRetries: 3,
   });
-  console.log("✅ Sent", AMOUNT_HUMAN, "reward tokens to the vault.");
-  console.log("   Signature:", sig);
 }
 
 main()

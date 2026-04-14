@@ -21,12 +21,19 @@ async function fetchN8nSignal(token) {
 }
 
 /**
- * When default source is Binance and Binance is throttling, try Coinbase spot candles (same engine).
+ * When default source is Binance and Binance fails (rate limit, HTTP errors from Binance,
+ * or unreachable network / TLS / DNS), try Coinbase spot candles (same engine).
+ * Many regions or networks block or flake on api.binance.com while Coinbase still works.
  * @param {unknown} err
  */
 function isBinanceThrottleOrTransient(err) {
   const msg = String(err?.message || err);
-  return /429|418|rate limit|too many|way too many|-1003|-1015|Binance klines/i.test(msg);
+  return (
+    /429|418|rate limit|too many|way too many|-1003|-1015|Binance klines/i.test(msg) ||
+    /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|socket hang up|UND_ERR_|network|DNS|certificate|TLS|cert|timed out/i.test(
+      msg,
+    )
+  );
 }
 
 /**
@@ -61,16 +68,20 @@ export async function loadSignal(input) {
       return { signal: { ...report, source, ...meta } };
     } catch (firstErr) {
       if (raw === "" && cexKey === "binance" && isBinanceThrottleOrTransient(firstErr)) {
-        try {
-          // Coinbase uses different product ids; only token-based mapping is safe here.
-          const { source, meta, report } = await buildCexSignalReport("coinbase", {
-            ...params,
-            instId: undefined,
-          });
-          return { signal: { ...report, source, ...meta } };
-        } catch {
-          throw firstErr;
+        // Same order as increasing chance when Binance is blocked (geo/network): Coinbase → OKX → Kraken.
+        const fallbacks = ["coinbase", "okx", "kraken"];
+        for (const venue of fallbacks) {
+          try {
+            const { source, meta, report } = await buildCexSignalReport(venue, {
+              ...params,
+              instId: undefined,
+            });
+            return { signal: { ...report, source, ...meta } };
+          } catch {
+            /* try next venue */
+          }
         }
+        throw firstErr;
       }
       throw firstErr;
     }
@@ -90,13 +101,13 @@ const signalQueryInputSchema = {
     source: {
       type: "string",
       required: false,
-      description: `Default: binance (spot OHLC + engine). Other CEX: ${CEX_LIST_DOC}. Use n8n or webhook for legacy n8n signal.`,
+      description: `Default: binance (spot OHLC + engine). Other venues: ${CEX_LIST_DOC} (coingecko = CoinGecko USD OHLC, good when CEX APIs are blocked). Use n8n or webhook for legacy n8n signal.`,
     },
     instId: {
       type: "string",
       required: false,
       description:
-        "Override instrument: e.g. BTCUSDT (Binance/Bybit/Bitget), BTC-USDT (OKX/KuCoin), BTC-USD (Coinbase), XBTUSDT (Kraken), KRW-BTC (Upbit), BTC_USDT (Crypto.com)",
+        "Override instrument: e.g. BTCUSDT (Binance/Bybit/Bitget), BTC-USDT (OKX/KuCoin), BTC-USD (Coinbase), XBTUSDT (Kraken), KRW-BTC (Upbit), BTC_USDT (Crypto.com); with source=coingecko use CoinGecko coin id (e.g. solana, bitcoin)",
     },
     bar: {
       type: "string",
@@ -122,12 +133,12 @@ const signalBodyInputSchema = {
     source: {
       type: "string",
       required: false,
-      description: `Default binance. ${CEX_LIST_DOC}. n8n | webhook for n8n.`,
+      description: `Default binance. ${CEX_LIST_DOC} (coingecko = CoinGecko USD OHLC). n8n | webhook for n8n.`,
     },
     instId: {
       type: "string",
       required: false,
-      description: "Venue-specific symbol / product / market override",
+      description: "Venue symbol override; with source=coingecko use CoinGecko coin id (e.g. solana)",
     },
     bar: {
       type: "string",

@@ -24,6 +24,7 @@ The **ai-agent** package is the **Syra AI Agent web app**. It is a Vite + React 
 - **Marketplace** — browse and use Syra agents and x402 pay-per-use flows (including partner market data: Kraken, KuCoin, OKX, Binance).
 - **Shareable chats** — share chat sessions via URL.
 - **Solana wallet** — connect wallet for x402 payments and agent actions.
+- **pump.fun (via Syra API)** — chat can use paid tools for SOL price, coin metadata, swap/create/collect-fees/sharing-config, and tokenized-agent invoice build/verify (`/pumpfun/*` on the API); the agent wallet pays x402 and signs returned Solana transactions where applicable.
 
 It uses the **api** backend and integrates with the x402 agent ecosystem (e.g. x402scan). Built with Vite, React, shadcn-ui, Tailwind, and Solana wallet adapters.
 

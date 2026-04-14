@@ -167,10 +167,6 @@ export function getX402ResourceServer() {
     clients.push(newFacilitatorClient());
   }
 
-  if (payaiAuthHeaders && facilitatorUrl && shouldUsePayAiAuthForUrl(facilitatorUrl)) {
-    console.log("[x402] PayAI facilitator: merchant JWT auth enabled (verify/settle/supported).");
-  }
-
   const server = new x402ResourceServer(clients);
   resourceServerInstance = buildResourceServerBundle(server);
   return resourceServerInstance;
@@ -188,7 +184,6 @@ export function getX402ResourceServerCorbits() {
   const clients = [new HTTPFacilitatorClient({ url: corbitsFacilitatorUrl })];
   const server = new x402ResourceServer(clients);
   resourceServerCorbitsInstance = buildResourceServerBundle(server);
-  console.log(`[x402] Corbits facilitator bundle ready (${corbitsFacilitatorUrl}).`);
   return resourceServerCorbitsInstance;
 }
 

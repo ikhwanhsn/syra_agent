@@ -12,10 +12,7 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function log(...args) {
-  const t = new Date().toISOString();
-  console.log(`[arena-worker ${t}]`, ...args);
-}
+function log(..._args) {}
 
 async function main() {
   const once = process.argv.includes("--once");

@@ -44,10 +44,7 @@ export function startArenaWorkerInterval(opts) {
     void tryRunArenaWorkerTick()
       .then((out) => {
         if (out.ok) {
-          const n = out.data?.challengesProcessed;
-          console.log(
-            `[arena-schedule] tick ok${typeof n === "number" ? ` challengesProcessed=${n}` : ""}`,
-          );
+          void out.data?.challengesProcessed;
         } else if (out.skipped) {
           console.warn("[arena-schedule] tick skipped:", out.reason);
         } else {

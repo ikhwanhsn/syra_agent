@@ -94,14 +94,7 @@ async function main() {
   const x402Endpoint = process.env.SYRA_SAP_X402_ENDPOINT?.trim() || "https://api.syraa.fun";
   const agentId = process.env.SYRA_SAP_AGENT_ID?.trim() || "did:sap:syra";
 
-  console.log("SAP cluster:", sap.cluster);
-  console.log("RPC:", rpcUrl.replace(/api_key=[^&]+/i, "api_key=(redacted)"));
-  console.log("Signer:", keypair.publicKey.toBase58());
-
-  const solBefore = await sap.getBalanceSol(keypair.publicKey);
-  console.log("Balance (SOL):", solBefore);
-
-  const result = await client.builder
+  await client.builder
     .agent(name)
     .description(description)
     .agentId(agentId)
@@ -140,19 +133,9 @@ async function main() {
     .addProtocol("A2A")
     .register();
 
-  console.log("Agent PDA:", result.agentPda.toBase58());
-  console.log("Stats PDA:", result.statsPda.toBase58());
-  console.log("Register TX:", result.txSignature);
-
-  const agent = await client.agent.fetch();
-  console.log("On-chain name:", agent.name);
-  console.log("Active:", agent.isActive);
-  console.log("Capabilities:", agent.capabilities?.length ?? 0);
-  console.log("Pricing tiers:", agent.pricing?.length ?? 0);
-  console.log("Protocols:", agent.protocols?.join(", ") ?? "");
+  await client.agent.fetch();
 
   if (process.env.SAP_SKIP_INDEX === "1") {
-    console.log("SAP_SKIP_INDEX=1 — skipping discovery indexes.");
     return;
   }
 
@@ -161,13 +144,11 @@ async function main() {
 
   for (const capabilityId of caps) {
     try {
-      const sig = await client.indexing.initCapabilityIndex(capabilityId);
-      console.log("initCapabilityIndex", capabilityId, sig);
+      await client.indexing.initCapabilityIndex(capabilityId);
     } catch (e) {
       const msg = e?.message || String(e);
       if (/already in use|custom program error|0x0/i.test(msg)) {
-        const sig = await client.indexing.addToCapabilityIndex(capabilityId);
-        console.log("addToCapabilityIndex", capabilityId, sig);
+        await client.indexing.addToCapabilityIndex(capabilityId);
       } else {
         throw e;
       }
@@ -176,20 +157,16 @@ async function main() {
 
   for (const protocolId of protocols) {
     try {
-      const sig = await client.indexing.initProtocolIndex(protocolId);
-      console.log("initProtocolIndex", protocolId, sig);
+      await client.indexing.initProtocolIndex(protocolId);
     } catch (e) {
       const msg = e?.message || String(e);
       if (/already in use|custom program error|0x0/i.test(msg)) {
-        const sig = await client.indexing.addToProtocolIndex(protocolId);
-        console.log("addToProtocolIndex", protocolId, sig);
+        await client.indexing.addToProtocolIndex(protocolId);
       } else {
         throw e;
       }
     }
   }
-
-  console.log("Syra SAP registration and indexing complete.");
 }
 
 main().catch((err) => {

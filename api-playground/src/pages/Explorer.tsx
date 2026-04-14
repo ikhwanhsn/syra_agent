@@ -415,7 +415,7 @@ const Explorer = () => {
 
           {/* Stats cards — full-width row: Total, Last 24h, GET–DELETE, Last shared, Solana, Base */}
           {!loading && stats && (
-            <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 gap-3 sm:gap-3 mb-8 w-full auto-rows-fr">
+            <section className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 gap-3 sm:gap-3 mb-8 w-full auto-rows-fr">
               <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur-sm p-4 flex flex-col gap-2 min-w-0 shadow-sm dark:shadow-black/15">
                 <BarChart3 className="h-4 w-4 text-primary shrink-0" />
                 <p className="font-display text-xl sm:text-2xl font-semibold text-foreground tabular-nums truncate leading-tight">
@@ -569,7 +569,7 @@ const Explorer = () => {
                           </td>
                           <td className="py-3 px-4 min-w-0 align-middle">
                             <span
-                              className="truncate block font-mono text-[11px] sm:text-xs text-foreground/95 max-w-[320px] sm:max-w-[420px]"
+                              className="block max-w-[11rem] truncate font-mono text-[11px] text-foreground/95 sm:max-w-xs sm:text-xs md:max-w-md lg:max-w-xl"
                               title={item.url}
                             >
                               {item.url}

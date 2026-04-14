@@ -13,11 +13,16 @@ const PURCH_VAULT_BASE = process.env.PURCH_VAULT_API_BASE_URL || 'https://api.pu
  * Parse 402 payment options from Purch Vault response (body or Payment-Required header).
  * @param {Response} res - 402 response
  * @param {object} body - Parsed response body
- * @returns {{ accepts: object[]; x402Version?: number } | null}
+ * @returns {{ accepts: object[]; x402Version?: number; resource?: unknown; extensions?: Record<string, unknown> } | null}
  */
 function parse402FromPurch(res, body) {
   if (body?.accepts && Array.isArray(body.accepts) && body.accepts.length > 0) {
-    return { accepts: body.accepts, x402Version: body.x402Version ?? 2 };
+    return {
+      accepts: body.accepts,
+      x402Version: body.x402Version ?? 2,
+      resource: body.resource,
+      extensions: body.extensions,
+    };
   }
   const header =
     res.headers.get('Payment-Required') ||
@@ -28,7 +33,12 @@ function parse402FromPurch(res, body) {
       const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8'));
       const accepts = Array.isArray(decoded) ? decoded : decoded?.accepts;
       if (accepts?.length) {
-        return { accepts, x402Version: decoded.x402Version ?? 2 };
+        return {
+          accepts,
+          x402Version: decoded.x402Version ?? 2,
+          resource: decoded.resource,
+          extensions: decoded.extensions,
+        };
       }
     } catch {
       // ignore
@@ -90,6 +100,8 @@ async function purchVaultRequest(keypair, url, method, body, anonymousId) {
     body,
     accepts,
     x402Version: parsed.x402Version ?? 2,
+    resource: parsed.resource,
+    extensions: parsed.extensions,
   }, sentinelFetch);
 
   if (!result.success) return result;

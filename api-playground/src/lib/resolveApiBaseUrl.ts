@@ -2,10 +2,9 @@ const PRODUCTION_DEFAULT = 'https://api.syraa.fun';
 const LOCAL_DEFAULT = 'http://localhost:3000';
 
 function isBrowserLocalhost(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  );
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]';
 }
 
 function envApiBase(): string {
@@ -44,4 +43,19 @@ export function resolveApiBaseUrl(): string {
 export function resolvePurchVaultBaseUrl(): string {
   const base = import.meta.env.VITE_PURCH_VAULT_API_BASE_URL as string | undefined;
   return (base && base.trim()) || 'https://api.purch.xyz';
+}
+
+const PROXY_PREFIX = '/api/proxy/';
+
+/**
+ * Browser fetch URL for a Syra API asset (e.g. `/mpp-openapi.json`).
+ * In dev, the Vite server exposes `/api/proxy/<encoded-url>` so the browser stays same-origin
+ * while Node fetches the Syra API — avoids CORS and some "private network request" failures
+ * when the playground runs on another port than the API.
+ */
+export function resolveSyraBrowserFetchUrl(absoluteUrl: string): string {
+  const useProxy = import.meta.env.DEV || import.meta.env.VITE_USE_PROXY === 'true';
+  if (!useProxy) return absoluteUrl;
+  if (absoluteUrl.startsWith('/') || absoluteUrl.startsWith(PROXY_PREFIX)) return absoluteUrl;
+  return `${PROXY_PREFIX}${encodeURIComponent(absoluteUrl)}`;
 }

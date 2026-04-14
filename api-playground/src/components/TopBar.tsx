@@ -276,7 +276,7 @@ export function TopBar({
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  className="md:hidden h-9 w-9 shrink-0"
+                  className="lg:hidden h-9 w-9 shrink-0"
                   aria-label="Pages and tools"
                 >
                   <LayoutGrid className="h-5 w-5" />
@@ -307,7 +307,7 @@ export function TopBar({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <nav className="hidden md:flex items-center gap-0.5 border-l border-border/60 pl-3 ml-1">
+            <nav className="hidden lg:flex items-center gap-0.5 border-l border-border/60 pl-3 ml-1">
               {(
                 [
                   ['/examples', 'Examples'],
@@ -327,8 +327,8 @@ export function TopBar({
             </nav>
           </div>
 
-          {/* Center: flow stepper — grid middle column is true viewport center */}
-          <div className="hidden min-w-0 items-center justify-center px-2 lg:flex lg:justify-self-center">
+          {/* Center: flow stepper — grid middle column is true viewport center; md–lg use pages menu + stepper (nav links stay in hamburger until lg) */}
+          <div className="hidden min-w-0 max-w-full items-center justify-center px-1 sm:px-2 md:flex md:justify-self-center">
             <div className="flex items-center gap-0 rounded-full border border-border/50 bg-secondary/25 px-0.5 py-0.5 shadow-inner shadow-black/10 dark:bg-black/25">
               {(
                 [

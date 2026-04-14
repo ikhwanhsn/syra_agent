@@ -29,6 +29,11 @@ import {
   resolveApiBaseUrl,
   resolvePurchVaultBaseUrl,
 } from "@/lib/resolveApiBaseUrl";
+import {
+  tryExecutePumpfunReturnedTransaction,
+  isSyraPumpfunApiUrl,
+  mergePumpfunChainExecutionIntoResponseBody,
+} from "@/lib/pumpfunPlaygroundChainSubmit";
 import { BRAND_NAME } from "@/lib/branding";
 
 function getApiBaseUrl(): string {
@@ -860,6 +865,317 @@ export function getExampleFlows(): ExampleFlowPreset[] {
           value: "",
           enabled: true,
           description: "Your wallet public key (executes the swap)",
+        },
+      ],
+    },
+    // pump.fun (Syra x402 gateway — fun-block + agent payments SDK)
+    {
+      id: "pumpfun-agents-swap",
+      label: "pump.fun: buy/sell (agents/swap)",
+      method: "POST",
+      url: `${base}/pumpfun/agents/swap`,
+      params: [
+        {
+          key: "inputMint",
+          value: "So11111111111111111111111111111111111111112",
+          enabled: true,
+          description: "SOL (wrapped mint) for buys; token mint for sells",
+        },
+        {
+          key: "outputMint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Token mint to receive (example: SYRA on pump)",
+        },
+        {
+          key: "amount",
+          value: "100000",
+          enabled: true,
+          description: "Lamports of SOL in (tiny test amount)",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Trader / fee payer (replace with your wallet)",
+        },
+        {
+          key: "slippagePct",
+          value: "5",
+          enabled: true,
+          description: "Slippage percent (pump SDK convention)",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "Always base64 for agents API",
+        },
+        {
+          key: "frontRunningProtection",
+          value: "false",
+          enabled: true,
+          description: "Jito MEV protection",
+        },
+        {
+          key: "tipAmount",
+          value: "0",
+          enabled: false,
+          description: "SOL tip if frontRunningProtection true",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-agents-create-coin",
+      label: "pump.fun: create coin + initial buy",
+      method: "POST",
+      url: `${base}/pumpfun/agents/create-coin`,
+      params: [
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Creator wallet (replace with yours)",
+        },
+        {
+          key: "name",
+          value: "Playground Coin",
+          enabled: true,
+          description: "Coin name",
+        },
+        {
+          key: "symbol",
+          value: "PGC",
+          enabled: true,
+          description: "Ticker",
+        },
+        {
+          key: "uri",
+          value: "https://arweave.net/placeholder-metadata.json",
+          enabled: true,
+          description: "Metadata JSON URL (replace with real IPFS/Arweave URI)",
+        },
+        {
+          key: "solLamports",
+          value: "1000000",
+          enabled: true,
+          description: "Initial buy in lamports (0.001 SOL)",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "Use base64",
+        },
+        {
+          key: "cashback",
+          value: "false",
+          enabled: true,
+          description: "true = cashback coin; false = standard creator fees",
+        },
+        {
+          key: "tokenizedAgent",
+          value: "false",
+          enabled: true,
+          description: "true = tokenized agent (+ set buybackBps)",
+        },
+        {
+          key: "buybackBps",
+          value: "5000",
+          enabled: false,
+          description: "If tokenizedAgent: bps to buyback & burn (5000 = 50%)",
+        },
+        {
+          key: "mayhemMode",
+          value: "false",
+          enabled: false,
+          description: "Mayhem mode",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-agents-collect-fees",
+      label: "pump.fun: collect / distribute creator fees",
+      method: "POST",
+      url: `${base}/pumpfun/agents/collect-fees`,
+      params: [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Coin mint",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Fee payer (replace with your wallet)",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "Use base64",
+        },
+        {
+          key: "frontRunningProtection",
+          value: "false",
+          enabled: true,
+          description: "Jito protection",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-agents-sharing-config",
+      label: "pump.fun: fee sharing (recipients / bps)",
+      method: "POST",
+      url: `${base}/pumpfun/agents/sharing-config`,
+      params: [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Coin mint (must be yours to sign create/update)",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Creator or admin wallet",
+        },
+        {
+          key: "shareholders",
+          value:
+            '[{"address":"FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD","bps":5000},{"address":"DYw8jCTfwHNRJhhmFcbXvVDTqWMEVFBX6ZKUmG5CNSKK","bps":5000}]',
+          enabled: true,
+          description: "JSON array; bps must sum to 10000",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "Use base64",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-coin-metadata",
+      label: "pump.fun: coin metadata (coins-v2)",
+      method: "GET",
+      url: `${base}/pumpfun/coin`,
+      params: [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Pump.fun token mint (base58); equivalent to GET /pumpfun/coin/:mint",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-sol-price",
+      label: "pump.fun: SOL price",
+      method: "GET",
+      url: `${base}/pumpfun/sol-price`,
+      params: [],
+    },
+    {
+      id: "pumpfun-agent-payments-build",
+      label: "pump.fun: tokenized agent — build-accept (invoice tx)",
+      method: "POST",
+      url: `${base}/pumpfun/agent-payments/build-accept`,
+      params: [
+        {
+          key: "agentMint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Agent token mint on pump",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Payer wallet",
+        },
+        {
+          key: "currencyMint",
+          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          enabled: true,
+          description: "USDC or So111... wSOL",
+        },
+        {
+          key: "amount",
+          value: "1000000",
+          enabled: true,
+          description: "Price in smallest units (1 USDC)",
+        },
+        {
+          key: "memo",
+          value: "123456789012",
+          enabled: true,
+          description: "Unique invoice id (number)",
+        },
+        {
+          key: "startTime",
+          value: "1700000000",
+          enabled: true,
+          description: "Unix start (replace with now)",
+        },
+        {
+          key: "endTime",
+          value: "1800000000",
+          enabled: true,
+          description: "Unix end (must be > startTime)",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-agent-payments-verify",
+      label: "pump.fun: tokenized agent — verify invoice",
+      method: "POST",
+      url: `${base}/pumpfun/agent-payments/verify`,
+      params: [
+        {
+          key: "agentMint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Agent token mint",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Payer wallet",
+        },
+        {
+          key: "currencyMint",
+          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          enabled: true,
+          description: "USDC mint",
+        },
+        {
+          key: "amount",
+          value: "1000000",
+          enabled: true,
+          description: "Amount smallest units",
+        },
+        {
+          key: "memo",
+          value: "123456789012",
+          enabled: true,
+          description: "Invoice memo (number)",
+        },
+        {
+          key: "startTime",
+          value: "1700000000",
+          enabled: true,
+          description: "Unix start",
+        },
+        {
+          key: "endTime",
+          value: "1800000000",
+          enabled: true,
+          description: "Unix end",
         },
       ],
     },
@@ -1882,6 +2198,9 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
     const b = new URL(syraBase);
     if (u.origin === b.origin) {
       const p = u.pathname.toLowerCase();
+      if (p.startsWith("/pumpfun/")) {
+        return { slug: "pumpfun", name: "pump.fun" };
+      }
       if (p.startsWith("/nansen/") && id.startsWith("nansen-")) {
         return { slug: "nansen", name: "Nansen" };
       }
@@ -1924,6 +2243,7 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
   )
     return { slug: "x", name: "X (Twitter)" };
   if (id.startsWith("jupiter-")) return { slug: "jupiter", name: "Jupiter" };
+  if (id.startsWith("pumpfun-")) return { slug: "pumpfun", name: "pump.fun" };
   if (id.startsWith("squid-")) return { slug: "squid", name: "Squid" };
   if (id.startsWith("quicknode-"))
     return { slug: "quicknode", name: "Quicknode" };
@@ -2058,6 +2378,14 @@ function getApiEndpoints(): string[] {
     `${base}/token-god-mode`,
     `${base}/trending-jupiter`,
     `${base}/jupiter/swap/order`,
+    `${base}/pumpfun/agents/swap`,
+    `${base}/pumpfun/agents/create-coin`,
+    `${base}/pumpfun/agents/collect-fees`,
+    `${base}/pumpfun/agents/sharing-config`,
+    `${base}/pumpfun/coin`,
+    `${base}/pumpfun/sol-price`,
+    `${base}/pumpfun/agent-payments/build-accept`,
+    `${base}/pumpfun/agent-payments/verify`,
     `${base}/squid/route`,
     `${base}/squid/status`,
     `${base}/bubblemaps/maps`,
@@ -2134,6 +2462,11 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
       return "POST";
     if (path.startsWith("/siwa/")) return "POST";
     if (path === "/quicknode/rpc" || path.endsWith("/quicknode/rpc"))
+      return "POST";
+    if (
+      path.startsWith("/pumpfun/agents/") ||
+      path.startsWith("/pumpfun/agent-payments/")
+    )
       return "POST";
   } catch {
     // ignore
@@ -2652,6 +2985,245 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
           description: "Your wallet public key (executes the swap)",
         },
       ],
+      "/pumpfun/agents/swap": [
+        {
+          key: "inputMint",
+          value: "So11111111111111111111111111111111111111112",
+          enabled: true,
+          description: "SOL mint for buys",
+        },
+        {
+          key: "outputMint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Target pump token mint",
+        },
+        {
+          key: "amount",
+          value: "100000",
+          enabled: true,
+          description: "Lamports (SOL in for buys)",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Trader pubkey",
+        },
+        {
+          key: "slippagePct",
+          value: "5",
+          enabled: true,
+          description: "Slippage %",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "base64",
+        },
+        {
+          key: "frontRunningProtection",
+          value: "false",
+          enabled: true,
+          description: "Jito",
+        },
+      ],
+      "/pumpfun/agents/create-coin": [
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Creator",
+        },
+        {
+          key: "name",
+          value: "Playground Coin",
+          enabled: true,
+          description: "Name",
+        },
+        { key: "symbol", value: "PGC", enabled: true, description: "Symbol" },
+        {
+          key: "uri",
+          value: "https://arweave.net/placeholder-metadata.json",
+          enabled: true,
+          description: "Metadata URI",
+        },
+        {
+          key: "solLamports",
+          value: "1000000",
+          enabled: true,
+          description: "Initial buy lamports",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "base64",
+        },
+        {
+          key: "cashback",
+          value: "false",
+          enabled: true,
+          description: "Cashback coin",
+        },
+        {
+          key: "tokenizedAgent",
+          value: "false",
+          enabled: true,
+          description: "Tokenized agent",
+        },
+        {
+          key: "buybackBps",
+          value: "5000",
+          enabled: false,
+          description: "If tokenized agent",
+        },
+      ],
+      "/pumpfun/agents/collect-fees": [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Coin mint",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Fee payer",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "base64",
+        },
+      ],
+      "/pumpfun/agents/sharing-config": [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Coin mint",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Creator/admin",
+        },
+        {
+          key: "shareholders",
+          value:
+            '[{"address":"FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD","bps":5000},{"address":"DYw8jCTfwHNRJhhmFcbXvVDTqWMEVFBX6ZKUmG5CNSKK","bps":5000}]',
+          enabled: true,
+          description: "JSON shareholders (bps sum 10000)",
+        },
+        {
+          key: "encoding",
+          value: "base64",
+          enabled: true,
+          description: "base64",
+        },
+      ],
+      "/pumpfun/agent-payments/build-accept": [
+        {
+          key: "agentMint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Agent mint",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Payer",
+        },
+        {
+          key: "currencyMint",
+          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          enabled: true,
+          description: "USDC",
+        },
+        {
+          key: "amount",
+          value: "1000000",
+          enabled: true,
+          description: "Smallest units",
+        },
+        {
+          key: "memo",
+          value: "123456789012",
+          enabled: true,
+          description: "Invoice memo",
+        },
+        {
+          key: "startTime",
+          value: "1700000000",
+          enabled: true,
+          description: "Unix start",
+        },
+        {
+          key: "endTime",
+          value: "1800000000",
+          enabled: true,
+          description: "Unix end",
+        },
+      ],
+      "/pumpfun/agent-payments/verify": [
+        {
+          key: "agentMint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Agent mint",
+        },
+        {
+          key: "user",
+          value: "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+          enabled: true,
+          description: "Payer",
+        },
+        {
+          key: "currencyMint",
+          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          enabled: true,
+          description: "USDC",
+        },
+        {
+          key: "amount",
+          value: "1000000",
+          enabled: true,
+          description: "Amount",
+        },
+        {
+          key: "memo",
+          value: "123456789012",
+          enabled: true,
+          description: "Memo",
+        },
+        {
+          key: "startTime",
+          value: "1700000000",
+          enabled: true,
+          description: "Start",
+        },
+        {
+          key: "endTime",
+          value: "1800000000",
+          enabled: true,
+          description: "End",
+        },
+      ],
+      "/pumpfun/sol-price": [],
+      "/pumpfun/coin": [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Pump.fun token mint (base58)",
+        },
+      ],
       "/squid/route": [
         {
           key: "fromAddress",
@@ -3153,13 +3725,14 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
     };
     const exact = known[path];
     if (exact) return exact.map((p) => ({ ...p }));
+    if (path.startsWith("/pumpfun/coin/")) return [];
     return null;
   } catch {
     return null;
   }
 }
 
-/** Params for an example flow: from preset if set, otherwise from known API params by path. Use to decide if query-params modal should show and what fields to display. */
+/** Params for an example flow: from preset if set, otherwise from known API params by path. Used to populate the query-params modal (may be empty). */
 export function getParamsForExampleFlow(
   flow: ExampleFlowPreset,
 ): RequestParam[] {
@@ -3941,6 +4514,16 @@ export function useApiPlayground() {
         return undefined;
       }
 
+      if (isSyraPumpfunApiUrl(baseUrl) && !walletContext.connected) {
+        toast({
+          title: "Solana wallet required",
+          description:
+            "Pump.fun APIs only work with a connected Solana wallet. Connect Solana in the header (e.g. Phantom / Solflare), not Base-only, then send again.",
+          variant: "destructive",
+        });
+        return undefined;
+      }
+
       const startTime = Date.now();
       const effectiveMethod = useOverride ? requestOverride.method : method;
       const effectiveParams = useOverride ? requestOverride.params : params;
@@ -4536,10 +5119,91 @@ export function useApiPlayground() {
           setPaymentDetails(undefined);
           setX402Response(undefined);
           setPaymentOption(undefined);
+
+          let resolvedResponse: ApiResponse = apiResponse;
+          if (fetchResponse.status >= 200 && fetchResponse.status < 300) {
+            let chainPathname = "";
+            try {
+              chainPathname = new URL(finalUrl).pathname.toLowerCase();
+            } catch {
+              chainPathname = "";
+            }
+            try {
+              const chainResult = await tryExecutePumpfunReturnedTransaction({
+                requestPathnameLower: chainPathname,
+                responseBodyText: responseText,
+                connection: walletContext.connection,
+                solanaConnected: walletContext.connected,
+                signTransaction: walletContext.signTransaction,
+              });
+              if (chainResult) {
+                const merged = mergePumpfunChainExecutionIntoResponseBody(
+                  responseText,
+                  chainResult,
+                );
+                resolvedResponse = merged
+                  ? {
+                      ...apiResponse,
+                      body: merged.body,
+                      size: merged.size,
+                      pumpfunChainExecution: undefined,
+                    }
+                  : { ...apiResponse, pumpfunChainExecution: chainResult };
+                setResponse(resolvedResponse);
+                if (chainResult.status === "confirmed" && chainResult.signature) {
+                  toast({
+                    title: "On-chain transaction submitted",
+                    description: `${chainResult.signature.slice(0, 12)}… — check Solscan for final status.`,
+                  });
+                } else if (chainResult.status === "failed") {
+                  toast({
+                    title: "On-chain submission failed",
+                    description: chainResult.error ?? "Unknown error",
+                    variant: "destructive",
+                  });
+                } else if (
+                  chainResult.status === "skipped_no_wallet" ||
+                  chainResult.status === "skipped_no_tx_field"
+                ) {
+                  toast({
+                    title: "Transaction not sent on-chain",
+                    description: chainResult.error ?? chainResult.status,
+                  });
+                }
+              }
+            } catch (chainErr) {
+              const msg =
+                chainErr instanceof Error ? chainErr.message : "Chain submit error";
+              const failedChain = {
+                attempted: true,
+                status: "failed" as const,
+                error: msg,
+              };
+              const mergedFail = mergePumpfunChainExecutionIntoResponseBody(
+                responseText,
+                failedChain,
+              );
+              resolvedResponse = mergedFail
+                ? {
+                    ...apiResponse,
+                    body: mergedFail.body,
+                    size: mergedFail.size,
+                    pumpfunChainExecution: undefined,
+                  }
+                : { ...apiResponse, pumpfunChainExecution: failedChain };
+              setResponse(resolvedResponse);
+              toast({
+                title: "On-chain submission error",
+                description: msg,
+                variant: "destructive",
+              });
+            }
+          }
+
           setHistory((prev) =>
             prev.map((h) =>
               h.id === actualRequestId
-                ? { ...h, response: apiResponse, status: "success" }
+                ? { ...h, response: resolvedResponse, status: "success" }
                 : h,
             ),
           );
@@ -4637,7 +5301,18 @@ export function useApiPlayground() {
         return undefined;
       }
     },
-    [method, url, headers, body, params],
+    [
+      method,
+      url,
+      headers,
+      body,
+      params,
+      walletContext.connection,
+      walletContext.connected,
+      walletContext.signTransaction,
+      walletContext.address,
+      walletContext.baseAddress,
+    ],
   );
 
   // Run an example flow: load preset into builder and send immediately.

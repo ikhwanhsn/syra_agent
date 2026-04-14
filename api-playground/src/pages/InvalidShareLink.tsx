@@ -53,7 +53,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
             What you can do
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <div className="flex flex-col gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <Zap className="h-4 w-4 text-primary" />
@@ -63,7 +63,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                   <span className="text-xs text-muted-foreground">Main workspace — request, pay, respond</span>
                 </div>
               </div>
-              <Button asChild variant="neon" size="sm" className="gap-1.5 shrink-0">
+              <Button asChild variant="neon" size="sm" className="w-full gap-1.5 shrink-0 sm:w-auto">
                 <Link to="/">
                   Open
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -71,7 +71,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <div className="flex flex-col gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <LayoutGrid className="h-4 w-4 text-primary" />
@@ -81,12 +81,12 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                   <span className="text-xs text-muted-foreground">Syra presets — payment-gated (x402)</span>
                 </div>
               </div>
-              <Button asChild variant="outline" size="sm" className="gap-1.5 shrink-0">
+              <Button asChild variant="outline" size="sm" className="w-full gap-1.5 shrink-0 sm:w-auto">
                 <Link to="/examples">Browse</Link>
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <div className="flex flex-col gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <FileCode className="h-4 w-4 text-primary" />
@@ -96,7 +96,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                   <span className="text-xs text-muted-foreground">Use the Syra Agent</span>
                 </div>
               </div>
-              <Button asChild variant="outline" size="sm" className="gap-1.5 shrink-0">
+              <Button asChild variant="outline" size="sm" className="w-full gap-1.5 shrink-0 sm:w-auto">
                 <a href="https://agent.syraa.fun" target="_blank" rel="noopener noreferrer">
                   Open
                 </a>

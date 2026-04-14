@@ -9,6 +9,17 @@ export async function createBubblemapsMapsRouter() {
   const router = express.Router();
   const chain = "solana";
 
+  function requireBubblemapsAddress(req, res, next) {
+    const fromQuery = req.query && typeof req.query.address === "string" ? req.query.address.trim() : "";
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const fromBody = typeof body.address === "string" ? body.address.trim() : "";
+    const address = fromQuery || fromBody;
+    if (!address) {
+      return res.status(400).json({ success: false, error: "address is required (Solana token mint)" });
+    }
+    next();
+  }
+
   if (process.env.NODE_ENV !== "production") {
     router.get("/dev", async (req, res) => {
       const { address } = req.query;
@@ -37,6 +48,7 @@ export async function createBubblemapsMapsRouter() {
   // GET endpoint with x402scan compatible schema
   router.get(
     "/",
+    requireBubblemapsAddress,
     requirePayment({
       description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "GET",
@@ -96,6 +108,7 @@ export async function createBubblemapsMapsRouter() {
   // POST endpoint for advanced search
   router.post(
     "/",
+    requireBubblemapsAddress,
     requirePayment({
       description: "Token holder distribution visualization and decentralization score from BubbleMaps",
       method: "POST",

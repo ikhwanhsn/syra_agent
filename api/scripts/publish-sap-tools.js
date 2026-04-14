@@ -20,7 +20,6 @@ import bs58 from "bs58";
 
 const require = createRequire(import.meta.url);
 const { SapConnection, KeypairWallet } = require("@oobe-protocol-labs/synapse-sap-sdk");
-const { deriveAgent } = require("@oobe-protocol-labs/synapse-sap-sdk/pda");
 const { HTTP_METHOD_VALUES, TOOL_CATEGORY_VALUES } = require("@oobe-protocol-labs/synapse-sap-sdk/constants");
 
 const PROTOCOL_ID = "mcp-v1";
@@ -220,10 +219,6 @@ async function main() {
     commitment: "confirmed",
   });
   const client = sap.createClient(new KeypairWallet(keypair));
-  const [agentPda] = deriveAgent(keypair.publicKey);
-
-  console.log("Agent PDA:", agentPda.toBase58());
-  console.log("Publishing", TOOLS.length, "tools...");
 
   const gapMs = Number(process.env.SAP_PUBLISH_GAP_MS || 3000);
 
@@ -231,7 +226,7 @@ async function main() {
     const inputStr = JSON.stringify(t.inputSchema);
     const outputStr = JSON.stringify(t.outputSchema);
     try {
-      const sig = await publishByNameWithRetry(client, [
+      await publishByNameWithRetry(client, [
         t.name,
         PROTOCOL_ID,
         t.description,
@@ -243,19 +238,15 @@ async function main() {
         t.requiredParams,
         false,
       ]);
-      console.log("OK", t.name, sig);
     } catch (e) {
       const msg = e?.message || String(e);
-      if (/already|custom program error|0x0/i.test(msg)) {
-        console.log("Skip (exists or chain error):", t.name, msg.slice(0, 120));
-      } else {
+      if (!/already|custom program error|0x0/i.test(msg)) {
         console.error("FAIL", t.name, msg);
         throw e;
       }
     }
     await sleep(gapMs);
   }
-  console.log("Done. Verify with SAP explorer or list-agent-tools.");
 }
 
 main().catch((err) => {

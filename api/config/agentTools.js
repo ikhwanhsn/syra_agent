@@ -11,6 +11,8 @@ import {
   X402_API_PRICE_ZERION_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_JUPITER_SWAP_USD,
+  X402_API_PRICE_PUMP_FUN_TX_USD,
+  X402_API_PRICE_PUMP_FUN_READ_USD,
   X402_API_PRICE_SQUID_ROUTE_USD,
   X402_API_PRICE_SQUID_STATUS_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
@@ -34,6 +36,8 @@ import {
   X402_DISPLAY_PRICE_ZERION_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
@@ -84,7 +88,7 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'Trading signal',
     description:
-      'Spot OHLC + technical signal (default Binance); optional source for other CEX or n8n|webhook',
+      'Spot OHLC + technical signal; Syra Agent chat uses CoinGecko by default (set source for CEX or n8n|webhook)',
   },
   {
     id: 'sentiment',
@@ -601,6 +605,93 @@ export const AGENT_TOOLS = [
     description: 'Get a Jupiter Ultra swap order for buying or selling a token on Solana; returns transaction to sign and submit',
   },
   {
+    id: 'pumpfun-agents-swap',
+    path: '/pumpfun/agents/swap',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+    name: 'pump.fun agents swap',
+    description:
+      'Build pump.fun buy/sell tx (bonding curve or AMM) via fun-block; body matches pump-fun-skills swap skill (inputMint, outputMint, amount, user); returns base64 transaction',
+  },
+  {
+    id: 'pumpfun-agents-create-coin',
+    path: '/pumpfun/agents/create-coin',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+    name: 'pump.fun create coin',
+    description:
+      'Build pump.fun create + initial buy tx via fun-block; body matches pump-fun-skills create-coin skill (user, name, symbol, uri, solLamports). x402: base + initial-buy volume surcharge from solLamports (see PUMPFUN_CREATE_COIN_VOLUME_FEE_* env)',
+  },
+  {
+    id: 'pumpfun-coin',
+    path: '/pumpfun/coin/:mint',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+    name: 'pump.fun coin metadata',
+    description:
+      'Proxy GET coins-v2/{mint}; x402 scales with usd_market_cap (cached). Same data: GET /pumpfun/coin?mint=',
+  },
+  {
+    id: 'pumpfun-coin-query',
+    path: '/pumpfun/coin',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+    name: 'pump.fun coin metadata (query mint)',
+    description: 'GET /pumpfun/coin?mint=<base58> — same coins-v2 proxy and dynamic x402 as path variant',
+  },
+  {
+    id: 'pumpfun-sol-price',
+    path: '/pumpfun/sol-price',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+    name: 'pump.fun SOL price',
+    description: 'SOL/USD from pump frontend-api-v3 (server-side proxy)',
+  },
+  {
+    id: 'pumpfun-collect-fees',
+    path: '/pumpfun/agents/collect-fees',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+    name: 'pump.fun collect / distribute creator fees',
+    description:
+      'Claim creator fees, distribute shared fees, or claim trading cashback — fun-block POST /agents/collect-fees (mint, user)',
+  },
+  {
+    id: 'pumpfun-sharing-config',
+    path: '/pumpfun/agents/sharing-config',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+    name: 'pump.fun fee sharing config',
+    description:
+      'Create or update who receives creator fees (up to 10 shareholders, bps sum 10000) — fun-block POST /agents/sharing-config',
+  },
+  {
+    id: 'pumpfun-agent-payments-build',
+    path: '/pumpfun/agent-payments/build-accept',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+    name: 'Tokenized agent: build payment tx',
+    description:
+      'Build base64 legacy Transaction for invoice payment (USDC/wSOL) via @pump-fun/agent-payments-sdk; requires SOLANA_RPC_URL',
+  },
+  {
+    id: 'pumpfun-agent-payments-verify',
+    path: '/pumpfun/agent-payments/verify',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+    name: 'Tokenized agent: verify invoice paid',
+    description: 'Verify invoice paid on-chain (agentMint, user, currencyMint, amount, memo, startTime, endTime as numbers)',
+  },
+  {
     id: 'squid-route',
     path: '/squid/route',
     method: 'POST',
@@ -972,6 +1063,9 @@ export function getAgentTool(toolId) {
   if (toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId)) normalized = 'jupiter-swap-order';
   else if (toolId === 'squid_route') normalized = 'squid-route';
   else if (toolId === 'squid_status') normalized = 'squid-status';
+  else if (toolId && typeof toolId === 'string' && toolId.startsWith('pumpfun') && toolId.includes('_')) {
+    normalized = toolId.replace(/_/g, '-');
+  }
   return AGENT_TOOLS.find((t) => t.id === normalized);
 }
 
@@ -1171,6 +1265,57 @@ export function matchToolFromUserMessage(userMessage) {
         /trending\s*(on\s*)?jupiter|jupiter\s*trending|trending\s*tokens?\s*(on\s*jupiter)?/i.test(
           text
         ),
+    },
+    {
+      toolId: 'pumpfun-sol-price',
+      test: () => /pump\.fun\s*sol|sol\s*price\s*pump|pumpfun\s*sol\s*price/i.test(text),
+    },
+    {
+      toolId: 'pumpfun-coin-query',
+      test: () =>
+        /pump\.fun\s*(coin|token)\s*(info|metadata|data)|pumpfun\s*(coin|metadata)|metadata\s*for\s*pump/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'pumpfun-agents-swap',
+      test: () =>
+        /pump\.fun\s+swap|swap\s+on\s+pump|pump\s+swap|buy\s+on\s+pump\.fun|sell\s+on\s+pump\.fun|trade\s+pump\.fun/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'pumpfun-agents-create-coin',
+      test: () =>
+        /launch\s+(?:a\s+)?(?:coin|token)\s+on\s+pump|create\s+coin\s+on\s+pump|pump\.fun\s+launch|new\s+pump\s*(?:\.fun\s*)?(?:coin|token)/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'pumpfun-collect-fees',
+      test: () =>
+        /claim\s+creator\s+fees?\s*pump|collect\s+fees?\s+pump|pump\.fun\s+(collect|claim)\s+fees|creator\s+fees?\s+pump/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'pumpfun-sharing-config',
+      test: () =>
+        /pump\.fun\s+shar(ing|e)\s+fees|fee\s+shar(ing|e)\s+pump|redistribute\s+creator\s+fees?\s+pump/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'pumpfun-agent-payments-build',
+      test: () =>
+        /tokenized\s+agent\s+payment|build\s+(accept|payment)\s*(tx)?\s*pump|invoice\s+payment\s+pump|pump\s+agent\s+payment/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'pumpfun-agent-payments-verify',
+      test: () =>
+        /verify\s+invoice\s+pump|pump\s+verify\s+invoice|invoice\s+paid\s+pump/i.test(text),
     },
     {
       toolId: 'jupiter-swap-order',
@@ -1398,6 +1543,17 @@ export function getCapabilitiesList() {
   ];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const purchVault = ['purch-vault-search', 'purch-vault-buy'];
+  const pumpfun = [
+    'pumpfun-sol-price',
+    'pumpfun-coin',
+    'pumpfun-coin-query',
+    'pumpfun-agents-swap',
+    'pumpfun-agents-create-coin',
+    'pumpfun-collect-fees',
+    'pumpfun-sharing-config',
+    'pumpfun-agent-payments-build',
+    'pumpfun-agent-payments-verify',
+  ];
   const nansenX402 = AGENT_TOOLS.filter((t) => t.nansenPath).map((t) => t.id);
   const zerionX402 = AGENT_TOOLS.filter((t) => t.zerionPath).map((t) => t.id);
 
@@ -1414,6 +1570,11 @@ export function getCapabilitiesList() {
 
   lines.push('Core:', ...fmt(core), '');
   lines.push('Partner (Nansen, Zerion, Jupiter, Squid, Bubblemaps, Binance, Giza):', ...fmt(partner), '');
+  lines.push(
+    'Partner pump.fun (Syra /pumpfun/* x402 proxy; fun-block + coins-v2; use mint + user as required):',
+    ...fmt(pumpfun),
+    ''
+  );
   lines.push('8004scan.io (ERC-8004 agent discovery):', ...fmt(eight004scan), '');
   lines.push('Purch Vault (marketplace for agent skills, knowledge, personas):', ...fmt(purchVault), '');
   if (nansenX402.length) {
@@ -1503,6 +1664,37 @@ export function getToolsForLlmSelection() {
     if (t.id === 'tempo-send-payout') {
       out.paramsHint =
         'Params: amountUsd (required, positive number; cap from server), memo (optional — reconciliation ref). Payout always goes to the user’s linked EVM address or Base agent wallet; never pass a recipient address.';
+    }
+    if (t.id === 'pumpfun-sol-price') {
+      out.paramsHint = 'No params.';
+    }
+    if (t.id === 'pumpfun-coin' || t.id === 'pumpfun-coin-query') {
+      out.paramsHint =
+        'Params: mint (required) — pump.fun token mint base58. For pumpfun-coin-query use tool id pumpfun-coin-query with param mint=…';
+    }
+    if (t.id === 'pumpfun-agents-swap') {
+      out.paramsHint =
+        'Params: inputMint, outputMint, amount (base units string), user (optional — defaults to agent wallet). Bonding curve or graduated AMM per pump.fun.';
+    }
+    if (t.id === 'pumpfun-agents-create-coin') {
+      out.paramsHint =
+        'Params: user (optional), name, symbol, uri (metadata URL), solLamports (string) — launch + initial buy on pump.fun.';
+    }
+    if (t.id === 'pumpfun-collect-fees') {
+      out.paramsHint =
+        'Params: mint (coin), user (optional), encoding base64 optional, frontRunningProtection optional — claim/distribute creator fees.';
+    }
+    if (t.id === 'pumpfun-sharing-config') {
+      out.paramsHint =
+        'Params: mint, user (optional), shareholders JSON string, encoding — fee split recipients (bps sum 10000).';
+    }
+    if (t.id === 'pumpfun-agent-payments-build') {
+      out.paramsHint =
+        'Params: agentMint (tokenized-agent mint only), user (optional), currencyMint, amount, memo, startTime, endTime (strings for API) — build-accept invoice tx.';
+    }
+    if (t.id === 'pumpfun-agent-payments-verify') {
+      out.paramsHint =
+        'Params: agentMint, user (optional), currencyMint, amount, memo, startTime, endTime as numbers — verify invoice paid.';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

@@ -52,7 +52,7 @@ const questionDescription = "Natural language question (e.g. latest BTC news, tr
 async function runBrain(req, res, question) {
   try {
     const apiMessages = [{ role: "user", content: question }];
-    let matchedTools = await selectToolsWithLlm(question);
+    let matchedTools = (await selectToolsWithLlm(question)).tools;
     if (!matchedTools || matchedTools.length === 0) {
       const likelyNeedsLiveData =
         /\b(price|narrative|narratives|news|today|market|solana|trending|latest|current|signal|sentiment|token|defi|btc|eth|volume|ecosystem|headline)\b/i.test(

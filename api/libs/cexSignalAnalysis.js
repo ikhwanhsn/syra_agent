@@ -14,9 +14,11 @@
  * - KuCoin /market/candles: { data: [[time,open,close,high,low,vol,turnover], ...] } (strings)
  * - Upbit /v1/candles/...: [{ opening_price, high_price, low_price, trade_price, timestamp, ... }]
  * - Crypto.com /public/get-candlestick: { result: { data: [{ t,o,h,l,c,v }, ...] } }
+ * - CoinGecko /coins/{id}/ohlc: [[timestamp_ms, open, high, low, close], ...]
  */
 import { CryptoAnalysisEngine } from "../scripts/cryptoAnalysisEngine.js";
 import { buildBinanceSignalReport } from "./binanceSignalAnalysis.js";
+import { buildCoingeckoSignalReport } from "./coingeckoSignalAnalysis.js";
 import { buildOkxSignalReport, resolveOkxInstId } from "./okxSignalAnalysis.js";
 import { barDurationMsGeneric, lastClosedAnchorFromEngineRows } from "./experimentCandleAnchor.js";
 
@@ -27,7 +29,14 @@ import { barDurationMsGeneric, lastClosedAnchorFromEngineRows } from "./experime
 export function pickCexInstrument(meta) {
   const m = meta || {};
   return String(
-    m.symbol || m.instId || m.productId || m.pair || m.market || m.instrument_name || "",
+    m.symbol ||
+      m.instId ||
+      m.productId ||
+      m.pair ||
+      m.market ||
+      m.instrument_name ||
+      m.coingecko_id ||
+      "",
   );
 }
 
@@ -35,6 +44,7 @@ export function pickCexInstrument(meta) {
 export const SIGNAL_CEX_SOURCES = Object.freeze([
   "binance",
   "coinbase",
+  "coingecko",
   "okx",
   "bybit",
   "kraken",
@@ -630,6 +640,10 @@ export async function buildCexSignalReport(source, params) {
     }
     case "coinbase": {
       const out = await buildCoinbaseReport(params);
+      return { ...out, instrument: pickCexInstrument(out.meta) };
+    }
+    case "coingecko": {
+      const out = await buildCoingeckoSignalReport(params);
       return { ...out, instrument: pickCexInstrument(out.meta) };
     }
     case "bybit": {

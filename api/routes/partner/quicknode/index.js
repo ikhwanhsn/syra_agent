@@ -34,6 +34,37 @@ function quicknodeUnavailable(res) {
   });
 }
 
+function requireQuicknodeBalanceQuery(req, res, next) {
+  const { chain, address } = req.query;
+  if (!chain || !address) {
+    return res.status(400).json({ success: false, error: "Missing chain or address" });
+  }
+  next();
+}
+
+function requireQuicknodeTransactionQuery(req, res, next) {
+  const { chain, signature, txHash } = req.query;
+  if (!chain) {
+    return res.status(400).json({ success: false, error: "Missing chain" });
+  }
+  const c = String(chain).toLowerCase();
+  if (c === "solana" && !signature) {
+    return res.status(400).json({ success: false, error: "Missing signature for chain=solana" });
+  }
+  if (c === "base" && !txHash) {
+    return res.status(400).json({ success: false, error: "Missing txHash for chain=base" });
+  }
+  next();
+}
+
+function requireQuicknodeRpcBody(req, res, next) {
+  const { chain, method } = req.body || {};
+  if (!chain || !method) {
+    return res.status(400).json({ success: false, error: "Missing chain or method" });
+  }
+  next();
+}
+
 export async function createQuicknodeRouter() {
   const router = express.Router();
 
@@ -97,6 +128,7 @@ export async function createQuicknodeRouter() {
   // GET /quicknode/balance?chain=solana|base&address=...
   router.get(
     "/balance",
+    requireQuicknodeBalanceQuery,
     requirePayment({
       ...paymentOptions,
       resource: "/quicknode/balance",
@@ -137,6 +169,7 @@ export async function createQuicknodeRouter() {
   // GET /quicknode/transaction?chain=solana&signature=... or chain=base&txHash=...
   router.get(
     "/transaction",
+    requireQuicknodeTransactionQuery,
     requirePayment({
       ...paymentOptions,
       resource: "/quicknode/transaction",
@@ -187,6 +220,7 @@ export async function createQuicknodeRouter() {
   // POST /quicknode/rpc – raw JSON-RPC (body: { chain, method, params, id? })
   router.post(
     "/rpc",
+    requireQuicknodeRpcBody,
     requirePayment({
       ...paymentOptions,
       method: "POST",

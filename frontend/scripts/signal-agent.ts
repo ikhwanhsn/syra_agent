@@ -59,11 +59,8 @@ async function generateSignal(): Promise<SignalData> {
   // Select random trading pair
   const pair = TRADING_PAIRS[Math.floor(Math.random() * TRADING_PAIRS.length)];
 
-  console.log(`📊 Analyzing ${pair.token} (${pair.ticker})...`);
-
   // Fetch current price
   const currentPrice = await fetchMarketPrice(pair.ticker);
-  console.log(`💵 Current price: $${currentPrice.toFixed(2)}`);
 
   // Generate random signal type (in production, use real analysis)
   const signalType: "Buy" | "Sell" = Math.random() > 0.5 ? "Buy" : "Sell";
@@ -100,11 +97,6 @@ async function generateSignal(): Promise<SignalData> {
     };
   }
 
-  console.log(`🎯 Generated ${signal.signal} signal:`);
-  console.log(`   Entry: $${signal.entryPrice}`);
-  console.log(`   Stop Loss: $${signal.stopLoss}`);
-  console.log(`   Take Profit: $${signal.takeProfit}`);
-
   return signal;
 }
 
@@ -113,8 +105,6 @@ async function generateSignal(): Promise<SignalData> {
  */
 async function createSignal(signalData: SignalData): Promise<void> {
   try {
-    console.log("\n🚀 Creating signal via agent API...");
-
     const response = await fetch(`${API_URL}/api/signal/create/agent`, {
       method: "POST",
       headers: {
@@ -130,7 +120,6 @@ async function createSignal(signalData: SignalData): Promise<void> {
     const result = await response.json();
 
     if (response.ok) {
-      console.log("✅ Signal created successfully!");
       // Do not log explorer URL (contains tx signature) or signal ID in case logs are captured
     } else {
       console.error("❌ Failed to create signal:", typeof result.error === "string" ? result.error : "Unknown error");
@@ -145,9 +134,6 @@ async function createSignal(signalData: SignalData): Promise<void> {
  * Main agent function
  */
 async function runAgent() {
-  console.log("🤖 Trading Signal Agent Starting...");
-  console.log(`⏰ Time: ${new Date().toISOString()}\n`);
-
   try {
     // Validate private key
     if (!AGENT_PRIVATE_KEY) {
@@ -162,8 +148,6 @@ async function runAgent() {
 
     // Create signal
     await createSignal(signal);
-
-    console.log("\n✅ Agent execution completed successfully");
   } catch (error) {
     console.error("\n❌ Agent execution failed:", error instanceof Error ? error.message : "Unknown error");
     process.exit(1);

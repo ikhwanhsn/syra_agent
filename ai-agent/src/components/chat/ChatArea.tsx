@@ -21,9 +21,20 @@ interface Message {
   isStreaming?: boolean;
   toolUsage?: {
     name: string;
-    status: "running" | "complete" | "error";
+    status: "running" | "complete" | "error" | "skipped";
+    costUsd?: number;
+    included?: boolean;
   };
-  toolUsages?: Array<{ name: string; status: "running" | "complete" | "error" }>;
+  toolUsages?: Array<{
+    name: string;
+    status: "running" | "complete" | "error" | "skipped";
+    costUsd?: number;
+    included?: boolean;
+    chartMint?: string;
+    chartCoinId?: string;
+    chartSymbol?: string;
+    chartName?: string;
+  }>;
 }
 
 interface ChatAreaProps {
@@ -183,7 +194,7 @@ export function ChatArea({
           className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin overscroll-behavior-contain"
         >
           <div className="flex flex-col flex-1 min-w-0 max-w-full">
-            <div className="divide-y divide-border/50 flex-1 min-w-0 w-full">
+            <div className="flex flex-1 min-w-0 w-full flex-col gap-1.5 px-2 pb-2 pt-1 sm:gap-2 sm:px-4 sm:pb-3 sm:pt-1.5">
               {messages.map((message) => {
                 const isEmptyStreamingAssistant =
                   message.role === "assistant" &&

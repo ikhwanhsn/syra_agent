@@ -13,11 +13,16 @@ const ZERION_BASE = (process.env.ZERION_API_BASE_URL || 'https://api.zerion.io')
  * Parse 402 payment options from Zerion / CDP-style responses (body or Payment-Required header).
  * @param {Response} res
  * @param {object} body
- * @returns {{ accepts: object[]; x402Version?: number } | null}
+ * @returns {{ accepts: object[]; x402Version?: number; resource?: unknown; extensions?: Record<string, unknown> } | null}
  */
 function parse402FromZerion(res, body) {
   if (body?.accepts && Array.isArray(body.accepts) && body.accepts.length > 0) {
-    return { accepts: body.accepts, x402Version: body.x402Version ?? 2 };
+    return {
+      accepts: body.accepts,
+      x402Version: body.x402Version ?? 2,
+      resource: body.resource,
+      extensions: body.extensions,
+    };
   }
   const nested =
     body?.paymentRequirements?.accepts ||
@@ -27,6 +32,8 @@ function parse402FromZerion(res, body) {
     return {
       accepts: nested,
       x402Version: body.x402Version ?? body.paymentRequirements?.x402Version ?? 2,
+      resource: body.resource ?? body.paymentRequirements?.resource ?? body.x402?.resource,
+      extensions: body.extensions ?? body.paymentRequirements?.extensions ?? body.x402?.extensions,
     };
   }
   const header =
@@ -38,7 +45,12 @@ function parse402FromZerion(res, body) {
       const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8'));
       const accepts = Array.isArray(decoded) ? decoded : decoded?.accepts;
       if (accepts?.length) {
-        return { accepts, x402Version: decoded.x402Version ?? 2 };
+        return {
+          accepts,
+          x402Version: decoded.x402Version ?? 2,
+          resource: decoded.resource,
+          extensions: decoded.extensions,
+        };
       }
     } catch {
       // ignore
@@ -166,6 +178,8 @@ async function callZerionWithKeypair(keypair, fetchFn, pathTemplate, method, par
       method: m,
       accepts,
       x402Version: parsed.x402Version ?? 2,
+      resource: parsed.resource,
+      extensions: parsed.extensions,
     },
     fetchFn
   );

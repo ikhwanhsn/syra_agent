@@ -173,10 +173,10 @@ export function HistoryPanel({
       <aside
         className={cn(
           'fixed lg:relative left-0 z-50 lg:z-auto',
-          'max-lg:bottom-0 max-lg:h-auto max-lg:max-h-none lg:inset-y-0 lg:h-full',
+          'max-lg:bottom-0 max-lg:max-h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] max-lg:pb-[env(safe-area-inset-bottom,0px)] sm:max-lg:max-h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] lg:inset-y-0 lg:h-full lg:max-h-none lg:pb-0',
           HISTORY_DRAWER_TOP_CLASS,
           'w-[min(384px,92vw)] sm:w-96 bg-sidebar border-r border-sidebar-border',
-          'flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out',
+          'flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out touch-pan-y overscroll-y-contain',
           'lg:translate-x-0 safe-area-inset-left',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           !isDesktopSidebarOpen && 'lg:-translate-x-full lg:absolute',

@@ -1,8 +1,6 @@
 /**
- * Print the reward vault address (and pool PDA) for manual funding.
- *
- * Use this address as the destination when sending reward tokens manually.
- * Uses .env.local for program ID and reward mint.
+ * Derives the reward vault ATA from .env.local (program ID + reward mint).
+ * Exits 0 if configuration is valid; use explorer or tooling to read the derived vault if needed.
  *
  * Usage (from staking folder):
  *   npx ts-node scripts/get-reward-vault-address.ts
@@ -69,24 +67,11 @@ async function main() {
     [Buffer.from("pool")],
     PROGRAM_ID
   );
-  const rewardVault = await getAssociatedTokenAddress(
+  await getAssociatedTokenAddress(
     REWARD_MINT,
     globalPool,
     true
   );
-
-  console.log("\n--- Staking pool addresses (from .env.local) ---\n");
-  console.log("Program ID:      ", PROGRAM_ID.toBase58());
-  console.log("Global pool PDA: ", globalPool.toBase58());
-  console.log("Reward mint:     ", REWARD_MINT.toBase58());
-  console.log("");
-  console.log("REWARD VAULT (send reward tokens here):");
-  console.log(rewardVault.toBase58());
-  console.log("");
-  console.log("--- How to send manually ---");
-  console.log("1. Phantom: Send your reward token (mint above) to this address.");
-  console.log("2. CLI:     spl-token transfer <REWARD_MINT> <AMOUNT> <REWARD_VAULT_ADDRESS>");
-  console.log("");
 }
 
 main().catch((e) => {

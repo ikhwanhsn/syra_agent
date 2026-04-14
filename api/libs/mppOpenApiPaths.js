@@ -17,6 +17,8 @@ import {
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
@@ -109,6 +111,10 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/neynar/')) return X402_DISPLAY_PRICE_NEYNAR_USD;
   if (p.startsWith('/siwa/')) return X402_DISPLAY_PRICE_SIWA_USD;
   if (p.startsWith('/jupiter/swap/order')) return X402_DISPLAY_PRICE_JUPITER_SWAP_USD;
+  if (p.startsWith('/pumpfun/agent-payments/verify')) return X402_DISPLAY_PRICE_PUMP_FUN_READ_USD;
+  if (p.startsWith('/pumpfun/agent-payments')) return X402_DISPLAY_PRICE_PUMP_FUN_TX_USD;
+  if (p.startsWith('/pumpfun/agents')) return X402_DISPLAY_PRICE_PUMP_FUN_TX_USD;
+  if (p.startsWith('/pumpfun/')) return X402_DISPLAY_PRICE_PUMP_FUN_READ_USD;
   if (p.startsWith('/squid/route')) return X402_DISPLAY_PRICE_SQUID_ROUTE_USD;
   if (p.startsWith('/squid/status')) return X402_DISPLAY_PRICE_SQUID_STATUS_USD;
   if (p.startsWith('/smart-money/') || p.startsWith('/nansen/smart-money/')) return X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD;

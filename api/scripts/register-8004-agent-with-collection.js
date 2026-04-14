@@ -76,8 +76,6 @@ async function main() {
     ipfsClient: ipfs,
   });
 
-  console.log("Cluster:", cluster, "| RPC:", rpcUrl ? new URL(rpcUrl).hostname : "(SDK default)");
-
   // --- 1. Register new agent ---
   const imageUri =
     process.env.SYRA_AGENT_IMAGE_URI || "https://syraa.fun/images/logo.jpg";
@@ -98,12 +96,9 @@ async function main() {
     x402Support: true,
   });
 
-  console.log("Uploading agent registration metadata to IPFS...");
   const cid = await ipfs.addJson(metadata);
   const tokenUri = `ipfs://${cid}`;
-  console.log("Token URI:", tokenUri);
 
-  console.log("Registering new agent on 8004 (Solana)...");
   let result;
   try {
     result = await sdk.registerAgent(tokenUri, {
@@ -125,7 +120,6 @@ async function main() {
   }
 
   const asset = result.asset;
-  console.log("Agent registered. Asset:", asset.toBase58(), "| Tx:", result.signature);
 
   // --- 2. Attach collection to new agent (existing pointer or create new collection) ---
   const existingPointer = process.env.SYRA_COLLECTION_POINTER?.trim() || undefined;
@@ -145,7 +139,6 @@ async function main() {
       process.exit(1);
     }
     collectionPointer = existingPointer;
-    console.log("Using existing collection pointer:", collectionPointer);
   } else {
     const imageUriCol = process.env.SYRA_COLLECTION_IMAGE_URI?.trim() || undefined;
     const bannerUri = process.env.SYRA_COLLECTION_BANNER_URI?.trim() || undefined;
@@ -172,7 +165,6 @@ async function main() {
       socials,
     };
 
-    console.log("Creating Syra collection metadata and uploading to IPFS...");
     const colResult = await sdk.createCollection(collectionData);
 
     if (!colResult.pointer || !colResult.uri) {
@@ -181,24 +173,18 @@ async function main() {
       process.exit(1);
     }
 
-    console.log("Collection URI:", colResult.uri, "| Pointer:", colResult.pointer);
     collectionPointer = colResult.pointer;
   }
 
-  console.log("Attaching collection pointer to new agent...");
   const txResult = await sdk.setCollectionPointer(asset, collectionPointer, { lock: true });
 
-  if (txResult?.success && txResult?.signature) {
-    console.log("Collection attached. Tx:", txResult.signature);
-  } else {
+  if (!(txResult?.success && txResult?.signature)) {
     console.error("setCollectionPointer failed:", txResult?.error ?? "no signature");
     await ipfs.close();
     process.exit(1);
   }
 
   await ipfs.close();
-
-  console.log("\nDone. New agent asset (save for SYRA_AGENT_ASSET):", asset.toBase58());
 }
 
 main().catch((err) => {

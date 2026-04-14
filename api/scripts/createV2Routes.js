@@ -33,7 +33,6 @@ function convertRouteToV2(routeFile) {
   const v2Path = path.join(v2RoutesDir, routeFile);
   
   if (!fs.existsSync(v1Path)) {
-    console.log(`Skipping ${routeFile} - file not found`);
     return;
   }
 
@@ -85,9 +84,7 @@ function convertRouteToV2(routeFile) {
   }
   
   fs.writeFileSync(v2Path, content, 'utf8');
-  console.log(`Created V2 version: ${routeFile}`);
 }
 
 // Convert all routes
 routesToConvert.forEach(convertRouteToV2);
-console.log('V2 route conversion complete!');

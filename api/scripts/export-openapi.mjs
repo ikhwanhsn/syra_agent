@@ -12,4 +12,3 @@ const repoRoot = path.resolve(__dirname, '../..');
 const outPath = path.join(repoRoot, 'openapi.json');
 
 writeFileSync(outPath, `${JSON.stringify(buildGatewayOpenApi(), null, 2)}\n`, 'utf8');
-console.log('Wrote', outPath);

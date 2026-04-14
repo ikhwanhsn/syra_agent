@@ -31,6 +31,15 @@ function parseUrl(s) {
   }
 }
 
+function requireCrawlUrl(req, res, next) {
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const url = parseUrl(body.url ?? req.query?.url);
+  if (!url) {
+    return res.status(400).json({ error: "url is required", message: "Provide a starting URL to crawl." });
+  }
+  next();
+}
+
 export async function createCrawlRouter() {
   const router = express.Router();
 
@@ -172,7 +181,7 @@ export async function createCrawlRouter() {
     }
   };
 
-  router.post("/", requirePayment(paymentOptions), handler);
+  router.post("/", requireCrawlUrl, requirePayment(paymentOptions), handler);
 
   // GET for agent/playground that send params as query (e.g. ?url=...&limit=20)
   const getPaymentOptions = {
@@ -191,7 +200,7 @@ export async function createCrawlRouter() {
       },
     },
   };
-  router.get("/", requirePayment(getPaymentOptions), handler);
+  router.get("/", requireCrawlUrl, requirePayment(getPaymentOptions), handler);
 
   return router;
 }

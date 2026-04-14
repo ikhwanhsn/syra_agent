@@ -18,7 +18,6 @@ export const saveToLeaderboard = async (data) => {
   //   "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump"
   // );
   // if (balance === 0) {
-  //   console.log(`Wallet ${wallet} does not hold SYRA token`);
   //   return;
   // }
 

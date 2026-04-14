@@ -38,10 +38,10 @@ const NotFound = () => {
   const glitchedCode = useGlitchText('404', 120);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background relative overflow-hidden">
+    <div className="flex min-h-[100dvh] min-h-screen w-full max-w-[100vw] items-center justify-center overflow-x-hidden bg-background px-4 py-8 relative">
       {/* Background grid + glow */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-neon-purple/10 via-transparent to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 max-w-[100vw] -translate-x-1/2 -translate-y-1/2 w-[min(600px,140vw)] h-[min(600px,140vw)] rounded-full bg-gradient-to-br from-neon-purple/10 via-transparent to-transparent blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
       <div className="relative z-10 w-full max-w-lg mx-auto px-6 py-12 text-center">

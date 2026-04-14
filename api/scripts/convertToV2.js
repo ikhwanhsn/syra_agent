@@ -19,7 +19,6 @@ if (!fs.existsSync(v2PartnerDir)) {
 
 function convertFile(sourcePath, targetPath, routeName, depth = 0) {
   if (!fs.existsSync(sourcePath)) {
-    console.log(`Skipping ${sourcePath} - file not found`);
     return;
   }
 
@@ -84,7 +83,6 @@ function convertFile(sourcePath, targetPath, routeName, depth = 0) {
   }
   
   fs.writeFileSync(targetPath, content, 'utf8');
-  console.log(`✓ Created V2: ${routeName}`);
 }
 
 // Convert core routes (depth 0)
@@ -150,5 +148,3 @@ if (fs.existsSync(memecoinDir)) {
     convertFile(sourcePath, targetPath, routeName, 1);
   });
 }
-
-console.log('\n✅ V2 route conversion complete!');

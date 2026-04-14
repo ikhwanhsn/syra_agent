@@ -200,13 +200,41 @@ async function ensureX402ForReq(req) {
   }
 }
 
+/**
+ * Resolve list price in USD before playground / payer discounts.
+ * When `options.getPriceUsd` is a function, it receives `req` and may return a finite number >= 0
+ * or a Promise of that number.
+ * Otherwise uses `options.price` or global default.
+ * @param {object} options - requirePayment options
+ * @param {import('express').Request} req
+ * @returns {Promise<number>}
+ */
+async function resolveRawPriceUsdForRequest(options, req) {
+  if (typeof options.getPriceUsd === "function") {
+    try {
+      const r = options.getPriceUsd(req);
+      const resolved = r && typeof r.then === "function" ? await r : r;
+      const n = Number(resolved);
+      if (Number.isFinite(n) && n >= 0) return n;
+    } catch {
+      /* fall through */
+    }
+  }
+  return parseFloat(options.price ?? X402_API_PRICE_USD);
+}
+
 async function buildPaymentRequired(bundle, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { resourceServer, config, assets } = bundle;
-  const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
+  const rawPrice = await resolveRawPriceUsdForRequest(options, req);
   const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
   const microUnits = String(Math.round(priceUsd * 1_000_000));
-  const resourceUrl = options.resource ? `${BASE_URL}${options.resource}` : adapter.getUrl();
+  // Bind x402 `resource.url` to the URL this HTTP request actually used (ExpressAdapter).
+  // Previously we used `${BASE_URL}${options.resource}` when `resource` was set; that breaks
+  // server-to-self agent calls (resolveAgentBaseUrl → localhost) while BASE_URL is public:
+  // PAYMENT-SIGNATURE then carried api.syraa.fun but the client retried localhost — Corbits
+  // verify rejects that mismatch. Playground always hit the public URL so it worked.
+  const resourceUrl = adapter.getUrl();
   const maxTimeout = options.maxTimeoutSeconds ?? 60;
 
   // Offer both Solana and Base so clients can pay with either network
@@ -334,6 +362,9 @@ async function settleSolanaPaymentLocally(payload, accepted) {
  * 4. Store req.x402Payment = { payload, accepted } and next().
  * Routes must call getX402ResourceServer().resourceServer.settlePayment(payload, accepted) on success
  * and set Payment-Response with encodePaymentResponseHeader(settle).
+ *
+ * Options: set `getPriceUsd(req)` to a function returning list-price USD (or Promise<number>) before payer
+ * discounts; it must match on both 402 and paid retry. If omitted, `price` (or X402_API_PRICE_USD) is used.
  */
 export function requirePayment(options) {
   return async (req, res, next) => {
@@ -369,7 +400,7 @@ export function requirePayment(options) {
         return;
       }
 
-      const rawPrice = parseFloat(options.price ?? X402_API_PRICE_USD);
+      const rawPrice = await resolveRawPriceUsdForRequest(options, req);
       const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
       const expectedMicroUnits = String(Math.round(priceUsd * 1_000_000));
       const acc = payload.accepted;

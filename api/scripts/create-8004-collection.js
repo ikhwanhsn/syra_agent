@@ -53,8 +53,7 @@ async function main() {
     process.exit(1);
   }
 
-  const agentAssetBase58 = process.env.SYRA_AGENT_ASSET || DEFAULT_AGENT_ASSET;
-  const asset = new PublicKey(agentAssetBase58);
+  const asset = new PublicKey(process.env.SYRA_AGENT_ASSET || DEFAULT_AGENT_ASSET);
 
   const ipfs = new IPFSClient({
     pinataEnabled: true,
@@ -74,7 +73,6 @@ async function main() {
   // AccountNotInitialized usually means cluster mismatch: agent was registered on a different
   // cluster (e.g. mainnet) but this script is using another (e.g. devnet). Use the same
   // SOLANA_CLUSTER and RPC as when you ran register-8004.
-  console.log("Cluster:", cluster, "| RPC:", rpcUrl ? new URL(rpcUrl).hostname : "(SDK default)");
 
   const imageUri = process.env.SYRA_COLLECTION_IMAGE_URI?.trim() || undefined;
   const bannerUri = process.env.SYRA_COLLECTION_BANNER_URI?.trim() || undefined;
@@ -101,7 +99,6 @@ async function main() {
     socials,
   };
 
-  console.log("Creating Syra collection metadata and uploading to IPFS...");
   const result = await sdk.createCollection(collectionData);
 
   if (!result.pointer || !result.uri) {
@@ -109,16 +106,9 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Collection URI:", result.uri);
-  console.log("Collection pointer:", result.pointer);
-
-  console.log("Attaching collection pointer to Syra agent", agentAssetBase58, "...");
   const txResult = await sdk.setCollectionPointer(asset, result.pointer, { lock: true });
 
-  if (txResult?.success && txResult?.signature) {
-    console.log("Collection created and attached successfully.");
-    console.log("Transaction signature:", txResult.signature);
-  } else {
+  if (!(txResult?.success && txResult?.signature)) {
     const err = txResult?.error ?? "no signature returned";
     if (typeof err === "string" && (err.includes("CollectionPointerAlreadySet") || err.includes("Collection pointer is locked"))) {
       console.error("setCollectionPointer failed: Collection pointer is already set and locked for this agent.");

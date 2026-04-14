@@ -51,7 +51,6 @@ export async function getTokenBalance(walletAddress, mintAddress) {
 //       const amount =
 //         walletTokenAccounts.value[0].account.data.parsed.info.tokenAmount
 //           .uiAmount;
-//       console.log(`Token balance: ${amount}`);
 //       return amount || 0;
 //     }
 

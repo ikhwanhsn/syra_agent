@@ -72,6 +72,12 @@ export const X402_API_PRICE_ZERION_USD = price(0.01);
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
+/** pump.fun fun-block tx builders — swap: PUMPFUN_SWAP_* (swapX402Price.js); create-coin: PUMPFUN_CREATE_COIN_* (createCoinX402Price.js) */
+export const X402_API_PRICE_PUMP_FUN_TX_USD = price(0.02);
+
+/** pump.fun read-only (coins-v2, sol-price) via frontend-api proxy; coin route may add mcap-based surcharge (coinReadX402Price.js) */
+export const X402_API_PRICE_PUMP_FUN_READ_USD = price(0.01);
+
 /** Squid Router cross-chain route (quote + transactionRequest for first leg) */
 export const X402_API_PRICE_SQUID_ROUTE_USD = price(0.02);
 /** Squid Router cross-chain transaction status */
@@ -140,6 +146,8 @@ export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ZERION_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;

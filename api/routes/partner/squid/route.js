@@ -13,6 +13,24 @@ const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 const SQUID_ROUTE_URL = "https://v2.api.squidrouter.com/v2/route";
 
 /** @param {Record<string, unknown>} body - fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress, slippage?, slippageConfig? */
+function requireSquidRouteBody(req, res, next) {
+  const body = req.body || {};
+  const fromAddress = body.fromAddress;
+  const fromChain = body.fromChain;
+  const fromToken = body.fromToken;
+  const fromAmount = body.fromAmount;
+  const toChain = body.toChain;
+  const toToken = body.toToken;
+  const toAddress = body.toAddress;
+  if (!fromAddress || !fromChain || !fromToken || fromAmount == null || fromAmount === "" || !toChain || !toToken || !toAddress) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required body: fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress",
+    });
+  }
+  next();
+}
+
 async function fetchSquidRoute(body) {
   const integratorId = process.env.SQUID_INTEGRATOR_ID;
   if (!integratorId) {
@@ -100,6 +118,7 @@ export async function createSquidRouteRouter() {
 
   router.post(
     "/",
+    requireSquidRouteBody,
     requirePayment({ ...paymentOptions }),
     async (req, res) => {
       const body = req.body || {};
@@ -110,11 +129,6 @@ export async function createSquidRouteRouter() {
       const toChain = body.toChain;
       const toToken = body.toToken;
       const toAddress = body.toAddress;
-      if (!fromAddress || !fromChain || !fromToken || fromAmount == null || fromAmount === "" || !toChain || !toToken || !toAddress) {
-        return res.status(400).json({
-          error: "Missing required body: fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress",
-        });
-      }
       const params = {
         fromAddress,
         fromChain: String(fromChain),

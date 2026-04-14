@@ -1,22 +1,11 @@
 /**
  * Agent x402 client: call x402 API v2 using agent keypair (pay automatically).
- * Used by the Syra agent to access paid APIs; balance must be checked before calling.
- * Internal requests to our own API (BASE_URL) include X-API-Key so proxies/middleware that require auth allow them.
- * Self-API calls (localhost / api.syraa.fun) use raw fetch (no Sentinel) to avoid budget/audit interference.
+ * Uses the same stack as the internal tester agent (`@x402/fetch` + `x402Client` + `ExactSvmScheme` from `@x402/svm`)
+ * so payment txs match facilitator expectations (fee payer from `accepts[0].extra.feePayer`, @solana/kit wire format).
+ * Internal requests to our own API include X-API-Key; self-API uses raw fetch (no Sentinel) when chosen via chooseFetch.
  */
-import { Connection, PublicKey } from '@solana/web3.js';
-import {
-  TransactionMessage,
-  VersionedTransaction,
-  ComputeBudgetProgram,
-} from '@solana/web3.js';
-import {
-  getAssociatedTokenAddress,
-  createTransferCheckedInstruction,
-  getMint,
-  TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-} from '@solana/spl-token';
+import { Connection } from '@solana/web3.js';
+import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { getAgentKeypair } from './agentWallet.js';
@@ -100,31 +89,89 @@ export function getTreasuryKeypair() {
   }
 }
 
-/** Placeholder signature (64 zero bytes base58) = tx was not actually signed; RPC returns this when tx is invalid. */
-const ZERO_SIG_BASE58 = '1'.repeat(64);
-
-const USDC_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-
 // Prefer RPC that allows blockchain access (getAccountInfo, sendRawTransaction, etc.).
-// Some keys (e.g. Alchemy restricted) return 403 "not allowed to access blockchain".
-const RPC_URL =
-  process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
-  process.env.SOLANA_RPC_READ_ONLY_URL ||
-  process.env.SOLANA_RPC_URL ||
-  process.env.VITE_SOLANA_RPC_URL ||
-  'https://rpc.ankr.com/solana';
+// Alchemy / some providers return 403 + -32052 when the key is not allowed to use "blockchain" JSON-RPC
+// on that hostname — see https://docs.alchemy.com/reference/throughput (use a full-access endpoint or
+// set SOLANA_RPC_BLOCKCHAIN_URL). Same for Helius: use a URL that allows getAccountInfo / sendTransaction.
+const DEFAULT_PUBLIC_SOLANA_HTTP = 'https://api.mainnet-beta.solana.com';
 
-// Fallback RPC when primary returns "not allowed to access blockchain" (Alchemy -32052).
-const RPC_FALLBACK_URL =
-  process.env.SOLANA_RPC_FALLBACK_URL &&
-  process.env.SOLANA_RPC_FALLBACK_URL.trim() !== (process.env.SOLANA_RPC_URL || '').trim()
-    ? process.env.SOLANA_RPC_FALLBACK_URL.trim()
-    : 'https://rpc.ankr.com/solana';
+function trimEnv(name) {
+  return String(process.env[name] || '').trim();
+}
+
+/** Effective primary: first env in priority order, else Solana public mainnet-beta. */
+function getEffectivePrimaryRpcUrl() {
+  return (
+    trimEnv('SOLANA_RPC_BLOCKCHAIN_URL') ||
+    trimEnv('SOLANA_RPC_READ_ONLY_URL') ||
+    trimEnv('SOLANA_RPC_URL') ||
+    trimEnv('VITE_SOLANA_RPC_URL') ||
+    DEFAULT_PUBLIC_SOLANA_HTTP
+  );
+}
+
+const RPC_PRIMARY_URL = getEffectivePrimaryRpcUrl();
+
+// Fallback must never equal the effective primary. Previously we compared only to SOLANA_RPC_URL,
+// so when primary came from SOLANA_RPC_READ_ONLY_URL (Alchemy) and SOLANA_RPC_FALLBACK_URL matched
+// SOLANA_RPC_URL (empty), we incorrectly set fallback to the same Alchemy URL — switch "to fallback"
+// did nothing and getMint kept returning 403.
+const _fallbackCandidate = trimEnv('SOLANA_RPC_FALLBACK_URL');
+const RPC_FALLBACK_URL = (() => {
+  if (_fallbackCandidate && _fallbackCandidate !== RPC_PRIMARY_URL) {
+    return _fallbackCandidate;
+  }
+  // Never use the same URL as primary (switch would be a no-op).
+  if (RPC_PRIMARY_URL === DEFAULT_PUBLIC_SOLANA_HTTP) {
+    return 'https://rpc.ankr.com/solana';
+  }
+  return DEFAULT_PUBLIC_SOLANA_HTTP;
+})();
+
+const RPC_URL = RPC_PRIMARY_URL;
+
+/**
+ * RPC for @x402/svm ExactSvmScheme (fetchMint, blockhash). Must allow blockchain JSON-RPC.
+ * Never prefer SOLANA_RPC_READ_ONLY_URL here — Alchemy "Data" / read-only endpoints return 403 / -32052
+ * for getAccountInfo (USDC mint), breaking Corbits-paid calls. Internal tester uses ExactSvmScheme(signer)
+ * with no rpcUrl → public mainnet-beta; we mirror that when no full blockchain URL is set.
+ */
+const RPC_X402_EXACT_PRIMARY =
+  trimEnv('SOLANA_RPC_BLOCKCHAIN_URL') ||
+  trimEnv('SOLANA_RPC_URL') ||
+  trimEnv('VITE_SOLANA_RPC_URL') ||
+  DEFAULT_PUBLIC_SOLANA_HTTP;
+
+const RPC_X402_EXACT_FALLBACK = (() => {
+  const c = trimEnv('SOLANA_RPC_FALLBACK_URL');
+  if (c && c !== RPC_X402_EXACT_PRIMARY) return c;
+  if (RPC_X402_EXACT_PRIMARY === DEFAULT_PUBLIC_SOLANA_HTTP) {
+    return 'https://rpc.ankr.com/solana';
+  }
+  return DEFAULT_PUBLIC_SOLANA_HTTP;
+})();
 
 /** True if error is Alchemy "not allowed to access blockchain" or similar RPC access restriction. */
 function isRpcBlockchainAccessError(e) {
-  const msg = e?.message || String(e);
-  return /not allowed to access blockchain|json-rpc code:\s*-32052|403 Forbidden/i.test(msg);
+  const parts = [e?.message, e?.cause?.message, typeof e === 'string' ? e : ''];
+  if (e && typeof e === 'object' && Array.isArray(e.errors)) {
+    for (const sub of e.errors) {
+      if (typeof sub === 'string') parts.push(sub);
+      else if (sub && typeof sub === 'object') parts.push(sub.message, sub.cause?.message);
+    }
+  }
+  let msg = parts.filter(Boolean).join(' ');
+  try {
+    if (msg.length < 20 && e && typeof e === 'object') {
+      msg += JSON.stringify(e).slice(0, 500);
+    }
+  } catch {
+    /* ignore */
+  }
+  return (
+    /not allowed to access blockchain|json-rpc code:\s*-32052|403 Forbidden|-32052/i.test(msg) ||
+    /failed to get info about account.*403/i.test(msg)
+  );
 }
 
 /** Get a Connection, falling back if the primary RPC blocks blockchain access. */
@@ -185,57 +232,81 @@ async function confirmTransactionByPolling(connection, signature, lastValidBlock
   return { confirmed: false, error: 'Confirmation timeout' };
 }
 
-/**
- * Normalize 402 accept option to v2 PaymentRequirements shape (flat asset/amount).
- * V2 API may return price: { asset, amount }; server expects top-level asset/amount.
- * @param {object} accept - Raw accept from 402 response (accepts[0])
- * @returns {object} Normalized accept for tx building and PAYMENT-SIGNATURE
- */
-function normalizeAccept(accept) {
-  const amount = String(
-    accept.price?.amount ?? accept.amount ?? accept.maxAmountRequired ?? '0'
+/** RPC URL passed into @x402/svm ExactSvmScheme (must allow getAccountInfo / getLatestBlockhash). */
+function getSvmRpcUrlForX402() {
+  return _useFallbackRpc ? RPC_X402_EXACT_FALLBACK : RPC_X402_EXACT_PRIMARY;
+}
+
+/** Corbits facilitator may return 429 under burst — same backoff idea as libs/testerAgent/tests.js */
+const FACILITATOR_429_MAX_ATTEMPTS = 6;
+const FACILITATOR_429_BASE_DELAY_MS = 2000;
+
+function facilitatorErrorLooks429(e) {
+  const msg = e instanceof Error ? e.message : String(e);
+  return (
+    /\b429\b/i.test(msg) &&
+    (/too many requests/i.test(msg) || /rate limit/i.test(msg) || /HTTP error \(429\)/i.test(msg))
   );
-  const asset = accept.price?.asset ?? accept.asset ?? USDC_MAINNET;
-  return {
-    scheme: accept.scheme || 'exact',
-    network: accept.network,
-    payTo: accept.payTo,
-    asset,
-    amount,
-    maxTimeoutSeconds: accept.maxTimeoutSeconds ?? 60,
-    extra: accept.extra && typeof accept.extra === 'object' ? accept.extra : {},
-  };
+}
+
+function sleepBackoffMs(ms, signal) {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(t);
+      reject(signal?.reason instanceof Error ? signal.reason : new Error('aborted'));
+    };
+    const t = setTimeout(() => {
+      if (signal) signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    if (signal) {
+      if (signal.aborted) {
+        clearTimeout(t);
+        onAbort();
+        return;
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  });
 }
 
 /**
- * Build PAYMENT-SIGNATURE header (base64) for x402 v2.
- * V2 server expects decodePaymentSignatureHeader(header) to return PaymentPayload with .accepted and .payload.transaction (and optionally .payload.signature).
- * @param {VersionedTransaction} signedTx
- * @param {object} accepted - Normalized PaymentRequirements (scheme, network, payTo, asset, amount, ...)
- * @param {number} x402Version - Must be 2 for Syra API; v1 is legacy.
- * @returns {string} base64 payment header
+ * @param {(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>} paymentFetch
  */
-function createPaymentHeaderFromTx(signedTx, accepted, x402Version = 2) {
-  const serialized = Buffer.from(signedTx.serialize()).toString('base64');
-  const sig = signedTx.signatures?.[0];
-  const signatureB58 = sig && sig.length === 64 ? bs58.encode(Buffer.from(sig)) : null;
-  const paymentPayload = {
-    x402Version: Number(x402Version) === 1 ? 1 : 2,
-    accepted,
-    payload: {
-      transaction: serialized,
-      ...(signatureB58 && { signature: signatureB58 }),
-    },
-  };
-  return Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
+async function paidFetchWithCorbits429Backoff(paymentFetch, url, init) {
+  for (let attempt = 0; attempt < FACILITATOR_429_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await paymentFetch(url, init);
+    } catch (e) {
+      if (!facilitatorErrorLooks429(e) || attempt === FACILITATOR_429_MAX_ATTEMPTS - 1) {
+        throw e;
+      }
+      const delay = Math.round(FACILITATOR_429_BASE_DELAY_MS * 2 ** attempt + Math.random() * 400);
+      await sleepBackoffMs(delay, init?.signal);
+    }
+  }
+  throw new Error('Corbits payment fetch: retries exhausted');
+}
+
+/**
+ * Same stack as the internal tester agent (`getNansenPaymentFetch`): @x402/fetch + x402Client + ExactSvmScheme.
+ * Uses facilitator-provided `extra.feePayer` and @solana/kit wire format so Corbits verify matches (avoids "Invalid transaction" from hand-built web3.js txs).
+ */
+async function createX402WrapFetch(keypair, fetchFn) {
+  const { wrapFetchWithPayment } = await import('@x402/fetch');
+  const { x402Client } = await import('@x402/core/client');
+  const { ExactSvmScheme } = await import('@x402/svm/exact/client');
+  const { createKeyPairSignerFromBytes } = await import('@solana/kit');
+  const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
+  const scheme = new ExactSvmScheme(signer, { rpcUrl: getSvmRpcUrlForX402() });
+  const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
+  return wrapFetchWithPayment(fetchFn, client);
 }
 
 /**
  * Call an x402 v2 API using the agent wallet (pay automatically with agent keypair).
- * 1. GET/POST the resource URL -> expect 402 with accepts[]
- * 2. Build VersionedTransaction (feePayer from accepts, transfer from agent to payTo)
- * 3. Sign with agent keypair
- * 4. Call resource again with PAYMENT-SIGNATURE header
+ * Uses @x402/fetch (402 → pay → retry), same as `getNansenPaymentFetch` / tester paid probes.
  *
  * @param {object} opts
  * @param {string} opts.anonymousId - Agent wallet anonymousId
@@ -292,7 +363,6 @@ export async function callX402V2WithTreasury(opts) {
 
 async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) {
   const { url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
-  const agentPubkey = keypair.publicKey;
 
   const buildUrl = () => {
     const u = new URL(url);
@@ -302,9 +372,11 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
     return u.toString();
   };
 
-  // 1. Initial request to get 402 with accepts (X-Connected-Wallet => API applies dev pricing when that wallet is a dev wallet)
   const initialUrl = buildUrl();
-  const initHeaders = { 'Content-Type': 'application/json' };
+  const initHeaders = { Accept: 'application/json' };
+  if (method === 'POST' || (body && method !== 'GET' && method !== 'HEAD')) {
+    initHeaders['Content-Type'] = 'application/json';
+  }
   if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
     initHeaders['X-Connected-Wallet'] = connectedWalletAddress.trim();
   }
@@ -312,200 +384,137 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
   const initOpts = {
     method,
     headers: initHeaders,
+    redirect: 'manual',
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
-  const firstRes = await fetchFn(initialUrl, initOpts);
-  const firstData = await firstRes.json().catch(() => ({}));
 
-  // Success without payment (e.g. free tier or cached)
-  if (firstRes.ok) {
-    return { success: true, data: firstData };
-  }
-  // Payment required: proceed to pay and retry
-  if (firstRes.status === 402) {
-    const accepts = firstData?.accepts;
-    if (!accepts?.length) {
-      return { success: false, error: '402 response missing accepts array' };
+  async function fetchPaid() {
+    const paymentFetch = await createX402WrapFetch(keypair, fetchFn);
+    const res = await paidFetchWithCorbits429Backoff(paymentFetch, initialUrl, initOpts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const errMsg =
+        data?.error ||
+        data?.message ||
+        (typeof data?.detail === 'string' ? data.detail : '') ||
+        res.statusText ||
+        `Request failed: ${res.status}`;
+      const safeUrl = (() => {
+        try {
+          const u = new URL(initialUrl);
+          return u.origin + u.pathname;
+        } catch {
+          return '(url)';
+        }
+      })();
+      const safeMsg = typeof errMsg === 'string' ? (errMsg.length > 200 ? errMsg.slice(0, 200) + '…' : errMsg) : 'non-string error';
+      console.error(`[agentX402] x402 paid request failed: ${res.status} ${res.statusText} → ${safeUrl}`, safeMsg);
+      return {
+        success: false,
+        error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+        ...(res.status === 402 && /budget|sentinel/i.test(String(errMsg)) ? { budgetExceeded: true } : {}),
+      };
     }
-    return pay402AndRetry(keypair, {
-      url: initialUrl,
-      method,
-      body,
-      accepts,
-      x402Version: firstData.x402Version ?? 2,
-      connectedWalletAddress,
-    }, fetchFn);
+    return { success: true, data };
   }
-  // Upstream returned 4xx/5xx – log for diagnostics and surface error to caller (do not log full URL or response body)
-  const errMsg = firstData?.error || firstData?.message || firstRes.statusText || `Request failed: ${firstRes.status}`;
-  const safeUrl = (() => { try { const u = new URL(initialUrl); return u.origin + u.pathname; } catch { return '(url)'; } })();
-  const safeMsg = typeof errMsg === 'string' ? (errMsg.length > 200 ? errMsg.slice(0, 200) + '…' : errMsg) : 'non-string error';
-  console.error(`[agentX402] Initial request failed: ${firstRes.status} ${firstRes.statusText} → ${safeUrl}`, safeMsg);
-  return { success: false, error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg) };
+
+  try {
+    return await fetchPaid();
+  } catch (e) {
+    if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
+      const msg = e?.message || String(e);
+      return { success: false, error: msg, budgetExceeded: true };
+    }
+    if (isRpcBlockchainAccessError(e)) {
+      switchToFallbackRpc();
+      try {
+        return await fetchPaid();
+      } catch (e2) {
+        if (e2 && (e2.name === 'SentinelBudgetError' || e2 instanceof SentinelBudgetError)) {
+          return { success: false, error: e2.message || String(e2), budgetExceeded: true };
+        }
+        const msg = e2?.message || String(e2);
+        console.error(`[agentX402] callX402V2WithKeypair (after RPC fallback):`, e2?.name || 'Error', msg);
+        return { success: false, error: msg };
+      }
+    }
+    const msg = e?.message || String(e);
+    console.error(`[agentX402] callX402V2WithKeypair threw:`, e?.name || 'Error', msg);
+    return { success: false, error: msg };
+  }
 }
 
 /**
- * Execute 402 payment with keypair and retry the request. Used by Syra v2 and by Nansen direct calls.
+ * Execute paid request (402 handled inside @x402/fetch). Used by Nansen / Zerion / Purch Vault.
+ * `opts.accepts` / `resource` / `extensions` are ignored — kept for call-site compatibility.
  * @param {import('@solana/web3.js').Keypair} keypair
- * @param {{ url: string; method?: string; body?: object; accepts: object[]; x402Version?: number; connectedWalletAddress?: string }} opts
- * @returns {Promise<{ success: true; data: any } | { success: false; error: string }>}
+ * @param {{ url: string; method?: string; body?: object; accepts?: object[]; connectedWalletAddress?: string }} opts
+ * @returns {Promise<{ success: true; data: any } | { success: false; error: string; budgetExceeded?: boolean }>}
  */
 export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) {
-  const { url, method = 'POST', body, accepts, x402Version = 2, connectedWalletAddress } = opts;
-  let connection = getConnection();
-  const agentPubkey = keypair.publicKey;
-
-  const rawAccept = accepts[0];
-  const accept = normalizeAccept(rawAccept);
-  const amountStr = accept.amount;
-  const amount = BigInt(amountStr);
-  const payTo = accept.payTo;
-  const asset = accept.asset;
-  const feePayerPubkey = agentPubkey;
-  const destinationPubkey = new PublicKey(payTo);
-  const mintPubkey = new PublicKey(asset);
-
-  // Build payment transaction; auto-retry with fallback RPC if primary blocks blockchain access.
-  async function buildPaymentTx(conn) {
-    let programId = TOKEN_PROGRAM_ID;
-    try {
-      const mintInfo = await conn.getAccountInfo(mintPubkey, 'confirmed');
-      if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
-        programId = TOKEN_2022_PROGRAM_ID;
-      }
-    } catch {
-      // keep TOKEN_PROGRAM_ID
-    }
-
-    const mint = await getMint(conn, mintPubkey, undefined, programId);
-    const sourceAta = await getAssociatedTokenAddress(mintPubkey, agentPubkey, false, programId);
-    const destAta = await getAssociatedTokenAddress(mintPubkey, destinationPubkey, false, programId);
-
-    const sourceAtaInfo = await conn.getAccountInfo(sourceAta, 'confirmed');
-    if (!sourceAtaInfo) {
-      return { error: 'Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.' };
-    }
-    const destAtaInfo = await conn.getAccountInfo(destAta, 'confirmed');
-    if (!destAtaInfo) {
-      return { error: 'Recipient token account not found. The API treasury must have a USDC token account.' };
-    }
-
-    const instructions = [
-      ComputeBudgetProgram.setComputeUnitLimit({ units: 7_000 }),
-      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
-      createTransferCheckedInstruction(sourceAta, mintPubkey, destAta, agentPubkey, amount, mint.decimals, [], programId),
-    ];
-    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('confirmed');
-    return { instructions, blockhash, lastValidBlockHeight, mint };
+  const { url, method = 'POST', body, connectedWalletAddress } = opts;
+  const headers = { Accept: 'application/json' };
+  if (method === 'POST' || (body && method !== 'GET' && method !== 'HEAD')) {
+    headers['Content-Type'] = 'application/json';
   }
-
-  let txBuild;
-  try {
-    txBuild = await buildPaymentTx(connection);
-  } catch (e) {
-    if (isRpcBlockchainAccessError(e)) {
-      switchToFallbackRpc();
-      connection = getConnection();
-      txBuild = await buildPaymentTx(connection);
-    } else {
-      throw e;
-    }
+  if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
+    headers['X-Connected-Wallet'] = connectedWalletAddress.trim();
   }
-  if (txBuild.error) {
-    return { success: false, error: txBuild.error };
-  }
-  const { instructions, blockhash, lastValidBlockHeight } = txBuild;
-  const message = new TransactionMessage({
-    payerKey: feePayerPubkey,
-    recentBlockhash: blockhash,
-    instructions,
-  }).compileToV0Message();
+  addInternalApiKeyIfOwnUrl(url, headers);
+  const init = {
+    method,
+    headers,
+    redirect: 'manual',
+    ...(body != null && method !== 'GET' && method !== 'HEAD'
+      ? { body: typeof body === 'string' ? body : JSON.stringify(body) }
+      : {}),
+  };
 
-  const transaction = new VersionedTransaction(message);
-  transaction.sign([keypair]);
-
-  const sig0 = transaction.signatures[0];
-  if (!sig0 || sig0.length !== 64 || sig0.every((b) => b === 0)) {
-    const err =
-      'Transaction signing failed: fee payer must be the agent wallet. The payment was not sent.';
-    return { success: false, error: err };
-  }
-
-  let signature;
-  try {
-    signature = await connection.sendRawTransaction(transaction.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
-    if (signature === ZERO_SIG_BASE58) {
+  async function attempt() {
+    const paymentFetch = await createX402WrapFetch(keypair, fetchFn);
+    const res = await paidFetchWithCorbits429Backoff(paymentFetch, url, init);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err =
+        data?.error ||
+        data?.message ||
+        (typeof data?.detail === 'string' ? data.detail : '') ||
+        res.statusText ||
+        `Request failed: ${res.status}`;
+      const msg = typeof err === 'string' ? err : JSON.stringify(err);
       return {
         success: false,
-        error: 'Payment transaction was invalid (not signed). Balance was not deducted.',
+        error: msg,
+        ...(res.status === 402 && /budget|sentinel/i.test(msg) ? { budgetExceeded: true } : {}),
       };
     }
-  } catch (sendErr) {
-    if (isRpcBlockchainAccessError(sendErr)) {
-      switchToFallbackRpc();
-      connection = getConnection();
-      try {
-        signature = await connection.sendRawTransaction(transaction.serialize(), {
-          skipPreflight: false,
-          maxRetries: 3,
-        });
-      } catch (retryErr) {
-        const rawMsg = retryErr?.message || 'Failed to submit payment transaction to Solana';
-        return { success: false, error: rawMsg };
-      }
-    } else {
-      const rawMsg = sendErr?.message || 'Failed to submit payment transaction to Solana';
-      const isDebitNoCredit =
-        /debit an account but found no record of a prior credit/i.test(rawMsg) ||
-        /insufficient funds/i.test(rawMsg);
-      const err = isDebitNoCredit
-        ? 'Agent wallet needs SOL for transaction fees. The wallet has USDC but no (or not enough) SOL to pay the network fee. Send a small amount of SOL (e.g. 0.01 SOL) to the agent wallet: ' +
-          agentPubkey.toBase58()
-        : rawMsg;
-      return { success: false, error: err };
+    return { success: true, data };
+  }
+
+  try {
+    return await attempt();
+  } catch (e) {
+    if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
+      return { success: false, error: e.message || String(e), budgetExceeded: true };
     }
+    if (isRpcBlockchainAccessError(e)) {
+      switchToFallbackRpc();
+      try {
+        return await attempt();
+      } catch (e2) {
+        if (e2 && (e2.name === 'SentinelBudgetError' || e2 instanceof SentinelBudgetError)) {
+          return { success: false, error: e2.message || String(e2), budgetExceeded: true };
+        }
+        return { success: false, error: e2?.message || String(e2) };
+      }
+    }
+    return { success: false, error: e?.message || String(e) };
   }
-
-  await confirmTransactionByPolling(connection, signature, lastValidBlockHeight);
-
-  const paymentHeader = createPaymentHeaderFromTx(transaction, accept, x402Version);
-
-  const retryHeaders = {
-    'Content-Type': 'application/json',
-    'PAYMENT-SIGNATURE': paymentHeader,
-    ...(x402Version === 1 && { 'X-PAYMENT': paymentHeader }),
-  };
-  if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
-    retryHeaders['X-Connected-Wallet'] = connectedWalletAddress.trim();
-  }
-  addInternalApiKeyIfOwnUrl(url, retryHeaders);
-
-  const retryOpts = {
-    method,
-    headers: retryHeaders,
-    ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
-  };
-
-  const secondRes = await fetchFn(url, retryOpts);
-  const secondData = await secondRes.json().catch(() => ({}));
-
-  if (!secondRes.ok) {
-    const retryErr = secondData?.error || secondRes.statusText || `Request failed: ${secondRes.status}`;
-    const safeUrl = (() => { try { const u = new URL(url); return u.origin + u.pathname; } catch { return '(url)'; } })();
-    const safeErr = typeof retryErr === 'string' ? (retryErr.length > 200 ? retryErr.slice(0, 200) + '…' : retryErr) : 'non-string error';
-    console.error(`[agentX402] Retry after payment failed: ${secondRes.status} ${secondRes.statusText} → ${safeUrl}`, safeErr);
-    return { success: false, error: retryErr };
-  }
-
-  return { success: true, data: secondData };
 }
 
 /**
  * Build payment header from a 402 response body (for frontend pay-then-retry flow).
- * Used when the client receives 402 and wants the backend to sign with the agent wallet.
+ * Same path as tester: x402Client.createPaymentPayload + encodePaymentSignatureHeader.
  * @param {string} anonymousId - Agent wallet anonymousId
  * @param {object} paymentRequired - The 402 response body (must have accepts[] and optionally x402Version)
  * @returns {Promise<{ paymentHeader: string; signature?: string }>}
@@ -519,92 +528,36 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
     throw new Error('Agent wallet not found for this user');
   }
 
-  let connection = getConnection();
-  const agentPubkey = keypair.publicKey;
-  const agentAddress = agentPubkey.toBase58();
-  const rawAccept = paymentRequired.accepts[0];
-  const accept = normalizeAccept(rawAccept);
-  const amountStr = accept.amount;
-  const amount = BigInt(amountStr);
-  const payTo = accept.payTo;
-  const asset = accept.asset;
-  const x402Version = paymentRequired.x402Version ?? 2;
-  const feePayerPubkey = agentPubkey;
-  const destinationPubkey = new PublicKey(payTo);
-  const mintPubkey = new PublicKey(asset);
+  const { x402Client } = await import('@x402/core/client');
+  const { ExactSvmScheme } = await import('@x402/svm/exact/client');
+  const { createKeyPairSignerFromBytes } = await import('@solana/kit');
+  const { encodePaymentSignatureHeader } = await import('@x402/core/http');
 
-  async function buildTx(conn) {
-    let programId = TOKEN_PROGRAM_ID;
-    try {
-      const mintInfo = await conn.getAccountInfo(mintPubkey, 'confirmed');
-      if (mintInfo?.owner?.equals(TOKEN_2022_PROGRAM_ID)) {
-        programId = TOKEN_2022_PROGRAM_ID;
-      }
-    } catch {
-      // keep TOKEN_PROGRAM_ID
-    }
-    const mint = await getMint(conn, mintPubkey, undefined, programId);
-    const sourceAta = await getAssociatedTokenAddress(mintPubkey, agentPubkey, false, programId);
-    const destAta = await getAssociatedTokenAddress(mintPubkey, destinationPubkey, false, programId);
-    const sourceAtaInfo = await conn.getAccountInfo(sourceAta, 'confirmed');
-    if (!sourceAtaInfo) throw new Error('Agent wallet has no USDC token account. Deposit USDC to the agent wallet first.');
-    const destAtaInfo = await conn.getAccountInfo(destAta, 'confirmed');
-    if (!destAtaInfo) throw new Error('Recipient token account not found');
-    return {
-      instructions: [
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 7_000 }),
-        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }),
-        createTransferCheckedInstruction(sourceAta, mintPubkey, destAta, agentPubkey, amount, mint.decimals, [], programId),
-      ],
-    };
+  async function makePayload() {
+    const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
+    const scheme = new ExactSvmScheme(signer, { rpcUrl: getSvmRpcUrlForX402() });
+    const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
+    return client.createPaymentPayload(paymentRequired);
   }
 
-  let txParts;
+  let paymentPayload;
   try {
-    txParts = await buildTx(connection);
+    paymentPayload = await makePayload();
   } catch (e) {
     if (isRpcBlockchainAccessError(e)) {
       switchToFallbackRpc();
-      connection = getConnection();
-      txParts = await buildTx(connection);
+      paymentPayload = await makePayload();
     } else {
       throw e;
     }
   }
-  const { instructions } = txParts;
 
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-  const message = new TransactionMessage({
-    payerKey: feePayerPubkey,
-    recentBlockhash: blockhash,
-    instructions,
-  }).compileToV0Message();
-
-  const transaction = new VersionedTransaction(message);
-  transaction.sign([keypair]);
-
-  let signature;
-  try {
-    signature = await connection.sendRawTransaction(transaction.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
-  } catch (sendErr) {
-    throw new Error(sendErr?.message || 'Failed to submit payment transaction to Solana');
-  }
-
-  // Use shorter wait (20s) for pay-402 so client gets header sooner; tx is already submitted, facilitator can verify by signature.
-  const PAY402_CONFIRM_MAX_MS = 20_000;
-  await confirmTransactionByPolling(
-    connection,
-    signature,
-    lastValidBlockHeight,
-    PAY402_CONFIRM_MAX_MS
-  );
-  // If confirmation timed out we still return the header; facilitator verifies by signature.
-
-  const paymentHeader = createPaymentHeaderFromTx(transaction, accept, x402Version);
-  return { paymentHeader, signature };
+  const paymentHeader = encodePaymentSignatureHeader(paymentPayload);
+  const sig = paymentPayload?.payload?.signature;
+  return {
+    paymentHeader,
+    ...(typeof sig === 'string' && sig ? { signature: sig } : {}),
+  };
 }
 
 /**
@@ -614,36 +567,54 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
  * @param {string} serializedTxBase64 - Base64-encoded transaction from Jupiter order response
  * @returns {Promise<{ signature: string }>} Transaction signature (base58)
  */
-export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase64) {
+/**
+ * Sign and submit a base64 Solana transaction (v0 / versioned or legacy) with the agent wallet.
+ * Used for Jupiter (v0) and pump.fun fun-block responses (may be legacy Transaction bytes).
+ * @param {string} anonymousId
+ * @param {string} serializedTxBase64
+ * @returns {Promise<{ signature: string }>}
+ */
+export async function signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64) {
   const keypair = await getAgentKeypair(anonymousId);
   if (!keypair) {
     throw new Error('Agent wallet not found for this user');
   }
   let connection = getConnection();
   const txBuf = Buffer.from(serializedTxBase64, 'base64');
-  const transaction = VersionedTransaction.deserialize(txBuf);
-  transaction.sign([keypair]);
-  const sig0 = transaction.signatures[0];
-  if (!sig0 || sig0.length !== 64) {
-    throw new Error('Failed to sign swap transaction');
-  }
+
+  /** @type {Uint8Array} */
+  let serialized;
   try {
-    const signature = await connection.sendRawTransaction(transaction.serialize(), {
+    const vtx = VersionedTransaction.deserialize(txBuf);
+    vtx.sign([keypair]);
+    const sig0 = vtx.signatures[0];
+    if (!sig0 || sig0.length !== 64) {
+      throw new Error('Failed to sign versioned transaction');
+    }
+    serialized = vtx.serialize();
+  } catch {
+    const legacy = Transaction.from(txBuf);
+    legacy.partialSign(keypair);
+    serialized = legacy.serialize({ requireAllSignatures: false });
+  }
+
+  const sendOnce = async () =>
+    connection.sendRawTransaction(serialized, {
       skipPreflight: false,
       maxRetries: 3,
     });
+
+  try {
+    const signature = await sendOnce();
     return { signature };
   } catch (sendErr) {
     if (isRpcBlockchainAccessError(sendErr)) {
       switchToFallbackRpc();
       connection = getConnection();
-      const signature = await connection.sendRawTransaction(transaction.serialize(), {
-        skipPreflight: false,
-        maxRetries: 3,
-      });
+      const signature = await sendOnce();
       return { signature };
     }
-    const rawMsg = sendErr?.message || 'Failed to submit swap transaction to Solana';
+    const rawMsg = sendErr?.message || 'Failed to submit transaction to Solana';
     const isDebitNoCredit =
       /debit an account but found no record of a prior credit/i.test(rawMsg) ||
       /insufficient funds/i.test(rawMsg);
@@ -652,4 +623,8 @@ export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase
       : rawMsg;
     throw new Error(err);
   }
+}
+
+export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase64) {
+  return signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64);
 }

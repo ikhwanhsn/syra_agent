@@ -6,7 +6,18 @@
 import express from 'express';
 import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../config/agentTools.js';
 import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
-import { callX402V2WithAgent, signAndSubmitSwapTransaction } from '../../libs/agentX402Client.js';
+import {
+  callX402V2WithAgent,
+  signAndSubmitSerializedTransaction,
+  signAndSubmitSwapTransaction,
+} from '../../libs/agentX402Client.js';
+import {
+  enrichPumpfunToolParams,
+  omitParamsKeys,
+  substituteAgentToolPath,
+  PUMPFUN_TX_TOOL_IDS,
+} from '../../libs/agentPumpfunTools.js';
+import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import {
@@ -178,6 +189,40 @@ router.post('/call', async (req, res) => {
       ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
     );
 
+    // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount).
+    if (tool.id === 'jupiter-swap-order') {
+      const agentAddr = await getAgentAddress(anonymousId);
+      if (agentAddr) params.taker = agentAddr;
+      const fromLlm = normalizeJupiterSwapParams(params);
+      if (fromLlm) {
+        Object.assign(params, fromLlm);
+      }
+    }
+
+    // hey.lol tools: backend must send anonymousId so the heylol route can resolve the agent wallet
+    if (tool.path && tool.path.startsWith('/heylol')) {
+      params = { ...params, anonymousId };
+    }
+
+    if (tool.id.startsWith('pumpfun-')) {
+      params = await enrichPumpfunToolParams(anonymousId, tool.id, params);
+    }
+
+    if (tool.id === 'signal' && !String(params.source || '').trim()) {
+      params = { ...params, source: 'coingecko' };
+    }
+
+    const paramGateMsg = getAgentToolParamGateMessage(tool.id, tool.method || 'GET', params);
+    if (paramGateMsg) {
+      const apiError = paramGateMsg.replace(/^\[|\]$/g, '').trim();
+      return res.status(400).json({
+        success: false,
+        skippedPayment: true,
+        error: apiError,
+        toolId: tool.id,
+      });
+    }
+
     const balanceResult = await getAgentUsdcBalance(anonymousId);
     if (!balanceResult) {
       return res.status(404).json({
@@ -206,21 +251,6 @@ router.post('/call', async (req, res) => {
             ? `Your agent wallet has 0 USDC balance. This tool (${tool.name}) costs $${requiredUsdc.toFixed(4)}. Deposit USDC to your agent wallet to use paid tools, or ask for a normal answer without paid data.`
             : `Your agent wallet balance ($${usdcBalance.toFixed(4)} USDC) is lower than the required $${requiredUsdc.toFixed(4)} for ${tool.name}. Deposit more USDC to use this tool, or ask for a normal answer.`,
       });
-    }
-
-    // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount).
-    if (tool.id === 'jupiter-swap-order') {
-      const agentAddr = await getAgentAddress(anonymousId);
-      if (agentAddr) params.taker = agentAddr;
-      const fromLlm = normalizeJupiterSwapParams(params);
-      if (fromLlm) {
-        Object.assign(params, fromLlm);
-      }
-    }
-
-    // hey.lol tools: backend must send anonymousId so the heylol route can resolve the agent wallet
-    if (tool.path && tool.path.startsWith('/heylol')) {
-      params = { ...params, anonymousId };
     }
 
     // Nansen tools: call real Nansen API (api.nansen.ai) with agent wallet for x402 payment
@@ -357,7 +387,21 @@ router.post('/call', async (req, res) => {
       }
     }
 
-    const url = `${resolveAgentBaseUrl(req)}${tool.path}`;
+    let toolPath = tool.path;
+    const pathSub = substituteAgentToolPath(toolPath, params);
+    if ('error' in pathSub && pathSub.error) {
+      return res.status(400).json({
+        success: false,
+        error: pathSub.error,
+        toolId: tool.id,
+      });
+    }
+    toolPath = pathSub.path;
+    if (pathSub.consumed?.length) {
+      params = omitParamsKeys(params, pathSub.consumed);
+    }
+
+    const url = `${resolveAgentBaseUrl(req)}${toolPath}`;
   const method = tool.method || 'GET';
   const query = method === 'GET' || method === 'DELETE' ? params : {};
   const body = method === 'POST' ? params : undefined;
@@ -392,6 +436,17 @@ router.post('/call', async (req, res) => {
           ...data,
           swapSubmitted: false,
           swapError: swapErr?.message || 'Failed to submit swap transaction',
+        };
+      }
+    } else if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
+      try {
+        const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction);
+        data = { ...data, submittedSignature: signature, submittedOnChain: true };
+      } catch (pumpErr) {
+        data = {
+          ...data,
+          submittedOnChain: false,
+          submitError: pumpErr?.message || 'Failed to sign or submit pump.fun transaction',
         };
       }
     }
