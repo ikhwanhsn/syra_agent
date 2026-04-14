@@ -806,7 +806,7 @@ app.use("/v1", (req, res) => {
 // x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/api/signal", await createPublicSignalApiRouter());
 app.use("/signal", await createV2SignalRouter());
-app.use("/exa-search", await createV2ExaSearchRouter());
+app.use("/v1/search", await createV2ExaSearchRouter());
 app.use("/crawl", await createCrawlRouter());
 app.use("/browser-use", await createBrowserUseRouter());
 app.use("/check-status", await createV2CheckStatusRouter());
