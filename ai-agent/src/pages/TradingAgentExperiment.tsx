@@ -1087,14 +1087,14 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 shrink-0"
+                className="hidden h-9 w-9 shrink-0 lg:inline-flex"
                 onClick={() => setIsDarkMode((d) => !d)}
                 title={isDarkMode ? "Light mode" : "Dark mode"}
                 aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-              <WalletNav />
+              <WalletNav isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode((d) => !d)} />
             </div>
           </div>
         </header>

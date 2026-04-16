@@ -15,6 +15,11 @@ const toolUsageEntrySchema = new mongoose.Schema(
     chartCoinId: { type: String },
     chartSymbol: { type: String },
     chartName: { type: String },
+    /** pump.fun create-coin: mint + tx for client links (pump.fun, Solscan, share). */
+    pumpfunCreateMint: { type: String },
+    pumpfunCreateSignature: { type: String },
+    pumpfunCreateSymbol: { type: String },
+    pumpfunCreateName: { type: String },
   },
   { _id: false }
 );
@@ -33,6 +38,12 @@ const messageSchema = new mongoose.Schema(
     },
     /** Full tool list for an assistant turn (preferred over toolUsage when present). */
     toolUsages: { type: [toolUsageEntrySchema], default: undefined },
+    /** Rich client UI hint (e.g. pump.fun launch form when create params were missing). */
+    inlineUi: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    inlineUiDismissed: { type: Boolean, default: undefined },
+    /** Inline Jupiter/pump swap card: user tapped Swap or Cancel — keep card, hide action buttons. */
+    swapActionsHidden: { type: Boolean, default: undefined },
+    swapInlineStatus: { type: String, enum: ['cancelled', 'submitted'], default: undefined },
   },
   { _id: false }
 );

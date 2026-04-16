@@ -10,7 +10,6 @@ import {
   X402_API_PRICE_NANSEN_PREMIUM_USD,
   X402_API_PRICE_ZERION_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
-  X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_PUMP_FUN_TX_USD,
   X402_API_PRICE_PUMP_FUN_READ_USD,
   X402_API_PRICE_SQUID_ROUTE_USD,
@@ -35,7 +34,6 @@ import {
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
   X402_DISPLAY_PRICE_ZERION_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
-  X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
@@ -596,15 +594,6 @@ export const AGENT_TOOLS = [
     description: 'Trending tokens on Jupiter',
   },
   {
-    id: 'jupiter-swap-order',
-    path: '/jupiter/swap/order',
-    method: 'POST',
-    priceUsd: X402_API_PRICE_JUPITER_SWAP_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
-    name: 'Jupiter swap order (buy/sell token)',
-    description: 'Get a Jupiter Ultra swap order for buying or selling a token on Solana; returns transaction to sign and submit',
-  },
-  {
     id: 'pumpfun-agents-swap',
     path: '/pumpfun/agents/swap',
     method: 'POST',
@@ -1020,7 +1009,7 @@ export const AGENT_TOOLS = [
   },
 ];
 
-/** LLM/frontend may send underscore variant; backend uses hyphen. */
+/** Legacy LLM/frontend ids for generic Solana swap — routed to pump.fun fun-block swap. */
 const JUPITER_SWAP_TOOL_ID_ALIASES = ['jupiter_swap_order', 'jupiter-swap-order'];
 const SQUID_TOOL_ID_ALIASES = ['squid_route', 'squid-route', 'squid_status', 'squid-status'];
 
@@ -1054,13 +1043,13 @@ export function normalizeJupiterSwapParams(params) {
 }
 
 /**
- * Get tool by id. Accepts "jupiter_swap_order" as alias for "jupiter-swap-order".
+ * Get tool by id. Accepts legacy Jupiter swap ids as aliases for pump.fun agents swap.
  * @param {string} toolId
  * @returns {AgentTool | undefined}
  */
 export function getAgentTool(toolId) {
   let normalized = toolId;
-  if (toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId)) normalized = 'jupiter-swap-order';
+  if (toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId)) normalized = 'pumpfun-agents-swap';
   else if (toolId === 'squid_route') normalized = 'squid-route';
   else if (toolId === 'squid_status') normalized = 'squid-status';
   else if (toolId && typeof toolId === 'string' && toolId.startsWith('pumpfun') && toolId.includes('_')) {
@@ -1280,7 +1269,7 @@ export function matchToolFromUserMessage(userMessage) {
     {
       toolId: 'pumpfun-agents-swap',
       test: () =>
-        /pump\.fun\s+swap|swap\s+on\s+pump|pump\s+swap|buy\s+on\s+pump\.fun|sell\s+on\s+pump\.fun|trade\s+pump\.fun/i.test(
+        /pump\.fun\s+swap|swap\s+on\s+pump|pump\s+swap|buy\s+on\s+pump\.fun|sell\s+on\s+pump\.fun|trade\s+pump\.fun|jupiter\s*swap|swap\s*(order|token|solana)?|buy\s*token\s*(on\s*solana)?|sell\s*token\s*(on\s*solana)?|swap\s*(via\s*)?jupiter/i.test(
           text
         ),
     },
@@ -1316,13 +1305,6 @@ export function matchToolFromUserMessage(userMessage) {
       toolId: 'pumpfun-agent-payments-verify',
       test: () =>
         /verify\s+invoice\s+pump|pump\s+verify\s+invoice|invoice\s+paid\s+pump/i.test(text),
-    },
-    {
-      toolId: 'jupiter-swap-order',
-      test: () =>
-        /jupiter\s*swap|swap\s*(order|token|solana)?|buy\s*token\s*(on\s*solana)?|sell\s*token\s*(on\s*solana)?|swap\s*(via\s*)?jupiter/i.test(
-          text
-        ),
     },
     {
       toolId: 'squid-route',
@@ -1519,7 +1501,6 @@ export function getCapabilitiesList() {
     'smart-money',
     'token-god-mode',
     'trending-jupiter',
-    'jupiter-swap-order',
     'squid-route',
     'squid-status',
     'bubblemaps-maps',

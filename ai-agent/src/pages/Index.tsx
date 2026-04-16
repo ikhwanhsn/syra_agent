@@ -8,7 +8,8 @@ import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
-import { chatApi, getApiBaseUrl } from "@/lib/chatApi";
+import { chatApi, getApiBaseUrl, type AgentInlineUiPayload } from "@/lib/chatApi";
+import { resolveAssistantSwapInlineUi } from "@/lib/swapIntentFromMessage";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,6 +33,10 @@ export type ToolUsageEntry = {
   chartCoinId?: string;
   chartSymbol?: string;
   chartName?: string;
+  pumpfunCreateMint?: string;
+  pumpfunCreateSignature?: string;
+  pumpfunCreateSymbol?: string;
+  pumpfunCreateName?: string;
 };
 
 interface Message {
@@ -43,6 +48,10 @@ interface Message {
   toolUsage?: ToolUsageEntry;
   /** Multiple tools used in one assistant turn (optional chartMint / chartCoinId for price chart). */
   toolUsages?: ToolUsageEntry[];
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
 }
 
 interface Chat {
@@ -79,7 +88,15 @@ function toMessage(m: {
     chartCoinId?: string;
     chartSymbol?: string;
     chartName?: string;
+    pumpfunCreateMint?: string;
+    pumpfunCreateSignature?: string;
+    pumpfunCreateSymbol?: string;
+    pumpfunCreateName?: string;
   }>;
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
 }): Message {
   return {
     id: m.id,
@@ -88,6 +105,10 @@ function toMessage(m: {
     timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
     toolUsage: m.toolUsage as Message["toolUsage"],
     toolUsages: m.toolUsages as Message["toolUsages"],
+    ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
+    ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+    ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+    ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
   };
 }
 
@@ -101,6 +122,10 @@ function serializeToolUsage(u: ToolUsageEntry): ToolUsageEntry {
     ...(u.chartCoinId ? { chartCoinId: u.chartCoinId } : {}),
     ...(u.chartSymbol ? { chartSymbol: u.chartSymbol } : {}),
     ...(u.chartName ? { chartName: u.chartName } : {}),
+    ...(u.pumpfunCreateMint ? { pumpfunCreateMint: u.pumpfunCreateMint } : {}),
+    ...(u.pumpfunCreateSignature ? { pumpfunCreateSignature: u.pumpfunCreateSignature } : {}),
+    ...(u.pumpfunCreateSymbol ? { pumpfunCreateSymbol: u.pumpfunCreateSymbol } : {}),
+    ...(u.pumpfunCreateName ? { pumpfunCreateName: u.pumpfunCreateName } : {}),
   };
 }
 
@@ -115,6 +140,10 @@ function messageToApiPayload(m: Message) {
     timestamp: m.timestamp,
     toolUsage: first,
     ...(usages?.length ? { toolUsages: usages } : {}),
+    ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
+    ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+    ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+    ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
   };
 }
 
@@ -176,7 +205,7 @@ function AgentSettingsView({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 min-h-[44px] min-w-[44px] shrink-0 touch-manipulation rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 sm:h-9 sm:min-h-0 sm:min-w-0"
+            className="hidden h-9 min-h-[44px] min-w-[44px] shrink-0 touch-manipulation rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 lg:inline-flex sm:h-9 sm:min-h-0 sm:min-w-0"
             onClick={onToggleDarkMode}
             title={isDarkMode ? "Light mode" : "Dark mode"}
             aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
@@ -187,7 +216,7 @@ function AgentSettingsView({
               <Moon className="h-4 w-4 text-foreground" />
             )}
           </Button>
-          <WalletNav />
+          <WalletNav isDarkMode={isDarkMode} onToggleDarkMode={onToggleDarkMode} />
         </div>
       </header>
       <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
@@ -227,7 +256,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [chatsLoading, setChatsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
+  const chatMessagesRef = useRef<Record<string, Message[]>>({});
   const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
 
   const isSettingsRoute = location.pathname === "/settings";
 
@@ -605,7 +639,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     [anonymousId]
   );
 
-  const handleSendMessage = async (content: string, options?: { replaceHistory?: Message[] }) => {
+  const handleSendMessage = async (
+    content: string,
+    options?: {
+      replaceHistory?: Message[];
+      dismissInlineUiAssistantMessageId?: string;
+      hideSwapActionsAssistantMessageId?: string;
+    }
+  ) => {
     if (!anonymousId) return;
     let chatId = activeChat;
     if (!walletConnected) {
@@ -661,7 +702,21 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       timestamp: new Date(),
     };
 
-    const prevMessages = options?.replaceHistory ?? (chatMessages[chatId] ?? []);
+    const prevRaw = options?.replaceHistory ?? (chatMessagesRef.current[chatId] ?? []);
+    let prevMessages = prevRaw;
+    if (options?.dismissInlineUiAssistantMessageId) {
+      prevMessages = prevRaw.map((m) =>
+        m.id === options.dismissInlineUiAssistantMessageId && m.role === "assistant"
+          ? { ...m, inlineUiDismissed: true, inlineUi: undefined }
+          : m
+      );
+    } else if (options?.hideSwapActionsAssistantMessageId) {
+      prevMessages = prevRaw.map((m) =>
+        m.id === options.hideSwapActionsAssistantMessageId && m.role === "assistant"
+          ? { ...m, swapActionsHidden: true, swapInlineStatus: "submitted" as const }
+          : m
+      );
+    }
     const nextMessages = [...prevMessages, userMessage];
     const isFirstMessage = prevMessages.length === 0;
     const newTitle = isFirstMessage ? capitalizeFirstLetter(content.slice(0, 30)) : undefined;
@@ -710,7 +765,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       if (agentWalletBalances == null && typeof agentUsdcBalance === "number" && typeof agentSolBalance === "number") {
         agentWalletBalances = { usdcBalance: agentUsdcBalance, solBalance: agentSolBalance };
       }
-      const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
+      const { response: responseText, amountChargedUsd, toolUsages, inlineUi } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         chatId:
@@ -731,6 +786,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         charIndex += chunkSize;
         if (charIndex >= responseText.length) {
           clearInterval(streamInterval);
+          const mergedInlineUi = resolveAssistantSwapInlineUi(inlineUi, nextMessages);
           const finalMessages: Message[] = [
             ...nextMessages,
             {
@@ -738,6 +794,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               content: responseText,
               isStreaming: false,
               ...(toolUsages?.length ? { toolUsages } : {}),
+              ...(mergedInlineUi ? { inlineUi: mergedInlineUi } : {}),
             },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
@@ -768,9 +825,15 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }, 8);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to get response from the agent.";
+      const mergedInlineUi = resolveAssistantSwapInlineUi(undefined, nextMessages);
       const finalMessages: Message[] = [
         ...nextMessages,
-        { ...assistantMessage, content: errorMessage, isStreaming: false },
+        {
+          ...assistantMessage,
+          content: errorMessage,
+          isStreaming: false,
+          ...(mergedInlineUi ? { inlineUi: mergedInlineUi } : {}),
+        },
       ];
       setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
       setIsLoading(false);
@@ -790,6 +853,49 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   const handleSendMessageRef = useRef(handleSendMessage);
   handleSendMessageRef.current = handleSendMessage;
+
+  const handleDismissPumpfunCreateForm = useCallback(
+    (assistantMessageId: string) => {
+      if (!activeChat || !anonymousId) return;
+      const chatId = activeChat;
+      setChatMessages((prev) => {
+        const list = prev[chatId] ?? [];
+        const next = list.map((m) => {
+          if (m.id !== assistantMessageId || m.role !== "assistant") return m;
+          const t = m.inlineUi?.type;
+          if (t === "jupiter-swap" || t === "pumpfun-swap") {
+            return { ...m, swapActionsHidden: true, swapInlineStatus: "cancelled" as const };
+          }
+          return { ...m, inlineUiDismissed: true };
+        });
+        if (walletConnected && !isLocalChat(chatId)) {
+          queueMicrotask(() => {
+            chatApi.putMessages(chatId, anonymousId, next.map(messageToApiPayload)).catch(() => {});
+          });
+        }
+        return { ...prev, [chatId]: next };
+      });
+    },
+    [activeChat, anonymousId, walletConnected]
+  );
+
+  const handlePumpfunCreateFormSubmit = useCallback(
+    (payload: { assistantMessageId: string; prompt: string }) => {
+      const chatId = activeChat;
+      if (!chatId) return;
+      const list = chatMessagesRef.current[chatId] ?? [];
+      const msg = list.find((x) => x.id === payload.assistantMessageId && x.role === "assistant");
+      const isSwap =
+        msg?.inlineUi?.type === "jupiter-swap" || msg?.inlineUi?.type === "pumpfun-swap";
+      void handleSendMessageRef.current(
+        payload.prompt,
+        isSwap
+          ? { hideSwapActionsAssistantMessageId: payload.assistantMessageId }
+          : { dismissInlineUiAssistantMessageId: payload.assistantMessageId }
+      );
+    },
+    [activeChat]
+  );
 
   const urlPromptParam =
     searchParams.get("q")?.trim() ||
@@ -892,7 +998,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       if (agentWalletBalances == null && typeof agentUsdcBalance === "number" && typeof agentSolBalance === "number") {
         agentWalletBalances = { usdcBalance: agentUsdcBalance, solBalance: agentSolBalance };
       }
-      const { response: responseText, amountChargedUsd, toolUsages } = await chatApi.completion({
+      const { response: responseText, amountChargedUsd, toolUsages, inlineUi } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         chatId: walletConnected && !isLocalChat(chatId) ? chatId : undefined,
@@ -912,6 +1018,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         charIndex += chunkSize;
         if (charIndex >= responseText.length) {
           clearInterval(streamInterval);
+          const mergedInlineUi = resolveAssistantSwapInlineUi(inlineUi, truncated);
           const finalMessages: Message[] = [
             ...truncated,
             {
@@ -919,6 +1026,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               content: responseText,
               isStreaming: false,
               ...(toolUsages?.length ? { toolUsages } : {}),
+              ...(mergedInlineUi ? { inlineUi: mergedInlineUi } : {}),
             },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
@@ -949,9 +1057,15 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     } catch (err) {
       const errorContent =
         err instanceof Error ? err.message : "Failed to get response from the agent.";
+      const mergedInlineUi = resolveAssistantSwapInlineUi(undefined, truncated);
       const finalMessages: Message[] = [
         ...truncated,
-        { ...assistantMessage, content: errorContent, isStreaming: false },
+        {
+          ...assistantMessage,
+          content: errorContent,
+          isStreaming: false,
+          ...(mergedInlineUi ? { inlineUi: mergedInlineUi } : {}),
+        },
       ];
       setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
       setIsLoading(false);
@@ -1140,6 +1254,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                   onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
                   userAvatarUrl={avatarUrl}
                   onUpdateUserMessage={handleUpdateUserMessage}
+                  onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
+                  onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
                 />
               )}
             </main>
@@ -1180,6 +1296,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             userAvatarUrl={avatarUrl}
             onUpdateUserMessage={handleUpdateUserMessage}
+            onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
+            onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
           />
         )}
       </main>

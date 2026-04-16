@@ -13,14 +13,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  ArrowDownToLine,
   ArrowLeftRight,
+  ArrowUpFromLine,
   Copy,
   ChevronDown,
   Loader2,
   LogOut,
   MessageSquare,
+  Moon,
   RefreshCw,
   Settings,
+  Sun,
   Wallet,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,7 +41,14 @@ import { CoinLogo } from "@/components/crypto/CoinLogo";
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
-export function WalletNav() {
+export interface WalletNavProps {
+  /** When set with `onToggleDarkMode`, theme moves into the wallet menu below `lg` instead of the top bar. */
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
+}
+
+export function WalletNav(props: WalletNavProps = {}) {
+  const { isDarkMode = true, onToggleDarkMode } = props;
   const {
     connection,
     publicKey,
@@ -74,6 +85,7 @@ export function WalletNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
+  const [fuelInitialTab, setFuelInitialTab] = useState<"deposit" | "withdraw">("deposit");
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
@@ -176,16 +188,34 @@ export function WalletNav() {
 
   if (!hasAnyWallet) {
     return (
-      <Button
-        className="h-9 min-h-[44px] rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 sm:min-h-0 touch-manipulation shrink-0 max-w-full"
-        onClick={openConnectModal}
-      >
-        <Wallet className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
-        <span className="truncate">
-          <span className="min-[380px]:hidden">Connect</span>
-          <span className="hidden min-[380px]:inline">Connect Wallet</span>
-        </span>
-      </Button>
+      <div className="flex min-w-0 max-w-full shrink-0 items-center gap-2">
+        {onToggleDarkMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 min-h-[44px] min-w-[44px] shrink-0 rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 lg:hidden touch-manipulation sm:min-h-0 sm:min-w-0"
+            onClick={onToggleDarkMode}
+            title={isDarkMode ? "Light mode" : "Dark mode"}
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? (
+              <Sun className="h-4 w-4 text-foreground" />
+            ) : (
+              <Moon className="h-4 w-4 text-foreground" />
+            )}
+          </Button>
+        )}
+        <Button
+          className="h-9 min-h-[44px] min-w-0 max-w-full rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 touch-manipulation sm:min-h-0"
+          onClick={openConnectModal}
+        >
+          <Wallet className="mr-1 h-4 w-4 shrink-0 sm:mr-2" />
+          <span className="truncate">
+            <span className="min-[380px]:hidden">Connect</span>
+            <span className="hidden min-[380px]:inline">Connect Wallet</span>
+          </span>
+        </Button>
+      </div>
     );
   }
 
@@ -205,7 +235,7 @@ export function WalletNav() {
           <TooltipTrigger asChild>
             <div
               className={cn(
-                "hidden h-9 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-semibold shadow-sm sm:flex sm:min-h-0",
+                "hidden h-9 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-semibold shadow-sm lg:flex lg:min-h-0",
                 displaySolana
                   ? "border-foreground/20 bg-muted/50 text-foreground ring-1 ring-foreground/10"
                   : "border-border bg-muted/40 text-foreground ring-1 ring-border/80",
@@ -238,11 +268,15 @@ export function WalletNav() {
           <button
             type="button"
             className={cn(
-              "hidden max-w-[200px] sm:flex sm:max-w-[220px] lg:max-w-[260px]",
               navItemClass,
-              "cursor-pointer border-primary/20 bg-primary/[0.06] text-foreground hover:bg-primary/[0.12]",
+              "max-w-[200px] cursor-pointer border-primary/20 bg-primary/[0.06] text-foreground hover:bg-primary/[0.12] lg:max-w-[220px] xl:max-w-[260px]",
+              /* Must be last: navItemClass includes inline-flex which otherwise overrides hidden. */
+              "hidden lg:inline-flex",
             )}
-            onClick={() => setFuelModalOpen(true)}
+            onClick={() => {
+              setFuelInitialTab("deposit");
+              setFuelModalOpen(true);
+            }}
             title={displayBase ? "Add USDC and ETH to your agent wallet" : "Add USDC and SOL to your agent wallet"}
             aria-label={displayBase ? "Open add funds for agent wallet on Base" : "Open add funds for agent wallet on Solana"}
           >
@@ -298,6 +332,19 @@ export function WalletNav() {
             "rounded-xl border-border/60 bg-popover shadow-lg ring-1 ring-white/[0.04]",
           )}
         >
+          {onToggleDarkMode && (
+            <div className="border-b border-border/50 p-1 lg:hidden">
+              <DropdownMenuItem
+                className="cursor-pointer gap-3 rounded-lg px-3 py-2.5 text-sm focus:bg-muted/60"
+                onSelect={() => onToggleDarkMode()}
+              >
+                <span className="flex w-8 shrink-0 justify-center text-foreground" aria-hidden>
+                  {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </span>
+                <span>{isDarkMode ? "Light mode" : "Dark mode"}</span>
+              </DropdownMenuItem>
+            </div>
+          )}
           {/* Header — same horizontal inset as cards + actions */}
           <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
             <span className="text-sm font-semibold tracking-tight text-foreground">Wallets</span>
@@ -399,6 +446,36 @@ export function WalletNav() {
                       )}
                     </div>
                   )}
+                  <div className="flex gap-2 border-t border-border/40 pt-2.5 lg:hidden">
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-9 min-h-0 flex-1 gap-1.5 text-xs font-semibold touch-manipulation"
+                      onClick={() => {
+                        setOpen(false);
+                        setFuelInitialTab("deposit");
+                        setFuelModalOpen(true);
+                      }}
+                    >
+                      <ArrowDownToLine className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      Deposit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 min-h-0 flex-1 gap-1.5 text-xs font-semibold touch-manipulation"
+                      onClick={() => {
+                        setOpen(false);
+                        setFuelInitialTab("withdraw");
+                        setFuelModalOpen(true);
+                      }}
+                    >
+                      <ArrowUpFromLine className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      Withdraw
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <p className="py-1 text-xs text-muted-foreground">Failed to load</p>
@@ -535,10 +612,7 @@ export function WalletNav() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <FuelAgentModal
-        open={fuelModalOpen}
-        onOpenChange={setFuelModalOpen}
-      />
+      <FuelAgentModal open={fuelModalOpen} onOpenChange={setFuelModalOpen} initialFlowTab={fuelInitialTab} />
       <FeedbackModal open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen} />
     </div>
   );

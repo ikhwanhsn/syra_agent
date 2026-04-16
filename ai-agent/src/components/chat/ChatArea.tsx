@@ -10,6 +10,7 @@ import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
+import type { AgentInlineUiPayload } from "@/lib/chatApi";
 /** Pixel threshold: if within this distance from bottom, consider "at bottom" for follow-scroll. */
 const SCROLL_BOTTOM_THRESHOLD = 80;
 
@@ -34,7 +35,15 @@ interface Message {
     chartCoinId?: string;
     chartSymbol?: string;
     chartName?: string;
+    pumpfunCreateMint?: string;
+    pumpfunCreateSignature?: string;
+    pumpfunCreateSymbol?: string;
+    pumpfunCreateName?: string;
   }>;
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
 }
 
 interface ChatAreaProps {
@@ -64,6 +73,8 @@ interface ChatAreaProps {
   userAvatarUrl?: string | null;
   /** When user saves an edited user message in place: (messageId, newContent) => update */
   onUpdateUserMessage?: (messageId: string, content: string) => void;
+  onDismissPumpfunCreateForm?: (assistantMessageId: string) => void;
+  onSubmitPumpfunCreateForm?: (payload: { assistantMessageId: string; prompt: string }) => void;
 }
 
 export function ChatArea({
@@ -84,6 +95,8 @@ export function ChatArea({
   onToggleDarkMode,
   userAvatarUrl = null,
   onUpdateUserMessage,
+  onDismissPumpfunCreateForm,
+  onSubmitPumpfunCreateForm,
 }: ChatAreaProps) {
   const { openConnectModal } = useConnectModal();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -159,7 +172,7 @@ export function ChatArea({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 min-h-[44px] min-w-[44px] shrink-0 rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 sm:h-9 sm:min-h-0 sm:min-w-0 touch-manipulation"
+              className="hidden h-9 min-h-[44px] min-w-[44px] shrink-0 touch-manipulation rounded-xl border border-border/50 bg-muted/20 shadow-sm hover:bg-muted/35 lg:inline-flex sm:h-9 sm:min-h-0 sm:min-w-0"
               onClick={onToggleDarkMode}
               title={isDarkMode ? "Light mode" : "Dark mode"}
               aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
@@ -171,7 +184,7 @@ export function ChatArea({
               )}
             </Button>
           )}
-          <WalletNav />
+          <WalletNav isDarkMode={isDarkMode} onToggleDarkMode={onToggleDarkMode} />
         </div>
       </header>
 
@@ -219,6 +232,8 @@ export function ChatArea({
                     isRegenerateDisabled={isLoading}
                     userAvatarUrl={userAvatarUrl}
                     onUpdateUserMessage={onUpdateUserMessage}
+                    onDismissPumpfunCreateForm={onDismissPumpfunCreateForm}
+                    onSubmitPumpfunCreateForm={onSubmitPumpfunCreateForm}
                   />
                 );
               })}

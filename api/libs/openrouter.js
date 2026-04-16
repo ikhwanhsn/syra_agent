@@ -6,6 +6,10 @@ import { OPENROUTER_DEFAULT_MODEL, OPENROUTER_MODELS } from '../config/openroute
  */
 const OPENROUTER_BASE = (process.env.OPENROUTER_API_BASE || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
 
+/** When the model returns no usable text; agent chat may replace this after deterministic tool runs (e.g. swap). */
+export const OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER =
+  "I couldn't generate a response for that request. Please try again or rephrase your question.";
+
 /** Legacy short model ids stored on old chats → OpenRouter slug */
 const LEGACY_MODEL_MAP = {
   'gpt-oss-120b': 'openai/gpt-oss-120b',
@@ -104,7 +108,7 @@ export async function callOpenRouter(messages, options = {}) {
   const content =
     typeof textOut === 'string' && textOut.trim().length > 0
       ? textOut
-      : "I couldn't generate a response for that request. Please try again or rephrase your question.";
+      : OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER;
   const finishReason = choice?.finish_reason;
   const truncated = finishReason === 'length';
 

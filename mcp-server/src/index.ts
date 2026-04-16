@@ -192,20 +192,21 @@ async function main() {
 
   // --- Query param (required or optional) ---
   server.tool(
-    "syra_v2_jupiter_swap_order",
-    "Get a Jupiter Ultra swap order (buy/sell token on Solana). Returns a transaction to sign and submit. Requires inputMint, outputMint, amount (smallest units), taker (wallet pubkey)." + PAYMENT_NOTE,
+    "syra_v2_pumpfun_agents_swap",
+    "pump.fun fun-block swap (buy/sell on bonding curve or AMM). POST /pumpfun/agents/swap; returns base64 VersionedTransaction. Requires inputMint, outputMint, amount (smallest units), user (trader pubkey)." +
+      PAYMENT_NOTE,
     {
-      inputMint: z.string().describe("Input token mint address (e.g. SOL: So11111111111111111111111111111111111111112)"),
-      outputMint: z.string().describe("Output token mint address (e.g. USDC: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)"),
-      amount: z.string().describe("Amount in smallest units (e.g. lamports for SOL)"),
-      taker: z.string().describe("Wallet public key that will execute the swap"),
+      inputMint: z.string().describe("Input token mint (e.g. wrapped SOL So11111111111111111111111111111111111111112)"),
+      outputMint: z.string().describe("Output token mint"),
+      amount: z.string().describe("Amount in smallest units of the input mint"),
+      user: z.string().describe("Trader / fee payer Solana pubkey"),
     },
-    async ({ inputMint, outputMint, amount, taker }) => {
-      const { status, body } = await fetchV2("/jupiter/swap/order", {
+    async ({ inputMint, outputMint, amount, user }) => {
+      const { status, body } = await fetchPost("/pumpfun/agents/swap", {
         inputMint,
         outputMint,
         amount,
-        taker,
+        user,
       });
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },

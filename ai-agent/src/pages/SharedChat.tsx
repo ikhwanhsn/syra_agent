@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { chatApi, type ApiChat, type ApiMessage } from "@/lib/chatApi";
+import { chatApi, type ApiChat, type ApiMessage, type AgentInlineUiPayload } from "@/lib/chatApi";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,10 @@ function toMessage(m: {
   timestamp: string | Date;
   toolUsage?: { name: string; status: string; costUsd?: number; included?: boolean };
   toolUsages?: Array<{ name: string; status: string; costUsd?: number; included?: boolean }>;
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
 }) {
   return {
     id: m.id,
@@ -23,6 +27,10 @@ function toMessage(m: {
     timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
     toolUsage: m.toolUsage as ApiMessage["toolUsage"],
     toolUsages: m.toolUsages as ApiMessage["toolUsages"],
+    ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
+    ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+    ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+    ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
   };
 }
 
@@ -230,6 +238,7 @@ export default function SharedChat({
                   agentName={agentName}
                   onRegenerate={undefined}
                   isRegenerateDisabled={true}
+                  pumpfunCreateFormReadOnly
                 />
               ))}
             </div>

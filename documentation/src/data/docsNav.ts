@@ -80,7 +80,7 @@ export const navigation: NavItem[] = [
         defaultCollapsed: false,
         items: [
           { title: "Trending Jupiter", href: api("trending-jupiter") },
-          { title: "Jupiter Swap Order", href: api("jupiter-swap-order") },
+          { title: "pump.fun Agents Swap", href: api("pumpfun-agents-swap") },
         ],
       },
       {

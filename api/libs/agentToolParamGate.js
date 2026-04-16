@@ -258,16 +258,6 @@ export function getAgentToolParamGateMessage(toolId, method, params) {
     return null;
   }
 
-  if (id === 'jupiter-swap-order' && m === 'POST') {
-    const missing = [];
-    if (!hasTrimmedString(p.inputMint)) missing.push('inputMint');
-    if (!hasTrimmedString(p.outputMint)) missing.push('outputMint');
-    if (p.amount == null || String(p.amount).trim() === '') missing.push('amount');
-    if (!hasTrimmedString(p.taker)) missing.push('taker');
-    if (missing.length) return skipMsg(toolName, missing);
-    return null;
-  }
-
   if (id === 'purch-vault-buy' && m === 'POST') {
     if (!hasTrimmedString(p.slug)) return skipMsg(toolName, ['slug']);
     return null;

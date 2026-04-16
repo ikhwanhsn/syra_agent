@@ -1,7 +1,11 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Chat from '../../models/agent/Chat.js';
-import { callOpenRouter, getOpenRouterModels } from '../../libs/openrouter.js';
+import {
+  callOpenRouter,
+  getOpenRouterModels,
+  OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER,
+} from '../../libs/openrouter.js';
 import { OPENROUTER_MODELS, OPENROUTER_DEFAULT_MODEL } from '../../config/openrouterModels.js';
 import {
   getAgentTool,
@@ -42,6 +46,7 @@ import { resolveAgentBaseUrl } from './utils.js';
 import { recordAgentChatUsage } from '../../libs/agentLeaderboard.js';
 import {
   buildAgentChatDailyLimitMessage,
+  isAgentChatDailyLimitBypassWallet,
   tryConsumeAgentChatDailyQuestion,
 } from '../../libs/agentChatDailyLimit.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
@@ -198,6 +203,89 @@ function agentChartUiMeta(toolId, params, toolData) {
   return {};
 }
 
+/**
+ * Client-only fields for pump.fun create-coin success (mint page, explorer, share).
+ * @param {string} toolId
+ * @param {Record<string, string>} params
+ * @param {unknown} toolData
+ * @returns {Record<string, string>}
+ */
+/**
+ * Prefill hints for inline swap UI (extract mints + amount from user text).
+ * @param {string | undefined} msg
+ * @returns {{ suggestedMints: string[]; suggestedAmount?: string }}
+ */
+function swapUiHintsFromUserText(msg) {
+  /** @type {{ suggestedMints: string[]; suggestedAmount?: string }} */
+  const out = { suggestedMints: [] };
+  if (!msg || typeof msg !== 'string') return out;
+  const re = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/g;
+  const seen = new Set();
+  let m;
+  while ((m = re.exec(msg)) !== null) {
+    if (!seen.has(m[0])) {
+      seen.add(m[0]);
+      out.suggestedMints.push(m[0]);
+    }
+  }
+  const solAmt = /\bswap\s+\$?([\d.,]+)\s*(?:sol|wsol)\b/i.exec(msg);
+  const usdcAmt = /\bswap\s+\$?([\d.,]+)\s*usdc\b/i.exec(msg);
+  const loose = /\bswap\s+\$?([\d.,]+)\b/i.exec(msg);
+  if (solAmt) out.suggestedAmount = solAmt[1].replace(/,/g, '');
+  else if (usdcAmt) out.suggestedAmount = usdcAmt[1].replace(/,/g, '');
+  else if (loose) out.suggestedAmount = loose[1].replace(/,/g, '');
+  return out;
+}
+
+/** Injected so the final LLM turn emits no visible text when the client shows the swap form. */
+const SWAP_UI_EMPTY_LLM_REPLY =
+  '[Syra already shows an inline swap form in the chat UI. Reply with ZERO assistant text: output nothing (empty string only). Do not write any words, apologies, explanations, or markdown.]';
+
+/**
+ * Parse mints/amount from the confirmation message sent when the user taps Swap in the inline form.
+ * Accepts legacy "Execute jupiter-swap-order…" headers for older clients.
+ * @param {string | undefined} text
+ * @param {'pumpfun-agents-swap'} toolId
+ * @returns {{ inputMint: string; outputMint: string; amount: string } | null}
+ */
+function parseAgentSwapParamsFromFormMessage(text, toolId) {
+  if (!text || typeof text !== 'string') return null;
+  if (toolId !== 'pumpfun-agents-swap') return null;
+  const header =
+    /Execute pumpfun-agents-swap with these exact parameters/i.test(text) ||
+    /Execute jupiter-swap-order with these exact parameters/i.test(text);
+  if (!header) return null;
+  const inputM = /- inputMint:\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i.exec(text);
+  const outputM = /- outputMint:\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i.exec(text);
+  const amountQuoted = /- amount:\s*"([^"]+)"/i.exec(text);
+  const amountBare = /- amount:\s*(\S+)/i.exec(text);
+  const amount = (amountQuoted ? amountQuoted[1] : amountBare ? amountBare[1] : '').trim();
+  if (!inputM || !outputM || !amount) return null;
+  return { inputMint: inputM[1], outputMint: outputM[1], amount };
+}
+
+function pumpfunCreateCoinResultUiMeta(toolId, params, toolData) {
+  if (toolId !== 'pumpfun-agents-create-coin' || !toolData || typeof toolData !== 'object') return {};
+  const d = /** @type {Record<string, unknown>} */ (toolData);
+  const mintRaw =
+    typeof d.mintPublicKey === 'string'
+      ? d.mintPublicKey
+      : typeof d.mint === 'string'
+        ? d.mint
+        : '';
+  const mint = mintRaw.trim();
+  const sig = typeof d.submittedSignature === 'string' ? d.submittedSignature.trim() : '';
+  /** @type {Record<string, string>} */
+  const out = {};
+  if (mint) out.pumpfunCreateMint = mint;
+  if (sig) out.pumpfunCreateSignature = sig;
+  const sym = params?.symbol != null ? String(params.symbol).trim() : '';
+  const nm = params?.name != null ? String(params.name).trim() : '';
+  if (sym) out.pumpfunCreateSymbol = sym.toUpperCase();
+  if (nm) out.pumpfunCreateName = nm;
+  return out;
+}
+
 /** User-facing model label for system prompts; never mention inference vendor brands to end users. */
 export function buildLlmIdentityNote(modelId) {
   const resolved =
@@ -257,7 +345,7 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Market sentiment → sentiment
 — Trading signal → signal
 — Smart money / whale activity → smart-money or nansen-smart-money-* (and other nansen-* tools as appropriate)
-— Swap / buy / sell tokens → jupiter-swap-order (general Solana); pump.fun curve/AMM → pumpfun-agents-swap
+— Swap / buy / sell Solana tokens (including pump.fun curve or AMM) → pumpfun-agents-swap (pump.fun fun-block API; params inputMint, outputMint, amount in smallest units, user defaults to agent wallet)
 — pump.fun: SOL/USD → pumpfun-sol-price; coin metadata → pumpfun-coin or pumpfun-coin-query (param mint); launch token → pumpfun-agents-create-coin; claim creator fees → pumpfun-collect-fees; fee sharing → pumpfun-sharing-config; tokenized agent invoice tx → pumpfun-agent-payments-build; verify invoice → pumpfun-agent-payments-verify
 — Web search / research → exa-search
 — Questions asking for live market data → select a tool only when you can supply that tool's required params from the message (otherwise {"tools": []} so the assistant asks for a symbol, mint, or URL).
@@ -287,7 +375,7 @@ PARAM RULES:
 - For "tempo-network-info" set "params": {} when the user asks for Tempo RPC URL, chain ID, explorer, how to connect to Tempo, or public documentation links.
 - For "tempo-send-payout" set "params": {"amountUsd": "<number from user>"} when the user asks to receive a payout, withdrawal, or transfer on Tempo blockchain in stablecoin; optional "memo" (e.g. invoice id). Only select if the user explicitly wants money sent on Tempo. The server sends funds only to the user’s linked EVM wallet or Base agent wallet—never pass a recipient address.
 - For pump.fun coin metadata use "pumpfun-coin-query" with "params": {"mint": "<base58 mint>"} (or pumpfun-coin with same mint).
-- For pump.fun swap use "pumpfun-agents-swap" with params inputMint, outputMint, amount (string smallest units), optional user (defaults to agent wallet).
+- For token swap / buy / sell on Solana use "pumpfun-agents-swap" with params inputMint, outputMint, amount (string smallest units), optional user (defaults to agent wallet).
 - For pump.fun launch use "pumpfun-agents-create-coin" with name, symbol, uri, solLamports (string), optional user.
 - For pump.fun collect creator fees use "pumpfun-collect-fees" with mint, optional user.
 - For pump.fun fee sharing use "pumpfun-sharing-config" with mint, shareholders (JSON string), optional user.
@@ -379,11 +467,11 @@ function parseJupiterSwapParamsFromText(text) {
   // Allow optional "$" before the amount and token symbols so phrases like
   // "swap $0.1 USDC to SOL" or "swap 0.1 $USDC to $SOL" are parsed correctly.
   const match =
-    /swap\s+\$?([\d.,]+)\s+\$?([A-Za-z0-9]+)\s+(for|to)\s+\$?([A-Za-z0-9]+)/i.exec(text);
+    /swap\s+\$?([\d.,]+)\s+\$?([A-Za-z0-9]+)\s+(?:for|to|into)\s+\$?([A-Za-z0-9]+)/i.exec(text);
   if (!match) return null;
   const amountStr = match[1].replace(/,/g, '');
   const fromSymbol = match[2].toUpperCase();
-  const toSymbol = match[4].toUpperCase();
+  const toSymbol = match[3].toUpperCase();
   const amountNum = Number(amountStr);
   if (!Number.isFinite(amountNum) || amountNum <= 0) return null;
 
@@ -412,6 +500,21 @@ function parseJupiterSwapParamsFromText(text) {
     outputMint: toToken.mint,
     amount: String(amountBaseUnits),
   };
+}
+
+/**
+ * When the user message matches a simple SOL↔USDC "swap …" phrase, trust parsed mints
+ * over LLM-filled `inputMint`/`outputMint` (models often hallucinate a wrong USDC mint).
+ * Mutates `params` in place.
+ * @param {string | undefined} text
+ * @param {Record<string, string>} params
+ */
+function applyParseJupiterSwapParamsFromTextIfMatched(text, params) {
+  const inferred = parseJupiterSwapParamsFromText(text);
+  if (!inferred) return;
+  params.inputMint = inferred.inputMint;
+  params.outputMint = inferred.outputMint;
+  params.amount = inferred.amount;
 }
 
 /**
@@ -813,7 +916,19 @@ router.post('/completion', async (req, res) => {
       });
     }
 
-    const quota = await tryConsumeAgentChatDailyQuestion(anonymousId);
+    /** Linked wallet for this session; reused below for SYRA treasury + tool path (avoids double DB read). */
+    let connectedWalletFromDb = null;
+    if (anonymousId && walletConnected) {
+      try {
+        connectedWalletFromDb = await getConnectedWalletAddress(anonymousId);
+      } catch (earlyCwErr) {
+        console.error('[agent/chat/completion] getConnectedWalletAddress (quota) failed:', earlyCwErr?.message || earlyCwErr);
+      }
+    }
+
+    const quota = isAgentChatDailyLimitBypassWallet(connectedWalletFromDb)
+      ? { allowed: true }
+      : await tryConsumeAgentChatDailyQuestion(anonymousId);
     if (!quota.allowed) {
       return res.json({
         success: true,
@@ -827,9 +942,9 @@ router.post('/completion', async (req, res) => {
       .pop();
 
     const toolSelectStart = Date.now();
-    /** Normalize toolId so "jupiter_swap_order" -> "jupiter-swap-order", "squid_route" -> "squid-route", etc. */
+    /** Normalize toolId (legacy Jupiter swap ids → pump.fun swap), "squid_route" -> "squid-route", etc. */
     const normalizeToolId = (id) => {
-      if (id === 'jupiter_swap_order') return 'jupiter-swap-order';
+      if (id === 'jupiter_swap_order' || id === 'jupiter-swap-order') return 'pumpfun-agents-swap';
       if (id === 'squid_route') return 'squid-route';
       if (id === 'squid_status') return 'squid-status';
       if (typeof id === 'string' && id.startsWith('pumpfun') && id.includes('_')) return id.replace(/_/g, '-');
@@ -863,8 +978,11 @@ router.post('/completion', async (req, res) => {
     let useTreasuryForTools = false;
     if (anonymousId && walletConnected) {
       try {
-        const connectedWallet = await getConnectedWalletAddress(anonymousId);
-        useTreasuryForTools = !!(connectedWallet && (await isSyraHolderEligible(connectedWallet)));
+        let cwTreasury = connectedWalletFromDb;
+        if (!cwTreasury) {
+          cwTreasury = await getConnectedWalletAddress(anonymousId);
+        }
+        useTreasuryForTools = !!(cwTreasury && (await isSyraHolderEligible(cwTreasury)));
       } catch (treasuryErr) {
         console.error('[agent/chat/completion] treasury eligibility check failed:', treasuryErr?.message || treasuryErr);
       }
@@ -944,6 +1062,16 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     /** @type {Array<{ name: string; status: 'complete' | 'error' | 'skipped'; costUsd?: number; included?: boolean }>} */
     let toolUsages = [];
     let hadToolResults = false;
+    /** When pump.fun create-coin was skipped for missing params, client shows an inline launch form. */
+    let offerPumpfunCreateUi = false;
+    /** pump.fun swap missing params — client shows inline swap form. */
+    let offerPumpfunSwapUi = false;
+    /** @type {{ suggestedMints: string[]; suggestedAmount?: string } | null} */
+    let pumpfunSwapInlineHints = null;
+    /** Skip OpenRouter when the only "tool errors" are silent swap UI hints (form shown, no assistant copy). */
+    let skipFinalLlmForSilentSwapUi = false;
+    /** pump.fun agents swap: on-chain submit outcome if the final model reply is empty (OpenRouter placeholder). */
+    let lastPumpfunAgentsSwapChainResult = null;
     if (!matchedTools || matchedTools.length === 0) {
       // No tools matched — but if the user is asking for real-time data, inject a guardrail
       // so the LLM doesn't fabricate prices/data from training knowledge.
@@ -966,9 +1094,11 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       });
     } else if (anonymousId) {
       const useTreasury = useTreasuryForTools;
-      let connectedWallet = null;
+      let connectedWallet = connectedWalletFromDb;
       try {
-        connectedWallet = walletConnected ? (await getConnectedWalletAddress(anonymousId)) : null;
+        if (connectedWallet == null && walletConnected) {
+          connectedWallet = await getConnectedWalletAddress(anonymousId);
+        }
       } catch (cwErr) {
         console.error('[agent/chat/completion] getConnectedWalletAddress failed:', cwErr?.message || cwErr);
       }
@@ -1008,61 +1138,85 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         if (!tool) continue;
         const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
         const requiredUsdc = effectivePrice;
-        // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount) or infer from message.
-        if (matched.toolId === 'jupiter-swap-order') {
-          const agentAddr = await getAgentAddress(anonymousId);
-          if (agentAddr) params.taker = agentAddr;
+        // pump.fun swap (fun-block): only call upstream after the user confirms via the inline form template.
+        if (matched.toolId === 'pumpfun-agents-swap') {
+          const isPumpfunSwapFormConfirm =
+            /Execute pumpfun-agents-swap with these exact parameters/i.test(lastUserMessage) ||
+            /Execute jupiter-swap-order with these exact parameters/i.test(lastUserMessage);
 
-          // 1) Prefer explicit LLM params (from_token, to_token, amount).
-          if (!params.inputMint || !params.outputMint || !params.amount) {
-            const fromLlm = normalizeJupiterSwapParams(params);
-            if (fromLlm) {
-              params = { ...params, ...fromLlm };
+          if (isPumpfunSwapFormConfirm) {
+            const fromForm = parseAgentSwapParamsFromFormMessage(lastUserMessage, 'pumpfun-agents-swap');
+            if (fromForm) {
+              params.inputMint = fromForm.inputMint;
+              params.outputMint = fromForm.outputMint;
+              params.amount = fromForm.amount;
             }
+            await normalizeJupiterAmountToBaseUnits(params);
+          } else {
+            if (!params.inputMint || !params.outputMint || !params.amount) {
+              const fromLlm = normalizeJupiterSwapParams(params);
+              if (fromLlm) {
+                params = { ...params, ...fromLlm };
+              }
+            }
+            if (!params.inputMint || !params.outputMint || !params.amount) {
+              const inferredSwap = parseJupiterSwapParamsFromText(lastUserMessage);
+              if (inferredSwap) {
+                params = { ...params, ...inferredSwap };
+              }
+            }
+            if (!params.inputMint || !params.outputMint || !params.amount) {
+              const inferredBuy = await parseBuyTokenFromText(
+                lastUserMessage,
+                usdcBalance,
+                solBalanceForSwap
+              );
+              if (inferredBuy) {
+                params = { ...params, ...inferredBuy };
+              }
+            }
+            await normalizeJupiterAmountToBaseUnits(params);
+            applyParseJupiterSwapParamsFromTextIfMatched(lastUserMessage, params);
+
+            offerPumpfunSwapUi = true;
+            pumpfunSwapInlineHints = swapUiHintsFromUserText(lastUserMessage);
+            if (params.inputMint && params.outputMint) {
+              pumpfunSwapInlineHints.suggestedMints = [params.outputMint, params.inputMint];
+            }
+            toolErrors.unshift(SWAP_UI_EMPTY_LLM_REPLY);
+            toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
+            continue;
           }
 
-          // 2) If still incomplete, try generic \"swap X TOKEN for TOKEN\" pattern.
           if (!params.inputMint || !params.outputMint || !params.amount) {
-            const inferredSwap = parseJupiterSwapParamsFromText(lastUserMessage);
-            if (inferredSwap) {
-              params = { ...params, ...inferredSwap };
+            offerPumpfunSwapUi = true;
+            pumpfunSwapInlineHints = swapUiHintsFromUserText(lastUserMessage);
+            if (params.inputMint && params.outputMint) {
+              pumpfunSwapInlineHints.suggestedMints = [params.outputMint, params.inputMint];
             }
-          }
-
-          // 3) If user said \"buy $TOKEN $0.1\" and we still don't have params,
-          //    default from_token to the higher of SOL vs USDC balance and resolve TOKEN via Jupiter.
-          if (!params.inputMint || !params.outputMint || !params.amount) {
-            const inferredBuy = await parseBuyTokenFromText(
-              lastUserMessage,
-              usdcBalance,
-              solBalanceForSwap
-            );
-            if (inferredBuy) {
-              params = { ...params, ...inferredBuy };
-            }
-          }
-
-          // 4) If amount still looks like a human number (e.g. 0.1), convert to base units using inputMint decimals.
-          await normalizeJupiterAmountToBaseUnits(params);
-
-          // 5) If we still don't have full Jupiter params, it means the user
-          //    requested a token outside the supported set (SOL, USDC, SYRA, BONK).
-          //    Instead of calling the swap API and returning a generic 400 error,
-          //    instruct the LLM to clearly say this is not supported yet.
-          if (!params.inputMint || !params.outputMint || !params.amount || !params.taker) {
-            const msg =
-              'The user asked to swap a token that is not currently supported. For now, Syra only supports swaps involving SOL, USDC, SYRA, and BONK. Explain this limitation and ask them to choose one of these tokens.';
-            toolErrors.push(msg);
+            toolErrors.unshift(SWAP_UI_EMPTY_LLM_REPLY);
             toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
             continue;
           }
         }
+
         if (matched.toolId.startsWith('pumpfun-')) {
           params = await enrichPumpfunToolParams(anonymousId, matched.toolId, params);
         }
         const paramGateMsg = getAgentToolParamGateMessage(matched.toolId, tool.method || 'GET', params);
         if (paramGateMsg) {
-          toolErrors.push(paramGateMsg);
+          if (matched.toolId === 'pumpfun-agents-create-coin') {
+            offerPumpfunCreateUi = true;
+            toolErrors.unshift(
+              '[Syra shows an inline pump.fun launch form in the chat. Reply in at most 2 short sentences: welcome them and say they can enter details in the form and tap Create when ready. Do not list token name, symbol, metadata URI, or SOL as bullets or a numbered checklist.]'
+            );
+          } else if (matched.toolId === 'pumpfun-agents-swap') {
+            offerPumpfunSwapUi = true;
+            pumpfunSwapInlineHints = swapUiHintsFromUserText(lastUserMessage);
+            toolErrors.unshift(SWAP_UI_EMPTY_LLM_REPLY);
+          } else {
+            toolErrors.push(paramGateMsg);
+          }
           toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
           continue;
         }
@@ -1249,19 +1403,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           if (!useTreasury) amountChargedUsd += effectivePrice;
           usdcBalance -= effectivePrice;
           let toolData = result.data;
-          // Jupiter swap: sign and submit the transaction with the agent wallet so the swap executes (agent balance reduced).
-          if (matched.toolId === 'jupiter-swap-order' && toolData?.transaction) {
-            try {
-              const { signature } = await signAndSubmitSwapTransaction(anonymousId, toolData.transaction);
-              toolData = { ...toolData, swapSignature: signature, swapSubmitted: true };
-            } catch (swapErr) {
-              toolData = {
-                ...toolData,
-                swapSubmitted: false,
-                swapError: swapErr?.message || 'Failed to submit swap transaction',
-              };
-            }
-          } else if (PUMPFUN_TX_TOOL_IDS.has(matched.toolId) && toolData && typeof toolData.transaction === 'string') {
+          if (PUMPFUN_TX_TOOL_IDS.has(matched.toolId) && toolData && typeof toolData.transaction === 'string') {
             try {
               const { signature } = await signAndSubmitSerializedTransaction(
                 anonymousId,
@@ -1276,25 +1418,49 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
               };
             }
           }
+          if (
+            matched.toolId === 'pumpfun-agents-swap' &&
+            toolData &&
+            typeof toolData === 'object' &&
+            typeof toolData.transaction === 'string'
+          ) {
+            lastPumpfunAgentsSwapChainResult = {
+              submittedOnChain: toolData.submittedOnChain === true,
+              signature:
+                typeof toolData.submittedSignature === 'string' ? toolData.submittedSignature.trim() : '',
+              submitError:
+                typeof toolData.submitError === 'string' ? toolData.submitError.trim() : '',
+            };
+          }
           const chartUi = agentChartUiMeta(matched.toolId, params, toolData);
+          const createCoinUi = pumpfunCreateCoinResultUiMeta(matched.toolId, params, toolData);
           toolUsages.push({
             name: tool.name,
             status: 'complete',
             costUsd: effectivePrice,
             ...(useTreasury && effectivePrice > 0 ? { included: true } : {}),
             ...chartUi,
+            ...createCoinUi,
           });
           const formatted = formatToolResultForLlm(toolData, tool.id);
           const presentInstruction =
             tool.id === 'trending-jupiter'
               ? 'Present this Jupiter trending data in a clear list or table. Use ONLY the data below—do not invent token names, prices, or percentages.'
-              : 'Present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.';
+              : tool.id === 'pumpfun-agents-swap'
+                ? 'The user ran a Solana swap via Syra. You MUST write a visible reply (never empty): state success or failure, and include the transaction signature (submittedSignature) or submitError from the JSON verbatim. Link solscan.io/tx/<signature> when a signature is present.'
+                : 'Present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.';
           toolResults.push(
             `[Result from paid tool "${tool.name}" — ${presentInstruction}]\n\n${formatted}`
           );
         }
       }
-      if (toolErrors.length > 0 && toolResults.length === 0) {
+      const silentSwapUiOnly =
+        toolErrors.length > 0 &&
+        toolResults.length === 0 &&
+        toolErrors.every((e) => e === SWAP_UI_EMPTY_LLM_REPLY);
+      if (silentSwapUiOnly) {
+        skipFinalLlmForSilentSwapUi = true;
+      } else if (toolErrors.length > 0 && toolResults.length === 0) {
         apiMessages.push({ role: 'user', content: toolErrors[0] });
       } else if (toolResults.length > 0) {
         hadToolResults = true;
@@ -1335,11 +1501,17 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     let mainCompletionUsage = null;
 
     try {
-      const modelForCall = llmOptions.model || OPENROUTER_DEFAULT_MODEL;
-      const result = await callOpenRouter(withLlmIdentitySystemNote(apiMessages, modelForCall), llmOptions);
-      response = result.response;
-      truncated = result.truncated;
-      mainCompletionUsage = result.usage;
+      if (skipFinalLlmForSilentSwapUi) {
+        response = '';
+        truncated = false;
+        mainCompletionUsage = null;
+      } else {
+        const modelForCall = llmOptions.model || OPENROUTER_DEFAULT_MODEL;
+        const result = await callOpenRouter(withLlmIdentitySystemNote(apiMessages, modelForCall), llmOptions);
+        response = result.response;
+        truncated = result.truncated;
+        mainCompletionUsage = result.usage;
+      }
     } catch (firstError) {
       const requestedModelOnErr = llmOptions.model;
       console.error(`[agent/chat/completion] callOpenRouter failed (model=${requestedModelOnErr || OPENROUTER_DEFAULT_MODEL}):`, firstError?.message || firstError);
@@ -1378,6 +1550,23 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       }
     }
 
+    if (
+      lastPumpfunAgentsSwapChainResult &&
+      hadToolResults &&
+      typeof response === 'string' &&
+      (response === OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER || !response.trim())
+    ) {
+      const r = lastPumpfunAgentsSwapChainResult;
+      if (r.submittedOnChain && r.signature) {
+        response = `Swap submitted on-chain.\n\n**Signature:** \`${r.signature}\`\n\n[View on Solscan](https://solscan.io/tx/${r.signature})`;
+      } else if (r.submitError) {
+        response = `Swap transaction could not be submitted: ${r.submitError}`;
+      } else {
+        response =
+          'The swap transaction was built but Syra did not receive a signature from the network. Check your agent wallet balance (SOL for fees) and try again.';
+      }
+    }
+
     const tokensThisTurn = tokensFromUsage(toolSelectUsage) + tokensFromUsage(mainCompletionUsage);
     if (chatIdForBudget && anonymousId && tokensThisTurn > 0) {
       await Chat.findOneAndUpdate(
@@ -1391,6 +1580,19 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
     if (usedFallbackModel) payload.usedFallbackModel = true;
     if (toolUsages && toolUsages.length > 0) payload.toolUsages = toolUsages;
+    if (offerPumpfunCreateUi) {
+      payload.inlineUi = { type: 'pumpfun-create-coin' };
+    } else if (offerPumpfunSwapUi) {
+      payload.inlineUi = {
+        type: 'pumpfun-swap',
+        ...(pumpfunSwapInlineHints?.suggestedMints?.length
+          ? { suggestedMints: pumpfunSwapInlineHints.suggestedMints }
+          : {}),
+        ...(pumpfunSwapInlineHints?.suggestedAmount
+          ? { suggestedAmount: pumpfunSwapInlineHints.suggestedAmount }
+          : {}),
+      };
+    }
     if (historyCompact.trimmed) payload.contextTrimmed = true;
     if (tokensThisTurn > 0) {
       payload.llmTokensThisTurn = tokensThisTurn;
@@ -1548,6 +1750,10 @@ router.get('/share/:shareId', async (req, res) => {
         timestamp: m.timestamp,
         toolUsage: m.toolUsage,
         ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+        ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+        ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+        ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+        ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
       }));
       return res.json({
         id: chat._id.toString(),
@@ -1578,6 +1784,10 @@ router.get('/share/:shareId', async (req, res) => {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
     res.json({
       id: chat._id.toString(),
@@ -1708,6 +1918,10 @@ router.get('/:id', async (req, res) => {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
 
     res.json({
@@ -1804,6 +2018,10 @@ router.put('/:id/messages', async (req, res) => {
       timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
       toolUsage: m.toolUsage,
       ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
 
     const update = { messages: normalized };
@@ -1827,6 +2045,10 @@ router.put('/:id/messages', async (req, res) => {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
 
     res.json({
@@ -1860,6 +2082,10 @@ router.post('/:id/messages', async (req, res) => {
       timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
       toolUsage: m.toolUsage,
       ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
 
     const chat = await Chat.findOneAndUpdate(
@@ -1881,6 +2107,10 @@ router.post('/:id/messages', async (req, res) => {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(Array.isArray(m.toolUsages) && m.toolUsages.length > 0 ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi && typeof m.inlineUi === 'object' ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
 
     res.json({

@@ -135,16 +135,16 @@
       "priceUsd": 0.01
     },
     {
-      "id": "jupiter-swap-order",
-      "name": "Jupiter swap order",
-      "description": "Get Jupiter Ultra swap order (buy/sell on Solana). Returns transaction to sign.",
+      "id": "pumpfun-agents-swap",
+      "name": "pump.fun agents swap",
+      "description": "pump.fun fun-block swap (curve or AMM). Returns base64 VersionedTransaction to sign.",
       "method": "POST",
-      "path": "/jupiter/swap/order",
+      "path": "/pumpfun/agents/swap",
       "parameters": [
-        { "name": "inputMint", "in": "body", "required": true, "description": "Input token mint (e.g. SOL mint)" },
-        { "name": "outputMint", "in": "body", "required": true, "description": "Output token mint (e.g. USDC mint)" },
-        { "name": "amount", "in": "body", "required": true, "description": "Amount in smallest units (lamports for SOL)" },
-        { "name": "taker", "in": "body", "required": true, "description": "Wallet public key executing the swap" }
+        { "name": "inputMint", "in": "body", "required": true, "description": "Input token mint (e.g. wrapped SOL)" },
+        { "name": "outputMint", "in": "body", "required": true, "description": "Output token mint" },
+        { "name": "amount", "in": "body", "required": true, "description": "Amount in smallest units of input mint" },
+        { "name": "user", "in": "body", "required": true, "description": "Trader / fee payer Solana pubkey" }
       ],
       "priceUsd": 0.02
     },

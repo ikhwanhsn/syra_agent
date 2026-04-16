@@ -2,10 +2,16 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { User, Copy, Check, RefreshCw, Wrench, Loader2, AlertCircle, HelpCircle, Pencil } from "lucide-react";
+import { Copy, Check, RefreshCw, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { PumpfunPriceChart } from "@/components/chat/PumpfunPriceChart";
+import { PumpfunCreateCoinInlineForm } from "@/components/chat/PumpfunCreateCoinInlineForm";
+import { PumpfunCreateCoinResultBar } from "@/components/chat/PumpfunCreateCoinResultBar";
+import { AgentSwapInlineForm } from "@/components/chat/AgentSwapInlineForm";
+import type { AgentInlineUiPayload } from "@/lib/chatApi";
+import { injectSolscanLinksInMarkdown } from "@/lib/solanaExplorerMarkdown";
 
 /** Context-specific step sequences — each tells a short "story" relevant to the user's question. */
 const STEP_SEQUENCES: Record<string, string[]> = {
@@ -82,16 +88,13 @@ export type ToolUsageItem = {
   chartCoinId?: string;
   chartSymbol?: string;
   chartName?: string;
+  pumpfunCreateMint?: string;
+  pumpfunCreateSignature?: string;
+  pumpfunCreateSymbol?: string;
+  pumpfunCreateName?: string;
 };
 
-function formatToolCostUsd(n: number | undefined): string | null {
-  if (n == null || Number.isNaN(n)) return null;
-  if (n === 0) return "$0.00";
-  if (n < 0.01) return `$${n.toFixed(4)}`;
-  return `$${n.toFixed(2)}`;
-}
-
-interface Message {
+export interface ChatMessageModel {
   id: string;
   role: "user" | "assistant";
   content: string;
@@ -100,10 +103,14 @@ interface Message {
   toolUsage?: ToolUsageItem;
   /** Optional: multiple tools used for this answer (future API support). */
   toolUsages?: ToolUsageItem[];
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
 }
 
 interface ChatMessageProps {
-  message: Message;
+  message: ChatMessageModel;
   agentName?: string;
   agentAvatar?: string;
   onRegenerate?: (messageId: string) => void;
@@ -113,6 +120,12 @@ interface ChatMessageProps {
   userAvatarUrl?: string | null;
   /** When user saves an edited user message: (messageId, newContent) => update in place */
   onUpdateUserMessage?: (messageId: string, content: string) => void;
+  /** pump.fun launch form: dismiss without sending */
+  onDismissPumpfunCreateForm?: (assistantMessageId: string) => void;
+  /** pump.fun launch form: submit structured follow-up user turn */
+  onSubmitPumpfunCreateForm?: (payload: { assistantMessageId: string; prompt: string }) => void;
+  /** Shared / read-only view: show form as static notice only */
+  pumpfunCreateFormReadOnly?: boolean;
 }
 
 /** Generate a cute, unique avatar for user messages */
@@ -138,7 +151,18 @@ function getUserAvatar(messageId: string) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "/logo.jpg", onRegenerate, isRegenerateDisabled, userAvatarUrl = null, onUpdateUserMessage }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  agentName = "Syra Agent",
+  agentAvatar = "/logo.jpg",
+  onRegenerate,
+  isRegenerateDisabled,
+  userAvatarUrl = null,
+  onUpdateUserMessage,
+  onDismissPumpfunCreateForm,
+  onSubmitPumpfunCreateForm,
+  pumpfunCreateFormReadOnly = false,
+}: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState("");
@@ -391,13 +415,42 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
     return null;
   }, [toolItems]);
 
+  const pumpfunCreateResult = useMemo(() => {
+    const hit = toolItems.find(
+      (t) =>
+        t.status === "complete" &&
+        typeof t.pumpfunCreateMint === "string" &&
+        t.pumpfunCreateMint.trim().length > 0,
+    );
+    if (!hit) return null;
+    const mint = hit.pumpfunCreateMint!.trim();
+    const signature =
+      typeof hit.pumpfunCreateSignature === "string" && hit.pumpfunCreateSignature.trim().length > 0
+        ? hit.pumpfunCreateSignature.trim()
+        : undefined;
+    const tokenSymbol =
+      typeof hit.pumpfunCreateSymbol === "string" && hit.pumpfunCreateSymbol.trim().length > 0
+        ? hit.pumpfunCreateSymbol.trim()
+        : undefined;
+    const tokenName =
+      typeof hit.pumpfunCreateName === "string" && hit.pumpfunCreateName.trim().length > 0
+        ? hit.pumpfunCreateName.trim()
+        : undefined;
+    return { mint, signature, tokenSymbol, tokenName };
+  }, [toolItems]);
+
+  const contentWithSolscanLinks = useMemo(
+    () => injectSolscanLinksInMarkdown(message.content || ""),
+    [message.content],
+  );
+
   return (
     <div
       className={cn(
-        "group flex min-w-0 max-w-full animate-fade-in overflow-hidden",
+        "group flex min-w-0 max-w-full animate-fade-in",
         isUser
-          ? "gap-3 bg-transparent px-3 py-2 sm:gap-4 sm:px-4 sm:py-3"
-          : "items-start gap-3 py-1.5 sm:gap-4 sm:py-2",
+          ? "gap-3 overflow-x-hidden overflow-y-visible bg-transparent px-3 py-2 sm:gap-4 sm:px-4 sm:py-3"
+          : "items-start gap-3 overflow-hidden py-1.5 sm:gap-4 sm:py-2",
       )}
     >
       <div className={cn("flex-shrink-0", !isUser && "pt-1 sm:pt-1.5")}>
@@ -434,7 +487,7 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
       </div>
 
       {isUser ? (
-        <div className="min-w-0 flex-1 space-y-1.5 overflow-hidden">
+        <div className="min-w-0 flex-1 space-y-1.5 overflow-x-hidden">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="shrink-0 text-sm font-medium text-foreground">You</span>
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -445,21 +498,23 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
           <div className="min-w-0 break-words leading-relaxed text-foreground">
             {isEditing ? (
               <div className="space-y-2">
-                <textarea
-                  ref={editTextareaRef}
-                  value={editDraft}
-                  onChange={(e) => setEditDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      saveEdit();
-                    }
-                    if (e.key === "Escape") cancelEdit();
-                  }}
-                  rows={3}
-                  className="min-h-[72px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Your message..."
-                />
+                <div className="rounded-lg bg-border p-px">
+                  <Textarea
+                    ref={editTextareaRef}
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        saveEdit();
+                      }
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    rows={3}
+                    className="min-h-[72px] resize-y rounded-[calc(0.5rem-1px)] border-0 bg-background shadow-none ring-offset-0 focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-inset focus-visible:ring-offset-0"
+                    placeholder="Your message..."
+                  />
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="default"
@@ -477,7 +532,11 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
                 </div>
               </div>
             ) : (
-              <p className="my-0 min-w-0 whitespace-pre-wrap break-words">{message.content}</p>
+              <div className="my-0 min-w-0 max-w-full break-words text-[15px] leading-relaxed text-foreground [&_p]:my-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {contentWithSolscanLinks}
+                </ReactMarkdown>
+              </div>
             )}
           </div>
 
@@ -520,82 +579,7 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
                     {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                {toolItems.length > 0 && (
-                  <span className="hidden max-w-[min(100%,14rem)] items-center gap-1.5 truncate rounded-full border border-border/50 bg-muted/25 px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
-                    <Wrench className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
-                    <span className="truncate" title={toolItems.map((t) => t.name).join(", ")}>
-                      {toolItems.map((t) => t.name).join(", ")}
-                    </span>
-                  </span>
-                )}
               </div>
-
-              {toolItems.length > 0 && (
-                <div className="min-w-0 space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-                    {toolItems.length === 1 ? "Tool used" : "Tools used"}
-                  </p>
-                  <ul className="divide-y divide-border/40 rounded-xl border border-border/50 bg-muted/15">
-                    {toolItems.map((tool, i) => (
-                      <li
-                        key={i}
-                        className={cn(
-                          "flex min-w-0 items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3",
-                          tool.status === "error" && "bg-red-500/[0.06]",
-                          tool.status === "skipped" && "bg-amber-500/[0.06]",
-                        )}
-                      >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/60 ring-1 ring-border/40">
-                          {tool.status === "running" ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
-                          ) : tool.status === "error" ? (
-                            <AlertCircle className="h-4 w-4 text-red-500" aria-hidden />
-                          ) : tool.status === "skipped" ? (
-                            <HelpCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
-                          ) : (
-                            <Check className="h-4 w-4 text-emerald-500" aria-hidden />
-                          )}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={tool.name}>
-                          {tool.name}
-                        </span>
-                        <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                          <span
-                            className="tabular-nums text-xs font-semibold text-foreground/90"
-                            title={tool.included ? "Listed tool price (covered by SYRA treasury)" : "Tool price (USDC)"}
-                          >
-                            {formatToolCostUsd(tool.costUsd) ?? "—"}
-                          </span>
-                          {tool.included && tool.status === "complete" && (
-                            <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-600/95 dark:text-emerald-400/95">
-                              Included
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                            tool.status === "running" && "bg-primary/10 text-primary",
-                            tool.status === "error" && "bg-red-500/15 text-red-600 dark:text-red-400",
-                            tool.status === "skipped" &&
-                              "bg-amber-500/15 text-amber-800 dark:text-amber-300",
-                            tool.status === "complete" &&
-                              "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
-                          )}
-                        >
-                          {tool.status === "running"
-                            ? "Running"
-                            : tool.status === "error"
-                              ? "Error"
-                              : tool.status === "skipped"
-                                ? "Need info"
-                                : "Complete"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
 
               {!message.isStreaming && pumpChartFromTools && (
                 <PumpfunPriceChart
@@ -606,17 +590,14 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
                 />
               )}
 
-              <div
-                className={cn(
-                  "w-full min-w-0 max-w-none break-words text-foreground text-pretty",
-                  toolItems.length > 0 && "pt-0.5",
+              <div className="w-full min-w-0 max-w-none break-words text-foreground text-pretty">
+                {(message.content?.trim() || message.isStreaming) && (
+                  <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words [&>*:first-child]:mt-0">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {contentWithSolscanLinks}
+                    </ReactMarkdown>
+                  </div>
                 )}
-              >
-                <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words [&>*:first-child]:mt-0">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {message.content}
-                  </ReactMarkdown>
-                </div>
                 {message.isStreaming && (
                   <span className="ml-1 inline-flex gap-1">
                     <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
@@ -624,6 +605,41 @@ export function ChatMessage({ message, agentName = "Syra Agent", agentAvatar = "
                     <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
                   </span>
                 )}
+                {!message.isStreaming &&
+                  message.inlineUi?.type === "pumpfun-create-coin" &&
+                  !message.inlineUiDismissed &&
+                  (pumpfunCreateFormReadOnly || (onDismissPumpfunCreateForm && onSubmitPumpfunCreateForm) ? (
+                    <PumpfunCreateCoinInlineForm
+                      assistantMessageId={message.id}
+                      readOnly={pumpfunCreateFormReadOnly}
+                      onCreate={onSubmitPumpfunCreateForm ?? (() => {})}
+                      onCancel={onDismissPumpfunCreateForm ?? (() => {})}
+                    />
+                  ) : null)}
+                {!message.isStreaming &&
+                  (message.inlineUi?.type === "jupiter-swap" || message.inlineUi?.type === "pumpfun-swap") &&
+                  !message.inlineUiDismissed &&
+                  (pumpfunCreateFormReadOnly || (onDismissPumpfunCreateForm && onSubmitPumpfunCreateForm) ? (
+                    <AgentSwapInlineForm
+                      mode={message.inlineUi.type === "pumpfun-swap" ? "pumpfun" : "jupiter"}
+                      inlineUi={message.inlineUi}
+                      assistantMessageId={message.id}
+                      readOnly={pumpfunCreateFormReadOnly}
+                      actionsHidden={!!message.swapActionsHidden}
+                      swapInlineStatus={message.swapInlineStatus}
+                      onSwap={onSubmitPumpfunCreateForm ?? (() => {})}
+                      onCancel={onDismissPumpfunCreateForm ?? (() => {})}
+                    />
+                  ) : null)}
+                {!message.isStreaming && pumpfunCreateResult ? (
+                  <PumpfunCreateCoinResultBar
+                    mint={pumpfunCreateResult.mint}
+                    signature={pumpfunCreateResult.signature}
+                    tokenSymbol={pumpfunCreateResult.tokenSymbol}
+                    tokenName={pumpfunCreateResult.tokenName}
+                    className="mt-4"
+                  />
+                ) : null}
               </div>
 
               {!message.isStreaming && (

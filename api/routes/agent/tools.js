@@ -189,10 +189,8 @@ router.post('/call', async (req, res) => {
       ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
     );
 
-    // Jupiter swap order: use agent wallet as taker; accept LLM params (from_token, to_token, amount).
-    if (tool.id === 'jupiter-swap-order') {
-      const agentAddr = await getAgentAddress(anonymousId);
-      if (agentAddr) params.taker = agentAddr;
+    // pump.fun swap: accept LLM-style from_token / to_token / amount human numbers (same normalizer as chat).
+    if (tool.id === 'pumpfun-agents-swap') {
       const fromLlm = normalizeJupiterSwapParams(params);
       if (fromLlm) {
         Object.assign(params, fromLlm);
@@ -426,19 +424,7 @@ router.post('/call', async (req, res) => {
   }
 
     let data = result.data;
-    // Jupiter swap: sign and submit the transaction with the agent wallet so the swap executes (agent balance reduced).
-    if (tool.id === 'jupiter-swap-order' && data?.transaction) {
-      try {
-        const { signature } = await signAndSubmitSwapTransaction(anonymousId, data.transaction);
-        data = { ...data, swapSignature: signature, swapSubmitted: true };
-      } catch (swapErr) {
-        data = {
-          ...data,
-          swapSubmitted: false,
-          swapError: swapErr?.message || 'Failed to submit swap transaction',
-        };
-      }
-    } else if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
+    if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
       try {
         const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction);
         data = { ...data, submittedSignature: signature, submittedOnChain: true };

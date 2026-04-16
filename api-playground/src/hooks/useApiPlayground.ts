@@ -836,38 +836,6 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         },
       ],
     },
-    {
-      id: "jupiter-swap-order",
-      label: "Jupiter swap order",
-      method: "GET",
-      url: `${base}/jupiter/swap/order`,
-      params: [
-        {
-          key: "inputMint",
-          value: "So11111111111111111111111111111111111111112",
-          enabled: true,
-          description: "Input token mint (SOL wrapped)",
-        },
-        {
-          key: "outputMint",
-          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          enabled: true,
-          description: "Output token mint (USDC)",
-        },
-        {
-          key: "amount",
-          value: "1000000",
-          enabled: true,
-          description: "Amount in smallest units (1M lamports = 0.001 SOL)",
-        },
-        {
-          key: "taker",
-          value: "",
-          enabled: true,
-          description: "Your wallet public key (executes the swap)",
-        },
-      ],
-    },
     // pump.fun (Syra x402 gateway — fun-block + agent payments SDK)
     {
       id: "pumpfun-agents-swap",
@@ -2377,7 +2345,6 @@ function getApiEndpoints(): string[] {
     `${base}/smart-money`,
     `${base}/token-god-mode`,
     `${base}/trending-jupiter`,
-    `${base}/jupiter/swap/order`,
     `${base}/pumpfun/agents/swap`,
     `${base}/pumpfun/agents/create-coin`,
     `${base}/pumpfun/agents/collect-fees`,
@@ -2957,32 +2924,6 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
           value: "",
           enabled: true,
           description: "Solana token contract address",
-        },
-      ],
-      "/jupiter/swap/order": [
-        {
-          key: "inputMint",
-          value: "So11111111111111111111111111111111111111112",
-          enabled: true,
-          description: "Input token mint (SOL wrapped)",
-        },
-        {
-          key: "outputMint",
-          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          enabled: true,
-          description: "Output token mint (USDC)",
-        },
-        {
-          key: "amount",
-          value: "1000000",
-          enabled: true,
-          description: "Amount in smallest units (1M lamports = 0.001 SOL)",
-        },
-        {
-          key: "taker",
-          value: "",
-          enabled: true,
-          description: "Your wallet public key (executes the swap)",
         },
       ],
       "/pumpfun/agents/swap": [

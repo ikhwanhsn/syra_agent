@@ -117,9 +117,11 @@ function getWithdrawAmountError(params: {
 export interface FuelAgentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Which flow to show when the dialog opens (e.g. from wallet menu shortcuts). */
+  initialFlowTab?: "deposit" | "withdraw";
 }
 
-export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
+export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" }: FuelAgentModalProps) {
   const {
     connection,
     publicKey,
@@ -252,7 +254,7 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
 
   useEffect(() => {
     if (open) {
-      setFlowTab("deposit");
+      setFlowTab(initialFlowTab);
       setDepositMode("usdc");
       setCustomUsd("");
       setCustomNative("");
@@ -264,7 +266,7 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
       setWithdrawing(false);
       setSubmitting(false);
     }
-  }, [open]);
+  }, [open, initialFlowTab]);
 
   const buildSolanaTx = useCallback(async () => {
     if (!publicKey || !agentAddress) return null;
@@ -737,10 +739,10 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
                 <div
                   className={cn(
                     "min-w-0 rounded-xl px-2 py-1.5 transition-[background-color,box-shadow] duration-300 sm:px-3 sm:py-2.5",
-                    flowTab === "deposit" && "bg-primary/[0.11] ring-1 ring-primary/20",
+                    flowTab === "deposit" && "bg-primary/[0.11] ring-1 ring-inset ring-primary/20",
                     flowTab === "withdraw" &&
                       !isBase &&
-                      "bg-amber-500/[0.09] ring-1 ring-amber-500/18",
+                      "bg-amber-500/[0.09] ring-1 ring-inset ring-amber-500/18",
                   )}
                 >
                   <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70 sm:text-[11px]">Agent</p>
@@ -803,11 +805,13 @@ export function FuelAgentModal({ open, onOpenChange }: FuelAgentModalProps) {
                 </div>
                 <div
                   className={cn(
-                    "min-w-0 rounded-xl border-t border-border/40 pt-3 transition-[background-color,box-shadow,border-color] duration-300 sm:border-0 sm:pt-0 sm:px-3 sm:py-2.5",
-                    flowTab === "deposit" && "border-primary/15 bg-amber-500/[0.08] ring-1 ring-amber-500/15 sm:border-0",
+                    /* Mobile: match Agent horizontal padding; inset rings avoid clipping under overflow-hidden. */
+                    "min-w-0 rounded-xl border-t border-border/40 px-2 pb-2.5 pt-3 transition-[background-color,box-shadow,border-color] duration-300 sm:border-0 sm:px-3 sm:py-2.5",
+                    flowTab === "deposit" &&
+                      "border-primary/15 bg-amber-500/[0.08] ring-1 ring-inset ring-amber-500/15 sm:border-0",
                     flowTab === "withdraw" &&
                       !isBase &&
-                      "border-emerald-500/15 bg-primary/[0.1] ring-1 ring-primary/18 sm:border-0",
+                      "border-emerald-500/15 bg-primary/[0.1] ring-1 ring-inset ring-primary/18 sm:border-0",
                   )}
                 >
                   <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70 sm:text-[11px]">Yours</p>

@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   Pencil,
   PanelLeftClose,
+  X,
   Square,
   Share2,
   Lock,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { Button } from "@/components/ui/button";
+import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
@@ -256,6 +258,7 @@ export function Sidebar({
             </div>
           </Link>
         )}
+        {isOverlay && <DrawerDismissButton label="Close sidebar" onClick={onToggle} />}
         {isResizable && onCollapse && (
           <Button
             variant="ghost"

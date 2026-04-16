@@ -12,6 +12,26 @@ function getApiHeaders(): Record<string, string> {
 const base = () => getApiBaseUrl() + "/agent/chat";
 const agentWalletBase = () => getApiBaseUrl() + "/agent/wallet";
 
+/** Rich UI rendered in the agent chat (forms when swap/create params need user input). */
+export type AgentInlineUiPayload =
+  | { type: "pumpfun-create-coin" }
+  | {
+      type: "jupiter-swap";
+      suggestedMints?: string[];
+      suggestedAmount?: string;
+    }
+  | {
+      type: "pumpfun-swap";
+      suggestedMints?: string[];
+      suggestedAmount?: string;
+    };
+
+export function isAgentInlineUiPayload(v: unknown): v is AgentInlineUiPayload {
+  if (!v || typeof v !== "object") return false;
+  const t = (v as { type?: string }).type;
+  return t === "pumpfun-create-coin" || t === "jupiter-swap" || t === "pumpfun-swap";
+}
+
 export interface ApiToolUsageEntry {
   name: string;
   status: "running" | "complete" | "error" | "skipped";
@@ -23,6 +43,11 @@ export interface ApiToolUsageEntry {
   chartCoinId?: string;
   chartSymbol?: string;
   chartName?: string;
+  /** pump.fun create-coin success — client quick links */
+  pumpfunCreateMint?: string;
+  pumpfunCreateSignature?: string;
+  pumpfunCreateSymbol?: string;
+  pumpfunCreateName?: string;
 }
 
 export interface ApiMessage {
@@ -32,6 +57,11 @@ export interface ApiMessage {
   timestamp: string | Date;
   toolUsage?: ApiToolUsageEntry;
   toolUsages?: ApiToolUsageEntry[];
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  /** Jupiter/pump inline swap: actions hidden after user Swap or Cancel. */
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
 }
 
 /** Curated OpenRouter model entry from GET /agent/chat/models */
@@ -161,6 +191,10 @@ export const chatApi = {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(m.toolUsages?.length ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
     const body: { anonymousId: string; messages: ApiMessage[]; title?: string; preview?: string } = {
       anonymousId,
@@ -184,6 +218,10 @@ export const chatApi = {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(m.toolUsages?.length ? { toolUsages: m.toolUsages } : {}),
+      ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
+      ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
+      ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
+      ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
     }));
     const res = await fetch(`${base()}/${id}/messages`, {
       method: "POST",
@@ -292,6 +330,7 @@ export const chatApi = {
       response: string;
       amountChargedUsd?: number;
       toolUsages?: ApiToolUsageEntry[];
+      inlineUi?: AgentInlineUiPayload;
     }>(res);
     return {
       response: data.response ?? "",
@@ -301,6 +340,7 @@ export const chatApi = {
       ...(Array.isArray(data.toolUsages) && data.toolUsages.length > 0
         ? { toolUsages: data.toolUsages }
         : {}),
+      ...(isAgentInlineUiPayload(data.inlineUi) ? { inlineUi: data.inlineUi } : {}),
     };
   },
 };

@@ -1,5 +1,28 @@
 import AgentChatDailyQuota from '../models/agent/AgentChatDailyQuota.js';
 
+/** Linked Solana wallets that skip the per-day question cap (team / partners). */
+const AGENT_CHAT_DAILY_LIMIT_BYPASS_WALLETS_DEFAULT = ['FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD'];
+
+function getBypassWalletSet() {
+  const set = new Set(AGENT_CHAT_DAILY_LIMIT_BYPASS_WALLETS_DEFAULT);
+  const raw = process.env.AGENT_CHAT_DAILY_LIMIT_BYPASS_WALLETS;
+  if (raw && typeof raw === 'string') {
+    for (const w of raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)) {
+      set.add(w);
+    }
+  }
+  return set;
+}
+
+/**
+ * @param {string | null | undefined} walletAddress - Solana pubkey from AgentWallet.walletAddress
+ * @returns {boolean}
+ */
+export function isAgentChatDailyLimitBypassWallet(walletAddress) {
+  if (!walletAddress || typeof walletAddress !== 'string') return false;
+  return getBypassWalletSet().has(walletAddress.trim());
+}
+
 function getDailyLimit() {
   const raw = process.env.AGENT_CHAT_DAILY_QUESTION_LIMIT;
   if (raw === undefined || raw === '') return 25;

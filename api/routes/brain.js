@@ -100,8 +100,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         const tool = getAgentTool(matched.toolId);
         if (!tool) continue;
 
-        // Brain API has no agent wallet; swaps require taker — skip and explain
-        if (matched.toolId === "jupiter-swap-order") {
+        // Brain API has no agent wallet; on-chain swaps require the agent — skip and explain
+        if (matched.toolId === "pumpfun-agents-swap") {
           toolErrors.push(
             "[Swap is not supported in the Brain API; use Syra agent chat with a connected wallet to execute swaps.]"
           );

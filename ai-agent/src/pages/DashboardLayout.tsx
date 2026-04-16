@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { WalletNav } from "@/components/chat/WalletNav";
 import { AppTopNavLinks } from "@/components/chat/AppTopNavLinks";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -67,6 +68,8 @@ interface DashboardSidebarContentProps {
   showHeader?: boolean;
   currentSection?: string;
   onCollapse?: () => void;
+  /** Mobile drawer: show close control in header */
+  onCloseDrawer?: () => void;
 }
 
 function DashboardSidebarContent({
@@ -74,6 +77,7 @@ function DashboardSidebarContent({
   showHeader = true,
   currentSection = "Overview",
   onCollapse,
+  onCloseDrawer,
 }: DashboardSidebarContentProps) {
   return (
     <>
@@ -91,6 +95,7 @@ function DashboardSidebarContent({
               <p className="mt-1 truncate text-[11px] font-medium text-muted-foreground/85">{currentSection}</p>
             </div>
           </Link>
+          {onCloseDrawer && <DrawerDismissButton label="Close menu" onClick={onCloseDrawer} />}
           {onCollapse && (
             <Button
               variant="ghost"
@@ -215,14 +220,14 @@ export default function DashboardLayout() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0"
+          className="hidden h-9 w-9 shrink-0 lg:inline-flex"
           onClick={() => setIsDarkMode(!isDarkMode)}
           title={isDarkMode ? "Light mode" : "Dark mode"}
           aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
         >
           {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
-        <WalletNav />
+        <WalletNav isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />
       </div>
     </header>
   );
@@ -254,6 +259,7 @@ export default function DashboardLayout() {
             onNavigate={() => setSidebarOpen(false)}
             showHeader={true}
             currentSection={pageTitle}
+            onCloseDrawer={() => setSidebarOpen(false)}
           />
         </aside>
 

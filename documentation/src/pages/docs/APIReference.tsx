@@ -34,7 +34,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Partner: Jupiter",
-    slugs: ["trending-jupiter", "jupiter-swap-order"],
+    slugs: ["trending-jupiter", "pumpfun-agents-swap"],
   },
   {
     title: "Partner: Squid Router",

@@ -1018,25 +1018,25 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
-  "jupiter-swap-order": doc({
-    title: "Jupiter Swap Order API",
+  "pumpfun-agents-swap": doc({
+    title: "pump.fun Agents Swap API",
     overview:
-      "Get a Jupiter Ultra swap order (buy/sell token on Solana via Corbits). Returns a swap order with a base64 transaction for the client to sign and submit. Requires inputMint, outputMint, amount (smallest units, e.g. lamports), and taker (wallet public key). Uses the x402 payment protocol.",
+      "Build a buy/sell transaction via pump.fun fun-block (bonding curve or graduated AMM). Returns a base64 VersionedTransaction for the trader to sign. Requires inputMint, outputMint, amount (smallest units), and user (trader pubkey). Uses the x402 payment protocol.",
     endpoints: [
       {
-        method: "GET",
-        path: "/jupiter/swap/order",
-        description: "Get swap order. All query params are required.",
+        method: "POST",
+        path: "/pumpfun/agents/swap",
+        description: "Create swap transaction. JSON body fields required unless noted optional.",
         params: [
-          { name: "inputMint", type: "string", required: "Yes", description: "Input token mint address (e.g. wrapped SOL)." },
-          { name: "outputMint", type: "string", required: "Yes", description: "Output token mint address (e.g. USDC)." },
-          { name: "amount", type: "string", required: "Yes", description: "Amount in smallest units (e.g. lamports for SOL)." },
-          { name: "taker", type: "string", required: "Yes", description: "Wallet public key that will execute the swap." },
+          { name: "inputMint", type: "string", required: "Yes", description: "Input token mint (e.g. wrapped SOL for buys)." },
+          { name: "outputMint", type: "string", required: "Yes", description: "Output token mint." },
+          { name: "amount", type: "string", required: "Yes", description: "Amount in smallest units of the input mint." },
+          { name: "user", type: "string", required: "Yes", description: "Trader / fee payer Solana pubkey." },
         ],
-        requestExample: `curl "${BASE_URL}/jupiter/swap/order?inputMint=So11111111111111111111111111111111111111112&outputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=1000000&taker=YourWalletPubkey"`,
+        requestExample: `curl -X POST "${BASE_URL}/pumpfun/agents/swap" -H "Content-Type: application/json" -d '{"inputMint":"So11111111111111111111111111111111111111112","outputMint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"1000000","user":"YourWalletPubkey"}'`,
         responseExample: `{
-  "order": {},
-  "transaction": "base64-encoded-transaction..."
+  "transaction": "base64-encoded-versioned-transaction...",
+  "pumpMintInfo": {}
 }`,
       },
     ],

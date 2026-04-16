@@ -14,6 +14,7 @@ import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
+import { createAgentPumpfunCoinRouter } from "./routes/agent/pumpfunCoin.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
@@ -821,6 +822,7 @@ app.use("/openrouter", await createOpenRouterChatRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/chart", createAgentChartRouter());
+app.use("/agent/pumpfun", createAgentPumpfunCoinRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
