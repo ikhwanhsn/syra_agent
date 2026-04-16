@@ -16,6 +16,7 @@ import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
 import { callZerionWithTreasury } from "../libs/agentZerionClient.js";
 import { callOpenRouter } from "../libs/openrouter.js";
 import { resolveAgentBaseUrl } from "./agent/utils.js";
+import { runAgentPartnerDirectTool } from "../libs/agentPartnerDirectTools.js";
 import {
   requirePaymentSapEscrowOrExact,
   settleSapEscrowOrFacilitator,
@@ -126,6 +127,11 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
                 error: zr.error,
                 budgetExceeded: zr.budgetExceeded,
               };
+        } else if (tool.agentDirect) {
+          const out = await runAgentPartnerDirectTool(tool.id, params, { host: req.get("host") });
+          result = out.ok
+            ? { status: out.httpStatus ?? 200, data: out.data }
+            : { status: out.status ?? 502, error: out.error };
         } else {
           const url = `${baseUrl}${tool.path}`;
           result = await callToolWithTreasury(

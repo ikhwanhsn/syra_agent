@@ -583,6 +583,137 @@ export const AGENT_TOOLS = [
     name: 'Zerion: fungibles list',
     description: 'Search/list fungible assets (Zerion query params e.g. filter[search_query], page[size])',
   },
+  // Partner: RISE (direct API via server-side key)
+  {
+    id: 'rise-markets',
+    agentDirect: true,
+    path: '/rise/markets',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE list markets',
+    description: 'List RISE markets (optional page, limit)',
+  },
+  {
+    id: 'rise-market',
+    agentDirect: true,
+    path: '/rise/markets/:address',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE market by address',
+    description: 'Get RISE market details by token mint or rise market address',
+  },
+  {
+    id: 'rise-market-transactions',
+    agentDirect: true,
+    path: '/rise/markets/:address/transactions',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE market transactions',
+    description: 'Get RISE market transaction history (optional page, limit)',
+  },
+  {
+    id: 'rise-market-ohlc',
+    agentDirect: true,
+    path: '/rise/markets/:address/ohlc/:timeframe',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE market OHLC',
+    description: 'Get RISE OHLC candles by timeframe (1m, 5m, 1h, 1d)',
+  },
+  {
+    id: 'rise-market-quote',
+    agentDirect: true,
+    path: '/rise/markets/:address/quote',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE trade quote',
+    description: 'Get RISE buy/sell quote (amount RAW, direction buy|sell)',
+  },
+  {
+    id: 'rise-buy-token',
+    agentDirect: true,
+    path: '/rise/program/buyToken',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE buy token',
+    description: 'Build RISE buy transaction (wallet, market, cashIn, minTokenOut)',
+  },
+  {
+    id: 'rise-sell-token',
+    agentDirect: true,
+    path: '/rise/program/sellToken',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE sell token',
+    description: 'Build RISE sell transaction (wallet, market, tokenIn, minCashOut)',
+  },
+  {
+    id: 'rise-portfolio-summary',
+    agentDirect: true,
+    path: '/rise/users/:wallet/portfolio/summary',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE portfolio summary',
+    description: 'Get RISE wallet portfolio summary',
+  },
+  {
+    id: 'rise-portfolio-positions',
+    agentDirect: true,
+    path: '/rise/users/:wallet/portfolio/positions',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE portfolio positions',
+    description: 'Get RISE wallet positions (optional page, limit)',
+  },
+  {
+    id: 'rise-borrow-quote',
+    agentDirect: true,
+    path: '/rise/markets/:address/borrow/quote',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE borrow quote',
+    description: 'Get RISE borrow capacity and optional required deposit',
+  },
+  {
+    id: 'rise-deposit-and-borrow',
+    agentDirect: true,
+    path: '/rise/program/deposit-and-borrow',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE deposit and borrow',
+    description: 'Build RISE deposit+borrow transaction (wallet, market, borrowAmount)',
+  },
+  {
+    id: 'rise-repay-and-withdraw',
+    agentDirect: true,
+    path: '/rise/program/repay-and-withdraw',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE repay and withdraw',
+    description: 'Build RISE repay+withdraw transaction (wallet, market, withdrawAmount)',
+  },
+  {
+    id: 'rise-stream-new',
+    agentDirect: true,
+    path: '/rise/markets/stream/new',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'RISE new markets stream',
+    description: 'Returns integration note for RISE SSE stream endpoint /markets/stream/new',
+  },
   // Partner: Jupiter, Bubblemaps, Binance
   {
     id: 'trending-jupiter',
@@ -1091,6 +1222,72 @@ export function matchToolFromUserMessage(userMessage) {
 
   // Ordered intent patterns: more specific first. Return first match.
   const intents = [
+    // Partner: RISE
+    {
+      toolId: 'rise-market-quote',
+      test: () =>
+        /rise\s+(quote|buy|sell|trade)|quote\s+on\s+rise|trade\s+on\s+rise|rise\s+price\s+impact/i.test(text),
+    },
+    {
+      toolId: 'rise-buy-token',
+      test: () =>
+        /buy\s+token\s+on\s+rise|rise\s+buy\s+token|rise\s+program\s+buy/i.test(text),
+    },
+    {
+      toolId: 'rise-sell-token',
+      test: () =>
+        /sell\s+token\s+on\s+rise|rise\s+sell\s+token|rise\s+program\s+sell/i.test(text),
+    },
+    {
+      toolId: 'rise-markets',
+      test: () =>
+        /rise\s+markets?|list\s+rise\s+tokens?|rise\s+token\s+list/i.test(text),
+    },
+    {
+      toolId: 'rise-market',
+      test: () =>
+        /rise\s+market\s+(details|info)|rise\s+token\s+info|market\s+info\s+on\s+rise/i.test(text),
+    },
+    {
+      toolId: 'rise-market-transactions',
+      test: () =>
+        /rise\s+market\s+transactions?|rise\s+tx\s+history|transactions?\s+on\s+rise/i.test(text),
+    },
+    {
+      toolId: 'rise-market-ohlc',
+      test: () =>
+        /rise\s+ohlc|rise\s+candles?|rise\s+chart\s+data|ohlc\s+on\s+rise/i.test(text),
+    },
+    {
+      toolId: 'rise-portfolio-summary',
+      test: () =>
+        /rise\s+portfolio\s+summary|summary\s+on\s+rise|rise\s+wallet\s+summary/i.test(text),
+    },
+    {
+      toolId: 'rise-portfolio-positions',
+      test: () =>
+        /rise\s+portfolio\s+positions?|positions?\s+on\s+rise|rise\s+wallet\s+positions?/i.test(text),
+    },
+    {
+      toolId: 'rise-borrow-quote',
+      test: () =>
+        /rise\s+borrow\s+quote|borrow\s+on\s+rise|rise\s+borrowing\s+capacity/i.test(text),
+    },
+    {
+      toolId: 'rise-deposit-and-borrow',
+      test: () =>
+        /rise\s+deposit\s+and\s+borrow|deposit\s+and\s+borrow\s+on\s+rise/i.test(text),
+    },
+    {
+      toolId: 'rise-repay-and-withdraw',
+      test: () =>
+        /rise\s+repay\s+and\s+withdraw|repay\s+and\s+withdraw\s+on\s+rise/i.test(text),
+    },
+    {
+      toolId: 'rise-stream-new',
+      test: () =>
+        /rise\s+(sse|stream)|rise\s+new\s+markets?\s+stream|subscribe\s+rise\s+markets?/i.test(text),
+    },
     // Partner: Bubblemaps, Binance
     {
       toolId: 'bubblemaps-maps',
@@ -1521,6 +1718,19 @@ export function getCapabilitiesList() {
     'giza-top-up',
     'giza-update-protocols',
     'giza-run',
+    'rise-markets',
+    'rise-market',
+    'rise-market-transactions',
+    'rise-market-ohlc',
+    'rise-market-quote',
+    'rise-buy-token',
+    'rise-sell-token',
+    'rise-portfolio-summary',
+    'rise-portfolio-positions',
+    'rise-borrow-quote',
+    'rise-deposit-and-borrow',
+    'rise-repay-and-withdraw',
+    'rise-stream-new',
   ];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const purchVault = ['purch-vault-search', 'purch-vault-buy'];
@@ -1676,6 +1886,45 @@ export function getToolsForLlmSelection() {
     if (t.id === 'pumpfun-agent-payments-verify') {
       out.paramsHint =
         'Params: agentMint, user (optional), currencyMint, amount, memo, startTime, endTime as numbers — verify invoice paid.';
+    }
+    if (t.id === 'rise-markets') {
+      out.paramsHint = 'Optional params: page, limit';
+    }
+    if (t.id === 'rise-market') {
+      out.paramsHint = 'Params: address (required) — token mint or rise market address';
+    }
+    if (t.id === 'rise-market-transactions') {
+      out.paramsHint = 'Params: address (required); optional page, limit';
+    }
+    if (t.id === 'rise-market-ohlc') {
+      out.paramsHint = 'Params: address (required), timeframe (required: 1m|5m|1h|1d), optional limit';
+    }
+    if (t.id === 'rise-market-quote') {
+      out.paramsHint = 'Params: address (required), amount (required RAW units), direction (required: buy|sell)';
+    }
+    if (t.id === 'rise-buy-token') {
+      out.paramsHint = 'Params: wallet, market, cashIn, minTokenOut (all required; RAW units)';
+    }
+    if (t.id === 'rise-sell-token') {
+      out.paramsHint = 'Params: wallet, market, tokenIn, minCashOut (all required; RAW units)';
+    }
+    if (t.id === 'rise-portfolio-summary') {
+      out.paramsHint = 'Params: wallet (required)';
+    }
+    if (t.id === 'rise-portfolio-positions') {
+      out.paramsHint = 'Params: wallet (required); optional page, limit';
+    }
+    if (t.id === 'rise-borrow-quote') {
+      out.paramsHint = 'Params: address, wallet (required); optional amountToBorrow (RAW units)';
+    }
+    if (t.id === 'rise-deposit-and-borrow') {
+      out.paramsHint = 'Params: wallet, market, borrowAmount (all required; RAW units)';
+    }
+    if (t.id === 'rise-repay-and-withdraw') {
+      out.paramsHint = 'Params: wallet, market, withdrawAmount (all required; RAW units)';
+    }
+    if (t.id === 'rise-stream-new') {
+      out.paramsHint = 'No params. Returns SSE usage note for /markets/stream/new.';
     }
     // Nansen x402 tools: pass params as required by Nansen API (chain, address, token_address, etc.)
     if (t.nansenPath) {

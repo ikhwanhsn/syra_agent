@@ -24,6 +24,21 @@ import {
   neynarConfig,
 } from "./neynarClient.js";
 import { runSiwaNonce, runSiwaVerify } from "./siwaAgentService.js";
+import {
+  riseGetMarkets,
+  riseGetMarketByAddress,
+  riseGetMarketTransactions,
+  riseGetMarketOhlc,
+  risePostMarketQuote,
+  risePostBuyToken,
+  risePostSellToken,
+  riseGetPortfolioSummary,
+  riseGetPortfolioPositions,
+  risePostBorrowQuote,
+  risePostDepositAndBorrow,
+  risePostRepayAndWithdraw,
+  riseGetMarketsStreamNewNote,
+} from "./riseClient.js";
 
 function binanceCreds(params) {
   const fromEnv =
@@ -87,6 +102,108 @@ export async function runAgentPartnerDirectTool(toolId, params, opts = {}) {
 
   try {
     switch (toolId) {
+      case "rise-markets":
+        return await riseGetMarkets({ page: params.page, limit: params.limit });
+
+      case "rise-market":
+        if (!params.address) return { ok: false, error: "address is required", status: 400 };
+        return await riseGetMarketByAddress(String(params.address));
+
+      case "rise-market-transactions":
+        if (!params.address) return { ok: false, error: "address is required", status: 400 };
+        return await riseGetMarketTransactions(String(params.address), {
+          page: params.page,
+          limit: params.limit,
+        });
+
+      case "rise-market-ohlc":
+        if (!params.address) return { ok: false, error: "address is required", status: 400 };
+        if (!params.timeframe) return { ok: false, error: "timeframe is required (1m|5m|1h|1d)", status: 400 };
+        return await riseGetMarketOhlc(String(params.address), String(params.timeframe), {
+          limit: params.limit,
+        });
+
+      case "rise-market-quote":
+        if (!params.address) return { ok: false, error: "address is required", status: 400 };
+        if (!params.amount) return { ok: false, error: "amount is required (RAW units)", status: 400 };
+        if (!params.direction) return { ok: false, error: "direction is required (buy|sell)", status: 400 };
+        return await risePostMarketQuote(String(params.address), {
+          amount: Number(params.amount),
+          direction: String(params.direction),
+        });
+
+      case "rise-buy-token":
+        if (!params.wallet || !params.market || !params.cashIn || !params.minTokenOut) {
+          return {
+            ok: false,
+            error: "wallet, market, cashIn, and minTokenOut are required",
+            status: 400,
+          };
+        }
+        return await risePostBuyToken({
+          wallet: params.wallet,
+          market: params.market,
+          cashIn: Number(params.cashIn),
+          minTokenOut: Number(params.minTokenOut),
+        });
+
+      case "rise-sell-token":
+        if (!params.wallet || !params.market || !params.tokenIn || !params.minCashOut) {
+          return {
+            ok: false,
+            error: "wallet, market, tokenIn, and minCashOut are required",
+            status: 400,
+          };
+        }
+        return await risePostSellToken({
+          wallet: params.wallet,
+          market: params.market,
+          tokenIn: Number(params.tokenIn),
+          minCashOut: Number(params.minCashOut),
+        });
+
+      case "rise-portfolio-summary":
+        if (!params.wallet) return { ok: false, error: "wallet is required", status: 400 };
+        return await riseGetPortfolioSummary(String(params.wallet));
+
+      case "rise-portfolio-positions":
+        if (!params.wallet) return { ok: false, error: "wallet is required", status: 400 };
+        return await riseGetPortfolioPositions(String(params.wallet), {
+          page: params.page,
+          limit: params.limit,
+        });
+
+      case "rise-borrow-quote":
+        if (!params.address) return { ok: false, error: "address is required", status: 400 };
+        if (!params.wallet) return { ok: false, error: "wallet is required", status: 400 };
+        return await risePostBorrowQuote(String(params.address), {
+          wallet: String(params.wallet),
+          ...(params.amountToBorrow ? { amountToBorrow: Number(params.amountToBorrow) } : {}),
+        });
+
+      case "rise-deposit-and-borrow":
+        if (!params.wallet || !params.market || !params.borrowAmount) {
+          return { ok: false, error: "wallet, market, and borrowAmount are required", status: 400 };
+        }
+        return await risePostDepositAndBorrow({
+          wallet: params.wallet,
+          market: params.market,
+          borrowAmount: Number(params.borrowAmount),
+        });
+
+      case "rise-repay-and-withdraw":
+        if (!params.wallet || !params.market || !params.withdrawAmount) {
+          return { ok: false, error: "wallet, market, and withdrawAmount are required", status: 400 };
+        }
+        return await risePostRepayAndWithdraw({
+          wallet: params.wallet,
+          market: params.market,
+          withdrawAmount: Number(params.withdrawAmount),
+        });
+
+      case "rise-stream-new":
+        return riseGetMarketsStreamNewNote();
+
       case "binance-correlation":
         return await binanceCorrelation(params);
 

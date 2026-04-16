@@ -50,6 +50,7 @@ import {
   tryConsumeAgentChatDailyQuestion,
 } from '../../libs/agentChatDailyLimit.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
+import { runAgentPartnerDirectTool } from '../../libs/agentPartnerDirectTools.js';
 
 const router = express.Router();
 
@@ -1335,6 +1336,11 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           } else {
             result = { status: 502, error: `Unknown Tempo public tool: ${tool.id}` };
           }
+        } else if (tool.agentDirect) {
+          const out = await runAgentPartnerDirectTool(tool.id, params, { host: req.get('host') });
+          result = out.ok
+            ? { status: out.httpStatus ?? 200, data: out.data }
+            : { status: out.status ?? 502, error: out.error };
         } else {
           let toolPath = tool.path;
           let callParams = { ...params };
