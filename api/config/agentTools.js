@@ -1190,6 +1190,229 @@ export function getAgentTool(toolId) {
 }
 
 /**
+ * Canonical tool id for grouping / dedupe (matches getAgentTool normalization).
+ * @param {string} toolId
+ * @returns {string}
+ */
+export function normalizeAgentToolId(toolId) {
+  const t = getAgentTool(toolId);
+  return t?.id ?? String(toolId || '').trim();
+}
+
+/**
+ * Overlapping capabilities: the user should confirm which service before running a paid tool.
+ * `toolIds` lists tools that compete for the same natural-language intent.
+ *
+ * @typedef {{ id: string; userIntentLabel: string; toolIds: string[]; docForLlm: string }} AgentToolSelectionGroup
+ */
+
+/** @type {AgentToolSelectionGroup[]} */
+export const AGENT_TOOL_SELECTION_GROUPS = [
+  {
+    id: 'swap-solana-vs-cross-chain',
+    userIntentLabel: 'swap, trade, buy, or sell tokens',
+    toolIds: ['pumpfun-agents-swap', 'squid-route'],
+    docForLlm:
+      'Same-chain Solana SPL swap / pump.fun path: **pumpfun-agents-swap**. Cross-chain bridge or route (many chains): **squid-route** (Squid Router). These are different rails — pick one based on the user’s words (Solana-only vs bridge/cross-chain).',
+  },
+];
+
+/**
+ * Short block for the tool-router LLM: overlapping intents and when to return empty tools.
+ * @returns {string}
+ */
+export function getToolGroupsSummaryForLlm() {
+  const lines = [
+    'OVERLAPPING CAPABILITIES (disambiguation):',
+    ...AGENT_TOOL_SELECTION_GROUPS.map((g) => `- ${g.userIntentLabel}: ${g.docForLlm}`),
+    'If the user wants to swap/trade but does NOT clearly choose Solana same-chain (pump.fun / SPL / "on Solana") vs cross-chain / bridge / Squid, return {"tools": []} so Syra can ask which service they want.',
+  ];
+  return lines.join('\n');
+}
+
+/**
+ * User clearly wants Squid / cross-chain (not same-chain pump.fun only).
+ * @param {string} msg
+ * @returns {boolean}
+ */
+function messageSignalsCrossChainSwapIntent(msg) {
+  return (
+    /\bsquid\b/i.test(msg) ||
+    /\bcross[-\s]?chain\b/i.test(msg) ||
+    /\binter[-\s]?chain\b/i.test(msg) ||
+    /\bbridge\b/i.test(msg) ||
+    /\b(axelar|layerzero|lz\s|wormhole|stargate)\b/i.test(msg) ||
+    /\bfrom\s+(ethereum|eth|arbitrum|base|polygon|bsc|bnb|avalanche|avax|op\s|optimism)\b.*\bto\s+(solana|eth|ethereum|base)\b/i.test(msg) ||
+    /\b(eth|ethereum|usdc|usdt|weth)\b.{0,80}\bto\s+solana\b/i.test(msg) ||
+    /\b(solana|sol)\b.{0,80}\bto\s+(ethereum|eth|base|arbitrum|polygon)\b/i.test(msg)
+  );
+}
+
+/**
+ * User clearly wants same-chain Solana / pump.fun style swap (not Squid bridge).
+ * @param {string} msg
+ * @returns {boolean}
+ */
+function messageSignalsSolanaSameChainSwapIntent(msg) {
+  if (/pump\.?\s*fun|pumpfun|\bjupiter\b|\bspl\b|\bwsol\b|token-2022/i.test(msg)) return true;
+  if (/\bsame[-\s]?chain\b.*\bsolana\b|\bsolana\b.*\bsame[-\s]?chain\b/i.test(msg)) return true;
+  if (/\bon\s+solana\b/i.test(msg) && !messageSignalsCrossChainSwapIntent(msg)) return true;
+  // Typical "swap 1 USDC for SOL" phrasing with tickers (handled on server; implies same-chain test tokens)
+  if (/\b(swap|trade)\s+\$?[\d.,]+\s+\$?[A-Za-z]{2,10}\s+(for|to|into)\s+\$?[A-Za-z]{2,10}\b/i.test(msg)) return true;
+  // Solana mint (base58 length)
+  if (/[1-9A-HJ-NP-Za-km-z]{32,44}/.test(msg)) return true;
+  return false;
+}
+
+/**
+ * Broad swap/trade language without obvious chain disambiguation.
+ * @param {string} msg
+ * @returns {boolean}
+ */
+function messageSuggestsGenericSwapIntent(msg) {
+  return (
+    /\b(swap|exchange)\b/i.test(msg) ||
+    /\btrade\s+(tokens?|crypto)\b/i.test(msg) ||
+    /\b(buy|sell)\s+(a\s+)?(token|coin|crypto)\b/i.test(msg) ||
+    /\bi\s+want\s+to\s+(swap|trade)\b/i.test(msg)
+  );
+}
+
+/**
+ * After the tool-router picks tool(s), strip conflicting or ambiguous swap tools and inject a system note for the assistant.
+ * @param {string | undefined} userMessage
+ * @param {string[]} selectedToolIds - raw ids from LLM or client
+ * @returns {{ action: 'proceed' } | { action: 'prompt_user'; toolIdsToStrip: string[]; systemNote: string }}
+ */
+export function resolveAgentToolSelectionDisambiguation(userMessage, selectedToolIds) {
+  const msg = typeof userMessage === 'string' ? userMessage.trim() : '';
+  const ids = Array.isArray(selectedToolIds)
+    ? [...new Set(selectedToolIds.map((id) => normalizeAgentToolId(id)).filter(Boolean))]
+    : [];
+
+  const swapGroup = AGENT_TOOL_SELECTION_GROUPS.find((g) => g.id === 'swap-solana-vs-cross-chain');
+  if (!swapGroup || !msg) {
+    return { action: 'proceed' };
+  }
+
+  const inGroup = ids.filter((id) => swapGroup.toolIds.includes(id));
+  if (inGroup.length === 0) {
+    return { action: 'proceed' };
+  }
+
+  const explicitCross = messageSignalsCrossChainSwapIntent(msg);
+  const explicitSolana = messageSignalsSolanaSameChainSwapIntent(msg);
+
+  if (explicitCross && !explicitSolana) {
+    const stripPump = inGroup.includes('pumpfun-agents-swap');
+    if (stripPump && inGroup.length === 1) {
+      return {
+        action: 'prompt_user',
+        toolIdsToStrip: ['pumpfun-agents-swap'],
+        systemNote:
+          '[SYSTEM NOTE: The user’s wording points to cross-chain / Squid. Do not run or describe pump.fun same-chain swap for this turn. If they also asked for squid-route, proceed with that; otherwise briefly confirm they want a Squid cross-chain route (tool id squid-route) vs a Solana-only swap (pumpfun-agents-swap).]',
+      };
+    }
+    if (inGroup.includes('pumpfun-agents-swap') && inGroup.includes('squid-route')) {
+      return {
+        action: 'prompt_user',
+        toolIdsToStrip: ['pumpfun-agents-swap'],
+        systemNote:
+          '[SYSTEM NOTE: Cross-chain was indicated; prefer Squid (squid-route) over pump.fun for bridging. Strip duplicate swap path — explain briefly.]',
+      };
+    }
+    return { action: 'proceed' };
+  }
+
+  if (explicitSolana && !explicitCross) {
+    const stripSquid = inGroup.includes('squid-route');
+    if (stripSquid && inGroup.length >= 1) {
+      return {
+        action: 'prompt_user',
+        toolIdsToStrip: ['squid-route'],
+        systemNote:
+          '[SYSTEM NOTE: The user’s wording points to a same-chain Solana / SPL swap (pump.fun path). Do not run squid-route for this unless they also clearly asked for cross-chain. Prefer explaining pumpfun-agents-swap for Solana swaps.]',
+      };
+    }
+    return { action: 'proceed' };
+  }
+
+  if (inGroup.length >= 2) {
+    const pump = getAgentTool('pumpfun-agents-swap');
+    const squid = getAgentTool('squid-route');
+    const optA = pump
+      ? `**${pump.name}** (\`pumpfun-agents-swap\`) — ${pump.description}`
+      : '`pumpfun-agents-swap` — same-chain Solana / pump.fun swap tx';
+    const optB = squid
+      ? `**${squid.name}** (\`squid-route\`) — ${squid.description}`
+      : '`squid-route` — Squid cross-chain route / bridge';
+    return {
+      action: 'prompt_user',
+      toolIdsToStrip: [...swapGroup.toolIds],
+      systemNote: `[SYSTEM NOTE: Multiple swap-related tools matched, but the user did not specify which service. No swap/bridge tool was executed yet.
+
+You MUST ask them to choose one path before continuing:
+1) ${optA}
+2) ${optB}
+
+Keep the reply short: one sentence + two bullets. Ask them to reply with their choice (or name the chain scenario). Do not fabricate swap quotes.]`,
+    };
+  }
+
+  if (inGroup.length === 1 && messageSuggestsGenericSwapIntent(msg)) {
+    const pump = getAgentTool('pumpfun-agents-swap');
+    const squid = getAgentTool('squid-route');
+    const optA = pump
+      ? `**${pump.name}** (\`pumpfun-agents-swap\`) — same-chain Solana (pump.fun / SPL).`
+      : '`pumpfun-agents-swap` — Solana same-chain swap.';
+    const optB = squid
+      ? `**${squid.name}** (\`squid-route\`) — cross-chain route via Squid.`
+      : '`squid-route` — cross-chain bridge/route.';
+    return {
+      action: 'prompt_user',
+      toolIdsToStrip: [...swapGroup.toolIds],
+      systemNote: `[SYSTEM NOTE: The user asked to swap or trade without saying whether they need a **Solana same-chain** swap or a **cross-chain bridge**. No swap tool was run.
+
+Ask which they want (one short paragraph + two bullets):
+1) ${optA}
+2) ${optB}
+
+Invite them to answer with e.g. "Solana swap" or "bridge ETH to Solana" / Squid.]`,
+    };
+  }
+
+  return { action: 'proceed' };
+}
+
+/**
+ * When the tool-router returned no tools but the user clearly has a generic swap intent,
+ * give the assistant a note so it asks Solana vs cross-chain (same copy as post-selection disambiguation).
+ * @param {string | undefined} userMessage
+ * @returns {string | null}
+ */
+export function getSwapServiceClarificationNoteIfNeeded(userMessage) {
+  const msg = typeof userMessage === 'string' ? userMessage.trim() : '';
+  if (!msg) return null;
+  if (!messageSuggestsGenericSwapIntent(msg)) return null;
+  if (messageSignalsCrossChainSwapIntent(msg) || messageSignalsSolanaSameChainSwapIntent(msg)) return null;
+  const pump = getAgentTool('pumpfun-agents-swap');
+  const squid = getAgentTool('squid-route');
+  const optA = pump
+    ? `**${pump.name}** (\`pumpfun-agents-swap\`) — same-chain Solana (pump.fun / SPL).`
+    : '`pumpfun-agents-swap` — Solana same-chain swap.';
+  const optB = squid
+    ? `**${squid.name}** (\`squid-route\`) — cross-chain route via Squid.`
+    : '`squid-route` — cross-chain bridge/route.';
+  return `[SYSTEM NOTE: The user asked to swap or trade without saying whether they need a **Solana same-chain** swap or a **cross-chain bridge**. No tool was selected yet.
+
+Ask which they want (one short paragraph + two bullets):
+1) ${optA}
+2) ${optB}
+
+Invite them to answer with e.g. "Solana swap" or "bridge ETH to Solana" / Squid.]`;
+}
+
+/**
  * Match user question to a tool (and optional params). Used to choose which x402 tool to call.
  * Order matters: more specific phrases are checked first.
  * @param {string} userMessage - Last user message (question)
@@ -1886,6 +2109,14 @@ export function getToolsForLlmSelection() {
     if (t.id === 'pumpfun-agent-payments-verify') {
       out.paramsHint =
         'Params: agentMint, user (optional), currencyMint, amount, memo, startTime, endTime as numbers — verify invoice paid.';
+    }
+    if (t.id === 'squid-route') {
+      out.paramsHint =
+        'Cross-chain route/bridge only. Params: fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress (see server param gate). Not for same-chain Solana-only swaps.';
+    }
+    if (t.id === 'squid-status') {
+      out.paramsHint =
+        'After a Squid tx: params transactionId or requestId plus fromChainId, toChainId as required for status.';
     }
     if (t.id === 'rise-markets') {
       out.paramsHint = 'Optional params: page, limit';

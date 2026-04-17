@@ -11,7 +11,10 @@ import {
   getAgentTool,
   getCapabilitiesList,
   getToolsForLlmSelection,
+  getToolGroupsSummaryForLlm,
+  getSwapServiceClarificationNoteIfNeeded,
   normalizeJupiterSwapParams,
+  resolveAgentToolSelectionDisambiguation,
 } from '../../config/agentTools.js';
 import {
   getAgentUsdcBalance,
@@ -334,7 +337,7 @@ CRITICAL RULES — READ CAREFULLY:
 
 1. REAL-TIME DATA ALWAYS REQUIRES TOOLS when you can satisfy the tool's parameters from the user's message. Any question about current/live/latest prices, market data, token data, news, sentiment, trading signals, trending tokens, on-chain data, wallet balances, smart money activity, or any data that changes over time MUST select at least one tool IF you can fill required params. If the user did not provide an address, mint, query, or other required field, return {"tools": []} so the assistant can ask — do NOT select tools with empty params.
 
-2. ONLY return {"tools": []} for purely conversational messages: greetings (hi, hello), "what can you do", general crypto concept explanations (e.g. "what is DeFi", "how does staking work"), opinions that don't need live data, topics unrelated to crypto, OR when the user wants live data but has not given the identifiers the tools need (then empty tools so the assistant asks).
+2. ONLY return {"tools": []} for purely conversational messages: greetings (hi, hello), "what can you do", general crypto concept explanations (e.g. "what is DeFi", "how does staking work"), opinions that don't need live data, topics unrelated to crypto, when the user wants live data but has not given the identifiers the tools need, OR when OVERLAPPING CAPABILITIES applies (e.g. generic "swap" with no Solana vs cross-chain/Squid preference — return empty tools so Syra asks which service).
 
 3. When choosing among tools for which you already have complete parameters, prefer SELECTING A TOOL over returning empty tools.
 
@@ -346,10 +349,12 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Market sentiment → sentiment
 — Trading signal → signal
 — Smart money / whale activity → smart-money or nansen-smart-money-* (and other nansen-* tools as appropriate)
-— Swap / buy / sell Solana tokens (including pump.fun curve or AMM) → pumpfun-agents-swap (pump.fun fun-block API; params inputMint, outputMint, amount in smallest units, user defaults to agent wallet)
+— Same-chain Solana swap / pump.fun (SPL, bonding curve or AMM) → pumpfun-agents-swap. Cross-chain bridge or route (many chains) → squid-route. If the user says "swap" or "trade" without Solana vs cross-chain/Squid/bridge context, return {"tools": []} (see OVERLAPPING CAPABILITIES below).
 — pump.fun: SOL/USD → pumpfun-sol-price; coin metadata → pumpfun-coin or pumpfun-coin-query (param mint); launch token → pumpfun-agents-create-coin; claim creator fees → pumpfun-collect-fees; fee sharing → pumpfun-sharing-config; tokenized agent invoice tx → pumpfun-agent-payments-build; verify invoice → pumpfun-agent-payments-verify
 — Web search / research → exa-search
 — Questions asking for live market data → select a tool only when you can supply that tool's required params from the message (otherwise {"tools": []} so the assistant asks for a symbol, mint, or URL).
+
+${getToolGroupsSummaryForLlm()}
 
 Available tools (id, name, description):
 ${toolsText}
@@ -376,7 +381,8 @@ PARAM RULES:
 - For "tempo-network-info" set "params": {} when the user asks for Tempo RPC URL, chain ID, explorer, how to connect to Tempo, or public documentation links.
 - For "tempo-send-payout" set "params": {"amountUsd": "<number from user>"} when the user asks to receive a payout, withdrawal, or transfer on Tempo blockchain in stablecoin; optional "memo" (e.g. invoice id). Only select if the user explicitly wants money sent on Tempo. The server sends funds only to the user’s linked EVM wallet or Base agent wallet—never pass a recipient address.
 - For pump.fun coin metadata use "pumpfun-coin-query" with "params": {"mint": "<base58 mint>"} (or pumpfun-coin with same mint).
-- For token swap / buy / sell on Solana use "pumpfun-agents-swap" with params inputMint, outputMint, amount (string smallest units), optional user (defaults to agent wallet).
+- For same-chain Solana swap / buy / sell SPL or pump.fun tokens use "pumpfun-agents-swap" with params inputMint, outputMint, amount (string smallest units), optional user (defaults to agent wallet).
+- For cross-chain bridge or route quotes use "squid-route" with params when the user specifies chains/tokens: fromAddress, fromChain, fromToken, fromAmount, toChain, toToken, toAddress (see tool list / param gate). Do not use squid-route for simple same-chain Solana-only swaps.
 - For pump.fun launch use "pumpfun-agents-create-coin" with name, symbol, uri, solLamports (string), optional user.
 - For pump.fun collect creator fees use "pumpfun-collect-fees" with mint, optional user.
 - For pump.fun fee sharing use "pumpfun-sharing-config" with mint, shareholders (JSON string), optional user.
@@ -974,6 +980,20 @@ router.post('/completion', async (req, res) => {
       }
     }
 
+    let toolSelectionDisambiguationNote = '';
+    const disamb = resolveAgentToolSelectionDisambiguation(
+      lastUserMessage,
+      (matchedTools || []).map((m) => m.toolId)
+    );
+    if (disamb.action === 'prompt_user') {
+      const strip = new Set(disamb.toolIdsToStrip);
+      matchedTools = (matchedTools || []).filter((m) => !strip.has(normalizeToolId(m.toolId)));
+      toolSelectionDisambiguationNote = disamb.systemNote;
+    } else if (!matchedTools || matchedTools.length === 0) {
+      const swapClarify = getSwapServiceClarificationNoteIfNeeded(lastUserMessage);
+      if (swapClarify) toolSelectionDisambiguationNote = swapClarify;
+    }
+
     const capabilitiesList = getCapabilitiesList().join('\n');
 
     let useTreasuryForTools = false;
@@ -1019,6 +1039,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     systemParts.push(
       `Branding rule: Never mention third-party inference or API marketplace names in user-facing replies. Always present the assistant and platform brand as "Syra".`
     );
+    if (toolSelectionDisambiguationNote) {
+      systemParts.push(toolSelectionDisambiguationNote);
+    }
     if (anonymousId) {
       let usdcBalance = 0;
       let solBalance = 0;
