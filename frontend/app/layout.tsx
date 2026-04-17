@@ -16,10 +16,36 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const ogImage = "https://www.syraa.fun/images/og-banner.png";
+
 export const metadata: Metadata = {
   title: "Syra Agent",
   description:
     "Syra is a modern, open-source platform for building and deploying AI applications.",
+  openGraph: {
+    title: "Syra Agent",
+    description:
+      "Syra is a modern, open-source platform for building and deploying AI applications.",
+    type: "website",
+    images: [
+      {
+        url: ogImage,
+        type: "image/png",
+        width: 1200,
+        height: 628,
+        alt: "Syra — AI Trading Intelligence",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@syra_agent",
+    creator: "@syra_agent",
+    title: "Syra Agent",
+    description:
+      "Syra is a modern, open-source platform for building and deploying AI applications.",
+    images: [ogImage],
+  },
 };
 
 export default function RootLayout({
@@ -30,12 +56,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta property="og:image" content="https://syraa.fun/images/logo.jpg" />
-        <meta
-          property="og:description"
-          content="Trading signal creation with x402 payments"
-        />
-
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body

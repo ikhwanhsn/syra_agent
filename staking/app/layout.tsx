@@ -9,12 +9,36 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const ogImage = "https://www.syraa.fun/images/og-banner.png";
+
 export const metadata: Metadata = {
   title: "Staking dApp | SPL Token Staking",
   description: "Stake your SPL tokens and earn rewards.",
   icons: {
     icon: "/favicon.svg",
     apple: "/logo.jpg",
+  },
+  openGraph: {
+    title: "Staking dApp | SPL Token Staking",
+    description: "Stake your SPL tokens and earn rewards.",
+    type: "website",
+    images: [
+      {
+        url: ogImage,
+        type: "image/png",
+        width: 1200,
+        height: 628,
+        alt: "Syra — AI Trading Intelligence",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@syra_agent",
+    creator: "@syra_agent",
+    title: "Staking dApp | SPL Token Staking",
+    description: "Stake your SPL tokens and earn rewards.",
+    images: [ogImage],
   },
 };
 

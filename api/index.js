@@ -739,10 +739,7 @@ app.get("/", (req, res) => {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
-  // Get the full domain from the request
-  const protocol = req.protocol; // http or https
-  const host = req.get("host"); // domain + port
-  const ogImageUrl = `${protocol}://${host}/og.png`;
+  const ogImageUrl = "https://www.syraa.fun/images/og-banner.png";
 
   res.setHeader("Content-Type", "text/html");
 
@@ -757,7 +754,19 @@ app.get("/", (req, res) => {
       <meta property="og:title" content="Syra API Gateway" />
       <meta property="og:description" content="The First x402-Native AI Agent Trading Assistant on Solana" />
       <meta property="og:image" content="${ogImageUrl}" />
+      <meta property="og:image:type" content="image/png" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="628" />
+      <meta property="og:image:alt" content="Syra — AI Trading Intelligence" />
       <meta property="og:type" content="website" />
+
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content="@syra_agent" />
+      <meta name="twitter:creator" content="@syra_agent" />
+      <meta name="twitter:title" content="Syra API Gateway" />
+      <meta name="twitter:description" content="The First x402-Native AI Agent Trading Assistant on Solana" />
+      <meta name="twitter:image" content="${ogImageUrl}" />
+      <meta name="twitter:image:alt" content="Syra — AI Trading Intelligence" />
 
       <!-- Favicon -->
       <link rel="icon" href="/favicon.ico" />
