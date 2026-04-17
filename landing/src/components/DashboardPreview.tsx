@@ -453,7 +453,7 @@ export const DashboardPreview = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.3 }}
-                        className="min-w-0 flex-1 text-left text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
+                        className="min-w-0 flex-1 truncate text-left text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
                       >
                         {item.text || "Loading news..."}
                       </motion.a>
@@ -464,7 +464,7 @@ export const DashboardPreview = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.3 }}
-                        className="min-w-0 flex-1 text-xs text-muted-foreground"
+                        className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
                       >
                         {item.text || "Loading news..."}
                       </motion.span>
