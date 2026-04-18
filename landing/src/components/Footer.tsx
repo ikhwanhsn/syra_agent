@@ -26,6 +26,7 @@ const footerLinks = {
   ],
   company: [
     { label: "About", href: "/#product", internal: true },
+    { label: "Team", href: "/teams", internal: true },
     { label: "Contact", href: `mailto:${EMAIL_SUPPORT}` },
   ],
   legal: [

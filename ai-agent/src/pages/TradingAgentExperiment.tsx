@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowDown,
@@ -18,6 +18,10 @@ import {
   Users,
   Trash2,
   Crown,
+  Plus,
+  Shuffle,
+  ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
@@ -43,6 +47,8 @@ import {
   explorerSignalBadgeClass,
 } from "@/lib/tradingExperimentRunBadges";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -74,6 +80,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TradingExperimentChartsPanel } from "@/components/experiment/TradingExperimentChartsPanel";
@@ -81,6 +96,69 @@ import { ExperimentTokenCombobox } from "@/components/experiment/ExperimentToken
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
+import { EXPERIMENT_SUPPORTED_TOKENS } from "@/lib/experimentSupportedTokens";
+
+const SM_BREAKPOINT_PX = 640;
+
+function useMatchMediaMinWidth(minWidthPx: number): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(`(min-width: ${minWidthPx}px)`).matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${minWidthPx}px)`);
+    const onChange = () => setMatches(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [minWidthPx]);
+  return matches;
+}
+
+/** Mobile-only row: expand/collapse filter controls below `sm`. */
+function MobileExperimentFiltersToggle({
+  isDesktop,
+  expanded,
+  onToggle,
+  label,
+}: {
+  isDesktop: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  if (isDesktop) return null;
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="mb-3 flex h-10 w-full items-center justify-between gap-2 rounded-xl border-border/70 px-3 text-left text-sm font-medium shadow-sm"
+      onClick={onToggle}
+      aria-expanded={expanded}
+    >
+      <span className="inline-flex min-w-0 items-center gap-2">
+        <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="truncate">{expanded ? `Hide ${label}` : `Show ${label}`}</span>
+      </span>
+      <ChevronDown
+        className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")}
+        aria-hidden
+      />
+    </Button>
+  );
+}
+
+function MobileCollapsibleFilters({
+  isDesktop,
+  expanded,
+  children,
+}: {
+  isDesktop: boolean;
+  expanded: boolean;
+  children: ReactNode;
+}) {
+  return <div className={cn("min-w-0", !isDesktop && !expanded && "hidden")}>{children}</div>;
+}
 
 /** Resolved wins+losses at or above this count use full win-rate ranking. */
 const LEADERBOARD_MIN_DECIDED = 5;
@@ -89,6 +167,32 @@ const LEADERBOARD_MIN_DECIDED = 5;
 const TRADING_EXPERIMENT_ROUTE_BASE = "/dashboard/trading-experiment";
 
 const TABLE_PAGE_SIZE = 10;
+
+const RANDOM_STRATEGY_BARS = ["15m", "30m", "1h", "4h", "1d"] as const;
+
+function randomStrategyFormValues(): {
+  name: string;
+  token: string;
+  bar: string;
+  limit: string;
+  lookAhead: string;
+} {
+  const tokenEntry = EXPERIMENT_SUPPORTED_TOKENS[Math.floor(Math.random() * EXPERIMENT_SUPPORTED_TOKENS.length)]!;
+  const bar = RANDOM_STRATEGY_BARS[Math.floor(Math.random() * RANDOM_STRATEGY_BARS.length)]!;
+  const limit = 100 + Math.floor(Math.random() * 301);
+  const maxLook = Math.min(168, Math.max(12, limit - 24));
+  const lookAhead = 12 + Math.floor(Math.random() * (maxLook - 12 + 1));
+  const labelShort = tokenEntry.label.split(/\s+/)[0] ?? tokenEntry.slug;
+  const tag = Math.floor(1000 + Math.random() * 9000);
+  const name = `Test · ${labelShort} ${bar} #${tag}`;
+  return {
+    name: name.slice(0, 80),
+    token: tokenEntry.slug,
+    bar,
+    limit: String(limit),
+    lookAhead: String(lookAhead),
+  };
+}
 
 /** Paginated merged run history on the Explorer tab. */
 const EXPLORER_PAGE_SIZE = 25;
@@ -124,8 +228,6 @@ function ledgerRank(s: TradingExperimentSuiteId | undefined): number {
 }
 
 type PageView = "lab" | "leaderboard" | "charts" | "explorer" | "my_agents";
-
-type ExplorerLedgerFilter = "all" | TradingExperimentSuiteId;
 
 type LeaderboardScope = "global" | "mine";
 
@@ -496,35 +598,35 @@ function ExperimentTablePagination(props: {
     <div
       className={cn(
         "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-        "py-3 sm:py-3.5",
+        "items-stretch py-3 sm:items-center sm:py-3.5",
         "mb-8",
         className,
       )}
     >
-      <p className="text-sm font-medium leading-none tabular-nums text-foreground/80 sm:self-center">
+      <p className="text-center text-sm font-medium leading-none tabular-nums text-foreground/80 sm:self-center sm:text-left">
         {start}–{end} of {totalItems}
       </p>
       {totalPages > 1 ? (
-        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+        <div className="flex w-full max-w-md flex-col gap-2 sm:max-w-none sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 gap-1"
+            className="h-10 gap-1 sm:h-8"
             disabled={loading || page <= 1}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
           </Button>
-          <span className="text-sm tabular-nums text-foreground/75 px-1">
+          <span className="text-center text-sm tabular-nums text-foreground/75 px-1 sm:text-left">
             Page {page} / {totalPages}
           </span>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 gap-1"
+            className="h-10 gap-1 sm:h-8"
             disabled={loading || page >= totalPages}
             onClick={() => onPageChange(page + 1)}
           >
@@ -547,6 +649,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [error, setError] = useState<string | null>(null);
 
   const { publicKey, baseConnected, baseAddress, effectiveChain } = useWalletContext();
+  const { openConnectModal } = useConnectModal();
+  const { toast } = useToast();
+  const [connectWalletForCreateAgentOpen, setConnectWalletForCreateAgentOpen] = useState(false);
   const walletAddress = useMemo(() => {
     if (effectiveChain === "base" && baseConnected && baseAddress) return baseAddress;
     if (publicKey) return publicKey.toBase58();
@@ -608,10 +713,17 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [explorerPage, setExplorerPage] = useState(1);
   const [explorerLoading, setExplorerLoading] = useState(false);
   const [explorerError, setExplorerError] = useState<string | null>(null);
-  const [explorerLedger, setExplorerLedger] = useState<ExplorerLedgerFilter>("all");
   const [explorerStatus, setExplorerStatus] = useState("");
   const [explorerSymbol, setExplorerSymbol] = useState("");
   const [explorerAgentId, setExplorerAgentId] = useState("");
+
+  const isSmUp = useMatchMediaMinWidth(SM_BREAKPOINT_PX);
+  const [mobileLabFiltersOpen, setMobileLabFiltersOpen] = useState(false);
+  const [mobileLbFiltersOpen, setMobileLbFiltersOpen] = useState(false);
+  const [mobileChartFiltersOpen, setMobileChartFiltersOpen] = useState(false);
+  const [mobileExplorerFiltersOpen, setMobileExplorerFiltersOpen] = useState(false);
+  const [mobileMyWinFiltersOpen, setMobileMyWinFiltersOpen] = useState(false);
+  const [mobileMyRunsFiltersOpen, setMobileMyRunsFiltersOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (pageView === "my_agents" || pageView === "explorer") {
@@ -680,7 +792,6 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     setExplorerError(null);
     setExplorerLoading(true);
     try {
-      const suiteParam = explorerLedger === "all" ? "lab_all" : explorerLedger;
       const rawAid = explorerAgentId.trim();
       const parsedAid = rawAid === "" ? NaN : parseInt(rawAid, 10);
       const agentIdFilter =
@@ -688,7 +799,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
       const runData = await fetchTradingExperimentRuns({
         limit: EXPLORER_PAGE_SIZE,
         offset: (explorerPage - 1) * EXPLORER_PAGE_SIZE,
-        suite: suiteParam,
+        suite: "lab_all",
         status: explorerStatus.trim() || undefined,
         symbol: explorerSymbol.trim() || undefined,
         ...(agentIdFilter != null ? { agentId: agentIdFilter } : {}),
@@ -702,7 +813,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     } finally {
       setExplorerLoading(false);
     }
-  }, [explorerPage, explorerLedger, explorerStatus, explorerSymbol, explorerAgentId]);
+  }, [explorerPage, explorerStatus, explorerSymbol, explorerAgentId]);
 
   useEffect(() => {
     if (pageView !== "my_agents") return;
@@ -716,7 +827,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
 
   useEffect(() => {
     setExplorerPage(1);
-  }, [explorerLedger, explorerStatus, explorerSymbol, explorerAgentId]);
+  }, [explorerStatus, explorerSymbol, explorerAgentId]);
 
   useEffect(() => {
     const maxP = Math.max(1, Math.ceil(explorerTotal / EXPLORER_PAGE_SIZE));
@@ -1055,12 +1166,39 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     setLeaderboardScope(v as LeaderboardScope);
   };
 
+  const applyRandomStrategy = useCallback(() => {
+    const v = randomStrategyFormValues();
+    setFormName(v.name);
+    setFormToken(v.token);
+    setFormBar(v.bar);
+    setFormLimit(v.limit);
+    setFormLookAhead(v.lookAhead);
+    setMyError(null);
+  }, []);
+
+  const beginCreateAgent = useCallback(() => {
+    if (!walletAddress) {
+      setConnectWalletForCreateAgentOpen(true);
+      return;
+    }
+    if (myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET) {
+      toast({
+        title: "Agent limit reached",
+        description: `You can have at most ${MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} custom trading agents. Remove one to add another.`,
+      });
+      return;
+    }
+    setMyError(null);
+    setPageView("my_agents");
+    setCreateModalOpen(true);
+  }, [walletAddress, myAgents.length, toast]);
+
   return (
     <div
       className={cn(
         "bg-background text-foreground",
         /* Match Arbitrage: avoid `flex-1` on the Outlet root so `<main>` bottom padding extends scroll height. */
-        embedded ? "w-full min-w-0" : "flex min-h-screen flex-col",
+        embedded ? "w-full min-w-0" : "flex min-h-screen min-w-0 flex-col",
       )}
     >
       {!embedded && (
@@ -1103,7 +1241,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
       <main
         className={cn(
           DASHBOARD_CONTENT_SHELL,
-          "space-y-8",
+          "min-w-0 space-y-8",
           PAGE_PADDING_TOP_STANDARD,
           PAGE_SAFE_AREA_BOTTOM_COMPACT,
           !embedded && "min-h-0 flex-1",
@@ -1113,7 +1251,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
         <Tabs
           value={pageView}
           onValueChange={(v) => setPageView(v as PageView)}
-          className="w-full"
+          className="w-full min-w-0"
         >
           <div className="w-full flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="relative w-full max-w-2xl sm:w-auto sm:max-w-none sm:shrink-0 rounded-2xl border border-border/60 bg-muted/20 p-1 shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.04)] backdrop-blur-md dark:bg-muted/15 dark:shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.03)]">
@@ -1121,45 +1259,72 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent dark:from-white/[0.02]"
                 aria-hidden
               />
-              <TabsList className="relative grid h-11 w-full grid-cols-5 gap-0.5 rounded-xl bg-transparent p-0 sm:w-[40rem] sm:min-w-0">
+              <TabsList className="relative grid h-11 w-full grid-cols-5 gap-0.5 rounded-xl bg-transparent p-0 sm:gap-0.5 md:w-[40rem] md:max-w-full">
               <TabsTrigger
                 value="lab"
-                className="min-w-0 gap-1 rounded-lg px-1.5 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                aria-label="Lab"
+                title="Lab"
+                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
               >
-                <FlaskConical className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-                <span className="truncate">Lab</span>
+                <FlaskConical className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
+                <span className="hidden truncate sm:inline">Lab</span>
               </TabsTrigger>
               <TabsTrigger
                 value="leaderboard"
-                className="min-w-0 gap-1 rounded-lg px-1.5 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                aria-label="Leaderboard"
+                title="Leaderboard"
+                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
               >
-                <Trophy className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-                <span className="truncate">Leaderboard</span>
+                <Trophy className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
+                <span className="hidden truncate sm:inline">Leaderboard</span>
               </TabsTrigger>
               <TabsTrigger
                 value="charts"
-                className="min-w-0 gap-1 rounded-lg px-1.5 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                aria-label="Charts"
+                title="Charts"
+                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
               >
-                <BarChart3 className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-                <span className="truncate">Charts</span>
+                <BarChart3 className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
+                <span className="hidden truncate sm:inline">Charts</span>
               </TabsTrigger>
               <TabsTrigger
                 value="explorer"
-                className="min-w-0 gap-1 rounded-lg px-1.5 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                aria-label="Explorer"
+                title="Explorer"
+                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
               >
-                <Compass className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-                <span className="truncate">Explorer</span>
+                <Compass className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
+                <span className="hidden truncate sm:inline">Explorer</span>
               </TabsTrigger>
               <TabsTrigger
                 value="my_agents"
-                className="min-w-0 gap-1 rounded-lg px-1.5 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                aria-label="My agents"
+                title="My agents"
+                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
               >
-                <Users className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-                <span className="truncate">My agents</span>
+                <Users className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
+                <span className="hidden truncate sm:inline">My agents</span>
               </TabsTrigger>
             </TabsList>
             </div>
-            <div className="flex flex-nowrap items-center justify-end gap-1.5 sm:gap-2 w-full sm:w-auto sm:min-w-0 sm:flex-1 min-w-0 overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:thin]">
+            <div className="flex min-w-0 w-full flex-wrap items-center justify-end gap-2 py-0.5 sm:flex-nowrap sm:gap-2 sm:overflow-x-auto sm:overscroll-x-contain sm:py-0.5 sm:[scrollbar-width:thin] md:min-w-0 md:flex-1">
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 shrink-0 gap-1.5 rounded-xl border-0 bg-accent px-2.5 text-xs font-medium text-accent-foreground shadow-sm hover:bg-accent/90 sm:px-3 sm:text-sm"
+                onClick={beginCreateAgent}
+                disabled={
+                  Boolean(walletAddress) && myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
+                }
+                title={
+                  walletAddress && myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
+                    ? "Maximum custom agents for this wallet"
+                    : "Create a custom trading agent"
+                }
+              >
+                <Plus className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                <span className="truncate">Create agent</span>
+              </Button>
               {pageView !== "my_agents" ? (
                 <Button
                   type="button"
@@ -1189,21 +1354,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 </Button>
               ) : null}
               {pageView === "my_agents" && walletAddress ? (
-                <div className="flex flex-nowrap items-center gap-1.5 shrink-0">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
                   <span className="text-xs text-muted-foreground tabular-nums pr-0.5 max-sm:hidden">
                     {myAgents.length}/{MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
                   </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-9 shrink-0 px-2 sm:px-3"
-                    onClick={() => setCreateModalOpen(true)}
-                    disabled={myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
-                    title="Create agent"
-                  >
-                    <span className="hidden min-[400px]:inline">Create</span>
-                    <span className="min-[400px]:hidden">+</span>
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -1221,6 +1375,126 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
               ) : null}
             </div>
           </div>
+
+          <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+            <DialogContent className="w-[min(100%,42rem)] sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create strategy agent</DialogTitle>
+                <DialogDescription>
+                  Build one custom strategy for this wallet. Limit: {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} agents. Use
+                  Random strategy to auto-fill a sample setup—then adjust or submit as-is.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={onCreateMyStrategy} className="space-y-4">
+                {myError ? (
+                  <div className="rounded-xl border border-destructive/45 bg-destructive/10 px-3 py-2 text-sm text-destructive shadow-sm">
+                    {myError}
+                  </div>
+                ) : null}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="my-agent-name">Name</Label>
+                    <Input
+                      id="my-agent-name"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="e.g. My BTC 1h swing"
+                      maxLength={80}
+                      required
+                    />
+                  </div>
+                  <ExperimentTokenCombobox
+                    id="my-agent-token"
+                    label="Token"
+                    value={formToken}
+                    onChange={setFormToken}
+                  />
+                  <div className="space-y-2">
+                    <Label>Bar</Label>
+                    <Select value={formBar} onValueChange={setFormBar}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["15m", "30m", "1h", "4h", "1d"].map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="my-agent-limit">Kline limit</Label>
+                    <Input
+                      id="my-agent-limit"
+                      type="number"
+                      min={50}
+                      max={500}
+                      value={formLimit}
+                      onChange={(e) => setFormLimit(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="my-agent-la">Look-ahead bars</Label>
+                    <Input
+                      id="my-agent-la"
+                      type="number"
+                      min={1}
+                      max={720}
+                      value={formLookAhead}
+                      onChange={(e) => setFormLookAhead(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 rounded-lg sm:w-auto"
+                    onClick={applyRandomStrategy}
+                    disabled={creating || myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                  >
+                    <Shuffle className="h-4 w-4 shrink-0" aria-hidden />
+                    Random strategy
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="w-full gap-2 rounded-lg sm:w-auto"
+                    disabled={creating || myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                  >
+                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Create agent
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog open={connectWalletForCreateAgentOpen} onOpenChange={setConnectWalletForCreateAgentOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Connect your wallet</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Connect a Solana or Base wallet to create a custom trading strategy agent and track its experiment runs.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2 sm:gap-2">
+                <AlertDialogCancel className="mt-0">Not now</AlertDialogCancel>
+                <Button
+                  type="button"
+                  className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => {
+                    setConnectWalletForCreateAgentOpen(false);
+                    openConnectModal();
+                  }}
+                >
+                  Connect wallet
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
         {error ? (
           <div className="mt-4 rounded-xl border border-destructive/45 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm">
@@ -1242,6 +1516,13 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     Search by name or ID, then slice by market, timeframe, and open exposure.
                   </p>
                 </div>
+                <MobileExperimentFiltersToggle
+                  isDesktop={isSmUp}
+                  expanded={mobileLabFiltersOpen}
+                  onToggle={() => setMobileLabFiltersOpen((v) => !v)}
+                  label="roster filters"
+                />
+                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileLabFiltersOpen}>
                 <div className="relative flex flex-wrap items-end gap-2 sm:gap-3">
                   <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
                     <Label htmlFor="lab-search" className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
@@ -1325,7 +1606,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-10 shrink-0 border-dashed border-border/80 text-muted-foreground hover:text-foreground"
+                    className="h-10 w-full shrink-0 border-dashed border-border/80 text-muted-foreground hover:text-foreground sm:w-auto"
                     onClick={() => {
                       setLabFilterSearch("");
                       setLabFilterToken("all");
@@ -1337,6 +1618,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     Clear all
                   </Button>
                 </div>
+                </MobileCollapsibleFilters>
               </div>
             ) : null}
             <div
@@ -1404,8 +1686,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
               </div>
             </div>
             <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-md shadow-black/[0.04] backdrop-blur-sm dark:shadow-black/25">
-              <div className="overflow-x-auto">
-                <Table>
+              <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+                <Table className="min-w-[640px] w-full">
                   <TableHeader className="sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-border/80 [&_tr]:bg-card [&_tr]:backdrop-blur-md [&_tr:hover]:bg-card">
                     <TableRow className="border-0 hover:bg-transparent">
                       <SortableTableHead label="#" sortKey="id" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
@@ -1576,6 +1858,13 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     Compare agents by resolved sample, win rate, and exposure. Filters apply instantly on this page.
                   </p>
                 </div>
+                <MobileExperimentFiltersToggle
+                  isDesktop={isSmUp}
+                  expanded={mobileLbFiltersOpen}
+                  onToggle={() => setMobileLbFiltersOpen((v) => !v)}
+                  label="ranking filters"
+                />
+                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileLbFiltersOpen}>
                 <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
                   <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[11rem]">
                     <Label
@@ -1666,7 +1955,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-10 shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm"
+                        className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
                         onClick={() => {
                           setLbFilterSearch("");
                           setLbFilterToken("all");
@@ -1679,6 +1968,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     </>
                   ) : null}
                 </div>
+                </MobileCollapsibleFilters>
               </div>
 
               {baseLeaderboardRows.length > 0 ? (
@@ -1688,6 +1978,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent"
                       aria-hidden
                     />
+                    <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                     <Table className="min-w-[840px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
                       <TableHeader>
                         <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30 [&>th]:align-middle">
@@ -1857,6 +2148,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           })}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                   <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
                     <ExperimentTablePagination
@@ -1875,6 +2167,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
                     aria-hidden
                   />
+                  <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                   <Table className="min-w-[840px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
                     <TableHeader>
                       <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30">
@@ -1937,6 +2230,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       </TableRow>
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1964,6 +2258,13 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     Narrow which agents feed the bubble map and charts. Same roster as the Lab tab, scoped here for visualization.
                   </p>
                 </div>
+                <MobileExperimentFiltersToggle
+                  isDesktop={isSmUp}
+                  expanded={mobileChartFiltersOpen}
+                  onToggle={() => setMobileChartFiltersOpen((v) => !v)}
+                  label="chart filters"
+                />
+                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileChartFiltersOpen}>
                 <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
                   <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
                     <Label htmlFor="chart-search" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -2013,7 +2314,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-10 shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm"
+                    className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
                     onClick={() => {
                       setChartFilterSearch("");
                       setChartFilterToken("all");
@@ -2023,6 +2324,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     Clear
                   </Button>
                 </div>
+                </MobileCollapsibleFilters>
               </div>
             ) : null}
             <TradingExperimentChartsPanel
@@ -2043,11 +2345,11 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
           </TabsContent>
 
           <TabsContent value="explorer" className="mt-6 space-y-5 outline-none">
-            <div className="space-y-5">
+            <div className="space-y-5 [&_.text-muted-foreground]:text-zinc-400 light:[&_.text-muted-foreground]:text-muted-foreground">
               <div className="rounded-xl border border-border/50 bg-muted/10 px-4 py-3.5 shadow-sm sm:px-5 sm:py-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Run explorer</p>
                 <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  Full history across standard lab ledgers, newest first. Wallet-built agents live under{" "}
+                  Full history for the unified lab (all experiment ledgers merged), newest first. Wallet-built agents live under{" "}
                   <button
                     type="button"
                     className="font-medium text-foreground underline decoration-primary/50 underline-offset-4 transition-colors hover:text-primary hover:decoration-primary"
@@ -2070,26 +2372,18 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 />
                 <div className="relative mb-3 hidden sm:block">
                   <h3 className="text-sm font-semibold tracking-tight text-foreground">Run history filters</h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">Optionally narrow which data feed you query before paging rows.</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">
+                    Same merged lab as Lab and Leaderboard. Filter by status, agent id, or symbol.
+                  </p>
                 </div>
+                <MobileExperimentFiltersToggle
+                  isDesktop={isSmUp}
+                  expanded={mobileExplorerFiltersOpen}
+                  onToggle={() => setMobileExplorerFiltersOpen((v) => !v)}
+                  label="run filters"
+                />
+                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileExplorerFiltersOpen}>
                 <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
-                  <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[188px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Feed</Label>
-                    <Select
-                      value={explorerLedger}
-                      onValueChange={(v) => setExplorerLedger(v as ExplorerLedgerFilter)}
-                    >
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All feeds</SelectItem>
-                        <SelectItem value="primary">Original</SelectItem>
-                        <SelectItem value="secondary">Parallel</SelectItem>
-                        <SelectItem value="multi_resource">BTC timeframes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[188px]">
                     <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</Label>
                     <Select
@@ -2138,9 +2432,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-10 shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm"
+                    className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
                     onClick={() => {
-                      setExplorerLedger("all");
                       setExplorerStatus("");
                       setExplorerAgentId("");
                       setExplorerSymbol("");
@@ -2149,6 +2442,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     Clear
                   </Button>
                 </div>
+                </MobileCollapsibleFilters>
               </div>
               <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm dark:bg-card/35 dark:shadow-[0_28px_56px_-18px_rgba(0,0,0,0.65)]">
                 <div
@@ -2165,6 +2459,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     {explorerLoading ? <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" aria-hidden /> updating</span> : null}
                   </p>
                 </div>
+                <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                 <Table className="min-w-[900px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
                   <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
                     <TableRow className="border-0 hover:bg-transparent">
@@ -2207,9 +2502,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         return (
                           <TableRow
                             key={r._id}
-                            className="group border-border/25 transition-colors duration-150 hover:bg-muted/[0.22]"
+                            className="group border-border/25 transition-colors duration-150 hover:bg-muted/[0.22] light:hover:bg-muted/40"
                           >
-                            <TableCell className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
+                            <TableCell className="whitespace-nowrap font-mono text-[11px] tabular-nums text-zinc-400 light:text-muted-foreground">
                               {formatTime(r.createdAt)}
                             </TableCell>
                             <TableCell className="text-right font-mono text-xs font-semibold tabular-nums text-foreground/90">
@@ -2226,7 +2521,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                             <TableCell>
                               <span className="inline-flex min-w-0 max-w-[140px] items-center gap-2">
                                 <CoinLogo symbol={r.symbol} size="sm" fallbackSeed={r.symbol} />
-                                <span className="truncate font-mono text-xs font-medium text-foreground/90">{r.symbol}</span>
+                                <span className="truncate font-mono text-xs font-medium text-zinc-100 light:text-foreground/90">
+                                  {r.symbol}
+                                </span>
                               </span>
                             </TableCell>
                             <TableCell>
@@ -2252,18 +2549,18 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                                 {statusOptionLabel(r.status)}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs tabular-nums text-foreground/85">
+                            <TableCell className="text-right font-mono text-xs tabular-nums text-zinc-200 light:text-foreground/85">
                               {r.entry != null ? r.entry.toFixed(4) : "—"}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs tabular-nums text-foreground/85">
+                            <TableCell className="text-right font-mono text-xs tabular-nums text-zinc-200 light:text-foreground/85">
                               {r.stopLoss != null ? r.stopLoss.toFixed(4) : "—"}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs tabular-nums text-foreground/85">
+                            <TableCell className="text-right font-mono text-xs tabular-nums text-zinc-200 light:text-foreground/85">
                               {r.firstTarget != null ? r.firstTarget.toFixed(4) : "—"}
                             </TableCell>
                             <TableCell className="max-w-[240px]">
                               <span
-                                className="block truncate font-mono text-[11px] text-foreground/80 dark:text-zinc-200"
+                                className="block truncate font-mono text-[11px] text-zinc-300 light:text-foreground/80"
                                 title={r.resolution ?? undefined}
                               >
                                 {r.resolution ?? "—"}
@@ -2274,6 +2571,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     })}
                   </TableBody>
                 </Table>
+                </div>
               </div>
               <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
                 <ExperimentTablePagination
@@ -2289,95 +2587,13 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
           </TabsContent>
 
           <TabsContent value="my_agents" className="mt-6 space-y-8 outline-none">
-            <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-              <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Create strategy agent</DialogTitle>
-                  <DialogDescription>
-                    Build one custom strategy for this wallet. Limit: {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} agents.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={onCreateMyStrategy} className="space-y-4">
-                  {myError ? (
-                    <div className="rounded-xl border border-destructive/45 bg-destructive/10 px-3 py-2 text-sm text-destructive shadow-sm">
-                      {myError}
-                    </div>
-                  ) : null}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="my-agent-name">Name</Label>
-                      <Input
-                        id="my-agent-name"
-                        value={formName}
-                        onChange={(e) => setFormName(e.target.value)}
-                        placeholder="e.g. My BTC 1h swing"
-                        maxLength={80}
-                        required
-                      />
-                    </div>
-                    <ExperimentTokenCombobox
-                      id="my-agent-token"
-                      label="Token"
-                      value={formToken}
-                      onChange={setFormToken}
-                    />
-                    <div className="space-y-2">
-                      <Label>Bar</Label>
-                      <Select value={formBar} onValueChange={setFormBar}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["15m", "30m", "1h", "4h", "1d"].map((b) => (
-                            <SelectItem key={b} value={b}>
-                              {b}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="my-agent-limit">Kline limit</Label>
-                      <Input
-                        id="my-agent-limit"
-                        type="number"
-                        min={50}
-                        max={500}
-                        value={formLimit}
-                        onChange={(e) => setFormLimit(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="my-agent-la">Look-ahead bars</Label>
-                      <Input
-                        id="my-agent-la"
-                        type="number"
-                        min={1}
-                        max={720}
-                        value={formLookAhead}
-                        onChange={(e) => setFormLookAhead(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={creating || myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
-                    >
-                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      Create agent
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-
             {!walletAddress ? (
               <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-xl shadow-black/[0.06] backdrop-blur-sm dark:shadow-black/40">
                 <div
                   className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
                   aria-hidden
                 />
+                <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                 <Table className="min-w-[720px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3.5">
                   <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 backdrop-blur-md dark:bg-muted/85 [&_tr]:hover:bg-transparent">
                     <TableRow className="border-0 hover:bg-transparent">
@@ -2407,6 +2623,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     </TableRow>
                   </TableBody>
                 </Table>
+                </div>
               </div>
             ) : (
               <div className="space-y-10">
@@ -2414,7 +2631,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">My workspace</p>
                   <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
                     Up to {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} custom strategies per wallet. Use{" "}
-                    <span className="font-medium text-foreground">Create</span> in the toolbar, then track outcomes in{" "}
+                    <span className="font-medium text-foreground">Create agent</span> in the toolbar, then track outcomes in{" "}
                     <span className="font-medium text-foreground">Experiment runs</span> below.
                   </p>
                 </div>
@@ -2430,6 +2647,13 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         <h3 className="text-sm font-semibold tracking-tight text-foreground">Agent list filters</h3>
                         <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">Search and slice your roster before sorting columns.</p>
                       </div>
+                      <MobileExperimentFiltersToggle
+                        isDesktop={isSmUp}
+                        expanded={mobileMyWinFiltersOpen}
+                        onToggle={() => setMobileMyWinFiltersOpen((v) => !v)}
+                        label="agent filters"
+                      />
+                      <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileMyWinFiltersOpen}>
                       <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
                         <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
                           <Label htmlFor="my-win-search" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -2479,7 +2703,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-10 shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm"
+                          className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
                           onClick={() => {
                             setMyWinSearch("");
                             setMyWinToken("all");
@@ -2489,6 +2713,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           Clear
                         </Button>
                       </div>
+                      </MobileCollapsibleFilters>
                     </div>
                   ) : null}
                   <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm dark:bg-card/35 dark:shadow-[0_28px_56px_-18px_rgba(0,0,0,0.65)]">
@@ -2517,6 +2742,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         ) : null}
                       </p>
                     </div>
+                    <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                     <Table className="min-w-[800px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
                       <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
                         <TableRow className="border-0 hover:bg-transparent">
@@ -2550,9 +2776,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                                 <FlaskConical className="h-10 w-10 text-muted-foreground/35" aria-hidden />
                                 <p className="text-sm font-semibold tracking-tight text-foreground">No custom agents yet</p>
                                 <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                                  Create a strategy from the toolbar to deploy it from this wallet.
+                                  Use Create agent in the toolbar to deploy a strategy from this wallet.
                                 </p>
-                                <Button type="button" size="sm" variant="outline" className="mt-1 rounded-lg shadow-sm" onClick={() => setCreateModalOpen(true)}>
+                                <Button type="button" size="sm" variant="outline" className="mt-1 rounded-lg shadow-sm" onClick={beginCreateAgent}>
                                   Create agent
                                 </Button>
                               </div>
@@ -2662,6 +2888,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                   {myAgents.length > 0 ? (
                     <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
@@ -2689,6 +2916,13 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       className="pointer-events-none absolute -right-12 -bottom-12 h-36 w-36 rounded-full bg-primary/[0.05] blur-3xl"
                       aria-hidden
                     />
+                    <MobileExperimentFiltersToggle
+                      isDesktop={isSmUp}
+                      expanded={mobileMyRunsFiltersOpen}
+                      onToggle={() => setMobileMyRunsFiltersOpen((v) => !v)}
+                      label="run filters"
+                    />
+                    <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileMyRunsFiltersOpen}>
                     <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
                       <div className="space-y-1.5 w-[min(100%,200px)] sm:w-[220px]">
                         <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</Label>
@@ -2732,7 +2966,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-10 shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm"
+                        className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
                         onClick={() => {
                           setMyRunsStatus("");
                           setMyRunsStrategyId("");
@@ -2741,6 +2975,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         Clear
                       </Button>
                     </div>
+                    </MobileCollapsibleFilters>
                   </div>
                   <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm dark:bg-card/35 dark:shadow-[0_28px_56px_-18px_rgba(0,0,0,0.65)]">
                     <div
@@ -2762,6 +2997,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         ) : null}
                       </p>
                     </div>
+                    <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                     <Table className="min-w-[640px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
                       <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
                         <TableRow className="border-0 hover:bg-transparent">
@@ -2849,6 +3085,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                   <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
                     <ExperimentTablePagination

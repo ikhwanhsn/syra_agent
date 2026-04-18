@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { FileText, Sparkles, MessageSquare, Search, TrendingUp, Shield, Zap, Newspaper, BarChart3, Gem, Hash, Sun, ShoppingCart, Star, Clock, FolderCog, User, Users, Heart, LayoutGrid, Plus, Loader2, Pencil, Trash2, Copy, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { FileText, Sparkles, MessageSquare, Search, TrendingUp, Shield, Zap, Newspaper, BarChart3, Gem, Hash, Sun, ShoppingCart, Star, Clock, User, Users, Heart, LayoutGrid, Plus, Loader2, Pencil, Trash2, Copy, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ import {
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
 import { useToast } from "@/hooks/use-toast";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { marketplaceApi, userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
 
@@ -44,7 +45,7 @@ const STORAGE_FAVORITES = "syra_marketplace_favorites";
 const STORAGE_RECENT = "syra_marketplace_recent";
 const STORAGE_CALL_COUNTS = "syra_marketplace_call_counts";
 const MAX_RECENT = 10;
-const PROMPTS_PAGE_SIZE = 15;
+export const PROMPTS_PAGE_SIZE = 15;
 
 function loadFavoritesFromStorage(): Set<string> {
   try {
@@ -120,7 +121,7 @@ const GENERAL_PROMPTS: MarketplacePrompt[] = [
   { id: "security-scan", title: "Token security check", description: "Understand contract safety, liquidity locks, and rug risks.", prompt: "How do I check if a token is safe? What are liquidity locks and renounced mint?", category: "research", icon: Shield },
 ];
 
-const MARKETPLACE_PROMPTS: MarketplacePrompt[] = [...TOOL_PROMPTS, ...GENERAL_PROMPTS];
+export const MARKETPLACE_PROMPTS: MarketplacePrompt[] = [...TOOL_PROMPTS, ...GENERAL_PROMPTS];
 
 const CATEGORY_LABELS: Record<MarketplacePrompt["category"], string> = {
   live_data: "Live data & tools",
@@ -131,7 +132,7 @@ const CATEGORY_LABELS: Record<MarketplacePrompt["category"], string> = {
   general: "General",
 };
 
-const PROMPTS_GRID =
+export const PROMPTS_GRID =
   "grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3";
 
 /** MongoDB ObjectId-style id (24 hex chars) = user-created prompt */
@@ -139,7 +140,7 @@ function isUserPromptId(id: string): boolean {
   return Boolean(id && id.length === 24 && /^[a-f0-9]+$/i.test(id));
 }
 
-function PromptCard({
+export function PromptCard({
   item,
   isFavorite,
   useCount = 0,
@@ -150,6 +151,8 @@ function PromptCard({
   isBlinking,
   ownerLabel,
   onShowDetails,
+  creatorAnonymousId,
+  syraOwnerProfileLink,
 }: {
   item: MarketplacePrompt | (Pick<MarketplacePrompt, "id" | "title" | "prompt" | "icon"> & { description?: string; category?: MarketplacePrompt["category"]; anonymousId?: string });
   isFavorite: boolean;
@@ -163,6 +166,10 @@ function PromptCard({
   ownerLabel?: string;
   /** Opens a modal with full prompt details. */
   onShowDetails?: () => void;
+  /** When set, owner chip links to this creator's public profile. */
+  creatorAnonymousId?: string;
+  /** When true and owner is Syra, owner chip links to the official Syra prompts profile. */
+  syraOwnerProfileLink?: boolean;
 }) {
   const Icon = item.icon;
   const description = "description" in item ? item.description : "";
@@ -261,13 +268,35 @@ function PromptCard({
         </div>
       </div>
       <div className="flex min-w-0 flex-wrap gap-2 border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
-        <span
-          className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums"
-          title={displayOwner === "User" && "anonymousId" in item && item.anonymousId ? "User: " + item.anonymousId : undefined}
-        >
-          <User className="h-3 w-3 shrink-0 opacity-70" />
-          {displayOwner}
-        </span>
+        {creatorAnonymousId?.trim() ? (
+          <Link
+            to={`/dashboard/marketplace/prompts/user/${encodeURIComponent(creatorAnonymousId.trim())}`}
+            className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums text-muted-foreground transition-colors hover:bg-muted/55 hover:text-foreground"
+            title="View creator profile"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <User className="h-3 w-3 shrink-0 opacity-70" />
+            {displayOwner}
+          </Link>
+        ) : syraOwnerProfileLink && displayOwner === "Syra" ? (
+          <Link
+            to="/dashboard/marketplace/prompts/syra"
+            className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums text-muted-foreground transition-colors hover:bg-muted/55 hover:text-foreground"
+            title="View Syra official prompts"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <User className="h-3 w-3 shrink-0 opacity-70" />
+            {displayOwner}
+          </Link>
+        ) : (
+          <span
+            className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums"
+            title={displayOwner === "User" && "anonymousId" in item && item.anonymousId ? "User: " + item.anonymousId : undefined}
+          >
+            <User className="h-3 w-3 shrink-0 opacity-70" />
+            {displayOwner}
+          </span>
+        )}
         <span className="inline-flex items-center gap-1 rounded-md bg-muted/35 px-2 py-0.5 tabular-nums" title="People who used">
           <Users className="h-3 w-3 shrink-0 opacity-70" />
           {peopleCount} people
@@ -315,9 +344,9 @@ function PromptCard({
   );
 }
 
-type SectionId = "all" | "system" | "user" | "recent" | "favorite";
+type SectionId = "all" | "my_prompt" | "recent" | "favorite";
 
-function PaginationBar({
+export function PaginationBar({
   page,
   totalItems,
   pageSize,
@@ -369,8 +398,7 @@ function PaginationBar({
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof LayoutGrid }[] = [
   { id: "all", label: "All", icon: LayoutGrid },
-  { id: "system", label: "System", icon: FolderCog },
-  { id: "user", label: "User", icon: User },
+  { id: "my_prompt", label: "My prompt", icon: FileText },
   { id: "recent", label: "Recently used", icon: Clock },
   { id: "favorite", label: "Favorite", icon: Heart },
 ];
@@ -378,9 +406,11 @@ const SECTIONS: { id: SectionId; label: string; icon: typeof LayoutGrid }[] = [
 export default function MarketplacePrompts() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { openConnectModal } = useConnectModal();
   const { anonymousId, connectedWalletAddress } = useAgentWallet();
   /** Only sync preferences / user prompts with DB when wallet is connected. */
   const walletConnected = !!connectedWalletAddress;
+  const [connectWalletForCreateOpen, setConnectWalletForCreateOpen] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(loadFavoritesFromStorage);
   const [recent, setRecent] = useState<Array<{ id: string; title: string; prompt: string }>>(loadRecentFromStorage);
   const [callCounts, setCallCounts] = useState<Record<string, number>>(loadCallCountsFromStorage);
@@ -421,17 +451,24 @@ export default function MarketplacePrompts() {
     prompt: string;
     category?: string;
     owner: string;
+    creatorAnonymousId?: string | null;
   } | null>(null);
   const [detailsOnUse, setDetailsOnUse] = useState<(() => void) | null>(null);
 
   const openDetails = useCallback(
-    (item: { title: string; description?: string; prompt: string; category?: string }, owner: string, onUse: () => void) => {
+    (
+      item: { title: string; description?: string; prompt: string; category?: string },
+      owner: string,
+      onUse: () => void,
+      creatorAnonymousId?: string | null
+    ) => {
       setDetailsPrompt({
         title: item.title,
         description: item.description ?? "",
         prompt: item.prompt,
         category: item.category,
         owner,
+        creatorAnonymousId: creatorAnonymousId?.trim() || null,
       });
       setDetailsOnUse(() => () => {
         onUse();
@@ -674,6 +711,23 @@ export default function MarketplacePrompts() {
       .finally(() => setCreateSubmitting(false));
   }, [walletConnected, anonymousId, createTitle, createDescription, createPrompt, createCategory]);
 
+  /** Opens create modal when signed in; otherwise shows connect-wallet alert. */
+  const beginCreatePrompt = useCallback(() => {
+    if (!walletConnected) {
+      setConnectWalletForCreateOpen(true);
+      return;
+    }
+    if (!anonymousId?.trim()) {
+      toast({
+        title: "Session not ready",
+        description: "Please wait a moment and try again.",
+      });
+      return;
+    }
+    setCreateError(null);
+    setCreateModalOpen(true);
+  }, [walletConnected, anonymousId, toast]);
+
   // Sync edit form when editingPrompt changes
   useEffect(() => {
     if (editingPrompt) {
@@ -737,13 +791,12 @@ export default function MarketplacePrompts() {
         })
         .then(({ prompt: created }) => {
           setUserPromptsList((prev) => [created, ...prev]);
-          setActiveSection("user");
-          setUserListView("yours");
+          setActiveSection("my_prompt");
           setNewlyCreatedPromptId(created.id);
           setTimeout(() => setNewlyCreatedPromptId(null), 600);
           toast({
             title: "Prompt duplicated",
-            description: "Added to Your prompts.",
+            description: "Added under My prompt.",
           });
         })
         .catch(() => {
@@ -757,17 +810,7 @@ export default function MarketplacePrompts() {
     [walletConnected, anonymousId, toast]
   );
 
-  const byCategory = MARKETPLACE_PROMPTS.reduce(
-    (acc, p) => {
-      if (!acc[p.category]) acc[p.category] = [];
-      acc[p.category].push(p);
-      return acc;
-    },
-    {} as Record<MarketplacePrompt["category"], MarketplacePrompt[]>
-  );
   const categoryOrder: MarketplacePrompt["category"][] = ["live_data", "research", "trading", "learning", "tools", "general"];
-  /** Flattened system prompts for System section (for pagination) */
-  const systemPromptsFlat = categoryOrder.flatMap((cat) => byCategory[cat] ?? []);
 
   const favoritePrompts = MARKETPLACE_PROMPTS.filter((p) => favorites.has(p.id));
   const recentPrompts = recent.map((r) => {
@@ -777,13 +820,12 @@ export default function MarketplacePrompts() {
   });
 
   const [activeSection, setActiveSection] = useState<SectionId>("all");
-  const [userListView, setUserListView] = useState<"yours" | "all">("all");
-  const [allSortBy, setAllSortBy] = useState<"popular" | "used" | "newest">("newest");
+  const [allSortBy, setAllSortBy] = useState<"popular" | "used" | "newest">("used");
   const [promptPage, setPromptPage] = useState(1);
 
   useEffect(() => {
     setPromptPage(1);
-  }, [activeSection, userListView]);
+  }, [activeSection]);
 
   /** Combined list for All section: system + user prompts, with useCount and createdAt for sorting */
   type AllPromptEntry =
@@ -829,9 +871,17 @@ export default function MarketplacePrompts() {
             <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Prompts</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Use a prompt in the agent to start a conversation. Live data prompts trigger paid tools—connect your wallet to use them.
-              Connect your wallet to sync favorites and create or edit prompts.
+              Connect your wallet to sync favorites and create or edit prompts. On official Syra cards, click the Syra owner chip to open all Syra prompts.
             </p>
           </div>
+          <Button
+            type="button"
+            onClick={beginCreatePrompt}
+            className="shrink-0 gap-2 rounded-xl border-0 bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground shadow-sm hover:bg-accent/90"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Create prompt
+          </Button>
         </div>
       </header>
 
@@ -841,11 +891,15 @@ export default function MarketplacePrompts() {
           const count =
             id === "all"
               ? allPromptsSorted.length
-              : id === "favorite"
-                ? favoritePrompts.length
-                : id === "recent"
-                  ? recentPrompts.length
-                  : undefined;
+              : id === "my_prompt"
+                ? anonymousId?.trim()
+                  ? userPromptsList.filter((p) => p.anonymousId === anonymousId).length
+                  : 0
+                : id === "favorite"
+                  ? favoritePrompts.length
+                  : id === "recent"
+                    ? recentPrompts.length
+                    : undefined;
           const isActive = activeSection === id;
           return (
             <button
@@ -882,7 +936,7 @@ export default function MarketplacePrompts() {
           <section>
             <div className="mb-4 flex flex-wrap items-center gap-3 justify-between">
               <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                System prompts and community prompts. Use sort to surface what you need.
+                Official Syra prompts and community prompts. Use sort to surface what you need.
               </p>
               <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-background/40 px-2 py-1 backdrop-blur-sm">
                 <span className="whitespace-nowrap pl-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -934,6 +988,7 @@ export default function MarketplacePrompts() {
                           })
                         }
                         isBlinking={newlyCreatedPromptId === entry.item.id}
+                        syraOwnerProfileLink
                         onShowDetails={() => openDetails(entry.item, "Syra", () => handleUseInAgent(entry.item))}
                       />
                     </div>
@@ -962,7 +1017,10 @@ export default function MarketplacePrompts() {
                               }
                             : undefined
                         }
-                        onShowDetails={() => openDetails(entry.item, "User", () => handleUseUserPrompt(entry.item))}
+                        creatorAnonymousId={entry.item.anonymousId}
+                        onShowDetails={() =>
+                          openDetails(entry.item, "User", () => handleUseUserPrompt(entry.item), entry.item.anonymousId)
+                        }
                       />
                     </div>
                   )
@@ -980,239 +1038,84 @@ export default function MarketplacePrompts() {
           </section>
         )}
 
-        {activeSection === "system" && (
-          <section>
-            <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              Built-in prompts that work with the agent and optional paid tools.
+        {activeSection === "my_prompt" && (
+          <section className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Prompts you created and published. Open <span className="font-medium text-foreground/90">All</span> to browse
+              everyone&apos;s prompts, including community entries.
             </p>
-            {(() => {
-              const total = systemPromptsFlat.length;
-              const start = (promptPage - 1) * PROMPTS_PAGE_SIZE;
-              const pageItems = systemPromptsFlat.slice(start, start + PROMPTS_PAGE_SIZE);
-              return (
-                <>
-                  <div className={PROMPTS_GRID}>
-                    {pageItems.map((item) => (
-                      <div key={item.id}>
+
+            {!anonymousId?.trim() && (
+              <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
+                Connect your wallet to create prompts and see them here.
+              </p>
+            )}
+
+            <div>
+              {!anonymousId?.trim() ? (
+                <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
+                  Sign in to see prompts you have created.
+                </p>
+              ) : userPromptsLoading ? (
+                <p className="text-sm text-muted-foreground py-4 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading…
+                </p>
+              ) : userPromptsError ? (
+                <p className="text-sm text-destructive py-3">{userPromptsError}</p>
+              ) : (() => {
+                const myPrompts = userPromptsList.filter((p) => p.anonymousId === anonymousId);
+                if (myPrompts.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
+                      You haven&apos;t created any prompts yet. Use the <span className="font-medium text-foreground/90">Create prompt</span>{" "}
+                      button at the top to add one.
+                    </p>
+                  );
+                }
+                const total = myPrompts.length;
+                const start = (promptPage - 1) * PROMPTS_PAGE_SIZE;
+                const pageItems = myPrompts.slice(start, start + PROMPTS_PAGE_SIZE);
+                return (
+                  <>
+                    <div className={PROMPTS_GRID}>
+                      {pageItems.map((item) => (
                         <PromptCard
-                          item={item}
+                          key={item.id}
+                          item={{ ...item, icon: FileText }}
                           isFavorite={favorites.has(item.id)}
-                          useCount={callCounts[item.id] ?? 0}
+                          useCount={item.useCount}
                           onToggleFavorite={() => toggleFavorite(item.id)}
-                          onUseInAgent={() => handleUseInAgent(item)}
+                          onUseInAgent={() => handleUseUserPrompt(item)}
                           onDuplicate={() =>
                             handleDuplicatePrompt({
                               title: item.title,
                               description: item.description ?? "",
                               prompt: item.prompt,
-                              category: item.category,
+                              category: (item.category as MarketplacePrompt["category"]) ?? "general",
                             })
                           }
                           isBlinking={newlyCreatedPromptId === item.id}
-                          onShowDetails={() => openDetails(item, "Syra", () => handleUseInAgent(item))}
+                          ownerActions={{
+                            onEdit: () => setEditingPrompt(item),
+                            onDelete: () => setDeleteConfirmId(item.id),
+                          }}
+                          onShowDetails={() =>
+                            openDetails(item, "User", () => handleUseUserPrompt(item), item.anonymousId)
+                          }
                         />
-                      </div>
-                    ))}
-                  </div>
-                  <PaginationBar
-                    page={promptPage}
-                    totalItems={total}
-                    pageSize={PROMPTS_PAGE_SIZE}
-                    onPageChange={setPromptPage}
-                  />
-                </>
-              );
-            })()}
-          </section>
-        )}
-
-        {activeSection === "user" && (
-          <section className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Create your own prompts and share them with others. Switch between your prompts and all community prompts.
-            </p>
-
-            {!anonymousId?.trim() && (
-              <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
-                Connect your wallet or start a chat to create your own prompts. You can use any community prompt without signing in.
-              </p>
-            )}
-
-            {/* Row: Your prompts / All tabs (left), Create prompt (right) — compact, smaller than main section tabs */}
-            <div className="flex flex-wrap items-center gap-2 justify-between">
-              <div className="flex gap-0.5 rounded-xl border border-border/50 bg-muted/20 p-0.5 shadow-inner backdrop-blur-sm">
-                <button
-                  type="button"
-                  onClick={() => setUserListView("all")}
-                  className={cn(
-                    "flex h-8 min-w-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                    userListView === "all"
-                      ? "border border-border/70 bg-background/95 text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/45 hover:text-foreground"
-                  )}
-                >
-                  <LayoutGrid className="w-3 h-3 shrink-0" />
-                  <span>All</span>
-                  {userPromptsList.length > 0 ? (
-                    <span className="tabular-nums shrink-0">({userPromptsList.length})</span>
-                  ) : null}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserListView("yours")}
-                  className={cn(
-                    "flex h-8 min-w-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                    userListView === "yours"
-                      ? "border border-border/70 bg-background/95 text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/45 hover:text-foreground"
-                  )}
-                >
-                  <User className="w-3 h-3 shrink-0" />
-                  <span className="truncate">Your prompts</span>
-                  {anonymousId?.trim() && (() => {
-                    const count = userPromptsList.filter((p) => p.anonymousId === anonymousId).length;
-                    return count > 0 ? <span className="tabular-nums shrink-0">({count})</span> : null;
-                  })()}
-                </button>
-              </div>
-              {anonymousId?.trim() ? (
-                <Button
-                  onClick={() => {
-                    setCreateError(null);
-                    setCreateModalOpen(true);
-                  }}
-                  size="sm"
-                  variant="default"
-                  className="h-8 shrink-0 gap-1.5 rounded-lg border-0 bg-accent px-3 text-xs font-medium text-accent-foreground shadow-sm hover:bg-accent/90"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create prompt
-                </Button>
-              ) : null}
+                      ))}
+                    </div>
+                    <PaginationBar
+                      page={promptPage}
+                      totalItems={total}
+                      pageSize={PROMPTS_PAGE_SIZE}
+                      onPageChange={setPromptPage}
+                    />
+                  </>
+                );
+              })()}
             </div>
-
-            {/* Content: Your prompts or All */}
-            {userListView === "yours" ? (
-              <div>
-                {!anonymousId?.trim() ? (
-                  <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
-                    Sign in to see and create your own prompts.
-                  </p>
-                ) : userPromptsLoading ? (
-                  <p className="text-sm text-muted-foreground py-4 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading…
-                  </p>
-                ) : (() => {
-                  const myPrompts = userPromptsList.filter((p) => p.anonymousId === anonymousId);
-                  if (myPrompts.length === 0) {
-                    return (
-                      <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
-                        You haven&apos;t created any prompts yet. Click &quot;Create prompt&quot; to add one.
-                      </p>
-                    );
-                  }
-                  const total = myPrompts.length;
-                  const start = (promptPage - 1) * PROMPTS_PAGE_SIZE;
-                  const pageItems = myPrompts.slice(start, start + PROMPTS_PAGE_SIZE);
-                  return (
-                    <>
-                      <div className={PROMPTS_GRID}>
-                        {pageItems.map((item) => (
-                          <PromptCard
-                            key={item.id}
-                            item={{ ...item, icon: FileText }}
-                            isFavorite={favorites.has(item.id)}
-                            useCount={item.useCount}
-                            onToggleFavorite={() => toggleFavorite(item.id)}
-                            onUseInAgent={() => handleUseUserPrompt(item)}
-                            onDuplicate={() =>
-                              handleDuplicatePrompt({
-                                title: item.title,
-                                description: item.description ?? "",
-                                prompt: item.prompt,
-                                category: (item.category as MarketplacePrompt["category"]) ?? "general",
-                              })
-                            }
-                            isBlinking={newlyCreatedPromptId === item.id}
-                            ownerActions={{
-                              onEdit: () => setEditingPrompt(item),
-                              onDelete: () => setDeleteConfirmId(item.id),
-                            }}
-                            onShowDetails={() => openDetails(item, "User", () => handleUseUserPrompt(item))}
-                          />
-                        ))}
-                      </div>
-                      <PaginationBar
-                        page={promptPage}
-                        totalItems={total}
-                        pageSize={PROMPTS_PAGE_SIZE}
-                        onPageChange={setPromptPage}
-                      />
-                    </>
-                  );
-                })()}
-              </div>
-            ) : (
-              <div>
-                {userPromptsLoading ? (
-                  <p className="text-sm text-muted-foreground py-4 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading…
-                  </p>
-                ) : userPromptsError ? (
-                  <p className="text-sm text-destructive py-3">{userPromptsError}</p>
-                ) : userPromptsList.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
-                    No community prompts yet. Be the first to create one.
-                  </p>
-                ) : (
-                  (() => {
-                    const total = userPromptsList.length;
-                    const start = (promptPage - 1) * PROMPTS_PAGE_SIZE;
-                    const pageItems = userPromptsList.slice(start, start + PROMPTS_PAGE_SIZE);
-                    return (
-                      <>
-                        <div className={PROMPTS_GRID}>
-                          {pageItems.map((item) => (
-                            <div key={item.id}>
-                              <PromptCard
-                                item={{ ...item, icon: FileText }}
-                                isFavorite={favorites.has(item.id)}
-                                useCount={item.useCount}
-                                onToggleFavorite={() => toggleFavorite(item.id)}
-                                onUseInAgent={() => handleUseUserPrompt(item)}
-                                onDuplicate={() =>
-                                  handleDuplicatePrompt({
-                                    title: item.title,
-                                    description: item.description ?? "",
-                                    prompt: item.prompt,
-                                    category: (item.category as MarketplacePrompt["category"]) ?? "general",
-                                  })
-                                }
-                                isBlinking={newlyCreatedPromptId === item.id}
-                                ownerActions={
-                                  anonymousId?.trim() && item.anonymousId === anonymousId
-                                    ? { onEdit: () => setEditingPrompt(item), onDelete: () => setDeleteConfirmId(item.id) }
-                                    : undefined
-                                }
-                                onShowDetails={() => openDetails(item, "User", () => handleUseUserPrompt(item))}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <PaginationBar
-                          page={promptPage}
-                          totalItems={total}
-                          pageSize={PROMPTS_PAGE_SIZE}
-                          onPageChange={setPromptPage}
-                        />
-                      </>
-                    );
-                  })()
-                )}
-              </div>
-            )}
           </section>
         )}
 
@@ -1221,7 +1124,45 @@ export default function MarketplacePrompts() {
           <DialogContent className="border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold tracking-tight">{detailsPrompt?.title}</DialogTitle>
-              <DialogDescription className="text-muted-foreground">By {detailsPrompt?.owner}</DialogDescription>
+              <DialogDescription asChild>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted-foreground">
+                  <span>By {detailsPrompt?.owner}</span>
+                  {detailsPrompt?.owner === "Syra" ? (
+                    <>
+                      <span className="text-muted-foreground/40" aria-hidden>
+                        ·
+                      </span>
+                      <Link
+                        to="/dashboard/marketplace/prompts/syra"
+                        className="font-medium text-accent underline-offset-4 hover:underline"
+                        onClick={() => {
+                          setDetailsPrompt(null);
+                          setDetailsOnUse(null);
+                        }}
+                      >
+                        Syra profile
+                      </Link>
+                    </>
+                  ) : null}
+                  {detailsPrompt?.creatorAnonymousId ? (
+                    <>
+                      <span className="text-muted-foreground/40" aria-hidden>
+                        ·
+                      </span>
+                      <Link
+                        to={`/dashboard/marketplace/prompts/user/${encodeURIComponent(detailsPrompt.creatorAnonymousId)}`}
+                        className="font-medium text-accent underline-offset-4 hover:underline"
+                        onClick={() => {
+                          setDetailsPrompt(null);
+                          setDetailsOnUse(null);
+                        }}
+                      >
+                        Creator profile
+                      </Link>
+                    </>
+                  ) : null}
+                </div>
+              </DialogDescription>
             </DialogHeader>
             {detailsPrompt && (
               <div className="grid gap-3 py-2 text-sm">
@@ -1339,6 +1280,31 @@ export default function MarketplacePrompts() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={connectWalletForCreateOpen} onOpenChange={setConnectWalletForCreateOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Connect your wallet</AlertDialogTitle>
+              <AlertDialogDescription>
+                You need a connected wallet to create prompts. Your prompts are tied to your account and appear in the
+                community library after you publish them.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-2">
+              <AlertDialogCancel className="mt-0">Not now</AlertDialogCancel>
+              <Button
+                type="button"
+                className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                onClick={() => {
+                  setConnectWalletForCreateOpen(false);
+                  openConnectModal();
+                }}
+              >
+                Connect wallet
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Edit prompt modal */}
         <Dialog open={!!editingPrompt} onOpenChange={(open) => { if (!open) { setEditingPrompt(null); setEditError(null); } }}>
@@ -1473,6 +1439,7 @@ export default function MarketplacePrompts() {
                             })
                           }
                           isBlinking={newlyCreatedPromptId === item.id}
+                          syraOwnerProfileLink={MARKETPLACE_PROMPTS.some((p) => p.id === item.id)}
                           onShowDetails={() => {
                             const owner = MARKETPLACE_PROMPTS.some((p) => p.id === item.id) ? "Syra" : "User";
                             const onUse = () => {
@@ -1537,6 +1504,7 @@ export default function MarketplacePrompts() {
                             })
                           }
                           isBlinking={newlyCreatedPromptId === item.id}
+                          syraOwnerProfileLink
                           onShowDetails={() => openDetails(item, "Syra", () => handleUseInAgent(item))}
                         />
                       </div>
@@ -1551,7 +1519,11 @@ export default function MarketplacePrompts() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground py-3 px-3 rounded-lg bg-muted/30 border border-border/50">
-                No favorites yet. Open System and star a prompt to add it here.
+                No favorites yet.{" "}
+                <Link to="/dashboard/marketplace/prompts/syra" className="font-medium text-accent underline-offset-4 hover:underline">
+                  Browse Syra prompts
+                </Link>{" "}
+                or star any prompt to add it here.
               </p>
             )}
           </section>

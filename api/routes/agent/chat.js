@@ -75,6 +75,16 @@ const MAX_TOKENS_DEFAULT = readPositiveIntEnv('AGENT_CHAT_MAX_COMPLETION_TOKENS_
 const AGENT_CHAT_SESSION_LLM_TOKEN_CAP = readPositiveIntEnv('AGENT_CHAT_SESSION_LLM_TOKEN_CAP', 120_000);
 /** Max characters of prior user/assistant turns; tail is preserved for recency (env: AGENT_CHAT_HISTORY_MAX_CHARS). */
 const AGENT_CHAT_HISTORY_MAX_CHARS = readPositiveIntEnv('AGENT_CHAT_HISTORY_MAX_CHARS', 40_000);
+/** Max characters sent to the tool-selection LLM for prior turns (keeps that call cheap; env: AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS). */
+const AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS = readPositiveIntEnv(
+  'AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS',
+  10_000
+);
+/** Per-turn clip inside tool-selection context so one huge assistant reply does not consume the whole budget (env: AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS). */
+const AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS = readPositiveIntEnv(
+  'AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS',
+  2_800
+);
 /** Tool-router LLM max_tokens (env: AGENT_CHAT_TOOL_SELECT_MAX_TOKENS). */
 const AGENT_CHAT_TOOL_SELECT_MAX_TOKENS = readPositiveIntEnv('AGENT_CHAT_TOOL_SELECT_MAX_TOKENS', 280);
 
@@ -134,6 +144,63 @@ function truncateConversationForLlm(msgs, maxChars) {
     });
   }
   return { messages: out, trimmed: dropped > 0 };
+}
+
+/**
+ * Clip one message body for the tool-router context (long assistant/tool summaries stay bounded).
+ * @param {string} text
+ * @param {number} cap
+ * @returns {string}
+ */
+function clipTextForToolSelect(text, cap) {
+  if (typeof text !== 'string' || text.length <= cap) return text;
+  return `${text.slice(0, cap)}\n[…truncated for tool-selection length]`;
+}
+
+/**
+ * Build a compact User/Assistant transcript for tool selection (tail-preserved, char-capped).
+ * Does not include system messages — only roles the router needs.
+ * @param {Array<{ role: string; content: string }>} msgs
+ * @param {number} maxChars
+ * @param {number} perMessageCap
+ * @returns {{ snippet: string; trimmed: boolean }}
+ */
+function buildToolSelectionThreadContext(msgs, maxChars, perMessageCap) {
+  if (!Array.isArray(msgs) || msgs.length === 0) return { snippet: '', trimmed: false };
+  const filtered = msgs.filter((m) => m.role === 'user' || m.role === 'assistant');
+  if (filtered.length === 0) return { snippet: '', trimmed: false };
+
+  const lines = filtered.map((m) => {
+    const label = m.role === 'user' ? 'User' : 'Assistant';
+    const raw = typeof m.content === 'string' ? m.content : String(m.content ?? '');
+    const content = clipTextForToolSelect(raw, perMessageCap);
+    return `${label}: ${content}`;
+  });
+
+  const overhead = 120;
+  const budget = Math.max(400, maxChars - overhead);
+  const out = [];
+  let used = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    const sep = out.length > 0 ? 2 : 0;
+    const cost = line.length + sep;
+    if (used + cost > budget && out.length > 0) break;
+    if (used + cost > budget && out.length === 0) {
+      const clipped = line.slice(Math.max(0, line.length - budget));
+      out.unshift(clipped);
+      return { snippet: out.join('\n\n'), trimmed: true };
+    }
+    out.unshift(line);
+    used += cost;
+  }
+  const dropped = lines.length - out.length;
+  let snippet = out.join('\n\n');
+  if (dropped > 0) {
+    snippet = `[Earlier turns omitted for tool-selection length (${dropped} turn(s)).]\n\n${snippet}`;
+    return { snippet, trimmed: true };
+  }
+  return { snippet, trimmed: false };
 }
 
 /**
@@ -314,10 +381,11 @@ export function withLlmIdentitySystemNote(apiMessages, modelId) {
 /**
  * Use OpenRouter LLM to pick up to 3 most relevant tools (and optional params) from the user question.
  * Returns tools ordered by relevance (most relevant first).
- * @param {string} userMessage - Last user message
+ * @param {string} userMessage - Last user message (current turn)
+ * @param {string} [conversationSnippet] - Bounded prior User/Assistant turns for follow-ups ("same for SOL", etc.)
  * @returns {Promise<{ tools: Array<{ toolId: string; params?: Record<string, string> }>; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
-export async function selectToolsWithLlm(userMessage) {
+export async function selectToolsWithLlm(userMessage, conversationSnippet = '') {
   if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
     return { tools: [], usage: null };
   }
@@ -340,6 +408,8 @@ CRITICAL RULES — READ CAREFULLY:
 2. ONLY return {"tools": []} for purely conversational messages: greetings (hi, hello), "what can you do", general crypto concept explanations (e.g. "what is DeFi", "how does staking work"), opinions that don't need live data, topics unrelated to crypto, when the user wants live data but has not given the identifiers the tools need, OR when OVERLAPPING CAPABILITIES applies (e.g. generic "swap" with no Solana vs cross-chain/Squid preference — return empty tools so Syra asks which service).
 
 3. When choosing among tools for which you already have complete parameters, prefer SELECTING A TOOL over returning empty tools.
+
+4. MULTI-TURN CONTEXT: The user message may include a short transcript of earlier User/Assistant turns. The CURRENT request is always the last "User:" line. Use earlier turns to resolve pronouns, "same", "that token/wallet", "now do X instead", and to fill tool params when the last message alone is incomplete but the thread makes them clear. If required params are still ambiguous, return {"tools": []}.
 
 QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Live spot prices, market stats, or token safety from public sources are NOT exposed as Syra tools; for broad “what’s the price of X” without a dedicated tool, prefer exa-search for web context or explain the user can use an external price feed / playground proxy to upstream APIs.
@@ -391,7 +461,11 @@ PARAM RULES:
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.`;
 
-  const userContent = `User question: ${userMessage.trim()}`;
+  const trimmedSnippet =
+    typeof conversationSnippet === 'string' && conversationSnippet.trim() ? conversationSnippet.trim() : '';
+  const userContent = trimmedSnippet
+    ? `Conversation (oldest first). Select tools for the LAST User line only; use earlier lines only for context and params.\n\n${trimmedSnippet}\n\nLast user message:\n${userMessage.trim()}`
+    : `User question: ${userMessage.trim()}`;
 
   try {
     const { response, usage } = await callOpenRouter(
@@ -948,6 +1022,16 @@ router.post('/completion', async (req, res) => {
       .map((m) => m.content)
       .pop();
 
+    const lastMsg = apiMessages[apiMessages.length - 1];
+    const messagesForToolSelectContext =
+      lastMsg?.role === 'user' && apiMessages.length > 1 ? apiMessages.slice(0, -1) : apiMessages;
+    const toolSelectCtx = buildToolSelectionThreadContext(
+      messagesForToolSelectContext,
+      AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS,
+      AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS
+    );
+    const toolSelectionConversationSnippet = toolSelectCtx.snippet;
+
     const toolSelectStart = Date.now();
     /** Normalize toolId (legacy Jupiter swap ids → pump.fun swap), "squid_route" -> "squid-route", etc. */
     const normalizeToolId = (id) => {
@@ -971,7 +1055,7 @@ router.post('/completion', async (req, res) => {
         .map((t) => ({ toolId: normalizeToolId(t.toolId), params: t.params || {} }));
     } else {
       try {
-        const sel = await selectToolsWithLlm(lastUserMessage);
+        const sel = await selectToolsWithLlm(lastUserMessage, toolSelectionConversationSnippet);
         matchedTools = sel.tools;
         toolSelectUsage = sel.usage;
       } catch (toolSelectErr) {
@@ -1018,6 +1102,9 @@ router.post('/completion', async (req, res) => {
     );
     systemParts.push(
       `When the user is just chatting—greetings (hi, hello), "what can you do", general crypto questions, or casual conversation—respond naturally and helpfully. Do not say "I don't have a tool for that" or list every capability in response to a simple greeting. Briefly mention what you can do only when it fits (e.g. if they ask "what can you do").`
+    );
+    systemParts.push(
+      `Multi-turn memory: You receive recent prior user and assistant messages from this chat when present. Use them for follow-ups ("same for ETH", "that wallet", "expand on that"), pronouns, and continuity. If a system or bracket note says earlier turns were omitted for length, do not invent omitted facts—ask briefly for anything essential you no longer see.`
     );
     systemParts.push(
       `When the user asks for something specific (e.g. "give me X", "show me Y data") that is not covered by the tools above, then say Syra doesn't have that capability right now and briefly list what Syra can do. Do not make up data or use general knowledge for topics that require a tool we don't have.`

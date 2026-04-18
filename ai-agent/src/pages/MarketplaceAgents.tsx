@@ -394,7 +394,7 @@ function CreateAgentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[min(100%,24rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -417,7 +417,7 @@ function CreateAgentDialog({
             />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
               <Label htmlFor="agent-desc">Description</Label>
               <Button
                 type="button"
@@ -425,7 +425,7 @@ function CreateAgentDialog({
                 size="sm"
                 onClick={handleGenerateDescription}
                 disabled={!anonymousId || submitting || generatingDesc}
-                className="shrink-0"
+                className="w-full shrink-0 sm:w-auto"
                 title={!anonymousId ? "Connect your agent wallet to use AI generate (uses your wallet)" : undefined}
               >
                 {generatingDesc ? (
@@ -448,7 +448,7 @@ function CreateAgentDialog({
             />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
               <Label htmlFor="agent-image">Image URL (optional)</Label>
               <Button
                 type="button"
@@ -456,7 +456,7 @@ function CreateAgentDialog({
                 size="sm"
                 onClick={GENERATE_IMAGE_AVAILABLE ? handleGenerateImage : undefined}
                 disabled={!GENERATE_IMAGE_AVAILABLE || !anonymousId || submitting || generatingImage}
-                className="shrink-0"
+                className="w-full shrink-0 sm:w-auto"
                 title={GENERATE_IMAGE_AVAILABLE ? (!anonymousId ? "Connect your agent wallet to generate image (x402, ~$0.04)" : "Generate unique image with Xona (paid from your wallet)") : "Coming soon"}
               >
                 {generatingImage ? (
@@ -666,8 +666,8 @@ function AgentDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
-        <SheetHeader className="px-6 pt-6 pb-4 space-y-1">
+      <SheetContent className="flex h-[100dvh] max-h-[100dvh] w-[min(100vw,100%)] max-w-full flex-col border-l p-0 pt-[max(0.5rem,env(safe-area-inset-top))] sm:h-full sm:max-h-none sm:max-w-lg">
+        <SheetHeader className="space-y-1 px-4 pb-4 pt-2 sm:px-6 sm:pt-6">
           <SheetTitle className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-primary" />
             Agent details
@@ -677,16 +677,16 @@ function AgentDetailSheet({
           </SheetDescription>
         </SheetHeader>
         {!asset ? (
-          <div className="px-6 pb-6">
+          <div className="px-4 pb-6 sm:px-6">
             <p className="text-sm text-muted-foreground">No agent selected.</p>
           </div>
         ) : (
-          <ScrollArea className="flex-1">
-            <div className="space-y-6 px-6 pb-8">
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-6 px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom)+1.5rem))] sm:px-6 sm:pb-8">
               {/* Hero: image, name, description */}
-              <div className="rounded-2xl border bg-gradient-to-b from-muted/60 to-muted/20 p-5 overflow-hidden">
-                <div className="flex gap-4">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-muted shrink-0 overflow-hidden ring-2 ring-border/50 flex items-center justify-center">
+              <div className="overflow-hidden rounded-2xl border bg-gradient-to-b from-muted/60 to-muted/20 p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="mx-auto flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted ring-2 ring-border/50 sm:mx-0 sm:h-24 sm:w-24">
                     {displayImageUrl && !heroImageError ? (
                       <img
                         src={displayImageUrl}
@@ -699,9 +699,9 @@ function AgentDetailSheet({
                       <Bot className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />
                     )}
                   </div>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <h3 className="text-xl font-bold tracking-tight truncate">{displayName}</h3>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3 leading-relaxed">
+                  <div className="min-w-0 flex-1 pt-0.5 text-center sm:text-left">
+                    <h3 className="truncate text-xl font-bold tracking-tight">{displayName}</h3>
+                    <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                       {displayDescription || "No description."}
                     </p>
                   </div>
@@ -844,30 +844,32 @@ function AgentDetailSheet({
                 const isLive = report.alive === true || (report.status && String(report.status).toLowerCase() === "live");
                 return (
                   <div className={`rounded-xl border-2 overflow-hidden ${isLive ? "border-primary/50 bg-primary/5" : "border-destructive/50 bg-destructive/5"}`}>
-                    <div className="p-4 flex items-start gap-3">
-                      <div className={`rounded-full p-2 shrink-0 ${isLive ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"}`}>
-                        {isLive ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground">
-                          {isLive ? "Agent is live" : "Not live"}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {isLive
-                            ? "Endpoints are reachable and responding."
-                            : "One or more endpoints could not be reached."}
-                        </p>
-                        {(report.okCount != null || report.totalPinged != null) && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {report.okCount != null && report.totalPinged != null
-                              ? `${report.okCount} of ${report.totalPinged} endpoint${report.totalPinged !== 1 ? "s" : ""} reached`
-                              : report.status != null
-                                ? `Status: ${report.status}`
-                                : null}
+                    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-3">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className={`shrink-0 rounded-full p-2 ${isLive ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"}`}>
+                          {isLive ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">
+                            {isLive ? "Agent is live" : "Not live"}
                           </p>
-                        )}
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            {isLive
+                              ? "Endpoints are reachable and responding."
+                              : "One or more endpoints could not be reached."}
+                          </p>
+                          {(report.okCount != null || report.totalPinged != null) && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              {report.okCount != null && report.totalPinged != null
+                                ? `${report.okCount} of ${report.totalPinged} endpoint${report.totalPinged !== 1 ? "s" : ""} reached`
+                                : report.status != null
+                                  ? `Status: ${report.status}`
+                                  : null}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant={isLive ? "default" : "destructive"} className="shrink-0">
+                      <Badge variant={isLive ? "default" : "destructive"} className="w-fit shrink-0 self-start sm:self-auto">
                         {isLive ? "Live" : "Not alive"}
                       </Badge>
                     </div>
@@ -914,24 +916,26 @@ function AgentDetailSheet({
                   : null;
                 return (
                   <div className={`rounded-xl border-2 overflow-hidden ${isValid ? "border-primary/50 bg-primary/5" : isSyncing ? "border-amber-500/50 bg-amber-500/5" : "border-destructive/50 bg-destructive/5"}`}>
-                    <div className="p-4 flex items-start gap-3">
-                      <div className={`rounded-full p-2 shrink-0 ${isValid ? "bg-primary/20 text-primary" : isSyncing ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" : "bg-destructive/20 text-destructive"}`}>
-                        {isValid ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground">
-                          {title}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {description}
-                        </p>
-                        {recommendation && (
-                          <p className="text-xs text-muted-foreground mt-2 italic">
-                            {recommendation}
+                    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-3">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className={`shrink-0 rounded-full p-2 ${isValid ? "bg-primary/20 text-primary" : isSyncing ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" : "bg-destructive/20 text-destructive"}`}>
+                          {isValid ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">
+                            {title}
                           </p>
-                        )}
+                          <p className="mt-0.5 break-words text-sm text-muted-foreground">
+                            {description}
+                          </p>
+                          {recommendation && (
+                            <p className="mt-2 text-xs italic text-muted-foreground">
+                              {recommendation}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant={isValid ? "default" : isSyncing ? "secondary" : "destructive"} className="shrink-0">
+                      <Badge variant={isValid ? "default" : isSyncing ? "secondary" : "destructive"} className="w-fit shrink-0 self-start sm:self-auto">
                         {isValid ? "Valid" : isSyncing ? "Syncing" : "Invalid"}
                       </Badge>
                     </div>
@@ -1171,7 +1175,7 @@ export default function MarketplaceAgents() {
   const renderListContent = () => {
     if (loadingList) {
       return (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: AGENTS_PER_PAGE }, (_, i) => (
             <Skeleton key={i} className="h-72 rounded-2xl" />
           ))}
@@ -1250,7 +1254,7 @@ export default function MarketplaceAgents() {
 
     return (
       <>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
           {paginatedAgents.map((a) => {
             const agentItem: AgentListItem = a as AgentListItem;
             const asset = typeof agentItem.asset === "string" ? agentItem.asset : "";
@@ -1268,11 +1272,11 @@ export default function MarketplaceAgents() {
           })}
         </div>
         {showPagination && (
-          <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground">
+          <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
+            <p className="text-center text-xs text-muted-foreground sm:text-left">
               Showing {filteredAgents.length === 0 ? 0 : start}–{end} of {filteredAgents.length}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-1 sm:justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -1302,27 +1306,29 @@ export default function MarketplaceAgents() {
   };
 
   return (
-    <div className={cn(DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_STANDARD, PAGE_SAFE_AREA_BOTTOM)}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground mb-0.5">Agents</h2>
-          <p className="text-sm text-muted-foreground">
+    <div className={cn(DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_STANDARD, PAGE_SAFE_AREA_BOTTOM, "min-w-0")}>
+      <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h2 className="mb-0.5 text-base font-semibold text-foreground">Agents</h2>
+          <p className="text-pretty text-sm text-muted-foreground">
             8004 agents in the Syra collection. Create and maintain agents on the Trustless Agent Registry.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" asChild>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          <Button variant="outline" size="sm" asChild className="w-full justify-center sm:w-auto">
             <a
               href={SYRA_8004_MARKET_URL}
               target="_blank"
               rel="noopener noreferrer"
               title="View Syra agents on 8004market"
             >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-              View on 8004market
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+              <span className="sm:hidden">Syra on 8004market</span>
+              <span className="hidden sm:inline">View on 8004market</span>
             </a>
           </Button>
           <Button
+            className="w-full sm:w-auto"
             onClick={() => setCreateOpen(true)}
             disabled={!isWalletConnected || !anonymousId}
             title={
@@ -1333,20 +1339,24 @@ export default function MarketplaceAgents() {
                   : undefined
             }
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4 shrink-0" />
             Create agent
           </Button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AgentsTab)} className="w-full">
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <TabsList className="grid w-auto grid-cols-2 shrink-0">
-              <TabsTrigger value="all">All Agents</TabsTrigger>
-              <TabsTrigger value="your">Your Agents</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AgentsTab)} className="w-full min-w-0">
+        <div className="mt-4 flex min-w-0 flex-col gap-3 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <TabsList className="grid h-auto w-full grid-cols-2 sm:w-auto sm:shrink-0">
+              <TabsTrigger value="all" className="min-h-[44px] px-2 text-xs sm:min-h-9 sm:px-3 sm:text-sm">
+                All Agents
+              </TabsTrigger>
+              <TabsTrigger value="your" className="min-h-[44px] px-2 text-xs sm:min-h-9 sm:px-3 sm:text-sm">
+                Your Agents
+              </TabsTrigger>
             </TabsList>
-            <p className="text-xs text-muted-foreground whitespace-nowrap">
+            <p className="text-xs leading-snug text-muted-foreground sm:max-w-[min(100%,20rem)] sm:whitespace-nowrap">
               {filteredAgents.length === agentList.length
                 ? activeTab === "your"
                   ? `${agentList.length} of your agent${agentList.length !== 1 ? "s" : ""}`
@@ -1354,14 +1364,14 @@ export default function MarketplaceAgents() {
                 : `${filteredAgents.length} of ${agentList.length} agent${agentList.length !== 1 ? "s" : ""}`}
             </p>
           </div>
-          <div className="relative w-full min-w-[180px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <div className="relative w-full min-w-0 sm:max-w-xs sm:shrink-0">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by name, description, or ID..."
+              placeholder="Search name, description, ID…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-9"
+              className="h-10 min-h-[44px] pl-8 sm:h-9 sm:min-h-0"
               aria-label="Search agents"
             />
           </div>

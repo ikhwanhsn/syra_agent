@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
+import plugin from "tailwindcss/plugin";
 
 export default {
   darkMode: ["class"],
@@ -161,5 +162,11 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [
+    tailwindcssAnimate,
+    /** Default `:root` tokens are dark; `html.light` switches to light — pair with `light:` utilities. */
+    plugin(({ addVariant }) => {
+      addVariant("light", ".light &");
+    }),
+  ],
 } satisfies Config;

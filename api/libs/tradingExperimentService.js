@@ -8,8 +8,8 @@ import {
   EXPERIMENT_SUITE_SECONDARY,
   EXPERIMENT_SUITE_MULTI_RESOURCE,
   normalizeSuite,
-  getStrategiesForSuite,
 } from "../config/tradingExperimentStrategies.js";
+import { resolveStrategiesForSuite } from "./tradingExperimentStrategyResolve.js";
 import UserCustomStrategy from "../models/UserCustomStrategy.js";
 import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSignalAnalysis.js";
 import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
@@ -203,7 +203,7 @@ async function countOpenForAgent(agentId, suiteNorm) {
  */
 export async function runExperimentSignalCycle(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite);
-  const strategies = getStrategiesForSuite(suiteNorm);
+  const strategies = await resolveStrategiesForSuite(suiteNorm);
   const errors = [];
   let created = 0;
 
@@ -355,6 +355,10 @@ export async function resolveOpenExperimentRuns() {
   const errors = [];
   let resolved = 0;
   const openRuns = await TradingExperimentRun.find({ status: "open" }).lean();
+  const uniqSuites = [...new Set(openRuns.map((r) => normalizeSuite(r.suite)))];
+  const stratLists = await Promise.all(uniqSuites.map((su) => resolveStrategiesForSuite(su)));
+  /** @type {Record<string, object[]>} */
+  const stratBySuite = Object.fromEntries(uniqSuites.map((su, i) => [su, stratLists[i]]));
 
   for (const run of openRuns) {
     try {
@@ -377,7 +381,9 @@ export async function resolveOpenExperimentRuns() {
         }
         lookAhead = us.lookAheadBars ?? 48;
       } else {
-        const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
+        const sk = normalizeSuite(run.suite);
+        const list = stratBySuite[sk] || (await resolveStrategiesForSuite(sk));
+        const strat = list.find((x) => x.id === run.agentId);
         lookAhead = strat?.lookAheadBars ?? 48;
 
         const cexNorm = run.cexSource ? normalizeSignalCexSource(run.cexSource) : null;
@@ -441,6 +447,10 @@ export async function resolveOpenExperimentRunsIncremental1m() {
   let resolved = 0;
   let touched = 0;
   const openRuns = await TradingExperimentRun.find({ status: "open" }).lean();
+  const uniqSuites = [...new Set(openRuns.map((r) => normalizeSuite(r.suite)))];
+  const stratLists = await Promise.all(uniqSuites.map((su) => resolveStrategiesForSuite(su)));
+  /** @type {Record<string, object[]>} */
+  const stratBySuite = Object.fromEntries(uniqSuites.map((su, i) => [su, stratLists[i]]));
 
   for (const run of openRuns) {
     try {
@@ -466,7 +476,9 @@ export async function resolveOpenExperimentRunsIncremental1m() {
         }
         stratCfg = { bar: us.bar, lookAheadBars: us.lookAheadBars };
       } else {
-        const strat = getStrategiesForSuite(run.suite).find((x) => x.id === run.agentId);
+        const sk = normalizeSuite(run.suite);
+        const list = stratBySuite[sk] || (await resolveStrategiesForSuite(sk));
+        const strat = list.find((x) => x.id === run.agentId);
         stratCfg = strat
           ? { bar: strat.bar, lookAheadBars: strat.lookAheadBars }
           : { bar: run.bar, lookAheadBars: 48 };
@@ -588,7 +600,7 @@ export async function runFullExperimentCycle() {
  */
 export async function getExperimentStats(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite);
-  const strategies = getStrategiesForSuite(suiteNorm);
+  const strategies = await resolveStrategiesForSuite(suiteNorm);
   const suiteQ = mongoMatchSuite(suiteNorm);
   const agents = [];
 

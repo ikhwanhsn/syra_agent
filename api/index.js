@@ -1049,6 +1049,32 @@ app.listen(PORT, () => {
     setInterval(runFull, legacyMs);
   }
 
+  import("./libs/tradingExperimentEvolution.js")
+    .then(({ evolutionConfigFromEnv, runTradingExperimentEvolution }) => {
+      const evo = evolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = () =>
+        runTradingExperimentEvolution()
+          .then((out) => {
+            if (!out.ok) {
+              console.warn("[Trading experiment evolution]", out.skipped || out);
+              return;
+            }
+            console.info(
+              "[Trading experiment evolution]",
+              out.suite,
+              "replaced",
+              out.spawned?.length ?? 0,
+              "agents",
+            );
+          })
+          .catch((err) =>
+            console.warn("[Trading experiment evolution failed]", err?.message || err),
+          );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
   const scheduleArenaTicks =
     process.env.ARENA_SCHEDULE_TICKS === "1" ||
     process.env.ARENA_SCHEDULE_TICKS === "true";

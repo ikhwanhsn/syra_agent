@@ -2,7 +2,8 @@
  * Trading agent experiment API — no x402. Uses MongoDB + Binance public data.
  *
  * Env (optional):
- * - TRADING_EXPERIMENT_CRON_SECRET: if set, POST /run-cycle and POST /validate-tick require header x-trading-experiment-secret
+ * - TRADING_EXPERIMENT_CRON_SECRET: if set, POST /run-cycle, POST /validate-tick, POST /evolution-tick require header x-trading-experiment-secret
+ * - Lab evolution schedule defaults: TRADING_EXPERIMENT_EVOLUTION_SCHEDULE in tradingExperimentEvolution.js
  * - COINMARKETCAP_API_KEY: enables live top-10 list for GET /cmc-top (arbitrage experiment); otherwise a static fallback list is used
  * - BINANCE_DATA_API_BASE_URL: optional fallback for Binance ticker (default https://data-api.binance.vision/api/v3) when api.binance.com fails
  * - OKX_API_BASE_URL: optional OKX REST host (default https://www.okx.com)
@@ -19,11 +20,9 @@ import {
   runFullExperimentCycle,
   resolveOpenExperimentRunsIncremental1m,
 } from "../libs/tradingExperimentService.js";
-import {
-  getStrategiesForSuite,
-  normalizeSuite,
-  EXPERIMENT_SUITES_META,
-} from "../config/tradingExperimentStrategies.js";
+import { normalizeSuite, EXPERIMENT_SUITES_META } from "../config/tradingExperimentStrategies.js";
+import { resolveStrategiesForSuite } from "../libs/tradingExperimentStrategyResolve.js";
+import { runTradingExperimentEvolution } from "../libs/tradingExperimentEvolution.js";
 import {
   createUserCustomStrategy,
   listUserCustomStrategies,
@@ -51,13 +50,20 @@ function requireCronSecret(req, res, next) {
 export function createTradingExperimentRouter() {
   const router = express.Router();
 
-  router.get("/strategies", (req, res) => {
-    const suite = normalizeSuite(req.query.suite);
-    const strategies = getStrategiesForSuite(suite);
-    res.json({
-      success: true,
-      data: { strategies, source: "binance", suite },
-    });
+  router.get("/strategies", async (req, res) => {
+    try {
+      const suite = normalizeSuite(req.query.suite);
+      const strategies = await resolveStrategiesForSuite(suite);
+      res.json({
+        success: true,
+        data: { strategies, source: "binance", suite },
+      });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   });
 
   router.get("/suites", (_req, res) => {
@@ -260,6 +266,45 @@ export function createTradingExperimentRouter() {
   });
 
   /** New hourly samples only; does not run validation (assumes validate-tick cron). Body: { suite?: "primary" | "secondary" | "all" } (default all). */
+  /**
+   * Replace worst-performing standard lab agents (same suite) with random new configs; clears their runs.
+   * Never affects suite `user_custom`. Body optional: { suite?, removeCount?, minDecided?, pinnedAgentIds?: number[] }.
+   */
+  router.post("/evolution-tick", requireCronSecret, async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const suite = typeof body.suite === "string" ? body.suite : undefined;
+      const removeCount =
+        body.removeCount != null && Number.isFinite(Number(body.removeCount))
+          ? Number(body.removeCount)
+          : undefined;
+      const minDecided =
+        body.minDecided != null && Number.isFinite(Number(body.minDecided))
+          ? Number(body.minDecided)
+          : undefined;
+      let pinned = undefined;
+      if (Array.isArray(body.pinnedAgentIds)) {
+        pinned = new Set(
+          body.pinnedAgentIds
+            .map((x) => Number(x))
+            .filter((n) => Number.isInteger(n) && n >= 0 && n <= 99),
+        );
+      }
+      const data = await runTradingExperimentEvolution({
+        suite,
+        removeCount,
+        minDecided,
+        pinned,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
   router.post("/signal-tick", requireCronSecret, async (req, res) => {
     try {
       const raw = req.body?.suite;

@@ -8,10 +8,11 @@ import { ConnectModalProvider } from "@/contexts/ConnectModalContext";
 import { AgentWalletProvider } from "@/contexts/AgentWalletContext";
 import Index from "./pages/Index";
 import MarketplacePrompts from "./pages/MarketplacePrompts";
+import MarketplacePromptCreatorProfile from "./pages/MarketplacePromptCreatorProfile";
+import MarketplaceSyraPromptsProfile from "./pages/MarketplaceSyraPromptsProfile";
 import MarketplaceAgents from "./pages/MarketplaceAgents";
 import ShareableChatRoute from "./pages/ShareableChatRoute";
 import DashboardLayout from "./pages/DashboardLayout";
-import Leaderboard from "./pages/Leaderboard";
 import TradingAgentExperiment from "./pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "./pages/TradingAgentExperimentAgentProfile";
 import ArbitrageExperiment from "./pages/ArbitrageExperiment";
@@ -45,12 +46,13 @@ const App = () => (
                   <Route path="settings" element={<Navigate to="/settings" replace />} />
                   <Route path="marketplace" element={<Outlet />}>
                     <Route index element={<Navigate to="prompts" replace />} />
+                    <Route path="prompts/syra" element={<MarketplaceSyraPromptsProfile />} />
+                    <Route path="prompts/user/:encodedAnonymousId" element={<MarketplacePromptCreatorProfile />} />
                     <Route path="prompts" element={<MarketplacePrompts />} />
                     <Route path="agents" element={<MarketplaceAgents />} />
                     <Route path="tools" element={<Navigate to="/dashboard/marketplace/prompts" replace />} />
                     <Route path="more" element={<Navigate to="/dashboard/marketplace/prompts" replace />} />
                   </Route>
-                  <Route path="leaderboard" element={<Leaderboard embedded />} />
                   <Route path="trading-experiment" element={<TradingAgentExperiment embedded />} />
                   <Route
                     path="trading-experiment/agent/:agentId"
@@ -58,7 +60,7 @@ const App = () => (
                   />
                   <Route path="arbitrage-experiment" element={<ArbitrageExperiment embedded />} />
                 </Route>
-                <Route path="/leaderboard" element={<Navigate to="/dashboard/leaderboard" replace />} />
+                <Route path="/leaderboard" element={<Navigate to="/dashboard/overview" replace />} />
                 <Route path="/experiment/trading-agent" element={<LegacyTradingExperimentPageRedirect />} />
                 <Route
                   path="/experiment/trading-agent/agent/:agentId"

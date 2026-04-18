@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Loader2,
   Scale,
-  Trophy,
   FlaskConical,
   Wifi,
 } from "lucide-react";
@@ -19,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
-import { agentLeaderboardApi, type AgentLeaderboardEntry, userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
+import { userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
 import { agent8004Api } from "@/lib/agent8004Api";
 import { fetchTradingExperimentStats } from "@/lib/tradingExperimentApi";
 import { fetchArbitrageSnapshot, fetchCmcTop } from "@/lib/arbitrageExperimentApi";
@@ -29,21 +28,6 @@ import { CoinLogo } from "@/components/crypto/CoinLogo";
 
 const USER_PROMPTS_SAMPLE = 100;
 const STALE_MS = 60_000;
-
-function maskAnonymousId(id: string): string {
-  if (!id) return "—";
-  if (id.startsWith("wallet:")) {
-    const pubkey = id.slice(7).trim();
-    if (pubkey.length <= 8) return pubkey;
-    return `${pubkey.slice(0, 4)}…${pubkey.slice(-4)}`;
-  }
-  if (id.length <= 10) return id;
-  return `${id.slice(0, 6)}…${id.slice(-4)}`;
-}
-
-const leaderboardChartConfig = {
-  messages: { label: "Messages", color: "hsl(var(--primary))" },
-} satisfies ChartConfig;
 
 const wlChartConfig = {
   wins: { label: "Wins", color: "hsl(var(--foreground))" },
@@ -77,19 +61,8 @@ export interface DashboardOverviewProps {
 }
 
 export default function DashboardOverview({ embedded = false }: DashboardOverviewProps) {
-  const [lbQ, promptsQ, regQ, tradeQ, arbQ, cmcQ] = useQueries({
+  const [promptsQ, regQ, tradeQ, arbQ, cmcQ] = useQueries({
     queries: [
-      {
-        queryKey: ["dashboard-overview", "leaderboard"],
-        queryFn: () =>
-          agentLeaderboardApi.get({
-            sort: "messages",
-            order: "desc",
-            limit: 8,
-            skip: 0,
-          }),
-        staleTime: STALE_MS,
-      },
       {
         queryKey: ["dashboard-overview", "user-prompts"],
         queryFn: () => userPromptsApi.list({ limit: USER_PROMPTS_SAMPLE, skip: 0 }),
@@ -119,14 +92,11 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
   });
 
   const loading =
-    lbQ.isLoading ||
     promptsQ.isLoading ||
     regQ.isLoading ||
     tradeQ.isLoading ||
     arbQ.isLoading ||
     cmcQ.isLoading;
-
-  const leaderboardTotal = lbQ.data?.total ?? 0;
 
   const communityPrompts = promptsQ.data?.prompts ?? [];
   const communityCount = communityPrompts.length;
@@ -180,15 +150,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     "hsl(0 0% 35%)",
   ];
 
-  const leaderboardBarData = useMemo(
-    () =>
-      (lbQ.data?.leaderboard ?? []).map((e: AgentLeaderboardEntry) => ({
-        id: maskAnonymousId(e.anonymousId),
-        messages: e.totalMessages,
-      })),
-    [lbQ.data?.leaderboard],
-  );
-
   const cmcBarData = useMemo(
     () =>
       (cmcQ.data?.assets ?? []).map((a) => ({
@@ -236,8 +197,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">Overview</h1>
               <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Cross-section snapshot of marketplace activity, trustless agents, chat leaderboard, trading lab, and
-                cross-venue prices. Data refreshes on load; open each area for full detail.
+                Cross-section snapshot of marketplace activity, trustless agents, trading lab, and cross-venue prices.
+                Data refreshes on load; open each area for full detail.
               </p>
             </div>
           </div>
@@ -250,25 +211,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <Card className="border-border/80">
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                Chat leaderboard
-              </CardDescription>
-              <CardTitle className="text-2xl tabular-nums">
-                {lbQ.isError ? "—" : leaderboardTotal.toLocaleString()}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-xs text-muted-foreground">Wallets ranked by activity (messages, tools, x402 volume).</p>
-              <Link to="/dashboard/leaderboard" className={sectionLinkClass}>
-                Open leaderboard <ArrowRight className="w-3 h-3" />
-              </Link>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           <Card className="border-border/80">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
@@ -333,33 +276,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-border/80">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Top wallets by messages
-              </CardTitle>
-              <CardDescription>Sample of current leaderboard (primary sort: messages).</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[280px]">
-              {lbQ.isError ? (
-                <p className="text-sm text-destructive">Could not load leaderboard.</p>
-              ) : leaderboardBarData.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No leaderboard rows yet.</p>
-              ) : (
-                <ChartContainer config={leaderboardChartConfig} className="h-full w-full aspect-auto">
-                  <BarChart data={leaderboardBarData} margin={{ left: 8, right: 8, top: 8, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                    <XAxis dataKey="id" tickLine={false} axisLine={false} interval={0} angle={-35} textAnchor="end" height={56} />
-                    <YAxis tickLine={false} axisLine={false} width={40} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="messages" fill="var(--color-messages)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
-
           <Card className="border-border/80">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -560,9 +476,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/dashboard/marketplace/agents">Agents</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/dashboard/leaderboard">Leaderboard</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/dashboard/trading-experiment">Trading experiment</Link>

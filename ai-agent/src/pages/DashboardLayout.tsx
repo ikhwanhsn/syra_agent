@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import type { ImperativePanelHandle } from "react-resizable-panels";
+import type { LucideIcon } from "lucide-react";
 import {
-  Trophy,
   FlaskConical,
   Scale,
   Moon,
@@ -16,6 +16,8 @@ import {
   FileText,
   Bot,
   LayoutDashboard,
+  Mail,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
@@ -32,7 +34,6 @@ const MARKETPLACE_SECTIONS = [
 ] as const;
 
 const DASHBOARD_SECTIONS = [
-  { path: "leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "trading-experiment", label: "Trading experiment", icon: FlaskConical },
   { path: "arbitrage-experiment", label: "Arbitrage experiment", icon: Scale },
 ] as const;
@@ -42,22 +43,44 @@ const MARKETPLACE_PAGE_TITLES: Record<string, string> = {
   agents: "Agents",
 };
 
-const CONNECT_LINKS = [
-  { href: "https://x.com/syra_agent", icon: Twitter, label: "X" },
-  { href: "https://docs.syraa.fun", icon: BookOpen, label: "Docs" },
-  { href: "https://syraa.fun", icon: ExternalLink, label: "Website" },
+/** Same community links as chat `Sidebar.tsx` footer. */
+const SYRA_TELEGRAM = "https://t.me/syra_ai";
+const SYRA_SUPPORT_EMAIL = "support@syraa.fun";
+
+type DashboardConnectLink = {
+  href: string;
+  icon: LucideIcon;
+  ariaLabel: string;
+  title?: string;
+  /** false for mailto */
+  openInNewTab?: boolean;
+};
+
+const CONNECT_LINKS: DashboardConnectLink[] = [
+  { href: "https://x.com/syra_agent", icon: Twitter, ariaLabel: "Official X", title: "Official X" },
+  { href: SYRA_TELEGRAM, icon: Send, ariaLabel: "Telegram community", title: "Telegram community" },
+  { href: "https://docs.syraa.fun", icon: BookOpen, ariaLabel: "Docs", title: "Documentation" },
+  {
+    href: `mailto:${SYRA_SUPPORT_EMAIL}`,
+    icon: Mail,
+    ariaLabel: `Email ${SYRA_SUPPORT_EMAIL}`,
+    title: `Email ${SYRA_SUPPORT_EMAIL}`,
+    openInNewTab: false,
+  },
+  { href: "https://syraa.fun", icon: ExternalLink, ariaLabel: "Website", title: "Website" },
 ];
 
 function dashboardPageTitle(pathname: string): string {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] !== "dashboard") return "Overview";
   if (parts[1] === "marketplace") {
+    if (parts[2] === "prompts" && parts[3] === "syra") return "Syra prompts";
+    if (parts[2] === "prompts" && parts[3] === "user" && parts[4]) return "Creator profile";
     const key = parts[2] ?? "prompts";
     return MARKETPLACE_PAGE_TITLES[key] ?? "Prompts";
   }
   if (parts[1] === "trading-experiment" && parts[2] === "agent") return "Agent profile";
   if (parts[1] === "overview") return "Overview";
-  if (parts[1] === "leaderboard") return "Leaderboard";
   if (parts[1] === "trading-experiment") return "Trading experiment";
   if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
   return "Overview";
@@ -143,18 +166,17 @@ function DashboardSidebarContent({
           Connect
         </p>
         <div className="flex flex-wrap gap-1.5 px-0.5">
-          {CONNECT_LINKS.map(({ href, icon: Icon, label: ariaLabel }) => (
+          {CONNECT_LINKS.map(({ href, icon: Icon, ariaLabel, title, openInNewTab = true }) => (
             <a
               key={href}
               href={href}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               className={cn(
                 "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent",
                 "text-muted-foreground transition-all duration-200",
-                "hover:border-border/60 hover:bg-background/80 hover:text-accent hover:shadow-sm",
+                "hover:border-border/60 hover:bg-background/80 hover:text-foreground hover:shadow-sm",
               )}
-              title={ariaLabel}
+              title={title ?? ariaLabel}
               aria-label={ariaLabel}
             >
               <Icon className="h-4 w-4" strokeWidth={2} />

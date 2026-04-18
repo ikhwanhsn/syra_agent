@@ -525,12 +525,13 @@ export interface UserPromptItem {
 }
 
 export const userPromptsApi = {
-  /** List all user-created prompts (for discovery). */
-  async list(params?: { category?: string; limit?: number; skip?: number }): Promise<{ prompts: UserPromptItem[] }> {
+  /** List all user-created prompts (for discovery). Optional `anonymousId` filters to one creator. */
+  async list(params?: { category?: string; limit?: number; skip?: number; anonymousId?: string }): Promise<{ prompts: UserPromptItem[] }> {
     const search = new URLSearchParams();
     if (params?.category) search.set("category", params.category);
     if (params?.limit != null) search.set("limit", String(params.limit));
     if (params?.skip != null) search.set("skip", String(params.skip));
+    if (params?.anonymousId?.trim()) search.set("anonymousId", params.anonymousId.trim());
     const qs = search.toString();
     const res = await fetch(`${agentMarketplacePromptsBase()}${qs ? `?${qs}` : ""}`, { headers: getApiHeaders() });
     const data = await handleRes<{ success: boolean; prompts: UserPromptItem[] }>(res);

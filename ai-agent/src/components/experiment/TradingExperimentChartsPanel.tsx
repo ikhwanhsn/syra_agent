@@ -241,7 +241,7 @@ export function TradingExperimentChartsPanel({
     "relative overflow-hidden rounded-2xl border border-border/60 bg-card/45 shadow-lg shadow-black/[0.06] backdrop-blur-sm dark:bg-card/35 dark:shadow-black/40";
 
   return (
-    <div className="space-y-10">
+    <div className="min-w-0 space-y-10">
       <TradingExperimentBubbleField
         bubbles={bubbleFieldBubbles}
         isLoading={loading}

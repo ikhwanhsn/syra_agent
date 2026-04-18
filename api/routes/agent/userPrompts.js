@@ -5,14 +5,17 @@ const router = express.Router();
 
 /**
  * GET /agent/marketplace/prompts
- * List all user-created prompts (for discovery). Query: category (optional), limit (default 50), skip (default 0).
+ * List all user-created prompts (for discovery). Query: category (optional), anonymousId (optional, filter by creator), limit (default 50), skip (default 0).
  */
 router.get('/', async (req, res) => {
   try {
-    const { category, limit = 50, skip = 0 } = req.query;
+    const { category, limit = 50, skip = 0, anonymousId: creatorAnonymousId } = req.query;
     const filter = {};
     if (category && VALID_CATEGORIES.includes(category)) {
       filter.category = category;
+    }
+    if (creatorAnonymousId != null && String(creatorAnonymousId).trim()) {
+      filter.anonymousId = String(creatorAnonymousId).trim();
     }
     const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
     const skipNum = Math.max(Number(skip) || 0, 0);
