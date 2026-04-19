@@ -271,6 +271,30 @@ export function buildGatewayOpenApi() {
       ),
       post: opPost('AI (x402)', 'Syra Brain (POST)', 'postBrain', true),
     },
+
+    '/arbitrage': {
+      get: opGet(
+        'Market data (x402)',
+        'Arbitrage — CMC top + cross-CEX snapshots + ranked routes (x402)',
+        'getArbitrage',
+        [
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 25, default: 10 },
+            description: 'Number of top tradable assets to include (default 10, max 25).',
+          },
+        ],
+        true,
+      ),
+      post: opPost(
+        'Market data (x402)',
+        'Arbitrage — POST body may include { limit } (x402)',
+        'postArbitrage',
+        true,
+      ),
+    },
   };
 
   return {

@@ -415,6 +415,7 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Live spot prices, market stats, or token safety from public sources are NOT exposed as Syra tools; for broad “what’s the price of X” without a dedicated tool, prefer exa-search for web context or explain the user can use an external price feed / playground proxy to upstream APIs.
 — Trending Solana tokens / momentum → trending-jupiter
 — Bundled dashboard (trending + Nansen smart money + Binance correlation) → analytics-summary
+— Cross-venue CEX arbitrage / ranked USDT spreads on top caps (same bundle as the arbitrage experiment UI) → arbitrage
 — News / latest updates → news
 — Market sentiment → sentiment
 — Trading signal → signal
@@ -441,6 +442,7 @@ PARAM RULES:
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
 - For "trending-jupiter" set "params": {} when the user asks for trending tokens on Jupiter / Solana momentum (this endpoint has no query params).
 - For "analytics-summary" set "params": {} when the user wants a combined view: Jupiter trending, Nansen smart money, Binance correlation.
+- For "arbitrage" set "params": {} or {"limit": "10"} when the user asks for cross-exchange arbitrage, CEX spread ranking, best buy/sell venue among top market-cap assets, or the same data as the Syra arbitrage experiment. Optional "limit" (string integer 1–25) for how many top CMC assets to scan; omit for default 10.
 - For Nansen wallet/profiler tools (nansen-address-current-balance, nansen-address-historical-balances, nansen-profiler-counterparties) set "params": {"chain": "solana", "address": "<wallet address from user>"}.
 - For Nansen smart-money tools (nansen-smart-money-netflow, nansen-smart-money-holdings, nansen-smart-money-dex-trades) set "params": {"chains": "[\"solana\"]"} or extract chain from user question.
 - For Nansen TGM/token tools (nansen-tgm-holders, nansen-tgm-flow-intelligence, nansen-tgm-flows, nansen-tgm-dex-trades, nansen-tgm-pnl-leaderboard) set "params": {"chain": "solana", "token_address": "<token contract address from user>"}; add date_from/date_to for flows or pnl-leaderboard if user specifies a date range.
@@ -725,6 +727,21 @@ export function formatToolResultForLlm(data, toolId) {
       // use truncation fallback
     }
   }
+  if (toolId === 'arbitrage' && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      const inner =
+        'success' in data &&
+        data.success === true &&
+        data.data &&
+        typeof data.data === 'object' &&
+        !Array.isArray(data.data)
+          ? data.data
+          : data;
+      return condensedArbitrageBundle(inner);
+    } catch {
+      // use truncation fallback
+    }
+  }
   // Website crawl: present crawled pages as readable sections for summarization
   if (toolId === 'website-crawl' && data && typeof data === 'object' && !Array.isArray(data)) {
     try {
@@ -890,6 +907,56 @@ function condensedAnalyticsSummary(summary) {
   }
   const out = lines.join('\n').trim();
   return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + "\n\n[... truncated.]";
+}
+
+/**
+ * Condensed arbitrage bundle (/arbitrage) for LLM context — omits full per-venue snapshot arrays.
+ * @param {Record<string, unknown>} payload - `data` from successful arbitrage tool response
+ * @returns {string}
+ */
+function condensedArbitrageBundle(payload) {
+  const cmcTop = payload.cmcTop && typeof payload.cmcTop === 'object' ? payload.cmcTop : {};
+  const source = /** @type {{ source?: string }} */ (cmcTop).source || '—';
+  const aggregatedAt = typeof payload.aggregatedAt === 'string' ? payload.aggregatedAt : '—';
+  const ranked = Array.isArray(payload.ranked) ? payload.ranked : [];
+  const best = payload.best && typeof payload.best === 'object' ? payload.best : null;
+
+  const lines = [
+    `Arbitrage bundle (aggregatedAt: ${aggregatedAt}). CMC list source: ${source}.`,
+    'Gross USDT cross-venue spreads only — not net of fees, withdrawal, or latency. Not financial advice.',
+    '',
+  ];
+
+  if (best && typeof best === 'object') {
+    const asset = /** @type {{ asset?: { symbol?: string; cexToken?: string } }} */ (best).asset || {};
+    const sym = asset.symbol || asset.cexToken || '?';
+    const buyAt = /** @type {{ buyAt?: { source?: string; formattedPrice?: string; price?: number } }} */ (best).buyAt;
+    const sellAt = /** @type {{ sellAt?: { source?: string; formattedPrice?: string; price?: number } }} */ (best).sellAt;
+    const spread = /** @type {{ spreadPct?: number }} */ (best).spreadPct;
+    const sp = Number.isFinite(Number(spread)) ? Number(spread).toFixed(4) : String(spread ?? '—');
+    const buyP = buyAt?.formattedPrice ?? buyAt?.price ?? '—';
+    const sellP = sellAt?.formattedPrice ?? sellAt?.price ?? '—';
+    lines.push(
+      `Best route: ${sym} — ${sp}% — buy @ ${buyAt?.source || '—'} (${buyP}), sell @ ${sellAt?.source || '—'} (${sellP}).`,
+    );
+  } else {
+    lines.push('Best route: none (no qualifying cross-venue spread in this snapshot).');
+  }
+
+  if (ranked.length > 0) {
+    lines.push('', 'Ranked (top 8):');
+    for (const row of ranked.slice(0, 8)) {
+      if (!row || typeof row !== 'object') continue;
+      const r = /** @type {{ rank?: number; asset?: { symbol?: string }; spreadPct?: number; buyAt?: { source?: string }; sellAt?: { source?: string } }} */ (row);
+      const sym = r.asset?.symbol || '?';
+      const sp = Number.isFinite(Number(r.spreadPct)) ? Number(r.spreadPct).toFixed(4) : String(r.spreadPct ?? '—');
+      lines.push(`  ${r.rank ?? '?'}. ${sym} ${sp}% — ${r.buyAt?.source || '—'} → ${r.sellAt?.source || '—'}`);
+    }
+    if (ranked.length > 8) lines.push(`  ... +${ranked.length - 8} more`);
+  }
+
+  const out = lines.join('\n');
+  return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + '\n\n[... truncated.]';
 }
 
 /**

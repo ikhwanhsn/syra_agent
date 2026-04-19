@@ -15,6 +15,7 @@ import {
   X402_API_PRICE_SQUID_ROUTE_USD,
   X402_API_PRICE_SQUID_STATUS_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
+  X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_API_PRICE_CRAWL_USD,
   X402_API_PRICE_8004_USD,
   X402_API_PRICE_8004SCAN_USD,
@@ -39,6 +40,7 @@ import {
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
+  X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
@@ -150,6 +152,16 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
     name: 'Analytics summary',
     description: 'Bundled analytics: Jupiter trending, Nansen smart money, Binance correlation',
+  },
+  {
+    id: 'arbitrage',
+    path: '/arbitrage',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
+    name: 'Arbitrage bundle',
+    description:
+      'CMC top tradable assets plus live cross-CEX USDT spot snapshots; ranked best buy/sell routes (gross spread, not financial advice)',
   },
   // 8004 Trustless Agent Registry (Solana)
   {
@@ -1916,7 +1928,18 @@ export function matchToolFromUserMessage(userMessage) {
  */
 export function getCapabilitiesList() {
   const exclude = new Set(['check-status']);
-  const core = ['news', 'signal', 'sentiment', 'event', 'exa-search', 'website-crawl', 'trending-headline', 'sundown-digest', 'analytics-summary'];
+  const core = [
+    'news',
+    'signal',
+    'sentiment',
+    'event',
+    'exa-search',
+    'website-crawl',
+    'trending-headline',
+    'sundown-digest',
+    'analytics-summary',
+    'arbitrage',
+  ];
   const partner = [
     'smart-money',
     'token-god-mode',
@@ -2026,6 +2049,10 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'website-crawl') {
       out.paramsHint = 'Params: url (required) — starting URL to crawl, e.g. https://example.com/docs; optional limit (default 20), depth (default 2)';
+    }
+    if (t.id === 'arbitrage') {
+      out.paramsHint =
+        'Optional params: limit (1–25, default 10) — how many top CMC assets to scan for cross-venue USDT spreads';
     }
     // Giza (DeFi yield optimization): owner = EOA 0x...; token = contract address for protocols/activate
     if (t.id === 'giza-protocols') {

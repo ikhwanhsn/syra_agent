@@ -59,6 +59,7 @@ export const navigation: NavItem[] = [
         items: [
           { title: "Signal", href: api("signal") },
           { title: "Event", href: api("event") },
+          { title: "Arbitrage (CMC + CEX)", href: api("arbitrage") },
         ],
       },
       {

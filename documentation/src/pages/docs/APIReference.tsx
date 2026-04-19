@@ -22,7 +22,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Trading & Events",
-    slugs: ["signal", "event"],
+    slugs: ["signal", "event", "arbitrage"],
   },
   {
     title: "RPC & Infrastructure",

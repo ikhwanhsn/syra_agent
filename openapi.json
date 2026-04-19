@@ -37,7 +37,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Data source. Default: binance. CEX: binance, coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
+            "description": "Data source. Default: binance. CEX: binance, coinbase, coingecko, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
           },
           {
             "name": "instId",
@@ -353,7 +353,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Data source. Default: binance. CEX: binance, coinbase, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
+            "description": "Data source. Default: binance. CEX: binance, coinbase, coingecko, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
           },
           {
             "name": "instId",
@@ -781,6 +781,80 @@
         ],
         "summary": "Syra Brain (POST)",
         "operationId": "postBrain",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Request body — see https://docs.syraa.fun for fields."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      }
+    },
+    "/arbitrage": {
+      "get": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Arbitrage — CMC top + cross-CEX snapshots + ranked routes (x402)",
+        "operationId": "getArbitrage",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 10
+            },
+            "description": "Number of top tradable assets to include (default 10, max 25)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Market data (x402)"
+        ],
+        "summary": "Arbitrage — POST body may include { limit } (x402)",
+        "operationId": "postArbitrage",
         "requestBody": {
           "required": false,
           "content": {

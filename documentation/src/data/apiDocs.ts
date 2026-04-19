@@ -495,6 +495,67 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     },
   }),
 
+  arbitrage: doc({
+    title: "Arbitrage API",
+    overview:
+      "Single paid bundle aligned with the Syra Agent **Arbitrage experiment** page: CoinMarketCap-style top tradable assets (stablecoins skipped), live cross-venue USDT spot snapshots from public CEX streams, and ranked best buy/sell routes by gross spread (before fees, slippage, transfer, and latency — not financial advice). Uses the x402 payment protocol.",
+    price: "$0.04 USD base per request (production list price $0.40; non-production lower — see 402 body)",
+    useCases: [
+      "Compare theoretical cross-venue spreads on majors in one call",
+      "Power dashboards or agents with the same ranking as the arbitrage experiment UI",
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/arbitrage",
+        description: "Returns { success, data } with aggregatedAt, cmcTop, snapshots, ranked, best, runnerUp.",
+        params: [
+          {
+            name: "limit",
+            type: "integer",
+            required: "No",
+            description: "Number of top assets to scan (default 10, max 25).",
+          },
+        ],
+        requestExample: `curl "${BASE_URL}/arbitrage?limit=10"`,
+        responseExample: `{
+  "success": true,
+  "data": {
+    "aggregatedAt": "2026-04-19T12:00:00.000Z",
+    "cmcTop": { "source": "coinmarketcap", "fetchedAt": "...", "assets": [...] },
+    "snapshots": [{ "asset": {...}, "snapshot": { "token": "bitcoin", "venues": [...], "strategy": {...} } }],
+    "ranked": [{ "rank": 1, "asset": {...}, "spreadPct": 0.12, "buyAt": {...}, "sellAt": {...}, "strategyNote": "..." }],
+    "best": { "asset": {...}, "spreadPct": 0.12, "buyAt": {...}, "sellAt": {...}, "strategyNote": "..." },
+    "runnerUp": []
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/arbitrage",
+        description: "Same as GET; optional JSON body { \"limit\": 10 }.",
+        bodyExample: `{ "limit": 10 }`,
+        requestExample: `curl -X POST ${BASE_URL}/arbitrage \\
+  -H "Content-Type: application/json" \\
+  -d '{"limit":10}'`,
+        responseExample: `{ "success": true, "data": { "aggregatedAt": "...", "cmcTop": {...}, "ranked": [...], "best": {...}, "runnerUp": [...] } }`,
+      },
+    ],
+    paymentFlow: {
+      step1: "Initial request returns 402 with payment instructions.",
+      step2: "Complete x402 payment, then retry with PAYMENT-SIGNATURE or X-Payment header.",
+      step3: "Retry with the same URL/body and payment header to receive the bundle.",
+      response402: standard402(0.04),
+    },
+    responseCodes: [
+      { code: "200", description: "Success — bundle returned" },
+      { code: "400", description: "Bad Request — invalid limit" },
+      { code: "402", description: "Payment Required" },
+      { code: "502", description: "Upstream error (e.g. CoinMarketCap) when CMC is configured" },
+      { code: "5xx", description: "Server error — retry later" },
+    ],
+  }),
+
   quicknode: doc({
     title: "Quicknode RPC API",
     overview:

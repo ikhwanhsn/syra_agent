@@ -30,6 +30,7 @@ const PRICE = {
   neynar: 0.01,
   siwa: 0.01,
   purchVault: 0.01,
+  arbitrage: 0.04,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -137,6 +138,15 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Full analytics: Jupiter trending, Nansen smart money, Binance correlation.",
     priceUsd: PRICE.analyticsSummary,
     examplePrompt: "Full analytics summary / Analytics dashboard",
+    category: "core",
+  },
+  {
+    id: "arbitrage",
+    name: "Arbitrage bundle",
+    description:
+      "CMC top tradable assets plus live cross-CEX USDT spot snapshots; ranked best buy/sell routes (gross spread).",
+    priceUsd: PRICE.arbitrage,
+    examplePrompt: "Best CEX arbitrage routes / Cross-exchange spreads for top coins",
     category: "core",
   },
   {

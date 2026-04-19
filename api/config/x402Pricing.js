@@ -92,6 +92,9 @@ export const X402_API_PRICE_CRAWL_USD = price(0.05);
 /** Browser Use Cloud – AI browser task (run natural language task, get output) */
 export const X402_API_PRICE_BROWSER_USE_USD = price(0.08);
 
+/** Arbitrage experiment bundle — CMC top + parallel multi-venue WS snapshots + ranked routes */
+export const X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD = price(0.04);
+
 /** 8004 Trustless Agent Registry (liveness, integrity, discovery, introspection) */
 export const X402_API_PRICE_8004_USD = price(0.01);
 
@@ -153,6 +156,7 @@ export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_CRAWL_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BROWSER_USE_USD = 0.08 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD = 0.04 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;

@@ -17,6 +17,7 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   // Search & automation
   "exa-search",
   "browser-use",
+  "arbitrage",
   // Nansen, Jupiter, Bubblemaps
   "smart-money",
   "token-god-mode",

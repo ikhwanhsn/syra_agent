@@ -74,6 +74,7 @@ const DEFAULT_BATCH_FLOW_IDS = [
   'sundown-digest',
   'signal',
   'analytics-summary',
+  'arbitrage',
   'exa-search',
   'website-crawl',
   'browser-use',

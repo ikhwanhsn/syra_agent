@@ -168,6 +168,20 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       params: [],
     },
     {
+      id: "arbitrage",
+      label: "Arbitrage (CMC top + CEX spreads)",
+      method: "GET",
+      url: `${base}/arbitrage`,
+      params: [
+        {
+          key: "limit",
+          value: "10",
+          enabled: true,
+          description: "Top assets to scan (1–25, default 10)",
+        },
+      ],
+    },
+    {
       id: "agent-tools-list",
       label: "Syra Agent: list tools",
       method: "GET",
@@ -2341,6 +2355,7 @@ function getApiEndpoints(): string[] {
     `${base}/exa-search`,
     `${base}/crawl`,
     `${base}/browser-use`,
+    `${base}/arbitrage`,
     `${base}/analytics/summary`,
     `${base}/smart-money`,
     `${base}/token-god-mode`,
@@ -2613,6 +2628,14 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
           value: "latest crypto news",
           enabled: true,
           description: "e.g. latest news on Nvidia, crypto market",
+        },
+      ],
+      "/arbitrage": [
+        {
+          key: "limit",
+          value: "10",
+          enabled: true,
+          description: "Top CMC assets to scan (1–25, default 10)",
         },
       ],
       "/crawl": [
@@ -4605,6 +4628,14 @@ export function useApiPlayground() {
           const browserUseBody: Record<string, string> = { task: taskVal };
           if (startUrlVal) browserUseBody.start_url = startUrlVal;
           bodyToSend = JSON.stringify(browserUseBody);
+        } else if (emptyBody && pathname === "/arbitrage") {
+          const limitVal =
+            enabledParams.find((p) => p.key === "limit")?.value?.trim() ?? "";
+          if (limitVal && !Number.isNaN(Number(limitVal))) {
+            bodyToSend = JSON.stringify({ limit: Number(limitVal) });
+          } else {
+            bodyToSend = "{}";
+          }
         } else if (emptyBody && pathname === "/brain") {
           const questionVal =
             enabledParams.find((p) => p.key === "question")?.value ?? "";

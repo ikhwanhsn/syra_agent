@@ -24,6 +24,7 @@ import {
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
   X402_DISPLAY_PRICE_BROWSER_USE_USD,
+  X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
@@ -98,6 +99,7 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   }
   if (p.startsWith('/brain')) return X402_DISPLAY_PRICE_BRAIN_USD;
   if (p.startsWith('/browser-use')) return X402_DISPLAY_PRICE_BROWSER_USE_USD;
+  if (p === '/arbitrage' || p.startsWith('/arbitrage/')) return X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD;
   if (p.startsWith('/exa-search')) return X402_DISPLAY_PRICE_EXA_SEARCH_USD;
   if (p.startsWith('/crawl')) return X402_DISPLAY_PRICE_CRAWL_USD;
   if (p.startsWith('/analytics/summary')) return X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD;
