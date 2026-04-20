@@ -30,6 +30,13 @@ export const SYRA_TEAM_MEMBERS: readonly SyraTeamMember[] = [
     x: { handle: "ikhwanhsn", profileUrl: "https://x.com/ikhwanhsn" },
     telegram: { handle: "ikhwanhsn", profileUrl: "https://t.me/ikhwanhsn" },
   },
+  {
+    displayName: "Marvel",
+    role: "contributor",
+    roleLabel: "BD Intern",
+    x: { handle: "mvvlmkl", profileUrl: "https://x.com/mvvlmkl" },
+    telegram: { handle: "marvel2603", profileUrl: "https://t.me/marvel2603" },
+  },
 ] as const;
 
 const byXHandle: ReadonlyMap<string, SyraTeamMember> = (() => {
