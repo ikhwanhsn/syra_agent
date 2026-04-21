@@ -8,6 +8,7 @@ import { Connection } from '@solana/web3.js';
 import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
+import { randomBytes } from 'node:crypto';
 import { getAgentKeypair } from './agentWallet.js';
 import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
 
@@ -241,6 +242,33 @@ function getSvmRpcUrlForX402() {
 const FACILITATOR_429_MAX_ATTEMPTS = 6;
 const FACILITATOR_429_BASE_DELAY_MS = 2000;
 
+/** Second-hop retries for transient facilitator races (stale blockhash, CDP 400 "account not found", duplicate tx). */
+const FACILITATOR_PAID_402_MAX_RETRIES = 2;
+const FACILITATOR_PAID_402_BASE_DELAY_MS = 1200;
+
+/**
+ * Identify transient facilitator failures that are worth retrying with a fresh payment payload.
+ * A paid x402 call can bounce back with a 402 body when: the facilitator's fee-payer expired,
+ * CDP is momentarily rate-limited, blockhash expired, or the resource server hasn't observed
+ * settlement yet. In all cases, rebuilding the payload (new blockhash, new payment-identifier)
+ * and retrying tends to succeed.
+ * @param {number} status
+ * @param {string} msg
+ */
+function isTransientPaidFacilitatorError(status, msg) {
+  if (status !== 402 && status !== 400) return false;
+  if (/budget|sentinel/i.test(msg)) return false;
+  return (
+    /payment required/i.test(msg) ||
+    /blockhash|block height/i.test(msg) ||
+    /account not found among transaction's account keys/i.test(msg) ||
+    /x402 payment rejected/i.test(msg) ||
+    /invalid[_\s-]?payload/i.test(msg) ||
+    /failed to sign transaction via cdp/i.test(msg) ||
+    /rate limit|temporarily unavailable|try again/i.test(msg)
+  );
+}
+
 function facilitatorErrorLooks429(e) {
   const msg = e instanceof Error ? e.message : String(e);
   return (
@@ -290,8 +318,71 @@ async function paidFetchWithCorbits429Backoff(paymentFetch, url, init) {
 }
 
 /**
+ * Generate an idempotent payment identifier matching Birdeye's schema
+ * (`^pay_[a-zA-Z0-9_-]{10,120}$`). Used for header-based 402 flows that advertise the
+ * `payment-identifier` extension (e.g. Birdeye). No-op for servers that don't request it.
+ * @returns {string}
+ */
+function generatePaymentIdentifier() {
+  return `pay_${randomBytes(16).toString('hex')}`;
+}
+
+/**
+ * x402 v2 extension schema is `info + schema (JSON Schema)`. Returns true when the schema
+ * requires a client-supplied field (e.g. Birdeye's `payment-identifier.id`).
+ * Detects two common shapes: top-level `required: [...]` and `info.required: true`.
+ */
+function isExtensionRequired(extSpec) {
+  if (!extSpec || typeof extSpec !== 'object') return false;
+  if (extSpec.info && extSpec.info.required === true) return true;
+  const top = extSpec.schema?.required;
+  if (Array.isArray(top) && top.length > 0) return true;
+  return false;
+}
+
+/**
+ * Populate required x402 v2 extensions in the payment payload just before encoding the
+ * PAYMENT-SIGNATURE header. Currently supports:
+ * - `payment-identifier`: generates a unique `pay_<hex>` id (idempotency for Birdeye).
+ *
+ * Registered as an `onAfterPaymentCreation` hook on the x402Client. Mutates a per-call
+ * copy of `paymentPayload.extensions` (does not mutate the shared paymentRequired object).
+ *
+ * @param {import('@x402/core/client').x402Client} client
+ */
+function registerRequiredExtensionsHook(client) {
+  client.onAfterPaymentCreation((context) => {
+    const payload = context?.paymentPayload;
+    const ext = payload?.extensions;
+    if (!payload || !ext || typeof ext !== 'object') return;
+
+    /** @type {Record<string, any>} */
+    const nextExt = { ...ext };
+    let changed = false;
+
+    const payIdSpec = ext['payment-identifier'];
+    if (payIdSpec && isExtensionRequired(payIdSpec)) {
+      const existingId = payIdSpec.info?.id;
+      if (typeof existingId !== 'string' || existingId.trim() === '') {
+        nextExt['payment-identifier'] = {
+          ...payIdSpec,
+          info: { ...(payIdSpec.info || {}), id: generatePaymentIdentifier() },
+        };
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      payload.extensions = nextExt;
+    }
+  });
+  return client;
+}
+
+/**
  * Same stack as the internal tester agent (`getNansenPaymentFetch`): @x402/fetch + x402Client + ExactSvmScheme.
  * Uses facilitator-provided `extra.feePayer` and @solana/kit wire format so Corbits verify matches (avoids "Invalid transaction" from hand-built web3.js txs).
+ * Also populates required v2 extensions (e.g. Birdeye's `payment-identifier.id`) before encoding the PAYMENT-SIGNATURE header.
  */
 async function createX402WrapFetch(keypair, fetchFn) {
   const { wrapFetchWithPayment } = await import('@x402/fetch');
@@ -301,8 +392,11 @@ async function createX402WrapFetch(keypair, fetchFn) {
   const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
   const scheme = new ExactSvmScheme(signer, { rpcUrl: getSvmRpcUrlForX402() });
   const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
+  registerRequiredExtensionsHook(client);
   return wrapFetchWithPayment(fetchFn, client);
 }
+
+export { registerRequiredExtensionsHook, generatePaymentIdentifier };
 
 /**
  * Call an x402 v2 API using the agent wallet (pay automatically with agent keypair).
@@ -388,7 +482,7 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
     ...(body && method === 'POST' ? { body: JSON.stringify(body) } : {}),
   };
 
-  async function fetchPaid() {
+  async function fetchPaidOnce() {
     const paymentFetch = await createX402WrapFetch(keypair, fetchFn);
     const res = await paidFetchWithCorbits429Backoff(paymentFetch, initialUrl, initOpts);
     const data = await res.json().catch(() => ({}));
@@ -410,12 +504,30 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
       const safeMsg = typeof errMsg === 'string' ? (errMsg.length > 200 ? errMsg.slice(0, 200) + '…' : errMsg) : 'non-string error';
       console.error(`[agentX402] x402 paid request failed: ${res.status} ${res.statusText} → ${safeUrl}`, safeMsg);
       return {
-        success: false,
-        error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
-        ...(res.status === 402 && /budget|sentinel/i.test(String(errMsg)) ? { budgetExceeded: true } : {}),
+        ok: false,
+        status: res.status,
+        result: {
+          success: false,
+          error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+          ...(res.status === 402 && /budget|sentinel/i.test(String(errMsg)) ? { budgetExceeded: true } : {}),
+        },
       };
     }
-    return { success: true, data };
+    return { ok: true, status: res.status, result: { success: true, data } };
+  }
+
+  async function fetchPaid() {
+    let last;
+    for (let i = 0; i <= FACILITATOR_PAID_402_MAX_RETRIES; i++) {
+      last = await fetchPaidOnce();
+      if (last.ok) return last.result;
+      const msg = last.result?.error || '';
+      if (i >= FACILITATOR_PAID_402_MAX_RETRIES) break;
+      if (!isTransientPaidFacilitatorError(last.status, msg)) break;
+      const delay = Math.round(FACILITATOR_PAID_402_BASE_DELAY_MS * 2 ** i + Math.random() * 300);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+    return last.result;
   }
 
   try {
@@ -470,7 +582,7 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
       : {}),
   };
 
-  async function attempt() {
+  async function attemptOnce() {
     const paymentFetch = await createX402WrapFetch(keypair, fetchFn);
     const res = await paidFetchWithCorbits429Backoff(paymentFetch, url, init);
     const data = await res.json().catch(() => ({}));
@@ -483,16 +595,35 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
         `Request failed: ${res.status}`;
       const msg = typeof err === 'string' ? err : JSON.stringify(err);
       return {
-        success: false,
-        error: msg,
-        ...(res.status === 402 && /budget|sentinel/i.test(msg) ? { budgetExceeded: true } : {}),
+        ok: false,
+        status: res.status,
+        result: {
+          success: false,
+          error: msg,
+          ...(res.status === 402 && /budget|sentinel/i.test(msg) ? { budgetExceeded: true } : {}),
+        },
       };
     }
-    return { success: true, data };
+    return { ok: true, status: res.status, result: { success: true, data } };
+  }
+
+  async function attemptWithPaidRetry() {
+    /** @type {ReturnType<typeof attemptOnce> extends Promise<infer T> ? T : never} */
+    let last;
+    for (let i = 0; i <= FACILITATOR_PAID_402_MAX_RETRIES; i++) {
+      last = await attemptOnce();
+      if (last.ok) return last.result;
+      const msg = last.result?.error || '';
+      if (i >= FACILITATOR_PAID_402_MAX_RETRIES) break;
+      if (!isTransientPaidFacilitatorError(last.status, msg)) break;
+      const delay = Math.round(FACILITATOR_PAID_402_BASE_DELAY_MS * 2 ** i + Math.random() * 300);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+    return last.result;
   }
 
   try {
-    return await attempt();
+    return await attemptWithPaidRetry();
   } catch (e) {
     if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
       return { success: false, error: e.message || String(e), budgetExceeded: true };
@@ -500,7 +631,7 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
     if (isRpcBlockchainAccessError(e)) {
       switchToFallbackRpc();
       try {
-        return await attempt();
+        return await attemptWithPaidRetry();
       } catch (e2) {
         if (e2 && (e2.name === 'SentinelBudgetError' || e2 instanceof SentinelBudgetError)) {
           return { success: false, error: e2.message || String(e2), budgetExceeded: true };
@@ -537,6 +668,7 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
     const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
     const scheme = new ExactSvmScheme(signer, { rpcUrl: getSvmRpcUrlForX402() });
     const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
+    registerRequiredExtensionsHook(client);
     return client.createPaymentPayload(paymentRequired);
   }
 

@@ -52,11 +52,12 @@ import {
   X402_DISPLAY_PRICE_NEYNAR_USD,
   X402_DISPLAY_PRICE_SIWA_USD,
 } from './x402Pricing.js';
+import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks' }} AgentTool */
 
 /**
- * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402).
+ * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
  * priceUsd = charged amount (env-based); displayPriceUsd = real API cost shown in UI (production).
  * @type {AgentTool[]}
  */
@@ -1150,6 +1151,7 @@ export const AGENT_TOOLS = [
     description:
       'Send stablecoin on Tempo to the user’s own address only (connected 0x wallet or Base agent wallet). Params: amountUsd (required), memo (optional). Treasury pays on Tempo; not deducted from agent Solana USDC. Only when the server enables agent Tempo payouts.',
   },
+  ...BIRDEYE_AGENT_TOOLS,
 ];
 
 /** Legacy LLM/frontend ids for generic Solana swap — routed to pump.fun fun-block swap. */
@@ -2024,6 +2026,14 @@ export function getCapabilitiesList() {
       ''
     );
   }
+  const birdeyeX402 = AGENT_TOOLS.filter((t) => t.birdeyePath).map((t) => t.id);
+  if (birdeyeX402.length) {
+    lines.push(
+      'Birdeye Data (x402 USDC; token prices, security, OHLCV, trending, meme, smart money — pass address or mint + Birdeye query keys):',
+      ...fmt(birdeyeX402),
+      ''
+    );
+  }
 
   return lines;
 }
@@ -2218,6 +2228,10 @@ export function getToolsForLlmSelection() {
           'Optional: filter[search_query], page[size], currency — use Zerion v1 query param names as flat keys',
       };
       if (zerionHints[t.id]) out.paramsHint = zerionHints[t.id];
+    }
+    if (t.birdeyePath) {
+      const hint = getBirdeyeParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
     }
     return out;
   });

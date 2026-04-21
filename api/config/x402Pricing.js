@@ -69,6 +69,9 @@ export const X402_API_PRICE_NANSEN_PREMIUM_USD = price(0.05);
 /** Zerion API via x402 (portfolio, positions, PnL, txs, gas, chains, fungibles) — per call */
 export const X402_API_PRICE_ZERION_USD = price(0.01);
 
+/** Birdeye Data public API via x402 (~$0.003 upstream per call; Syra catalog uses margin) */
+export const X402_API_PRICE_BIRDEYE_USD = price(0.003);
+
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
@@ -148,6 +151,7 @@ export const X402_DISPLAY_PRICE_RESEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ZERION_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_BIRDEYE_USD = 0.003 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = 0.01 * PRODUCTION_MULT;

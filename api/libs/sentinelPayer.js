@@ -44,6 +44,7 @@ export async function getNansenPaymentFetch() {
   const { wrapFetchWithPayment } = await import("@x402/fetch");
   const { x402Client } = await import("@x402/core/client");
   const { ExactSvmScheme } = await import("@x402/svm/exact/client");
+  const { registerRequiredExtensionsHook } = await import("./agentX402Client.js");
 
   let s = String(PAYER_KEYPAIR).trim();
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
@@ -84,6 +85,7 @@ export async function getNansenPaymentFetch() {
   const scheme = new ExactSvmScheme(signer);
   const config = { schemes: [{ network: "solana:*", client: scheme }] };
   const client = x402Client.fromConfig(config);
+  registerRequiredExtensionsHook(client);
   const paymentFetch = wrapFetchWithPayment(globalThis.fetch, client);
 
   if (!isSentinelEnabled()) {

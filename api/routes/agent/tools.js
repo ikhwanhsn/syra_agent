@@ -1,6 +1,6 @@
 /**
  * Agent tools: list x402 resources and call them with agent wallet (balance checked first).
- * Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); other tools call our API.
+ * Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye calls public-api.birdeye.so (x402); other tools call our API.
  * When connected wallet is a dev wallet (e.g. playground), pricing is cheaper (same as API playground).
  */
 import express from 'express';
@@ -20,6 +20,7 @@ import {
 import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
+import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
 import {
   purchVaultSearch,
   purchVaultBuy,
@@ -276,6 +277,30 @@ router.post('/call', async (req, res) => {
         tool.zerionPath,
         tool.method || 'GET',
         params
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return res.status(status).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.birdeyePath) {
+      const result = await callBirdeyeWithAgent(
+        anonymousId,
+        tool.birdeyePath,
+        tool.method || 'GET',
+        params,
+        connectedWallet || undefined
       );
       if (!result.success) {
         const status = result.budgetExceeded ? 402 : 502;

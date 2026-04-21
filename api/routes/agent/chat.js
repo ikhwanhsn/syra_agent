@@ -37,6 +37,7 @@ import {
 import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
+import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
 import {
   purchVaultSearch,
   purchVaultBuy,
@@ -64,6 +65,14 @@ function readPositiveIntEnv(name, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/** @param {string} name @param {number} fallback */
+function readNonNegativeIntEnv(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const n = Number.parseInt(String(raw), 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
 const MAX_TOOLS_PER_REQUEST = 3;
 /** Max characters of tool result to send to the LLM (env: AGENT_CHAT_MAX_TOOL_RESULT_CHARS). */
 const MAX_TOOL_RESULT_CHARS = readPositiveIntEnv('AGENT_CHAT_MAX_TOOL_RESULT_CHARS', 20_000);
@@ -71,8 +80,13 @@ const MAX_TOOL_RESULT_CHARS = readPositiveIntEnv('AGENT_CHAT_MAX_TOOL_RESULT_CHA
 const MAX_TOKENS_WITH_TOOLS = readPositiveIntEnv('AGENT_CHAT_MAX_COMPLETION_TOKENS_TOOLS', 2_560);
 /** Final completion max_tokens without large tool payloads (env: AGENT_CHAT_MAX_COMPLETION_TOKENS_DEFAULT). */
 const MAX_TOKENS_DEFAULT = readPositiveIntEnv('AGENT_CHAT_MAX_COMPLETION_TOKENS_DEFAULT', 1_200);
-/** Cap total OpenRouter-reported tokens per persisted chat thread (env: AGENT_CHAT_SESSION_LLM_TOKEN_CAP). */
-const AGENT_CHAT_SESSION_LLM_TOKEN_CAP = readPositiveIntEnv('AGENT_CHAT_SESSION_LLM_TOKEN_CAP', 120_000);
+/**
+ * Cumulative OpenRouter tokens on a thread at which adaptive caps reach their floors (cheaper context / shorter completions).
+ * Same env name as before: no hard stop at this value unless AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP is set.
+ */
+const AGENT_CHAT_SESSION_TOKEN_SOFT_CEILING = readPositiveIntEnv('AGENT_CHAT_SESSION_LLM_TOKEN_CAP', 120_000);
+/** Optional absolute stop for a thread (0 = disabled). Env: AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP. */
+const AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP = readNonNegativeIntEnv('AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP', 0);
 /** Max characters of prior user/assistant turns; tail is preserved for recency (env: AGENT_CHAT_HISTORY_MAX_CHARS). */
 const AGENT_CHAT_HISTORY_MAX_CHARS = readPositiveIntEnv('AGENT_CHAT_HISTORY_MAX_CHARS', 40_000);
 /** Max characters sent to the tool-selection LLM for prior turns (keeps that call cheap; env: AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS). */
@@ -103,6 +117,70 @@ function tokensFromUsage(usage) {
     return p + c;
   }
   return 0;
+}
+
+/**
+ * @param {number} value
+ * @param {number} lo
+ * @param {number} hi
+ */
+function clampInt(value, lo, hi) {
+  const x = Math.round(value);
+  if (!Number.isFinite(x)) return lo;
+  return Math.min(hi, Math.max(lo, x));
+}
+
+/**
+ * Tighten LLM context and completion budgets as cumulative thread usage grows (no forced "new chat" at the soft ceiling).
+ * @param {number} sessionTokensUsedBefore
+ * @returns {{
+ *   pressure: number;
+ *   historyMaxChars: number;
+ *   toolSelectContextMaxChars: number;
+ *   toolSelectPerMessageChars: number;
+ *   toolSelectMaxTokens: number;
+ *   maxTokensDefault: number;
+ *   maxTokensWithTools: number;
+ *   maxToolResultChars: number;
+ * }}
+ */
+function computeAdaptiveSessionLimits(sessionTokensUsedBefore) {
+  const used = Math.max(0, Number(sessionTokensUsedBefore) || 0);
+  const denom =
+    Number.isFinite(AGENT_CHAT_SESSION_TOKEN_SOFT_CEILING) && AGENT_CHAT_SESSION_TOKEN_SOFT_CEILING > 0
+      ? AGENT_CHAT_SESSION_TOKEN_SOFT_CEILING
+      : 1;
+  const pressure = Math.min(1, used / denom);
+
+  /** @param {number} base @param {number} floor */
+  const lerpInt = (base, floor) => {
+    const hi = Math.max(base, floor);
+    const lo = Math.min(base, floor);
+    return clampInt(Math.round(hi - (hi - lo) * pressure), lo, hi);
+  };
+
+  return {
+    pressure,
+    historyMaxChars: lerpInt(
+      AGENT_CHAT_HISTORY_MAX_CHARS,
+      Math.max(6000, Math.floor(AGENT_CHAT_HISTORY_MAX_CHARS * 0.28))
+    ),
+    toolSelectContextMaxChars: lerpInt(
+      AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS,
+      Math.max(2800, Math.floor(AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS * 0.3))
+    ),
+    toolSelectPerMessageChars: lerpInt(
+      AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS,
+      Math.max(800, Math.floor(AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS * 0.34))
+    ),
+    toolSelectMaxTokens: lerpInt(
+      AGENT_CHAT_TOOL_SELECT_MAX_TOKENS,
+      Math.max(96, Math.floor(AGENT_CHAT_TOOL_SELECT_MAX_TOKENS * 0.38))
+    ),
+    maxTokensDefault: lerpInt(MAX_TOKENS_DEFAULT, Math.max(480, Math.floor(MAX_TOKENS_DEFAULT * 0.45))),
+    maxTokensWithTools: lerpInt(MAX_TOKENS_WITH_TOOLS, Math.max(960, Math.floor(MAX_TOKENS_WITH_TOOLS * 0.42))),
+    maxToolResultChars: lerpInt(MAX_TOOL_RESULT_CHARS, Math.max(3500, Math.floor(MAX_TOOL_RESULT_CHARS * 0.2))),
+  };
 }
 
 /**
@@ -383,12 +461,18 @@ export function withLlmIdentitySystemNote(apiMessages, modelId) {
  * Returns tools ordered by relevance (most relevant first).
  * @param {string} userMessage - Last user message (current turn)
  * @param {string} [conversationSnippet] - Bounded prior User/Assistant turns for follow-ups ("same for SOL", etc.)
+ * @param {{ toolSelectMaxTokens?: number }} [llmOpts] - Optional overrides (e.g. adaptive session economy)
  * @returns {Promise<{ tools: Array<{ toolId: string; params?: Record<string, string> }>; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
-export async function selectToolsWithLlm(userMessage, conversationSnippet = '') {
+export async function selectToolsWithLlm(userMessage, conversationSnippet = '', llmOpts = {}) {
   if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
     return { tools: [], usage: null };
   }
+
+  const toolSelectMaxTokens =
+    typeof llmOpts?.toolSelectMaxTokens === 'number' && llmOpts.toolSelectMaxTokens > 0
+      ? Math.floor(llmOpts.toolSelectMaxTokens)
+      : AGENT_CHAT_TOOL_SELECT_MAX_TOKENS;
 
   const tools = getToolsForLlmSelection();
   const toolsText = tools
@@ -412,7 +496,8 @@ CRITICAL RULES — READ CAREFULLY:
 4. MULTI-TURN CONTEXT: The user message may include a short transcript of earlier User/Assistant turns. The CURRENT request is always the last "User:" line. Use earlier turns to resolve pronouns, "same", "that token/wallet", "now do X instead", and to fill tool params when the last message alone is incomplete but the thread makes them clear. If required params are still ambiguous, return {"tools": []}.
 
 QUICK ROUTING GUIDE (use this to pick the right tool fast):
-— Live spot prices, market stats, or token safety from public sources are NOT exposed as Syra tools; for broad “what’s the price of X” without a dedicated tool, prefer exa-search for web context or explain the user can use an external price feed / playground proxy to upstream APIs.
+— Live Solana (or multi-chain) token price, OHLCV, liquidity, security, trending, new listings, meme detail, holder stats, Birdeye smart-money list → use the matching **birdeye-*** tool when the user gives a **mint/address** (or the endpoint needs no address). Pass **address** or **mint** plus optional Birdeye query keys (chain, type, time_from, time_to, offset, limit) as flat strings. For Birdeye POST tools pass **body** as a JSON string. Docs: https://docs.birdeye.so/reference/x402
+— If the user asks for price or token metrics but did **not** provide a mint/contract, return {"tools": []} so the assistant asks for it (do not guess).
 — Trending Solana tokens / momentum → trending-jupiter
 — Bundled dashboard (trending + Nansen smart money + Binance correlation) → analytics-summary
 — Cross-venue CEX arbitrage / ranked USDT spreads on top caps (same bundle as the arbitrage experiment UI) → arbitrage
@@ -460,6 +545,7 @@ PARAM RULES:
 - For pump.fun fee sharing use "pumpfun-sharing-config" with mint, shareholders (JSON string), optional user.
 - For tokenized agent invoice payment tx use "pumpfun-agent-payments-build" with agentMint, currencyMint, amount, memo, startTime, endTime (strings), optional user.
 - For verify agent invoice use "pumpfun-agent-payments-verify" with agentMint, currencyMint, amount, memo, startTime, endTime as numbers, optional user.
+- For **birdeye-*** tools: use **address** or **mint** (Solana token mint base58) when the tool requires a token; optional **chain**, **type**, **time_from**, **time_to**, **offset**, **limit**, and other Birdeye query parameters as flat string keys matching the Birdeye REST API. For **birdeye-defi-ohlcv-base-quote** use **base_address** and **quote_address**. For POST tools (**birdeye-token-v1-holder-batch**, **birdeye-token-v1-transfer**, **birdeye-token-v1-transfer-total**) set **params**: {"body": "<JSON string of the request body>"}.
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.`;
 
@@ -475,7 +561,7 @@ PARAM RULES:
         { role: 'system', content: systemContent },
         { role: 'user', content: userContent },
       ],
-      { max_tokens: AGENT_CHAT_TOOL_SELECT_MAX_TOKENS, temperature: 0.05 }
+      { max_tokens: toolSelectMaxTokens, temperature: 0.05 }
     );
 
     const raw = (response || '').trim();
@@ -698,9 +784,14 @@ async function normalizeJupiterAmountToBaseUnits(params) {
  * so we don't blow the context window and the model can still produce a useful answer.
  * @param {unknown} data - Raw tool response data
  * @param {string} toolId - Tool id (e.g. 'analytics-summary')
+ * @param {number} [maxToolResultChars] - Override max chars (adaptive session economy); defaults to AGENT_CHAT_MAX_TOOL_RESULT_CHARS
  * @returns {string} - String to inject into the user message for the LLM
  */
-export function formatToolResultForLlm(data, toolId) {
+export function formatToolResultForLlm(data, toolId, maxToolResultChars = MAX_TOOL_RESULT_CHARS) {
+  const cap =
+    typeof maxToolResultChars === 'number' && Number.isFinite(maxToolResultChars) && maxToolResultChars > 0
+      ? Math.floor(maxToolResultChars)
+      : MAX_TOOL_RESULT_CHARS;
   if (
     typeof toolId === 'string' &&
     toolId.startsWith('pumpfun-') &&
@@ -716,13 +807,11 @@ export function formatToolResultForLlm(data, toolId) {
       transaction: `[omitted base64 tx, ${txLen} chars — do not paste back; use submittedSignature / other fields]`,
     };
     const raw = JSON.stringify(summary, null, 2);
-    return raw.length <= MAX_TOOL_RESULT_CHARS
-      ? raw
-      : raw.slice(0, MAX_TOOL_RESULT_CHARS) + '\n\n[... truncated.]';
+    return raw.length <= cap ? raw : raw.slice(0, cap) + '\n\n[... truncated.]';
   }
   if (toolId === 'analytics-summary' && data && typeof data === 'object' && !Array.isArray(data)) {
     try {
-      return condensedAnalyticsSummary(data);
+      return condensedAnalyticsSummary(data, cap);
     } catch {
       // use truncation fallback
     }
@@ -737,7 +826,7 @@ export function formatToolResultForLlm(data, toolId) {
         !Array.isArray(data.data)
           ? data.data
           : data;
-      return condensedArbitrageBundle(inner);
+      return condensedArbitrageBundle(inner, cap);
     } catch {
       // use truncation fallback
     }
@@ -757,7 +846,7 @@ export function formatToolResultForLlm(data, toolId) {
         lines.push(`## ${title}\nURL: ${r.url || ''}\n\n${md.slice(0, 6000)}${md.length > 6000 ? '\n\n[... truncated]' : ''}\n`);
       }
       const out = lines.join('\n');
-      return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + "\n\n[... Result truncated.]";
+      return out.length <= cap ? out : out.slice(0, cap) + "\n\n[... Result truncated.]";
     } catch {
       // fallback to raw below
     }
@@ -861,9 +950,9 @@ export function formatToolResultForLlm(data, toolId) {
     }
   }
   const raw = JSON.stringify(data, null, 2);
-  if (raw.length <= MAX_TOOL_RESULT_CHARS) return raw;
+  if (raw.length <= cap) return raw;
   return (
-    raw.slice(0, MAX_TOOL_RESULT_CHARS) +
+    raw.slice(0, cap) +
     "\n\n[... Result truncated due to length. Ask for a specific section or metric if you need more detail.]"
   );
 }
@@ -871,9 +960,10 @@ export function formatToolResultForLlm(data, toolId) {
 /**
  * Build a condensed text summary of analytics-summary payload for the LLM (sections + key counts/top items).
  * @param {Record<string, unknown>} summary - Response from /analytics/summary
+ * @param {number} [maxChars]
  * @returns {string}
  */
-function condensedAnalyticsSummary(summary) {
+function condensedAnalyticsSummary(summary, maxChars = MAX_TOOL_RESULT_CHARS) {
   const lines = [];
   const sections = summary.sections && typeof summary.sections === 'object' ? summary.sections : {};
   const sectionOrder = ['price', 'correlation', 'onChain'];
@@ -906,15 +996,16 @@ function condensedAnalyticsSummary(summary) {
     lines.push('');
   }
   const out = lines.join('\n').trim();
-  return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + "\n\n[... truncated.]";
+  return out.length <= maxChars ? out : out.slice(0, maxChars) + "\n\n[... truncated.]";
 }
 
 /**
  * Condensed arbitrage bundle (/arbitrage) for LLM context — omits full per-venue snapshot arrays.
  * @param {Record<string, unknown>} payload - `data` from successful arbitrage tool response
+ * @param {number} [maxChars]
  * @returns {string}
  */
-function condensedArbitrageBundle(payload) {
+function condensedArbitrageBundle(payload, maxChars = MAX_TOOL_RESULT_CHARS) {
   const cmcTop = payload.cmcTop && typeof payload.cmcTop === 'object' ? payload.cmcTop : {};
   const source = /** @type {{ source?: string }} */ (cmcTop).source || '—';
   const aggregatedAt = typeof payload.aggregatedAt === 'string' ? payload.aggregatedAt : '—';
@@ -956,7 +1047,7 @@ function condensedArbitrageBundle(payload) {
   }
 
   const out = lines.join('\n');
-  return out.length <= MAX_TOOL_RESULT_CHARS ? out : out.slice(0, MAX_TOOL_RESULT_CHARS) + '\n\n[... truncated.]';
+  return out.length <= maxChars ? out : out.slice(0, maxChars) + '\n\n[... truncated.]';
 }
 
 /**
@@ -1034,8 +1125,6 @@ router.post('/completion', async (req, res) => {
       role: m.role || 'user',
       content: typeof m.content === 'string' ? m.content : String(m.content ?? ''),
     }));
-    const historyCompact = truncateConversationForLlm(apiMessages, AGENT_CHAT_HISTORY_MAX_CHARS);
-    apiMessages = historyCompact.messages;
 
     let chatIdForBudget = null;
     let sessionTokensUsedBefore = 0;
@@ -1052,17 +1141,26 @@ router.post('/completion', async (req, res) => {
         sessionTokensUsedBefore = Number(existing.llmSessionTokensTotal) || 0;
       }
     }
-    if (chatIdForBudget != null && sessionTokensUsedBefore >= AGENT_CHAT_SESSION_LLM_TOKEN_CAP) {
+
+    if (
+      AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP > 0 &&
+      chatIdForBudget != null &&
+      sessionTokensUsedBefore >= AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP
+    ) {
       return res.json({
         success: true,
         response: enforceSyraBranding(
-          'This chat has reached the Syra AI usage limit for this conversation (cost control). **Start a New Chat** to keep going — your saved chats stay in the sidebar.'
+          'This chat has reached the maximum AI usage for a single conversation (optional safety cap). **Start a New Chat** to continue — your other chats stay in the sidebar.'
         ),
         sessionTokenBudgetExceeded: true,
         sessionLlmTokensUsed: sessionTokensUsedBefore,
-        sessionLlmTokenCap: AGENT_CHAT_SESSION_LLM_TOKEN_CAP,
+        sessionLlmTokenHardCap: AGENT_CHAT_SESSION_LLM_TOKEN_HARD_CAP,
       });
     }
+
+    const adaptive = computeAdaptiveSessionLimits(sessionTokensUsedBefore);
+    const historyCompact = truncateConversationForLlm(apiMessages, adaptive.historyMaxChars);
+    apiMessages = historyCompact.messages;
 
     /** Linked wallet for this session; reused below for SYRA treasury + tool path (avoids double DB read). */
     let connectedWalletFromDb = null;
@@ -1094,8 +1192,8 @@ router.post('/completion', async (req, res) => {
       lastMsg?.role === 'user' && apiMessages.length > 1 ? apiMessages.slice(0, -1) : apiMessages;
     const toolSelectCtx = buildToolSelectionThreadContext(
       messagesForToolSelectContext,
-      AGENT_CHAT_TOOL_SELECT_CONTEXT_MAX_CHARS,
-      AGENT_CHAT_TOOL_SELECT_PER_MESSAGE_CHARS
+      adaptive.toolSelectContextMaxChars,
+      adaptive.toolSelectPerMessageChars
     );
     const toolSelectionConversationSnippet = toolSelectCtx.snippet;
 
@@ -1122,7 +1220,9 @@ router.post('/completion', async (req, res) => {
         .map((t) => ({ toolId: normalizeToolId(t.toolId), params: t.params || {} }));
     } else {
       try {
-        const sel = await selectToolsWithLlm(lastUserMessage, toolSelectionConversationSnippet);
+        const sel = await selectToolsWithLlm(lastUserMessage, toolSelectionConversationSnippet, {
+          toolSelectMaxTokens: adaptive.toolSelectMaxTokens,
+        });
         matchedTools = sel.tools;
         toolSelectUsage = sel.usage;
       } catch (toolSelectErr) {
@@ -1438,6 +1538,21 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
                 error: zerionResult.error,
                 budgetExceeded: zerionResult.budgetExceeded,
               };
+        } else if (tool.birdeyePath) {
+          const birdeyeResult = await callBirdeyeWithAgent(
+            anonymousId,
+            tool.birdeyePath,
+            tool.method || 'GET',
+            params,
+            connectedWalletFromDb || undefined
+          );
+          result = birdeyeResult.success
+            ? { status: 200, data: birdeyeResult.data }
+            : {
+                status: birdeyeResult.budgetExceeded ? 402 : 502,
+                error: birdeyeResult.error,
+                budgetExceeded: birdeyeResult.budgetExceeded,
+              };
         } else if (tool.purchVaultPath) {
           if (tool.id === 'purch-vault-search') {
             const searchResult = await purchVaultSearch(anonymousId, params);
@@ -1625,7 +1740,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             ...chartUi,
             ...createCoinUi,
           });
-          const formatted = formatToolResultForLlm(toolData, tool.id);
+          const formatted = formatToolResultForLlm(toolData, tool.id, adaptive.maxToolResultChars);
           const presentInstruction =
             tool.id === 'trending-jupiter'
               ? 'Present this Jupiter trending data in a clear list or table. Use ONLY the data below—do not invent token names, prices, or percentages.'
@@ -1671,9 +1786,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       llmOptions.model = modelId.trim();
     }
     if (hadToolResults) {
-      llmOptions.max_tokens = MAX_TOKENS_WITH_TOOLS;
+      llmOptions.max_tokens = adaptive.maxTokensWithTools;
     } else {
-      llmOptions.max_tokens = MAX_TOKENS_DEFAULT;
+      llmOptions.max_tokens = adaptive.maxTokensDefault;
     }
     const requestedModel = llmOptions.model || OPENROUTER_DEFAULT_MODEL;
 
@@ -1777,11 +1892,15 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       };
     }
     if (historyCompact.trimmed) payload.contextTrimmed = true;
+    if (chatIdForBudget != null) {
+      payload.sessionLlmTokenSoftCeiling = AGENT_CHAT_SESSION_TOKEN_SOFT_CEILING;
+      payload.sessionLlmTokenCap = AGENT_CHAT_SESSION_TOKEN_SOFT_CEILING;
+      payload.sessionEconomyPressure = adaptive.pressure;
+    }
     if (tokensThisTurn > 0) {
       payload.llmTokensThisTurn = tokensThisTurn;
       if (chatIdForBudget != null) {
         payload.sessionLlmTokensUsed = sessionTokensUsedBefore + tokensThisTurn;
-        payload.sessionLlmTokenCap = AGENT_CHAT_SESSION_LLM_TOKEN_CAP;
       }
     }
 

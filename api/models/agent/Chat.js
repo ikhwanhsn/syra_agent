@@ -68,7 +68,7 @@ const chatSchema = new mongoose.Schema(
     shareId: { type: String, default: null, unique: true, sparse: true },
     /** When false (default), GET /share/:shareId returns 403. When true, anyone with link can view read-only. */
     isPublic: { type: Boolean, default: false },
-    /** Cumulative LLM tokens (prompt+completion) for this chat thread — used to cap cost per session. */
+    /** Cumulative LLM tokens (prompt+completion) for this chat thread — drives adaptive context/completion budgets. */
     llmSessionTokensTotal: { type: Number, default: 0 },
   },
   { timestamps: true }

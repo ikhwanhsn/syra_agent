@@ -1,10 +1,11 @@
 /**
  * Skip paid agent tool calls when required params are missing (chat + POST /agent/tools/call).
  * Params are normalized string key-values; pump.fun `user` may be injected by enrichPumpfunToolParams.
- * Also validates path placeholders (:mint, :jobId) and Zerion `{address}` templates from AGENT_TOOLS.
+ * Also validates path placeholders (:mint, :jobId), Zerion `{address}`, and Birdeye gates from AGENT_TOOLS.
  */
 
 import { getAgentTool } from '../config/agentTools.js';
+import { getBirdeyeGateMissing } from '../config/birdeyeAgentTools.js';
 
 /**
  * @param {unknown} v
@@ -289,6 +290,9 @@ export function getAgentToolParamGateMessage(toolId, method, params) {
   const spec = firstSpecialMissing(id, p);
   if (spec && spec.length) return skipMsg(toolName, spec);
 
+  const birdeyeMissing = getBirdeyeGateMissing(id, p);
+  if (birdeyeMissing?.length) return skipMsg(toolName, birdeyeMissing);
+
   const allKeys = REQUIRE_ALL_KEYS[id];
   if (allKeys) {
     const missing = [];
@@ -313,6 +317,14 @@ export function getAgentToolParamGateMessage(toolId, method, params) {
   if (tool?.zerionPath) {
     const missing = [];
     for (const k of bracePathParamNames(tool.zerionPath)) {
+      if (!hasTrimmedString(p[k])) missing.push(k);
+    }
+    if (missing.length) return skipMsg(toolName, missing);
+  }
+
+  if (tool?.birdeyePath) {
+    const missing = [];
+    for (const k of bracePathParamNames(tool.birdeyePath)) {
       if (!hasTrimmedString(p[k])) missing.push(k);
     }
     if (missing.length) return skipMsg(toolName, missing);
