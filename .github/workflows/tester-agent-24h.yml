@@ -1,0 +1,36 @@
+# Runs the Syra internal x402 tester (smoke + optional paid Solana/Base) every 24 hours.
+# Configure repository secrets: SYRA_TESTER_BASE_URL (e.g. https://api.syraa.fun) and
+# SYRA_TESTER_AGENT_CRON_SECRET (must match the API’s TESTER_AGENT_CRON_SECRET when set).
+name: x402 tester agent (24h)
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-tester:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/tester-agent/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_TESTER_BASE_URL }}
+          TESTER_AGENT_CRON_SECRET: ${{ secrets.SYRA_TESTER_AGENT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${TESTER_AGENT_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_TESTER_BASE_URL and SYRA_TESTER_AGENT_CRON_SECRET in repo secrets to enable this job."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          echo "Probing ${ORIGIN}/internal/tester-agent/run"
+          HTTP_CODE=$(curl -sS -o /tmp/t.json -w "%{http_code}" -X POST "${ORIGIN}/internal/tester-agent/run" \
+            -H "x-tester-agent-cron-secret: ${TESTER_AGENT_CRON_SECRET}" \
+            -H "Accept: application/json")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/t.json
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Tester returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/t.json'); if(!r.success){process.exit(1)}"

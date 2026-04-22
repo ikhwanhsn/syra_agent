@@ -3,7 +3,8 @@
  *
  * Still read from environment (not duplicated here):
  * - `BASE_URL` — probe target origin for `/internal/tester-agent/run` and in-process schedule.
- * - `PAYER_KEYPAIR` — enables paid x402 JSON checks when set.
+ * - `PAYER_KEYPAIR` — enables paid Solana x402 JSON checks when set.
+ * - `CMC_PAYER_PRIVATE_KEY` — enables paid Base (eip155) GET /news E2E in the same suite.
  * - `TESTER_AGENT_CRON_SECRET` / `TESTER_AGENT_SKIP_BUYBACK_SECRET` — auth + buyback skip for probes.
  *
  * **Corbits facilitator** (default Syra x402 stack) runs `/accepts` then `/settle` per paid request; see

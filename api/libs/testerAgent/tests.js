@@ -4,7 +4,7 @@
  * Tuning: `testerAgentConfig.js` (not `.env`).
  */
 
-import { getNansenPaymentFetch } from "../sentinelPayer.js";
+import { getBaseX402PaymentFetch, getNansenPaymentFetch } from "../sentinelPayer.js";
 import { getX402SmokeProbes } from "./x402ProbeRegistry.js";
 import { assertPaidJsonShape } from "./paidResponseAssert.js";
 import { bucketProbesByExampleGroup, getX402SmokeProbeGroup } from "./x402ProbeGroup.js";
@@ -99,51 +99,152 @@ export async function runX402SmokeProbe(baseUrl, probe, signal) {
 }
 
 /**
- * GET /news with x402 payment — 200 + non-empty `news`.
- * @param {string} baseUrl
- * @param {AbortSignal} [signal]
+ * Transient 503s from route handlers are common right after payment settlement when the facilitator's
+ * upstream RPC flakes (e.g. Base RPC returns "Failed to read contract parameters"). The same handler
+ * also returns 503 when the priced upstream API (e.g. cryptonews) rate-limits. In both cases the
+ * x402 flow itself is healthy — retry the full paid request a few times with exponential backoff.
+ *
+ * @param {Response} res
+ * @param {string} bodyText
  */
-export async function testNewsPaidE2E(baseUrl, signal) {
+function isTransientPaidFacilitatorOrUpstream503(res, bodyText) {
+  if (res.status !== 503) return false;
+  const t = String(bodyText || "").toLowerCase();
+  return (
+    t.includes("temporarily unavailable") ||
+    t.includes("failed to read contract parameters") ||
+    t.includes("too many requests") ||
+    t.includes("please try again later")
+  );
+}
+
+const PAID_E2E_MAX_ATTEMPTS = 3;
+const PAID_E2E_BASE_BACKOFF_MS = 8_000;
+
+/**
+ * Shared runner for paid GET /news E2E (Solana or Base). Each attempt uses a freshly created
+ * paymentFetch so the x402 client re-signs with a new nonce / blockhash; on transient 503 we
+ * wait (exponential backoff + jitter) and retry up to {@link PAID_E2E_MAX_ATTEMPTS} times.
+ *
+ * @param {object} opts
+ * @param {string} opts.id
+ * @param {string} opts.expect
+ * @param {string} opts.baseUrl
+ * @param {() => Promise<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>} opts.getPaymentFetch
+ * @param {AbortSignal} [opts.signal]
+ */
+async function runPaidNewsE2E({ id, expect, baseUrl, getPaymentFetch, signal }) {
   const root = String(baseUrl || "").replace(/\/+$/, "");
   const url = `${root}/news?ticker=general`;
-  const paymentFetch = wrapPaymentFetchWithFacilitator429Backoff(await getNansenPaymentFetch());
-  const res = await paymentFetch(url, {
-    method: "GET",
-    signal,
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "SyraTesterAgent/1.0",
-      ...testerAgentInternalHeaders(),
-    },
-  });
-  if (!res.ok) {
+
+  /** @type {{ status: number; bodySnippet?: string } | null} */
+  let lastTransient = null;
+
+  for (let attempt = 0; attempt < PAID_E2E_MAX_ATTEMPTS; attempt++) {
+    const paymentFetch = wrapPaymentFetchWithFacilitator429Backoff(await getPaymentFetch());
+    const res = await paymentFetch(url, {
+      method: "GET",
+      signal,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "SyraTesterAgent/1.0",
+        ...testerAgentInternalHeaders(),
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      const news = data && typeof data === "object" ? data.news : null;
+      const ok = Array.isArray(news) && news.length > 0;
+      return {
+        id,
+        ok,
+        status: res.status,
+        expect,
+        attempts: attempt + 1,
+        articleCount: Array.isArray(news) ? news.length : 0,
+        sampleTitle: ok ? String(news[0]?.title ?? "").slice(0, 120) : undefined,
+      };
+    }
+
     const text = await res.text().catch(() => "");
     const stopped429 =
       shouldStopSuiteOn429() &&
       (res.status === 429 ||
         (/\b429\b/i.test(text) && /too many requests/i.test(text)) ||
         text.includes("HTTP error (429)"));
+    if (stopped429) {
+      return {
+        id,
+        ok: false,
+        status: res.status,
+        expect,
+        attempts: attempt + 1,
+        error: `HTTP ${res.status}`,
+        bodySnippet: text.slice(0, 600),
+        stoppedDueTo429: true,
+      };
+    }
+
+    if (attempt < PAID_E2E_MAX_ATTEMPTS - 1 && isTransientPaidFacilitatorOrUpstream503(res, text)) {
+      lastTransient = { status: res.status, bodySnippet: text.slice(0, 600) };
+      const delay = Math.round(PAID_E2E_BASE_BACKOFF_MS * 2 ** attempt + Math.random() * 1500);
+      await sleepMs(delay, signal);
+      continue;
+    }
+
     return {
-      id: "news_paid_e2e",
+      id,
       ok: false,
       status: res.status,
-      expect: "200 + JSON { news: [...] }",
+      expect,
+      attempts: attempt + 1,
       error: `HTTP ${res.status}`,
       bodySnippet: text.slice(0, 600),
-      ...(stopped429 ? { stoppedDueTo429: true } : {}),
     };
   }
-  const data = await res.json().catch(() => null);
-  const news = data && typeof data === "object" ? data.news : null;
-  const ok = Array.isArray(news) && news.length > 0;
+
   return {
-    id: "news_paid_e2e",
-    ok,
-    status: res.status,
-    expect: "200 + non-empty news[]",
-    articleCount: Array.isArray(news) ? news.length : 0,
-    sampleTitle: ok ? String(news[0]?.title ?? "").slice(0, 120) : undefined,
+    id,
+    ok: false,
+    status: lastTransient?.status ?? 0,
+    expect,
+    attempts: PAID_E2E_MAX_ATTEMPTS,
+    error: "transient facilitator/upstream 503 — exhausted retries",
+    bodySnippet: lastTransient?.bodySnippet,
   };
+}
+
+/**
+ * GET /news with x402 payment — 200 + non-empty `news`.
+ * @param {string} baseUrl
+ * @param {AbortSignal} [signal]
+ */
+export async function testNewsPaidE2E(baseUrl, signal) {
+  return runPaidNewsE2E({
+    id: "news_paid_e2e",
+    expect: "200 + non-empty news[]",
+    baseUrl,
+    getPaymentFetch: getNansenPaymentFetch,
+    signal,
+  });
+}
+
+/**
+ * GET /news with x402 payment on **Base (eip155 USDC)** — same stack as Solana E2E but
+ * `getBaseX402PaymentFetch` (ExactEvmScheme) so the client selects the EVM `accept` line.
+ * Requires `CMC_PAYER_PRIVATE_KEY` and API deployed with `BASE_PAYTO` + Base USDC so 402 offers eip155.
+ * @param {string} baseUrl
+ * @param {AbortSignal} [signal]
+ */
+export async function testNewsPaidE2EBase(baseUrl, signal) {
+  return runPaidNewsE2E({
+    id: "news_paid_e2e_base",
+    expect: "200 + non-empty news[] (Base USDC x402)",
+    baseUrl,
+    getPaymentFetch: getBaseX402PaymentFetch,
+    signal,
+  });
 }
 
 function getSmokeConcurrency() {
@@ -713,6 +814,7 @@ export async function testAllX402SmokeProbes(baseUrl, signal) {
 }
 
 const includePaidNews = Boolean(String(process.env.PAYER_KEYPAIR || "").trim());
+const includeBasePaidNews = Boolean(String(process.env.CMC_PAYER_PRIVATE_KEY || "").trim());
 const runPaidSchema = includePaidNews && shouldRunPaidResponseChecks();
 
 /** @type {TesterDefinition[]} */
@@ -722,6 +824,15 @@ export const TEST_REGISTRY = [
     name: "All x402 routes — unpaid 402 smoke (full catalog)",
     run: testAllX402SmokeProbes,
   },
+  ...(includeBasePaidNews
+    ? [
+        {
+          id: "news_paid_e2e_base",
+          name: "GET /news — paid E2E on Base (eip155 USDC); set CMC_PAYER_PRIVATE_KEY; API must expose Base accept (BASE_PAYTO)",
+          run: testNewsPaidE2EBase,
+        },
+      ]
+    : []),
   ...(runPaidSchema
     ? [
         {
@@ -776,11 +887,13 @@ export async function runTesterAgentSuite(baseUrl, opts = {}) {
   }
   const smoke = results.find((r) => r.id === "x402_smoke_all");
   const paidNews = results.find((r) => r.id === "news_paid_e2e");
+  const paidNewsBase = results.find((r) => r.id === "news_paid_e2e_base");
   const paidAll = results.find((r) => r.id === "x402_paid_responses_all");
   const stopped429 =
     smoke?.stoppedDueTo429 === true ||
     paidAll?.stoppedDueTo429 === true ||
-    paidNews?.stoppedDueTo429 === true;
+    paidNews?.stoppedDueTo429 === true ||
+    paidNewsBase?.stoppedDueTo429 === true;
   return {
     success: results.every((r) => r.ok === true),
     ranAt: new Date().toISOString(),
@@ -803,6 +916,7 @@ export async function runTesterAgentSuite(baseUrl, opts = {}) {
       paidResponseWorkCount: typeof paidAll?.workCount === "number" ? paidAll.workCount : undefined,
       paidResponseLossCount: typeof paidAll?.lossCount === "number" ? paidAll.lossCount : undefined,
       paidNewsOk: paidNews ? paidNews.ok === true : undefined,
+      paidBaseNewsOk: paidNewsBase ? paidNewsBase.ok === true : undefined,
     },
   };
 }

@@ -3,7 +3,8 @@
  *
  * Environment (minimal):
  *   BASE_URL — probe target origin (required for `/internal/tester-agent/run` and schedule).
- *   PAYER_KEYPAIR — Solana base58 secret key; when set, paid x402 checks run (see `testerAgentConfig.js`).
+ *   PAYER_KEYPAIR — Solana base58 secret key; when set, paid Solana x402 checks run (see `testerAgentConfig.js`).
+ *   CMC_PAYER_PRIVATE_KEY — Base/EVM wallet (32-byte hex, optional 0x); when set, adds GET /news paid E2E on eip155 (Base USDC).
  *   TESTER_AGENT_CRON_SECRET — optional; if set, requests may use header `x-tester-agent-cron-secret`
  *     instead of API key (see requireApiKey skip in api/index.js). Same header is sent on paid probes
  *     so production can skip buyback-and-burn for those checks only.

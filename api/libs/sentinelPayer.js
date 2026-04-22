@@ -100,4 +100,49 @@ export async function getNansenPaymentFetch() {
   return cachedNansenPaymentFetch;
 }
 
+let cachedBaseX402PaymentFetch = null;
+
+/**
+ * x402-paying fetch for **Base (eip155) USDC** only — use in tester / probes that must exercise the EVM path.
+ * Requires `CMC_PAYER_PRIVATE_KEY`: 32-byte hex, with or without `0x` prefix (same as viem `privateKeyToAccount`).
+ * Unlike `getNansenPaymentFetch` (Solana), this registers only `eip155:*` + ExactEvmScheme so
+ * 402 `accepts` with both Solana and Base will be paid on Base.
+ */
+export async function getBaseX402PaymentFetch() {
+  if (cachedBaseX402PaymentFetch) return cachedBaseX402PaymentFetch;
+
+  const raw0 = String(process.env.CMC_PAYER_PRIVATE_KEY || "").trim();
+  if (!raw0) throw new Error("CMC_PAYER_PRIVATE_KEY must be set for Base x402 payment fetch");
+
+  let hex = raw0;
+  if (hex.startsWith("0x") || hex.startsWith("0X")) hex = hex.slice(2);
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+    throw new Error("CMC_PAYER_PRIVATE_KEY must be 32-byte hex (64 hex chars, optional 0x prefix)");
+  }
+
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const { wrapFetchWithPayment } = await import("@x402/fetch");
+  const { x402Client } = await import("@x402/core/client");
+  const { ExactEvmScheme } = await import("@x402/evm/exact/client");
+  const { registerRequiredExtensionsHook } = await import("./agentX402Client.js");
+
+  const account = privateKeyToAccount(/** @type {`0x${string}`} */ (`0x${hex}`));
+  const scheme = new ExactEvmScheme(account);
+  const config = { schemes: [{ network: "eip155:*", client: scheme }] };
+  const client = x402Client.fromConfig(config);
+  registerRequiredExtensionsHook(client);
+  const paymentFetch = wrapFetchWithPayment(globalThis.fetch, client);
+
+  if (!isSentinelEnabled()) {
+    cachedBaseX402PaymentFetch = paymentFetch;
+    return cachedBaseX402PaymentFetch;
+  }
+  cachedBaseX402PaymentFetch = wrapWithSentinel(paymentFetch, {
+    agentId: process.env.SENTINEL_AGENT_ID || "x402-api-tester-base",
+    budget: standardPolicy(),
+    audit: { enabled: true, storage: getSentinelStorage() },
+  });
+  return cachedBaseX402PaymentFetch;
+}
+
 export { payer };
