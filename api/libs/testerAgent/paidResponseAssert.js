@@ -63,10 +63,12 @@ export function assertPaidJsonShape(path, method, data) {
     return { ok: true, summary: `response len ${d.response.length}` };
   }
 
-  if (path === "/check-status" || path === "/mpp/v1/check-status") {
-    if (d.status !== "ok") return { ok: false, detail: `expected status ok, got ${String(d.status)}` };
+  if (path === "/health" || path === "/mpp/v1/health") {
+    if (d.ok !== true) return { ok: false, detail: `expected ok true, got ${String(d.ok)}` };
+    if (d.status !== "healthy") return { ok: false, detail: `expected status healthy, got ${String(d.status)}` };
     if (typeof d.message !== "string" || !d.message) return { ok: false, detail: "expected message string" };
-    return { ok: true, summary: "status ok" };
+    if (typeof d.timestamp !== "string" || !d.timestamp) return { ok: false, detail: "expected timestamp string" };
+    return { ok: true, summary: "health ok" };
   }
 
   if (path === "/exa-search") {
@@ -79,12 +81,6 @@ export function assertPaidJsonShape(path, method, data) {
     const r = anyKey(["records", "jobId", "status"]);
     if (!r.ok) return r;
     return { ok: true, summary: r.summary || "crawl" };
-  }
-
-  if (path === "/browser-use") {
-    if (d.success !== true) return { ok: false, detail: "expected success:true" };
-    if (typeof d.output !== "string") return { ok: false, detail: "expected string output" };
-    return { ok: true, summary: "browser-use output" };
   }
 
   if (path === "/analytics/summary") {
@@ -108,12 +104,6 @@ export function assertPaidJsonShape(path, method, data) {
     const r = anyKey(["contractAddresses", "data", "tokenSummary"]);
     if (!r.ok) return r;
     return { ok: true, summary: "trending-jupiter" };
-  }
-
-  if (path === "/jupiter/swap/order") {
-    const r = anyKey(["transaction", "swapTransaction", "requestId", "quoteResponse"]);
-    if (!r.ok) return { ok: false, detail: "expected swap order fields" };
-    return { ok: true, summary: "swap order" };
   }
 
   if (path === "/pumpfun/agents/swap") {

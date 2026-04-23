@@ -1,7 +1,8 @@
 # Example OpenClaw agent config for using the SYRA x402 API
 #
 # 1. Enable the http_request tool so the agent can call external APIs.
-# 2. Use tools.json in this folder to build full URLs (baseUrl + path + query).
+# 2. Use tools.json: direct x402 paths match GET https://api.syraa.fun/.well-known/x402.
+#    Migrated tools (Exa, crawl, Nansen, etc.) use POST /agent/tools/call (see tools.json).
 # 3. Handle 402: when a request returns 402, parse the response body for payment
 #    details, sign the payment (Solana/Base USDC), then retry the same request
 #    with header X-Payment or PAYMENT-SIGNATURE set to the payment proof.

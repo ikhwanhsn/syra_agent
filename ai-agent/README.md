@@ -26,7 +26,7 @@ The **ai-agent** package is the **Syra AI Agent web app**. It is a Vite + React 
 - **Solana wallet** — connect wallet for x402 payments and agent actions.
 - **pump.fun (via Syra API)** — chat can use paid tools for SOL price, coin metadata, swap/create/collect-fees/sharing-config, and tokenized-agent invoice build/verify (`/pumpfun/*` on the API); the agent wallet pays x402 and signs returned Solana transactions where applicable.
 
-It uses the **api** backend and integrates with the x402 agent ecosystem (e.g. x402scan). Built with Vite, React, shadcn-ui, Tailwind, and Solana wallet adapters.
+It uses the **api** backend and integrates with the x402 agent ecosystem (e.g. x402scan). Paid tools are listed at `GET /agent/tools` and executed via `POST /agent/tools/call` (agent wallet); the live direct-x402 URL list is `GET /.well-known/x402` on the API. Built with Vite, React, shadcn-ui, Tailwind, and Solana wallet adapters.
 
 ---
 

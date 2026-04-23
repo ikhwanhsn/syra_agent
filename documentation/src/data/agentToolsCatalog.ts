@@ -15,7 +15,7 @@ export interface AgentToolCatalogEntry {
 /** Prices in USD (aligned with api/config/x402Pricing.js) */
 const PRICE = {
   default: 0.01,
-  checkStatus: 0.0001,
+  health: 0.0001,
   news: 0.01,
   nansen: 0.01,
   nansenPremium: 0.05,
@@ -36,11 +36,11 @@ const PRICE = {
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
   // Core
   {
-    id: "check-status",
-    name: "Check API status",
-    description: "Health check for API server status and connectivity.",
-    priceUsd: PRICE.checkStatus,
-    examplePrompt: "Check status / Is the API up?",
+    id: "health",
+    name: "API health",
+    description: "Liveness and connectivity check (paid x402 /health).",
+    priceUsd: PRICE.health,
+    examplePrompt: "Is the API up? / Check API health",
     category: "core",
   },
   {

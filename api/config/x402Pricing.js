@@ -51,8 +51,8 @@ const price = (base) => base * mult;
 
 export const X402_API_PRICE_USD = price(0.01);
 
-/** Check-status / health endpoints (minimal fee) */
-export const X402_API_PRICE_CHECK_STATUS_USD = price(0.0001);
+/** Check-status / health endpoints (minimal fee) — target ~$0.0001/call in production (base 1e-5 × mult 10). */
+export const X402_API_PRICE_CHECK_STATUS_USD = price(0.00001);
 
 /** News endpoints */
 export const X402_API_PRICE_NEWS_USD = price(0.01);
@@ -145,7 +145,7 @@ export const X402_API_PRICE_ANALYTICS_SUMMARY_USD =
 
 /** Display prices: real API cost (production level = base * 10). Use for tools list/catalog so UI matches actual cost. */
 export const X402_DISPLAY_PRICE_USD = 0.01 * PRODUCTION_MULT;
-export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = 0.0001 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = 0.00001 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NEWS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_RESEARCH_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;

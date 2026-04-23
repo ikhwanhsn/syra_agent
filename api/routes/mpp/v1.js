@@ -1,7 +1,7 @@
 /**
  * MPP (Machine Payments Protocol) test lane — Syra x402-compatible example.
  *
- * Same payment flow as /check-status (HTTP 402 + PAYMENT-SIGNATURE / x402 v2) so the
+ * Same payment flow as /health (HTTP 402 + PAYMENT-SIGNATURE / x402 v2) so the
  * playground and wallets work today. Responses are tagged for MPP testing and discovery.
  *
  * @see https://docs.tempo.xyz/guide/payments/make-machine-payments
@@ -14,14 +14,19 @@ import { X402_API_PRICE_CHECK_STATUS_USD } from "../../config/x402Pricing.js";
 const { requirePayment, settlePaymentWithFallback, encodePaymentResponseHeader, runBuybackForRequest } =
   await getV2Payment();
 
-const statusPayload = {
-  status: "ok",
-  message: "MPP v1 test: Syra API is reachable (same settlement as x402 v2 check-status)",
-  protocol: "mpp-test",
-  paymentCompatibility: "x402-v2",
-  reference: "Mirrors /check-status pricing and facilitator flow for playground testing.",
-  x402Sibling: "/check-status",
-};
+function buildMppHealthPayload() {
+  return {
+    ok: true,
+    status: "healthy",
+    service: "syra-mpp",
+    message: "MPP v1: Syra API is reachable (same settlement as /health).",
+    timestamp: new Date().toISOString(),
+    protocol: "mpp-test",
+    paymentCompatibility: "x402-v2",
+    reference: "Mirrors /health pricing and facilitator flow for playground testing.",
+    x402Sibling: "/health",
+  };
+}
 
 export async function createMppV1Router() {
   const router = express.Router();
@@ -31,24 +36,27 @@ export async function createMppV1Router() {
     description:
       "MPP v1 test — machine-payment style health check (x402 v2 compatible; use for Tempo/Stripe MPP client experiments)",
     discoverable: true,
-    resource: "/mpp/v1/check-status",
+    resource: "/mpp/v1/health",
     outputSchema: {
-      status: { type: "string", description: "Server status" },
+      ok: { type: "boolean", description: "Request succeeded" },
+      status: { type: "string", description: "health: healthy" },
+      service: { type: "string", description: "Service id (syra-mpp)" },
       message: { type: "string", description: "Human-readable message" },
+      timestamp: { type: "string", description: "ISO-8601 response time" },
       protocol: { type: "string", description: "mpp-test" },
       paymentCompatibility: { type: "string", description: "x402-v2" },
     },
   };
 
   if (process.env.NODE_ENV !== "production") {
-    router.get("/check-status/dev", (_req, res) => {
+    router.get("/health/dev", (_req, res) => {
       res.setHeader("X-Syra-Payment-Lane", "mpp-v1");
-      res.status(200).json(statusPayload);
+      res.status(200).json(buildMppHealthPayload());
     });
   }
 
   router.get(
-    "/check-status",
+    "/health",
     requirePayment({ ...paymentOptions, method: "GET" }),
     async (req, res) => {
       const { payload, accepted } = req.x402Payment;
@@ -56,12 +64,12 @@ export async function createMppV1Router() {
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
       res.setHeader("X-Syra-Payment-Lane", "mpp-v1");
       runBuybackForRequest(req);
-      res.status(200).json(statusPayload);
+      res.status(200).json(buildMppHealthPayload());
     }
   );
 
   router.post(
-    "/check-status",
+    "/health",
     requirePayment({ ...paymentOptions, method: "POST" }),
     async (req, res) => {
       const { payload, accepted } = req.x402Payment;
@@ -69,7 +77,7 @@ export async function createMppV1Router() {
       res.setHeader("Payment-Response", encodePaymentResponseHeader(settle?.success ? settle : { success: true }));
       res.setHeader("X-Syra-Payment-Lane", "mpp-v1");
       runBuybackForRequest(req);
-      res.status(200).json(statusPayload);
+      res.status(200).json(buildMppHealthPayload());
     }
   );
 

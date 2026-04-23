@@ -1,7 +1,10 @@
 /**
  * Resource path segments for GET /.well-known/x402 (no leading slash).
  * Keep in sync with actual x402 mounts in index.js.
- * Note: Binance, Giza, Bankr, Neynar, SIWA are agent-only (POST /agent/tools/call), not listed here.
+ * Note: Binance, Giza, Bankr, Neynar, SIWA, and agent-direct tools (exa-search, crawl, browser-use,
+ * jupiter/swap/order, 8004 stats/leaderboard/search, smart-money, token-god-mode, trending-jupiter,
+ * pumpfun, squid, bubblemaps, 8004scan, heylol, quicknode) are not listed here — use POST /agent/tools/call.
+ * HTTP /8004 remains for registration and non-agent marketplace flows; not advertised as a single x402 resource.
  */
 export const X402_DISCOVERY_RESOURCE_PATHS = [
   // Core
@@ -12,36 +15,11 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "event",
   "trending-headline",
   "sundown-digest",
-  "check-status",
-  "mpp/v1/check-status",
+  "health",
+  "mpp/v1/health",
   // Search & automation
-  "exa-search",
-  "browser-use",
   "arbitrage",
-  // Nansen, Jupiter, Bubblemaps
-  "smart-money",
-  "token-god-mode",
-  "trending-jupiter",
-  "jupiter/swap/order",
-  "pumpfun/agents/swap",
-  "pumpfun/agents/create-coin",
-  "pumpfun/agents/collect-fees",
-  "pumpfun/agents/sharing-config",
-  "pumpfun/agent-payments/build-accept",
-  "pumpfun/agent-payments/verify",
-  "pumpfun/coin",
-  "pumpfun/sol-price",
-  "squid/route",
-  "squid/status",
-  "bubblemaps/maps",
   // Analytics (internal: Jupiter + Nansen + Binance correlation math; no public /binance routes)
   "analytics/summary",
-  // 8004
-  "8004",
-  "8004scan",
-  "heylol",
   "x",
-  "quicknode/balance",
-  "quicknode/transaction",
-  "quicknode/rpc",
 ];

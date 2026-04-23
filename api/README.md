@@ -23,7 +23,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 - **Exposes Syra's data and intelligence** — signals, research, news, sentiment, gems, KOL/crypto-KOL, browse, events, leaderboard, and sundown digest.
 - **Integrates with x402 & FareMeter** — pay-per-use and Solana payment flows for API access.
 - **Connects to external data** — Nansen (smart money, token god mode), Bubblemaps, Jupiter (trending), and others; **Binance correlation** is also included in **GET /analytics/summary**; deeper Binance spot / **Giza / Bankr / Neynar / SIWA** run only via **POST /agent/tools/call** (see `api/config/agentTools.js`).
-- **Runs Syra agents** — Solana agent, check-status, and create-signal for on-chain verified signals.
+- **Runs Syra agents** — Solana agent, API health (x402 `/health`), and create-signal for on-chain verified signals.
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
 
@@ -88,9 +88,9 @@ The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) 
 **Catalog:**
 
 - **`GET /.well-known/x402`** — x402 resource list (unchanged).
-- **`GET /openapi.json`** — **OpenAPI 3.1** gateway catalog (10+ operations: `/api/signal`, `/info`, `/preview/*`, `/dashboard-summary`, `/binance-ticker`, `/prediction-game/health`, x402 **`/news`**, **`/sentiment`**, **`/event`**, **`/check-status`**, **`/brain`**, etc.). Standard schema only (no `info.guidance`). Same as repo-root `openapi.json` (`npm run openapi` in `api/`).
+- **`GET /openapi.json`** — **OpenAPI 3.1** gateway catalog (10+ operations: `/api/signal`, `/info`, `/preview/*`, `/dashboard-summary`, `/binance-ticker`, `/prediction-game/health`, x402 **`/news`**, **`/sentiment`**, **`/event`**, **`/health`**, **`/brain`**, etc.). Standard schema only (no `info.guidance`). Same as repo-root `openapi.json` (`npm run openapi` in `api/`).
 - **`GET /mpp-openapi.json`** — full **OpenAPI 3.1** MPP discovery document: one entry per paid route (from **agent tools** + [`x402DiscoveryResourcePaths.js`](./config/x402DiscoveryResourcePaths.js)), with `info.guidance`, `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), **`402`**, optional **query parameters** (GET) and **JSON requestBody** (POST) to satisfy discovery validators.
-- **`GET` / `POST` [`/mpp/v1/check-status`](https://api.syraa.fun/mpp/v1/check-status)** — MPP-branded health check (same tier as `/check-status`).
+- **`GET` / `POST` [`/mpp/v1/health`](https://api.syraa.fun/mpp/v1/health)** — MPP-branded health check (same tier as `/health`). Legacy `/mpp/v1/check-status` → 308 to `/mpp/v1/health`.
 
 To **register**, deploy then validate:
 

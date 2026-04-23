@@ -23,7 +23,7 @@ const routesToConvert = [
   'gems.js',
   'kol.js',
   'crypto-kol.js',
-  'check-status.js',
+  'health.js',
   'trending-headline.js',
   'sundown-digest.js',
 ];

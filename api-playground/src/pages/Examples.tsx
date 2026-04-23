@@ -191,7 +191,7 @@ const Examples = () => {
                   <p className="text-sm text-muted-foreground mb-6 max-w-3xl leading-relaxed">
                     <span className="tabular-nums font-medium text-foreground/90">{mppFlows.length}</span> operation
                     {mppFlows.length !== 1 ? 's' : ''} from Syra MPP discovery — same payment flow as x402; use{' '}
-                    <span className="font-mono text-xs sm:text-sm text-foreground/85">/mpp/v1/check-status</span> for
+                    <span className="font-mono text-xs sm:text-sm text-foreground/85">/mpp/v1/health</span> for
                     the MPP-branded health check.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">

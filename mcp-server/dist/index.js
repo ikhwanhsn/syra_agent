@@ -117,7 +117,7 @@ async function main() {
     });
     // --- No-param GET endpoints ---
     const noParamTools = [
-        { name: "syra_v2_check_status", path: "/check-status", description: "Health check: verify API server status and connectivity." + PAYMENT_NOTE },
+        { name: "syra_v2_check_status", path: "/health", description: "Health check: verify API server status and connectivity (GET /health)." + PAYMENT_NOTE },
         { name: "syra_v2_sundown_digest", path: "/sundown-digest", description: "Get the daily sundown digest (crypto roundup)." + PAYMENT_NOTE },
         { name: "syra_v2_smart_money", path: "/smart-money", description: "Smart money tracking: net flow, holdings, DEX trades, DCA patterns." + PAYMENT_NOTE },
         { name: "syra_v2_trending_jupiter", path: "/trending-jupiter", description: "Trending tokens on Jupiter." + PAYMENT_NOTE },

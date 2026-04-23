@@ -3,7 +3,7 @@
  * @see https://www.mppscan.com/discovery — openapi, info.description, info.guidance (required), paths with x-payment-info + 402.
  *
  * Paths mirror **canonical x402 URLs** (same as GET /.well-known/x402). Settlement is x402 v2 (HTTP 402);
- * `protocols: ["mpp"]` is discovery metadata for MPPscan / AgentCash. `/mpp/v1/check-status` is included
+ * `protocols: ["mpp"]` is discovery metadata for MPPscan / AgentCash. `/mpp/v1/health` is included
  * as the MPP-branded health check (also listed under x402 discovery).
  */
 import { buildMppOpenApiPaths } from './mppOpenApiPaths.js';

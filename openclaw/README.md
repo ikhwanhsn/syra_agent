@@ -71,8 +71,11 @@ This folder contains everything needed for **OpenClaw** (or any x402-capable age
 ## Discovery (live)
 
 - **Well-known:** `GET https://api.syraa.fun/.well-known/x402`  
-  Returns `resources` (full URLs), `ownershipProofs`, and `instructions`.
-- **Health:** `GET https://api.syraa.fun/check-status` (x402; minimal fee).
+  Returns `resources` (full URLs), `ownershipProofs`, and `instructions`. This is the **canonical** list of direct HTTP x402 routes (brain, news, signal, health, `mpp/v1/health`, arbitrage, analytics/summary, X, etc.).
+- **Agent-only tools:** Nansen, Zerion, Exa, crawl, browser-use, Jupiter swap order, pump.fun, 8004 reads, and most partner APIs are **not** in well-known; use `GET /agent/tools` and `POST /agent/tools/call` (see `tools.json` entry `agent-tools-call`).
+- **Health:** `GET https://api.syraa.fun/health` (x402; minimal fee). Legacy `/check-status` → 308 to `/health`.
+
+`discovery.json` in this folder is kept in sync with the well-known `resources` array. Regenerate or compare after API changes.
 
 ## Docs and support
 

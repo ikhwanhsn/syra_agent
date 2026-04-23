@@ -93,7 +93,7 @@ const JSON_BODY_REQUEST = {
  */
 function displayPriceForDiscoveryOnlyPath(apiPath) {
   const p = apiPath.replace(/\/+$/, '') || '/';
-  if (p === '/check-status' || p === '/mpp/v1/check-status') return X402_DISPLAY_PRICE_CHECK_STATUS_USD;
+  if (p === '/health' || p === '/mpp/v1/health') return X402_DISPLAY_PRICE_CHECK_STATUS_USD;
   if (p.startsWith('/news') || p.startsWith('/sentiment') || p.startsWith('/event') || p.startsWith('/trending-headline') || p.startsWith('/sundown-digest')) {
     return X402_DISPLAY_PRICE_NEWS_USD;
   }

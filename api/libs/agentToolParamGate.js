@@ -74,6 +74,8 @@ function paramPresent(p, name) {
 const REQUIRE_ALL_KEYS = {
   'exa-search': ['query'],
   'website-crawl': ['url'],
+  'browser-use': ['task'],
+  'jupiter-swap-order': ['inputMint', 'outputMint', 'amount'],
   '8004scan-agents-search': ['q'],
   '8004scan-agent': ['chainId', 'tokenId'],
   '8004scan-account-agents': ['address'],

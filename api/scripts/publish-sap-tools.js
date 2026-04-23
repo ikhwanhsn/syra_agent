@@ -82,7 +82,7 @@ const TOOLS = [
     requiredParams: 0,
   },
   {
-    name: "GET /check-status",
+    name: "GET /health",
     description: "API health / connectivity check (minimal fee tier).",
     inputSchema: { type: "object", properties: {} },
     outputSchema: {

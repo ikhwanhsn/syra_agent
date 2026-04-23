@@ -17,6 +17,8 @@ import {
   X402_API_PRICE_EXA_SEARCH_USD,
   X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_API_PRICE_CRAWL_USD,
+  X402_API_PRICE_BROWSER_USE_USD,
+  X402_API_PRICE_JUPITER_SWAP_USD,
   X402_API_PRICE_8004_USD,
   X402_API_PRICE_8004SCAN_USD,
   X402_API_PRICE_HEYLOL_USD,
@@ -42,6 +44,8 @@ import {
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
   X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
+  X402_DISPLAY_PRICE_BROWSER_USE_USD,
+  X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_8004_USD,
   X402_DISPLAY_PRICE_8004SCAN_USD,
   X402_DISPLAY_PRICE_HEYLOL_USD,
@@ -64,13 +68,13 @@ import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentT
 export const AGENT_TOOLS = [
   // Core
   {
-    id: 'check-status',
-    path: '/check-status',
+    id: 'health',
+    path: '/health',
     method: 'GET',
     priceUsd: X402_API_PRICE_CHECK_STATUS_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_CHECK_STATUS_USD,
-    name: 'Check API status',
-    description: 'Health check for API server status and connectivity',
+    name: 'API health',
+    description: 'Liveness and connectivity check (paid x402 health endpoint)',
   },
   {
     id: 'news',
@@ -111,6 +115,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'exa-search',
+    agentDirect: true,
     path: '/exa-search',
     method: 'GET',
     priceUsd: X402_API_PRICE_EXA_SEARCH_USD,
@@ -120,12 +125,35 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'website-crawl',
+    agentDirect: true,
     path: '/crawl',
     method: 'POST',
     priceUsd: X402_API_PRICE_CRAWL_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_CRAWL_USD,
     name: 'Website crawl',
     description: 'Crawl a website from a starting URL; returns Markdown content for summarization or RAG (Cloudflare Browser Rendering)',
+  },
+  {
+    id: 'browser-use',
+    agentDirect: true,
+    path: '/browser-use',
+    method: 'POST',
+    priceUsd: X402_API_PRICE_BROWSER_USE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_BROWSER_USE_USD,
+    name: 'Browser Use',
+    description:
+      'Run a natural-language browser task (e.g. open a URL, extract data); returns text or structured output. Body: task (required), optional model (bu-mini / bu-max), maxCostUsd.',
+  },
+  {
+    id: 'jupiter-swap-order',
+    agentDirect: true,
+    path: '/jupiter/swap/order',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_JUPITER_SWAP_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
+    name: 'Jupiter swap order',
+    description:
+      'Jupiter Ultra swap order on Solana (Corbits): returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet).',
   },
   {
     id: 'trending-headline',
@@ -164,9 +192,10 @@ export const AGENT_TOOLS = [
     description:
       'CMC top tradable assets plus live cross-CEX USDT spot snapshots; ranked best buy/sell routes (gross spread, not financial advice)',
   },
-  // 8004 Trustless Agent Registry (Solana)
+  // 8004 Trustless Agent Registry (Solana) — read paths also served in-process for the agent; HTTP /8004/* kept for marketplace/scripts
   {
     id: '8004-stats',
+    agentDirect: true,
     path: '/8004/stats',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004_USD,
@@ -176,6 +205,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004-leaderboard',
+    agentDirect: true,
     path: '/8004/leaderboard',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004_USD,
@@ -185,6 +215,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004-agents-search',
+    agentDirect: true,
     path: '/8004/agents/search',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004_USD,
@@ -195,6 +226,7 @@ export const AGENT_TOOLS = [
   // 8004scan.io Public API (ERC-8004 agent discovery; 8004scan.io)
   {
     id: '8004scan-stats',
+    agentDirect: true,
     path: '/8004scan/stats',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -204,6 +236,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004scan-chains',
+    agentDirect: true,
     path: '/8004scan/chains',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -213,6 +246,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004scan-agents',
+    agentDirect: true,
     path: '/8004scan/agents',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -222,6 +256,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004scan-agents-search',
+    agentDirect: true,
     path: '/8004scan/agents/search',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -231,6 +266,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004scan-agent',
+    agentDirect: true,
     path: '/8004scan/agent',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -240,6 +276,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004scan-account-agents',
+    agentDirect: true,
     path: '/8004scan/account-agents',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -249,6 +286,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: '8004scan-feedbacks',
+    agentDirect: true,
     path: '/8004scan/feedbacks',
     method: 'GET',
     priceUsd: X402_API_PRICE_8004SCAN_USD,
@@ -259,6 +297,7 @@ export const AGENT_TOOLS = [
   // Quicknode RPC (balance, transaction status, raw RPC – Solana, Base)
   {
     id: 'quicknode-balance',
+    agentDirect: true,
     path: '/quicknode/balance',
     method: 'GET',
     priceUsd: X402_API_PRICE_QUICKNODE_USD,
@@ -268,6 +307,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'quicknode-transaction',
+    agentDirect: true,
     path: '/quicknode/transaction',
     method: 'GET',
     priceUsd: X402_API_PRICE_QUICKNODE_USD,
@@ -277,6 +317,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'quicknode-rpc',
+    agentDirect: true,
     path: '/quicknode/rpc',
     method: 'POST',
     priceUsd: X402_API_PRICE_QUICKNODE_USD,
@@ -348,6 +389,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'neynar-cast',
+    agentDirect: true,
     path: '/neynar/cast',
     method: 'GET',
     priceUsd: X402_API_PRICE_NEYNAR_USD,
@@ -388,6 +430,7 @@ export const AGENT_TOOLS = [
   // Partner: Nansen
   {
     id: 'smart-money',
+    agentDirect: true,
     path: '/smart-money',
     method: 'GET',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -397,6 +440,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'token-god-mode',
+    agentDirect: true,
     path: '/token-god-mode',
     method: 'GET',
     priceUsd: X402_API_PRICE_NANSEN_USD,
@@ -730,6 +774,7 @@ export const AGENT_TOOLS = [
   // Partner: Jupiter, Bubblemaps, Binance
   {
     id: 'trending-jupiter',
+    agentDirect: true,
     path: '/trending-jupiter',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
@@ -739,6 +784,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-agents-swap',
+    agentDirect: true,
     path: '/pumpfun/agents/swap',
     method: 'POST',
     priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
@@ -749,6 +795,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-agents-create-coin',
+    agentDirect: true,
     path: '/pumpfun/agents/create-coin',
     method: 'POST',
     priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
@@ -759,6 +806,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-coin',
+    agentDirect: true,
     path: '/pumpfun/coin/:mint',
     method: 'GET',
     priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
@@ -769,6 +817,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-coin-query',
+    agentDirect: true,
     path: '/pumpfun/coin',
     method: 'GET',
     priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
@@ -778,6 +827,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-sol-price',
+    agentDirect: true,
     path: '/pumpfun/sol-price',
     method: 'GET',
     priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
@@ -787,6 +837,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-collect-fees',
+    agentDirect: true,
     path: '/pumpfun/agents/collect-fees',
     method: 'POST',
     priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
@@ -797,6 +848,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-sharing-config',
+    agentDirect: true,
     path: '/pumpfun/agents/sharing-config',
     method: 'POST',
     priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
@@ -807,6 +859,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-agent-payments-build',
+    agentDirect: true,
     path: '/pumpfun/agent-payments/build-accept',
     method: 'POST',
     priceUsd: X402_API_PRICE_PUMP_FUN_TX_USD,
@@ -817,6 +870,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'pumpfun-agent-payments-verify',
+    agentDirect: true,
     path: '/pumpfun/agent-payments/verify',
     method: 'POST',
     priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
@@ -826,6 +880,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'squid-route',
+    agentDirect: true,
     path: '/squid/route',
     method: 'POST',
     priceUsd: X402_API_PRICE_SQUID_ROUTE_USD,
@@ -835,6 +890,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'squid-status',
+    agentDirect: true,
     path: '/squid/status',
     method: 'GET',
     priceUsd: X402_API_PRICE_SQUID_STATUS_USD,
@@ -844,6 +900,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'bubblemaps-maps',
+    agentDirect: true,
     path: '/bubblemaps/maps',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
@@ -874,6 +931,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'binance-orderbook',
+    agentDirect: true,
     path: '/binance/spot/depth',
     method: 'GET',
     priceUsd: X402_API_PRICE_USD,
@@ -924,6 +982,7 @@ export const AGENT_TOOLS = [
   // hey.lol agent API proxy (social platform for AI agents: profile, posts, feed, DMs, services)
   {
     id: 'heylol-profile-me',
+    agentDirect: true,
     path: '/heylol/profile/me',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -933,6 +992,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-feed',
+    agentDirect: true,
     path: '/heylol/feed',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -942,6 +1002,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-feed-following',
+    agentDirect: true,
     path: '/heylol/feed/following',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -951,6 +1012,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-posts',
+    agentDirect: true,
     path: '/heylol/posts',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -960,6 +1022,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-search',
+    agentDirect: true,
     path: '/heylol/search',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -969,6 +1032,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-suggestions',
+    agentDirect: true,
     path: '/heylol/suggestions',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -978,6 +1042,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-notifications',
+    agentDirect: true,
     path: '/heylol/notifications',
     method: 'GET',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -987,6 +1052,7 @@ export const AGENT_TOOLS = [
   },
   {
     id: 'heylol-create-post',
+    agentDirect: true,
     path: '/heylol/posts',
     method: 'POST',
     priceUsd: X402_API_PRICE_HEYLOL_USD,
@@ -1155,7 +1221,6 @@ export const AGENT_TOOLS = [
 ];
 
 /** Legacy LLM/frontend ids for generic Solana swap — routed to pump.fun fun-block swap. */
-const JUPITER_SWAP_TOOL_ID_ALIASES = ['jupiter_swap_order', 'jupiter-swap-order'];
 const SQUID_TOOL_ID_ALIASES = ['squid_route', 'squid-route', 'squid_status', 'squid-status'];
 
 /** Token symbols -> mint + decimals for Jupiter swap param normalization (SOL, USDC). */
@@ -1188,15 +1253,15 @@ export function normalizeJupiterSwapParams(params) {
 }
 
 /**
- * Get tool by id. Accepts legacy Jupiter swap ids as aliases for pump.fun agents swap.
+ * Get tool by id. Accepts legacy ids (squid_route, pumpfun with underscores).
  * @param {string} toolId
  * @returns {AgentTool | undefined}
  */
 export function getAgentTool(toolId) {
   let normalized = toolId;
-  if (toolId && JUPITER_SWAP_TOOL_ID_ALIASES.includes(toolId)) normalized = 'pumpfun-agents-swap';
-  else if (toolId === 'squid_route') normalized = 'squid-route';
+  if (toolId === 'squid_route') normalized = 'squid-route';
   else if (toolId === 'squid_status') normalized = 'squid-status';
+  else if (toolId === 'check-status') normalized = 'health';
   else if (toolId && typeof toolId === 'string' && toolId.startsWith('pumpfun') && toolId.includes('_')) {
     normalized = toolId.replace(/_/g, '-');
   }
@@ -1225,9 +1290,9 @@ export const AGENT_TOOL_SELECTION_GROUPS = [
   {
     id: 'swap-solana-vs-cross-chain',
     userIntentLabel: 'swap, trade, buy, or sell tokens',
-    toolIds: ['pumpfun-agents-swap', 'squid-route'],
+    toolIds: ['pumpfun-agents-swap', 'jupiter-swap-order', 'squid-route'],
     docForLlm:
-      'Same-chain Solana SPL swap / pump.fun path: **pumpfun-agents-swap**. Cross-chain bridge or route (many chains): **squid-route** (Squid Router). These are different rails — pick one based on the user’s words (Solana-only vs bridge/cross-chain).',
+      'Same-chain Solana: **pumpfun-agents-swap** (pump.fun / fun-block) or **jupiter-swap-order** (Jupiter Ultra / Corbits). Cross-chain: **squid-route** (Squid Router). Pick one from the user’s words (Solana same-chain vs bridge/cross-chain).',
   },
 ];
 
@@ -1902,7 +1967,7 @@ export function matchToolFromUserMessage(userMessage) {
       params: () => (ticker && ticker !== 'GENERAL' ? { ticker } : {}),
     },
     {
-      toolId: 'check-status',
+      toolId: 'health',
       test: () =>
         /check\s*status|api\s*status|health\s*check|is\s*(the\s*)?(api|server)\s*up|status\s*check/i.test(
           text
@@ -1926,10 +1991,10 @@ export function matchToolFromUserMessage(userMessage) {
 
 /**
  * Human-readable list of capabilities for agent system prompt. Grouped to match v2 API structure.
- * Excludes check-status (internal). Used so the agent knows exactly which v2 API tools are available.
+ * Excludes health (internal). Used so the agent knows exactly which v2 API tools are available.
  */
 export function getCapabilitiesList() {
-  const exclude = new Set(['check-status']);
+  const exclude = new Set(['health']);
   const core = [
     'news',
     'signal',

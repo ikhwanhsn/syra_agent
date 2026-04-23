@@ -59,7 +59,7 @@ function getPlaygroundProxyUrl(_targetUrl: string): string {
 
 /** Default endpoint IDs for batch test. */
 const DEFAULT_BATCH_FLOW_IDS = [
-  'check-status',
+  'health',
   'preview-news',
   'preview-sentiment',
   'preview-signal',

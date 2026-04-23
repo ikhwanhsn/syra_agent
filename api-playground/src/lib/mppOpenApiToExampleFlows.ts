@@ -89,18 +89,18 @@ export function getMppV1LaneExampleFlows(syraBase: string): MppCatalogExampleFlo
   const b = syraBase.replace(/\/$/, '');
   return [
     {
-      id: 'mpp-v1-check-status-get',
+      id: 'mpp-v1-health-get',
       label: 'MPP v1: check status (GET)',
       method: 'GET',
-      url: `${b}/mpp/v1/check-status`,
+      url: `${b}/mpp/v1/health`,
       params: [],
       examplePaymentCatalog: 'mpp',
     },
     {
-      id: 'mpp-v1-check-status-post',
+      id: 'mpp-v1-health-post',
       label: 'MPP v1: check status (POST)',
       method: 'POST',
-      url: `${b}/mpp/v1/check-status`,
+      url: `${b}/mpp/v1/health`,
       params: [],
       body: '{\n  \n}',
       examplePaymentCatalog: 'mpp',
@@ -108,14 +108,14 @@ export function getMppV1LaneExampleFlows(syraBase: string): MppCatalogExampleFlo
   ];
 }
 
-/** Full MPP example list: OpenAPI catalog plus `/mpp/v1/check-status` if missing from the doc. */
+/** Full MPP example list: OpenAPI catalog plus `/mpp/v1/health` if missing from the doc. */
 export function buildFullMppExampleFlowList(
   doc: unknown,
   syraBase: string,
   purchBase: string
 ): MppCatalogExampleFlowPreset[] {
   const fromDoc = exampleFlowsFromMppOpenApi(doc, syraBase, purchBase);
-  const hasMppV1 = fromDoc.some((f) => f.url.toLowerCase().includes('/mpp/v1/check-status'));
+  const hasMppV1 = fromDoc.some((f) => f.url.toLowerCase().includes('/mpp/v1/health'));
   if (hasMppV1) return fromDoc;
   return [...getMppV1LaneExampleFlows(syraBase), ...fromDoc];
 }

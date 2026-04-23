@@ -2,9 +2,11 @@ openapi: 3.0.3
 info:
   title: SYRA x402 API
   description: |
-    Payment-gated API for crypto news, signals, sentiment, analytics, and partner data (Nansen, DexScreener, Jupiter, Rugcheck, CoinGecko, etc.).
-    All endpoints use the x402 protocol: first request may return **402 Payment Required** with payment details;
-    client signs payment (USDC on Solana or Base) and retries with `X-Payment` or `PAYMENT-SIGNATURE` header.
+    **Canonical x402 resource URLs** match `GET https://api.syraa.fun/.well-known/x402` (this file lists the same path set; remove endpoints not in well-known for integration testing).
+
+    Flow: first request may return **402 Payment Required**; sign USDC on Solana or Base and retry with `X-Payment` or `PAYMENT-SIGNATURE`.
+
+    **Nansen, Exa, crawl, browser-use, Jupiter swap, pump.fun, 8004 reads, etc.** are available via `GET /agent/tools` and `POST /agent/tools/call` (not listed as paths here).
   version: 2.0.0
   contact:
     name: SYRA API
@@ -18,18 +20,64 @@ security: []
 
 tags:
   - name: Core
-    description: News, signals, sentiment, events, search
+    description: Health, news, signal, sentiment, X
   - name: Analytics
-    description: Summary, status
-  - name: Partner
-    description: Nansen, DexScreener, Jupiter, Rugcheck, Bubblemaps, Binance, CoinGecko
+    description: Analytics summary, arbitrage
+  - name: MPP
+    description: MPP v1 test lane
+  - name: Agent
+    description: Migrated and partner tools (separate from paths below)
 
 paths:
-  /check-status:
+  /health:
     get:
       tags: [Core]
-      summary: Health check
-      operationId: checkStatus
+      summary: API health
+      operationId: healthGet
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      tags: [Core]
+      summary: API health (POST)
+      operationId: healthPost
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /mpp/v1/health:
+    get:
+      tags: [MPP]
+      summary: MPP x402 health
+      operationId: mppHealthGet
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      tags: [MPP]
+      summary: MPP x402 health (POST)
+      operationId: mppHealthPost
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /brain:
+    get:
+      tags: [Core]
+      summary: Syra Brain (GET)
+      operationId: brainGet
+      parameters:
+        - name: question
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      tags: [Core]
+      summary: Syra Brain (POST)
+      operationId: brainPost
       responses:
         "200": { description: OK }
         "402": { $ref: "#/components/responses/PaymentRequired" }
@@ -52,31 +100,33 @@ paths:
     get:
       tags: [Core]
       summary: Trading signal
+      operationId: signal
       parameters:
         - name: token
           in: query
           schema: { type: string }
-          description: Optional token (bitcoin, ethereum, solana)
       responses:
-        "200": { description: Signal data }
+        "200": { description: Signal }
         "402": { $ref: "#/components/responses/PaymentRequired" }
 
   /sentiment:
     get:
       tags: [Core]
-      summary: Market sentiment
+      summary: Sentiment
+      operationId: sentiment
       parameters:
         - name: ticker
           in: query
           schema: { type: string }
       responses:
-        "200": { description: Sentiment data }
+        "200": { description: Sentiment }
         "402": { $ref: "#/components/responses/PaymentRequired" }
 
   /event:
     get:
       tags: [Core]
       summary: Crypto events
+      operationId: event
       parameters:
         - name: ticker
           in: query
@@ -85,23 +135,11 @@ paths:
         "200": { description: Events }
         "402": { $ref: "#/components/responses/PaymentRequired" }
 
-  /exa-search:
-    get:
-      tags: [Core]
-      summary: EXA AI web search
-      parameters:
-        - name: query
-          in: query
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Search results }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
   /trending-headline:
     get:
       tags: [Core]
       summary: Trending headlines
+      operationId: trendingHeadline
       parameters:
         - name: ticker
           in: query
@@ -113,219 +151,85 @@ paths:
   /sundown-digest:
     get:
       tags: [Core]
-      summary: Daily sundown digest
+      summary: Sundown digest
+      operationId: sundownDigest
       responses:
         "200": { description: Digest }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /arbitrage:
+    get:
+      tags: [Analytics]
+      summary: Arbitrage snapshot
+      operationId: arbitrageGet
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 25 }
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      tags: [Analytics]
+      summary: Arbitrage snapshot (POST)
+      operationId: arbitragePost
+      responses:
+        "200": { description: OK }
         "402": { $ref: "#/components/responses/PaymentRequired" }
 
   /analytics/summary:
     get:
       tags: [Analytics]
-      summary: Full analytics summary
+      summary: Analytics summary
+      operationId: analyticsSummary
       responses:
-        "200": { description: Aggregated analytics }
+        "200": { description: OK }
         "402": { $ref: "#/components/responses/PaymentRequired" }
 
-  /smart-money:
+  /x:
     get:
-      tags: [Partner]
-      summary: Nansen smart money
+      tags: [Core]
+      summary: X (Twitter) API
+      operationId: xGet
       responses:
-        "200": { description: Smart money data }
+        "200": { description: OK }
         "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /token-god-mode:
-    get:
-      tags: [Partner]
-      summary: Nansen token god mode
-      parameters:
-        - name: tokenAddress
-          in: query
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Token god mode data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /dexscreener:
-    get:
-      tags: [Partner]
-      summary: DexScreener data
-      responses:
-        "200": { description: DexScreener data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /trending-jupiter:
-    get:
-      tags: [Partner]
-      summary: Trending on Jupiter
-      responses:
-        "200": { description: Trending tokens }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /jupiter/swap/order:
     post:
-      tags: [Partner]
-      summary: Jupiter swap order
+      tags: [Core]
+      summary: X (Twitter) API (POST)
+      operationId: xPost
+      responses:
+        "200": { description: OK }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /agent/tools:
+    get:
+      tags: [Agent]
+      summary: List agent x402 tool ids (no payment)
+      operationId: agentToolsList
+      responses:
+        "200": { description: Tool list }
+
+  /agent/tools/call:
+    post:
+      tags: [Agent]
+      summary: Invoke agent tool (exa, Nansen, crawl, etc.)
+      operationId: agentToolsCall
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [inputMint, outputMint, amount, taker]
+              required: [anonymousId, toolId]
               properties:
-                inputMint: { type: string }
-                outputMint: { type: string }
-                amount: { type: string }
-                taker: { type: string }
+                anonymousId: { type: string }
+                toolId: { type: string }
+                params: { type: object, additionalProperties: true }
       responses:
-        "200": { description: Swap transaction to sign }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /token-report:
-    get:
-      tags: [Partner]
-      summary: Rugcheck token report
-      parameters:
-        - name: address
-          in: query
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Token report }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /token-statistic:
-    get:
-      tags: [Partner]
-      summary: Rugcheck token statistic
-      responses:
-        "200": { description: Token statistics }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /token-risk/alerts:
-    get:
-      tags: [Partner]
-      summary: Rugcheck token risk alerts
-      parameters:
-        - name: rugScoreMin
-          in: query
-          schema: { type: number }
-        - name: source
-          in: query
-          schema: { type: string }
-        - name: limit
-          in: query
-          schema: { type: integer }
-      responses:
-        "200": { description: Risk alerts }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /bubblemaps/maps:
-    get:
-      tags: [Partner]
-      summary: Bubblemaps holder map
-      parameters:
-        - name: address
-          in: query
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Map data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /binance/correlation:
-    get:
-      tags: [Partner]
-      summary: Binance correlation
-      parameters:
-        - name: symbol
-          in: query
-          schema: { type: string }
-      responses:
-        "200": { description: Correlation data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /coingecko/simple-price:
-    get:
-      tags: [Partner]
-      summary: CoinGecko simple price
-      parameters:
-        - name: symbols
-          in: query
-          schema: { type: string }
-        - name: ids
-          in: query
-          schema: { type: string }
-      responses:
-        "200": { description: Price data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /coingecko/onchain/token-price:
-    get:
-      tags: [Partner]
-      summary: CoinGecko onchain token price
-      parameters:
-        - name: network
-          in: query
-          required: true
-          schema: { type: string }
-        - name: address
-          in: query
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Token price(s) }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /coingecko/onchain/search-pools:
-    get:
-      tags: [Partner]
-      summary: CoinGecko search pools
-      parameters:
-        - name: query
-          in: query
-          required: true
-          schema: { type: string }
-        - name: network
-          in: query
-          schema: { type: string }
-      responses:
-        "200": { description: Pools/tokens }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /coingecko/onchain/trending-pools:
-    get:
-      tags: [Partner]
-      summary: CoinGecko trending pools
-      parameters:
-        - name: network
-          in: query
-          schema: { type: string }
-        - name: duration
-          in: query
-          schema: { type: string }
-      responses:
-        "200": { description: Trending pools }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
-
-  /coingecko/onchain/token:
-    get:
-      tags: [Partner]
-      summary: CoinGecko onchain token
-      parameters:
-        - name: network
-          in: query
-          required: true
-          schema: { type: string }
-        - name: address
-          in: query
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Token data }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "200": { description: OK }
+        "402": { description: Payment required for paid tools }
+        "4xx": { description: Error }
 
 components:
   responses:

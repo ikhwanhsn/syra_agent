@@ -10,8 +10,6 @@ import {
   getIntegrityDeep,
   getIntegrityFull,
   searchAgents,
-  getLeaderboard,
-  getGlobalStats,
   getAgentByWallet,
   loadAgent,
   agentExists,
@@ -22,12 +20,11 @@ import {
   getProgramIds,
   getBaseCollection,
   getAgentRegistrationMetadata,
-  getRegistrationMetadataFromUri,
 } from "../libs/agentRegistry8004.js";
+import { run8004Stats, run8004Leaderboard, run8004AgentsSearch } from "../libs/8004ReadApi.js";
 import { registerAgentAndAttachToCollection } from "../libs/register8004Agent.js";
 import { getSolanaAgentKeypair, getAgentBalances } from "../libs/agentWallet.js";
 import User8004Agent, { MAX_AGENTS_PER_USER } from "../models/agent/User8004Agent.js";
-import pLimit from "p-limit";
 
 /**
  * Perform 8004 agent registration (same logic as POST /8004/register-agent).
@@ -100,9 +97,6 @@ export async function performRegisterAgent(body) {
   return result;
 }
 
-/** Concurrency limit when enriching agent list with registration metadata (name). */
-const REGISTRATION_METADATA_LIMIT = pLimit(6);
-
 /** Merge query and body so GET and POST can pass params (POST body overrides for overlapping keys). */
 function params(req) {
   const body = req.body && typeof req.body === "object" ? req.body : {};
@@ -155,59 +149,9 @@ export async function create8004Router() {
   router.post("/agent/:asset/integrity/full", withHandler(integrityFullHandler));
 
   // --- Discovery & search ---
-  /** Enrich agent list with name from registration metadata. Prefer indexer agent_uri + IPFS (no RPC) so names show even when RPC returns 403; fall back to getAgentRegistrationMetadata (RPC) when agent_uri is missing. See 8004-solana skill §11 Search. */
-  async function enrichAgentsWithRegistrationNames(agents) {
-    if (!Array.isArray(agents) || agents.length === 0) return agents;
-    const results = await Promise.all(
-      agents.map((a) => {
-        const asset = typeof a?.asset === "string" ? a.asset.trim() : "";
-        const agentUri = typeof a?.agent_uri === "string" ? a.agent_uri.trim() : null;
-        if (!asset) return { ...a };
-        return REGISTRATION_METADATA_LIMIT(async () => {
-          try {
-            const meta = agentUri
-              ? await getRegistrationMetadataFromUri(agentUri)
-              : await getAgentRegistrationMetadata(asset);
-            const name =
-              meta?.name?.trim() ||
-              (typeof a?.nft_name === "string" ? a.nft_name.trim() : null) ||
-              (typeof a?.name === "string" ? a.name.trim() : null) ||
-              null;
-            const description = meta?.description?.trim() || null;
-            const image = meta?.image?.trim() || null;
-            if (name || description || image) {
-              return { ...a, nft_name: name || a.nft_name, description: description ?? a.description, image: image ?? a.image };
-            }
-            return { ...a };
-          } catch {
-            return { ...a };
-          }
-        });
-      })
-    );
-    return results;
-  }
-
-  const searchHandler = async (req) => {
-    const q = params(req);
-    const collectionParam = q.collection && String(q.collection).trim();
-    const isPointer = collectionParam && collectionParam.startsWith("c1:");
-    const searchParams = {
-      owner: q.owner || undefined,
-      creator: q.creator || undefined,
-      limit: q.limit ? Number(q.limit) : 20,
-      offset: q.offset ? Number(q.offset) : 0,
-    };
-    if (collectionParam) {
-      if (isPointer) searchParams.collectionPointer = collectionParam;
-      else searchParams.collection = collectionParam;
-    }
-    const list = await searchAgents(searchParams);
-    const raw = Array.isArray(list) ? list : [];
-    const agents = await enrichAgentsWithRegistrationNames(raw);
-    return { agents, total: agents.length };
-  };
   // Agents search is free so the Syra marketplace can load "All Agents" without 402
+  const searchHandler = async (req) => run8004AgentsSearch(params(req));
+
   router.get("/agents/search", async (req, res, next) => {
     try {
       const data = await searchHandler(req);
@@ -226,18 +170,11 @@ export async function create8004Router() {
       else next(e);
     }
   });
-  const leaderboardHandler = async (req) => {
-    const q = params(req);
-    return getLeaderboard({
-      minTier: q.minTier ? Number(q.minTier) : undefined,
-      limit: q.limit ? Number(q.limit) : 50,
-      collection: q.collection || undefined,
-    });
-  };
+  const leaderboardHandler = async (req) => run8004Leaderboard(params(req));
   router.get("/leaderboard", withHandler(leaderboardHandler));
   router.post("/leaderboard", withHandler(leaderboardHandler));
 
-  const statsHandler = async () => getGlobalStats();
+  const statsHandler = async () => run8004Stats();
   router.get("/stats", withHandler(statsHandler));
   router.post("/stats", withHandler(statsHandler));
 

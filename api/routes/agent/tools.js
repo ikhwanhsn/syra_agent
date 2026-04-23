@@ -35,6 +35,7 @@ import {
 import { sendTempoPayout } from '../../libs/tempoPayout.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
 import { runAgentPartnerDirectTool } from '../../libs/agentPartnerDirectTools.js';
+import { chargeAgentForInternalTool } from '../../libs/agentInternalToolCharge.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -198,6 +199,18 @@ router.post('/call', async (req, res) => {
       }
     }
 
+    // Jupiter Ultra (Corbits): same mint/amount normalizer; taker defaults to agent wallet.
+    if (tool.id === 'jupiter-swap-order') {
+      const fromLlm = normalizeJupiterSwapParams(params);
+      if (fromLlm) {
+        Object.assign(params, fromLlm);
+      }
+      const takerAddr = (await getAgentAddress(anonymousId)) ?? '';
+      if (takerAddr && !String(params.taker || '').trim()) {
+        params = { ...params, taker: takerAddr };
+      }
+    }
+
     // hey.lol tools: backend must send anonymousId so the heylol route can resolve the agent wallet
     if (tool.path && tool.path.startsWith('/heylol')) {
       params = { ...params, anonymousId };
@@ -318,7 +331,8 @@ router.post('/call', async (req, res) => {
       });
     }
 
-    // Binance, Giza, Bankr, Neynar, SIWA — no public HTTP routes; run server-side with same libs as former routes
+    // Binance, Giza, Bankr, Neynar, SIWA, and migrated proxy tools — no public HTTP routes;
+    // run server-side with same libs as former routes, and settle USDC to Syra treasury on-chain per call.
     if (tool.agentDirect) {
       const out = await runAgentPartnerDirectTool(toolId, params, { host: req.get('host') });
       if (!out.ok) {
@@ -328,10 +342,44 @@ router.post('/call', async (req, res) => {
           toolId: tool.id,
         });
       }
+
+      let paymentSignature = null;
+      if (effectivePrice > 0) {
+        const charge = await chargeAgentForInternalTool({
+          anonymousId,
+          priceUsd: effectivePrice,
+          toolId: tool.id,
+          toolPath: tool.path,
+        });
+        if (!charge.success) {
+          return res.status(402).json({
+            success: false,
+            error: charge.error || 'Failed to charge agent wallet for this tool',
+            toolId: tool.id,
+          });
+        }
+        paymentSignature = charge.signature || null;
+      }
+
+      let data = out.data;
+      if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
+        try {
+          const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction);
+          data = { ...data, submittedSignature: signature, submittedOnChain: true };
+        } catch (pumpErr) {
+          data = {
+            ...data,
+            submittedOnChain: false,
+            submitError: pumpErr?.message || 'Failed to sign or submit Solana transaction',
+          };
+        }
+      }
+
       return res.status(out.httpStatus ?? 200).json({
         success: true,
         toolId: tool.id,
-        data: out.data,
+        data,
+        ...(paymentSignature ? { paymentSignature } : {}),
       });
     }
 
@@ -457,7 +505,7 @@ router.post('/call', async (req, res) => {
         data = {
           ...data,
           submittedOnChain: false,
-          submitError: pumpErr?.message || 'Failed to sign or submit pump.fun transaction',
+          submitError: pumpErr?.message || 'Failed to sign or submit Solana transaction',
         };
       }
     }

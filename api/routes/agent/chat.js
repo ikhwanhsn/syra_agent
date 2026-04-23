@@ -55,6 +55,7 @@ import {
 } from '../../libs/agentChatDailyLimit.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
 import { runAgentPartnerDirectTool } from '../../libs/agentPartnerDirectTools.js';
+import { chargeAgentForInternalTool } from '../../libs/agentInternalToolCharge.js';
 
 const router = express.Router();
 
@@ -794,7 +795,7 @@ export function formatToolResultForLlm(data, toolId, maxToolResultChars = MAX_TO
       : MAX_TOOL_RESULT_CHARS;
   if (
     typeof toolId === 'string' &&
-    toolId.startsWith('pumpfun-') &&
+    (toolId.startsWith('pumpfun-') || toolId === 'jupiter-swap-order') &&
     data &&
     typeof data === 'object' &&
     !Array.isArray(data) &&
@@ -1200,9 +1201,9 @@ router.post('/completion', async (req, res) => {
     const toolSelectStart = Date.now();
     /** Normalize toolId (legacy Jupiter swap ids → pump.fun swap), "squid_route" -> "squid-route", etc. */
     const normalizeToolId = (id) => {
-      if (id === 'jupiter_swap_order' || id === 'jupiter-swap-order') return 'pumpfun-agents-swap';
       if (id === 'squid_route') return 'squid-route';
       if (id === 'squid_status') return 'squid-status';
+      if (id === 'check-status') return 'health';
       if (typeof id === 'string' && id.startsWith('pumpfun') && id.includes('_')) return id.replace(/_/g, '-');
       return id;
     };
@@ -1216,7 +1217,7 @@ router.post('/completion', async (req, res) => {
     } else if (Array.isArray(clientToolRequest?.tools) && clientToolRequest.tools.length > 0) {
       matchedTools = clientToolRequest.tools
         .slice(0, MAX_TOOLS_PER_REQUEST)
-        .filter((t) => t?.toolId && getAgentTool(t.toolId))
+        .filter((t) => t?.toolId && getAgentTool(normalizeToolId(t.toolId)))
         .map((t) => ({ toolId: normalizeToolId(t.toolId), params: t.params || {} }));
     } else {
       try {
@@ -1419,8 +1420,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         // pump.fun swap (fun-block): only call upstream after the user confirms via the inline form template.
         if (matched.toolId === 'pumpfun-agents-swap') {
           const isPumpfunSwapFormConfirm =
-            /Execute pumpfun-agents-swap with these exact parameters/i.test(lastUserMessage) ||
-            /Execute jupiter-swap-order with these exact parameters/i.test(lastUserMessage);
+            /Execute pumpfun-agents-swap with these exact parameters/i.test(lastUserMessage);
 
           if (isPumpfunSwapFormConfirm) {
             const fromForm = parseAgentSwapParamsFromFormMessage(lastUserMessage, 'pumpfun-agents-swap');
@@ -1475,6 +1475,20 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             toolErrors.unshift(SWAP_UI_EMPTY_LLM_REPLY);
             toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
             continue;
+          }
+        }
+
+        if (matched.toolId === 'jupiter-swap-order') {
+          if (!params.inputMint || !params.outputMint || !params.amount) {
+            const fromLlm = normalizeJupiterSwapParams(params);
+            if (fromLlm) {
+              params = { ...params, ...fromLlm };
+            }
+          }
+          await normalizeJupiterAmountToBaseUnits(params);
+          const takerAddr = (await getAgentAddress(anonymousId)) ?? '';
+          if (takerAddr) {
+            params = { ...params, taker: takerAddr };
           }
         }
 
@@ -1630,9 +1644,27 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           }
         } else if (tool.agentDirect) {
           const out = await runAgentPartnerDirectTool(tool.id, params, { host: req.get('host') });
-          result = out.ok
-            ? { status: out.httpStatus ?? 200, data: out.data }
-            : { status: out.status ?? 502, error: out.error };
+          if (!out.ok) {
+            result = { status: out.status ?? 502, error: out.error };
+          } else if (!useTreasury && effectivePrice > 0) {
+            // Settle USDC → Syra treasury on-chain (replaces facilitator x402 hop for migrated tools).
+            const charge = await chargeAgentForInternalTool({
+              anonymousId,
+              priceUsd: effectivePrice,
+              toolId: tool.id,
+              toolPath: tool.path,
+            });
+            if (!charge.success) {
+              result = {
+                status: 402,
+                error: charge.error || 'Failed to charge agent wallet for this tool',
+              };
+            } else {
+              result = { status: out.httpStatus ?? 200, data: out.data };
+            }
+          } else {
+            result = { status: out.httpStatus ?? 200, data: out.data };
+          }
         } else {
           let toolPath = tool.path;
           let callParams = { ...params };
@@ -1712,7 +1744,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
               toolData = {
                 ...toolData,
                 submittedOnChain: false,
-                submitError: pumpErr?.message || 'Failed to submit pump.fun transaction',
+                submitError: pumpErr?.message || 'Failed to submit Solana transaction',
               };
             }
           }
@@ -1744,7 +1776,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           const presentInstruction =
             tool.id === 'trending-jupiter'
               ? 'Present this Jupiter trending data in a clear list or table. Use ONLY the data below—do not invent token names, prices, or percentages.'
-              : tool.id === 'pumpfun-agents-swap'
+              : tool.id === 'pumpfun-agents-swap' || tool.id === 'jupiter-swap-order'
                 ? 'The user ran a Solana swap via Syra. You MUST write a visible reply (never empty): state success or failure, and include the transaction signature (submittedSignature) or submitError from the JSON verbatim. Link solscan.io/tx/<signature> when a signature is present.'
                 : 'Present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.';
           toolResults.push(

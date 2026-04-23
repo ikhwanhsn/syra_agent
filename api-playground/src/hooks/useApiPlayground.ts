@@ -447,10 +447,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       params: [{ key: "ticker", value: "general", enabled: true }],
     },
     {
-      id: "check-status",
-      label: "Check status",
+      id: "health",
+      label: "API health",
       method: "GET",
-      url: `${base}/check-status`,
+      url: `${base}/health`,
       params: [],
     },
     {
@@ -2350,8 +2350,8 @@ function getApiEndpoints(): string[] {
     `${base}/event`,
     `${base}/trending-headline`,
     `${base}/sundown-digest`,
-    `${base}/check-status`,
-    `${base}/mpp/v1/check-status`,
+    `${base}/health`,
+    `${base}/mpp/v1/health`,
     `${base}/exa-search`,
     `${base}/crawl`,
     `${base}/browser-use`,
@@ -2583,8 +2583,8 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
         },
       ],
       "/sundown-digest": [],
-      "/check-status": [],
-      "/mpp/v1/check-status": [],
+      "/health": [],
+      "/mpp/v1/health": [],
       "/brain": [
         {
           key: "question",

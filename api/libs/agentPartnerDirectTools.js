@@ -39,6 +39,7 @@ import {
   risePostRepayAndWithdraw,
   riseGetMarketsStreamNewNote,
 } from "./riseClient.js";
+import { MIGRATED_TOOL_IDS, runMigratedTool } from "./agentMigratedTools.js";
 
 function binanceCreds(params) {
   const fromEnv =
@@ -99,6 +100,10 @@ async function binanceCorrelation(params) {
  */
 export async function runAgentPartnerDirectTool(toolId, params, opts = {}) {
   const host = opts.host;
+
+  if (MIGRATED_TOOL_IDS.has(toolId)) {
+    return runMigratedTool(toolId, params);
+  }
 
   try {
     switch (toolId) {

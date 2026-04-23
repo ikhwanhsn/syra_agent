@@ -79,16 +79,19 @@ export const apiDocs: Record<string, ApiDoc> = {
   "x402-api-standard": doc({
     title: "x402 API Documentation Standard",
     overview:
-      "This document defines the standard structure and conventions for all Syra x402 API documentation. Every paid API uses unversioned paths and requires payment via the x402 protocol before returning data.",
+      "This document defines the standard structure and conventions for all Syra x402 API documentation. Every paid API uses unversioned paths and requires payment via the x402 protocol before returning data. The live HTTP discovery list is `GET " + BASE_URL + "/.well-known/x402` (canonical x402 resource URLs). Many partner and automation tools are **not** in that list—they run through the agent: `GET " + BASE_URL + "/agent/tools` and `POST " + BASE_URL + "/agent/tools/call` (tool ids, agent wallet or treasury billing).",
     endpoints: [
       {
         method: "GET",
-        path: "/check-status",
+        path: "/health",
         description: "Health check example. All x402 endpoints follow the same payment flow.",
-        requestExample: `curl ${BASE_URL}/check-status`,
+        requestExample: `curl ${BASE_URL}/health`,
         responseExample: `{
-  "status": "ok",
-  "message": "Check status server is running"
+  "ok": true,
+  "status": "healthy",
+  "service": "syra-api",
+  "message": "API is operational and accepting requests.",
+  "timestamp": "2026-04-23T12:00:00.000Z"
 }`,
       },
     ],
@@ -97,34 +100,49 @@ export const apiDocs: Record<string, ApiDoc> = {
         title: "URL Conventions",
         content: "Use full URL in examples: " + BASE_URL + "/{resource} (e.g. " + BASE_URL + "/news, " + BASE_URL + "/signal?token=btc).",
       },
+      {
+        title: "Direct x402 vs agent tools",
+        content:
+          "Per-page docs below may still show example `curl` paths for EXA, crawl, browser-use, or partner APIs. If a route is not listed in `GET /.well-known/x402`, use the Syra Agent (chat) or `POST " +
+          BASE_URL +
+          "/agent/tools/call` with the tool id from `GET " +
+          BASE_URL +
+          "/agent/tools`—that is the supported path after server-side agent migration.",
+      },
     ],
   }),
 
-  "check-status": doc({
-    title: "Check Status API",
+  health: doc({
+    title: "API Health",
     overview:
-      "Health check for the API server. Verifies that the API is running and reachable. Minimal-cost endpoint using the x402 payment protocol.",
+      "Liveness and connectivity check for the API. Minimal-cost x402 endpoint; response includes `ok`, `status: \"healthy\"`, `service`, and `timestamp`. The legacy path `/check-status` redirects 308 to `/health`.",
     price: "$0.0001 USD per request",
     endpoints: [
       {
         method: "GET",
-        path: "/check-status",
+        path: "/health",
         description: "Health check.",
-        requestExample: `curl ${BASE_URL}/check-status`,
+        requestExample: `curl ${BASE_URL}/health`,
         responseExample: `{
-  "status": "ok",
-  "message": "Check status server is running"
+  "ok": true,
+  "status": "healthy",
+  "service": "syra-api",
+  "message": "API is operational and accepting requests.",
+  "timestamp": "2026-04-23T12:00:00.000Z"
 }`,
       },
       {
         method: "POST",
-        path: "/check-status",
+        path: "/health",
         description: "Health check via POST.",
-        requestExample: `curl -X POST ${BASE_URL}/check-status \\
+        requestExample: `curl -X POST ${BASE_URL}/health \\
   -H "Content-Type: application/json"`,
         responseExample: `{
-  "status": "ok",
-  "message": "Check status server is running"
+  "ok": true,
+  "status": "healthy",
+  "service": "syra-api",
+  "message": "API is operational and accepting requests.",
+  "timestamp": "2026-04-23T12:00:00.000Z"
 }`,
       },
     ],
@@ -367,7 +385,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
   "exa-search": doc({
     title: "EXA Search API",
     overview:
-      "EXA AI web search. Only the search query is dynamic; options (numResults, type, contents) are fixed. Uses the x402 payment protocol.",
+      "EXA AI web search. Only the search query is dynamic; options (numResults, type, contents) are fixed. Uses the x402 payment protocol. **Primary access:** Syra Agent chat or `POST " + BASE_URL + "/agent/tools/call` with tool id `exa-search` (agent wallet pays). Public `GET/POST " + BASE_URL + "/exa-search` may be disabled; use the agent path if a direct call returns 404.",
     useCases: [
       "Latest news and articles on any topic (e.g. Nvidia, crypto)",
       "Semantic web search with highlights",
@@ -409,7 +427,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
   "crawl": doc({
     title: "Website Crawl API",
     overview:
-      "Crawl a website from a starting URL using Cloudflare Browser Rendering. Discovers pages via links/sitemaps, renders in headless browser, returns content as Markdown. Uses the x402 payment protocol.",
+      "Crawl a website from a starting URL using Cloudflare Browser Rendering. Discovers pages via links/sitemaps, renders in headless browser, returns content as Markdown. Uses the x402 payment protocol. **Primary access:** `POST " + BASE_URL + "/agent/tools/call` with tool id `website-crawl` (or as listed on `GET " + BASE_URL + "/agent/tools`).",
     useCases: [
       "Summarize or research content across a site",
       "Build RAG/knowledge bases from docs or blogs",
@@ -453,7 +471,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
   "browser-use": doc({
     title: "Browser Use API",
     overview:
-      "Run a natural-language browser automation task (Browser Use Cloud) and get structured or text output. Supports GET (query params) and POST (JSON body). Requires `BROWSER_USE_API_KEY` on the server; if unset, the API returns 503. Uses the x402 payment protocol.",
+      "Run a natural-language browser automation task (Browser Use Cloud) and get structured or text output. **Primary access:** `POST " + BASE_URL + "/agent/tools/call` with tool id `browser-use` (see `GET " + BASE_URL + "/agent/tools`). Public HTTP may be disabled. Requires `BROWSER_USE_API_KEY` on the server. Uses the x402 payment protocol.",
     price: "$0.08 USD per request (production list price; non-production is lower — see 402 body)",
     endpoints: [
       {

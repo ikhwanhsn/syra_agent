@@ -249,9 +249,9 @@ export function buildGatewayOpenApi() {
       get: opGet('Market data (x402)', 'Crypto events', 'getEvent', TICKER_QUERY, true),
       post: opPost('Market data (x402)', 'Crypto events (POST)', 'postEvent', true),
     },
-    '/check-status': {
-      get: opGet('Gateway (x402)', 'API health / check-status', 'getCheckStatus', [], true),
-      post: opPost('Gateway (x402)', 'Check-status (POST)', 'postCheckStatus', true),
+    '/health': {
+      get: opGet('Gateway (x402)', 'API health (x402 liveness)', 'getHealth', [], true),
+      post: opPost('Gateway (x402)', 'API health (POST)', 'postHealth', true),
     },
     '/brain': {
       get: opGet(

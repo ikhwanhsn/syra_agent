@@ -680,13 +680,13 @@
         }
       }
     },
-    "/check-status": {
+    "/health": {
       "get": {
         "tags": [
           "Gateway (x402)"
         ],
-        "summary": "API health / check-status",
-        "operationId": "getCheckStatus",
+        "summary": "API health (x402 liveness)",
+        "operationId": "getHealth",
         "responses": {
           "200": {
             "description": "OK",
@@ -708,8 +708,8 @@
         "tags": [
           "Gateway (x402)"
         ],
-        "summary": "Check-status (POST)",
-        "operationId": "postCheckStatus",
+        "summary": "API health (POST)",
+        "operationId": "postHealth",
         "requestBody": {
           "required": false,
           "content": {

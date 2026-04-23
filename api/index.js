@@ -42,21 +42,12 @@ import {
   createSentimentRouterRegular,
 } from "./routes/partner/cryptonews.js";
 import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
-import { createExaSearchRouter as createV2ExaSearchRouter } from "./routes/exa-search.js";
-import { createCrawlRouter } from "./routes/crawl.js";
-import { createBrowserUseRouter } from "./routes/browserUse.js";
+// exa-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter, pumpfun, squid, bubblemaps,
+// 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
-import { createCheckStatusRouter as createV2CheckStatusRouter } from "./routes/check-status.js";
+import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
-import { createSmartMoneyRouter as createV2SmartMoneyRouter } from "./routes/partner/nansen/smart-money.js";
-import { createTokenGodModeRouter as createV2TokenGodModeRouter } from "./routes/partner/nansen/token-god-mode.js";
-import { createTrendingJupiterRouter as createV2TrendingJupiterRouter } from "./routes/partner/jupiter/trending.js";
-import { createJupiterSwapOrderRouter as createV2JupiterSwapOrderRouter } from "./routes/partner/jupiter/swap-order.js";
-import { createPumpFunRouter } from "./routes/partner/pumpfun/index.js";
-import { createSquidRouteRouter as createV2SquidRouteRouter } from "./routes/partner/squid/route.js";
-import { createSquidStatusRouter as createV2SquidStatusRouter } from "./routes/partner/squid/status.js";
 import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
-import { createBubblemapsMapsRouter as createV2BubblemapsMapsRouter } from "./routes/partner/bubblemaps/maps.js";
 import { createNansenEndpointsRouter } from "./routes/partner/nansen/nansenEndpoints.js";
 import { createBinanceSpotRouter } from "./routes/partner/binance/spot.js";
 import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
@@ -73,10 +64,7 @@ import dotenv from "dotenv";
 import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
-import { create8004scanRouter } from "./routes/partner/8004scan/index.js";
-import { createHeyLolRouter } from "./routes/heylol.js";
 import { createBrainRouter } from "./routes/brain.js";
-import { createQuicknodeRouter } from "./routes/partner/quicknode/index.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
 import { createStakingAppRouter } from "./routes/stakingApp.js";
@@ -240,31 +228,19 @@ function isX402Route(p) {
   if (p.startsWith("/.well-known")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
-  if (p.startsWith("/exa-search")) return true;
-  if (p.startsWith("/crawl")) return true;
-  if (p.startsWith("/browser-use")) return true;
   if (p === "/arbitrage" || p.startsWith("/arbitrage/")) return true;
-  if (p.startsWith("/check-status") && !p.startsWith("/check-status-agent")) return true;
+  if (p.startsWith("/health")) return true;
+  if (p === "/check-status" || (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent")))
+    return true;
   if (p.startsWith("/mpp/v1")) return true;
-  if (p.startsWith("/smart-money")) return true;
-  if (p.startsWith("/token-god-mode")) return true;
   if (p.startsWith("/solana-agent")) return true;
-  if (p.startsWith("/trending-jupiter")) return true;
-  if (p.startsWith("/jupiter")) return true;
-  if (p.startsWith("/pumpfun")) return true;
-  if (p.startsWith("/squid")) return true;
   if (p.startsWith("/analytics/summary")) return true;
   if (p.startsWith("/sentiment")) return true;
   if (p.startsWith("/event")) return true;
   if (p.startsWith("/trending-headline")) return true;
   if (p.startsWith("/sundown-digest")) return true;
-  if (p.startsWith("/bubblemaps")) return true;
   if (p.startsWith("/8004")) return true;
-  if (p.startsWith("/8004scan")) return true;
-  if (p.startsWith("/heylol")) return true;
   if (p.startsWith("/brain")) return true;
-  if (p.startsWith("/quicknode")) return true;
-  if (p.startsWith("/erc8004")) return true;
   if (p.startsWith("/nansen")) return true;
   if (p.startsWith("/binance")) return true;
   if (p.startsWith("/bankr")) return true;
@@ -278,11 +254,6 @@ function isX402Route(p) {
 /** Agent routes (ai-agent website) need permissive CORS so the frontend can call from any origin (e.g. localhost:5173). */
 function isAgentRoute(p) {
   return p && (p === "/agent" || p.startsWith("/agent/"));
-}
-
-/** hey.lol proxy routes — permissive CORS for frontend/agent callers. */
-function isHeyLolRoute(p) {
-  return p && (p === "/heylol" || p.startsWith("/heylol/"));
 }
 
 /** Playground proxy: allows api-playground (playground.syraa.fun) to call other x402 APIs without CORS issues. */
@@ -310,7 +281,6 @@ app.use((req, res, next) => {
   const options =
     isX402Route(req.path) ||
     isAgentRoute(req.path) ||
-    isHeyLolRoute(req.path) ||
     isPlaygroundProxyRoute(req.path) ||
     isPublicSignalApiRoute(req.path) ||
     isPreviewRoute(req.path)
@@ -821,15 +791,31 @@ app.use("/v1", (req, res) => {
 // x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/api/signal", await createPublicSignalApiRouter());
 app.use("/signal", await createV2SignalRouter());
-app.use("/exa-search", await createV2ExaSearchRouter());
-app.use("/crawl", await createCrawlRouter());
-app.use("/browser-use", await createBrowserUseRouter());
 app.use("/arbitrage", await createArbitrageExperimentX402Router());
-app.use("/check-status", await createV2CheckStatusRouter());
+// Legacy /check-status → /health (308). Agent + discovery use /health.
+app.use((req, res, next) => {
+  const p = req.path || "";
+  if (p === "/check-status" || (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent"))) {
+    const rest = p === "/check-status" ? "" : p.slice("/check-status".length);
+    const q = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+    return res.redirect(308, `/health${rest}${q}`);
+  }
+  next();
+});
+// Legacy /mpp/v1/check-status → /mpp/v1/health
+app.use((req, res, next) => {
+  const p = req.path || "";
+  if (p === "/mpp/v1/check-status" || p.startsWith("/mpp/v1/check-status/")) {
+    const rest = p === "/mpp/v1/check-status" ? "" : p.slice("/mpp/v1/check-status".length);
+    const q = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+    return res.redirect(308, `/mpp/v1/health${rest}${q}`);
+  }
+  next();
+});
+app.use("/health", await createHealthRouter());
 app.use("/mpp/v1", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/brain", await createBrainRouter());
-app.use("/smart-money", await createV2SmartMoneyRouter());
 app.use("/openrouter", await createOpenRouterChatRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
 app.use("/agent/chat", await createAgentChatRouter());
@@ -840,13 +826,7 @@ app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
 app.use("/agent/marketplace", await createAgentMarketplaceRouter());
 app.use("/agent/leaderboard", await createAgentLeaderboardRouter());
-app.use("/token-god-mode", await createV2TokenGodModeRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
-app.use("/trending-jupiter", await createV2TrendingJupiterRouter());
-app.use("/jupiter/swap/order", await createV2JupiterSwapOrderRouter());
-app.use("/pumpfun", await createPumpFunRouter());
-app.use("/squid/route", await createV2SquidRouteRouter());
-app.use("/squid/status", await createV2SquidStatusRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
 // Sentinel Dashboard: spend, agents, alerts (API key auth); same storage as wrapWithSentinel
@@ -861,7 +841,6 @@ app.use("/internal/arena-worker", createInternalArenaWorkerRouter());
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
-app.use("/bubblemaps/maps", await createV2BubblemapsMapsRouter());
 
 // Nansen x402 catalog (PAYER_KEYPAIR); mirrors /nansen/* paths used by agent tools
 app.use("/nansen", await createNansenEndpointsRouter());
@@ -875,18 +854,6 @@ app.use("/siwa", await createSiwaRouter());
 
 // 8004 Trustless Agent Registry (read-only: liveness, integrity, discovery, introspection)
 app.use("/8004", await create8004Router());
-// 8004scan.io Public API proxy (x402) – agents, stats, search, feedbacks, chains
-app.use("/8004scan", await create8004scanRouter());
-
-// hey.lol agent API proxy (x402) – profile, posts, feed, DMs, services, token. Use HEYLOL_SOLANA_PRIVATE_KEY or anonymousId.
-app.use("/heylol", await createHeyLolRouter());
-// Quicknode RPC proxy (x402) – balance, transaction status, raw JSON-RPC. Set QUICKNODE_SOLANA_RPC_URL / QUICKNODE_BASE_RPC_URL.
-app.use("/quicknode", await createQuicknodeRouter());
-// ERC-8004 alias → canonical /8004scan (308 permanent redirect)
-app.use("/erc8004", (req, res) => {
-  const suffix = req.path === "/" ? "" : req.path;
-  res.redirect(308, `/8004scan${suffix}`);
-});
 // X (Twitter) API proxy (x402) – user lookup, search recent, user tweets, feed. GET and POST supported.
 app.use("/x", await createXApiRouter());
 
@@ -1126,4 +1093,10 @@ app.listen(PORT, () => {
     }
     setInterval(runTesterAgentCron, testerIntervalMs);
   }
+
+  import("./libs/healthX402Monitor.js")
+    .then(({ startHealthX402Monitor }) => {
+      startHealthX402Monitor();
+    })
+    .catch((e) => console.warn("[health-x402-monitor] load failed:", e instanceof Error ? e.message : e));
 });

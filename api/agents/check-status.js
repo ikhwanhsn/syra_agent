@@ -13,7 +13,7 @@ export async function createCheckStatusAgentRouter() {
 
     try {
       const { BASE_URL } = process.env;
-      const url = `${BASE_URL}/check-status`;
+      const url = `${BASE_URL}/health`;
 
       const response = await getSentinelPayerFetch()(url, {
         method: "POST",
@@ -48,7 +48,7 @@ export async function createCheckStatusAgentRouter() {
 
     try {
       const { BASE_URL } = process.env;
-      const url = `${BASE_URL}/check-status`;
+      const url = `${BASE_URL}/health`;
 
       const response = await getSentinelPayerFetch()(url, {
         method: "POST",

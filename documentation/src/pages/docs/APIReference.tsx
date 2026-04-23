@@ -10,7 +10,7 @@ const BASE_URL = "https://api.syraa.fun";
 const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   {
     title: "Overview & Standards",
-    slugs: ["x402-api-standard", "check-status", "brain", "preview-dashboard", "x-api"],
+    slugs: ["x402-api-standard", "health", "brain", "preview-dashboard", "x-api"],
   },
   {
     title: "News & Sentiment",
@@ -244,10 +244,10 @@ curl "${BASE_URL}/news?ticker=BTC" \\
 
       <div className="flex justify-end pt-8 mt-8 border-t border-border">
         <Link
-          to="/docs/api/check-status"
+          to="/docs/api/health"
           className="group inline-flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
         >
-          Check Status API
+          API Health
           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>

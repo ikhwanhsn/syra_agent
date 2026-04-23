@@ -18,6 +18,8 @@ export const PUMPFUN_TX_TOOL_IDS = new Set([
   'pumpfun-collect-fees',
   'pumpfun-sharing-config',
   'pumpfun-agent-payments-build',
+  /** Jupiter Ultra returns a base64 legacy transaction (same sign path as pump.fun). */
+  'jupiter-swap-order',
 ]);
 
 /**

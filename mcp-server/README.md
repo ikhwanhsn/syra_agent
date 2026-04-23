@@ -441,7 +441,7 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_sentiment` | `/sentiment` |
 | `syra_v2_trending_headline` | `/trending-headline` |
 | `syra_v2_signal` | `/signal` |
-| `syra_v2_check_status` | `/check-status` |
+| `syra_v2_check_status` | `/health` |
 | `syra_v2_sundown_digest` | `/sundown-digest` |
 | `syra_v2_gems` | `/gems` |
 | `syra_v2_crypto_kol` | `/crypto-kol` |
@@ -496,7 +496,7 @@ When **`SYRA_USE_DEV_ROUTES=true`** and **`SYRA_API_BASE_URL`** points to your *
 
 - `/news` → `/news/dev`
 - `/event` → `/event/dev`
-- `/check-status` → `/check-status/dev`
+- `/health` → `/health/dev`
 
 Whether the API actually skips payment for a given path depends on how your **API** implements the `/dev` routes. Use dev routes **only** with a local or non-production API.
 
