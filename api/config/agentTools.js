@@ -771,6 +771,187 @@ export const AGENT_TOOLS = [
     name: 'RISE new markets stream',
     description: 'Returns integration note for RISE SSE stream endpoint /markets/stream/new',
   },
+  // GMGN (OpenAPI via npm gmgn-cli — https://github.com/GMGNAI/gmgn-skills; set GMGN_API_KEY, optional GMGN_PRIVATE_KEY for follow-wallet)
+  {
+    id: 'gmgn-token-info',
+    agentDirect: true,
+    path: '/gmgn/token/info',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: token info',
+    description: 'Token details and live price (params: chain sol|bsc|base|eth, address)',
+  },
+  {
+    id: 'gmgn-token-security',
+    agentDirect: true,
+    path: '/gmgn/token/security',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: token security',
+    description: 'Token security and risk metrics (chain, address)',
+  },
+  {
+    id: 'gmgn-token-pool',
+    agentDirect: true,
+    path: '/gmgn/token/pool',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: token pool',
+    description: 'Liquidity pool info (chain, address)',
+  },
+  {
+    id: 'gmgn-token-holders',
+    agentDirect: true,
+    path: '/gmgn/token/holders',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: top holders',
+    description: 'Top token holders; optional limit, order_by, direction, tag (smart_degen, renowned, …)',
+  },
+  {
+    id: 'gmgn-token-traders',
+    agentDirect: true,
+    path: '/gmgn/token/traders',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: top traders',
+    description: 'Top traders for a token; optional limit, order_by, direction, tag',
+  },
+  {
+    id: 'gmgn-market-trending',
+    agentDirect: true,
+    path: '/gmgn/market/trending',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: trending tokens',
+    description: 'Trending swap rank (chain, interval 1m|5m|1h|6h|24h); optional limit, order_by, direction, filters, platforms (comma-sep)',
+  },
+  {
+    id: 'gmgn-market-kline',
+    agentDirect: true,
+    path: '/gmgn/market/kline',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: token K-line',
+    description: 'OHLCV candles (chain, address, resolution; optional from, to in Unix seconds)',
+  },
+  {
+    id: 'gmgn-market-trenches',
+    agentDirect: true,
+    path: '/gmgn/market/trenches',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: Trenches (new tokens)',
+    description: 'New/near-grad/graduated launchpad flow; optional type, launchpad_platform, limit, filterPreset (safe|smart-money|strict), filters (JSON), sortBy',
+  },
+  {
+    id: 'gmgn-market-signal',
+    agentDirect: true,
+    path: '/gmgn/market/signal',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: token signals',
+    description: 'Token signal feed (chain sol|bsc); use groups (JSON array) or signal_type, mcMin, etc.',
+  },
+  {
+    id: 'gmgn-portfolio-holdings',
+    agentDirect: true,
+    path: '/gmgn/portfolio/holdings',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: wallet holdings',
+    description: 'Wallet token positions (chain, wallet); optional limit, cursor, order_by, interval',
+  },
+  {
+    id: 'gmgn-portfolio-activity',
+    agentDirect: true,
+    path: '/gmgn/portfolio/activity',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: wallet activity',
+    description: 'Wallet activity (chain, wallet); optional token, limit, type (buy|sell, comma)',
+  },
+  {
+    id: 'gmgn-portfolio-stats',
+    agentDirect: true,
+    path: '/gmgn/portfolio/stats',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: wallet stats',
+    description: 'Trading stats (chain, wallet — comma for multiple; optional period 7d|30d)',
+  },
+  {
+    id: 'gmgn-portfolio-info',
+    agentDirect: true,
+    path: '/gmgn/portfolio/info',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: API key wallets',
+    description: 'Wallets and balances bound to the GMGN API key',
+  },
+  {
+    id: 'gmgn-portfolio-token-balance',
+    agentDirect: true,
+    path: '/gmgn/portfolio/token-balance',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: single token balance',
+    description: 'One token balance (chain, wallet, token addresses)',
+  },
+  {
+    id: 'gmgn-portfolio-created-tokens',
+    agentDirect: true,
+    path: '/gmgn/portfolio/created-tokens',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: dev created tokens',
+    description: 'Tokens created by a wallet (chain, wallet); optional order_by, migrate_state',
+  },
+  {
+    id: 'gmgn-track-kol',
+    agentDirect: true,
+    path: '/gmgn/track/kol',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: KOL trades',
+    description: 'KOL trade feed; optional chain, limit, side (client filter)',
+  },
+  {
+    id: 'gmgn-track-smartmoney',
+    agentDirect: true,
+    path: '/gmgn/track/smartmoney',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: smart money trades',
+    description: 'Smart money feed; optional chain, limit, side (client filter)',
+  },
+  {
+    id: 'gmgn-track-follow-wallet',
+    agentDirect: true,
+    path: '/gmgn/track/follow-wallet',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_USD,
+    name: 'GMGN: follow-wallet trades',
+    description: 'Trades for followed wallets (chain; optional wallet, limit, min_amount_usd). Needs GMGN_PRIVATE_KEY.',
+  },
   // Partner: Jupiter, Bubblemaps, Binance
   {
     id: 'trending-jupiter',
@@ -1917,6 +2098,30 @@ export function matchToolFromUserMessage(userMessage) {
       test: () =>
         /purch\s*vault\s*buy|buy\s*(?:from\s*)?(?:purch\s*)?vault|purchase\s*(?:from\s*)?(?:purch\s*)?vault|buy\s*(?:this\s*)?(?:skill|knowledge|persona)\s*(?:from\s*)?vault/i.test(text),
     },
+    // GMGN (https://github.com/GMGNAI/gmgn-skills)
+    {
+      toolId: 'gmgn-market-trending',
+      test: () =>
+        /\bgmgn\b.*\b(trending|rank|top\s*volume|1m|5m|1h)\b|\b(trending|trenches|pump\.fun)\b.*\bgmgn\b|gmgn\s*(trending|trenches|market)/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'gmgn-token-info',
+      test: () => /\bgmgn\b.*\b(token|coin|contract|security|holder|kline|ohlc)\b|token.*\bon\s*gmgn|is\s*this\s*token\s*safe.*gmgn/i.test(text),
+    },
+    {
+      toolId: 'gmgn-track-smartmoney',
+      test: () => /\bgmgn\b.*\b(smart\s*money|smartmoney)\b|gmgn\s*smart/i.test(text),
+    },
+    {
+      toolId: 'gmgn-track-kol',
+      test: () => /\bgmgn\b.*\b(kol|influencer)\b|kol\s*trades.*gmgn/i.test(text),
+    },
+    {
+      toolId: 'gmgn-portfolio-holdings',
+      test: () => /\bgmgn\b.*\b(holdings?|wallet|portfolio|pnl|balance)\b|show\s*my\s*holdings.*gmgn/i.test(text),
+    },
     // Core: signal, event, digest, headline
     {
       toolId: 'signal',
@@ -2044,6 +2249,24 @@ export function getCapabilitiesList() {
     'rise-deposit-and-borrow',
     'rise-repay-and-withdraw',
     'rise-stream-new',
+    'gmgn-token-info',
+    'gmgn-token-security',
+    'gmgn-token-pool',
+    'gmgn-token-holders',
+    'gmgn-token-traders',
+    'gmgn-market-trending',
+    'gmgn-market-kline',
+    'gmgn-market-trenches',
+    'gmgn-market-signal',
+    'gmgn-portfolio-holdings',
+    'gmgn-portfolio-activity',
+    'gmgn-portfolio-stats',
+    'gmgn-portfolio-info',
+    'gmgn-portfolio-token-balance',
+    'gmgn-portfolio-created-tokens',
+    'gmgn-track-kol',
+    'gmgn-track-smartmoney',
+    'gmgn-track-follow-wallet',
   ];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const purchVault = ['purch-vault-search', 'purch-vault-buy'];
@@ -2073,7 +2296,7 @@ export function getCapabilitiesList() {
       .filter(Boolean);
 
   lines.push('Core:', ...fmt(core), '');
-  lines.push('Partner (Nansen, Zerion, Jupiter, Squid, Bubblemaps, Binance, Giza):', ...fmt(partner), '');
+  lines.push('Partner (Nansen, Zerion, Jupiter, Squid, Bubblemaps, Binance, Giza, GMGN):', ...fmt(partner), '');
   lines.push(
     'Partner pump.fun (Syra /pumpfun/* x402 proxy; fun-block + coins-v2; use mint + user as required):',
     ...fmt(pumpfun),
@@ -2297,6 +2520,49 @@ export function getToolsForLlmSelection() {
     if (t.birdeyePath) {
       const hint = getBirdeyeParamsHintForLlm(t.id);
       if (hint) out.paramsHint = hint;
+    }
+    if (t.id === 'gmgn-token-info' || t.id === 'gmgn-token-security' || t.id === 'gmgn-token-pool') {
+      out.paramsHint = 'Params: chain (sol|bsc|base|eth), address (token contract or mint)';
+    }
+    if (t.id === 'gmgn-token-holders' || t.id === 'gmgn-token-traders') {
+      out.paramsHint =
+        'Params: chain, address; optional limit, order_by, direction, tag (e.g. smart_degen, renowned, sniper, rat_trader, bundler)';
+    }
+    if (t.id === 'gmgn-market-trending') {
+      out.paramsHint =
+        'Params: chain, interval (1m|5m|1h|6h|24h); optional limit, order_by, direction, filters, platforms (comma-sep; Pump.fun, etc.)';
+    }
+    if (t.id === 'gmgn-market-kline') {
+      out.paramsHint = 'Params: chain, address, resolution (1m|5m|15m|1h|4h|1d); optional from, to (Unix seconds)';
+    }
+    if (t.id === 'gmgn-market-trenches') {
+      out.paramsHint =
+        'Params: chain; optional type, launchpad_platform, limit, filterPreset (safe|smart-money|strict), filters (JSON), sortBy';
+    }
+    if (t.id === 'gmgn-market-signal') {
+      out.paramsHint = 'Params: chain (sol|bsc); groups (JSON) OR signal_type (comma, e.g. 12,14) with optional mcMin, mcMax';
+    }
+    if (t.id === 'gmgn-portfolio-holdings' || t.id === 'gmgn-portfolio-activity') {
+      out.paramsHint = 'Params: chain, wallet; optional limit, token (activity), type (activity buy/sell comma), cursor';
+    }
+    if (t.id === 'gmgn-portfolio-stats') {
+      out.paramsHint = 'Params: chain, wallet (comma for multiple); optional period (7d|30d)';
+    }
+    if (t.id === 'gmgn-portfolio-info') {
+      out.paramsHint = 'No params. Returns wallets linked to the Syra server GMGN API key.';
+    }
+    if (t.id === 'gmgn-portfolio-token-balance') {
+      out.paramsHint = 'Params: chain, wallet, token (mint/contract addresses)';
+    }
+    if (t.id === 'gmgn-portfolio-created-tokens') {
+      out.paramsHint = 'Params: chain, wallet (developer); optional order_by, migrate_state, direction';
+    }
+    if (t.id === 'gmgn-track-kol' || t.id === 'gmgn-track-smartmoney') {
+      out.paramsHint = 'Optional: chain, limit, side (buy|sell) — same semantics as GMGN /user/kol and /user/smartmoney';
+    }
+    if (t.id === 'gmgn-track-follow-wallet') {
+      out.paramsHint =
+        'Params: chain; optional wallet, limit, side, min_amount_usd, filters. Requires server GMGN_PRIVATE_KEY (see gmgn-skills).';
     }
     return out;
   });

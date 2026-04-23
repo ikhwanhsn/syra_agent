@@ -102,6 +102,21 @@ const REQUIRE_ALL_KEYS = {
   'squid-route': ['fromAddress', 'fromChain', 'fromToken', 'fromAmount', 'toChain', 'toToken', 'toAddress'],
   'squid-status': ['transactionId', 'requestId', 'fromChainId', 'toChainId'],
   'nansen-token-screener': ['chain'],
+  'gmgn-token-info': ['chain', 'address'],
+  'gmgn-token-security': ['chain', 'address'],
+  'gmgn-token-pool': ['chain', 'address'],
+  'gmgn-token-holders': ['chain', 'address'],
+  'gmgn-token-traders': ['chain', 'address'],
+  'gmgn-market-trending': ['chain', 'interval'],
+  'gmgn-market-kline': ['chain', 'address', 'resolution'],
+  'gmgn-market-trenches': ['chain'],
+  'gmgn-market-signal': ['chain'],
+  'gmgn-portfolio-holdings': ['chain', 'wallet'],
+  'gmgn-portfolio-activity': ['chain', 'wallet'],
+  'gmgn-portfolio-stats': ['chain', 'wallet'],
+  'gmgn-portfolio-token-balance': ['chain', 'wallet', 'token'],
+  'gmgn-portfolio-created-tokens': ['chain', 'wallet'],
+  'gmgn-track-follow-wallet': ['chain'],
 };
 
 const NANSEN_ADDRESS_TOOLS = new Set([
