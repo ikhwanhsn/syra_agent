@@ -1,8 +1,19 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  cloneElement,
+  Fragment,
+  isValidElement,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { Copy, Check, RefreshCw, Pencil } from "lucide-react";
+import { Copy, Check, RefreshCw, Pencil, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +22,73 @@ import { PumpfunCreateCoinInlineForm } from "@/components/chat/PumpfunCreateCoin
 import { PumpfunCreateCoinResultBar } from "@/components/chat/PumpfunCreateCoinResultBar";
 import { AgentSwapInlineForm } from "@/components/chat/AgentSwapInlineForm";
 import type { AgentInlineUiPayload } from "@/lib/chatApi";
+import { linkifyBareHttpUrlsInMarkdown } from "@/lib/markdownLinkifyHttp";
 import { injectSolscanLinksInMarkdown } from "@/lib/solanaExplorerMarkdown";
+
+/** Match signed percentages in prose (e.g. -0.68%, +1.2%). Skipped inside code / links via tree walk. */
+const SIGNED_PERCENT_RE = /([+-]?\d+(?:\.\d+)?%)/g;
+
+function splitStringWithSignedPercentColor(text: string): ReactNode {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  const re = new RegExp(SIGNED_PERCENT_RE.source, SIGNED_PERCENT_RE.flags);
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    const token = m[1];
+    const val = parseFloat(token.replace("%", ""));
+    let tone = "text-foreground";
+    if (!Number.isNaN(val)) {
+      if (val < 0) tone = "text-red-600 dark:text-red-400";
+      else if (val > 0) tone = "text-emerald-600 dark:text-emerald-400";
+    }
+    nodes.push(
+      <span key={`pct-${k++}`} data-pct-colored className={cn("font-medium tabular-nums", tone)}>
+        {token}
+      </span>,
+    );
+    last = m.index + token.length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  if (nodes.length === 0) return text;
+  if (nodes.length === 1 && typeof nodes[0] === "string") return nodes[0];
+  return <>{nodes}</>;
+}
+
+const PCT_SKIP_TAGS = new Set(["code", "pre", "a"]);
+
+/**
+ * Color signed percentages in markdown-rendered React trees.
+ * Skips `code` / `pre` / `a`, and leaves spans from a prior pass untouched.
+ * When `skipDeepEnterTags` includes `p`, list/table cells avoid double-processing paragraphs.
+ */
+function createSignedPctAccentWalker(options: { skipDeepEnterTags?: readonly string[] } = {}) {
+  const skipDeepEnter = new Set(options.skipDeepEnterTags ?? []);
+  function accent(node: ReactNode): ReactNode {
+    if (node == null || typeof node === "boolean") return node;
+    if (typeof node === "string") return splitStringWithSignedPercentColor(node);
+    if (typeof node === "number") return node;
+    if (Array.isArray(node)) {
+      return node.map((child, i) => (
+        <Fragment key={i}>{accent(child)}</Fragment>
+      ));
+    }
+    if (isValidElement(node)) {
+      const el = node as ReactElement<{ children?: ReactNode; "data-pct-colored"?: boolean }>;
+      const tag = typeof el.type === "string" ? el.type : "";
+      if (el.props["data-pct-colored"] === true) return el;
+      if (PCT_SKIP_TAGS.has(tag)) return el;
+      if (skipDeepEnter.has(tag)) return el;
+      return cloneElement(el, undefined, accent(el.props.children));
+    }
+    return node;
+  }
+  return accent;
+}
+
+const accentSignedPercentagesFull = createSignedPctAccentWalker();
+const accentSignedPercentagesSkipBlockP = createSignedPctAccentWalker({ skipDeepEnterTags: ["p"] });
 
 /** Context-specific step sequences — each tells a short "story" relevant to the user's question. */
 const STEP_SEQUENCES: Record<string, string[]> = {
@@ -208,187 +285,242 @@ export function ChatMessage({
     setEditDraft("");
   };
 
-  const markdownComponents: Components = {
-    // Tables: scrollable container and styled cells
-    table: ({ children, ...props }) => (
-      <div className="my-4 overflow-x-auto rounded-xl border border-border max-w-full scrollbar-thin -mx-1 sm:mx-0">
-        <table className="w-full min-w-[240px] sm:min-w-[400px] border-collapse text-sm" {...props}>
+  const markdownComponents: Components = useMemo(() => {
+    const prose = isUser
+      ? {
+          p: "my-3 min-w-0 max-w-full whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-foreground/95 sm:text-base",
+          ul: "my-4 ml-5 list-disc space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:text-primary/40 sm:text-base",
+          ol: "my-4 ml-5 list-decimal space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:font-medium marker:text-muted-foreground/70 sm:text-base",
+          h1: "mt-6 break-words text-balance text-xl font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-2xl",
+          h2: "mt-6 break-words border-b border-border/50 pb-2 text-lg font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-xl",
+          h3: "mt-6 break-words text-base font-semibold tracking-tight text-foreground first:mt-0 sm:text-lg",
+          bq: "my-5 max-w-full rounded-r-xl border-l-2 border-primary/30 bg-muted/20 py-3 pl-4 pr-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base",
+          codeWrap: "my-3 rounded-xl overflow-hidden border border-border max-w-full min-w-0",
+          codeBar: "flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-secondary/50 border-b border-border min-w-0",
+          codePre: "p-3 sm:p-4 bg-secondary/30 text-xs sm:text-sm min-w-0 max-w-full scrollbar-thin",
+          inlineCode: "rounded bg-secondary/60 px-1.5 py-0.5 text-sm font-mono text-foreground break-all",
+          tableWrap: "my-4 overflow-x-auto rounded-xl border border-border max-w-full scrollbar-thin -mx-1 sm:mx-0",
+          thead: "bg-secondary/60 border-b border-border",
+          tr: "hover:bg-secondary/30 transition-colors",
+          th: "px-4 py-3 text-left font-semibold text-foreground align-top",
+          td: "px-4 py-3 text-muted-foreground align-top break-words min-w-0",
+          link: "font-medium text-foreground underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary",
+        }
+      : {
+          p: "my-3.5 min-w-0 max-w-full whitespace-pre-wrap break-words text-[15px] leading-[1.72] text-foreground/92 first:mt-0 sm:my-4 sm:text-[15.5px] sm:leading-[1.75] tracking-[-0.011em]",
+          ul: "my-5 ml-5 list-disc space-y-2.5 pl-1 text-[15px] leading-[1.72] text-foreground/90 marker:text-foreground/35 sm:my-6 sm:text-[15.5px] sm:leading-[1.75] tracking-[-0.011em]",
+          ol: "my-5 ml-5 list-decimal space-y-2.5 pl-1 text-[15px] leading-[1.72] text-foreground/90 marker:font-semibold marker:text-foreground/50 sm:my-6 sm:text-[15.5px]",
+          h1: "mt-8 break-words text-balance text-[1.35rem] font-semibold tracking-[-0.03em] text-foreground first:mt-0 sm:mt-9 sm:text-2xl",
+          h2: "mt-8 break-words border-b border-border/45 pb-2.5 text-lg font-semibold tracking-[-0.025em] text-foreground first:mt-0 sm:mt-9 sm:text-xl",
+          h3: "mt-7 break-words text-base font-semibold tracking-[-0.02em] text-foreground first:mt-0 sm:mt-8 sm:text-[1.05rem]",
+          bq: "my-6 max-w-full rounded-xl border border-border/60 bg-gradient-to-br from-muted/25 via-muted/10 to-transparent py-3.5 pl-4 pr-4 text-[15px] leading-relaxed text-muted-foreground shadow-[inset_3px_0_0_0_hsl(var(--primary)/0.35)] sm:my-7 sm:text-[15.5px]",
+          codeWrap:
+            "my-4 overflow-hidden rounded-xl border border-border/70 bg-background/30 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)] max-w-full min-w-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
+          codeBar:
+            "flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-muted/35 border-b border-border/60 min-w-0 backdrop-blur-[2px]",
+          codePre:
+            "p-3 sm:p-4 bg-[hsl(var(--message-agent)/0.65)] text-[13px] sm:text-sm min-w-0 max-w-full scrollbar-thin leading-relaxed text-foreground/95",
+          inlineCode:
+            "rounded-md border border-border/50 bg-muted/35 px-1.5 py-px text-[0.8125rem] font-mono text-foreground/95 shadow-sm",
+          tableWrap:
+            "my-5 overflow-x-auto rounded-xl border border-border/70 bg-muted/15 max-w-full scrollbar-thin shadow-sm -mx-0.5 sm:mx-0",
+          thead: "bg-muted/40 border-b border-border/60",
+          tr: "border-b border-border/35 transition-colors odd:bg-background/[0.12] hover:bg-muted/25",
+          th: "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground align-top sm:text-[13px]",
+          td: "px-4 py-3 text-[13px] text-foreground/90 align-top break-words min-w-0 sm:text-sm",
+          link: "font-medium text-foreground underline decoration-primary/35 underline-offset-[5px] transition-all hover:bg-primary/8 hover:decoration-primary/80 rounded-sm px-0.5 -mx-0.5",
+        };
+
+    return {
+      table: ({ children, ...props }) => (
+        <div className={prose.tableWrap}>
+          <table className="w-full min-w-[240px] sm:min-w-[400px] border-collapse text-sm" {...props}>
+            {children}
+          </table>
+        </div>
+      ),
+      thead: ({ children, ...props }) => (
+        <thead className={prose.thead} {...props}>
           {children}
-        </table>
-      </div>
-    ),
-    thead: ({ children, ...props }) => (
-      <thead className="bg-secondary/60 border-b border-border" {...props}>
-        {children}
-      </thead>
-    ),
-    tbody: ({ children, ...props }) => <tbody className="divide-y divide-border" {...props}>{children}</tbody>,
-    tr: ({ children, ...props }) => (
-      <tr className="hover:bg-secondary/30 transition-colors" {...props}>
-        {children}
-      </tr>
-    ),
-    th: ({ children, ...props }) => (
-      <th className="px-4 py-3 text-left font-semibold text-foreground align-top" {...props}>
-        {children}
-      </th>
-    ),
-    td: ({ children, ...props }) => (
-      <td className="px-4 py-3 text-muted-foreground align-top break-words min-w-0" {...props}>
-        {children}
-      </td>
-    ),
-    // Code: block with Copy button vs inline
-    code: ({ node, className, children, ...props }) => {
-      const code = String(children).replace(/\n$/, "");
-      const hasLanguage = className?.startsWith("language-");
-      const isBlock = hasLanguage || code.includes("\n");
-      const lang = className?.replace("language-", "") ?? "plaintext";
-      // Detect very long single-line strings (like transaction signatures)
-      const isLongSingleLine = !code.includes("\n") && code.length > 40;
-      if (isBlock) {
-        return (
-          <div className="my-3 rounded-xl overflow-hidden border border-border max-w-full min-w-0">
-            <div className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-secondary/50 border-b border-border min-w-0">
-              <span className="text-xs font-medium text-muted-foreground truncate min-w-0">{lang}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 sm:h-7 gap-1.5 text-xs shrink-0 min-h-[36px] sm:min-h-0 touch-manipulation"
-                onClick={() => navigator.clipboard.writeText(code)}
-                title="Copy code"
-                aria-label="Copy code"
+        </thead>
+      ),
+      tbody: ({ children, ...props }) => <tbody className="divide-y divide-border/50" {...props}>{children}</tbody>,
+      tr: ({ children, ...props }) => (
+        <tr className={prose.tr} {...props}>
+          {children}
+        </tr>
+      ),
+      th: ({ children, ...props }) => (
+        <th className={prose.th} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </th>
+      ),
+      td: ({ children, ...props }) => (
+        <td className={prose.td} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </td>
+      ),
+      code: ({ className, children, ...props }) => {
+        const code = String(children).replace(/\n$/, "");
+        const hasLanguage = className?.startsWith("language-");
+        const isBlock = hasLanguage || code.includes("\n");
+        const lang = className?.replace("language-", "") ?? "plaintext";
+        const isLongSingleLine = !code.includes("\n") && code.length > 40;
+        if (isBlock) {
+          return (
+            <div className={prose.codeWrap}>
+              <div className={prose.codeBar}>
+                <span className="inline-flex items-center gap-2 min-w-0">
+                  {!isUser && (
+                    <span className="hidden h-2 w-2 shrink-0 rounded-full bg-foreground/15 shadow-[0_0_0_3px_hsl(var(--foreground)/0.04)] sm:inline sm:h-1.5 sm:w-1.5" aria-hidden />
+                  )}
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate min-w-0">
+                    {lang}
+                  </span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 sm:h-7 gap-1.5 text-xs shrink-0 min-h-[36px] sm:min-h-0 touch-manipulation rounded-lg hover:bg-background/60"
+                  onClick={() => navigator.clipboard.writeText(code)}
+                  title="Copy code"
+                  aria-label="Copy code"
+                >
+                  <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+                  <span className="hidden sm:inline">Copy</span>
+                </Button>
+              </div>
+              <pre
+                className={cn(
+                  prose.codePre,
+                  isLongSingleLine ? "overflow-x-auto break-all whitespace-pre-wrap" : "overflow-x-auto whitespace-pre",
+                )}
+                style={isLongSingleLine ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
               >
-                <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-                <span className="hidden sm:inline">Copy</span>
-              </Button>
+                <code
+                  className="font-mono text-foreground break-all min-w-0"
+                  style={isLongSingleLine ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+                >
+                  {children}
+                </code>
+              </pre>
             </div>
-            <pre className={cn(
-              "p-3 sm:p-4 bg-secondary/30 text-xs sm:text-sm min-w-0 max-w-full scrollbar-thin",
-              // For long single-line strings (like signatures): wrap on all screens
-              // For multi-line code blocks: allow horizontal scroll
-              isLongSingleLine 
-                ? "overflow-x-auto break-all whitespace-pre-wrap" 
-                : "overflow-x-auto whitespace-pre"
-            )}
-            style={isLongSingleLine ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
-            >
-              <code 
-                className="font-mono text-foreground break-all min-w-0" 
-                style={isLongSingleLine ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
-              >
-                {children}
-              </code>
-            </pre>
-          </div>
+          );
+        }
+        const inlineCode = String(children);
+        const isLongInline = inlineCode.length > 30 && !inlineCode.includes(" ");
+        return (
+          <code
+            className={prose.inlineCode}
+            style={isLongInline ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+            {...props}
+          >
+            {children}
+          </code>
         );
-      }
-      const inlineCode = String(children);
-      const isLongInline = inlineCode.length > 30 && !inlineCode.includes(' ');
-      return (
-        <code 
-          className="rounded bg-secondary/60 px-1.5 py-0.5 text-sm font-mono text-foreground break-all" 
-          style={isLongInline ? { wordBreak: 'break-all', overflowWrap: 'anywhere' } : undefined}
-          {...props}
-        >
+      },
+      pre: ({ children }) => <>{children}</>,
+      h1: ({ children, ...props }) => (
+        <h1 className={prose.h1} {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h1>
+      ),
+      h2: ({ children, ...props }) => (
+        <h2 className={prose.h2} {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h2>
+      ),
+      h3: ({ children, ...props }) => (
+        <h3 className={prose.h3} {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h3>
+      ),
+      h4: ({ children, ...props }) => (
+        <h4 className="mt-4 mb-1.5 text-sm font-semibold tracking-tight text-foreground sm:text-[15px]" {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h4>
+      ),
+      h5: ({ children, ...props }) => (
+        <h5 className="mt-3.5 mb-1 text-sm font-medium text-foreground/95" {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h5>
+      ),
+      h6: ({ children, ...props }) => (
+        <h6 className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h6>
+      ),
+      ul: ({ children, ...props }) => (
+        <ul className={prose.ul} {...props}>
           {children}
-        </code>
-      );
-    },
-    pre: ({ children }) => <>{children}</>,
-    // Headings
-    h1: ({ children, ...props }) => (
-      <h1
-        className="mt-6 break-words text-balance text-xl font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-2xl"
-        {...props}
-      >
-        {children}
-      </h1>
-    ),
-    h2: ({ children, ...props }) => (
-      <h2
-        className="mt-6 break-words border-b border-border/50 pb-2 text-lg font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-xl"
-        {...props}
-      >
-        {children}
-      </h2>
-    ),
-    h3: ({ children, ...props }) => (
-      <h3 className="mt-6 break-words text-base font-semibold tracking-tight text-foreground first:mt-0 sm:text-lg" {...props}>
-        {children}
-      </h3>
-    ),
-    h4: ({ children, ...props }) => (
-      <h4 className="mt-3 mb-1.5 text-sm font-semibold text-foreground" {...props}>{children}</h4>
-    ),
-    h5: ({ children, ...props }) => (
-      <h5 className="mt-3 mb-1 text-sm font-medium text-foreground" {...props}>{children}</h5>
-    ),
-    h6: ({ children, ...props }) => (
-      <h6 className="mt-2 mb-1 text-xs font-medium text-muted-foreground" {...props}>{children}</h6>
-    ),
-    // Lists
-    ul: ({ children, ...props }) => (
-      <ul
-        className="my-4 ml-5 list-disc space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:text-primary/40 sm:text-base"
-        {...props}
-      >
-        {children}
-      </ul>
-    ),
-    ol: ({ children, ...props }) => (
-      <ol
-        className="my-4 ml-5 list-decimal space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:font-medium marker:text-muted-foreground/70 sm:text-base"
-        {...props}
-      >
-        {children}
-      </ol>
-    ),
-    li: ({ children, ...props }) => (
-      <li className="min-w-0 break-words pl-1" {...props}>
-        {children}
-      </li>
-    ),
-    // Paragraphs and blockquote — wrap long strings like signatures
-    p: ({ children, ...props }) => {
-      const text = typeof children === 'string' ? children : String(children);
-      const hasLongString = text.length > 50 && !text.includes(' ');
-      return (
-        <p
-          className="my-3 min-w-0 max-w-full whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-foreground/95 sm:text-base"
-          style={hasLongString ? { wordBreak: "break-all", overflowWrap: "anywhere" } : undefined}
-          {...props}
-        >
+        </ul>
+      ),
+      ol: ({ children, ...props }) => (
+        <ol className={prose.ol} {...props}>
           {children}
-        </p>
-      );
-    },
-    blockquote: ({ children, ...props }) => (
-      <blockquote
-        className="my-5 max-w-full rounded-r-xl border-l-2 border-primary/30 bg-muted/20 py-3 pl-4 pr-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base"
-        {...props}
-      >
-        {children}
-      </blockquote>
-    ),
-    strong: ({ children, ...props }) => (
-      <strong className="font-semibold text-foreground" {...props}>{children}</strong>
-    ),
-    a: ({ href, children, ...props }) => (
-      <a
-        href={href}
-        className="font-medium text-foreground underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary"
-        target="_blank"
-        rel="noopener noreferrer"
-        {...props}
-      >
-        {children}
-      </a>
-    ),
-    hr: () => (
-      <hr className="my-8 h-px border-0 bg-gradient-to-r from-transparent via-border/80 to-transparent" />
-    ),
-  };
+        </ol>
+      ),
+      li: ({ children, ...props }) => (
+        <li className={cn("min-w-0 break-words pl-0.5", !isUser && "leading-[1.72]")} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </li>
+      ),
+      p: ({ children, ...props }) => {
+        const text = typeof children === "string" ? children : String(children);
+        const hasLongString = text.length > 50 && !text.includes(" ");
+        return (
+          <p
+            className={prose.p}
+            style={hasLongString ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+            {...props}
+          >
+            {accentSignedPercentagesFull(children)}
+          </p>
+        );
+      },
+      blockquote: ({ children, ...props }) => (
+        <blockquote className={prose.bq} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </blockquote>
+      ),
+      strong: ({ children, ...props }) => (
+        <strong className="font-semibold text-foreground" {...props}>
+          {children}
+        </strong>
+      ),
+      a: ({ href, children, node: _node, ...props }) => {
+        const isHttps = typeof href === "string" && href.startsWith("https://");
+        return (
+          <a
+            href={href}
+            className={cn(
+              prose.link,
+              "cursor-pointer",
+              isHttps && "inline-flex max-w-full items-center gap-1.5 align-baseline",
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            {...props}
+          >
+            {isHttps ? (
+              <>
+                <Link2
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-80"
+                  aria-hidden
+                />
+                <span className="min-w-0 break-all">{children}</span>
+              </>
+            ) : (
+              children
+            )}
+          </a>
+        );
+      },
+      hr: () => (
+        <hr className="my-9 h-px border-0 bg-gradient-to-r from-transparent via-border to-transparent opacity-80 sm:my-10" />
+      ),
+    };
+  }, [isUser]);
 
   const toolItems = useMemo((): ToolUsageItem[] => {
     if (isUser) return [];
@@ -440,7 +572,7 @@ export function ChatMessage({
   }, [toolItems]);
 
   const contentWithSolscanLinks = useMemo(
-    () => injectSolscanLinksInMarkdown(message.content || ""),
+    () => linkifyBareHttpUrlsInMarkdown(injectSolscanLinksInMarkdown(message.content || "")),
     [message.content],
   );
 
@@ -567,15 +699,23 @@ export function ChatMessage({
         </div>
       ) : (
         <div className="min-w-0 flex-1 pr-1 sm:pr-2">
-          <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/45 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.72)] backdrop-blur-xl dark:bg-gradient-to-b dark:from-card/90 dark:via-card/50 dark:to-card/25">
-            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.045] to-transparent" />
-            <div className="relative space-y-3 px-4 py-4 sm:space-y-3 sm:px-6 sm:py-5">
-              <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2 border-b border-border/40 pb-3">
-                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="text-[15px] font-semibold tracking-tight text-foreground sm:text-base">
+          <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.92)] shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_28px_64px_-32px_rgba(0,0,0,0.78),0_1px_0_0_hsl(var(--primary)/0.06)_inset] backdrop-blur-xl dark:bg-gradient-to-br dark:from-[hsl(var(--message-agent)/0.98)] dark:via-card/55 dark:to-card/20">
+            <div
+              className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/25 to-primary/0 opacity-90"
+              aria-hidden
+            />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_80%_at_0%_0%,hsl(var(--foreground)/0.06),transparent_55%)]" />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.055] to-transparent dark:from-white/[0.04]" />
+            <div className="relative space-y-3 px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
+              <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2 border-b border-border/35 pb-3.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                  <span className="inline-flex items-center rounded-full border border-border/50 bg-muted/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
+                    Response
+                  </span>
+                  <span className="text-[15px] font-semibold tracking-[-0.02em] text-foreground sm:text-base">
                     {agentName}
                   </span>
-                  <span className="text-xs tabular-nums text-muted-foreground/90">
+                  <span className="text-xs tabular-nums text-muted-foreground/85">
                     {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
@@ -592,17 +732,20 @@ export function ChatMessage({
 
               <div className="w-full min-w-0 max-w-none break-words text-foreground text-pretty">
                 {(message.content?.trim() || message.isStreaming) && (
-                  <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words [&>*:first-child]:mt-0">
+                  <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words rounded-xl border border-border/30 bg-background/[0.14] px-3 py-4 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)] sm:px-5 sm:py-5 [&>*:first-child]:mt-0">
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                       {contentWithSolscanLinks}
                     </ReactMarkdown>
                   </div>
                 )}
                 {message.isStreaming && (
-                  <span className="ml-1 inline-flex gap-1">
-                    <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
-                    <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span className="ml-2 mt-3 inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-2.5 py-1.5 align-middle shadow-sm">
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Writing</span>
+                    <span className="inline-flex gap-1">
+                      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary/90" />
+                      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary/90" />
+                      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-primary/90" />
+                    </span>
                   </span>
                 )}
                 {!message.isStreaming &&
@@ -643,7 +786,7 @@ export function ChatMessage({
               </div>
 
               {!message.isStreaming && (
-                <div className="flex flex-wrap items-center gap-1 border-t border-border/40 pt-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                <div className="flex flex-wrap items-center gap-1 border-t border-border/30 pt-3.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -678,12 +821,13 @@ export function SkeletonMessage() {
     <div className="flex min-w-0 animate-fade-in items-start gap-3 py-1.5 sm:gap-4 sm:py-2">
       <div className="h-9 w-9 shrink-0 rounded-full skeleton-shimmer ring-1 ring-border/40 ring-offset-2 ring-offset-background sm:h-9 sm:w-9" />
       <div className="min-w-0 flex-1 pr-1 sm:pr-2">
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/30 p-4 sm:p-5">
-          <div className="mb-4 flex gap-2 border-b border-border/40 pb-3">
-            <div className="h-4 w-28 rounded-md skeleton-shimmer" />
-            <div className="h-4 w-12 rounded-md skeleton-shimmer" />
+        <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.85)] p-4 shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.65)] sm:p-5">
+          <div className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/20 to-primary/0" aria-hidden />
+          <div className="mb-4 flex gap-2 border-b border-border/35 pb-3">
+            <div className="h-5 w-16 rounded-full skeleton-shimmer" />
+            <div className="h-4 w-32 rounded-md skeleton-shimmer" />
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 rounded-xl border border-border/25 bg-background/[0.1] p-4">
             <div className="h-4 w-full rounded-md skeleton-shimmer" />
             <div className="h-4 w-[92%] rounded-md skeleton-shimmer" />
             <div className="h-4 w-[78%] rounded-md skeleton-shimmer" />
@@ -749,12 +893,19 @@ export function LoadingStepMessage({
       </div>
 
       <div className="min-w-0 flex-1 pr-1 sm:pr-2">
-        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/45 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.72)] backdrop-blur-xl dark:bg-gradient-to-b dark:from-card/90 dark:via-card/50 dark:to-card/25">
-          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.045] to-transparent" />
+        <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.92)] shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_28px_64px_-32px_rgba(0,0,0,0.78),0_1px_0_0_hsl(var(--primary)/0.06)_inset] backdrop-blur-xl dark:bg-gradient-to-br dark:from-[hsl(var(--message-agent)/0.98)] dark:via-card/55 dark:to-card/20">
+          <div
+            className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/25 to-primary/0 opacity-90"
+            aria-hidden
+          />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_80%_at_0%_0%,hsl(var(--foreground)/0.06),transparent_55%)]" />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.055] to-transparent dark:from-white/[0.04]" />
           <div className="relative space-y-4 px-4 py-4 sm:px-6 sm:py-5">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-border/40 pb-3">
-              <span className="text-[15px] font-semibold tracking-tight text-foreground sm:text-base">{agentName}</span>
-              <span className="text-xs font-medium text-primary/80">Thinking</span>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-border/35 pb-3.5">
+              <span className="inline-flex items-center rounded-full border border-border/50 bg-muted/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
+                Thinking
+              </span>
+              <span className="text-[15px] font-semibold tracking-[-0.02em] text-foreground sm:text-base">{agentName}</span>
             </div>
             <div
               className={cn(

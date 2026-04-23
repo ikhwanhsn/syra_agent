@@ -35,6 +35,8 @@ export function injectSolscanLinksInMarkdown(markdown: string): string {
   s = s.replace(/```[\s\S]*?```/g, (m) => push(m));
   s = s.replace(/`[^`\n]+`/g, (m) => push(m));
   s = s.replace(/!?\[[^\]]*]\([^)]+\)/g, (m) => push(m));
+  /** GFM autolink literals — keep intact before bare-URL pass (otherwise `https://` inside is re-stripped). */
+  s = s.replace(/<https?:\/\/[^>\s]+>/gi, (m) => push(m));
   s = s.replace(/https?:\/\/[^\s)>[\]]+/gi, (m) => push(m));
 
   const replaceLenRange = (text: string, min: number, max: number, url: (token: string) => string): string => {
