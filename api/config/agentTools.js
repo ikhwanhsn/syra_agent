@@ -780,7 +780,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: token info',
-    description: 'Token details and live price (params: chain sol|bsc|base|eth, address)',
+    description: 'Token details and live price. Chain: sol|bsc|base|eth (use sol for Solana; "solana" is normalized). address or mint, token_address, or ca.',
   },
   {
     id: 'gmgn-token-security',
@@ -790,7 +790,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: token security',
-    description: 'Token security and risk metrics (chain, address)',
+    description: 'Token security and risk. Chain sol|bsc|base|eth. Token as address, mint, or token_address.',
   },
   {
     id: 'gmgn-token-pool',
@@ -800,7 +800,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: token pool',
-    description: 'Liquidity pool info (chain, address)',
+    description: 'Liquidity pool info. Chain as above. Token: address, mint, or token_address.',
   },
   {
     id: 'gmgn-token-holders',
@@ -810,7 +810,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: top holders',
-    description: 'Top token holders; optional limit, order_by, direction, tag (smart_degen, renowned, …)',
+    description: 'Top holders. chain sol|bsc|eth|base; address or mint. Optional: limit, order_by, direction, tag (e.g. smart_degen, renowned, …).',
   },
   {
     id: 'gmgn-token-traders',
@@ -820,7 +820,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: top traders',
-    description: 'Top traders for a token; optional limit, order_by, direction, tag',
+    description: 'Top traders for a token. Same chain/address rules as top holders. Optional: limit, order_by, direction, tag.',
   },
   {
     id: 'gmgn-market-trending',
@@ -830,7 +830,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: trending tokens',
-    description: 'Trending swap rank (chain, interval 1m|5m|1h|6h|24h); optional limit, order_by, direction, filters, platforms (comma-sep)',
+    description: 'Trending by swap volume. chain (defaults sol) and interval 1m|5m|1h|6h|24h (defaults 1h). Optional: limit, order_by, direction, filters, platforms.',
   },
   {
     id: 'gmgn-market-kline',
@@ -840,7 +840,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: token K-line',
-    description: 'OHLCV candles (chain, address, resolution; optional from, to in Unix seconds)',
+    description: 'OHLCV candles. chain, token address/mint, resolution 1m|5m|15m|1h|4h|1d (defaults 1h). from/to: Unix seconds or ms.',
   },
   {
     id: 'gmgn-market-trenches',
@@ -850,7 +850,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: Trenches (new tokens)',
-    description: 'New/near-grad/graduated launchpad flow; optional type, launchpad_platform, limit, filterPreset (safe|smart-money|strict), filters (JSON), sortBy',
+    description: 'New/near-grad/grad launchpad tokens. chain defaults sol. Optional: type, launchpad_platform, limit, filterPreset, filters (JSON), sortBy.',
   },
   {
     id: 'gmgn-market-signal',
@@ -860,7 +860,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: token signals',
-    description: 'Token signal feed (chain sol|bsc); use groups (JSON array) or signal_type, mcMin, etc.',
+    description: 'On-chain token signals (chain sol|bsc only; defaults sol). groups (JSON) or signal_type, mcMin, mcMax.',
   },
   {
     id: 'gmgn-portfolio-holdings',
@@ -870,7 +870,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: wallet holdings',
-    description: 'Wallet token positions (chain, wallet); optional limit, cursor, order_by, interval',
+    description: 'Wallet token positions. chain, wallet (or address for wallet). chain defaults to sol for Solana-looking wallets.',
   },
   {
     id: 'gmgn-portfolio-activity',
@@ -880,7 +880,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: wallet activity',
-    description: 'Wallet activity (chain, wallet); optional token, limit, type (buy|sell, comma)',
+    description: 'Wallet activity. chain, wallet. Optional: token, limit, type (buy|sell, comma).',
   },
   {
     id: 'gmgn-portfolio-stats',
@@ -890,7 +890,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: wallet stats',
-    description: 'Trading stats (chain, wallet — comma for multiple; optional period 7d|30d)',
+    description: 'Per-wallet trading stats. chain, wallet (comma for multiple; optional period 7d|30d).',
   },
   {
     id: 'gmgn-portfolio-info',
@@ -900,7 +900,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: API key wallets',
-    description: 'Wallets and balances bound to the GMGN API key',
+    description: 'Wallets and balances bound to the server GMGN API key. No parameters.',
   },
   {
     id: 'gmgn-portfolio-token-balance',
@@ -910,7 +910,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: single token balance',
-    description: 'One token balance (chain, wallet, token addresses)',
+    description: 'One token balance for a wallet. chain, wallet, token (mint/contract; aliases: mint, token_address).',
   },
   {
     id: 'gmgn-portfolio-created-tokens',
@@ -920,7 +920,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: dev created tokens',
-    description: 'Tokens created by a wallet (chain, wallet); optional order_by, migrate_state',
+    description: 'Tokens deployed by a wallet. chain, wallet. Optional: order_by, migrate_state, direction.',
   },
   {
     id: 'gmgn-track-kol',
@@ -930,7 +930,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: KOL trades',
-    description: 'KOL trade feed; optional chain, limit, side (client filter)',
+    description: 'KOL trade feed. Optional chain, limit, side (buy|sell) client-side filter.',
   },
   {
     id: 'gmgn-track-smartmoney',
@@ -940,7 +940,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: smart money trades',
-    description: 'Smart money feed; optional chain, limit, side (client filter)',
+    description: 'Smart money feed. Optional chain, limit, side client-side filter.',
   },
   {
     id: 'gmgn-track-follow-wallet',
@@ -950,7 +950,7 @@ export const AGENT_TOOLS = [
     priceUsd: X402_API_PRICE_USD,
     displayPriceUsd: X402_DISPLAY_PRICE_USD,
     name: 'GMGN: follow-wallet trades',
-    description: 'Trades for followed wallets (chain; optional wallet, limit, min_amount_usd). Needs GMGN_PRIVATE_KEY.',
+    description: 'Trades for GMGN follow list. chain; optional wallet, limit, min_amount_usd, filters. Requires server GMGN_PRIVATE_KEY.',
   },
   // Partner: Jupiter, Bubblemaps, Binance
   {
@@ -2522,47 +2522,48 @@ export function getToolsForLlmSelection() {
       if (hint) out.paramsHint = hint;
     }
     if (t.id === 'gmgn-token-info' || t.id === 'gmgn-token-security' || t.id === 'gmgn-token-pool') {
-      out.paramsHint = 'Params: chain (sol|bsc|base|eth), address (token contract or mint)';
+      out.paramsHint =
+        'chain: sol|bsc|base|eth (not "solana"); address OR mint, token_address, or ca. Server maps common chain/token aliases.';
     }
     if (t.id === 'gmgn-token-holders' || t.id === 'gmgn-token-traders') {
       out.paramsHint =
-        'Params: chain, address; optional limit, order_by, direction, tag (e.g. smart_degen, renowned, sniper, rat_trader, bundler)';
+        'chain + address (or mint, token_address). If mint looks like Solana and chain missing, sol is inferred. Optional: limit, order_by, direction, tag';
     }
     if (t.id === 'gmgn-market-trending') {
-      out.paramsHint =
-        'Params: chain, interval (1m|5m|1h|6h|24h); optional limit, order_by, direction, filters, platforms (comma-sep; Pump.fun, etc.)';
+      out.paramsHint = 'chain (defaults sol), interval 1m|5m|1h|6h|24h (defaults 1h). Optional: limit, order_by, direction, filters, platforms';
     }
     if (t.id === 'gmgn-market-kline') {
-      out.paramsHint = 'Params: chain, address, resolution (1m|5m|15m|1h|4h|1d); optional from, to (Unix seconds)';
+      out.paramsHint =
+        'chain, address/mint, resolution (defaults 1h). from, to: Unix seconds or ms. Optional: same alias keys as other token tools.';
     }
     if (t.id === 'gmgn-market-trenches') {
       out.paramsHint =
-        'Params: chain; optional type, launchpad_platform, limit, filterPreset (safe|smart-money|strict), filters (JSON), sortBy';
+        'chain (defaults sol). Optional: type, launchpad_platform, limit, filterPreset (safe|smart-money|strict), filters (JSON), sortBy';
     }
     if (t.id === 'gmgn-market-signal') {
-      out.paramsHint = 'Params: chain (sol|bsc); groups (JSON) OR signal_type (comma, e.g. 12,14) with optional mcMin, mcMax';
+      out.paramsHint = 'chain sol|bsc (defaults sol if omitted). groups (JSON) OR signal_type + optional mcMin, mcMax';
     }
     if (t.id === 'gmgn-portfolio-holdings' || t.id === 'gmgn-portfolio-activity') {
-      out.paramsHint = 'Params: chain, wallet; optional limit, token (activity), type (activity buy/sell comma), cursor';
+      out.paramsHint =
+        'chain, wallet (alias: address, user, owner for wallet). If Solana-style wallet and chain missing, sol inferred. activity: optional token, type, cursor, limit';
     }
     if (t.id === 'gmgn-portfolio-stats') {
-      out.paramsHint = 'Params: chain, wallet (comma for multiple); optional period (7d|30d)';
+      out.paramsHint = 'chain, wallet (comma = multiple). Optional period 7d|30d. Chain may default sol for Solana wallet.';
     }
     if (t.id === 'gmgn-portfolio-info') {
-      out.paramsHint = 'No params. Returns wallets linked to the Syra server GMGN API key.';
+      out.paramsHint = 'No params. Returns GMGN API key–linked wallets on the server.';
     }
     if (t.id === 'gmgn-portfolio-token-balance') {
-      out.paramsHint = 'Params: chain, wallet, token (mint/contract addresses)';
+      out.paramsHint = 'chain, wallet, token (or mint, token_address). All three; chain can default to sol for Solana mints/wallets.';
     }
     if (t.id === 'gmgn-portfolio-created-tokens') {
-      out.paramsHint = 'Params: chain, wallet (developer); optional order_by, migrate_state, direction';
+      out.paramsHint = 'chain, wallet (dev address). optional order_by, migrate_state, direction. Chain can default for Solana wallet.';
     }
     if (t.id === 'gmgn-track-kol' || t.id === 'gmgn-track-smartmoney') {
-      out.paramsHint = 'Optional: chain, limit, side (buy|sell) — same semantics as GMGN /user/kol and /user/smartmoney';
+      out.paramsHint = 'optional chain, limit, side (buy|sell) — list filtered client-side after fetch';
     }
     if (t.id === 'gmgn-track-follow-wallet') {
-      out.paramsHint =
-        'Params: chain; optional wallet, limit, side, min_amount_usd, filters. Requires server GMGN_PRIVATE_KEY (see gmgn-skills).';
+      out.paramsHint = 'chain; optional wallet, limit, min_amount_usd, max_amount_usd, side, filters. Server needs GMGN_PRIVATE_KEY.';
     }
     return out;
   });

@@ -16,6 +16,8 @@ import CookiePolicy from "./pages/CookiePolicy";
 import Brand from "./pages/Brand";
 import Identity from "./pages/Identity";
 import Teams from "./pages/Teams";
+import Partner from "./pages/Partner";
+import PartnerDetail from "./pages/PartnerDetail";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 const queryClient = new QueryClient();
@@ -55,6 +57,8 @@ const App = () => (
             <Route path="/brand" element={<Brand />} />
             <Route path="/identity" element={<Identity />} />
             <Route path="/teams" element={<Teams />} />
+            <Route path="/partner" element={<Partner />} />
+            <Route path="/partner/:slug" element={<PartnerDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

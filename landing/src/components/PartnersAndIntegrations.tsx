@@ -1,25 +1,12 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-
-const PARTNERS = [
-  { name: "Solana", slug: "solana", href: "https://solana.com" },
-  { name: "Jupiter", slug: "jupiter", href: "https://jup.ag" },
-  { name: "Raydium", slug: "raydium", href: "https://raydium.io" },
-  { name: "Pyth", slug: "pyth", href: "https://pyth.network" },
-  { name: "Helius", slug: "helius", href: "https://helius.dev" },
-  { name: "Phantom", slug: "phantom", href: "https://phantom.app" },
-  { name: "Nansen", slug: "nansen", href: "https://nansen.ai" },
-  { name: "DexScreener", slug: "dexscreener", href: "https://dexscreener.com" },
-  { name: "Rugcheck", slug: "rugcheck", href: "https://rugcheck.xyz" },
-  { name: "Bubblemaps", slug: "bubblemaps", href: "https://bubblemaps.io" },
-  { name: "Binance", slug: "binance", href: "https://binance.com" },
-  { name: "Messari", slug: "messari", href: "https://messari.io" },
-  { name: "Pump", slug: "pump", href: "https://pump.fun" },
-] as const;
+import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
+import { SYRA_PARTNERS } from "@/data/partners";
 
 const LOGO_PLACEHOLDER = "/images/partners/placeholder.svg";
 
-type Partner = (typeof PARTNERS)[number];
+type Partner = (typeof SYRA_PARTNERS)[number];
 
 function PartnerLink({
   partner,
@@ -65,12 +52,12 @@ function MarqueeTrack({ labelledBy }: { labelledBy: string }) {
     >
       <div className="flex w-max animate-marquee motion-reduce:animate-none">
         <div className="flex shrink-0 items-center gap-3 pr-3 sm:gap-5 sm:pr-5 md:gap-6 md:pr-6 lg:gap-8 lg:pr-8">
-          {PARTNERS.map((partner) => (
+          {SYRA_PARTNERS.map((partner) => (
             <PartnerLink key={partner.slug} partner={partner} />
           ))}
         </div>
         <div className="flex shrink-0 items-center gap-3 pr-3 sm:gap-5 sm:pr-5 md:gap-6 md:pr-6 lg:gap-8 lg:pr-8" aria-hidden>
-          {PARTNERS.map((partner) => (
+          {SYRA_PARTNERS.map((partner) => (
             <PartnerLink
               key={`${partner.slug}-dup`}
               partner={partner}
@@ -125,12 +112,25 @@ export const PartnersAndIntegrations = () => {
         </div>
 
         <div className="hidden min-w-0 flex-wrap items-center justify-center gap-2 motion-reduce:flex sm:gap-4 md:gap-6">
-          {PARTNERS.map((partner) => (
+          {SYRA_PARTNERS.map((partner) => (
             <PartnerLink key={partner.slug} partner={partner} />
           ))}
         </div>
         <div className="min-w-0 motion-reduce:hidden">
           <MarqueeTrack labelledBy={headingId} />
+        </div>
+
+        <div className="mt-8 flex justify-center sm:mt-10">
+          <Link
+            to="/partner"
+            className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-card/50 px-5 py-2.5 text-sm font-semibold text-foreground backdrop-blur transition-colors hover:border-foreground/25 hover:bg-card/80"
+          >
+            View all partner integrations
+            <ArrowUpRight
+              className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              aria-hidden
+            />
+          </Link>
         </div>
       </div>
     </section>

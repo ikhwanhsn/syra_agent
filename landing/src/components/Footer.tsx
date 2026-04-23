@@ -16,6 +16,7 @@ const footerLinks = {
     { label: "Agent", href: LINK_AGENT },
     { label: "API Docs", href: LINK_DOCS },
     { label: "Playground", href: LINK_PLAYGROUND },
+    { label: "Partners", href: "/partner", internal: true },
     { label: "Leaderboard", href: "/leaderboard", internal: true },
   ],
   resources: [

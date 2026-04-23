@@ -18,6 +18,7 @@ import {
   PUMPFUN_TX_TOOL_IDS,
 } from '../../libs/agentPumpfunTools.js';
 import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
+import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
@@ -218,6 +219,10 @@ router.post('/call', async (req, res) => {
 
     if (tool.id.startsWith('pumpfun-')) {
       params = await enrichPumpfunToolParams(anonymousId, tool.id, params);
+    }
+
+    if (tool.id.startsWith('gmgn-')) {
+      params = enrichGmgnToolParams(tool.id, params);
     }
 
     if (tool.id === 'signal' && !String(params.source || '').trim()) {

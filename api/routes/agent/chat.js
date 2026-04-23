@@ -35,6 +35,7 @@ import {
   PUMPFUN_TX_TOOL_IDS,
 } from '../../libs/agentPumpfunTools.js';
 import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
+import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
@@ -1494,6 +1495,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
 
         if (matched.toolId.startsWith('pumpfun-')) {
           params = await enrichPumpfunToolParams(anonymousId, matched.toolId, params);
+        }
+        if (matched.toolId.startsWith('gmgn-')) {
+          params = enrichGmgnToolParams(matched.toolId, params);
         }
         const paramGateMsg = getAgentToolParamGateMessage(matched.toolId, tool.method || 'GET', params);
         if (paramGateMsg) {

@@ -1,0 +1,50 @@
+Syra — machine-readable product summary
+========================================
+
+Name: Syra
+Tagline: The intelligence layer for autonomous trading agents (Solana ecosystem).
+
+What Syra is
+------------
+Syra is a research-driven AI trading intelligence system. It is not a promise of returns or financial advice. It helps traders, analysts, and builders interpret markets using structured, risk-aware context and explanations—not hype or blind execution.
+
+Core value
+------------
+- Real-time and contextual market data.
+- On-chain and venue signals (e.g. smart money, DEX/trending, token-level research where APIs exist).
+- Narrative and sentiment views (news, trends, social/trending where exposed by the product).
+- Structured output: market overview, technical context, action perspectives, risk context, and AI-interpreted insights (confidence/sentiment framing as provided by the product).
+
+Design stance
+-------------
+Syra is built as an intelligence and research layer: clarity, explainability, and multi-platform access. It augments human decisions; it does not replace the user’s responsibility for risk, compliance, and execution.
+
+Where Syra runs
+----------------
+- Public documentation: https://docs.syraa.fun
+- API gateway (x402 pay-per-use on many routes): https://api.syraa.fun
+- API discovery: GET https://api.syraa.fun/.well-known/x402
+- API specs: GET https://api.syraa.fun/openapi.json and GET https://api.syraa.fun/mpp-openapi.json
+- Web agent: https://agent.syraa.fun
+- Telegram: https://t.me/syra_trading_bot
+- X (Twitter): https://x.com/syra_agent
+- Marketing site: https://syraa.fun
+
+Payments and access
+-------------------
+Many API routes use HTTP 402 and the x402 (micropayment) model on Solana. Clients must pay or use documented dev/skip paths for local development. The Syra MCP server proxies HTTP only; it does not inject payment headers (production calls may return 402 without a wallet/facilitator flow).
+
+Ecosystem
+---------
+The Syra monorepo includes: api (backend), frontend, landing, documentation site, api-playground, ai-agent (chat + x402 tools), mcp-server (MCP tools wrapping API routes), and other apps. The canonical human-facing doc set is the documentation app, deployed at docs.syraa.fun.
+
+This file
+---------
+Purpose: give language models a plain-text, stable description of what Syra is, how to refer to it, and where official sources live.
+
+Public URLs (main Syra domain):
+- This file: https://syraa.fun/llms.txt
+- Documentation index (Markdown): https://syraa.fun/docs.md
+- Agent capability list (Markdown): https://syraa.fun/skills.md
+
+Last updated: 2026-04-23 (repository snapshot).

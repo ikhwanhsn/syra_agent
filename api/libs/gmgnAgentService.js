@@ -3,6 +3,7 @@
  * Uses OpenApiClient with env from the API server — do not import gmgn-cli `config.js` (it calls process.exit).
  */
 import { OpenApiClient } from "gmgn-cli/dist/client/OpenApiClient.js";
+import { enrichGmgnToolParams } from "./gmgnToolParams.js";
 
 /** @type {import("gmgn-cli/dist/client/OpenApiClient.js").OpenApiClient | null} */
 let cachedClient = null;
@@ -33,6 +34,19 @@ function notConfigured() {
       "GMGN is not configured. Set GMGN_API_KEY in the API environment. Create a key at https://gmgn.ai/ai (see https://github.com/GMGNAI/gmgn-skills).",
     status: 503,
   };
+}
+
+/**
+ * Kline `from`/`to` may be Unix seconds (API expects ms) or already ms.
+ * @param {string | undefined} raw
+ * @returns {number | undefined}
+ */
+function parseKlineTimeMs(raw) {
+  if (raw == null || String(raw).trim() === "") return undefined;
+  const n = Number(String(raw).trim());
+  if (!Number.isFinite(n)) return undefined;
+  if (n > 1_000_000_000_000) return Math.floor(n);
+  return Math.floor(n * 1000);
 }
 
 /**
@@ -117,73 +131,81 @@ export async function runGmgnAgentTool(toolId, p) {
     return notConfigured();
   }
 
+  const params = enrichGmgnToolParams(toolId, p);
+
   try {
     switch (toolId) {
       case "gmgn-token-info": {
-        if (!p.chain || !p.address) return { ok: false, error: "chain and address are required", status: 400 };
-        const data = await client.getTokenInfo(String(p.chain), String(p.address));
+        if (!params.chain || !params.address) return { ok: false, error: "chain and address are required", status: 400 };
+        const data = await client.getTokenInfo(String(params.chain), String(params.address));
         return { ok: true, data };
       }
       case "gmgn-token-security": {
-        if (!p.chain || !p.address) return { ok: false, error: "chain and address are required", status: 400 };
-        const data = await client.getTokenSecurity(String(p.chain), String(p.address));
+        if (!params.chain || !params.address) return { ok: false, error: "chain and address are required", status: 400 };
+        const data = await client.getTokenSecurity(String(params.chain), String(params.address));
         return { ok: true, data };
       }
       case "gmgn-token-pool": {
-        if (!p.chain || !p.address) return { ok: false, error: "chain and address are required", status: 400 };
-        const data = await client.getTokenPoolInfo(String(p.chain), String(p.address));
+        if (!params.chain || !params.address) return { ok: false, error: "chain and address are required", status: 400 };
+        const data = await client.getTokenPoolInfo(String(params.chain), String(params.address));
         return { ok: true, data };
       }
       case "gmgn-token-holders": {
-        if (!p.chain || !p.address) return { ok: false, error: "chain and address are required", status: 400 };
+        if (!params.chain || !params.address) return { ok: false, error: "chain and address are required", status: 400 };
         const extra = {};
-        if (p.limit != null && p.limit !== "") extra.limit = parseInt(String(p.limit), 10);
-        if (p.order_by || p.orderBy) extra.order_by = p.order_by || p.orderBy;
-        if (p.direction) extra.direction = p.direction;
-        if (p.tag) extra.tag = p.tag;
-        const data = await client.getTokenTopHolders(String(p.chain), String(p.address), extra);
+        if (params.limit != null && params.limit !== "") extra.limit = parseInt(String(params.limit), 10);
+        if (params.order_by || params.orderBy) extra.order_by = params.order_by || params.orderBy;
+        if (params.direction) extra.direction = params.direction;
+        if (params.tag) extra.tag = params.tag;
+        const data = await client.getTokenTopHolders(String(params.chain), String(params.address), extra);
         return { ok: true, data };
       }
       case "gmgn-token-traders": {
-        if (!p.chain || !p.address) return { ok: false, error: "chain and address are required", status: 400 };
+        if (!params.chain || !params.address) return { ok: false, error: "chain and address are required", status: 400 };
         const extra = {};
-        if (p.limit != null && p.limit !== "") extra.limit = parseInt(String(p.limit), 10);
-        if (p.order_by || p.orderBy) extra.order_by = p.order_by || p.orderBy;
-        if (p.direction) extra.direction = p.direction;
-        if (p.tag) extra.tag = p.tag;
-        const data = await client.getTokenTopTraders(String(p.chain), String(p.address), extra);
+        if (params.limit != null && params.limit !== "") extra.limit = parseInt(String(params.limit), 10);
+        if (params.order_by || params.orderBy) extra.order_by = params.order_by || params.orderBy;
+        if (params.direction) extra.direction = params.direction;
+        if (params.tag) extra.tag = params.tag;
+        const data = await client.getTokenTopTraders(String(params.chain), String(params.address), extra);
         return { ok: true, data };
       }
       case "gmgn-market-trending": {
-        if (!p.chain || !p.interval) return { ok: false, error: "chain and interval are required", status: 400 };
+        if (!params.chain || !params.interval) return { ok: false, error: "chain and interval are required", status: 400 };
         const extra = {};
-        if (p.limit != null && p.limit !== "") extra.limit = parseInt(String(p.limit), 10);
-        if (p.order_by || p.orderBy) extra.order_by = p.order_by || p.orderBy;
-        if (p.direction) extra.direction = p.direction;
-        const filters = splitList(p.filters);
+        if (params.limit != null && params.limit !== "") extra.limit = parseInt(String(params.limit), 10);
+        if (params.order_by || params.orderBy) extra.order_by = params.order_by || params.orderBy;
+        if (params.direction) extra.direction = params.direction;
+        const filters = splitList(params.filters);
         if (filters.length) extra.filters = filters;
-        const plats = splitList(p.platforms);
+        const plats = splitList(params.platforms);
         if (plats.length) extra.platforms = plats;
-        const data = await client.getTrendingSwaps(String(p.chain), String(p.interval), extra);
+        const data = await client.getTrendingSwaps(String(params.chain), String(params.interval), extra);
         return { ok: true, data };
       }
       case "gmgn-market-kline": {
-        if (!p.chain || !p.address || !p.resolution) {
+        if (!params.chain || !params.address || !params.resolution) {
           return { ok: false, error: "chain, address, and resolution are required", status: 400 };
         }
-        const from = p.from != null && p.from !== "" ? parseInt(String(p.from), 10) * 1000 : undefined;
-        const to = p.to != null && p.to !== "" ? parseInt(String(p.to), 10) * 1000 : undefined;
-        const data = await client.getTokenKline(String(p.chain), String(p.address), String(p.resolution), from, to);
+        const from = parseKlineTimeMs(params.from);
+        const to = parseKlineTimeMs(params.to);
+        const data = await client.getTokenKline(
+          String(params.chain),
+          String(params.address),
+          String(params.resolution),
+          from,
+          to
+        );
         return { ok: true, data };
       }
       case "gmgn-market-trenches": {
-        if (!p.chain) return { ok: false, error: "chain is required", status: 400 };
-        const types = p.type || p.types ? splitList(String(p.type || p.types)) : [];
-        const launchpadPlatform = p.launchpad_platform
-          ? splitList(p.launchpad_platform)
-          : splitList(p.launchpadPlatform);
-        const limit = p.limit != null && p.limit !== "" ? parseInt(String(p.limit), 10) : undefined;
-        const presetKey = p.filterPreset || p.filter_preset;
+        if (!params.chain) return { ok: false, error: "chain is required", status: 400 };
+        const types = params.type || params.types ? splitList(String(params.type || params.types)) : [];
+        const launchpadPlatform = params.launchpad_platform
+          ? splitList(params.launchpad_platform)
+          : splitList(params.launchpadPlatform);
+        const limit = params.limit != null && params.limit !== "" ? parseInt(String(params.limit), 10) : undefined;
+        const presetKey = params.filterPreset || params.filter_preset;
         /** @type {Record<string, unknown>} */
         let filters = {};
         if (presetKey) {
@@ -193,9 +215,9 @@ export async function runGmgnAgentTool(toolId, p) {
           }
           Object.assign(filters, pr);
         }
-        if (p.filters) {
+        if (params.filters) {
           try {
-            const parsed = JSON.parse(String(p.filters));
+            const parsed = JSON.parse(String(params.filters));
             if (parsed && typeof parsed === "object") {
               Object.assign(filters, parsed);
             }
@@ -204,81 +226,81 @@ export async function runGmgnAgentTool(toolId, p) {
           }
         }
         const data = await client.getTrenches(
-          String(p.chain),
+          String(params.chain),
           types,
           launchpadPlatform,
           limit,
           Object.keys(filters).length ? filters : undefined
         );
-        const sortBy = p.sortBy || p.sort_by;
-        const sortDir = p.sortDirection || p.sort_direction;
+        const sortBy = params.sortBy || params.sort_by;
+        const sortDir = params.sortDirection || params.sort_direction;
         const result = sortBy ? sortTrenchesResult(data, String(sortBy), String(sortDir || "")) : data;
         return { ok: true, data: result };
       }
       case "gmgn-market-signal": {
-        if (!p.chain) return { ok: false, error: "chain is required", status: 400 };
-        const c = String(p.chain);
+        if (!params.chain) return { ok: false, error: "chain is required", status: 400 };
+        const c = String(params.chain);
         if (c !== "sol" && c !== "bsc") {
           return { ok: false, error: "chain must be sol or bsc for token signals", status: 400 };
         }
         let groups;
-        if (p.groups) {
+        if (params.groups) {
           try {
-            groups = JSON.parse(String(p.groups));
+            groups = JSON.parse(String(params.groups));
             if (!Array.isArray(groups)) throw new Error("not array");
           } catch {
             return { ok: false, error: "groups must be a JSON array (see GMGN token_signal API)", status: 400 };
           }
         } else {
-          const st = p.signal_type || p.signalType;
+          const st = params.signal_type || params.signalType;
           const types = st ? splitList(String(st), ",") : [];
           const group = {};
           if (types.length) {
             group.signal_type = types.map((x) => parseInt(x, 10));
           }
-          if (p.mcMin != null) group.mc_min = parseFloat(String(p.mcMin));
-          if (p.mcMax != null) group.mc_max = parseFloat(String(p.mcMax));
+          if (params.mcMin != null) group.mc_min = parseFloat(String(params.mcMin));
+          if (params.mcMax != null) group.mc_max = parseFloat(String(params.mcMax));
           groups = [group];
         }
         const data = await client.getTokenSignalV2(c, groups);
         return { ok: true, data };
       }
       case "gmgn-portfolio-holdings": {
-        if (!p.chain || !p.wallet) return { ok: false, error: "chain and wallet are required", status: 400 };
+        if (!params.chain || !params.wallet) return { ok: false, error: "chain and wallet are required", status: 400 };
         const extra = {};
-        if (p.limit != null && p.limit !== "") extra.limit = parseInt(String(p.limit), 10);
-        if (p.cursor) extra.cursor = p.cursor;
-        if (p.order_by || p.orderBy) extra.order_by = p.order_by || p.orderBy;
-        if (p.direction) extra.direction = p.direction;
-        if (p.interval) extra.interval = p.interval;
-        if (p.hide_abnormal != null) extra.hide_abnormal = p.hide_abnormal;
-        if (p.hide_airdrop != null) extra.hide_airdrop = p.hide_airdrop;
-        if (p.hide_closed != null) extra.hide_closed = p.hide_closed;
-        if (p.hide_open) extra.hide_open = "true";
-        if (p.tx30d) extra.tx30d = "true";
-        const data = await client.getWalletHoldings(String(p.chain), String(p.wallet), extra);
+        if (params.limit != null && params.limit !== "") extra.limit = parseInt(String(params.limit), 10);
+        if (params.cursor) extra.cursor = params.cursor;
+        if (params.order_by || params.orderBy) extra.order_by = params.order_by || params.orderBy;
+        if (params.direction) extra.direction = params.direction;
+        if (params.interval) extra.interval = params.interval;
+        if (params.hide_abnormal != null) extra.hide_abnormal = params.hide_abnormal;
+        if (params.hide_airdrop != null) extra.hide_airdrop = params.hide_airdrop;
+        if (params.hide_closed != null) extra.hide_closed = params.hide_closed;
+        if (params.hide_open) extra.hide_open = "true";
+        if (params.tx30d) extra.tx30d = "true";
+        const data = await client.getWalletHoldings(String(params.chain), String(params.wallet), extra);
         return { ok: true, data };
       }
       case "gmgn-portfolio-activity": {
-        if (!p.chain || !p.wallet) return { ok: false, error: "chain and wallet are required", status: 400 };
+        if (!params.chain || !params.wallet) return { ok: false, error: "chain and wallet are required", status: 400 };
         const extra = {};
-        if (p.token) extra.token_address = p.token;
-        if (p.limit != null && p.limit !== "") extra.limit = parseInt(String(p.limit), 10);
-        if (p.cursor) extra.cursor = p.cursor;
-        const t = p.type;
+        if (params.token) extra.token_address = params.token;
+        if (params.limit != null && params.limit !== "") extra.limit = parseInt(String(params.limit), 10);
+        if (params.cursor) extra.cursor = params.cursor;
+        const t = params.type;
         if (t) {
           const types = splitList(String(t), ",");
           if (types.length) extra.type = types;
         }
-        const data = await client.getWalletActivity(String(p.chain), String(p.wallet), extra);
+        const data = await client.getWalletActivity(String(params.chain), String(params.wallet), extra);
         return { ok: true, data };
       }
       case "gmgn-portfolio-stats": {
-        if (!p.chain || !p.wallet) return { ok: false, error: "chain and wallet are required (comma-separate for multiple)", status: 400 };
-        const chain = String(p.chain);
-        const parts = splitList(p.wallet, ",");
-        const period = p.period && String(p.period).trim() !== "" ? String(p.period) : "7d";
-        const walletParam = parts.length > 1 ? parts : String(p.wallet).trim();
+        if (!params.chain || !params.wallet) return { ok: false, error: "chain and wallet are required (comma-separate for multiple)", status: 400 };
+        const chain = String(params.chain);
+        const parts = splitList(params.wallet, ",");
+        const period = params.period && String(params.period).trim() !== "" ? String(params.period) : "7d";
+        const walletParam = parts.length > 1 ? parts : String(params.wallet).trim();
         const data = await client.getWalletStats(chain, walletParam, period);
         return { ok: true, data };
       }
@@ -287,47 +309,47 @@ export async function runGmgnAgentTool(toolId, p) {
         return { ok: true, data };
       }
       case "gmgn-portfolio-token-balance": {
-        if (!p.chain || !p.wallet || !p.token) {
+        if (!params.chain || !params.wallet || !params.token) {
           return { ok: false, error: "chain, wallet, and token are required", status: 400 };
         }
-        const data = await client.getWalletTokenBalance(String(p.chain), String(p.wallet), String(p.token));
+        const data = await client.getWalletTokenBalance(String(params.chain), String(params.wallet), String(params.token));
         return { ok: true, data };
       }
       case "gmgn-portfolio-created-tokens": {
-        if (!p.chain || !p.wallet) return { ok: false, error: "chain and wallet are required", status: 400 };
+        if (!params.chain || !params.wallet) return { ok: false, error: "chain and wallet are required", status: 400 };
         const extra = {};
-        if (p.order_by || p.orderBy) extra.order_by = p.order_by || p.orderBy;
-        if (p.direction) extra.direction = p.direction;
-        if (p.migrate_state || p.migrateState) extra.migrate_state = p.migrate_state || p.migrateState;
-        const data = await client.getCreatedTokens(String(p.chain), String(p.wallet), extra);
+        if (params.order_by || params.orderBy) extra.order_by = params.order_by || params.orderBy;
+        if (params.direction) extra.direction = params.direction;
+        if (params.migrate_state || params.migrateState) extra.migrate_state = params.migrate_state || params.migrateState;
+        const data = await client.getCreatedTokens(String(params.chain), String(params.wallet), extra);
         return { ok: true, data };
       }
       case "gmgn-track-kol": {
-        const chain = p.chain && String(p.chain).trim() !== "" ? String(p.chain) : undefined;
-        const limit = p.limit != null && p.limit !== "" ? parseInt(String(p.limit), 10) : undefined;
+        const chain = params.chain && String(params.chain).trim() !== "" ? String(params.chain) : undefined;
+        const limit = params.limit != null && params.limit !== "" ? parseInt(String(params.limit), 10) : undefined;
         const data = await client.getKol(chain, limit);
-        if (p.side && data && typeof data === "object" && "list" in data && Array.isArray(data.list)) {
+        if (params.side && data && typeof data === "object" && "list" in data && Array.isArray(data.list)) {
           return {
             ok: true,
-            data: { ...data, list: data.list.filter((item) => item && item.side === p.side) },
+            data: { ...data, list: data.list.filter((item) => item && item.side === params.side) },
           };
         }
         return { ok: true, data };
       }
       case "gmgn-track-smartmoney": {
-        const chain = p.chain && String(p.chain).trim() !== "" ? String(p.chain) : undefined;
-        const limit = p.limit != null && p.limit !== "" ? parseInt(String(p.limit), 10) : undefined;
+        const chain = params.chain && String(params.chain).trim() !== "" ? String(params.chain) : undefined;
+        const limit = params.limit != null && params.limit !== "" ? parseInt(String(params.limit), 10) : undefined;
         const data = await client.getSmartMoney(chain, limit);
-        if (p.side && data && typeof data === "object" && "list" in data && Array.isArray(data.list)) {
+        if (params.side && data && typeof data === "object" && "list" in data && Array.isArray(data.list)) {
           return {
             ok: true,
-            data: { ...data, list: data.list.filter((item) => item && item.side === p.side) },
+            data: { ...data, list: data.list.filter((item) => item && item.side === params.side) },
           };
         }
         return { ok: true, data };
       }
       case "gmgn-track-follow-wallet": {
-        if (!p.chain) return { ok: false, error: "chain is required", status: 400 };
+        if (!params.chain) return { ok: false, error: "chain is required", status: 400 };
         if (!process.env.GMGN_PRIVATE_KEY) {
           return {
             ok: false,
@@ -336,24 +358,23 @@ export async function runGmgnAgentTool(toolId, p) {
           };
         }
         const extra = {};
-        if (p.wallet) extra.wallet_address = p.wallet;
-        if (p.limit != null && p.limit !== "") extra.limit = parseInt(String(p.limit), 10);
-        if (p.side) extra.side = p.side;
-        const filters = p.filters ? splitList(p.filters) : [];
+        if (params.wallet) extra.wallet_address = params.wallet;
+        if (params.limit != null && params.limit !== "") extra.limit = parseInt(String(params.limit), 10);
+        if (params.side) extra.side = params.side;
+        const filters = params.filters ? splitList(params.filters) : [];
         if (filters.length) extra.filters = filters;
-        if (p.min_amount_usd != null) extra.min_amount_usd = parseFloat(String(p.min_amount_usd));
-        if (p.max_amount_usd != null) extra.max_amount_usd = parseFloat(String(p.max_amount_usd));
-        const data = await client.getFollowWallet(String(p.chain), extra);
+        if (params.min_amount_usd != null) extra.min_amount_usd = parseFloat(String(params.min_amount_usd));
+        if (params.max_amount_usd != null) extra.max_amount_usd = parseFloat(String(params.max_amount_usd));
+        const data = await client.getFollowWallet(String(params.chain), extra);
         return { ok: true, data };
       }
       default:
         return { ok: false, error: `Unknown GMGN tool: ${toolId}`, status: 400 };
     }
   } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "GMGN request failed",
-      status: 502,
-    };
+    const o = err && typeof err === "object" ? err : null;
+    const fromApi = o && "apiMessage" in o && typeof o.apiMessage === "string" && o.apiMessage.trim() ? o.apiMessage.trim() : "";
+    const text = fromApi || (err instanceof Error ? err.message : "GMGN request failed");
+    return { ok: false, error: text, status: 502 };
   }
 }
