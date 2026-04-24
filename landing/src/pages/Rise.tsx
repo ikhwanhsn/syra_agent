@@ -608,7 +608,6 @@ function RiseBuyTokenCta({ className }: { className?: string }) {
 function RiseTokenDetailsCard() {
   const v = RISE_UP_ONLY;
   const hasStats = riseUpOnlyHasAnyMarketStats(v);
-  const marketAddr = v.riseMarketAddress?.trim() ?? null;
 
   return (
     <div className="relative flex min-w-0 flex-col overflow-hidden rounded-3xl border border-border/55 bg-gradient-to-b from-card/80 via-card/50 to-card/30 shadow-[0_0_0_1px_hsl(0_0%_100%/0.04)_inset,0_24px_64px_-16px_hsl(0_0%_0%/0.25)] backdrop-blur-md dark:shadow-[0_0_0_1px_hsl(0_0%_100%/0.03)_inset,0_28px_80px_-20px_hsl(0_0%_0%/0.45)]">
@@ -619,20 +618,11 @@ function RiseTokenDetailsCard() {
           <div className="w-full min-w-0 flex-1 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">On-chain</p>
-              {marketAddr && marketAddr.length >= 8 ? (
-                <Badge variant="secondary" className="font-mono text-[0.65rem] text-muted-foreground">
-                  {marketAddr.slice(0, 4)}…{marketAddr.slice(-4)}
-                </Badge>
-              ) : null}
             </div>
             <h3 className="mt-1.5 break-words text-balance text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
               {v.name}
               <span className="ml-2 inline font-mono text-sm font-medium text-muted-foreground">${v.symbol}</span>
             </h3>
-            <p className="mt-1.5 max-w-lg text-pretty text-sm text-muted-foreground sm:text-sm sm:leading-relaxed">
-              Fields below are set in <code className="rounded bg-muted/50 px-1 font-mono text-[0.8em]">src/data/riseUpOnly.ts</code> — add
-              the RISE market address, mint, and stats when they are public. No live API call.
-            </p>
           </div>
         </div>
       </div>
@@ -655,9 +645,6 @@ function RiseTokenDetailsCard() {
               <span className="inline-flex items-center rounded-md border border-border/50 bg-background/40 px-2 py-0.5 font-mono text-sm tabular-nums text-foreground">
                 {v.symbol}
               </span>
-            </TokenDetailRow>
-            <TokenDetailRow label="RISE market">
-              <OnChainAddress value={v.riseMarketAddress} kind="account" />
             </TokenDetailRow>
             <TokenDetailRow label="Mint">
               <p className="mb-2 text-sm text-muted-foreground">

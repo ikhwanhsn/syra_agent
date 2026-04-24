@@ -10,8 +10,6 @@ export type RiseUpOnlyManual = {
   launchVenue: "RISE";
   /** Optional — token or IPFS image URL for the logo */
   imageUrl: string | null;
-  /** RISE market (program) address */
-  riseMarketAddress: string | null;
   /** SPL token mint (RISE) */
   mint: string | null;
   /**
@@ -49,8 +47,7 @@ export const RISE_UP_ONLY: RiseUpOnlyManual = {
   network: "Solana",
   launchVenue: "RISE",
   imageUrl: null,
-  riseMarketAddress: null,
-  mint: null,
+  mint: "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
   syraExperimentMint: null,
   creator: null,
   createdAtLabel: null,
@@ -63,9 +60,9 @@ export const RISE_UP_ONLY: RiseUpOnlyManual = {
   holders: null,
   creatorFeePct: null,
   startingPriceUsd: null,
-  /** Set your `rise.rich/trade/…` id when the token is live; keep `null` until then. */
-  riseRichTradeId: null,
-  buyOnRiseEnabled: false,
+  /** `rise.rich/trade/{id}` — same id as mint when listed on RISE. */
+  riseRichTradeId: "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+  buyOnRiseEnabled: true,
 };
 
 const RISE_RICH_TRADE_ORIGIN = "https://rise.rich/trade" as const;
