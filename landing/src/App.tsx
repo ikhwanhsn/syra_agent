@@ -18,6 +18,7 @@ import Identity from "./pages/Identity";
 import Teams from "./pages/Teams";
 import Partner from "./pages/Partner";
 import PartnerDetail from "./pages/PartnerDetail";
+import Rise from "./pages/Rise";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/teams" element={<Teams />} />
             <Route path="/partner" element={<Partner />} />
             <Route path="/partner/:slug" element={<PartnerDetail />} />
+            <Route path="/rise" element={<Rise />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
