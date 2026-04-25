@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/rise",
+      "destination": "/uponly",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!assets/|images/|.*\\..*).*)",
