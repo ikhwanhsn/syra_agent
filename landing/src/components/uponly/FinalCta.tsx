@@ -1,8 +1,9 @@
 import { RISE_DOCS, ExternalLink, SectionEyebrow } from "./primitives";
 import { RISE_UP_ONLY, getRiseRichTradeUrl } from "@/data/riseUpOnly";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, BookOpen, ShoppingCart } from "lucide-react";
+import { ArrowUpRight, BookOpen, Building2, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 export function FinalCta({ className }: { className?: string }) {
   const u = getRiseRichTradeUrl(RISE_UP_ONLY);
@@ -25,6 +26,17 @@ export function FinalCta({ className }: { className?: string }) {
           <p className="mt-3 break-words text-sm text-muted-foreground [overflow-wrap:anywhere] sm:mt-4 sm:text-base sm:leading-relaxed">
             One click to RISE — the venue where the floor, bond curve, and borrow spec you just read is implemented.
             Keep position size at what you can lose entirely.
+          </p>
+          <p className="mt-4 break-words text-sm text-muted-foreground [overflow-wrap:anywhere] sm:mt-5 sm:text-base sm:leading-relaxed">
+            <span className="text-foreground/80">Ecosystem / treasury: </span>
+            <Link
+              to="/uponly/fund"
+              className="inline-flex min-h-10 items-center gap-1.5 font-medium text-foreground/90 underline-offset-2 hover:underline"
+            >
+              <Building2 className="h-3.5 w-3.5" aria-hidden />
+              Up Only Fund
+            </Link>
+            <span> — Syra-backed mandate to allocate across the RISE ecosystem (transparency page).</span>
           </p>
           <div className="mt-6 flex w-full min-w-0 max-w-md flex-col items-stretch justify-center gap-2.5 min-[500px]:gap-3 sm:mx-auto sm:mt-8 sm:max-w-none sm:flex-row sm:gap-4">
             {canBuy && u ? (
