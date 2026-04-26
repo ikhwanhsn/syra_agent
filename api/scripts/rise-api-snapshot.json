@@ -1,0 +1,475 @@
+{
+  "meta": {
+    "createdAt": "2026-04-26T00:28:13.970Z",
+    "startedAt": "2026-04-26T00:27:58.295Z",
+    "baseUrl": "https://public.rise.rich",
+    "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+    "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+    "totalCalls": 13
+  },
+  "results": [
+    {
+      "toolId": "rise-markets",
+      "args": {
+        "page": 1,
+        "limit": 2
+      },
+      "elapsedMs": 2332,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "count": 2,
+          "total": 651,
+          "page": 1,
+          "limit": 2,
+          "totalPages": 326,
+          "markets": [
+            {
+              "rise_market_address": "2khM9v1FoJoyh5xMxocNWFSkLfgipfUtJaJQCAKrk2hg",
+              "mayflower_market_address": "7Y1bn35aQaypNk4rgDypFcQem7q2MofZAk71XNFHxHzM",
+              "tenant": "5scY2JGWLnBubCMbWrn1gi8FQEP8SPjvQ1hfjW4ktYUb",
+              "market_meta": "JDgXLN2FKGJZQdDbc3xumrBapGeUJAP9PJdiHQztU2fo",
+              "mint_token": "Bph53REQJvDyXNLWAiNpJm7R51MxzqAJHjfWdMvorise",
+              "mint_main": "So11111111111111111111111111111111111111112",
+              "token_decimals": 9,
+              "cash_escrow": "6NrQXaWyhNp88CTNjMuYnQ5S79zSzpi9Scohrd6br4L",
+              "gov_buy_fee_micro_basis_points": 12500,
+              "gov_sell_fee_micro_basis_points": 12500,
+              "gov_borrow_fee_micro_basis_points": 30000,
+              "gov_floor_raise_cooldown_seconds": 0,
+              "gov_floor_investment_micro_basis_points": "100000",
+              "gov_price_curve_sensitivity": "0",
+              "gov_floor_raise_liquidity_buffer_micro_basis_points": "0",
+              "gov_price_curve_sensitivity_change_rate_micro_basis_points": "150000",
+              "bump": [
+                253
+              ],
+              "last_floor_raise_timestamp": "1777163119",
+              "level": 1,
+              "level_rev_calculator_y_intercept": "0.5",
+              "level_rev_calculator_max_asymptote": "0.9",
+              "level_rev_calculator_k": "0.001",
+              "flags": 65535,
+              "token_name": "SOLDOG",
+              "token_symbol": "SOLDOG",
+              "token_uri": "https://ipfs.io/ipfs/QmUZ6hpDEWK8v1Y9MYhHQvLaotWigpxEGZwj4simATQGk4",
+              "token_image": "https://ipfs.io/ipfs/QmVYFDqXvAsuVrH83GHyxqJ9Qd2ehxCxP1Ltebi1jS497w",
+              "mayflower_total_debt": "0",
+              "mayflower_total_collateral": "0",
+              "mayflower_cumulative_revenue_market": "12484719",
+              "mayflower_cumulative_revenue_tenant": "2203186",
+              "mayflower_token_supply": "60723780084229",
+              "mayflower_x2": "60677061110472",
+              "mayflower_floor": "0.000017539978491069487",
+              "mayflower_m1": "0.0000000000000000006",
+              "mayflower_m2": "0.0000000000000000003",
+              "mayflower_b1": "-0.0000082031183331416",
+              "mayflower_b2": "0.00001",
+              "price": "0.000028217134025268698",
+              "created_at": "2026-04-26T00:25:18.658Z",
+              "updated_at": "2026-04-26T00:27:13.238Z",
+              "twitter": "https://twitter.com/kNUvNag6vH28438",
+              "discord": "",
+              "telegram": "https://t.me/+MVCaenKpUkszNWQ1",
+              "volume_all_time_usd": "101.17",
+              "creator": "8NCM68yJZzAUMSFCjRo8LL5CcpQni91uRxvZmCtoQfHn",
+              "total_fees_floor": "1248471",
+              "total_fees_creator": "1872707",
+              "total_fees_creator_withdrawn": "0",
+              "volume_h24_usd": "101.17",
+              "market_cap_usd": "147.52813464367208",
+              "holders_count": 2,
+              "creator_fee_percent": 15,
+              "mayflower_total_cash_liquidity": "1161592892",
+              "starting_price": "0.00001",
+              "is_verified": false,
+              "floor_market_cap_usd": "91.70",
+              "price_open_24h": "0.0000263153947338814",
+              "price_variation_percentage_24h": "182.17134",
+              "delta_to_floor_percentage": "60.9",
+              "locked_supply_percentage": "0",
+              "disableSell": false
+            },
+            {
+              "rise_market_address": "8Uq1AvBnbLzHfP6HhPrSm7sAhirhmKpLPfTqJp7uSshZ",
+              "mayflower_market_address": "2rXfTW2FfS4qEpr885AxUFpJ1BbMvMqySWCdU1P7AMXd",
+              "tenant": "5scY2JGWLnBubCMbWrn1gi8FQEP8SPjvQ1hfjW4ktYUb",
+              "market_meta": "6886mBVLf25rHQNS1Vz8UjfzRGbQzXbq5frPiC2pHL3N",
+              "mint_token": "HsYJ39VYBvodbP9yXJ9AqNkw4JU8SUgHU1GZxwUWrise",
+              "mint_main": "So11111111111111111111111111111111111111112",
+              "token_decimals": 9,
+              "cash_escrow": "5ogDg7ddWMvUWTcAHFfvtsJAgaHhKdg9vR9Q8WxW98vq",
+              "gov_buy_fee_micro_basis_points": 12500,
+              "gov_sell_fee_micro_basis_points": 12500,
+              "gov_borrow_fee_micro_basis_points": 30000,
+              "gov_floor_raise_cooldown_seconds": 0,
+              "gov_floor_investment_micro_basis_points": "100000",
+              "gov_price_curve_sensitivity": "0",
+              "gov_floor_raise_liquidity_buffer_micro_basis_points": "0",
+              "gov_price_curve_sensitivity_change_rate_micro_basis_points": "150000",
+              "bump": [
+                252
+              ],
+              "last_floor_raise_timestamp": "1777153673",
+              "level": 1,
+              "level_rev_calculator_y_intercept": "0.5",
+              "level_rev_calculator_max_asymptote": "0.9",
+              "level_rev_calculator_k": "0.001",
+              "flags": 65535,
+              "token_name": "HONGBAO",
+              "token_symbol": "HONGBAO",
+              "token_uri": "https://ipfs.io/ipfs/Qmcft4t9zHC9xC9b139u74cdvezdm8ad3DSKLRDxEKbot6",
+              "token_image": "https://ipfs.io/ipfs/QmYpQBpPfkpwuLCEzesc45v6EawG6fssgQKwsriK177hxx",
+              "mayflower_total_debt": "1814959139",
+              "mayflower_total_collateral": "50679430495296",
+              "mayflower_cumulative_revenue_market": "169178969",
+              "mayflower_cumulative_revenue_tenant": "29855115",
+              "mayflower_token_supply": "236868775139216",
+              "mayflower_x2": "236868775139216",
+              "mayflower_floor": "0.000040091037735472766",
+              "mayflower_m1": "0.0000000000000000006",
+              "mayflower_m2": "0.0000000000000000003",
+              "mayflower_b1": "-0.0000625516362830858",
+              "mayflower_b2": "0.000008508996258679",
+              "price": "0.0000795696288004438",
+              "created_at": "2026-04-25T21:26:37.641Z",
+              "updated_at": "2026-04-26T00:23:56.980Z",
+              "twitter": "",
+              "discord": "",
+              "telegram": "",
+              "volume_all_time_usd": "1008.88",
+              "creator": "5bi72QVjZkVHZuoJLhWSxMDP5sU13LTpHH7HaqAC2imh",
+              "total_fees_floor": "29115724",
+              "total_fees_creator": "13701516",
+              "total_fees_creator_withdrawn": "0",
+              "volume_h24_usd": "1008.88",
+              "market_cap_usd": "1619.7593504221813",
+              "holders_count": 4,
+              "creator_fee_percent": 8,
+              "mayflower_total_cash_liquidity": "9194103193",
+              "starting_price": "0.00001",
+              "is_verified": false,
+              "floor_market_cap_usd": "816.11",
+              "price_open_24h": "0.0000695701085237041",
+              "price_variation_percentage_24h": "695.69629",
+              "delta_to_floor_percentage": "98.5",
+              "locked_supply_percentage": "21.4",
+              "disableSell": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "toolId": "rise-market",
+      "args": {
+        "address": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise"
+      },
+      "elapsedMs": 934,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "market": {
+            "rise_market_address": "DCxsd9rZETcvV8KWVq2ExWhA9cbWRzBMSuSqoaLRaNFB",
+            "mayflower_market_address": "CWtYM2MkPNwB69aaQjDHiWEZSsPSJ9urhjHrKDp2obhB",
+            "tenant": "5scY2JGWLnBubCMbWrn1gi8FQEP8SPjvQ1hfjW4ktYUb",
+            "market_meta": "3aWCNidyDXjSJuVRKHMNHiP4dTxJnJtawFBTdGMUUxLx",
+            "mint_token": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+            "mint_main": "So11111111111111111111111111111111111111112",
+            "token_decimals": 9,
+            "cash_escrow": "7Z3MMDyPbYzjwYDvNyTo4wE2QNMdYiH5uic78wt7HFD4",
+            "gov_buy_fee_micro_basis_points": 12500,
+            "gov_sell_fee_micro_basis_points": 12500,
+            "gov_borrow_fee_micro_basis_points": 30000,
+            "gov_floor_raise_cooldown_seconds": 0,
+            "gov_floor_investment_micro_basis_points": "100000",
+            "gov_price_curve_sensitivity": "0",
+            "gov_floor_raise_liquidity_buffer_micro_basis_points": "0",
+            "gov_price_curve_sensitivity_change_rate_micro_basis_points": "150000",
+            "bump": [
+              255
+            ],
+            "last_floor_raise_timestamp": "1777162592",
+            "level": 1,
+            "level_rev_calculator_y_intercept": "0.5",
+            "level_rev_calculator_max_asymptote": "0.9",
+            "level_rev_calculator_k": "0.001",
+            "flags": 65535,
+            "token_name": "Up Only",
+            "token_symbol": "UPONLY",
+            "token_uri": "https://ipfs.io/ipfs/QmeT5c5HDBs9hnQivkkKhyLy2uJLbid8dTQHmEJ3uFELqe",
+            "token_image": "https://ipfs.io/ipfs/QmZcf7UiBxje3XuQBkV8pnjKjnS8owte4babqTabGnNQgu",
+            "mayflower_total_debt": "556986323489",
+            "mayflower_total_collateral": "1944047393732487",
+            "mayflower_cumulative_revenue_market": "33239418286",
+            "mayflower_cumulative_revenue_tenant": "5865779913",
+            "mayflower_token_supply": "2395033164136225",
+            "mayflower_x2": "2391230240203242",
+            "mayflower_floor": "0.00031714884943471094",
+            "mayflower_m1": "0.0000000000000000006",
+            "mayflower_m2": "0.0000000000000000003",
+            "mayflower_b1": "-0.0008956916558222618",
+            "mayflower_b2": "-0.0001783225837612892",
+            "price": "0.0005401873654795783",
+            "created_at": "2026-04-24T02:56:12.339Z",
+            "updated_at": "2026-04-26T00:21:13.920Z",
+            "twitter": "",
+            "discord": "",
+            "telegram": "",
+            "volume_all_time_usd": "124385.67",
+            "creator": "Cp5yFGYx88EEuUjhDAaQzXHrgxvVeYEWixtRnLFE81K4",
+            "total_fees_floor": "6647883657",
+            "total_fees_creator": "1661970914",
+            "total_fees_creator_withdrawn": "0",
+            "volume_h24_usd": "69290.30",
+            "market_cap_usd": "111445.05967642697",
+            "holders_count": 117,
+            "creator_fee_percent": 5,
+            "mayflower_total_cash_liquidity": "245264731914",
+            "starting_price": "0.00001",
+            "is_verified": false,
+            "floor_market_cap_usd": "65430.39",
+            "disableSell": false
+          }
+        }
+      }
+    },
+    {
+      "toolId": "rise-market-transactions",
+      "args": {
+        "address": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "page": 1,
+        "limit": 3
+      },
+      "elapsedMs": 1319,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "page": 1,
+          "limit": 3,
+          "total": 0,
+          "totalPages": 0,
+          "count": 0,
+          "transactions": []
+        }
+      }
+    },
+    {
+      "toolId": "rise-market-ohlc",
+      "args": {
+        "address": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "timeframe": "1h",
+        "limit": 3
+      },
+      "elapsedMs": 937,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "timeframe": "1hour",
+          "count": 0,
+          "data": []
+        }
+      }
+    },
+    {
+      "toolId": "rise-market-quote",
+      "args": {
+        "address": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "amount": 1000000,
+        "direction": "buy"
+      },
+      "elapsedMs": 1113,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "quote": {
+            "direction": "buy",
+            "amountIn": 1000000,
+            "amountInHuman": 0.001,
+            "amountOut": 1828069412,
+            "amountOutHuman": 1.8280694126151502,
+            "feeRate": 0.0125,
+            "feeAmount": 12499,
+            "feeAmountUsd": 0.0010762499999999934,
+            "amountInUsd": 0.0861,
+            "amountOutUsd": 0.08502375000000001,
+            "mintRate": 0.0005401873655264157,
+            "tokenRate": 1851.209531762177,
+            "currentPrice": 0.0005401873654795783,
+            "newPrice": 0.0005401879139004021,
+            "averageFillPrice": 0.0005401873655264157,
+            "priceImpact": 0.0000010152418565905336,
+            "currentSupply": 2395033.164136225,
+            "newSupply": 2395034.9922056375
+          }
+        }
+      }
+    },
+    {
+      "toolId": "rise-buy-token",
+      "args": {
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "cashIn": 1000000,
+        "minTokenOut": 1
+      },
+      "elapsedMs": 1133,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQALGTwF7btiOI90GSBiFpLatQsxQpTPqS/L2I4eqLYZU9H7ldgU+vn6rwz+JC+IRICTJfjKTnLj0/VHsnQWHoKNCNh1vV6IyNuntsv6RLdnQIUmLv9X3vyqjcfFr6caHcKKrMEbsG8JvCDwbpF13zjOlN9tU69LbxWTwmHTEUCG0x9lSGX3sjcJ9DG/DzKlQMFpnMLPSpew3c+mx1Pqz8hbkmS1XM6/jffEhg+yQKMBD1BjwTRPPImvdYFqH5KSsIst8mFbXZTBSaPBwEiTkYnUvrhZZE/lsdevemb13eLv1q1zqxitNjqknWkPvm9hh0goOG1HW6Aiuw9GjOGTyIkTsYJntsrqvg/1gGcOdQEBsxsBnG46Qi1IZ41LraRyJ2/ENY11hyfb/94aaPGEAghGPv4riGnapGdUExttEg7W581vnAFR6atgpJTK/4EEZxt55XMcKUyapOgqCjOOq9SYwFjF5OXOj4JnBhlm9m9inZ8c3ulfzoL7HMwQf/AZeTcStCrQv6Xx+mZ+PhDnzY7UsOpfEqPyveRXpONyEn2USieGLQq3EaY8QqUKIdTcVBJzglmGqmtOlSz/1t56fHSy5cgDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAIyXJY9OJInxuz0QKRSODYMLWhOZ2v8QhASOe9jb6fhZBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpBlVJH1bX+CG2N3EP1xSBmTKdcUmb+1n6PFGnzAK89//3QQoM+z+WtPYcoWrHBNu4VnVbdeHbceAU4R0csNBew/ATMq2MjV2ktoXeFFN7NUm2ZvpImNafv2BMI89KlZdoJkyNfcQ89fqFlJpQpGTMip2ZMXbPZKLLRY6BSdmOGGnLKSn1SxAAxgxEc+yl7DVwGLnP3I46surzmTczyMQID4z87oimbpa8hB5o9KgChAtsF9LnBGpGqDYKbkn1aKFdKX5uRF9HbLiNjd2+6+o9ss9rXRMbimbUTNdXsVxxERQHDgAFAteVBAAOAAkDUMMAAAAAAAAPBgABABAREgEBEQIAAQwCAAAAQEIPAAAAAAASAQEBEQ8GAAIAAxESAQETFgAEBQYUFRYHFwMQAgEICQoSEhgLDA1YNfhfFDaikvdAQg8AAAAAAAEAAAAAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAAAAADh9QUAAAAAAAAUAAAAAAAAAAAAAAAAAAA=",
+          "addresses": {
+            "mainSrc": "B5vrMa66Vu7UsadTjjffxZDZhZysWFCmr37b4jqQBCKy",
+            "tokenDst": "8vcBRo8L7ddDqZVswGuLm9uUjv5Ukf9xz1N1kWoeAG6w"
+          }
+        }
+      }
+    },
+    {
+      "toolId": "rise-sell-token",
+      "args": {
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "tokenIn": 1000,
+        "minCashOut": 1
+      },
+      "elapsedMs": 945,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAKGDwF7btiOI90GSBiFpLatQsxQpTPqS/L2I4eqLYZU9H7ldgU+vn6rwz+JC+IRICTJfjKTnLj0/VHsnQWHoKNCNh1vV6IyNuntsv6RLdnQIUmLv9X3vyqjcfFr6caHcKKrMEbsG8JvCDwbpF13zjOlN9tU69LbxWTwmHTEUCG0x9lSGX3sjcJ9DG/DzKlQMFpnMLPSpew3c+mx1Pqz8hbkmS1XM6/jffEhg+yQKMBD1BjwTRPPImvdYFqH5KSsIst8mFbXZTBSaPBwEiTkYnUvrhZZE/lsdevemb13eLv1q1zqxitNjqknWkPvm9hh0goOG1HW6Aiuw9GjOGTyIkTsYJntsrqvg/1gGcOdQEBsxsBnG46Qi1IZ41LraRyJ2/ENY11hyfb/94aaPGEAghGPv4riGnapGdUExttEg7W581vnAFR6atgpJTK/4EEZxt55XMcKUyapOgqCjOOq9SYwFjF5OXOj4JnBhlm9m9inZ8c3ulfzoL7HMwQf/AZeTcStCrQv6Xx+mZ+PhDnzY7UsOpfEqPyveRXpONyEn2USieGLQq3EaY8QqUKIdTcVBJzglmGqmtOlSz/1t56fHSy5cgDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAIyXJY9OJInxuz0QKRSODYMLWhOZ2v8QhASOe9jb6fhZBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpBlVJH1bX+CG2N3EP1xSBmTKdcUmb+1n6PFGnzAK89//3QQoM+z+WtPYcoWrHBNu4VnVbdeHbceAU4R0csNBew/ATMq2MjV2ktoXeFFN7NUm2ZvpImNafv2BMI89KlZdoJkyNfcQ89fqFlJpQpGTMip2ZMXbPZKLLRY6BSdmOGGmM/O6Ipm6WvIQeaPSoAoQLbBfS5wRqRqg2Cm5J9WihXSl+bkRfR2y4jY3dvuvqPbLPa10TG4pm1EzXV7FccREUBg4ABQJKlAQADgAJA1DDAAAAAAAADwYAAQAQERIBAQ8GAAIAAxESAQETFQAEBQYUFRYHAxACAQgJChISFwsMDRgbjWJtxahoVOgDAAAAAAAAAQAAAAAAAAASAwEAAAEJAA==",
+          "addresses": {
+            "tokenSrc": "8vcBRo8L7ddDqZVswGuLm9uUjv5Ukf9xz1N1kWoeAG6w",
+            "mainDst": "B5vrMa66Vu7UsadTjjffxZDZhZysWFCmr37b4jqQBCKy"
+          }
+        }
+      }
+    },
+    {
+      "toolId": "rise-portfolio-summary",
+      "args": {
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t"
+      },
+      "elapsedMs": 1482,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "summary": {
+            "total_value_usd": "0",
+            "total_pnl_usd": "0",
+            "total_transactions": 0,
+            "tokens_held": 0,
+            "tokens_created_count": 0
+          }
+        }
+      }
+    },
+    {
+      "toolId": "rise-portfolio-positions",
+      "args": {
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        "page": 1,
+        "limit": 5
+      },
+      "elapsedMs": 1562,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "total": 0,
+          "page": 1,
+          "limit": 5,
+          "totalPages": 1,
+          "results": []
+        }
+      }
+    },
+    {
+      "toolId": "rise-borrow-quote",
+      "args": {
+        "address": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        "amountToBorrow": 1000000
+      },
+      "elapsedMs": 1308,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "depositedTokens": "0",
+          "walletBalance": "0",
+          "debt": "0",
+          "maxBorrowable": "0",
+          "maxBorrowableUsd": "0.00",
+          "maxBorrowableIfDepositAll": "0",
+          "maxBorrowableIfDepositAllUsd": "0.00",
+          "floorPrice": "0.00031714884943471094",
+          "borrowFeePercent": 3,
+          "requiredDeposit": "3250612455",
+          "grossBorrow": "1030928"
+        }
+      }
+    },
+    {
+      "toolId": "rise-deposit-and-borrow",
+      "args": {
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "borrowAmount": 1000000
+      },
+      "elapsedMs": 1306,
+      "response": {
+        "ok": true,
+        "data": {
+          "ok": true,
+          "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAKGjwF7btiOI90GSBiFpLatQsxQpTPqS/L2I4eqLYZU9H7wRuwbwm8IPBukXXfOM6U321Tr0tvFZPCYdMRQIbTH2WeW8i4JPabkTDxTPiB+tEo7ALuexrXhjCStJmYLmldT2I5sL9crM94woQOuVQBDQ8R9rQmY2tjiDEWqbZLc3B9N9NpiUqULtuwL9DIYagO7G2tnT9nGWp9/q3MBTdfn/fF5OXOj4JnBhlm9m9inZ8c3ulfzoL7HMwQf/AZeTcStKsYrTY6pJ1pD75vYYdIKDhtR1ugIrsPRozhk8iJE7GCdb1eiMjbp7bL+kS3Z0CFJi7/V978qo3Hxa+nGh3CiqyV2BT6+fqvDP4kL4hEgJMl+MpOcuPT9UeydBYego0I2Ehl97I3CfQxvw8ypUDBaZzCz0qXsN3PpsdT6s/IW5JkYVtdlMFJo8HASJORidS+uFlkT+Wx1696ZvXd4u/WrXNntsrqvg/1gGcOdQEBsxsBnG46Qi1IZ41LraRyJ2/ENY11hyfb/94aaPGEAghGPv4riGnapGdUExttEg7W581vnAFR6atgpJTK/4EEZxt55XMcKUyapOgqCjOOq9SYwFhMFynhuNWkL0vmqQUJ6YU98oN7grdxya5IoyjS7+7PSS0KtxGmPEKlCiHU3FQSc4JZhqprTpUs/9beenx0suXIAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAGVUkfVtf4IbY3cQ/XFIGZMp1xSZv7Wfo8UafMArz3/yZMjX3EPPX6hZSaUKRkzIqdmTF2z2Siy0WOgUnZjhhpBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKmM/O6Ipm6WvIQeaPSoAoQLbBfS5wRqRqg2Cm5J9WihXQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+FkGm4hX/quBhPtof2NGGMA12sQ53BrrO1WYoPAAAAAAAfdBCgz7P5a09hyhascE27hWdVt14dtx4BThHRyw0F7D8BMyrYyNXaS2hd4UU3s1SbZm+kiY1p+/YEwjz0qVl2gpfm5EX0dsuI2N3b7r6j2yz2tdExuKZtRM11exXHERFAcQAAUC0DUMABAACQNQwwAAAAAAABELAAECAxIBBBMUFQUIaGNrsWjEvbwRDAACARIGAwQBBxMUBRDyI8aJUuHytudowMEAAAAAFgYACAAXFRMBAREUAAkBCgIYGRILDA0GFwMIEwUUDg8Q5P2Dys90WRIQuw8AAAAAABMDCAAAAQkA",
+          "depositAmount": "3250612455",
+          "borrowAmount": "1030928",
+          "borrowAmountAfterFee": 1000000,
+          "includedDeposit": true,
+          "addresses": {
+            "personalAccount": "BfAbFZHSzMBacURJZqouVZ4ur7nhG6tFpwz5vFoZeUut",
+            "mayPersonalPosition": "7cRycY1f2ZnYavCoFAKWeswQrdn2hKfL6yLucq8ZBkXv",
+            "mayPersonalPositionEscrow": "4kvQ3zzwQf6hyuHU3CmePxpXti74ac1aYcMq5bxPKCiJ",
+            "tokenSrc": "8vcBRo8L7ddDqZVswGuLm9uUjv5Ukf9xz1N1kWoeAG6w",
+            "mainDst": "B5vrMa66Vu7UsadTjjffxZDZhZysWFCmr37b4jqQBCKy"
+          }
+        }
+      }
+    },
+    {
+      "toolId": "rise-repay-and-withdraw",
+      "args": {
+        "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+        "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+        "withdrawAmount": 1000000
+      },
+      "elapsedMs": 1300,
+      "response": {
+        "ok": false,
+        "status": 400,
+        "error": "Personal position not found. Please deposit tokens first."
+      }
+    },
+    {
+      "toolId": "rise-stream-new",
+      "args": {},
+      "elapsedMs": 0,
+      "response": {
+        "ok": true,
+        "data": {
+          "success": true,
+          "message": "SSE stream endpoint is GET /markets/stream/new. Use EventSource on the client or a dedicated stream worker."
+        }
+      }
+    }
+  ]
+}

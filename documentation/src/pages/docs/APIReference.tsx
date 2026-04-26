@@ -41,6 +41,10 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["squid-route", "squid-status"],
   },
   {
+    title: "Partner: RISE",
+    slugs: ["rise"],
+  },
+  {
     title: "Partner: Purch Vault",
     slugs: ["purch-vault"],
   },

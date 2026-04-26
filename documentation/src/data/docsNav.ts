@@ -93,6 +93,11 @@ export const navigation: NavItem[] = [
         ],
       },
       {
+        title: "Partner: RISE",
+        defaultCollapsed: false,
+        items: [{ title: "RISE Endpoints", href: api("rise") }],
+      },
+      {
         title: "Partner: Purch Vault",
         defaultCollapsed: false,
         items: [{ title: "Purch Vault API", href: api("purch-vault") }],

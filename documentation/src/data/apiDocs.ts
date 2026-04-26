@@ -1176,6 +1176,293 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
+  "rise": doc({
+    title: "RISE (rise.rich) API",
+    overview:
+      "Read RISE markets, market details, transactions, OHLC, quotes, portfolio, borrow capacity, and build buy/sell/borrow/repay transactions on Solana. These examples are captured from live calls against public.rise.rich.",
+    baseUrl: "https://public.rise.rich",
+    price: "$0.01 USD per agent call (rise-* tools via /agent/tools/call). Upstream RISE is key-gated by x-api-key.",
+    authNote:
+      "Direct RISE calls require the x-api-key header. In Syra Agent mode, these endpoints are exposed as rise-* tools and routed server-side through POST /agent/tools/call.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/markets",
+        description: "List markets (optional pagination).",
+        params: [
+          { name: "page", type: "number", required: "No", description: "Page number." },
+          { name: "limit", type: "number", required: "No", description: "Items per page." },
+        ],
+        requestExample: `curl "https://public.rise.rich/markets?page=1&limit=2" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "ok": true,
+  "count": 2,
+  "total": 651,
+  "page": 1,
+  "limit": 2,
+  "totalPages": 326,
+  "markets": [
+    {
+      "rise_market_address": "2khM9v1FoJoyh5xMxocNWFSkLfgipfUtJaJQCAKrk2hg",
+      "mint_token": "Bph53REQJvDyXNLWAiNpJm7R51MxzqAJHjfWdMvorise",
+      "token_name": "SOLDOG",
+      "token_symbol": "SOLDOG",
+      "price": "0.000028217134025268698",
+      "market_cap_usd": "147.52813464367208",
+      "volume_h24_usd": "101.17"
+    }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/markets/:address",
+        description: "Get market details by token mint or market address.",
+        params: [{ name: "address", type: "string", required: "Yes", description: "Token mint or market address." }],
+        requestExample: `curl "https://public.rise.rich/markets/DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "ok": true,
+  "market": {
+    "rise_market_address": "DCxsd9rZETcvV8KWVq2ExWhA9cbWRzBMSuSqoaLRaNFB",
+    "mint_token": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
+    "token_name": "Up Only",
+    "token_symbol": "UPONLY",
+    "price": "0.0005401873654795783",
+    "market_cap_usd": "111445.05967642697",
+    "volume_h24_usd": "69290.30",
+    "holders_count": 117,
+    "creator_fee_percent": 5
+  }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/markets/:address/transactions",
+        description: "Get market transaction history.",
+        params: [
+          { name: "address", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "page", type: "number", required: "No", description: "Page number." },
+          { name: "limit", type: "number", required: "No", description: "Items per page." },
+        ],
+        requestExample: `curl "https://public.rise.rich/markets/DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise/transactions?page=1&limit=3" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "ok": true,
+  "page": 1,
+  "limit": 3,
+  "total": 0,
+  "totalPages": 0,
+  "count": 0,
+  "transactions": []
+}`,
+      },
+      {
+        method: "GET",
+        path: "/markets/:address/ohlc/:timeframe",
+        description: "Get OHLC candles by timeframe.",
+        params: [
+          { name: "address", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "timeframe", type: "string", required: "Yes", description: "1m, 5m, 1h, 1d." },
+          { name: "limit", type: "number", required: "No", description: "Max candles to return." },
+        ],
+        requestExample: `curl "https://public.rise.rich/markets/DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise/ohlc/1h?limit=3" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "ok": true,
+  "timeframe": "1hour",
+  "count": 0,
+  "data": []
+}`,
+      },
+      {
+        method: "POST",
+        path: "/markets/:address/quote",
+        description: "Get buy/sell quote. amount must be RAW units.",
+        params: [
+          { name: "address", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "amount", type: "number", required: "Yes", description: "RAW units." },
+          { name: "direction", type: "string", required: "Yes", description: "buy or sell." },
+        ],
+        bodyExample: `{ "amount": 1000000, "direction": "buy" }`,
+        requestExample: `curl -X POST "https://public.rise.rich/markets/DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise/quote" -H "Content-Type: application/json" -H "x-api-key: $RISE_API_KEY" -d '{"amount":1000000,"direction":"buy"}'`,
+        responseExample: `{
+  "ok": true,
+  "quote": {
+    "direction": "buy",
+    "amountIn": 1000000,
+    "amountOut": 1828069412,
+    "feeRate": 0.0125,
+    "feeAmount": 12499,
+    "amountInUsd": 0.0861,
+    "amountOutUsd": 0.08502375000000001,
+    "currentPrice": 0.0005401873654795783,
+    "newPrice": 0.0005401879139004021
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/program/buyToken",
+        description: "Build a buy transaction (not submitted). cashIn/minTokenOut are RAW units.",
+        params: [
+          { name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." },
+          { name: "market", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "cashIn", type: "number", required: "Yes", description: "RAW units of input collateral." },
+          { name: "minTokenOut", type: "number", required: "Yes", description: "RAW minimum token out." },
+        ],
+        bodyExample: `{ "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t", "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise", "cashIn": 1000000, "minTokenOut": 1 }`,
+        requestExample: `curl -X POST "https://public.rise.rich/program/buyToken" -H "Content-Type: application/json" -H "x-api-key: $RISE_API_KEY" -d '{"wallet":"53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t","market":"DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise","cashIn":1000000,"minTokenOut":1}'`,
+        responseExample: `{
+  "ok": true,
+  "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQALGTwF7btiOI90GSBiFpLatQsxQpTPqS/L2I4eqLYZU9H7...",
+  "addresses": {
+    "mainSrc": "B5vrMa66Vu7UsadTjjffxZDZhZysWFCmr37b4jqQBCKy",
+    "tokenDst": "8vcBRo8L7ddDqZVswGuLm9uUjv5Ukf9xz1N1kWoeAG6w"
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/program/sellToken",
+        description: "Build a sell transaction (not submitted). tokenIn/minCashOut are RAW units.",
+        params: [
+          { name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." },
+          { name: "market", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "tokenIn", type: "number", required: "Yes", description: "RAW token amount in." },
+          { name: "minCashOut", type: "number", required: "Yes", description: "RAW minimum collateral out." },
+        ],
+        bodyExample: `{ "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t", "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise", "tokenIn": 1000, "minCashOut": 1 }`,
+        requestExample: `curl -X POST "https://public.rise.rich/program/sellToken" -H "Content-Type: application/json" -H "x-api-key: $RISE_API_KEY" -d '{"wallet":"53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t","market":"DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise","tokenIn":1000,"minCashOut":1}'`,
+        responseExample: `{
+  "ok": true,
+  "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAKGDwF7btiOI90GSBiFpLatQsxQpTPqS/L2I4eqLYZU9H7...",
+  "addresses": {
+    "tokenSrc": "8vcBRo8L7ddDqZVswGuLm9uUjv5Ukf9xz1N1kWoeAG6w",
+    "mainDst": "B5vrMa66Vu7UsadTjjffxZDZhZysWFCmr37b4jqQBCKy"
+  }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/users/:wallet/portfolio/summary",
+        description: "Get wallet portfolio summary.",
+        params: [{ name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." }],
+        requestExample: `curl "https://public.rise.rich/users/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t/portfolio/summary" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "ok": true,
+  "summary": {
+    "total_value_usd": "0",
+    "total_pnl_usd": "0",
+    "total_transactions": 0,
+    "tokens_held": 0,
+    "tokens_created_count": 0
+  }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/users/:wallet/portfolio/positions",
+        description: "Get wallet positions (optional pagination).",
+        params: [
+          { name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." },
+          { name: "page", type: "number", required: "No", description: "Page number." },
+          { name: "limit", type: "number", required: "No", description: "Items per page." },
+        ],
+        requestExample: `curl "https://public.rise.rich/users/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t/portfolio/positions?page=1&limit=5" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "ok": true,
+  "total": 0,
+  "page": 1,
+  "limit": 5,
+  "totalPages": 1,
+  "results": []
+}`,
+      },
+      {
+        method: "POST",
+        path: "/markets/:address/borrow/quote",
+        description: "Get max borrowable and required deposit for a borrow amount.",
+        params: [
+          { name: "address", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." },
+          { name: "amountToBorrow", type: "number", required: "No", description: "Requested borrow amount in RAW units." },
+        ],
+        bodyExample: `{ "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t", "amountToBorrow": 1000000 }`,
+        requestExample: `curl -X POST "https://public.rise.rich/markets/DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise/borrow/quote" -H "Content-Type: application/json" -H "x-api-key: $RISE_API_KEY" -d '{"wallet":"53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t","amountToBorrow":1000000}'`,
+        responseExample: `{
+  "ok": true,
+  "depositedTokens": "0",
+  "walletBalance": "0",
+  "debt": "0",
+  "maxBorrowable": "0",
+  "maxBorrowableUsd": "0.00",
+  "requiredDeposit": "3250612455",
+  "grossBorrow": "1030928"
+}`,
+      },
+      {
+        method: "POST",
+        path: "/program/deposit-and-borrow",
+        description: "Build deposit+borrow transaction (not submitted). borrowAmount is RAW units.",
+        params: [
+          { name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." },
+          { name: "market", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "borrowAmount", type: "number", required: "Yes", description: "Target borrow amount in RAW units." },
+        ],
+        bodyExample: `{ "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t", "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise", "borrowAmount": 1000000 }`,
+        requestExample: `curl -X POST "https://public.rise.rich/program/deposit-and-borrow" -H "Content-Type: application/json" -H "x-api-key: $RISE_API_KEY" -d '{"wallet":"53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t","market":"DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise","borrowAmount":1000000}'`,
+        responseExample: `{
+  "ok": true,
+  "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAKGjwF7btiOI90GSBiFpLatQsxQpTPqS/L2I4eqLYZU9H7...",
+  "depositAmount": "3250612455",
+  "borrowAmount": "1030928",
+  "borrowAmountAfterFee": 1000000,
+  "includedDeposit": true
+}`,
+      },
+      {
+        method: "POST",
+        path: "/program/repay-and-withdraw",
+        description: "Build repay+withdraw transaction. Returns 400 if no personal position exists.",
+        params: [
+          { name: "wallet", type: "string", required: "Yes", description: "Solana wallet address." },
+          { name: "market", type: "string", required: "Yes", description: "Token mint or market address." },
+          { name: "withdrawAmount", type: "number", required: "Yes", description: "RAW collateral amount to withdraw." },
+        ],
+        bodyExample: `{ "wallet": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t", "market": "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise", "withdrawAmount": 1000000 }`,
+        requestExample: `curl -X POST "https://public.rise.rich/program/repay-and-withdraw" -H "Content-Type: application/json" -H "x-api-key: $RISE_API_KEY" -d '{"wallet":"53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t","market":"DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise","withdrawAmount":1000000}'`,
+        responseExample: `{
+  "error": "Personal position not found. Please deposit tokens first."
+}`,
+      },
+      {
+        method: "GET",
+        path: "/markets/stream/new",
+        description: "SSE stream for newly created markets (agent helper returns usage note).",
+        requestExample: `curl -N "https://public.rise.rich/markets/stream/new" -H "x-api-key: $RISE_API_KEY"`,
+        responseExample: `{
+  "success": true,
+  "message": "SSE stream endpoint is GET /markets/stream/new. Use EventSource on the client or a dedicated stream worker."
+}`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Syra Agent mapping",
+        content:
+          "The same endpoints are available to Syra Agent through `POST /agent/tools/call` with tool ids: `rise-markets`, `rise-market`, `rise-market-transactions`, `rise-market-ohlc`, `rise-market-quote`, `rise-buy-token`, `rise-sell-token`, `rise-portfolio-summary`, `rise-portfolio-positions`, `rise-borrow-quote`, `rise-deposit-and-borrow`, `rise-repay-and-withdraw`, `rise-stream-new`.",
+      },
+      {
+        title: "Public Up Only mirror route",
+        content:
+          "Syra also exposes a read-only normalized market view for landing pages: `GET /uponly-rise-market/:address` (implemented in `api/routes/uponlyRiseMarket.js`).",
+      },
+      {
+        title: "Live sample source",
+        content:
+          "Examples above are captured from a live run on 2026-04-26 and stored in `api/scripts/rise-api-snapshot.json` (generated by `api/scripts/runRiseApis.js`).",
+      },
+    ],
+  }),
+
   "purch-vault": doc({
     title: "Purch Vault API",
     overview:
