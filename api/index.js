@@ -33,7 +33,11 @@ import { isArenaPaused } from "./scripts/devfun-arena/arenaPause.mjs";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
-import { createUponlyRiseMarketRouter } from "./routes/uponlyRiseMarket.js";
+import {
+  createUponlyRiseMarketRouter,
+  createUponlyRiseMarketsRouter,
+  createUponlyRisePortfolioRouter,
+} from "./routes/uponlyRiseMarket.js";
 import { createXApiRouter } from "./routes/partner/x-api/index.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 // x402 route imports (consolidated from v2 into routes)
@@ -276,6 +280,7 @@ function isPreviewRoute(p) {
   if (p.startsWith("/streamflow-locks")) return true;
   if (p.startsWith("/staking")) return true;
   if (p.startsWith("/uponly-rise-market")) return true;
+  if (p.startsWith("/uponly-rise-portfolio")) return true;
   return false;
 }
 
@@ -549,7 +554,8 @@ app.use(
         p.startsWith("/prediction-game") ||
         p.startsWith("/streamflow-locks") ||
         p.startsWith("/staking") ||
-        p.startsWith("/uponly-rise-market")
+        p.startsWith("/uponly-rise-market") ||
+        p.startsWith("/uponly-rise-portfolio")
       );
     },
   ),
@@ -781,6 +787,8 @@ app.use("/preview/sentiment", await createSentimentRouterRegular());
 app.use("/preview/signal", await createSignalRouterRegular());
 app.use("/dashboard-summary", await createDashboardSummaryRouterRegular());
 app.use("/uponly-rise-market", createUponlyRiseMarketRouter());
+app.use("/uponly-rise-markets", createUponlyRiseMarketsRouter());
+app.use("/uponly-rise-portfolio", createUponlyRisePortfolioRouter());
 app.use("/binance-ticker", await createBinanceTickerPriceRouter());
 // Legacy /v1 → 410
 app.use("/v1", (req, res) => {

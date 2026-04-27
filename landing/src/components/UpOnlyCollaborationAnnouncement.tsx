@@ -255,6 +255,21 @@ export function UpOnlyCollaborationAnnouncement() {
                     </a>
                   </Button>
                 ) : null}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-12 w-full min-w-0 rounded-lg border-border/70 bg-background/50 px-4 text-sm font-medium backdrop-blur-sm sm:col-span-2 sm:h-12 sm:rounded-xl sm:px-5 sm:text-base md:h-14 md:text-base"
+                  asChild
+                >
+                  <Link
+                    to="/rise"
+                    onClick={() => handleOpenChange(false)}
+                    className="inline-flex w-full items-center justify-center gap-2 text-center"
+                  >
+                    <span className="min-w-0 whitespace-normal text-balance">Open RISE dashboard</span>
+                    <ArrowUpRight className="size-4 shrink-0 opacity-80 sm:size-5" aria-hidden />
+                  </Link>
+                </Button>
               </motion.div>
 
               <p className="mt-2 border-t border-border/40 pt-4 text-pretty text-center text-[10px] leading-relaxed text-muted-foreground/85 sm:mt-3 sm:pt-5 sm:text-xs md:text-[13px]">

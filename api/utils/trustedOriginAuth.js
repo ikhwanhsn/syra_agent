@@ -50,7 +50,8 @@ function isBrowserCallablePath(path) {
     path.startsWith("/internal") ||
     path.startsWith("/agent") ||
     path.startsWith("/8004") ||
-    path.startsWith("/uponly-rise-market")
+    path.startsWith("/uponly-rise-market") ||
+    path.startsWith("/uponly-rise-portfolio")
   );
 }
 

@@ -20,7 +20,7 @@ import Partner from "./pages/Partner";
 import PartnerDetail from "./pages/PartnerDetail";
 import UpOnly from "./pages/UpOnly";
 import UpOnlyFund from "./pages/UpOnlyFund";
-import RiseRedirect from "./pages/RiseRedirect";
+import Rise from "./pages/Rise";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 const queryClient = new QueryClient();
@@ -64,7 +64,7 @@ const App = () => (
             <Route path="/partner/:slug" element={<PartnerDetail />} />
             <Route path="/uponly" element={<UpOnly />} />
             <Route path="/uponly/fund" element={<UpOnlyFund />} />
-            <Route path="/rise" element={<RiseRedirect />} />
+            <Route path="/rise" element={<Rise />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
