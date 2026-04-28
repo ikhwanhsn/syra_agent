@@ -3,6 +3,7 @@ import { Footer } from "@/components/Footer";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HomeStatsStrip } from "@/components/landing/HomeStatsStrip";
+import { BackedBySyraSection } from "@/components/landing/BackedBySyraSection";
 import { MissionSection } from "@/components/landing/MissionSection";
 import { WhatIsUof } from "@/components/landing/WhatIsUof";
 import { ProductSurfaces } from "@/components/landing/ProductSurfaces";
@@ -52,6 +53,7 @@ const Index = () => {
         <div className={cn("relative", siteShell)}>
           <HeroSection />
           <HomeStatsStrip />
+          <BackedBySyraSection />
           <MissionSection />
           <WhatIsUof />
           <ProductSurfaces />
