@@ -8,8 +8,9 @@ type RiskDisclosureProps = {
 export function RiskDisclosure({ className }: RiskDisclosureProps) {
   return (
     <aside
+      id="risk-disclosure"
       className={cn(
-        "mb-16 rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.05] to-transparent p-5 sm:mb-20 sm:p-7",
+        "mb-16 scroll-mt-24 rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.05] to-transparent p-5 sm:mb-20 sm:p-7",
         className,
       )}
       role="note"

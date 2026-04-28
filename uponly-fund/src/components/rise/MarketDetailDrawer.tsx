@@ -66,12 +66,26 @@ function PriceChart({ address, tf }: { address: string; tf: RiseTimeframe }) {
   const data = useMemo(() => {
     const c = ohlc.data?.candles ?? [];
     return c
-      .map((row) => {
+      .map((row, idx) => {
         const rawTime = typeof row.time === "number" && Number.isFinite(row.time) ? row.time : null;
-        const close = typeof row.close === "number" && Number.isFinite(row.close) ? row.close : null;
-        if (rawTime === null || close === null) return null;
-        const tsMs = rawTime > 1_000_000_000_000 ? rawTime : rawTime * 1000;
-        return { time: tsMs, value: close };
+        const closeCandidate =
+          typeof row.close === "number" && Number.isFinite(row.close)
+            ? row.close
+            : typeof row.open === "number" && Number.isFinite(row.open)
+              ? row.open
+              : typeof row.high === "number" && Number.isFinite(row.high)
+                ? row.high
+                : typeof row.low === "number" && Number.isFinite(row.low)
+                  ? row.low
+                  : null;
+        if (closeCandidate === null) return null;
+        const tsMs =
+          rawTime === null
+            ? idx * 3_600_000
+            : rawTime > 1_000_000_000_000
+              ? rawTime
+              : rawTime * 1000;
+        return { time: tsMs, value: closeCandidate };
       })
       .filter((r): r is { time: number; value: number } => r !== null)
       .sort((a, b) => a.time - b.time);

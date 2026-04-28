@@ -22,6 +22,8 @@ import {
   SectionHeader,
   TokenAvatar,
   VerifiedBadge,
+  changeTone,
+  formatPctSigned,
   formatPriceSmart,
   formatRelativeAge,
 } from "./RiseShared";
@@ -33,12 +35,14 @@ function MoverCard({
   onSelect,
   metricLabel,
   metricValue,
+  metricTone = "neutral",
   tone = "neutral",
 }: {
   market: RiseMarketRow;
   onSelect: (m: RiseMarketRow) => void;
   metricLabel: string;
   metricValue: string;
+  metricTone?: "up" | "down" | "neutral";
   tone?: Tone;
 }) {
   return (
@@ -75,7 +79,16 @@ function MoverCard({
       >
         <div className="flex items-center justify-between gap-2">
           <span className="text-muted-foreground">{metricLabel}</span>
-          <span className="font-semibold tabular-nums text-foreground">{metricValue}</span>
+          <span
+            className={cn(
+              "font-semibold tabular-nums",
+              metricTone === "up" && "text-emerald-400",
+              metricTone === "down" && "text-red-400",
+              metricTone === "neutral" && "text-foreground",
+            )}
+          >
+            {metricValue}
+          </span>
         </div>
         <div className="mt-1 flex items-center justify-between gap-2 text-muted-foreground">
           <span className="truncate">MC {formatUsd(market.marketCapUsd, { compact: true })}</span>
@@ -98,6 +111,7 @@ function Rail({
   items,
   onSelect,
   metric,
+  metricTone,
   tone = "neutral",
   isLoading,
 }: {
@@ -107,6 +121,7 @@ function Rail({
   items: RiseMarketRow[];
   onSelect: (m: RiseMarketRow) => void;
   metric: (m: RiseMarketRow) => { label: string; value: string };
+  metricTone?: (m: RiseMarketRow) => "up" | "down" | "neutral";
   tone?: Tone;
   isLoading: boolean;
 }) {
@@ -138,7 +153,17 @@ function Rail({
         >
           {items.map((m) => {
             const { label, value } = metric(m);
-            return <MoverCard key={m.mint} market={m} onSelect={onSelect} metricLabel={label} metricValue={value} tone={tone} />;
+            return (
+              <MoverCard
+                key={m.mint}
+                market={m}
+                onSelect={onSelect}
+                metricLabel={label}
+                metricValue={value}
+                metricTone={metricTone ? metricTone(m) : "neutral"}
+                tone={tone}
+              />
+            );
           })}
           <div className="w-1 shrink-0 sm:w-2" aria-hidden />
         </div>
@@ -182,7 +207,8 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
           onSelect={onSelect}
           isLoading={isLoading}
           tone="success"
-          metric={(m) => ({ label: "24h Δ", value: m.priceChange24hPct != null ? `${m.priceChange24hPct.toFixed(1)}%` : "—" })}
+          metric={(m) => ({ label: "24h Δ", value: formatPctSigned(m.priceChange24hPct) })}
+          metricTone={(m) => changeTone(m.priceChange24hPct)}
         />
         <Rail
           title="Newest markets"
@@ -207,7 +233,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
         />
         <Rail
           title="Largest by mcap"
-          description="Top market caps in the sampled set"
+          description="Top market caps across RISE"
           icon={Activity}
           items={data?.largestByMcap ?? []}
           onSelect={onSelect}

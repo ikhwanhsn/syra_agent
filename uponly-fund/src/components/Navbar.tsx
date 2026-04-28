@@ -15,15 +15,22 @@ import { cn } from "@/lib/utils";
 import { siteShell } from "@/lib/siteLayout";
 
 const navLinks = [
-  { label: "Tranche", href: "/uponly/overview", desc: "$UPONLY" },
-  { label: "Treasury", href: "/uponly/fund", desc: "Mandate" },
-  { label: "Markets", href: "/uponly/rise", desc: "RISE" },
+  { label: "Overview", href: "/#uof-landing-hero", desc: "Landing" },
+  { label: "Token", href: "/#landing-token", desc: "$UPONLY" },
+  { label: "Mandate", href: "/#mandate", desc: "Treasury" },
+  { label: "Risk", href: "/#risk-disclosure", desc: "Disclosure" },
 ] as const;
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const location = useLocation();
+  const isActiveLink = (href: string) => {
+    if (href === "/dashboard") return location.pathname === "/dashboard";
+    if (!href.startsWith("/#")) return location.pathname === href;
+    const hash = href.slice(1);
+    return location.pathname === "/" && location.hash === hash;
+  };
 
   return (
     <motion.header
@@ -42,7 +49,7 @@ export const Navbar = () => {
 
             <div className="hidden min-w-0 items-center gap-0.5 lg:flex lg:flex-1 lg:justify-center">
               {navLinks.map((link) => {
-                const active = location.pathname === link.href;
+                const active = isActiveLink(link.href);
                 return (
                   <Link
                     key={link.href}
@@ -85,8 +92,8 @@ export const Navbar = () => {
                 size="sm"
                 className="h-8 shrink-0 px-2.5 text-xs font-semibold !text-[hsl(var(--uof-foreground))] sm:h-9 sm:px-3 sm:text-sm"
               >
-                <Link to="/uponly/fund" onClick={() => setIsOpen(false)}>
-                  Mandate
+                <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+                  Open dashboard
                 </Link>
               </Button>
 
@@ -123,7 +130,7 @@ export const Navbar = () => {
                       onClick={() => setIsOpen(false)}
                       className={cn(
                         "flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-foreground active:bg-foreground/[0.06]",
-                        location.pathname === link.href && "bg-foreground/[0.06]",
+                        isActiveLink(link.href) && "bg-foreground/[0.06]",
                       )}
                     >
                       <span className="font-medium">{link.label}</span>

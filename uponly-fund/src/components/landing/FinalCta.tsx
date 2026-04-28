@@ -24,11 +24,11 @@ export function FinalCta({ className }: FinalCtaProps) {
             id="uof-landing-final-cta"
             className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl md:text-4xl"
           >
-            Get the <span className="uof-wordmark">full mandate</span>
+            Ready for live markets?
           </h2>
           <p className="mx-auto mt-4 max-w-md text-pretty text-sm text-muted-foreground sm:text-base">
-            Treasury, sources, and risk in one pass. Cross-check the tranche and markets after you are grounded in
-            policy.
+            This landing page now includes the core tranche + treasury context. Open the dashboard for live market
+            data and simulators.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 min-[400px]:flex-row">
             <Button
@@ -36,8 +36,8 @@ export function FinalCta({ className }: FinalCtaProps) {
               size="lg"
               className="h-12 min-w-[12rem] rounded-xl bg-uof !text-[hsl(var(--uof-foreground))] font-semibold shadow-md hover:bg-uof/90"
             >
-              <Link to="/uponly/fund" className="inline-flex items-center justify-center gap-2">
-                Treasury
+              <Link to="/dashboard" className="inline-flex items-center justify-center gap-2">
+                Open dashboard
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -47,8 +47,8 @@ export function FinalCta({ className }: FinalCtaProps) {
               size="lg"
               className="h-12 rounded-xl border-border/50 bg-background/30 font-medium"
             >
-              <Link to="/uponly/rise" className="inline-flex">
-                RISE screener
+              <Link to="/" className="inline-flex">
+                Re-read overview
               </Link>
             </Button>
           </div>

@@ -35,8 +35,8 @@ const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const RISE_UPONLY_MINT = "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise";
 const ADDR_MIN = 32;
 const ADDR_MAX = 50;
-const SAMPLE_PAGES = 5;
-const SAMPLE_PAGE_SIZE = 50;
+const AGGREGATE_PAGE_SIZE = 100;
+const MAX_AGGREGATE_PAGES = 200;
 const RISE_CALL_TIMEOUT_MS = 4_500;
 const TOP_N = 10;
 
@@ -116,8 +116,20 @@ function normalizeRiseMarketRow(m) {
   const floorInCollateral = toNum(m.mayflower_floor);
   const directPriceUsd = toNum(m.price_usd) ?? toNum(m.token_price_usd) ?? toNum(m.spot_price_usd);
   const directFloorUsd = toNum(m.mayflower_floor_usd) ?? toNum(m.floor_price_usd);
-  const priceUsd = directPriceUsd != null ? directPriceUsd : isUsdcQuote ? priceInCollateral : null;
-  const floorPriceUsd = directFloorUsd != null ? directFloorUsd : isUsdcQuote ? floorInCollateral : null;
+  // Some markets omit explicit USD fields. Fall back to quoted values so the
+  // dashboard can still render price/floor instead of null.
+  const priceUsd =
+    directPriceUsd != null
+      ? directPriceUsd
+      : isUsdcQuote
+        ? priceInCollateral
+        : priceInCollateral;
+  const floorPriceUsd =
+    directFloorUsd != null
+      ? directFloorUsd
+      : isUsdcQuote
+        ? floorInCollateral
+        : floorInCollateral;
   const marketCapUsd = toNum(m.market_cap_usd) ?? toNum(m.marketCapUsd);
   const floorMarketCapUsd = toNum(m.floor_market_cap_usd);
   const volume24hUsd = toNum(m.volume_h24_usd) ?? toNum(m.volumeH24Usd);
@@ -200,8 +212,18 @@ export function normalizeRisePublicMarket(m) {
   const floorInCollateral = toNum(m.mayflower_floor);
   const directPriceUsd = toNum(m.price_usd) ?? toNum(m.token_price_usd) ?? toNum(m.spot_price_usd);
   const directFloorUsd = toNum(m.mayflower_floor_usd) ?? toNum(m.floor_price_usd);
-  const priceUsd = directPriceUsd != null ? directPriceUsd : isUsdcQuote ? priceInCollateral : null;
-  const floorPriceUsd = directFloorUsd != null ? directFloorUsd : isUsdcQuote ? floorInCollateral : null;
+  const priceUsd =
+    directPriceUsd != null
+      ? directPriceUsd
+      : isUsdcQuote
+        ? priceInCollateral
+        : priceInCollateral;
+  const floorPriceUsd =
+    directFloorUsd != null
+      ? directFloorUsd
+      : isUsdcQuote
+        ? floorInCollateral
+        : floorInCollateral;
   const marketCapUsd = toNum(m.market_cap_usd) ?? toNum(m.marketCapUsd);
   const volume24hUsd = toNum(m.volume_h24_usd) ?? toNum(m.volumeH24Usd);
   const hc = m.holders_count;
@@ -539,29 +561,35 @@ async function listHandler(req, res) {
 
 /** GET /uponly-rise-markets/aggregate */
 async function aggregateHandler(req, res) {
-  const calls = [];
-  for (let i = 1; i <= SAMPLE_PAGES; i += 1) {
-    calls.push(withTimeout(riseGetMarkets({ page: i, limit: SAMPLE_PAGE_SIZE }), RISE_CALL_TIMEOUT_MS));
+  const firstPageResult = await withTimeout(
+    riseGetMarkets({ page: 1, limit: AGGREGATE_PAGE_SIZE }),
+    RISE_CALL_TIMEOUT_MS,
+  );
+  if (!firstPageResult.ok) {
+    const code = firstPageResult.status && firstPageResult.status < 500 ? firstPageResult.status : 502;
+    return res.status(code).json({ success: false, error: firstPageResult.error || "RISE markets request failed" });
   }
-  const uponlyCall = withTimeout(riseGetMarketByAddress(RISE_UPONLY_MINT), RISE_CALL_TIMEOUT_MS);
 
-  const settled = await Promise.allSettled([...calls, uponlyCall]);
-  const pageResults = settled.slice(0, SAMPLE_PAGES);
-  const uponlyResult = settled[SAMPLE_PAGES];
+  const totalPages = clampInt(firstPageResult.data?.totalPages, 1, MAX_AGGREGATE_PAGES, 1);
+  const totalMarkets = clampInt(firstPageResult.data?.total, 0, Number.MAX_SAFE_INTEGER, 0);
+  const pageCalls = [];
+  for (let p = 2; p <= totalPages; p += 1) {
+    pageCalls.push(withTimeout(riseGetMarkets({ page: p, limit: AGGREGATE_PAGE_SIZE }), RISE_CALL_TIMEOUT_MS));
+  }
+  const settledPages = await Promise.allSettled(pageCalls);
+  const uponlyResult = await withTimeout(riseGetMarketByAddress(RISE_UPONLY_MINT), RISE_CALL_TIMEOUT_MS);
 
+  const allPageResults = [firstPageResult, ...settledPages.map((s) => (s.status === "fulfilled" ? s.value : null))];
   let degraded = false;
-  let totalMarkets = 0;
   const allRows = [];
   const seen = new Set();
 
-  for (const r of pageResults) {
-    if (r.status !== "fulfilled" || !r.value?.ok || !r.value.data?.markets) {
+  for (const r of allPageResults) {
+    if (!r?.ok || !r.data?.markets) {
       degraded = true;
       continue;
     }
-    const total = toNum(r.value.data.total);
-    if (total != null) totalMarkets = Math.max(totalMarkets, total);
-    for (const m of r.value.data.markets) {
+    for (const m of r.data.markets) {
       const row = normalizeRiseMarketRow(m);
       if (!row || !row.mint || seen.has(row.mint)) continue;
       seen.add(row.mint);
@@ -570,8 +598,8 @@ async function aggregateHandler(req, res) {
   }
 
   let uponly = allRows.find((r) => r.mint === RISE_UPONLY_MINT) || null;
-  if (uponlyResult.status === "fulfilled" && uponlyResult.value?.ok && uponlyResult.value.data?.market) {
-    const row = normalizeRiseMarketRow(uponlyResult.value.data.market);
+  if (uponlyResult.ok && uponlyResult.data?.market) {
+    const row = normalizeRiseMarketRow(uponlyResult.data.market);
     if (row) {
       uponly = row;
       if (!seen.has(row.mint)) {

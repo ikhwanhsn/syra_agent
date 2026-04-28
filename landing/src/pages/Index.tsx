@@ -1,5 +1,4 @@
 import { Navbar } from "@/components/Navbar";
-import { UpOnlyCollaborationAnnouncement } from "@/components/UpOnlyCollaborationAnnouncement";
 import { HeroSection } from "@/components/HeroSection";
 import { WhatIsSyra } from "@/components/WhatIsSyra";
 import { ProductModules } from "@/components/ProductModules";
@@ -17,7 +16,6 @@ import { Footer } from "@/components/Footer";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <UpOnlyCollaborationAnnouncement />
       <Navbar />
       <main>
         <HeroSection />

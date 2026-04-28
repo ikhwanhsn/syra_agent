@@ -52,18 +52,35 @@ function MiniSparkline({ values, tone }: { values: number[]; tone: "up" | "down"
 
 export function UponlySpotlight() {
   const { uponly, aggregate } = useRiseDashboard();
-  const ohlc = useRiseOhlc(RISE_UPONLY_MINT, "1h", 96);
+  const spotlightAddress = uponly?.marketAddress ?? uponly?.mint ?? RISE_UPONLY_MINT;
+  const ohlc = useRiseOhlc(spotlightAddress, "1h", 96);
 
   const tradeUrl = useMemo(() => buildRiseTradeUrl(uponly?.mint || RISE_UPONLY_MINT), [uponly?.mint]);
 
   const sparkline = useMemo(() => {
     const candles = ohlc.data?.candles ?? [];
     const normalized = candles
-      .map((c) => {
+      .map((c, idx) => {
         const rawTime = typeof c.time === "number" && Number.isFinite(c.time) ? c.time : null;
-        const close = typeof c.close === "number" && Number.isFinite(c.close) ? c.close : null;
-        if (rawTime === null || close === null) return null;
-        const tsMs = rawTime > 1_000_000_000_000 ? rawTime : rawTime * 1000;
+        const closeCandidate =
+          typeof c.close === "number" && Number.isFinite(c.close)
+            ? c.close
+            : typeof c.open === "number" && Number.isFinite(c.open)
+              ? c.open
+              : typeof c.high === "number" && Number.isFinite(c.high)
+                ? c.high
+                : typeof c.low === "number" && Number.isFinite(c.low)
+                  ? c.low
+                  : null;
+        const close = closeCandidate;
+        if (close === null) return null;
+        // Some upstream OHLC rows omit time; fall back to stable index spacing.
+        const tsMs =
+          rawTime === null
+            ? idx * 3_600_000
+            : rawTime > 1_000_000_000_000
+              ? rawTime
+              : rawTime * 1000;
         return { tsMs, close };
       })
       .filter((v): v is { tsMs: number; close: number } => v !== null)

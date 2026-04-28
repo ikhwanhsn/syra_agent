@@ -1,5 +1,5 @@
 /**
- * /uponly/rise — Rise ecosystem dashboard & screener.
+ * /dashboard — Rise ecosystem dashboard & screener.
  *
  * Composition order from top to bottom:
  *   RiseHero          → ecosystem KPIs + ticker tape
@@ -64,7 +64,7 @@ export default function Rise() {
   useDocumentMeta({
     title: PAGE_TITLE,
     description: PAGE_DESC,
-    canonicalPath: "/uponly/rise",
+    canonicalPath: "/dashboard",
   });
 
   const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);

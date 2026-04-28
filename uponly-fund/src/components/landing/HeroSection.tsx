@@ -122,8 +122,8 @@ export function HeroSection({ className }: HeroSectionProps) {
                 size="lg"
                 className="h-12 min-h-[3rem] rounded-xl bg-uof !text-[hsl(var(--uof-foreground))] font-semibold shadow-lg shadow-uof/10 hover:bg-uof/90 sm:min-w-[13rem]"
               >
-                <Link to="/uponly/fund" className="inline-flex items-center justify-center gap-2">
-                  Read the mandate
+                <Link to="/#mandate" className="inline-flex items-center justify-center gap-2">
+                  Read the overview
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -133,8 +133,8 @@ export function HeroSection({ className }: HeroSectionProps) {
                 size="lg"
                 className="h-12 min-h-[3rem] rounded-xl border-border/60 bg-background/40 font-medium backdrop-blur-sm"
               >
-                <Link to="/uponly/overview" className="inline-flex items-center justify-center gap-2">
-                  $UPONLY tranche
+                <Link to="/dashboard" className="inline-flex items-center justify-center gap-2">
+                  Open dashboard
                   <ChevronRight className="h-4 w-4 opacity-60" />
                 </Link>
               </Button>

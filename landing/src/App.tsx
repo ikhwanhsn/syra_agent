@@ -62,7 +62,7 @@ const App = () => (
             <Route path="/partner/:slug" element={<PartnerDetail />} />
             <Route
               path="/uponly"
-              element={<RedirectToUponlyApp path="/uponly/overview" />}
+              element={<RedirectToUponlyApp path="/" />}
             />
             <Route
               path="/uponly/overview"
@@ -70,7 +70,7 @@ const App = () => (
             />
             <Route
               path="/uponly/fund"
-              element={<RedirectToUponlyApp path="/uponly/fund" />}
+              element={<RedirectToUponlyApp path="/" />}
             />
             <Route
               path="/uponly/rise"
@@ -78,7 +78,7 @@ const App = () => (
             />
             <Route
               path="/rise"
-              element={<RedirectToUponlyApp path="/uponly/rise" />}
+              element={<RedirectToUponlyApp path="/" />}
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

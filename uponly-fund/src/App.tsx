@@ -3,12 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import UpOnlyOverview from "./pages/uponly/Overview";
-import UpOnlyFundPage from "./pages/uponly/Fund";
 import UpOnlyRise from "./pages/uponly/Rise";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
@@ -40,9 +38,12 @@ const App = () => (
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/uponly/overview" element={<UpOnlyOverview />} />
-            <Route path="/uponly/fund" element={<UpOnlyFundPage />} />
-            <Route path="/uponly/rise" element={<UpOnlyRise />} />
+            <Route path="/dashboard" element={<UpOnlyRise />} />
+            <Route path="/uponly/overview" element={<Navigate to="/" replace />} />
+            <Route path="/uponly/fund" element={<Navigate to="/" replace />} />
+            <Route path="/uponly/rise" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/tranche" element={<Navigate to="/" replace />} />
+            <Route path="/treasury" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <ScrollToTopButton />

@@ -41,10 +41,10 @@ export const Footer = () => {
             </p>
             <div className="mt-8 flex min-w-0 flex-col items-stretch justify-center gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-center">
               <Link
-                to="/uponly/fund"
+                to="/"
                 className="inline-flex min-h-12 w-full min-w-0 items-center justify-center rounded-xl bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90 min-[400px]:w-auto min-[400px]:px-6"
               >
-                Treasury &amp; mandate
+                Landing overview
               </Link>
               <a
                 href={`mailto:${EMAIL_SUPPORT}`}
@@ -112,20 +112,15 @@ export const Footer = () => {
               <ul className="mt-4 space-y-3 text-sm">
                 <li>
                   <Link
-                    to="/uponly/overview"
+                    to="/"
                     className="text-muted-foreground transition hover:text-foreground"
                   >
-                    $UPONLY tranche
+                    Landing overview
                   </Link>
                 </li>
                 <li>
-                  <Link to="/uponly/fund" className="text-muted-foreground transition hover:text-foreground">
-                    Treasury &amp; mandate
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/uponly/rise" className="text-muted-foreground transition hover:text-foreground">
-                    RISE markets
+                  <Link to="/dashboard" className="text-muted-foreground transition hover:text-foreground">
+                    Dashboard
                   </Link>
                 </li>
               </ul>

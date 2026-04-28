@@ -1,5 +1,5 @@
 /**
- * schema.org markup for the /uponly/rise dashboard. Uses WebApplication +
+ * schema.org markup for the /dashboard page. Uses WebApplication +
  * Dataset + BreadcrumbList so search engines and AI agents can understand
  * the page is a live financial screener for the RISE ecosystem.
  */
@@ -19,14 +19,14 @@ const JSON_LD = {
           "@type": "ListItem",
           position: 2,
           name: "Rise Ecosystem Dashboard",
-          item: "https://www.syraa.fun/uponly/rise",
+          item: "https://www.syraa.fun/dashboard",
         },
       ],
     },
     {
       "@type": "WebApplication",
       name: "Rise Ecosystem Dashboard",
-      url: "https://www.syraa.fun/uponly/rise",
+      url: "https://www.syraa.fun/dashboard",
       applicationCategory: "FinanceApplication",
       operatingSystem: "Any",
       browserRequirements: "Requires JavaScript",
@@ -48,7 +48,7 @@ const JSON_LD = {
       name: "RISE markets dataset",
       description:
         "Aggregated market data for tokens launched on the RISE protocol — price, market cap, floor, holders, level, 24h volume.",
-      url: "https://www.syraa.fun/uponly/rise",
+      url: "https://www.syraa.fun/dashboard",
       keywords: ["RISE", "Solana", "DeFi", "bonding curve", "screener"],
       isAccessibleForFree: true,
       creator: {

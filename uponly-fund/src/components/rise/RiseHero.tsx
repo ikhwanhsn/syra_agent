@@ -158,21 +158,17 @@ export function RiseHero() {
               <StatTile
                 label="Markets"
                 value={<AnimatedInt end={data?.ecosystem.marketCount ?? null} />}
-                sub={
-                  data
-                    ? `Sampled ${formatInt(data.ecosystem.sampledCount)} for stats`
-                    : undefined
-                }
+                sub="Total markets"
               />
               <StatTile
                 label="Total market cap"
                 value={<AnimatedUsd end={data?.ecosystem.totalMarketCapUsd ?? null} />}
-                sub="Sampled, USD"
+                sub="USD"
               />
               <StatTile
                 label="24h volume"
                 value={<AnimatedUsd end={data?.ecosystem.totalVolume24hUsd ?? null} />}
-                sub="Sampled, USD"
+                sub="USD"
               />
               <StatTile
                 label="Floor-backed mcap"
@@ -180,14 +176,14 @@ export function RiseHero() {
                 sub={data ? `${formatInt(data.ecosystem.withFloorCount)} markets with floor` : undefined}
               />
               <StatTile
-                label="Holders (sampled)"
+                label="Holders"
                 value={<AnimatedInt end={data?.ecosystem.totalHolders ?? null} />}
                 sub={data ? `Median fee ${formatPct(data.ecosystem.medianCreatorFeePct)}` : undefined}
               />
               <StatTile
                 label="Verified markets"
                 value={<AnimatedInt end={data?.ecosystem.verifiedCount ?? null} />}
-                sub="In sampled set"
+                sub="Total"
                 accent
               />
             </>

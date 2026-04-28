@@ -6,17 +6,19 @@ import { HomeStatsStrip } from "@/components/landing/HomeStatsStrip";
 import { BackedBySyraSection } from "@/components/landing/BackedBySyraSection";
 import { MissionSection } from "@/components/landing/MissionSection";
 import { WhatIsUof } from "@/components/landing/WhatIsUof";
-import { ProductSurfaces } from "@/components/landing/ProductSurfaces";
-import { InfrastructurePartner } from "@/components/landing/InfrastructurePartner";
 import { RiskDisclosure } from "@/components/landing/RiskDisclosure";
 import { FinalCta } from "@/components/landing/FinalCta";
+import { TokenSection } from "@/components/landing/TokenSection";
+import { WhyUpOnly } from "@/components/uponly/WhyUpOnly";
+import { MandateSection } from "@/components/uponly/fund/MandateSection";
+import { TreasurySourceSection } from "@/components/uponly/fund/TreasurySourceSection";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { siteShell } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
 const PAGE_TITLE = "Up Only Fund | Tech utility program for the RISE stack" as const;
 const PAGE_DESC =
-  "Up Only Fund: a mandate-led program for funding tech utility across the RISE ecosystem—infrastructure support from Syra, execution on-venue, published disclosures. DYOR — not financial advice." as const;
+  "Up Only Fund: a simplified overview of tranche context, treasury mandate, and live market access in one place. DYOR — not financial advice." as const;
 
 const Index = () => {
   useDocumentMeta({
@@ -56,8 +58,10 @@ const Index = () => {
           <BackedBySyraSection />
           <MissionSection />
           <WhatIsUof />
-          <ProductSurfaces />
-          <InfrastructurePartner />
+          <TokenSection />
+          <WhyUpOnly />
+          <MandateSection />
+          <TreasurySourceSection />
           <RiskDisclosure />
           <FinalCta />
         </div>

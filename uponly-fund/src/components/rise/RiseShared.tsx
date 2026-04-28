@@ -116,8 +116,8 @@ export function ChangePill({
     <span
       className={cn(
         "inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[0.65rem] font-medium tabular-nums leading-none sm:text-xs",
-        tone === "up" && "border-success/40 bg-success/10 text-success",
-        tone === "down" && "border-destructive/40 bg-destructive/10 text-destructive",
+        tone === "up" && "border-emerald-500/45 bg-emerald-500/15 text-emerald-400",
+        tone === "down" && "border-red-500/45 bg-red-500/15 text-red-400",
         tone === "neutral" && "border-border/50 bg-muted/30 text-muted-foreground",
         className,
       )}
