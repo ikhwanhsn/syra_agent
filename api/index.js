@@ -138,6 +138,8 @@ const CORS_ALLOWED_ORIGINS = [
   "https://dev-ai-agent-syra.vercel.app",
   "https://predict.syraa.fun",
   "https://www.predict.syraa.fun",
+  "https://uponlyfund.com",
+  "https://www.uponlyfund.com",
   ...CORS_EXTRA,
 ];
 /** Hoisted once — the CORS origin callback runs on every non-x402 browser request; avoid new Set() per hit. */

@@ -32,6 +32,8 @@ const TRUSTED_ORIGINS = [
   "https://dev-ai-agent-syra.vercel.app",
   "https://predict.syraa.fun",
   "https://www.predict.syraa.fun",
+  "https://uponlyfund.com",
+  "https://www.uponlyfund.com",
   ...(process.env.CORS_EXTRA_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
