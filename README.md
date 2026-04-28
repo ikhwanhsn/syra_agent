@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="landing/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra**
 
@@ -87,7 +87,6 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 | Package | Description |
 |---------|-------------|
 | **`api`** | Backend API and services |
-| **`frontend`** | Next.js dashboard and app |
 | **`landing`** | Marketing/landing site (Vite + React) |
 | **`ai-agent`** | AI agent web app (chat, marketplace, x402) |
 | **`documentation`** | Documentation site (Vite + React; deployed at docs.syraa.fun) |

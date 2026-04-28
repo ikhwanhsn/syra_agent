@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="../landing/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra MCP Server**
 

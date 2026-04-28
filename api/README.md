@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="../landing/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra API**
 
@@ -27,7 +27,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
 
-This API backs the **Telegram bot**, **frontend dashboard**, **api-playground**, **x402 agent**, and **prediction-game** app. It is the single backend for the Syra monorepo.
+This API backs the **Telegram bot**, **internal KPI dashboard**, **api-playground**, **x402 agent**, and **prediction-game** app. It is the single backend for the Syra monorepo.
 
 ---
 

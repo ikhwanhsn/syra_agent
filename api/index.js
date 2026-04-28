@@ -28,8 +28,6 @@ import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import { TESTER_AGENT_CONFIG } from "./libs/testerAgent/testerAgentConfig.js";
-import { createInternalArenaWorkerRouter } from "./routes/internalArenaWorker.js";
-import { isArenaPaused } from "./scripts/devfun-arena/arenaPause.mjs";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
@@ -847,8 +845,6 @@ app.use("/internal/sentinel", await createSentinelDashboardRouter());
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 // Internal dashboard: research-store, research-resume (API key auth, no x402)
 app.use("/internal", await createInternalResearchRouter());
-// DevFun arena: optional in-process schedule (ARENA_SCHEDULE_TICKS) + POST /tick with ARENA_CRON_SECRET
-app.use("/internal/arena-worker", createInternalArenaWorkerRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
@@ -1056,22 +1052,6 @@ app.listen(PORT, () => {
       setInterval(tick, evo.ms);
     })
     .catch(() => {});
-
-  const scheduleArenaTicks =
-    process.env.ARENA_SCHEDULE_TICKS === "1" ||
-    process.env.ARENA_SCHEDULE_TICKS === "true";
-  const rawArenaMs = process.env.ARENA_TICK_INTERVAL_MS;
-  const arenaIntervalMs = scheduleArenaTicks
-    ? rawArenaMs != null && String(rawArenaMs).trim() !== ""
-      ? Number(rawArenaMs)
-      : 600_000
-    : 0;
-
-  if (scheduleArenaTicks && !isArenaPaused() && arenaIntervalMs >= 60_000) {
-    import("./scripts/devfun-arena/arenaTickRunner.mjs").then(({ startArenaWorkerInterval }) => {
-      startArenaWorkerInterval({ intervalMs: arenaIntervalMs, runImmediately: false });
-    });
-  }
 
   const testerSchedule = TESTER_AGENT_CONFIG.inProcessScheduleEnabled === true;
   const testerIntervalMs = testerSchedule ? TESTER_AGENT_CONFIG.scheduleIntervalMs : 0;

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="../frontend/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra Landing**
 
@@ -25,7 +25,7 @@ The **landing** package is Syra's **marketing and landing website**. It is a sta
 - **Public leaderboard** — leaderboard page for discovery and social proof.
 - **Drives signups** — CTA to Telegram bot, docs, and main app.
 
-It is **not** the logged-in dashboard (that’s **frontend**). It’s the first page visitors see (e.g. syraa.fun).
+It is **not** the full product app (e.g. **ai-agent** at agent.syraa.fun). It’s the first page visitors see (e.g. syraa.fun).
 
 ---
 

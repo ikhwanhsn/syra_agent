@@ -18,10 +18,8 @@ import Identity from "./pages/Identity";
 import Teams from "./pages/Teams";
 import Partner from "./pages/Partner";
 import PartnerDetail from "./pages/PartnerDetail";
-import UpOnly from "./pages/UpOnly";
-import UpOnlyFund from "./pages/UpOnlyFund";
-import Rise from "./pages/Rise";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { RedirectToUponlyApp } from "@/components/RedirectToUponlyApp";
 
 const queryClient = new QueryClient();
 
@@ -62,9 +60,26 @@ const App = () => (
             <Route path="/teams" element={<Teams />} />
             <Route path="/partner" element={<Partner />} />
             <Route path="/partner/:slug" element={<PartnerDetail />} />
-            <Route path="/uponly" element={<UpOnly />} />
-            <Route path="/uponly/fund" element={<UpOnlyFund />} />
-            <Route path="/rise" element={<Rise />} />
+            <Route
+              path="/uponly"
+              element={<RedirectToUponlyApp path="/uponly/overview" />}
+            />
+            <Route
+              path="/uponly/overview"
+              element={<RedirectToUponlyApp path="/uponly/overview" />}
+            />
+            <Route
+              path="/uponly/fund"
+              element={<RedirectToUponlyApp path="/uponly/fund" />}
+            />
+            <Route
+              path="/uponly/rise"
+              element={<RedirectToUponlyApp path="/uponly/rise" />}
+            />
+            <Route
+              path="/rise"
+              element={<RedirectToUponlyApp path="/uponly/rise" />}
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

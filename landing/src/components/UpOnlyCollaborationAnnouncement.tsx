@@ -229,7 +229,7 @@ export function UpOnlyCollaborationAnnouncement() {
                   asChild
                 >
                   <Link
-                    to="/uponly"
+                    to="/uponly/overview"
                     onClick={() => handleOpenChange(false)}
                     className="inline-flex w-full items-center justify-center gap-2 text-center"
                   >
@@ -262,7 +262,7 @@ export function UpOnlyCollaborationAnnouncement() {
                   asChild
                 >
                   <Link
-                    to="/rise"
+                    to="/uponly/rise"
                     onClick={() => handleOpenChange(false)}
                     className="inline-flex w-full items-center justify-center gap-2 text-center"
                   >

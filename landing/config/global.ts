@@ -21,6 +21,9 @@ const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
 const EMAIL_SUPPORT = "support@syraa.fun";
 
+/** Base URL of the Up Only Fund app. Set to the live deploy (e.g. https://uof.example.com) when known; until then, old /uponly and /rise routes keep users on the Syra landing home. */
+const LINK_UPONLY_APP = "/" as const;
+
 /** Headers for Syra API. Do not embed API keys in client code; the API injects auth for trusted origins (syraa.fun). */
 function getApiHeaders(): Record<string, string> {
   return {};
@@ -36,4 +39,5 @@ export {
   getApiHeaders,
   LINK_TELEGRAM,
   LINK_X,
+  LINK_UPONLY_APP,
 };

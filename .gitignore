@@ -1,7 +1,3 @@
 .env*
-.arena-credentials
-.arena-worker-state.json
-.arena-learner-state.json
-.arena-feature-log.json
 .agent-wallet.json
 node_modules
