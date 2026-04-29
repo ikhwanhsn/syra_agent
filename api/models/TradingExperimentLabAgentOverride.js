@@ -21,6 +21,8 @@ const tradingExperimentLabAgentOverrideSchema = new mongoose.Schema(
     limit: { type: Number, required: true },
     lookAheadBars: { type: Number, required: true },
     experimentGate: { type: experimentGateSchema, default: null },
+    /** Arbitrary key bag validated by api/libs/indicatorFilters.js */
+    indicatorFilter: { type: mongoose.Schema.Types.Mixed, default: null },
     /** When suite is multi_resource: CEX source key (e.g. binance). */
     source: { type: String, default: null },
   },

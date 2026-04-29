@@ -14,6 +14,7 @@ import {
   EXPERIMENT_SUITE_MULTI_RESOURCE,
 } from "../config/tradingExperimentStrategies.js";
 import { resolveStrategiesForSuite } from "./tradingExperimentStrategyResolve.js";
+import { randomIndicatorFilter } from "./indicatorFilters.js";
 
 /** @returns {string[]} */
 function collectTokenUniverse() {
@@ -78,7 +79,15 @@ function randomLimitForBar(bar) {
 
 /**
  * @param {number} agentId
- * @returns {{ name: string; token: string; bar: string; limit: number; lookAheadBars: number; experimentGate: { minConfidence: string } | null }}
+ * @returns {{
+ *   name: string;
+ *   token: string;
+ *   bar: string;
+ *   limit: number;
+ *   lookAheadBars: number;
+ *   experimentGate: { minConfidence: string } | null;
+ *   indicatorFilter: Record<string, unknown> | null;
+ * }}
  */
 export function buildRandomLabStrategy(agentId) {
   const token = pick(TOKEN_SLUGS.length ? TOKEN_SLUGS : ["bitcoin"]);
@@ -86,6 +95,7 @@ export function buildRandomLabStrategy(agentId) {
   const gate = pick(GATE_LEVELS);
   const limit = randomLimitForBar(bar);
   const lookAheadBars = randomLookAheadBars(bar);
+  const indicatorFilter = randomIndicatorFilter({ min: 0, max: 3 });
   const name = `${String(token).toUpperCase()} ${bar} evo ${agentId}`;
   return {
     name,
@@ -94,6 +104,7 @@ export function buildRandomLabStrategy(agentId) {
     limit,
     lookAheadBars,
     experimentGate: gate ? { minConfidence: gate } : null,
+    indicatorFilter,
   };
 }
 
@@ -248,6 +259,7 @@ export async function runTradingExperimentEvolution(opts = {}) {
           limit: strat.limit,
           lookAheadBars: strat.lookAheadBars,
           experimentGate: strat.experimentGate,
+          indicatorFilter: strat.indicatorFilter ?? null,
           source: null,
         },
       },

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/chart";
 import {
   encodeExperimentLabAgentId,
+  experimentAgentFilterBadges,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
 } from "@/lib/tradingExperimentApi";
@@ -113,6 +114,7 @@ export function TradingExperimentChartsPanel({
             rowKey: `${suite}-${a.agentId}`,
             encodedId: encodeExperimentLabAgentId(suite, a.agentId),
             label: shortAgentLabel(a),
+            filterBadges: experimentAgentFilterBadges(a),
             agentId: a.agentId,
             winRatePct: a.decided > 0 && a.winRatePct != null ? a.winRatePct : 0,
             decided: a.decided,
@@ -404,7 +406,21 @@ export function TradingExperimentChartsPanel({
                       )}
                       aria-hidden
                     />
-                    <span className="min-w-0 flex-1 truncate font-medium leading-snug tracking-tight">{r.label}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium leading-snug tracking-tight">{r.label}</span>
+                      {r.filterBadges.length > 0 ? (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {r.filterBadges.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-md bg-muted/80 px-1.5 py-0 text-[10px] font-medium text-muted-foreground ring-1 ring-border/40"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="shrink-0 rounded-lg bg-muted/90 px-2.5 py-1 font-mono text-[11px] font-semibold tabular-nums text-foreground/90 ring-1 ring-border/40">
                       {r.displayPct}
                     </span>

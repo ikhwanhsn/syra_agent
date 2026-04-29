@@ -36,6 +36,7 @@ import {
   fetchUserCustomRuns,
   fetchTradingExperimentRuns,
   normalizeExperimentSuite,
+  experimentAgentFilterBadges,
   TRADING_EXPERIMENT_RUN_STATUSES,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
@@ -1751,22 +1752,39 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         </TableCell>
                       </TableRow>
                     ) : null}
-                    {pagedLabAgents.map((a) => (
+                    {pagedLabAgents.map((a) => {
+                      const filterTags = experimentAgentFilterBadges(a);
+                      return (
                       <TableRow
                         key={labAgentRowKey(a)}
                         className="group border-border/40 transition-colors hover:bg-muted/35"
                       >
                         <TableCell className="font-mono text-xs text-muted-foreground tabular-nums sm:text-sm">{a.agentId}</TableCell>
                         <TableCell className="font-medium">
-                          <span className="inline-flex min-w-0 items-center gap-2">
-                            <Link
-                              to={labAgentProfileHref(a)}
-                              className="min-w-0 truncate font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-                            >
-                              {a.name}
-                            </Link>
-                            <AgentBackgroundLiveIndicator openPositions={a.openPositions} />
-                          </span>
+                          <div className="flex min-w-0 flex-col gap-1.5">
+                            <span className="inline-flex min-w-0 items-center gap-2">
+                              <Link
+                                to={labAgentProfileHref(a)}
+                                className="min-w-0 truncate font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                              >
+                                {a.name}
+                              </Link>
+                              <AgentBackgroundLiveIndicator openPositions={a.openPositions} />
+                            </span>
+                            {filterTags.length > 0 ? (
+                              <span className="flex flex-wrap gap-1">
+                                {filterTags.map((tag) => (
+                                  <Badge
+                                    key={tag}
+                                    variant="outline"
+                                    className="h-5 border-border/60 px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
+                                  >
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </span>
+                            ) : null}
+                          </div>
                         </TableCell>
                         {showLabCexUi ? (
                           <TableCell className="font-mono text-xs text-muted-foreground">
@@ -1817,7 +1835,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

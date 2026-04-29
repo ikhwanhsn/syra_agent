@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/chatApi";
+import { experimentIndicatorFilterBadgeLabels } from "@/lib/indicatorFilterLabels";
 
 const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/trading-agent`;
 
@@ -68,6 +69,11 @@ export interface TradingExperimentSuiteMeta {
   description: string;
 }
 
+export type ExperimentConfidenceFloor = "LOW" | "MEDIUM" | "HIGH";
+
+/** Arbitrary indicator filter bag — validated server-side (see api/libs/indicatorFilters.js). */
+export type TradingExperimentIndicatorFilter = Record<string, unknown>;
+
 export interface TradingExperimentStrategy {
   id: number;
   name: string;
@@ -75,6 +81,19 @@ export interface TradingExperimentStrategy {
   bar: string;
   limit: number;
   lookAheadBars: number;
+  experimentGate?: { minConfidence: ExperimentConfidenceFloor } | null;
+  indicatorFilter?: TradingExperimentIndicatorFilter | null;
+}
+
+export { experimentIndicatorFilterBadgeLabels, indicatorFilterBadgeLabels } from "@/lib/indicatorFilterLabels";
+
+export function experimentAgentFilterBadges(
+  a: Pick<TradingExperimentAgentStats, "experimentGate" | "indicatorFilter">,
+): string[] {
+  const ind = experimentIndicatorFilterBadgeLabels(a.indicatorFilter);
+  const g = a.experimentGate?.minConfidence;
+  if (g) ind.push(`Conf≥${g}`);
+  return ind;
 }
 
 export interface TradingExperimentAgentStats {
@@ -83,12 +102,15 @@ export interface TradingExperimentAgentStats {
   token: string;
   bar: string;
   limit: number;
+  lookAheadBars?: number;
   wins: number;
   losses: number;
   decided: number;
   winRate: number | null;
   winRatePct: number | null;
   openPositions: number;
+  experimentGate?: { minConfidence: ExperimentConfidenceFloor } | null;
+  indicatorFilter?: TradingExperimentIndicatorFilter | null;
   /** Multi-resource suite: CEX key. */
   cexSource?: string | null;
   /**

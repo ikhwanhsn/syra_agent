@@ -1,10 +1,11 @@
 /**
  * Tester agent defaults — change here instead of growing `.env`.
  *
- * Still read from environment (not duplicated here):
- * - `BASE_URL` — probe target origin for `/internal/tester-agent/run` and in-process schedule.
+ * Probe origin: `SYRA_PROBE_BASE_URL` below (in-process schedule, health monitor, `/internal/tester-agent/run`).
+ *
+ * Still read from environment (secrets only):
  * - `PAYER_KEYPAIR` — enables paid Solana x402 JSON checks when set.
- * - `CMC_PAYER_PRIVATE_KEY` — enables paid Base (eip155) GET /news E2E in the same suite.
+ * - `CMC_PAYER_PRIVATE_KEY` — required for Base GET /news E2E when `includeBasePaidNewsE2E` is true.
  * - `TESTER_AGENT_CRON_SECRET` / `TESTER_AGENT_SKIP_BUYBACK_SECRET` — auth + buyback skip for probes.
  *
  * **Corbits facilitator** (default Syra x402 stack) runs `/accepts` then `/settle` per paid request; see
@@ -13,7 +14,10 @@
  * from `facilitator.corbits.dev`, so the tester uses spacing + retries below.
  */
 
-/** @type {Readonly<{ smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number }>} */
+/** Public API origin for scheduled probes and health x402 monitor (no trailing slash). */
+export const SYRA_PROBE_BASE_URL = "https://api.syraa.fun";
+
+/** @type {Readonly<{ smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; includeBasePaidNewsE2E: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number; healthX402MonitorIntervalMs: number; healthX402MonitorTimeoutMs: number; healthX402MonitorRunOnStart: boolean }>} */
 export const TESTER_AGENT_CONFIG = Object.freeze({
   /** Parallel unpaid smoke fetches per batch when not using inter-probe throttling or grouped smoke batches. */
   smokeConcurrency: 8,
@@ -35,10 +39,14 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
   defaultSuiteTimeoutMs: 15 * 60_000,
   /** If `PAYER_KEYPAIR` is set, run the full paid JSON catalog (not only GET /news). */
   paidResponseChecksWhenPayerSet: true,
+  /**
+   * When true and `CMC_PAYER_PRIVATE_KEY` is set, register GET /news paid E2E on Base (eip155 USDC).
+   */
+  includeBasePaidNewsE2E: true,
   /** In-process 24h-style runner in `api/index.js`. */
-  inProcessScheduleEnabled: false,
+  inProcessScheduleEnabled: true,
   scheduleIntervalMs: 24 * 60 * 60 * 1000,
-  scheduleRunOnStart: false,
+  scheduleRunOnStart: true,
   /** End the tester run on HTTP 429 / facilitator “Too Many Requests” (skip remaining probes and later suite steps). */
   stopSuiteOnRateLimit429: true,
   /**
@@ -47,4 +55,8 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
    */
   facilitatorRetryMaxAttempts: 6,
   facilitatorRetryBaseDelayMs: 2000,
+  /** Paid GET /health x402 monitor (`healthX402Monitor.js`). */
+  healthX402MonitorIntervalMs: 60_000,
+  healthX402MonitorTimeoutMs: 120_000,
+  healthX402MonitorRunOnStart: true,
 });

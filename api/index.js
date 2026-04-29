@@ -27,7 +27,7 @@ import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
-import { TESTER_AGENT_CONFIG } from "./libs/testerAgent/testerAgentConfig.js";
+import { SYRA_PROBE_BASE_URL, TESTER_AGENT_CONFIG } from "./libs/testerAgent/testerAgentConfig.js";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
@@ -1063,11 +1063,7 @@ app.listen(PORT, () => {
         const { runTesterAgentSuite, computeTesterAgentSuiteTimeoutMs } = await import(
           "./libs/testerAgent/tests.js"
         );
-        const baseUrl = (process.env.BASE_URL || "").trim().replace(/\/+$/, "");
-        if (!baseUrl) {
-          console.warn("[tester-agent-schedule] skipped: set BASE_URL");
-          return;
-        }
+        const baseUrl = SYRA_PROBE_BASE_URL.replace(/\/+$/, "");
         const timeoutMs = computeTesterAgentSuiteTimeoutMs();
         const signal =
           typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"

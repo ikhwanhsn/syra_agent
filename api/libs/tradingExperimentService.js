@@ -15,7 +15,7 @@ import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSigna
 import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
 import { fetchExperimentValidation1mKlines } from "./cexExperimentKlines.js";
 import { extractSignalFields } from "./experimentSignalExtract.js";
-import { experimentBuyPassesSmartGate } from "./experimentSignalGate.js";
+import { experimentBuyPassesAllGates } from "./experimentSignalGate.js";
 import { runUserCustomSignalCycle } from "./userCustomStrategyService.js";
 
 /**
@@ -252,7 +252,7 @@ export async function runExperimentSignalCycle(opts = {}) {
         action: report?.tradingRecommendation?.action,
       };
 
-      if (!experimentBuyPassesSmartGate(ex, s.experimentGate)) {
+      if (!experimentBuyPassesAllGates(ex, s.experimentGate, s.indicatorFilter)) {
         continue;
       }
 
@@ -627,6 +627,9 @@ export async function getExperimentStats(opts = {}) {
       token: s.token,
       bar: s.bar,
       limit: s.limit,
+      lookAheadBars: s.lookAheadBars,
+      experimentGate: "experimentGate" in s ? s.experimentGate ?? null : null,
+      indicatorFilter: "indicatorFilter" in s ? s.indicatorFilter ?? null : null,
       cexSource: "source" in s ? /** @type {{ source: string }} */ (s).source : null,
       wins,
       losses,

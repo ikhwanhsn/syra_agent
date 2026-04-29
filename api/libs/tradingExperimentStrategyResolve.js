@@ -37,6 +37,14 @@ export async function resolveStrategiesForSuite(suite) {
     } else {
       delete merged.experimentGate;
     }
+    if (o.indicatorFilter != null && typeof o.indicatorFilter === "object") {
+      const keys = Object.keys(o.indicatorFilter);
+      if (keys.length > 0) {
+        merged.indicatorFilter = JSON.parse(JSON.stringify(o.indicatorFilter));
+      } else {
+        delete merged.indicatorFilter;
+      }
+    }
     if (suiteNorm === EXPERIMENT_SUITE_MULTI_RESOURCE && typeof o.source === "string" && o.source.trim()) {
       merged.source = o.source.trim();
     }

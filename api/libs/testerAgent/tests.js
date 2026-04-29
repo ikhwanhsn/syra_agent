@@ -814,7 +814,9 @@ export async function testAllX402SmokeProbes(baseUrl, signal) {
 }
 
 const includePaidNews = Boolean(String(process.env.PAYER_KEYPAIR || "").trim());
-const includeBasePaidNews = Boolean(String(process.env.CMC_PAYER_PRIVATE_KEY || "").trim());
+const includeBasePaidNews =
+  TESTER_AGENT_CONFIG.includeBasePaidNewsE2E === true &&
+  Boolean(String(process.env.CMC_PAYER_PRIVATE_KEY || "").trim());
 const runPaidSchema = includePaidNews && shouldRunPaidResponseChecks();
 
 /** @type {TesterDefinition[]} */

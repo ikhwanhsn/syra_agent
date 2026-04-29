@@ -18,6 +18,7 @@ import {
   fetchTradingExperimentStats,
   fetchTradingExperimentSuites,
   normalizeExperimentSuite,
+  experimentAgentFilterBadges,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
   type TradingExperimentStrategy,
@@ -152,6 +153,8 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
   }, [embedded, isDarkMode]);
 
   const backHref = `${TRADING_EXPERIMENT_ROUTE_BASE}?suite=${encodeURIComponent(suite)}`;
+
+  const agentFilterTags = useMemo(() => (agent ? experimentAgentFilterBadges(agent) : []), [agent]);
 
   return (
     <div
@@ -310,6 +313,18 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                   <div>
                     <dt className="text-muted-foreground">CEX source</dt>
                     <dd className="font-mono text-xs">{agent.cexSource}</dd>
+                  </div>
+                ) : null}
+                {agentFilterTags.length > 0 ? (
+                  <div className="sm:col-span-2">
+                    <dt className="text-muted-foreground">Signal filters</dt>
+                    <dd className="flex flex-wrap gap-1 pt-1">
+                      {agentFilterTags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs font-normal">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </dd>
                   </div>
                 ) : null}
               </dl>

@@ -1,8 +1,10 @@
 /**
  * Optional per-agent gating for trading experiment BUY persistence.
  * Uses CryptoAnalysisEngine quickSummary.confidence (LOW | MEDIUM | HIGH).
- * Agents without `experimentGate` behave as before (any valid BUY persists).
+ * Indicator filters: {@link validateIndicatorFilter} from indicatorFilters.js.
  */
+
+import { validateIndicatorFilter } from "./indicatorFilters.js";
 
 /** @typedef {{ minConfidence?: "LOW" | "MEDIUM" | "HIGH" }} ExperimentSignalGate */
 
@@ -26,4 +28,26 @@ export function experimentBuyPassesSmartGate(extracted, gate) {
   if (extracted.clearSignal !== "BUY") return true;
   if (gate == null || gate.minConfidence == null) return true;
   return confidenceRank(extracted.confidence) >= confidenceRank(gate.minConfidence);
+}
+
+/**
+ * @param {Record<string, unknown>} extracted
+ * @param {Record<string, unknown> | null | undefined} filter
+ * @returns {boolean}
+ */
+export function experimentBuyPassesIndicatorFilter(extracted, filter) {
+  if (extracted.clearSignal !== "BUY") return true;
+  return validateIndicatorFilter(filter, extracted);
+}
+
+/**
+ * @param {Parameters<typeof experimentBuyPassesSmartGate>[0]} extracted
+ * @param {ExperimentSignalGate | undefined | null} gate
+ * @param {Record<string, unknown> | null | undefined} indicatorFilter
+ * @returns {boolean}
+ */
+export function experimentBuyPassesAllGates(extracted, gate, indicatorFilter) {
+  if (!experimentBuyPassesSmartGate(extracted, gate)) return false;
+  if (!experimentBuyPassesIndicatorFilter(extracted, indicatorFilter)) return false;
+  return true;
 }
