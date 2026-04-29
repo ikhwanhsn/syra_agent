@@ -117,7 +117,7 @@ export function getRiseMarketOhlc(
 export function getRiseMarketTransactions(
   address: string,
   page = 1,
-  limit = 25,
+  limit = 10,
   signal?: AbortSignal,
 ): Promise<RiseTransactionsResponse> {
   const q = buildQuery({ page, limit });
@@ -164,7 +164,7 @@ export function getRisePortfolioSummary(
 export function getRisePortfolioPositions(
   wallet: string,
   page = 1,
-  limit = 25,
+  limit = 10,
   signal?: AbortSignal,
 ): Promise<RisePortfolioPositionsResponse> {
   const q = buildQuery({ page, limit });

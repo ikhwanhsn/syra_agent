@@ -4,26 +4,22 @@
  * borrow fee for a given borrow amount. No on-chain action.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Banknote, ExternalLink, Loader2, ShieldAlert } from "lucide-react";
+import { Banknote, ExternalLink, Loader2, ShieldAlert, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRiseBorrowQuote, useRiseDashboard } from "@/lib/RiseDashboardContext";
 import { buildRiseTradeUrl } from "@/lib/riseDashboardApi";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
+import { cn } from "@/lib/utils";
 import {
+  ChangePill,
   EmptyState,
   GlassCard,
   RISE_UPONLY_MINT,
-  SectionHeader,
   StatTile,
   TokenAvatar,
   formatPriceSmart,
@@ -97,124 +93,248 @@ export function BorrowSimulator() {
   const q = borrow.data?.quote;
   const tradeUrl = selected ? buildRiseTradeUrl(selected.mint) : null;
 
+  const aggregatePending = aggregate.isPending;
+  const quoteEnabled =
+    Boolean(selected?.mint) &&
+    validWallet &&
+    typeof debouncedBorrow === "number" &&
+    Number.isFinite(debouncedBorrow) &&
+    debouncedBorrow >= 0;
+
   return (
     <section aria-labelledby="rise-borrow-heading">
-      <SectionHeader
-        eyebrow="Tools"
-        title="Borrow simulator"
-        description="See how much a wallet can borrow against floor-eligible RISE collateral, the deposit needed, and the borrow fee."
-      />
+      <h2 id="rise-borrow-heading" className="sr-only">
+        Floor-backed borrow simulator
+      </h2>
 
-      <GlassCard padded={false}>
-        <div className="grid gap-3 border-b border-border/40 px-4 py-4 sm:grid-cols-3 sm:px-5">
-          <div className="min-w-0 sm:col-span-2">
-            <Label htmlFor="borrow-wallet" className="mb-1.5 block text-[0.7rem] font-medium uppercase tracking-wider text-muted-foreground">
-              Wallet
-            </Label>
-            <Input
-              id="borrow-wallet"
-              value={wallet}
-              onChange={(e) => setWallet(e.target.value)}
-              placeholder="Solana wallet address"
-              spellCheck={false}
-              className="h-10 font-mono text-xs sm:text-sm"
-              aria-invalid={wallet.length > 0 && !validWallet}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label htmlFor="borrow-market" className="mb-1.5 block text-[0.7rem] font-medium uppercase tracking-wider text-muted-foreground">
-              Market
-            </Label>
-            <Select value={mint} onValueChange={setMint}>
-              <SelectTrigger id="borrow-market" className="h-10">
-                <SelectValue placeholder="Pick a floor-eligible market" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {choices.length === 0 ? (
-                  <SelectItem value="loading" disabled>
-                    Loading…
-                  </SelectItem>
-                ) : (
-                  choices.map((m) => (
-                    <SelectItem key={m.mint} value={m.mint}>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <TokenAvatar imageUrl={m.imageUrl} symbol={m.symbol} size="xs" />
-                        <span className="truncate">${m.symbol || "—"}</span>
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="px-4 py-4 sm:px-5">
-          <Label htmlFor="borrow-amount" className="mb-1.5 block text-[0.7rem] font-medium uppercase tracking-wider text-muted-foreground">
-            Amount to borrow (raw RISE collateral units)
-          </Label>
-          <Input
-            id="borrow-amount"
-            value={borrowStr}
-            onChange={(e) => setBorrowStr(e.target.value)}
-            inputMode="decimal"
-            placeholder="0"
-            className="h-10 max-w-sm font-mono text-sm tabular-nums"
-          />
-          <p className="mt-1.5 inline-flex flex-wrap items-center gap-1.5 text-[0.65rem] text-muted-foreground sm:text-xs">
-            <ShieldAlert className="h-3 w-3 opacity-70" aria-hidden />
-            Pass <code className="font-mono">0</code> to read max-borrowable without quoting a specific amount.
+      <GlassCard
+        padded={false}
+        className="overflow-hidden border-border/50 shadow-[0_0_0_1px_hsl(0_0%_100%/0.05)_inset,0_24px_60px_-28px_hsl(0_0%_0%/0.55)]"
+      >
+        <div className="border-b border-border/45 bg-gradient-to-b from-card/55 to-transparent px-4 py-5 sm:px-6">
+          <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
+            Floor-backed borrow
+          </p>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Paste a Solana wallet and pick a floor-eligible market. Quotes mirror RISE borrow math—use{" "}
+            <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.7rem]">0</code> borrow to read capacity without sizing a draw.
           </p>
         </div>
 
-        <div className="border-t border-border/40 px-4 py-4 sm:px-5">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Result</h3>
-            {borrow.isFetching ? (
-              <span className="inline-flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Fetching quote…
+        <div className="grid gap-6 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)] lg:items-start lg:gap-8 sm:px-6 sm:py-6">
+          <div className="flex flex-col gap-5">
+            <div>
+              <Label
+                htmlFor="borrow-wallet"
+                className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+              >
+                Wallet
+              </Label>
+              <Input
+                id="borrow-wallet"
+                value={wallet}
+                onChange={(e) => setWallet(e.target.value)}
+                placeholder="Solana address (base58)"
+                spellCheck={false}
+                className={cn(
+                  "h-12 rounded-xl border-border/55 bg-background/40 font-mono text-sm shadow-inner sm:text-sm",
+                  wallet.length > 0 && !validWallet && "border-destructive/45",
+                )}
+                aria-invalid={wallet.length > 0 && !validWallet}
+              />
+              {wallet.length > 0 && !validWallet ? (
+                <p className="mt-2 text-[0.72rem] text-destructive/90">Enter a valid base58 wallet ({ADDR_MIN}–{ADDR_MAX} chars).</p>
+              ) : null}
+            </div>
+
+            <div>
+              <Label
+                htmlFor="borrow-amount"
+                className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+              >
+                Amount to borrow (raw units)
+              </Label>
+              <Input
+                id="borrow-amount"
+                value={borrowStr}
+                onChange={(e) => setBorrowStr(e.target.value)}
+                inputMode="decimal"
+                placeholder="0"
+                className={cn(
+                  "h-12 max-w-md rounded-xl border-border/55 bg-background/40 font-mono text-base tabular-nums shadow-inner",
+                  borrowAmount === null && borrowStr.trim() !== "" && "border-destructive/45",
+                )}
+                aria-invalid={borrowAmount === null && borrowStr.trim() !== ""}
+              />
+              <div className="mt-3 flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2.5 text-[0.72rem] leading-relaxed text-amber-100/95 sm:text-xs">
+                <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                <span>
+                  Use <code className="font-mono text-[0.7rem]">0</code> to fetch max borrowable and deposits without specifying a draw size.
+                  Numbers follow RISE raw collateral semantics—confirm decimals on{" "}
+                  <span className="font-medium text-foreground/90">rise.rich</span> before execution.
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <Label
+                htmlFor="borrow-market"
+                className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+              >
+                Floor-eligible market
+              </Label>
+              <Select value={mint || undefined} onValueChange={setMint} disabled={choices.length === 0}>
+                <SelectTrigger id="borrow-market" className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner">
+                  <SelectValue placeholder={aggregatePending ? "Loading markets…" : "Select a market"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {choices.length === 0 ? (
+                    <SelectItem value="__loading__" disabled>
+                      Loading…
+                    </SelectItem>
+                  ) : (
+                    choices.map((m) => (
+                      <SelectItem key={m.mint} value={m.mint}>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <TokenAvatar imageUrl={m.imageUrl} symbol={m.symbol} size="xs" />
+                          <span className="truncate font-medium">${m.symbol || "—"}</span>
+                          <span className="truncate text-xs text-muted-foreground">{m.name || ""}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Market snapshot</p>
+            {selected ? (
+              <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/70 via-card/35 to-card/20 p-4 shadow-inner">
+                <div
+                  className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[radial-gradient(circle,hsl(215_80%_50%/0.12),transparent_68%)]"
+                  aria-hidden
+                />
+                <div className="relative flex items-start gap-3">
+                  <TokenAvatar imageUrl={selected.imageUrl} symbol={selected.symbol} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-display text-lg font-semibold tracking-tight text-foreground">${selected.symbol || "—"}</p>
+                      <ChangePill pct={selected.priceChange24hPct} />
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{selected.name}</p>
+                    <dl className="mt-4 space-y-2 text-[0.72rem] sm:text-xs">
+                      <div className="flex justify-between gap-2 border-b border-border/30 pb-2">
+                        <dt className="text-muted-foreground">Spot</dt>
+                        <dd className="font-semibold tabular-nums text-foreground">{formatPriceSmart(selected.priceUsd)}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Floor</dt>
+                        <dd className="font-semibold tabular-nums text-foreground">{formatPriceSmart(selected.floorPriceUsd)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border/50 bg-muted/[0.08] p-6 text-center text-sm text-muted-foreground">
+                Pick a market with floor data.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-border/45 bg-muted/[0.08] px-4 py-5 sm:px-6 sm:py-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Output</p>
+              <h3 className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">Borrow quote</h3>
+            </div>
+            {borrow.isFetching && quoteEnabled ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/45 bg-background/40 px-3 py-1 text-[0.7rem] font-medium text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-uof" aria-hidden />
+                Fetching…
               </span>
             ) : null}
           </div>
 
           {!validWallet || !selected ? (
-            <EmptyState
-              icon={Banknote}
-              title="Enter a wallet and market"
-              description="Borrow capacity comes from the wallet's floor-deposited tokens against the chosen RISE market."
-            />
+            <div className="rounded-xl border border-dashed border-border/50 bg-background/[0.15] py-10 sm:py-12">
+              <EmptyState
+                icon={Banknote}
+                title="Wallet & market required"
+                description="Enter a valid Solana address and choose a floor-backed market to pull borrow capacity from RISE."
+              />
+            </div>
+          ) : borrowAmount === null ? (
+            <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] py-8">
+              <EmptyState
+                icon={Banknote}
+                title="Invalid borrow amount"
+                description="Use a non‑negative number (or 0 for capacity-only). Check for stray characters."
+              />
+            </div>
           ) : borrow.isError ? (
-            <EmptyState
-              icon={Banknote}
-              title="Borrow quote failed"
-              description={(borrow.error as Error)?.message ?? "RISE rejected the borrow quote."}
-              action={<Button size="sm" variant="secondary" onClick={() => borrow.refetch()}>Retry</Button>}
-            />
+            <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] py-8">
+              <EmptyState
+                icon={Banknote}
+                title="Borrow quote failed"
+                description={(borrow.error as Error)?.message ?? "RISE rejected the borrow quote."}
+                action={
+                  <Button size="sm" variant="secondary" onClick={() => borrow.refetch()}>
+                    Retry
+                  </Button>
+                }
+              />
+            </div>
+          ) : borrow.isFetching && !q ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <Skeleton key={i} className="h-[4.5rem] rounded-xl" />
+              ))}
+            </div>
           ) : !q ? (
-            <EmptyState icon={Banknote} title="No quote yet" description="Awaiting RISE response — try again in a moment." />
+            <div className="rounded-xl border border-dashed border-border/50 bg-background/[0.15] py-10">
+              <EmptyState icon={Banknote} title="No quote yet" description="Awaiting RISE — adjust inputs or retry." />
+            </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              <StatTile label="Wallet balance" value={formatUsd(q.walletBalance, { compact: true })} />
-              <StatTile label="Deposited tokens" value={q.depositedTokens != null ? q.depositedTokens.toString() : "—"} />
-              <StatTile label="Existing debt" value={formatUsd(q.debt, { compact: true })} />
-              <StatTile label="Floor price" value={formatPriceSmart(q.floorPrice)} />
-              <StatTile label="Max borrowable" value={formatUsd(q.maxBorrowableUsd, { compact: false })} sub={q.maxBorrowable != null ? `${q.maxBorrowable} raw` : undefined} accent />
-              <StatTile label="If you deposit all" value={formatUsd(q.maxBorrowableIfDepositAllUsd, { compact: false })} />
-              <StatTile label="Required deposit" value={q.requiredDeposit != null ? `${q.requiredDeposit}` : "—"} />
-              <StatTile label="Gross borrow" value={formatUsd(q.grossBorrow, { compact: true })} />
-              <StatTile label="Borrow fee" value={formatPct(q.borrowFeePercent)} />
+            <div className="relative">
+              {borrow.isFetching ? (
+                <div className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-background/40 backdrop-blur-[2px]" aria-hidden />
+              ) : null}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <StatTile label="Wallet balance" value={formatUsd(q.walletBalance, { compact: true })} />
+                <StatTile label="Deposited tokens" value={q.depositedTokens != null ? q.depositedTokens.toString() : "—"} />
+                <StatTile label="Existing debt" value={formatUsd(q.debt, { compact: true })} />
+                <StatTile label="Floor price" value={formatPriceSmart(q.floorPrice)} />
+                <StatTile
+                  label="Max borrowable"
+                  value={formatUsd(q.maxBorrowableUsd, { compact: false })}
+                  sub={q.maxBorrowable != null ? `${q.maxBorrowable} raw` : undefined}
+                  accent
+                />
+                <StatTile label="If you deposit all" value={formatUsd(q.maxBorrowableIfDepositAllUsd, { compact: false })} />
+                <StatTile label="Required deposit" value={q.requiredDeposit != null ? `${q.requiredDeposit}` : "—"} />
+                <StatTile label="Gross borrow" value={formatUsd(q.grossBorrow, { compact: true })} />
+                <StatTile label="Borrow fee" value={formatPct(q.borrowFeePercent)} />
+              </div>
             </div>
           )}
 
-          <div className="mt-4 flex flex-col gap-2 border-t border-border/30 pt-3 text-[0.7rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:text-xs">
-            <p>
-              Floor mechanics &amp; borrow loops are documented by RISE; numbers above come from the same quote API the
-              app uses.
+          <div className="mt-6 flex flex-col gap-3 border-t border-border/35 pt-5 text-[0.72rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:text-xs">
+            <p className="inline-flex max-w-xl items-start gap-2">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+              <span>
+                Figures come from the borrow quote API RISE exposes—always verify live protocol limits and docs before moving size.
+              </span>
             </p>
             {tradeUrl ? (
-              <Button asChild size="sm" variant="ghost" className="h-8 gap-1.5 self-end border border-border/55 bg-background/30">
+              <Button asChild size="sm" variant="secondary" className="h-10 shrink-0 gap-2 rounded-xl border-border/55 px-4">
                 <a href={tradeUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3 w-3" /> Open in RISE
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                  Open in RISE
                 </a>
               </Button>
             ) : null}

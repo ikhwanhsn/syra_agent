@@ -127,7 +127,7 @@ function PriceChart({ address, tf }: { address: string; tf: RiseTimeframe }) {
 }
 
 function TransactionsList({ address }: { address: string }) {
-  const tx = useRiseTransactions(address, 1, 20);
+  const tx = useRiseTransactions(address, 1, 10);
   if (tx.isPending) {
     return (
       <div className="flex flex-col gap-1.5">

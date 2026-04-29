@@ -8,7 +8,7 @@
  * `useRiseQuote`, etc.) live next to it so callers can opt into them per row
  * (e.g. inside a drawer) without inflating the global cache.
  */
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import {
   getRiseAggregate,
@@ -39,6 +39,7 @@ const LIST_REFETCH_MS = 60_000;
 const OHLC_REFETCH_MS = 60_000;
 const TX_REFETCH_MS = 30_000;
 const PORTFOLIO_STALE_MS = 30_000;
+const DEFAULT_PAGE_LIMIT = 10;
 
 type RiseDashboardContextValue = {
   aggregate: UseQueryResult<RiseAggregateResponse, Error>;
@@ -75,7 +76,7 @@ export function useRiseMarkets(params: RiseMarketsListParams = {}) {
   const queryKey = [
     "rise-markets",
     params.page ?? 1,
-    params.limit ?? 50,
+    params.limit ?? DEFAULT_PAGE_LIMIT,
     params.verified ?? false,
     params.hasFloor ?? false,
     params.minMarketCap ?? 0,
@@ -102,7 +103,7 @@ export function useRiseOhlc(address: string | null | undefined, timeframe: RiseT
   });
 }
 
-export function useRiseTransactions(address: string | null | undefined, page = 1, limit = 25) {
+export function useRiseTransactions(address: string | null | undefined, page = 1, limit = DEFAULT_PAGE_LIMIT) {
   const enabled = Boolean(address);
   return useQuery<RiseTransactionsResponse, Error>({
     queryKey: ["rise-transactions", address ?? "", page, limit],
@@ -165,7 +166,7 @@ export function useRisePortfolioSummary(wallet: string | null | undefined) {
   });
 }
 
-export function useRisePortfolioPositions(wallet: string | null | undefined, page = 1, limit = 25) {
+export function useRisePortfolioPositions(wallet: string | null | undefined, page = 1, limit = DEFAULT_PAGE_LIMIT) {
   const enabled = typeof wallet === "string" && wallet.length >= 32;
   return useQuery<RisePortfolioPositionsResponse, Error>({
     queryKey: ["rise-portfolio-positions", wallet ?? "", page, limit],
@@ -173,5 +174,41 @@ export function useRisePortfolioPositions(wallet: string | null | undefined, pag
     enabled,
     staleTime: PORTFOLIO_STALE_MS,
     retry: 1,
+  });
+}
+
+export function useRiseMarketsAll(limit = 100) {
+  return useQuery<RiseMarketRow[], Error>({
+    queryKey: ["rise-markets-all", limit],
+    queryFn: async ({ signal }) => {
+      const first = await getRiseMarkets({ page: 1, limit }, signal);
+      const totalPages = Math.max(1, first.totalPages ?? 1);
+      const merged: RiseMarketRow[] = [...first.markets];
+      for (let page = 2; page <= totalPages; page += 1) {
+        const next = await getRiseMarkets({ page, limit }, signal);
+        merged.push(...next.markets);
+      }
+      const dedup = new Map<string, RiseMarketRow>();
+      for (const row of merged) {
+        if (!row.mint) continue;
+        if (!dedup.has(row.mint)) dedup.set(row.mint, row);
+      }
+      return Array.from(dedup.values());
+    },
+    staleTime: LIST_REFETCH_MS,
+    retry: 1,
+  });
+}
+
+export function useRiseTransactionsBatch(addresses: string[], limit = DEFAULT_PAGE_LIMIT) {
+  return useQueries({
+    queries: addresses.map((address) => ({
+      queryKey: ["rise-transactions-batch", address, limit],
+      queryFn: ({ signal }: { signal: AbortSignal }) => getRiseMarketTransactions(address, 1, limit, signal),
+      enabled: typeof address === "string" && address.length >= 32,
+      staleTime: TX_REFETCH_MS,
+      refetchInterval: TX_REFETCH_MS,
+      retry: 1,
+    })),
   });
 }

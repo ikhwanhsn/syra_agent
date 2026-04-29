@@ -6,63 +6,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HeroIllustration } from "./HeroIllustration";
 
-const UOF_COIN = "/images/experiment/rise_uponly.png" as const;
-const RISE_PARTNER_LOGO = "/images/partners/rise.jpg";
-const RISE_LOGO_PLACEHOLDER = "/images/partners/placeholder.svg" as const;
-
 function fadeUp(reduce: boolean) {
   return {
     initial: reduce ? false : { opacity: 0, y: 20 },
     animate: reduce ? undefined : { opacity: 1, y: 0 },
     transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
   };
-}
-
-function EcosystemStrip({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "inline-flex w-fit max-w-full min-w-0 items-center gap-2.5 rounded-2xl border border-border/45 bg-gradient-to-b from-card/60 to-card/20 py-2.5 pl-2.5 pr-3 shadow-sm backdrop-blur-md min-[400px]:gap-3 min-[400px]:py-3 min-[400px]:pl-3 min-[400px]:pr-4",
-        className,
-      )}
-      aria-label="Up Only Fund, UP ONLY, RISE on Solana"
-    >
-      <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/50 bg-black ring-1 ring-uof/15 min-[400px]:h-9 min-[400px]:w-9"
-        aria-hidden
-      >
-        <img
-          src={UOF_COIN}
-          alt=""
-          width={36}
-          height={36}
-          className="h-full w-full object-contain p-px"
-          loading="eager"
-          decoding="async"
-        />
-      </div>
-      <div className="h-5 w-px shrink-0 bg-border/60 min-[400px]:h-6" aria-hidden />
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 sm:gap-3">
-        <span className="text-[0.7rem] font-semibold tracking-[0.1em] text-foreground/90">UP ONLY</span>
-        <img
-          src={RISE_PARTNER_LOGO}
-          alt=""
-          width={128}
-          height={128}
-          className="h-5 w-auto max-w-[4.5rem] object-contain min-[400px]:h-6 min-[400px]:max-w-[5rem]"
-          loading="eager"
-          onError={(e) => {
-            const el = e.currentTarget;
-            if (el.src.endsWith(RISE_LOGO_PLACEHOLDER)) return;
-            el.src = RISE_LOGO_PLACEHOLDER;
-          }}
-        />
-        <span className="pl-0.5 text-[0.7rem] font-semibold tracking-[0.1em] text-foreground/90">
-          RISE · Solana
-        </span>
-      </div>
-    </div>
-  );
 }
 
 type HeroSectionProps = {
@@ -78,8 +27,6 @@ export function HeroSection({ className }: HeroSectionProps) {
         className="relative"
         aria-labelledby="uof-landing-hero"
       >
-        <EcosystemStrip className="mb-8 sm:mb-10" />
-
         <div className="grid grid-cols-1 items-center gap-10 sm:gap-12 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-12 2xl:grid-cols-[minmax(0,1fr)_27rem] 2xl:gap-16">
           <div className="min-w-0 max-w-3xl lg:max-w-none 2xl:pr-2">
             <div className="mb-5 flex flex-wrap items-center gap-2">
