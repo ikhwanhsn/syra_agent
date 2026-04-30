@@ -13,7 +13,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Filter,
+  SlidersHorizontal,
   Globe2,
   Layers,
   RefreshCw,
@@ -24,10 +24,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useRiseMarkets } from "@/lib/RiseDashboardContext";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useRiseMarkets, useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { cn } from "@/lib/utils";
@@ -35,7 +34,6 @@ import {
   ChangePill,
   EmptyState,
   GlassCard,
-  LevelChip,
   RiseTradeButton,
   TokenAvatar,
   VerifiedBadge,
@@ -94,14 +92,19 @@ function sortRows(rows: RiseMarketRow[], key: SortKey, dir: SortDir): RiseMarket
 function applyFilters(
   rows: RiseMarketRow[],
   q: string,
-  selectedLevels: Set<number>,
+  verifiedOnly: boolean,
+  hasFloorOnly: boolean,
+  minMarketCap: number | null,
+  minVolume24h: number | null,
+  minHolders: number | null,
 ): RiseMarketRow[] {
   const needle = q.trim().toLowerCase();
   return rows.filter((r) => {
-    if (selectedLevels.size > 0) {
-      const lvl = r.level !== null && Number.isFinite(r.level) ? Math.round(r.level) : null;
-      if (lvl === null || !selectedLevels.has(lvl)) return false;
-    }
+    if (verifiedOnly && !r.isVerified) return false;
+    if (hasFloorOnly && !((r.floorPriceUsd ?? 0) > 0)) return false;
+    if (minMarketCap != null && (r.marketCapUsd ?? 0) < minMarketCap) return false;
+    if (minVolume24h != null && (r.volume24hUsd ?? 0) < minVolume24h) return false;
+    if (minHolders != null && (r.holders ?? 0) < minHolders) return false;
     if (!needle) return true;
     return (
       r.symbol.toLowerCase().includes(needle) ||
@@ -201,38 +204,88 @@ function ScreenerStatCard({
   );
 }
 
-const LEVEL_CHIPS = [0, 1, 2, 3, 4] as const;
-
 export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => void }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [hasFloorOnly, setHasFloorOnly] = useState(false);
-  const [selectedLevels, setSelectedLevels] = useState<Set<number>>(new Set());
-  const [sortKey, setSortKey] = useState<SortKey>("marketCapUsd");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [minMarketCapInput, setMinMarketCapInput] = useState("");
+  const [minVolumeInput, setMinVolumeInput] = useState("");
+  const [minHoldersInput, setMinHoldersInput] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("ageHours");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const deferredSearch = useDeferredValue(search);
-  const { data, isPending, isFetching, isError, error, refetch } = useRiseMarkets({
-    page,
-    limit: PAGE_SIZE,
-    verified: verifiedOnly,
-    hasFloor: hasFloorOnly,
-  });
+  const minMarketCap = useMemo(() => {
+    const parsed = Number(minMarketCapInput);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [minMarketCapInput]);
+  const minVolume24h = useMemo(() => {
+    const parsed = Number(minVolumeInput);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [minVolumeInput]);
+  const minHolders = useMemo(() => {
+    const parsed = Number(minHoldersInput);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [minHoldersInput]);
+  const hasGlobalFilter =
+    deferredSearch.trim().length > 0 ||
+    verifiedOnly ||
+    hasFloorOnly ||
+    minMarketCap != null ||
+    minVolume24h != null ||
+    minHolders != null;
+
+  const allMarketsQuery = useRiseMarketsAll();
+  const isGlobalSearchMode = true;
+
+  const total = allMarketsQuery.data?.length ?? null;
+  const sourceRows = useMemo(() => allMarketsQuery.data ?? [], [allMarketsQuery.data]);
+
+  const filtered = useMemo(
+    () => applyFilters(sourceRows, deferredSearch, verifiedOnly, hasFloorOnly, minMarketCap, minVolume24h, minHolders),
+    [sourceRows, deferredSearch, verifiedOnly, hasFloorOnly, minMarketCap, minVolume24h, minHolders],
+  );
+  const globalRows = allMarketsQuery.data ?? [];
+  const todayStats = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const createdToday = globalRows.filter((row) => {
+      if (!row.createdAt) return false;
+      const createdTs = new Date(row.createdAt).getTime();
+      return Number.isFinite(createdTs) && createdTs >= startOfToday;
+    });
+    const withMarketCap = globalRows.filter((row) => (row.marketCapUsd ?? 0) > 0);
+    const withFloorMarketCap = globalRows.filter((row) => (row.floorMarketCapUsd ?? 0) > 0);
+    const avgMarketCap =
+      withMarketCap.length > 0
+        ? withMarketCap.reduce((sum, row) => sum + (row.marketCapUsd ?? 0), 0) / withMarketCap.length
+        : null;
+    const avgFloorMarketCap =
+      withFloorMarketCap.length > 0
+        ? withFloorMarketCap.reduce((sum, row) => sum + (row.floorMarketCapUsd ?? 0), 0) / withFloorMarketCap.length
+        : null;
+    return {
+      newToday: createdToday.length,
+      avgMarketCap,
+      avgFloorMarketCap,
+    };
+  }, [globalRows]);
+  const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const pagedRows = useMemo(
+    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sorted, page],
+  );
+  const isPending = allMarketsQuery.isPending;
+  const isFetching = allMarketsQuery.isFetching;
+  const isError = allMarketsQuery.isError;
+  const error = allMarketsQuery.error;
+  const refetch = allMarketsQuery.refetch;
 
   useEffect(() => {
     setPage(1);
-  }, [verifiedOnly, hasFloorOnly]);
-
-  const totalPages = data?.totalPages ?? null;
-  const total = data?.total ?? null;
-  const rows = useMemo(() => data?.markets ?? [], [data]);
-
-  const filtered = useMemo(
-    () => applyFilters(rows, deferredSearch, selectedLevels),
-    [rows, deferredSearch, selectedLevels],
-  );
-  const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+  }, [verifiedOnly, hasFloorOnly, deferredSearch, minMarketCap, minVolume24h, minHolders]);
 
   const onSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -243,36 +296,22 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
     }
   };
 
-  const toggleLevel = (lvl: number) => {
-    setSelectedLevels((prev) => {
-      const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl);
-      else next.add(lvl);
-      return next;
-    });
-  };
-
   const resetFilters = () => {
     setSearch("");
     setVerifiedOnly(false);
     setHasFloorOnly(false);
-    setSelectedLevels(new Set());
+    setMinMarketCapInput("");
+    setMinVolumeInput("");
+    setMinHoldersInput("");
   };
 
-  const hasActiveFilters =
-    search.trim().length > 0 || verifiedOnly || hasFloorOnly || selectedLevels.size > 0;
-
-  const liveBanner =
-    !isPending && !isError && data ? (
-      <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1 text-[0.65rem] font-medium text-emerald-300/95">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/55 opacity-35" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
-        Feed synced · page {data.page}
-        {totalPages != null ? ` / ${formatInt(totalPages)}` : ""}
-      </span>
-    ) : null;
+  const activeFilterCount =
+    (verifiedOnly ? 1 : 0) +
+    (hasFloorOnly ? 1 : 0) +
+    (minMarketCap != null ? 1 : 0) +
+    (minVolume24h != null ? 1 : 0) +
+    (minHolders != null ? 1 : 0);
+  const hasActiveFilters = search.trim().length > 0 || activeFilterCount > 0;
 
   return (
     <section aria-labelledby="rise-screener-heading" className="flex flex-col gap-5">
@@ -282,7 +321,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
 
       {/* KPI strip */}
       <div className="grid gap-3 sm:grid-cols-3">
-        {isPending && !data ? (
+        {isPending && sourceRows.length === 0 ? (
           <>
             {[0, 1, 2].map((i) => (
               <div key={i} className="rounded-2xl border border-border/45 bg-card/30 p-[1.125rem]">
@@ -299,36 +338,29 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
               icon={Globe2}
               label="Listed universe"
               value={total != null ? formatInt(total) : "—"}
-              hint="Total markets matching your server filters (verified / floor)."
+              hint="Markets in current server scope."
               gradientClass="from-sky-500/28 to-cyan-700/12"
               ringClass="ring-sky-400/22"
             />
             <ScreenerStatCard
               icon={Layers}
-              label="This page"
-              value={data ? formatInt(data.count) : "—"}
-              hint={`${PAGE_SIZE} rows per request · sort applies after fetch.`}
+              label="New tokens today"
+              value={formatInt(todayStats.newToday)}
+              hint="Tokens created since 00:00 local time."
               gradientClass="from-emerald-500/25 to-teal-800/12"
               ringClass="ring-emerald-400/22"
             />
             <ScreenerStatCard
               icon={RefreshCw}
-              label="Local view"
+              label="Average market / floor MC"
               value={
-                hasActiveFilters ? (
-                  <span className="text-[1.15rem] sm:text-[1.35rem]">
-                    {formatInt(sorted.length)}
-                    <span className="ml-1 text-base font-medium text-muted-foreground">match</span>
-                  </span>
-                ) : (
-                  <span className="text-[1.15rem] sm:text-[1.35rem]">All rows</span>
-                )
+                <span className="text-[1.15rem] sm:text-[1.35rem]">
+                  {todayStats.avgMarketCap != null ? formatUsd(todayStats.avgMarketCap, { compact: true }) : "—"}
+                  <span className="mx-1 text-base font-medium text-muted-foreground">/</span>
+                  {todayStats.avgFloorMarketCap != null ? formatUsd(todayStats.avgFloorMarketCap, { compact: true }) : "—"}
+                </span>
               }
-              hint={
-                hasActiveFilters
-                  ? "Search & level chips filter the current page client-side."
-                  : "Add search or level chips to narrow this page."
-              }
+              hint="Average market cap and average floor market cap."
               gradientClass="from-violet-500/24 to-fuchsia-800/12"
               ringClass="ring-violet-400/20"
             />
@@ -349,16 +381,11 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 Full-depth book
               </p>
               <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Server-side scope via switches; client-side refine via search and level chips. Click any row for the detail
-                drawer.
+                Search and apply advanced filters to isolate the markets that matter.
               </p>
             </div>
-            {liveBanner ? <div className="flex shrink-0 justify-start lg:justify-end">{liveBanner}</div> : null}
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="relative min-w-0 flex-1">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+              <div className="relative min-w-0 sm:w-[20rem]">
                 <Search
                   className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/90"
                   aria-hidden
@@ -381,57 +408,94 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   </button>
                 ) : null}
               </div>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border/40 bg-muted/[0.12] px-3 py-2.5 lg:shrink-0">
-                <div className="flex items-center gap-2">
-                  <Switch id="verified-only" checked={verifiedOnly} onCheckedChange={setVerifiedOnly} />
-                  <Label htmlFor="verified-only" className="cursor-pointer text-xs font-medium text-foreground/90">
-                    Verified only
-                  </Label>
-                </div>
-                <div className="hidden h-4 w-px bg-border/55 sm:block" aria-hidden />
-                <div className="flex items-center gap-2">
-                  <Switch id="has-floor" checked={hasFloorOnly} onCheckedChange={setHasFloorOnly} />
-                  <Label htmlFor="has-floor" className="cursor-pointer text-xs font-medium text-foreground/90">
-                    Has floor
-                  </Label>
-                </div>
-              </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/40 bg-background/[0.2] px-3 py-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                <Filter className="h-3.5 w-3.5" aria-hidden />
-                Levels
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {LEVEL_CHIPS.map((lvl) => {
-                  const active = selectedLevels.has(lvl);
-                  return (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => toggleLevel(lvl)}
-                      className={cn(
-                        "rounded-lg border px-2.5 py-1 text-[0.7rem] font-mono font-semibold tabular-nums transition-all",
-                        active
-                          ? "border-foreground/45 bg-foreground/[0.09] text-foreground shadow-sm"
-                          : "border-border/50 bg-background/35 text-muted-foreground hover:border-border hover:bg-background/55 hover:text-foreground",
-                      )}
-                      aria-pressed={active}
-                    >
-                      L{lvl}
-                    </button>
-                  );
-                })}
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-11 rounded-xl border-border/55 px-3 text-xs sm:text-sm">
+                    <SlidersHorizontal className="mr-1.5 h-4 w-4" />
+                    Filters
+                    {activeFilterCount > 0 ? (
+                      <span className="ml-1 rounded-full bg-uof/20 px-1.5 py-0.5 text-[10px] font-semibold text-uof">
+                        {activeFilterCount}
+                      </span>
+                    ) : null}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-[20rem] space-y-3 rounded-xl border-border/60 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Quick Filters</p>
+
+                  <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border/40 bg-muted/[0.12] px-2.5 py-2">
+                    <span className="text-xs font-medium text-foreground">Verified only</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-current"
+                      checked={verifiedOnly}
+                      onChange={(e) => setVerifiedOnly(e.target.checked)}
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border/40 bg-muted/[0.12] px-2.5 py-2">
+                    <span className="text-xs font-medium text-foreground">Has floor price</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-current"
+                      checked={hasFloorOnly}
+                      onChange={(e) => setHasFloorOnly(e.target.checked)}
+                    />
+                  </label>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                      Min market cap (USD)
+                    </label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1000"
+                      value={minMarketCapInput}
+                      onChange={(e) => setMinMarketCapInput(e.target.value)}
+                      placeholder="e.g. 1000000"
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                      Min 24h volume (USD)
+                    </label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1000"
+                      value={minVolumeInput}
+                      onChange={(e) => setMinVolumeInput(e.target.value)}
+                      placeholder="e.g. 50000"
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                      Min holders
+                    </label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={minHoldersInput}
+                      onChange={(e) => setMinHoldersInput(e.target.value)}
+                      placeholder="e.g. 250"
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               {hasActiveFilters ? (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={resetFilters}
-                  className="ml-auto h-8 gap-1 rounded-lg px-2.5 text-[0.7rem]"
+                  className="h-11 rounded-xl border-border/55 px-3 text-xs sm:text-sm"
                 >
-                  Reset filters
+                  Clear
                 </Button>
               ) : null}
             </div>
@@ -546,7 +610,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isPending && rows.length === 0
+                  {isPending && pagedRows.length === 0
                     ? Array.from({ length: PAGE_SIZE }).map((_, i) => (
                         <TableRow key={`sk-${i}`} className="border-border/30">
                           <TableCell colSpan={12} className="px-4 py-3">
@@ -554,7 +618,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                           </TableCell>
                         </TableRow>
                       ))
-                    : sorted.map((m) => (
+                    : pagedRows.map((m) => (
                         <TableRow
                           key={m.mint}
                           onClick={() => onSelect(m)}
@@ -569,7 +633,6 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                                 <div className="flex min-w-0 items-center gap-1.5">
                                   <span className="truncate font-semibold text-foreground">${m.symbol || "—"}</span>
                                   <VerifiedBadge verified={m.isVerified} />
-                                  <LevelChip level={m.level} />
                                 </div>
                                 <p className="truncate text-[0.7rem] text-muted-foreground">{m.name || shortenMint(m.mint)}</p>
                               </div>
@@ -610,19 +673,19 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
 
             {/* Mobile cards */}
             <div className="md:hidden">
-              {isPending && rows.length === 0 ? (
+              {isPending && pagedRows.length === 0 ? (
                 <div className="flex flex-col gap-3 p-4">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-28 rounded-2xl" />
                   ))}
                 </div>
-              ) : sorted.length === 0 ? (
+              ) : pagedRows.length === 0 ? (
                 <div className="px-4 py-10 sm:px-6">
                   <EmptyState title="No markets match" description="Try clearing filters or search." />
                 </div>
               ) : (
                 <ul className="flex flex-col gap-3 p-4">
-                  {sorted.map((m) => (
+                  {pagedRows.map((m) => (
                     <li key={m.mint}>
                       <button
                         type="button"
@@ -635,7 +698,6 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="truncate text-sm font-semibold text-foreground">${m.symbol || "—"}</span>
                               <VerifiedBadge verified={m.isVerified} />
-                              <LevelChip level={m.level} />
                             </div>
                             <p className="truncate text-[0.75rem] text-muted-foreground">{m.name || shortenMint(m.mint)}</p>
                           </div>
@@ -679,13 +741,15 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 ) : (
                   <>
                     <span className="font-medium text-foreground/90">
-                      Page {data?.page ?? page}
+                      Page {isGlobalSearchMode ? page : (listQuery.data?.page ?? page)}
                       {totalPages != null ? ` of ${formatInt(totalPages)}` : ""}
                     </span>
                     <span className="text-muted-foreground/85">
                       {" "}
                       · {isFetching ? "Refreshing…" : "Up to date"}
-                      {hasActiveFilters ? ` · ${formatInt(sorted.length)} rows after local filters` : ""}
+                      {hasActiveFilters
+                        ? ` · ${formatInt(isGlobalSearchMode ? filtered.length : sorted.length)} rows after local filters`
+                        : ""}
                     </span>
                   </>
                 )}
@@ -703,8 +767,12 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 <Button
                   variant="ghost"
                   size="sm"
-                  disabled={(totalPages != null && page >= totalPages) || isFetching || rows.length < PAGE_SIZE}
-                  onClick={() => setPage((p) => p + 1)}
+                  disabled={
+                    isGlobalSearchMode
+                      ? page >= (totalPages ?? 1) || isFetching
+                      : (totalPages != null && page >= totalPages) || isFetching || sourceRows.length < PAGE_SIZE
+                  }
+                  onClick={() => setPage((p) => Math.min((totalPages ?? p + 1), p + 1))}
                   className="h-9 gap-1 rounded-lg px-3 text-xs"
                 >
                   Next <ChevronRight className="h-3.5 w-3.5" />

@@ -54,7 +54,7 @@ export function TokenGate({ pageTitle, preview, children }: TokenGateProps) {
               </Button>
             ) : null}
             <Button asChild size="sm" variant="secondary" className="h-9">
-              <Link to="/dashboard/borrow">Open borrow simulator</Link>
+              <Link to="/dashboard/simulator?tab=borrow">Open borrow simulator</Link>
             </Button>
           </div>
         </div>

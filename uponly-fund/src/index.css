@@ -620,3 +620,18 @@
     opacity: 0;
   }
 }
+
+@keyframes rise-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@layer utilities {
+  .animate-rise-marquee {
+    animation: rise-marquee 34s linear infinite;
+  }
+}

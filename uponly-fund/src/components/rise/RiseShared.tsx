@@ -48,13 +48,40 @@ export function changeTone(pct: number | null): "up" | "down" | "neutral" {
 export function formatPriceSmart(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
   if (n === 0) return "$0";
-  if (Math.abs(n) < 0.0001) return n.toExponential(2).replace("e", "e");
+  if (Math.abs(n) < 0.0001) {
+    const toSubscript = (value: number): string => {
+      const map: Record<string, string> = {
+        "0": "₀",
+        "1": "₁",
+        "2": "₂",
+        "3": "₃",
+        "4": "₄",
+        "5": "₅",
+        "6": "₆",
+        "7": "₇",
+        "8": "₈",
+        "9": "₉",
+      };
+      return String(value)
+        .split("")
+        .map((d) => map[d] ?? d)
+        .join("");
+    };
+    const abs = Math.abs(n);
+    const fraction = abs.toFixed(12).split(".")[1]?.replace(/0+$/, "") ?? "";
+    const firstNonZero = fraction.search(/[1-9]/);
+    if (firstNonZero < 0) return "$0";
+    const leadingZeros = firstNonZero;
+    const significant = fraction.slice(firstNonZero, firstNonZero + 4).padEnd(4, "0");
+    const sign = n < 0 ? "-" : "";
+    return `${sign}$0.0${toSubscript(leadingZeros)}${significant}`;
+  }
   return formatUsd(n);
 }
 
 export function TokenAvatar({
   imageUrl,
-  symbol,
+  symbol: _symbol,
   size = "md",
   className,
 }: {
@@ -71,7 +98,6 @@ export function TokenAvatar({
         : size === "md"
           ? "h-10 w-10 text-xs"
           : "h-14 w-14 text-sm";
-  const fallback = (symbol || "•").slice(0, 3).toUpperCase();
   return (
     <div
       className={cn(
@@ -94,9 +120,6 @@ export function TokenAvatar({
           }}
         />
       ) : null}
-      <span className="absolute inset-0 flex items-center justify-center font-mono font-semibold text-foreground/70">
-        {fallback}
-      </span>
     </div>
   );
 }
@@ -132,13 +155,13 @@ export function VerifiedBadge({ verified, className }: { verified: boolean; clas
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-md border border-ring/40 bg-ring/10 px-1 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide text-foreground/85",
+        "inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300/70 bg-emerald-500/20 text-emerald-200 shadow-[0_0_0_1px_hsl(0_0%_100%/0.05)_inset,0_0_0_3px_hsl(150_60%_45%/0.18)]",
         className,
       )}
       title="Verified market"
+      aria-label="Verified market"
     >
-      <BadgeCheck className="h-2.5 w-2.5" aria-hidden />
-      <span>Verified</span>
+      <BadgeCheck className="h-3.5 w-3.5 text-emerald-100" strokeWidth={2.4} aria-hidden />
     </span>
   );
 }

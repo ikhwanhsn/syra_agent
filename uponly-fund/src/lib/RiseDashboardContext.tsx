@@ -193,6 +193,12 @@ export function useRiseMarketsAll(limit = 100) {
         if (!row.mint) continue;
         if (!dedup.has(row.mint)) dedup.set(row.mint, row);
       }
+      // Ensure UPONLY is searchable even when not included in paginated list endpoint.
+      const aggregate = await getRiseAggregate(signal);
+      const uponly = aggregate.uponly;
+      if (uponly?.mint && !dedup.has(uponly.mint)) {
+        dedup.set(uponly.mint, uponly);
+      }
       return Array.from(dedup.values());
     },
     staleTime: LIST_REFETCH_MS,

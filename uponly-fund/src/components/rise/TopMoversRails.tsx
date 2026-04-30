@@ -182,7 +182,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
       <SectionHeader
         eyebrow="Movers"
         title="Top movers across RISE"
-        description="Server-aggregated digest of the busiest, fastest-rising, and freshest markets right now."
+        description="Live leaders"
       />
       <div id="rise-movers-heading" className="sr-only">
         Top movers
@@ -191,7 +191,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
       <div className="grid gap-4 lg:grid-cols-3">
         <Rail
           title="Top volume · 24h"
-          description="Highest USD turnover in the last 24h"
+          description="Highest turnover"
           icon={Flame}
           items={data?.topVolume24h ?? []}
           onSelect={onSelect}
@@ -201,7 +201,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
         />
         <Rail
           title="Top gainers · 24h"
-          description="Largest positive 24h price moves"
+          description="Strongest upside"
           icon={TrendingUp}
           items={data?.topGainers24h ?? []}
           onSelect={onSelect}
@@ -212,7 +212,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
         />
         <Rail
           title="Newest markets"
-          description="Most recently launched on RISE"
+          description="Recent launches"
           icon={Clock4}
           items={data?.newest ?? []}
           onSelect={onSelect}
@@ -224,7 +224,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
       <div className="grid gap-4 sm:grid-cols-2">
         <Rail
           title="Most holders"
-          description="Distribution leaders by holder count"
+          description="Largest communities"
           icon={Users}
           items={data?.mostHolders ?? []}
           onSelect={onSelect}
@@ -233,7 +233,7 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
         />
         <Rail
           title="Largest by mcap"
-          description="Top market caps across RISE"
+          description="Largest caps"
           icon={Activity}
           items={data?.largestByMcap ?? []}
           onSelect={onSelect}

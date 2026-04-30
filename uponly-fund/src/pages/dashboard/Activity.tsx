@@ -10,7 +10,7 @@ import { ActivityPreview } from "./previews/ActivityPreview";
 
 type SideFilter = "all" | "buy" | "sell";
 
-function ActivityLive() {
+export function ActivityLive() {
   const [sideFilter, setSideFilter] = useState<SideFilter>("all");
   const { aggregate } = useRiseDashboard();
   const addresses = (aggregate.data?.topVolume24h ?? []).slice(0, 6).map((row) => row.mint);

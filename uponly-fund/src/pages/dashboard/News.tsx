@@ -9,7 +9,7 @@ import { getNews } from "@/lib/cryptoNewsApi";
 import { Input } from "@/components/ui/input";
 import { NewsPreview } from "./previews/NewsPreview";
 
-function NewsLive() {
+export function NewsLive() {
   const [ticker, setTicker] = useState("general");
   const news = useQuery({
     queryKey: ["preview-news", ticker],

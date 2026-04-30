@@ -3,38 +3,37 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { RiseHero } from "@/components/rise/RiseHero";
-import { UponlySpotlight } from "@/components/rise/UponlySpotlight";
 import { TopMoversRails } from "@/components/rise/TopMoversRails";
 import { MarketDetailDrawer } from "@/components/rise/MarketDetailDrawer";
 import { GlassCard } from "@/components/rise/RiseShared";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 
 const quickLinks = [
-  { to: "/dashboard/markets", label: "Market screener", desc: "Full sortable universe table" },
-  { to: "/dashboard/watchlist", label: "Watchlist", desc: "Pin and track your markets" },
-  { to: "/dashboard/compare", label: "Compare", desc: "Side-by-side market metrics" },
-  { to: "/dashboard/signals", label: "Signals", desc: "Macro + technical context" },
-  { to: "/dashboard/news", label: "News", desc: "Curated crypto headlines feed" },
-  { to: "/dashboard/wallet", label: "Wallet lookup", desc: "Portfolio and position breakdown" },
+  { to: "/dashboard/markets", label: "Screener" },
+  { to: "/dashboard/watchlist", label: "Watchlist" },
+  { to: "/dashboard/compare", label: "Compare" },
+  { to: "/dashboard/signals", label: "Signals" },
+  { to: "/dashboard/news", label: "News" },
+  { to: "/dashboard/wallet", label: "Wallet" },
 ];
 
 export default function DashboardOverview() {
   const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <DashboardPageHeader
-        title="RISE command center"
-        description="One workstation for discovery, analytics, and pre-trade planning across the RISE ecosystem."
+        title="Market overview"
+        description="Live RISE market intelligence."
+        eyebrow="Live"
       />
-      <RiseHero />
-      <UponlySpotlight />
+      <RiseHero onSelect={setOpenMarket} />
       <TopMoversRails onSelect={setOpenMarket} />
       <section>
         <DashboardPageHeader
-          title="Quick links"
-          description="Jump directly into tooling pages built for daily RISE workflows."
-          eyebrow="Navigation"
+          title="Workspace"
+          description="Core tools"
+          eyebrow="Actions"
           className="mb-3"
         />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -48,7 +47,6 @@ export default function DashboardOverview() {
                   <p className="text-sm font-semibold text-foreground">{item.label}</p>
                   <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{item.desc}</p>
               </Link>
             </GlassCard>
           ))}

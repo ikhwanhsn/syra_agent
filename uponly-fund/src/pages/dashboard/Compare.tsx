@@ -1,10 +1,10 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { BarChart3, Plus, RefreshCw, Sparkles, Star, X } from "lucide-react";
+import { BarChart3, ChevronDown, Plus, RefreshCw, Search, Sparkles, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import {
@@ -23,6 +23,9 @@ import { useWatchlist } from "@/lib/useWatchlist";
 import { cn } from "@/lib/utils";
 
 const MAX = 4;
+const PICKER_ROW_HEIGHT = 44;
+const PICKER_VIEWPORT_HEIGHT = 264;
+const PICKER_OVERSCAN = 6;
 
 type MetricRow = { id: string; label: string; render: (m: RiseMarketRow) => ReactNode };
 
@@ -121,6 +124,9 @@ function MetricCell({ children, align = "right" }: { children: ReactNode; align?
 
 export default function ComparePage() {
   const [selectedMints, setSelectedMints] = useState<string[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerScrollTop, setPickerScrollTop] = useState(0);
   const allMarkets = useRiseMarketsAll();
   const { toggle, has } = useWatchlist();
   const marketOptions = allMarkets.data ?? [];
@@ -133,17 +139,19 @@ export default function ComparePage() {
     () => marketOptions.filter((row) => !selectedMints.includes(row.mint)),
     [marketOptions, selectedMints],
   );
-
-  const livePill =
-    !allMarkets.isPending && !allMarkets.isError && marketOptions.length > 0 ? (
-      <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1 text-[0.65rem] font-medium text-emerald-300/95">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/55 opacity-35" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
-        {formatInt(marketOptions.length)} markets loaded
-      </span>
-    ) : null;
+  const filteredToAdd = useMemo(() => {
+    const needle = pickerQuery.trim().toLowerCase();
+    if (!needle) return availableToAdd;
+    return availableToAdd.filter(
+      (row) => row.symbol.toLowerCase().includes(needle) || row.name.toLowerCase().includes(needle),
+    );
+  }, [availableToAdd, pickerQuery]);
+  const startIndex = Math.max(0, Math.floor(pickerScrollTop / PICKER_ROW_HEIGHT) - PICKER_OVERSCAN);
+  const visibleCount = Math.ceil(PICKER_VIEWPORT_HEIGHT / PICKER_ROW_HEIGHT) + PICKER_OVERSCAN * 2;
+  const endIndex = Math.min(filteredToAdd.length, startIndex + visibleCount);
+  const virtualRows = filteredToAdd.slice(startIndex, endIndex);
+  const topOffset = startIndex * PICKER_ROW_HEIGHT;
+  const totalHeight = filteredToAdd.length * PICKER_ROW_HEIGHT;
 
   return (
     <div className="relative flex flex-col gap-8">
@@ -153,20 +161,6 @@ export default function ComparePage() {
       />
 
       <div className="relative z-[1] flex flex-col gap-8">
-        <DashboardPageHeader
-          eyebrow="Relative analysis"
-          title="Compare markets"
-          description="Select up to four names and read them against the same metrics—instant cross-section of price action, floor structure, liquidity, and protocol metadata."
-          right={
-            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <span className="inline-flex items-center rounded-full border border-border/55 bg-background/50 px-3 py-1 text-[0.65rem] font-semibold tabular-nums text-foreground/90">
-                {selectedMarkets.length}/{MAX} slots
-              </span>
-              {livePill}
-            </div>
-          }
-        />
-
         <GlassCard
           className={cn(
             "border-border/50 shadow-[0_0_0_1px_hsl(0_0%_100%/0.05)_inset,0_24px_60px_-28px_hsl(0_0%_0%/0.55)]",
@@ -178,7 +172,7 @@ export default function ComparePage() {
               Comparison set
             </p>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Add markets from the full universe. Already selected tokens are hidden from the picker.
+              Add markets to compare. Selected tokens are hidden from the picker.
             </p>
           </div>
 
@@ -191,28 +185,73 @@ export default function ComparePage() {
             ) : (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                  <Select
-                    value=""
-                    onValueChange={(value) => {
-                      setSelectedMints((prev) => {
-                        if (prev.includes(value) || prev.length >= MAX) return prev;
-                        return [...prev, value];
-                      });
+                  <Popover
+                    open={pickerOpen}
+                    onOpenChange={(open) => {
+                      setPickerOpen(open);
+                      if (!open) {
+                        setPickerQuery("");
+                        setPickerScrollTop(0);
+                      }
                     }}
-                    disabled={selectedMints.length >= MAX || availableToAdd.length === 0}
                   >
-                    <SelectTrigger className="h-11 min-w-[min(100%,18rem)] max-w-md rounded-xl border-border/55 bg-background/40 shadow-inner">
-                      <SelectValue placeholder="Add market to compare…" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {availableToAdd.map((row) => (
-                        <SelectItem key={row.mint} value={row.mint}>
-                          <span className="font-medium">${row.symbol}</span>
-                          <span className="text-muted-foreground"> · {row.name}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={selectedMints.length >= MAX || availableToAdd.length === 0}
+                        className="h-11 min-w-[min(100%,18rem)] max-w-md justify-between rounded-xl border-border/55 bg-background/40 shadow-inner"
+                      >
+                        Add market to compare
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[22rem] rounded-xl border-border/60 p-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={pickerQuery}
+                          onChange={(e) => {
+                            setPickerQuery(e.target.value);
+                            setPickerScrollTop(0);
+                          }}
+                          placeholder="Search symbol or name..."
+                          className="h-9 rounded-lg border-border/55 pl-8"
+                        />
+                      </div>
+                      <div
+                        className="mt-2 overflow-y-auto rounded-lg border border-border/40 bg-background/35"
+                        style={{ height: PICKER_VIEWPORT_HEIGHT }}
+                        onScroll={(e) => setPickerScrollTop(e.currentTarget.scrollTop)}
+                      >
+                        {filteredToAdd.length === 0 ? (
+                          <p className="px-3 py-6 text-center text-xs text-muted-foreground">No matching markets.</p>
+                        ) : (
+                          <div style={{ height: totalHeight, position: "relative" }}>
+                            <div style={{ position: "absolute", top: topOffset, left: 0, right: 0 }}>
+                              {virtualRows.map((row) => (
+                                <button
+                                  key={row.mint}
+                                  type="button"
+                                  className="flex h-11 w-full items-center gap-2 px-3 text-left text-sm transition-colors hover:bg-muted/50"
+                                  onClick={() => {
+                                    setSelectedMints((prev) => {
+                                      if (prev.includes(row.mint) || prev.length >= MAX) return prev;
+                                      return [...prev, row.mint];
+                                    });
+                                    setPickerOpen(false);
+                                  }}
+                                >
+                                  <TokenAvatar imageUrl={row.imageUrl} symbol={row.symbol} size="xs" />
+                                  <span className="min-w-0 truncate font-medium">${row.symbol}</span>
+                                  <span className="min-w-0 truncate text-xs text-muted-foreground">{row.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     size="sm"
                     variant="outline"
@@ -282,7 +321,7 @@ export default function ComparePage() {
                   <Sparkles className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
                   Side-by-side matrix
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">Same rows, aligned columns—scan spreads at a glance.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Aligned rows for quick comparisons.</p>
               </div>
               <div className="overflow-x-auto">
                 <Table className="min-w-[720px] text-[0.8125rem]">

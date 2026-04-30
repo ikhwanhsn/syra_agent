@@ -12,7 +12,7 @@ import { SignalsPreview } from "./previews/SignalsPreview";
 
 const TOKENS: SignalToken[] = ["bitcoin", "solana", "ethereum"];
 
-function SignalsLive() {
+export function SignalsLive() {
   const { uponly } = useRiseDashboard();
   const ohlc = useRiseOhlc(uponly?.mint ?? null, "1h", 120);
   const closes = useMemo(

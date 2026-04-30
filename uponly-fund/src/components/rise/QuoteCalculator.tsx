@@ -18,12 +18,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRiseDashboard, useRiseQuote } from "@/lib/RiseDashboardContext";
+import { useRiseDashboard, useRiseMarketsAll, useRiseQuote } from "@/lib/RiseDashboardContext";
 import { buildRiseTradeUrl } from "@/lib/riseDashboardApi";
-import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import {
@@ -35,24 +33,9 @@ import {
   TokenAvatar,
   formatPriceSmart,
 } from "./RiseShared";
+import { MarketSearchPicker } from "@/components/rise/MarketSearchPicker";
 
 type Direction = "buy" | "sell";
-
-function buildMarketChoices(uponly: RiseMarketRow | null, others: RiseMarketRow[]): RiseMarketRow[] {
-  const seen = new Set<string>();
-  const out: RiseMarketRow[] = [];
-  if (uponly) {
-    seen.add(uponly.mint);
-    out.push(uponly);
-  }
-  for (const m of others) {
-    if (!m.mint || seen.has(m.mint)) continue;
-    seen.add(m.mint);
-    out.push(m);
-    if (out.length >= 30) break;
-  }
-  return out;
-}
 
 function useDebounced<T>(value: T, delay = 350): T {
   const [debounced, setDebounced] = useState(value);
@@ -64,13 +47,13 @@ function useDebounced<T>(value: T, delay = 350): T {
 }
 
 export function QuoteCalculator() {
-  const { aggregate, uponly } = useRiseDashboard();
-  const data = aggregate.data;
+  const { uponly } = useRiseDashboard();
+  const allMarkets = useRiseMarketsAll();
 
   const choices = useMemo(() => {
-    if (!data) return uponly ? [uponly] : [];
-    return buildMarketChoices(uponly, [...data.topVolume24h, ...data.largestByMcap]);
-  }, [data, uponly]);
+    if (allMarkets.data && allMarkets.data.length > 0) return allMarkets.data;
+    return uponly ? [uponly] : [];
+  }, [allMarkets.data, uponly]);
 
   const [mint, setMint] = useState<string>(uponly?.mint || RISE_UPONLY_MINT);
   const selected = useMemo(() => choices.find((m) => m.mint === mint) ?? choices[0] ?? null, [choices, mint]);
@@ -94,7 +77,7 @@ export function QuoteCalculator() {
 
   const tradeUrl = selected ? buildRiseTradeUrl(selected.mint) : null;
 
-  const aggregatePending = aggregate.isPending;
+  const aggregatePending = allMarkets.isPending;
 
   return (
     <section aria-labelledby="rise-quote-heading">
@@ -127,31 +110,14 @@ export function QuoteCalculator() {
               >
                 Market
               </Label>
-              <Select value={mint || undefined} onValueChange={setMint} disabled={choices.length === 0}>
-                <SelectTrigger
-                  id="quote-market"
-                  className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner"
-                >
-                  <SelectValue placeholder={aggregatePending ? "Loading markets…" : "Pick a market"} />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {choices.length === 0 ? (
-                    <SelectItem value="__loading__" disabled>
-                      Loading…
-                    </SelectItem>
-                  ) : (
-                    choices.map((m) => (
-                      <SelectItem key={m.mint} value={m.mint}>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <TokenAvatar imageUrl={m.imageUrl} symbol={m.symbol} size="xs" />
-                          <span className="truncate font-medium">${m.symbol || "—"}</span>
-                          <span className="truncate text-xs text-muted-foreground">{m.name || ""}</span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <MarketSearchPicker
+                id="quote-market"
+                options={choices}
+                value={mint}
+                onValueChange={setMint}
+                disabled={aggregatePending}
+                triggerPlaceholder={aggregatePending ? "Loading markets..." : "Pick a market"}
+              />
             </div>
 
             <div>

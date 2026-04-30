@@ -42,60 +42,79 @@ import {
   shortenMint,
 } from "./RiseShared";
 
-const TIMEFRAMES: RiseTimeframe[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
+type ChartTimeframe = RiseTimeframe | "all";
+
+const TIMEFRAMES: ChartTimeframe[] = ["1m", "5m", "15m", "1h", "4h", "1d", "all"];
+
+const TF_LIMITS: Record<RiseTimeframe, number> = {
+  "1m": 240,
+  "5m": 288,
+  "15m": 288,
+  "1h": 336,
+  "4h": 336,
+  "1d": 365,
+};
+
+function normalizeOhlc(
+  candles: { time: number | null; open: number | null; high: number | null; low: number | null; close: number | null }[],
+) {
+  return candles
+    .map((row, idx) => {
+      const rawTime = typeof row.time === "number" && Number.isFinite(row.time) ? row.time : null;
+      const closeCandidate =
+        typeof row.close === "number" && Number.isFinite(row.close)
+          ? row.close
+          : typeof row.open === "number" && Number.isFinite(row.open)
+            ? row.open
+            : typeof row.high === "number" && Number.isFinite(row.high)
+              ? row.high
+              : typeof row.low === "number" && Number.isFinite(row.low)
+                ? row.low
+                : null;
+      if (closeCandidate === null) return null;
+      const tsMs =
+        rawTime === null
+          ? idx * 3_600_000
+          : rawTime > 1_000_000_000_000
+            ? rawTime
+            : rawTime * 1000;
+      return { time: tsMs, value: closeCandidate };
+    })
+    .filter((r): r is { time: number; value: number } => r !== null)
+    .sort((a, b) => a.time - b.time);
+}
 
 function ChartTooltip({ active, payload }: { active?: boolean; payload?: { value?: number; payload?: { time?: number } }[] }) {
   if (!active || !payload || payload.length === 0) return null;
   const v = payload[0]?.value;
   const t = payload[0]?.payload?.time;
+  const hasValidTimestamp = typeof t === "number" && Number.isFinite(t) && t >= Date.UTC(2000, 0, 1);
   return (
     <div className="rounded-md border border-border/60 bg-card/95 px-2 py-1.5 text-[0.7rem] shadow-md backdrop-blur-sm">
       <p className="font-medium text-foreground">{formatPriceSmart(typeof v === "number" ? v : null)}</p>
-      {t ? (
+      {hasValidTimestamp ? (
         <p className="text-[0.65rem] text-muted-foreground">
-          {new Date(t).toLocaleString()}
+          {new Date(t as number).toLocaleString()}
         </p>
       ) : null}
     </div>
   );
 }
 
-function PriceChart({ address, tf }: { address: string; tf: RiseTimeframe }) {
+function PriceChart({ address, tf }: { address: string | null; tf: ChartTimeframe }) {
   const gradientId = useId();
-  const ohlc = useRiseOhlc(address, tf, 168);
-  const data = useMemo(() => {
-    const c = ohlc.data?.candles ?? [];
-    return c
-      .map((row, idx) => {
-        const rawTime = typeof row.time === "number" && Number.isFinite(row.time) ? row.time : null;
-        const closeCandidate =
-          typeof row.close === "number" && Number.isFinite(row.close)
-            ? row.close
-            : typeof row.open === "number" && Number.isFinite(row.open)
-              ? row.open
-              : typeof row.high === "number" && Number.isFinite(row.high)
-                ? row.high
-                : typeof row.low === "number" && Number.isFinite(row.low)
-                  ? row.low
-                  : null;
-        if (closeCandidate === null) return null;
-        const tsMs =
-          rawTime === null
-            ? idx * 3_600_000
-            : rawTime > 1_000_000_000_000
-              ? rawTime
-              : rawTime * 1000;
-        return { time: tsMs, value: closeCandidate };
-      })
-      .filter((r): r is { time: number; value: number } => r !== null)
-      .sort((a, b) => a.time - b.time);
-  }, [ohlc.data]);
+  const resolvedTimeframe: RiseTimeframe = tf === "all" ? "1d" : tf;
+  const limit = tf === "all" ? 2000 : TF_LIMITS[resolvedTimeframe];
+  const ohlc = useRiseOhlc(address, resolvedTimeframe, limit);
+  const data = useMemo(() => normalizeOhlc(ohlc.data?.candles ?? []), [ohlc.data]);
 
-  if (ohlc.isPending) return <Skeleton className="h-44 w-full rounded-lg" />;
+  if (ohlc.isPending) {
+    return <Skeleton className="h-44 w-full rounded-lg" />;
+  }
   if (ohlc.isError || data.length < 2) {
     return (
       <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-border/40 bg-background/30 text-xs text-muted-foreground">
-        No chart data for {tf}
+        No chart data for {tf === "all" ? "all time" : tf}
       </div>
     );
   }
@@ -122,12 +141,93 @@ function PriceChart({ address, tf }: { address: string; tf: RiseTimeframe }) {
           />
         </AreaChart>
       </ResponsiveContainer>
+      <div className="mt-1 flex items-center justify-between gap-2 text-[0.65rem] text-muted-foreground">
+        <p className="mt-1 text-[0.65rem] text-muted-foreground">
+          Source {tf === "all" ? "all-time (1d candles)" : tf}
+        </p>
+        {ohlc.data?.updatedAt ? <p>Updated {new Date(ohlc.data.updatedAt).toLocaleTimeString()}</p> : null}
+      </div>
     </div>
   );
 }
 
-function TransactionsList({ address }: { address: string }) {
+function TransactionsList({ address }: { address: string | null }) {
   const tx = useRiseTransactions(address, 1, 10);
+  const feedUpdatedAt = tx.data?.updatedAt ? new Date(tx.data.updatedAt) : null;
+  const rawRows = tx.data?.transactions ?? [];
+  const rows = useMemo(() => {
+    let prevPrice: number | null = null;
+    return rawRows
+      .map((row, idx) => {
+        const price = typeof row.priceUsd === "number" && Number.isFinite(row.priceUsd) ? row.priceUsd : null;
+        const amountTokens =
+          typeof row.amountTokens === "number" && Number.isFinite(row.amountTokens)
+            ? row.amountTokens
+            : price && typeof row.amountUsd === "number" && Number.isFinite(row.amountUsd)
+              ? row.amountUsd / price
+              : null;
+        const amountUsd =
+          typeof row.amountUsd === "number" && Number.isFinite(row.amountUsd)
+            ? row.amountUsd
+            : price && amountTokens != null
+              ? amountTokens * price
+              : null;
+        const whenTs =
+          typeof row.ts === "number" && Number.isFinite(row.ts)
+            ? row.ts > 1_000_000_000_000
+              ? Math.floor(row.ts / 1000)
+              : row.ts
+            : null;
+        const hasBuySignal =
+          typeof row.kind === "string" &&
+          /(buy|long|bid|in)/i.test(row.kind);
+        const hasSellSignal =
+          typeof row.kind === "string" &&
+          /(sell|short|ask|out)/i.test(row.kind);
+        const inferredFromPrice =
+          price != null && prevPrice != null
+            ? price > prevPrice
+              ? "buy"
+              : price < prevPrice
+                ? "sell"
+                : "flat"
+            : null;
+        const sideLabel = row.kind
+          ? row.kind.toLowerCase()
+          : inferredFromPrice || (amountTokens != null && amountTokens > 0 ? "trade" : "flat");
+        const fallbackWallet =
+          row.walletShort ||
+          (row.txSig ? `tx:${row.txSig.slice(0, 6)}` : "aggregated");
+        const fallbackTs =
+          whenTs ??
+          (feedUpdatedAt
+            ? Math.floor((feedUpdatedAt.getTime() - idx * 30_000) / 1000)
+            : null);
+        if (price != null) prevPrice = price;
+        return {
+          ...row,
+          kind: sideLabel,
+          walletShort: fallbackWallet,
+          amountTokens,
+          amountUsd,
+          ts: fallbackTs,
+          _isBuy: hasBuySignal,
+          _isSell: hasSellSignal,
+          _isApproxTime: whenTs == null && fallbackTs != null,
+        };
+      })
+      .filter((row) => {
+        const hasUsefulDetail =
+          row.priceUsd != null ||
+          Boolean(row.kind) ||
+          Boolean(row.walletShort) ||
+          Boolean(row.txSig) ||
+          row.amountTokens != null ||
+          row.amountUsd != null ||
+          row.ts != null;
+        return hasUsefulDetail;
+      });
+  }, [rawRows, feedUpdatedAt]);
   if (tx.isPending) {
     return (
       <div className="flex flex-col gap-1.5">
@@ -137,12 +237,25 @@ function TransactionsList({ address }: { address: string }) {
       </div>
     );
   }
-  const rows = tx.data?.transactions ?? [];
   if (rows.length === 0) {
     return <EmptyState title="No recent trades" description="Trades will appear here as soon as the market becomes active." />;
   }
+  const hasPartialRows = rows.some(
+    (row) =>
+      !row.kind ||
+      !row.walletShort ||
+      row.amountTokens == null ||
+      row.amountUsd == null ||
+      row.ts == null,
+  );
   return (
-    <div className="overflow-hidden rounded-lg border border-border/40">
+    <div className="space-y-2">
+      {hasPartialRows ? (
+        <p className="rounded-md border border-border/45 bg-background/35 px-2.5 py-1.5 text-[0.65rem] text-muted-foreground">
+          Source returned partial trade metadata for some rows; missing fields are shown as —.
+        </p>
+      ) : null}
+      <div className="overflow-hidden rounded-lg border border-border/40">
       <Table className="text-xs tabular-nums">
         <TableHeader className="bg-muted/30">
           <TableRow className="border-border/40">
@@ -157,9 +270,13 @@ function TransactionsList({ address }: { address: string }) {
         <TableBody>
           {rows.map((r, i) => {
             const side = (r.kind || "—").toLowerCase();
-            const isBuy = side.includes("buy");
-            const isSell = side.includes("sell");
+            const isBuy = "_isBuy" in r ? Boolean((r as { _isBuy?: boolean })._isBuy) : side.includes("buy");
+            const isSell = "_isSell" in r ? Boolean((r as { _isSell?: boolean })._isSell) : side.includes("sell");
+            const isFlat = side.includes("flat");
             const sigUrl = buildSolscanTxUrl(r.txSig);
+            const whenLabel = r.ts ? new Date(r.ts * 1000).toLocaleTimeString() : "—";
+            const isApproxTime =
+              "_isApproxTime" in r ? Boolean((r as { _isApproxTime?: boolean })._isApproxTime) : false;
             return (
               <TableRow key={`${r.txSig ?? i}-${i}`} className="border-border/25">
                 <TableCell className="px-2 py-1.5">
@@ -168,6 +285,7 @@ function TransactionsList({ address }: { address: string }) {
                       "rounded-md border px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide",
                       isBuy && "border-success/40 bg-success/[0.08] text-success",
                       isSell && "border-destructive/40 bg-destructive/[0.08] text-destructive",
+                      isFlat && "border-border/40 bg-muted/30 text-muted-foreground",
                       !isBuy && !isSell && "border-border/40 bg-muted/30 text-muted-foreground",
                     )}
                   >
@@ -188,11 +306,11 @@ function TransactionsList({ address }: { address: string }) {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-0.5 text-[0.65rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                     >
-                      {r.ts ? new Date(r.ts * 1000).toLocaleTimeString() : "—"}
+                      {isApproxTime ? `~${whenLabel}` : whenLabel}
                       <ExternalLink className="h-2.5 w-2.5" aria-hidden />
                     </a>
                   ) : (
-                    <span className="text-[0.65rem] text-muted-foreground">{r.ts ? new Date(r.ts * 1000).toLocaleTimeString() : "—"}</span>
+                    <span className="text-[0.65rem] text-muted-foreground">{isApproxTime ? `~${whenLabel}` : whenLabel}</span>
                   )}
                 </TableCell>
               </TableRow>
@@ -200,6 +318,7 @@ function TransactionsList({ address }: { address: string }) {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
@@ -213,11 +332,12 @@ export function MarketDetailDrawer({
   open: boolean;
   onOpenChange: (next: boolean) => void;
 }) {
-  const [tf, setTf] = useState<RiseTimeframe>("1h");
+  const [tf, setTf] = useState<ChartTimeframe>("1h");
 
   const tradeUrl = market ? buildRiseTradeUrl(market.mint) : null;
   const tokenUrl = market ? buildSolscanTokenUrl(market.mint) : null;
   const creatorUrl = market ? buildSolscanAccountUrl(market.creator) : null;
+  const marketDataAddress = market?.marketAddress || market?.mint || null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -311,17 +431,17 @@ export function MarketDetailDrawer({
                         )}
                         aria-pressed={tf === t}
                       >
-                        {t}
+                        {t === "all" ? "ALL" : t}
                       </button>
                     ))}
                   </div>
                 </div>
-                <PriceChart address={market.mint} tf={tf} />
+                <PriceChart address={marketDataAddress} tf={tf} />
               </div>
 
               <div className="mt-5">
                 <h3 className="mb-2 text-sm font-semibold text-foreground">Recent trades</h3>
-                <TransactionsList address={market.mint} />
+                <TransactionsList address={marketDataAddress} />
               </div>
 
               <div className="mt-5 rounded-lg border border-border/40 bg-background/30 p-3 text-[0.7rem] leading-relaxed text-muted-foreground sm:text-xs">

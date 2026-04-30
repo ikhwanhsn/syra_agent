@@ -16,7 +16,7 @@ type WhaleRow = {
   volumeUsd: number;
 };
 
-function WhalesLive() {
+export function WhalesLive() {
   const { aggregate } = useRiseDashboard();
   const addresses = (aggregate.data?.topVolume24h ?? []).slice(0, 8).map((row) => row.mint);
   const txQueries = useRiseTransactionsBatch(addresses, 10);

@@ -8,11 +8,9 @@ import { Banknote, ExternalLink, Loader2, ShieldAlert, Sparkles } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRiseBorrowQuote, useRiseDashboard } from "@/lib/RiseDashboardContext";
+import { useRiseBorrowQuote, useRiseDashboard, useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import { buildRiseTradeUrl } from "@/lib/riseDashboardApi";
-import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import {
@@ -24,29 +22,13 @@ import {
   TokenAvatar,
   formatPriceSmart,
 } from "./RiseShared";
+import { MarketSearchPicker } from "@/components/rise/MarketSearchPicker";
 
 const ADDR_MIN = 32;
 const ADDR_MAX = 50;
 
 function isValidWallet(addr: string): boolean {
   return addr.length >= ADDR_MIN && addr.length <= ADDR_MAX && /^[a-zA-Z0-9]+$/.test(addr);
-}
-
-function buildMarketChoices(uponly: RiseMarketRow | null, others: RiseMarketRow[]): RiseMarketRow[] {
-  const seen = new Set<string>();
-  const out: RiseMarketRow[] = [];
-  if (uponly) {
-    seen.add(uponly.mint);
-    out.push(uponly);
-  }
-  const floorOnly = others.filter((m) => (m.floorPriceUsd ?? 0) > 0);
-  for (const m of floorOnly) {
-    if (!m.mint || seen.has(m.mint)) continue;
-    seen.add(m.mint);
-    out.push(m);
-    if (out.length >= 30) break;
-  }
-  return out;
 }
 
 function useDebounced<T>(value: T, delay = 350): T {
@@ -59,13 +41,13 @@ function useDebounced<T>(value: T, delay = 350): T {
 }
 
 export function BorrowSimulator() {
-  const { aggregate, uponly } = useRiseDashboard();
-  const data = aggregate.data;
+  const { uponly } = useRiseDashboard();
+  const allMarkets = useRiseMarketsAll();
 
   const choices = useMemo(() => {
-    if (!data) return uponly ? [uponly] : [];
-    return buildMarketChoices(uponly, [...data.largestByMcap, ...data.topVolume24h]);
-  }, [data, uponly]);
+    if (allMarkets.data && allMarkets.data.length > 0) return allMarkets.data;
+    return uponly ? [uponly] : [];
+  }, [allMarkets.data, uponly]);
 
   const [mint, setMint] = useState<string>(uponly?.mint || RISE_UPONLY_MINT);
   const selected = useMemo(() => choices.find((m) => m.mint === mint) ?? choices[0] ?? null, [choices, mint]);
@@ -93,7 +75,7 @@ export function BorrowSimulator() {
   const q = borrow.data?.quote;
   const tradeUrl = selected ? buildRiseTradeUrl(selected.mint) : null;
 
-  const aggregatePending = aggregate.isPending;
+  const aggregatePending = allMarkets.isPending;
   const quoteEnabled =
     Boolean(selected?.mint) &&
     validWallet &&
@@ -184,28 +166,14 @@ export function BorrowSimulator() {
               >
                 Floor-eligible market
               </Label>
-              <Select value={mint || undefined} onValueChange={setMint} disabled={choices.length === 0}>
-                <SelectTrigger id="borrow-market" className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner">
-                  <SelectValue placeholder={aggregatePending ? "Loading markets…" : "Select a market"} />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {choices.length === 0 ? (
-                    <SelectItem value="__loading__" disabled>
-                      Loading…
-                    </SelectItem>
-                  ) : (
-                    choices.map((m) => (
-                      <SelectItem key={m.mint} value={m.mint}>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <TokenAvatar imageUrl={m.imageUrl} symbol={m.symbol} size="xs" />
-                          <span className="truncate font-medium">${m.symbol || "—"}</span>
-                          <span className="truncate text-xs text-muted-foreground">{m.name || ""}</span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <MarketSearchPicker
+                id="borrow-market"
+                options={choices}
+                value={mint}
+                onValueChange={setMint}
+                disabled={aggregatePending}
+                triggerPlaceholder={aggregatePending ? "Loading markets..." : "Select a market"}
+              />
             </div>
           </div>
 

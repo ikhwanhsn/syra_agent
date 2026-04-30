@@ -1,11 +1,37 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { MarketScreener } from "@/components/rise/MarketScreener";
 import { MarketDetailDrawer } from "@/components/rise/MarketDetailDrawer";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import FloorScannerPage from "@/pages/dashboard/FloorScanner";
+import ComparePage from "@/pages/dashboard/Compare";
+import WatchlistPage from "@/pages/dashboard/Watchlist";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+const TAB_VALUES = ["screener", "floor-scanner", "compare", "watchlist"] as const;
+type MarketTab = (typeof TAB_VALUES)[number];
+
+function parseTab(value: string | null): MarketTab {
+  if (value && TAB_VALUES.includes(value as MarketTab)) return value as MarketTab;
+  return "screener";
+}
 
 export default function MarketsPage() {
   const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const activeTab = useMemo(() => parseTab(searchParams.get("tab")), [searchParams]);
+
+  const setActiveTab = (tab: string) => {
+    const nextTab = parseTab(tab);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextTab === "screener") nextParams.delete("tab");
+    else nextParams.set("tab", nextTab);
+    const query = nextParams.toString();
+    navigate({ pathname: "/dashboard/markets", search: query ? `?${query}` : "" }, { replace: true });
+  };
+
   return (
     <div className="relative flex flex-col gap-8">
       <div
@@ -15,10 +41,38 @@ export default function MarketsPage() {
       <div className="relative z-[1] flex flex-col gap-8">
         <DashboardPageHeader
           eyebrow="Market intelligence"
-          title="Market screener"
-          description="Full-depth view of every listed RISE market—filter server-side, refine locally, and open any row for charting and flow context."
+          title="Markets dashboard"
+          description="Screener, Floor Scanner, Compare, and Watchlist in one workspace."
         />
-        <MarketScreener onSelect={setOpenMarket} />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border border-border/50 bg-card/50 p-1">
+            <TabsTrigger value="screener" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
+              Screener
+            </TabsTrigger>
+            <TabsTrigger value="floor-scanner" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
+              Floor Scanner
+            </TabsTrigger>
+            <TabsTrigger value="compare" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
+              Compare
+            </TabsTrigger>
+            <TabsTrigger value="watchlist" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
+              Watchlist
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="screener" className="mt-4">
+            <MarketScreener onSelect={setOpenMarket} />
+          </TabsContent>
+          <TabsContent value="floor-scanner" className="mt-4">
+            <FloorScannerPage />
+          </TabsContent>
+          <TabsContent value="compare" className="mt-4">
+            <ComparePage />
+          </TabsContent>
+          <TabsContent value="watchlist" className="mt-4">
+            <WatchlistPage />
+          </TabsContent>
+        </Tabs>
         <MarketDetailDrawer
           market={openMarket}
           open={openMarket !== null}

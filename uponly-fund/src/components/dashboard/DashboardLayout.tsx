@@ -3,22 +3,14 @@ import type { ImperativePanelHandle } from "react-resizable-panels";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   Activity,
-  Anchor,
-  Banknote,
   BarChart3,
   Calculator,
-  Columns3,
-  Crown,
   LayoutDashboard,
-  LineChart,
   Lock,
   Menu,
   Moon,
-  Newspaper,
   PanelLeft,
   PanelLeftClose,
-  Repeat,
-  Star,
   Sun,
   Wallet,
 } from "lucide-react";
@@ -34,39 +26,24 @@ import { ConnectWalletButton } from "./ConnectWalletButton";
 
 const sidebarItems = {
   workspace: [{ to: "/dashboard", label: "Overview", icon: LayoutDashboard, end: true }],
-  markets: [
-    { to: "/dashboard/markets", label: "Screener", icon: BarChart3 },
-    { to: "/dashboard/floor-scanner", label: "Floor scanner", icon: Anchor },
-    { to: "/dashboard/compare", label: "Compare", icon: Columns3 },
-    { to: "/dashboard/watchlist", label: "Watchlist", icon: Star },
-  ],
-  tradeTools: [
-    { to: "/dashboard/quote", label: "Quote calculator", icon: Calculator },
-    { to: "/dashboard/borrow", label: "Borrow simulator", icon: Banknote },
-    { to: "/dashboard/dca", label: "DCA simulator", icon: Repeat },
-  ],
-  insights: [
-    { to: "/dashboard/activity", label: "Activity feed", icon: Activity, isPremium: true },
-    { to: "/dashboard/whales", label: "Whales", icon: Crown, isPremium: true },
-    { to: "/dashboard/signals", label: "Signals", icon: LineChart, isPremium: true },
-    { to: "/dashboard/news", label: "News", icon: Newspaper, isPremium: true },
-  ],
+  markets: [{ to: "/dashboard/markets", label: "Markets dashboard", icon: BarChart3 }],
+  tradeTools: [{ to: "/dashboard/simulator", label: "Simulator dashboard", icon: Calculator }],
+  insights: [{ to: "/dashboard/insights", label: "Insights dashboard", icon: Activity, isPremium: true }],
   wallet: [{ to: "/dashboard/wallet", label: "Wallet lookup", icon: Wallet }],
 };
 
 function getPageTitle(pathname: string): string {
   if (pathname === "/dashboard") return "Overview";
-  if (pathname.endsWith("/markets")) return "Market screener";
+  if (pathname.endsWith("/markets")) return "Markets dashboard";
   if (pathname.endsWith("/wallet")) return "Wallet lookup";
-  if (pathname.endsWith("/quote")) return "Quote calculator";
-  if (pathname.endsWith("/borrow")) return "Borrow simulator";
-  if (pathname.endsWith("/watchlist")) return "Watchlist";
-  if (pathname.endsWith("/compare")) return "Compare markets";
-  if (pathname.endsWith("/floor-scanner")) return "Floor scanner";
+  if (pathname.endsWith("/simulator")) return "Simulator dashboard";
+  if (pathname.endsWith("/quote")) return "Simulator dashboard";
+  if (pathname.endsWith("/borrow")) return "Simulator dashboard";
+  if (pathname.endsWith("/insights")) return "Insights dashboard";
   if (pathname.endsWith("/activity")) return "Activity feed";
   if (pathname.endsWith("/whales")) return "Whales";
   if (pathname.endsWith("/signals")) return "Signals";
-  if (pathname.endsWith("/dca")) return "DCA simulator";
+  if (pathname.endsWith("/dca")) return "Simulator dashboard";
   if (pathname.endsWith("/news")) return "News";
   return "Dashboard";
 }

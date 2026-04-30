@@ -7,12 +7,13 @@
  */
 import { useMemo } from "react";
 import { useReducedMotion, motion } from "framer-motion";
-import { Activity, BadgeCheck, BarChart3, Coins, Layers3, Users } from "lucide-react";
+import { Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fadeUp } from "@/components/uponly/primitives";
 import { useRiseDashboard } from "@/lib/RiseDashboardContext";
 import { formatInt, formatPct, formatUsd } from "@/lib/marketDisplayFormat";
 import { useAnimatedNumber } from "@/lib/useAnimatedNumber";
+import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { cn } from "@/lib/utils";
 import {
   ChangePill,
@@ -37,9 +38,11 @@ function HeroBackdrop() {
 function TickerTape({
   rows,
   reduceMotion,
+  onSelect,
 }: {
-  rows: { symbol: string; imageUrl: string | null; pct: number | null; price: number | null }[];
+  rows: RiseMarketRow[];
   reduceMotion: boolean;
+  onSelect: (market: RiseMarketRow) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -49,6 +52,7 @@ function TickerTape({
     );
   }
   const items = [...rows, ...rows];
+  const animationClass = reduceMotion ? "" : "animate-rise-marquee hover:[animation-play-state:paused]";
   return (
     <div
       className="relative overflow-hidden rounded-xl border border-border/40 bg-card/30 backdrop-blur-sm"
@@ -56,27 +60,22 @@ function TickerTape({
     >
       <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-12 bg-gradient-to-r from-card/80 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-12 bg-gradient-to-l from-card/80 to-transparent" />
-      <motion.div
-        className="flex min-w-max items-center gap-5 px-4 py-2.5 will-change-transform"
-        animate={reduceMotion ? undefined : { x: ["0%", "-50%"] }}
-        transition={
-          reduceMotion
-            ? undefined
-            : { duration: Math.max(20, items.length * 1.4), ease: "linear", repeat: Infinity }
-        }
-      >
+      <div className={`flex min-w-max items-center gap-5 px-4 py-2.5 will-change-transform ${animationClass}`}>
         {items.map((r, i) => (
-          <span
-            key={`${r.symbol}-${i}`}
+          <button
+            key={`${r.mint}-${i}`}
+            type="button"
+            onClick={() => onSelect(r)}
             className="inline-flex shrink-0 items-center gap-2 text-[0.7rem] sm:text-xs"
+            aria-label={`Open token ${r.symbol} details`}
           >
             <TokenAvatar imageUrl={r.imageUrl} symbol={r.symbol} size="xs" />
             <span className="font-semibold tracking-tight text-foreground">${r.symbol || "—"}</span>
-            <span className="text-muted-foreground tabular-nums">{formatPriceSmart(r.price)}</span>
-            <ChangePill pct={r.pct} />
-          </span>
+            <span className="text-muted-foreground tabular-nums">{formatPriceSmart(r.priceUsd)}</span>
+            <ChangePill pct={r.priceChange24hPct} />
+          </button>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -95,7 +94,7 @@ function AnimatedInt({ end }: { end: number | null }) {
   return <span>{formatInt(v)}</span>;
 }
 
-export function RiseHero() {
+export function RiseHero({ onSelect }: { onSelect: (market: RiseMarketRow) => void }) {
   const reduceMotion = useReducedMotion() ?? false;
   const { aggregate } = useRiseDashboard();
   const data = aggregate.data;
@@ -104,16 +103,12 @@ export function RiseHero() {
     if (!data) return [];
     const merged = [...data.topGainers24h.slice(0, 6), ...data.topVolume24h.slice(0, 6), ...data.topLosers24h.slice(0, 4)];
     const seen = new Set<string>();
-    const dedup: { symbol: string; imageUrl: string | null; pct: number | null; price: number | null }[] = [];
+    const dedup: RiseMarketRow[] = [];
     for (const r of merged) {
-      if (!r.mint || seen.has(r.mint)) continue;
-      seen.add(r.mint);
-      dedup.push({
-        symbol: r.symbol || "—",
-        imageUrl: r.imageUrl,
-        pct: r.priceChange24hPct,
-        price: r.priceUsd,
-      });
+      const address = r.mint || r.marketAddress;
+      if (!address || seen.has(address)) continue;
+      seen.add(address);
+      dedup.push({ ...r, mint: address });
       if (dedup.length >= 14) break;
     }
     return dedup;
@@ -128,19 +123,11 @@ export function RiseHero() {
             <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
             Live · RISE ecosystem
           </p>
-          <h1
-            id="rise-hero-heading"
-            className="text-balance text-[1.65rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-4xl md:text-[2.5rem]"
-          >
+          <h1 id="rise-hero-heading" className="text-balance text-[1.55rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-3xl">
             <span className="neon-text">RISE</span>
-            <span className="text-foreground/85"> dashboard &amp; screener</span>
+            <span className="text-foreground/85"> command dashboard</span>
           </h1>
-          <p className="max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-            The full <strong className="font-medium text-foreground/90">rise.rich</strong> universe in one workstation —
-            ecosystem totals, top movers, every market with floor metrics, plus quote and borrow simulators powered by
-            the same RISE APIs that drive Syra agents. Featuring <strong className="font-medium text-foreground/90">$UPONLY</strong>
-            — the Syra × RISE flagship tranche on the road to $100M.
-          </p>
+          <p className="max-w-2xl text-sm text-muted-foreground">Market cap, volume, leaders, and live tape in one view.</p>
         </div>
 
         <div
@@ -190,31 +177,12 @@ export function RiseHero() {
           )}
         </div>
 
-        <TickerTape rows={tickerRows} reduceMotion={reduceMotion} />
+        <TickerTape rows={tickerRows} reduceMotion={reduceMotion} onSelect={onSelect} />
 
-        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[0.7rem] text-muted-foreground/85 sm:text-xs">
-          <li className="inline-flex items-center gap-1.5">
-            <Coins className="h-3 w-3 opacity-70" aria-hidden /> Read-only — no wallet required
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <BarChart3 className="h-3 w-3 opacity-70" aria-hidden /> Refresh every 60s via TanStack Query
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <BadgeCheck className="h-3 w-3 opacity-70" aria-hidden /> Powered by public.rise.rich
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <Layers3 className="h-3 w-3 opacity-70" aria-hidden /> Aggregated server-side
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <Users className="h-3 w-3 opacity-70" aria-hidden /> DYOR — not financial advice
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <Activity className="h-3 w-3 opacity-70" aria-hidden />
-            {aggregate.data?.degraded
-              ? "Showing partial data (some pages timed out)"
-              : "All systems nominal"}
-          </li>
-        </ul>
+        <div className="inline-flex w-fit items-center gap-1.5 rounded-md border border-border/50 bg-background/40 px-2.5 py-1 text-[0.7rem] text-muted-foreground sm:text-xs">
+          <Activity className="h-3 w-3 opacity-70" aria-hidden />
+          {aggregate.data?.degraded ? "Partial feed" : "Feed healthy"}
+        </div>
       </motion.div>
     </section>
   );

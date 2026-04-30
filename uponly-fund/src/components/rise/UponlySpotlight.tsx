@@ -1,11 +1,10 @@
 /**
- * Featured spotlight card for the UPONLY market — visually loud,
- * pinned just below the hero. Uses the live aggregate row + a 4h OHLC
- * sparkline. CTA deep-links to rise.rich/trade/{mint}.
+ * Secondary highlight card for the official Up Only Fund token.
+ * Uses the live aggregate row + OHLC sparkline and links to trade/thesis.
  */
 import { useId, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, BookOpen, Flame, ShoppingCart, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Flame, ShoppingCart, Sparkles, TrendingUp } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -118,16 +117,8 @@ export function UponlySpotlight() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-success/35 bg-success/[0.1] px-3 py-1 text-[0.65rem] font-medium uppercase tracking-[0.16em] text-foreground sm:text-xs">
               <Flame className="h-3 w-3" aria-hidden />
-              Spotlight · Syra × RISE
+              Official token · Up Only Fund
             </span>
-            <Link
-              to="/uponly/overview"
-              className="inline-flex items-center gap-1 text-[0.7rem] font-medium text-foreground/80 underline-offset-2 hover:underline sm:text-xs"
-            >
-              <BookOpen className="h-3 w-3" aria-hidden />
-              Read the $UPONLY thesis
-              <ArrowUpRight className="h-3 w-3 opacity-70" aria-hidden />
-            </Link>
           </div>
 
           <div className="grid min-w-0 gap-5 lg:grid-cols-12 lg:gap-6">
@@ -139,7 +130,7 @@ export function UponlySpotlight() {
                     id="rise-uponly-spotlight"
                     className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-balance text-xl font-bold leading-tight tracking-[-0.01em] text-foreground sm:text-2xl"
                   >
-                    <span>{uponly?.name || "Up Only"}</span>
+                    <span>{uponly?.name || "Up Only Fund Token"}</span>
                     <span className="font-mono text-base font-medium text-muted-foreground sm:text-lg">
                       ${uponly?.symbol || "UPONLY"}
                     </span>
@@ -170,8 +161,8 @@ export function UponlySpotlight() {
                   <MiniSparkline values={sparkline} tone={sparkTone} />
                 )}
                 <div className="mt-1 flex items-center justify-between text-[0.65rem] text-muted-foreground sm:text-xs">
-                  <span>1h candles · last {sparkline.length || 0}</span>
-                  <span>Source: public.rise.rich</span>
+                  <span>1h · {sparkline.length || 0} candles</span>
+                  <span>public.rise.rich</span>
                 </div>
               </div>
 
@@ -233,11 +224,7 @@ export function UponlySpotlight() {
                 </Button>
               </div>
 
-              <p className="mt-3 text-[0.65rem] leading-relaxed text-muted-foreground/85 sm:text-xs">
-                Live data via <strong className="font-medium text-foreground/85">public.rise.rich</strong>. The
-                spotlight is for context — position sizing is your call. Not financial advice; you can lose your
-                entire position.
-              </p>
+              <p className="mt-3 text-[0.65rem] text-muted-foreground/85 sm:text-xs">Live feed • context only</p>
             </div>
           </div>
         </div>

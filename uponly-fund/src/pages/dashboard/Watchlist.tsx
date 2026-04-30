@@ -2,7 +2,6 @@ import { Bookmark, RefreshCw, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { useWatchlist } from "@/lib/useWatchlist";
 import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
@@ -54,17 +53,6 @@ export default function WatchlistPage() {
   const rows = items.map((mint) => byMint.get(mint)).filter((row): row is RiseMarketRow => row != null);
   const orphanMints = items.filter((mint) => !byMint.has(mint));
 
-  const livePill =
-    !markets.isPending && !markets.isError && (markets.data?.length ?? 0) > 0 ? (
-      <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1 text-[0.65rem] font-medium text-emerald-300/95">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/55 opacity-35" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
-        Feed live · {formatInt(markets.data?.length ?? 0)} markets
-      </span>
-    ) : null;
-
   const totalPinned = items.length;
   const resolved = rows.length;
 
@@ -76,34 +64,18 @@ export default function WatchlistPage() {
       />
 
       <div className="relative z-[1] flex flex-col gap-8">
-        <DashboardPageHeader
-          eyebrow="Focus list"
-          title="Watchlist"
-          description="A curated lane for markets you star across Screener, Floor scanner, and Compare—hydrated from the live feed so prices and floors stay current."
-          right={
-            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
-              {items.length > 0 ? (
-                <Button variant="outline" size="sm" onClick={clear} className="h-9 rounded-lg border-border/55">
-                  Clear all
-                </Button>
-              ) : null}
-              {livePill}
-            </div>
-          }
-        />
-
         {!markets.isError && !markets.isPending && items.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-3">
             <StatMini
               label="Pinned"
               value={formatInt(totalPinned)}
-              hint="Saved mints in this browser."
+              hint="Saved in this browser."
               gradientClass="from-amber-500/18 to-orange-900/10"
             />
             <StatMini
               label="Resolved"
               value={formatInt(resolved)}
-              hint="Matched to the current market universe."
+              hint="Matched to live markets."
               gradientClass="from-emerald-500/22 to-teal-900/10"
             />
             <StatMini
@@ -111,8 +83,8 @@ export default function WatchlistPage() {
               value={orphanMints.length === 0 ? "None" : formatInt(orphanMints.length)}
               hint={
                 orphanMints.length === 0
-                  ? "Every pin synced with the loaded feed."
-                  : "Mint not present in this snapshot—may appear after refresh."
+                  ? "All pins synced."
+                  : "Not in current snapshot."
               }
               gradientClass="from-violet-500/20 to-fuchsia-900/10"
             />
@@ -129,7 +101,7 @@ export default function WatchlistPage() {
               Saved markets
             </p>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Rows hydrate when your starred mints appear in the aggregate feed. Remove anytime—changes persist locally.
+              Live rows for your saved markets.
             </p>
           </div>
 
@@ -177,7 +149,7 @@ export default function WatchlistPage() {
                 <EmptyState
                   icon={Star}
                   title="Your watchlist is empty"
-                  description="Star tokens from the Screener, Floor scanner, or Compare—they sync here automatically."
+                  description="Star tokens from Screener, Floor Scanner, or Compare."
                 />
               </div>
             ) : rows.length === 0 && items.length > 0 ? (
@@ -185,7 +157,7 @@ export default function WatchlistPage() {
                 <EmptyState
                   icon={Star}
                   title="No markets resolved yet"
-                  description="Your pins don’t appear in the current feed snapshot. Refresh after listings update, or remove stale mints."
+                  description="Saved tokens are not in the current feed snapshot."
                   action={
                     <Button size="sm" variant="secondary" onClick={() => markets.refetch()}>
                       Refresh feed

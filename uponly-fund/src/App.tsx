@@ -12,16 +12,9 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import DashboardOverview from "@/pages/dashboard/Overview";
 import MarketsPage from "@/pages/dashboard/Markets";
 import WalletPage from "@/pages/dashboard/Wallet";
-import QuotePage from "@/pages/dashboard/Quote";
-import BorrowPage from "@/pages/dashboard/Borrow";
-import WatchlistPage from "@/pages/dashboard/Watchlist";
-import ComparePage from "@/pages/dashboard/Compare";
-import FloorScannerPage from "@/pages/dashboard/FloorScanner";
-import ActivityPage from "@/pages/dashboard/Activity";
-import WhalesPage from "@/pages/dashboard/Whales";
-import SignalsPage from "@/pages/dashboard/Signals";
-import DcaPage from "@/pages/dashboard/DCA";
-import NewsPage from "@/pages/dashboard/News";
+import SimulatorPage from "@/pages/dashboard/Simulator";
+import InsightsPage from "@/pages/dashboard/Insights";
+import TokenDetailPage from "@/pages/token/TokenDetail";
 
 const queryClient = new QueryClient();
 
@@ -55,22 +48,25 @@ const App = () => (
               <Route index element={<DashboardOverview />} />
               <Route path="markets" element={<MarketsPage />} />
               <Route path="wallet" element={<WalletPage />} />
-              <Route path="quote" element={<QuotePage />} />
-              <Route path="borrow" element={<BorrowPage />} />
-              <Route path="watchlist" element={<WatchlistPage />} />
-              <Route path="compare" element={<ComparePage />} />
-              <Route path="floor-scanner" element={<FloorScannerPage />} />
-              <Route path="activity" element={<ActivityPage />} />
-              <Route path="whales" element={<WhalesPage />} />
-              <Route path="signals" element={<SignalsPage />} />
-              <Route path="dca" element={<DcaPage />} />
-              <Route path="news" element={<NewsPage />} />
+              <Route path="simulator" element={<SimulatorPage />} />
+              <Route path="quote" element={<Navigate to="/dashboard/simulator" replace />} />
+              <Route path="borrow" element={<Navigate to="/dashboard/simulator?tab=borrow" replace />} />
+              <Route path="watchlist" element={<Navigate to="/dashboard/markets?tab=watchlist" replace />} />
+              <Route path="compare" element={<Navigate to="/dashboard/markets?tab=compare" replace />} />
+              <Route path="floor-scanner" element={<Navigate to="/dashboard/markets?tab=floor-scanner" replace />} />
+              <Route path="insights" element={<InsightsPage />} />
+              <Route path="activity" element={<Navigate to="/dashboard/insights" replace />} />
+              <Route path="whales" element={<Navigate to="/dashboard/insights?tab=whales" replace />} />
+              <Route path="signals" element={<Navigate to="/dashboard/insights?tab=signals" replace />} />
+              <Route path="dca" element={<Navigate to="/dashboard/simulator?tab=dca" replace />} />
+              <Route path="news" element={<Navigate to="/dashboard/insights?tab=news" replace />} />
             </Route>
             <Route path="/uponly/overview" element={<Navigate to="/" replace />} />
             <Route path="/uponly/fund" element={<Navigate to="/" replace />} />
             <Route path="/uponly/rise" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tranche" element={<Navigate to="/" replace />} />
             <Route path="/treasury" element={<Navigate to="/" replace />} />
+            <Route path="/token/:address" element={<TokenDetailPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <ScrollToTopButton />

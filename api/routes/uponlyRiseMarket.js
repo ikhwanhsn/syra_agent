@@ -60,6 +60,29 @@ function toStr(v) {
   return t.length > 0 ? t : null;
 }
 
+function getPath(obj, path) {
+  if (!obj || typeof obj !== "object") return undefined;
+  return path.split(".").reduce((acc, part) => (acc && typeof acc === "object" ? acc[part] : undefined), obj);
+}
+
+function pickNum(obj, paths) {
+  for (const path of paths) {
+    const value = getPath(obj, path);
+    const normalized = toNum(value);
+    if (normalized != null) return normalized;
+  }
+  return null;
+}
+
+function pickStr(obj, paths) {
+  for (const path of paths) {
+    const value = getPath(obj, path);
+    const normalized = toStr(value);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
 function toBool(v) {
   return v === true || v === "true" || v === 1 || v === "1";
 }
@@ -281,18 +304,101 @@ function normalizeOhlcCandle(c) {
 
 function normalizeTransaction(tx) {
   if (!tx || typeof tx !== "object") return null;
-  const ts = tx.timestamp ?? tx.time ?? tx.created_at ?? tx.ts;
-  const tsNum = typeof ts === "number" ? ts : ts ? Number(ts) : null;
-  const wallet = toStr(tx.wallet) || toStr(tx.user) || toStr(tx.signer);
-  const sig = toStr(tx.signature) || toStr(tx.tx) || toStr(tx.tx_signature);
-  const direction = toStr(tx.direction) || toStr(tx.type) || toStr(tx.kind);
+  const tsNum = pickNum(tx, [
+    "timestamp",
+    "time",
+    "created_at",
+    "ts",
+    "blockTime",
+    "slot_time",
+    "trade.timestamp",
+    "trade.time",
+    "event.timestamp",
+    "event.time",
+  ]);
+  const wallet = pickStr(tx, [
+    "wallet",
+    "user",
+    "signer",
+    "owner",
+    "trader",
+    "maker",
+    "taker",
+    "from",
+    "account",
+    "trade.wallet",
+    "trade.user",
+    "event.wallet",
+    "event.user",
+  ]);
+  const sig = pickStr(tx, [
+    "signature",
+    "tx",
+    "tx_signature",
+    "txHash",
+    "tx_hash",
+    "hash",
+    "event.signature",
+    "trade.signature",
+  ]);
+  const directionRaw = pickStr(tx, [
+    "direction",
+    "type",
+    "kind",
+    "side",
+    "trade.direction",
+    "trade.side",
+    "event.direction",
+    "event.side",
+  ]);
+  const isBuy = getPath(tx, "isBuy");
+  const direction =
+    directionRaw ||
+    (typeof isBuy === "boolean" ? (isBuy ? "buy" : "sell") : null);
+  const priceUsd = pickNum(tx, [
+    "price_usd",
+    "priceUsd",
+    "price",
+    "execution_price_usd",
+    "trade.price_usd",
+    "trade.price",
+    "event.price_usd",
+    "event.price",
+  ]);
+  const amountTokens = pickNum(tx, [
+    "amount_tokens",
+    "amountTokens",
+    "token_amount",
+    "amount",
+    "size",
+    "qty",
+    "quantity",
+    "base_amount",
+    "trade.amount_tokens",
+    "trade.amount",
+    "trade.size",
+    "event.amount_tokens",
+    "event.amount",
+  ]);
+  const amountUsd = pickNum(tx, [
+    "amount_usd",
+    "amountUsd",
+    "volume_usd",
+    "notional_usd",
+    "quote_amount_usd",
+    "value_usd",
+    "trade.amount_usd",
+    "trade.notional_usd",
+    "event.amount_usd",
+    "event.notional_usd",
+  ]);
   return {
     kind: direction ? direction.toLowerCase() : null,
     wallet,
     walletShort: wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : null,
-    priceUsd: toNum(tx.price_usd) ?? toNum(tx.priceUsd) ?? toNum(tx.price),
-    amountTokens: toNum(tx.amount_tokens) ?? toNum(tx.amountTokens) ?? toNum(tx.token_amount) ?? toNum(tx.amount),
-    amountUsd: toNum(tx.amount_usd) ?? toNum(tx.amountUsd),
+    priceUsd,
+    amountTokens,
+    amountUsd,
     feeUsd: toNum(tx.fee_usd) ?? toNum(tx.feeUsd),
     txSig: sig,
     ts: tsNum != null && Number.isFinite(tsNum) ? tsNum : null,

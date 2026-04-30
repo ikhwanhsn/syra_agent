@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import {
   ChangePill,
@@ -46,8 +45,8 @@ function KpiCard({
   return (
     <div
       className={cn(
-        "group relative min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br p-5 shadow-[0_1px_0_0_hsl(0_0%_100%/0.06)_inset,0_20px_50px_-24px_hsl(0_0%_0%/0.5)] transition-[transform,box-shadow,border-color] duration-300",
-        "from-card/90 via-card/50 to-card/30 hover:-translate-y-0.5 hover:border-border/70 hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.08)_inset,0_24px_60px_-20px_hsl(0_0%_0%/0.45)]",
+        "group relative min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br p-[1.125rem] shadow-[0_1px_0_0_hsl(0_0%_100%/0.05)_inset,0_18px_44px_-22px_hsl(0_0%_0%/0.45)] transition-[transform,box-shadow,border-color] duration-300",
+        "from-card/90 via-card/45 to-card/25 hover:-translate-y-px hover:border-border/65 hover:shadow-[0_22px_50px_-20px_hsl(0_0%_0%/0.4)]",
       )}
     >
       <div
@@ -68,11 +67,11 @@ function KpiCard({
           <Icon className="h-5 w-5 text-foreground/90" strokeWidth={1.75} aria-hidden />
         </div>
       </div>
-      <p className="relative mt-4 text-[0.65rem] font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="relative mt-1.5 font-display text-2xl font-semibold tabular-nums tracking-[-0.02em] text-foreground sm:text-[1.65rem]">
+      <p className="relative mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="relative mt-1 font-display text-xl font-semibold tabular-nums tracking-[-0.02em] text-foreground sm:text-[1.35rem]">
         {value}
       </p>
-      <p className="relative mt-2 text-[0.78rem] leading-relaxed text-muted-foreground sm:text-xs">{hint}</p>
+      <p className="relative mt-1.5 text-[0.76rem] leading-snug text-muted-foreground sm:text-xs">{hint}</p>
     </div>
   );
 }
@@ -125,17 +124,6 @@ export default function FloorScannerPage() {
     };
   }, [markets.data]);
 
-  const liveBanner =
-    markets.isPending || markets.isError ? null : (
-      <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1 text-[0.65rem] font-medium text-emerald-300/95">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 opacity-40" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
-        Live universe · {formatInt(rows.length)} ranked
-      </span>
-    );
-
   return (
     <div className="relative flex flex-col gap-8">
       <div
@@ -144,19 +132,12 @@ export default function FloorScannerPage() {
       />
 
       <div className="relative z-[1] flex flex-col gap-8">
-        <DashboardPageHeader
-          eyebrow="Floor intelligence"
-          title="Floor scanner"
-          description="Surface markets where on-chain floor liquidity meaningfully backs circulating float—prioritized by structural backing and floor momentum."
-          right={<div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">{liveBanner}</div>}
-        />
-
         <div className="grid gap-4 sm:grid-cols-3">
           <KpiCard
             icon={Layers3}
             label="Floor universe"
             value={formatInt(stats.floorEligible)}
-            hint="Tokens with concurrent floor price and market-cap inputs."
+            hint="Markets with floor and market cap data."
             gradientClass="from-sky-500/25 to-cyan-600/10"
             ringClass="ring-sky-400/25"
           />
@@ -164,7 +145,7 @@ export default function FloorScannerPage() {
             icon={ShieldCheck}
             label="Strong backing"
             value={formatInt(stats.strongBacking)}
-            hint="Floor market cap ≥ 35% of spot float—high structural support."
+            hint="Floor market cap >= 35% of spot market cap."
             gradientClass="from-emerald-500/25 to-teal-700/10"
             ringClass="ring-emerald-400/25"
           />
@@ -172,7 +153,7 @@ export default function FloorScannerPage() {
             icon={Waves}
             label="Avg floor delta"
             value={`${stats.avgFloorDelta.toFixed(2)}%`}
-            hint="Mean floor-vs-spot momentum across the eligible set."
+            hint="Average floor change vs spot."
             gradientClass="from-violet-500/22 to-fuchsia-700/10"
             ringClass="ring-violet-400/22"
           />
@@ -191,8 +172,8 @@ export default function FloorScannerPage() {
                 </h2>
                 <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
                   {sortBy === "backing"
-                    ? "Sorted by floor backing—how much of spot MC is implied by the floor book."
-                    : "Sorted by floor delta—short-term floor momentum vs spot."}
+                    ? "Sorted by floor backing."
+                    : "Sorted by floor delta."}
                 </p>
               </div>
               <ToggleGroup

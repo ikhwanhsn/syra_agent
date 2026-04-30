@@ -14,11 +14,11 @@ import {
 import { formatUsd } from "@/lib/marketDisplayFormat";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { MarketSearchPicker } from "@/components/rise/MarketSearchPicker";
 
-export default function DcaPage() {
+export function DcaSimulator() {
   const { uponly } = useRiseDashboard();
   const markets = useRiseMarketsAll();
   const [mint, setMint] = useState(uponly?.mint ?? "");
@@ -64,20 +64,7 @@ export default function DcaPage() {
     (markets.isPending || ohlc.isPending || (ohlc.isFetching && (ohlc.data?.candles?.length ?? 0) === 0));
 
   return (
-    <div className="relative flex flex-col gap-8">
-      <div
-        className="pointer-events-none absolute inset-x-0 -top-32 z-0 h-[26rem] bg-[radial-gradient(ellipse_68%_54%_at_50%_-8%,hsl(var(--uof)_/_0.13),transparent_56%),radial-gradient(ellipse_44%_40%_at_86%_22%,hsl(215_85%_55%/0.07),transparent_52%),radial-gradient(ellipse_38%_34%_at_12%_28%,hsl(280_70%_50%/0.06),transparent_50%)]"
-        aria-hidden
-      />
-
-      <div className="relative z-[1] flex flex-col gap-8">
-        <DashboardPageHeader
-          eyebrow="Strategy lab"
-          title="DCA simulator"
-          description="Backtest fixed-size buys on historical daily candles—model average entry, stacked exposure, and mark-to-market without placing trades."
-        />
-
-        <GlassCard
+    <GlassCard
           padded={false}
           className="overflow-hidden border-border/50 shadow-[0_0_0_1px_hsl(0_0%_100%/0.05)_inset,0_24px_60px_-28px_hsl(0_0%_0%/0.55)]"
         >
@@ -98,22 +85,14 @@ export default function DcaPage() {
                 <Label htmlFor="dca-market" className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Market
                 </Label>
-                <Select value={mint || undefined} onValueChange={setMint} disabled={!markets.data?.length}>
-                  <SelectTrigger id="dca-market" className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner">
-                    <SelectValue placeholder={markets.isPending ? "Loading markets…" : "Choose a market"} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {(markets.data ?? []).map((row) => (
-                      <SelectItem key={row.mint} value={row.mint}>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <TokenAvatar imageUrl={row.imageUrl} symbol={row.symbol} size="xs" />
-                          <span className="truncate font-medium">${row.symbol}</span>
-                          <span className="truncate text-xs text-muted-foreground">{row.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MarketSearchPicker
+                  id="dca-market"
+                  options={markets.data ?? []}
+                  value={mint}
+                  onValueChange={setMint}
+                  disabled={markets.isPending}
+                  triggerPlaceholder={markets.isPending ? "Loading markets..." : "Choose a market"}
+                />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -263,7 +242,24 @@ export default function DcaPage() {
               Educational model only: assumes fills at sampled closes, ignores fees, slippage, and liquidity. Not investment advice.
             </p>
           </div>
-        </GlassCard>
+    </GlassCard>
+  );
+}
+
+export default function DcaPage() {
+  return (
+    <div className="relative flex flex-col gap-8">
+      <div
+        className="pointer-events-none absolute inset-x-0 -top-32 z-0 h-[26rem] bg-[radial-gradient(ellipse_68%_54%_at_50%_-8%,hsl(var(--uof)_/_0.13),transparent_56%),radial-gradient(ellipse_44%_40%_at_86%_22%,hsl(215_85%_55%/0.07),transparent_52%),radial-gradient(ellipse_38%_34%_at_12%_28%,hsl(280_70%_50%/0.06),transparent_50%)]"
+        aria-hidden
+      />
+      <div className="relative z-[1] flex flex-col gap-8">
+        <DashboardPageHeader
+          eyebrow="Strategy lab"
+          title="DCA simulator"
+          description="Backtest fixed-size buys on historical daily candles—model average entry, stacked exposure, and mark-to-market without placing trades."
+        />
+        <DcaSimulator />
       </div>
     </div>
   );
