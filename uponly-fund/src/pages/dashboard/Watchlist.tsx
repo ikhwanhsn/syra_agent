@@ -17,6 +17,7 @@ import {
 } from "@/components/rise/RiseShared";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/LanguageContext";
 
 function StatMini({
   label,
@@ -47,6 +48,8 @@ function StatMini({
 }
 
 export default function WatchlistPage() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const { items, remove, clear } = useWatchlist();
   const markets = useRiseMarketsAll();
   const byMint = new Map((markets.data ?? []).map((row) => [row.mint, row]));
@@ -69,13 +72,13 @@ export default function WatchlistPage() {
             <StatMini
               label="Pinned"
               value={formatInt(totalPinned)}
-              hint="Saved in this browser."
+              hint={isZh ? "保存在当前浏览器。" : "Saved in this browser."}
               gradientClass="from-amber-500/18 to-orange-900/10"
             />
             <StatMini
               label="Resolved"
               value={formatInt(resolved)}
-              hint="Matched to live markets."
+              hint={isZh ? "已匹配实时市场。" : "Matched to live markets."}
               gradientClass="from-emerald-500/22 to-teal-900/10"
             />
             <StatMini
@@ -83,8 +86,8 @@ export default function WatchlistPage() {
               value={orphanMints.length === 0 ? "None" : formatInt(orphanMints.length)}
               hint={
                 orphanMints.length === 0
-                  ? "All pins synced."
-                  : "Not in current snapshot."
+                  ? (isZh ? "全部已同步。" : "All pins synced.")
+                  : (isZh ? "当前快照中不存在。" : "Not in current snapshot.")
               }
               gradientClass="from-violet-500/20 to-fuchsia-900/10"
             />
@@ -98,23 +101,23 @@ export default function WatchlistPage() {
           <div className="border-b border-border/45 bg-gradient-to-b from-card/50 to-transparent px-4 py-4 sm:px-6 sm:py-5">
             <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               <Bookmark className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
-              Saved markets
+              {isZh ? "已保存市场" : "Saved markets"}
             </p>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Live rows for your saved markets.
+              {isZh ? "你保存市场的实时行数据。" : "Live rows for your saved markets."}
             </p>
           </div>
 
           <div className="px-4 pb-4 pt-3 sm:px-6">
             {orphanMints.length > 0 && !markets.isPending ? (
               <div className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2.5 text-[0.78rem] text-amber-100/95 sm:text-xs">
-                <span className="font-medium text-foreground">Some pins are not in this feed snapshot.</span>{" "}
+                <span className="font-medium text-foreground">{isZh ? "部分收藏不在当前数据快照中。" : "Some pins are not in this feed snapshot."}</span>{" "}
                 {orphanMints.slice(0, 3).map((m) => (
                   <code key={m} className="mr-1 rounded bg-background/30 px-1 py-0.5 font-mono text-[0.65rem]">
                     {shortenMint(m, 4, 4)}
                   </code>
                 ))}
-                {orphanMints.length > 3 ? <span className="text-muted-foreground">+{orphanMints.length - 3} more</span> : null}
+                {orphanMints.length > 3 ? <span className="text-muted-foreground">+{orphanMints.length - 3} {isZh ? "更多" : "more"}</span> : null}
               </div>
             ) : null}
 
@@ -122,11 +125,11 @@ export default function WatchlistPage() {
               <div className="py-6 sm:py-8">
                 <EmptyState
                   icon={Star}
-                  title="Could not load watchlist data"
-                  description={(markets.error as Error)?.message || "Try refreshing the market feed."}
+                  title={isZh ? "无法加载观察列表数据" : "Could not load watchlist data"}
+                  description={(markets.error as Error)?.message || (isZh ? "请尝试刷新市场数据流。" : "Try refreshing the market feed.")}
                   action={
                     <Button size="sm" variant="secondary" onClick={() => markets.refetch()}>
-                      Retry
+                      {isZh ? "重试" : "Retry"}
                     </Button>
                   }
                 />
@@ -148,19 +151,19 @@ export default function WatchlistPage() {
               <div className="rounded-xl border border-dashed border-border/55 bg-muted/[0.06] py-12 sm:py-14">
                 <EmptyState
                   icon={Star}
-                  title="Your watchlist is empty"
-                  description="Star tokens from Screener, Floor Scanner, or Compare."
+                  title={isZh ? "你的观察列表为空" : "Your watchlist is empty"}
+                  description={isZh ? "可在筛选器、底线扫描或对比中收藏代币。" : "Star tokens from Screener, Floor Scanner, or Compare."}
                 />
               </div>
             ) : rows.length === 0 && items.length > 0 ? (
               <div className="rounded-xl border border-dashed border-border/55 bg-muted/[0.06] py-12 sm:py-14">
                 <EmptyState
                   icon={Star}
-                  title="No markets resolved yet"
-                  description="Saved tokens are not in the current feed snapshot."
+                  title={isZh ? "暂无可解析市场" : "No markets resolved yet"}
+                  description={isZh ? "已保存代币不在当前数据快照中。" : "Saved tokens are not in the current feed snapshot."}
                   action={
                     <Button size="sm" variant="secondary" onClick={() => markets.refetch()}>
-                      Refresh feed
+                      {isZh ? "刷新数据流" : "Refresh feed"}
                     </Button>
                   }
                 />
@@ -173,10 +176,10 @@ export default function WatchlistPage() {
                     <TableHeader>
                       <TableRow className="border-border/40 bg-muted/[0.12] hover:bg-transparent">
                         <TableHead className="h-11 min-w-[12rem] px-4 text-left text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                          Asset
+                          {isZh ? "资产" : "Asset"}
                         </TableHead>
                         <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                          Price
+                          {isZh ? "价格" : "Price"}
                         </TableHead>
                         <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           24h Δ
@@ -185,13 +188,13 @@ export default function WatchlistPage() {
                           MCap
                         </TableHead>
                         <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                          Floor Δ
+                          {isZh ? "底线Δ" : "Floor Δ"}
                         </TableHead>
                         <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           24h vol
                         </TableHead>
                         <TableHead className="h-11 px-4 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                          Actions
+                          {isZh ? "操作" : "Actions"}
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -237,7 +240,7 @@ export default function WatchlistPage() {
                                 className="h-8 rounded-lg px-2 text-xs"
                                 onClick={() => remove(row.mint)}
                               >
-                                Remove
+                                {isZh ? "移除" : "Remove"}
                               </Button>
                             </div>
                           </TableCell>
@@ -266,7 +269,7 @@ export default function WatchlistPage() {
                               <ChangePill pct={row.priceChange24hPct} />
                               <RiseTradeButton mint={row.mint} />
                               <Button size="sm" variant="outline" className="rounded-lg" onClick={() => remove(row.mint)}>
-                                Remove
+                                {isZh ? "移除" : "Remove"}
                               </Button>
                             </div>
                           </div>
@@ -274,13 +277,13 @@ export default function WatchlistPage() {
                         <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-border/35 pt-4 text-[0.68rem] sm:grid-cols-4">
                           <div className="rounded-xl border border-border/40 bg-background/[0.25] px-2.5 py-2">
                             <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                              Price
+                              {isZh ? "价格" : "Price"}
                             </dt>
                             <dd className="mt-1 font-semibold tabular-nums text-foreground">{formatPriceSmart(row.priceUsd)}</dd>
                           </div>
                           <div className="rounded-xl border border-border/40 bg-background/[0.25] px-2.5 py-2">
                             <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                              MCap
+                              {isZh ? "市值" : "MCap"}
                             </dt>
                             <dd className="mt-1 font-semibold tabular-nums text-foreground">
                               {formatUsd(row.marketCapUsd, { compact: true })}
@@ -288,7 +291,7 @@ export default function WatchlistPage() {
                           </div>
                           <div className="rounded-xl border border-border/40 bg-background/[0.25] px-2.5 py-2">
                             <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                              Floor Δ
+                              {isZh ? "底线Δ" : "Floor Δ"}
                             </dt>
                             <dd className="mt-1">
                               <ChangePill pct={row.floorDeltaPct} />
@@ -296,7 +299,7 @@ export default function WatchlistPage() {
                           </div>
                           <div className="rounded-xl border border-border/40 bg-background/[0.25] px-2.5 py-2">
                             <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                              24h vol
+                              {isZh ? "24h量" : "24h vol"}
                             </dt>
                             <dd className="mt-1 font-semibold tabular-nums text-foreground">
                               {formatUsd(row.volume24hUsd, { compact: true })}
@@ -316,11 +319,11 @@ export default function WatchlistPage() {
               <p className="inline-flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-foreground/40" aria-hidden />
                 <span>
-                  Showing <strong className="font-medium text-foreground">{formatInt(rows.length)}</strong> resolved
+                  {isZh ? "显示" : "Showing"} <strong className="font-medium text-foreground">{formatInt(rows.length)}</strong> {isZh ? "条已解析" : "resolved"}
                   {items.length !== rows.length ? (
                     <span className="text-muted-foreground/85">
                       {" "}
-                      · {formatInt(items.length)} pinned total
+                      · {formatInt(items.length)} {isZh ? "条已收藏" : "pinned total"}
                     </span>
                   ) : null}
                 </span>
@@ -328,10 +331,10 @@ export default function WatchlistPage() {
               {markets.isFetching ? (
                 <span className="inline-flex items-center gap-1.5">
                   <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                  Refreshing…
+                  {isZh ? "刷新中…" : "Refreshing..."}
                 </span>
               ) : (
-                <span className="text-muted-foreground/85">Up to date</span>
+                <span className="text-muted-foreground/85">{isZh ? "已是最新" : "Up to date"}</span>
               )}
             </div>
           ) : null}

@@ -1,7 +1,11 @@
 import { BorrowSimulator } from "@/components/rise/BorrowSimulator";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function BorrowPage() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
+
   return (
     <div className="relative flex flex-col gap-8">
       <div
@@ -10,9 +14,13 @@ export default function BorrowPage() {
       />
       <div className="relative z-[1] flex flex-col gap-8">
         <DashboardPageHeader
-          eyebrow="Risk preview"
-          title="Borrow simulator"
-          description="Stress-test borrow capacity against floor-backed RISE collateral—max borrow, deposits, and fees from the same quote path as the live app. Read-only: no signing."
+          eyebrow={isZh ? "风险预览" : "Risk preview"}
+          title={isZh ? "借贷模拟器" : "Borrow simulator"}
+          description={
+            isZh
+              ? "基于底线支撑抵押测试可借能力：最大可借、所需抵押与费率，使用与线上一致的报价路径。只读，无需签名。"
+              : "Stress-test borrow capacity against floor-backed RISE collateral-max borrow, deposits, and fees from the same quote path as the live app. Read-only: no signing."
+          }
         />
         <BorrowSimulator />
       </div>

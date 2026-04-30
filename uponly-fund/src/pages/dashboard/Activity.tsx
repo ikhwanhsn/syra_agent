@@ -7,10 +7,13 @@ import { useRiseDashboard, useRiseTransactionsBatch } from "@/lib/RiseDashboardC
 import { EmptyState, GlassCard } from "@/components/rise/RiseShared";
 import { formatUsd } from "@/lib/marketDisplayFormat";
 import { ActivityPreview } from "./previews/ActivityPreview";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type SideFilter = "all" | "buy" | "sell";
 
 export function ActivityLive() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [sideFilter, setSideFilter] = useState<SideFilter>("all");
   const { aggregate } = useRiseDashboard();
   const addresses = (aggregate.data?.topVolume24h ?? []).slice(0, 6).map((row) => row.mint);
@@ -27,9 +30,13 @@ export function ActivityLive() {
   return (
     <div className="flex flex-col gap-6">
       <DashboardPageHeader
-        title="Activity feed"
-        description="Merged cross-market transaction stream from top-volume RISE markets."
-        eyebrow="Insights"
+        title={isZh ? "活动流" : "Activity feed"}
+        description={
+          isZh
+            ? "来自高成交量 RISE 市场的跨市场交易流聚合。"
+            : "Merged cross-market transaction stream from top-volume RISE markets."
+        }
+        eyebrow={isZh ? "洞察" : "Insights"}
         right={
           <div className="flex items-center gap-1">
             {(["all", "buy", "sell"] as const).map((filter) => (
@@ -52,8 +59,8 @@ export function ActivityLive() {
       <GlassCard>
         {txQueries.some((query) => query.isError) ? (
           <EmptyState
-            title="Failed to build activity stream"
-            description="One or more market streams failed. Retry to refresh data."
+            title={isZh ? "活动流构建失败" : "Failed to build activity stream"}
+            description={isZh ? "一个或多个市场流失败。请重试刷新数据。" : "One or more market streams failed. Retry to refresh data."}
             action={
               <Button
                 size="sm"
@@ -62,17 +69,20 @@ export function ActivityLive() {
                   txQueries.forEach((query) => query.refetch());
                 }}
               >
-                Retry streams
+                {isZh ? "重试流" : "Retry streams"}
               </Button>
             }
           />
         ) : txQueries.every((query) => query.isPending) ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-            Streaming live trades...
+            {isZh ? "实时交易流加载中..." : "Streaming live trades..."}
           </div>
         ) : merged.length === 0 ? (
-          <EmptyState title="No activity yet" description="The feed will populate as transactions arrive." />
+          <EmptyState
+            title={isZh ? "暂无活动" : "No activity yet"}
+            description={isZh ? "交易到达后将自动填充数据流。" : "The feed will populate as transactions arrive."}
+          />
         ) : (
           <div className="flex flex-col gap-1.5">
             {merged.map((tx, index) => (
@@ -97,8 +107,10 @@ export function ActivityLive() {
 }
 
 export default function ActivityPage() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   return (
-    <TokenGate pageTitle="Activity feed" preview={<ActivityPreview />}>
+    <TokenGate pageTitle={isZh ? "活动流" : "Activity feed"} preview={<ActivityPreview />}>
       <ActivityLive />
     </TokenGate>
   );

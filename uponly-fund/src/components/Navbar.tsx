@@ -26,7 +26,7 @@ export const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const isActiveLink = (href: string) => {
-    if (href === "/dashboard") return location.pathname === "/dashboard";
+    if (href === "/terminal") return location.pathname === "/terminal";
     if (!href.startsWith("/#")) return location.pathname === href;
     const hash = href.slice(1);
     return location.pathname === "/" && location.hash === hash;
@@ -41,10 +41,10 @@ export const Navbar = () => {
     >
       <div className={siteShell}>
         <nav
-          className="uof-nav-premium mt-3 max-h-[min-content] border border-border/40 bg-background/[0.82] backdrop-blur-[20px] supports-[backdrop-filter]:bg-background/72 sm:mt-4 sm:rounded-xl sm:px-3 sm:py-2.5"
+          className="uof-nav-premium mt-3 max-h-[min-content] border border-border/40 bg-background/[0.82] backdrop-blur-[20px] supports-[backdrop-filter]:bg-background/72 sm:mt-4 sm:rounded-xl sm:px-3 sm:py-3 lg:py-3.5"
           aria-label="Main"
         >
-          <div className="flex min-w-0 items-center justify-between gap-2 py-2 pl-2 pr-1.5 sm:gap-4 sm:pl-3 sm:pr-3 lg:pl-4">
+          <div className="flex min-w-0 items-center justify-between gap-2 py-2.5 pl-2 pr-1.5 sm:gap-4 sm:py-3 sm:pl-3 sm:pr-3 lg:pl-4">
             <BrandMark
               className="min-w-0 max-w-[55%] shrink sm:max-w-[60%] lg:max-w-none"
               compact
@@ -60,7 +60,7 @@ export const Navbar = () => {
                     to={link.href}
                     title={`${link.label} · ${link.desc}`}
                     className={cn(
-                      "whitespace-nowrap rounded-md px-3 py-2 text-[13px] font-semibold tracking-wide transition-colors xl:px-3.5",
+                      "whitespace-nowrap rounded-md px-3 py-2.5 text-[13px] font-semibold tracking-wide transition-colors xl:px-3.5",
                       active
                         ? "bg-foreground/[0.07] text-foreground"
                         : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
@@ -96,7 +96,7 @@ export const Navbar = () => {
                 size="sm"
                 className="h-9 shrink-0 rounded-lg px-3 text-xs font-semibold !text-[hsl(var(--uof-foreground))] shadow-sm sm:h-9 sm:px-4 sm:text-[13px]"
               >
-                <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+                <Link to="/terminal" onClick={() => setIsOpen(false)}>
                   Dashboard
                 </Link>
               </Button>

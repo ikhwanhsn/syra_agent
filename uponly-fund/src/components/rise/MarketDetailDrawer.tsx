@@ -41,6 +41,7 @@ import {
   formatRelativeAge,
   shortenMint,
 } from "./RiseShared";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type ChartTimeframe = RiseTimeframe | "all";
 
@@ -102,6 +103,8 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { value
 }
 
 function PriceChart({ address, tf }: { address: string | null; tf: ChartTimeframe }) {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const gradientId = useId();
   const resolvedTimeframe: RiseTimeframe = tf === "all" ? "1d" : tf;
   const limit = tf === "all" ? 2000 : TF_LIMITS[resolvedTimeframe];
@@ -114,7 +117,7 @@ function PriceChart({ address, tf }: { address: string | null; tf: ChartTimefram
   if (ohlc.isError || data.length < 2) {
     return (
       <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-border/40 bg-background/30 text-xs text-muted-foreground">
-        No chart data for {tf === "all" ? "all time" : tf}
+        {isZh ? "图表数据不可用：" : "No chart data for "} {tf === "all" ? (isZh ? "全周期" : "all time") : tf}
       </div>
     );
   }
@@ -143,15 +146,17 @@ function PriceChart({ address, tf }: { address: string | null; tf: ChartTimefram
       </ResponsiveContainer>
       <div className="mt-1 flex items-center justify-between gap-2 text-[0.65rem] text-muted-foreground">
         <p className="mt-1 text-[0.65rem] text-muted-foreground">
-          Source {tf === "all" ? "all-time (1d candles)" : tf}
+          {isZh ? "来源" : "Source"} {tf === "all" ? (isZh ? "全周期（1d K线）" : "all-time (1d candles)") : tf}
         </p>
-        {ohlc.data?.updatedAt ? <p>Updated {new Date(ohlc.data.updatedAt).toLocaleTimeString()}</p> : null}
+        {ohlc.data?.updatedAt ? <p>{isZh ? "更新时间" : "Updated"} {new Date(ohlc.data.updatedAt).toLocaleTimeString()}</p> : null}
       </div>
     </div>
   );
 }
 
 function TransactionsList({ address }: { address: string | null }) {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const tx = useRiseTransactions(address, 1, 10);
   const feedUpdatedAt = tx.data?.updatedAt ? new Date(tx.data.updatedAt) : null;
   const rawRows = tx.data?.transactions ?? [];
@@ -238,7 +243,12 @@ function TransactionsList({ address }: { address: string | null }) {
     );
   }
   if (rows.length === 0) {
-    return <EmptyState title="No recent trades" description="Trades will appear here as soon as the market becomes active." />;
+    return (
+      <EmptyState
+        title={isZh ? "暂无近期交易" : "No recent trades"}
+        description={isZh ? "市场活跃后，交易会显示在这里。" : "Trades will appear here as soon as the market becomes active."}
+      />
+    );
   }
   const hasPartialRows = rows.some(
     (row) =>
@@ -252,19 +262,19 @@ function TransactionsList({ address }: { address: string | null }) {
     <div className="space-y-2">
       {hasPartialRows ? (
         <p className="rounded-md border border-border/45 bg-background/35 px-2.5 py-1.5 text-[0.65rem] text-muted-foreground">
-          Source returned partial trade metadata for some rows; missing fields are shown as —.
+          {isZh ? "数据源返回了部分不完整交易字段，缺失项以 — 显示。" : "Source returned partial trade metadata for some rows; missing fields are shown as —."}
         </p>
       ) : null}
       <div className="overflow-hidden rounded-lg border border-border/40">
       <Table className="text-xs tabular-nums">
         <TableHeader className="bg-muted/30">
           <TableRow className="border-border/40">
-            <TableHead className="h-8 px-2 text-[0.65rem] uppercase tracking-wider">Side</TableHead>
-            <TableHead className="h-8 px-2 text-[0.65rem] uppercase tracking-wider">Wallet</TableHead>
-            <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">Price</TableHead>
-            <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">Amount</TableHead>
+            <TableHead className="h-8 px-2 text-[0.65rem] uppercase tracking-wider">{isZh ? "方向" : "Side"}</TableHead>
+            <TableHead className="h-8 px-2 text-[0.65rem] uppercase tracking-wider">{isZh ? "钱包" : "Wallet"}</TableHead>
+            <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">{isZh ? "价格" : "Price"}</TableHead>
+            <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">{isZh ? "数量" : "Amount"}</TableHead>
             <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">USD</TableHead>
-            <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">When</TableHead>
+            <TableHead className="h-8 px-2 text-right text-[0.65rem] uppercase tracking-wider">{isZh ? "时间" : "When"}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -332,6 +342,8 @@ export function MarketDetailDrawer({
   open: boolean;
   onOpenChange: (next: boolean) => void;
 }) {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [tf, setTf] = useState<ChartTimeframe>("1h");
 
   const tradeUrl = market ? buildRiseTradeUrl(market.mint) : null;
@@ -352,7 +364,7 @@ export function MarketDetailDrawer({
                 <TokenAvatar imageUrl={market.imageUrl} symbol={market.symbol} size="lg" />
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-balance text-lg leading-tight">
-                    <span>{market.name || "Untitled market"}</span>
+                    <span>{market.name || (isZh ? "未命名市场" : "Untitled market")}</span>
                     <span className="font-mono text-sm text-muted-foreground">${market.symbol || "—"}</span>
                     <VerifiedBadge verified={market.isVerified} />
                     <LevelChip level={market.level} />
@@ -371,7 +383,7 @@ export function MarketDetailDrawer({
                 {tradeUrl ? (
                   <Button asChild size="sm" className="h-8 gap-1.5">
                     <a href={tradeUrl} target="_blank" rel="noopener noreferrer">
-                      Trade on RISE
+                      {isZh ? "在 RISE 交易" : "Trade on RISE"}
                       <ArrowUpRight className="h-3 w-3 opacity-80" aria-hidden />
                     </a>
                   </Button>
@@ -403,20 +415,20 @@ export function MarketDetailDrawer({
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                <StatTile label="Market cap" value={formatUsd(market.marketCapUsd, { compact: true })} />
-                <StatTile label="Floor mcap" value={formatUsd(market.floorMarketCapUsd, { compact: true })} />
-                <StatTile label="24h vol" value={formatUsd(market.volume24hUsd, { compact: true })} />
-                <StatTile label="Floor price" value={formatPriceSmart(market.floorPriceUsd)} sub={market.floorDeltaPct != null ? `Δ ${formatPct(market.floorDeltaPct)}` : undefined} />
-                <StatTile label="Holders" value={formatInt(market.holders)} />
-                <StatTile label="Locked" value={market.lockedSupplyPct != null ? `${market.lockedSupplyPct.toFixed(0)}%` : "—"} />
-                <StatTile label="Creator fee" value={market.creatorFeePct != null ? `${market.creatorFeePct}%` : "—"} />
-                <StatTile label="All-time vol" value={formatUsd(market.volumeAllTimeUsd, { compact: true })} />
-                <StatTile label="Age" value={formatRelativeAge(market.ageHours)} />
+                <StatTile label={isZh ? "市值" : "Market cap"} value={formatUsd(market.marketCapUsd, { compact: true })} />
+                <StatTile label={isZh ? "底线市值" : "Floor mcap"} value={formatUsd(market.floorMarketCapUsd, { compact: true })} />
+                <StatTile label={isZh ? "24h成交量" : "24h vol"} value={formatUsd(market.volume24hUsd, { compact: true })} />
+                <StatTile label={isZh ? "底线价格" : "Floor price"} value={formatPriceSmart(market.floorPriceUsd)} sub={market.floorDeltaPct != null ? `Δ ${formatPct(market.floorDeltaPct)}` : undefined} />
+                <StatTile label={isZh ? "持有人" : "Holders"} value={formatInt(market.holders)} />
+                <StatTile label={isZh ? "锁仓" : "Locked"} value={market.lockedSupplyPct != null ? `${market.lockedSupplyPct.toFixed(0)}%` : "—"} />
+                <StatTile label={isZh ? "创作者费率" : "Creator fee"} value={market.creatorFeePct != null ? `${market.creatorFeePct}%` : "—"} />
+                <StatTile label={isZh ? "累计成交量" : "All-time vol"} value={formatUsd(market.volumeAllTimeUsd, { compact: true })} />
+                <StatTile label={isZh ? "时长" : "Age"} value={formatRelativeAge(market.ageHours)} />
               </div>
 
               <div className="mt-5">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">Price chart</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{isZh ? "价格图表" : "Price chart"}</h3>
                   <div className="flex flex-wrap gap-1">
                     {TIMEFRAMES.map((t) => (
                       <button
@@ -431,7 +443,7 @@ export function MarketDetailDrawer({
                         )}
                         aria-pressed={tf === t}
                       >
-                        {t === "all" ? "ALL" : t}
+                        {t === "all" ? (isZh ? "全部" : "ALL") : t}
                       </button>
                     ))}
                   </div>
@@ -440,13 +452,13 @@ export function MarketDetailDrawer({
               </div>
 
               <div className="mt-5">
-                <h3 className="mb-2 text-sm font-semibold text-foreground">Recent trades</h3>
+                <h3 className="mb-2 text-sm font-semibold text-foreground">{isZh ? "近期交易" : "Recent trades"}</h3>
                 <TransactionsList address={marketDataAddress} />
               </div>
 
               <div className="mt-5 rounded-lg border border-border/40 bg-background/30 p-3 text-[0.7rem] leading-relaxed text-muted-foreground sm:text-xs">
                 <p>
-                  <strong className="font-medium text-foreground/85">Creator</strong> ·{" "}
+                  <strong className="font-medium text-foreground/85">{isZh ? "创建者" : "Creator"}</strong> ·{" "}
                   {creatorUrl ? (
                     <a href={creatorUrl} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
                       {shortenMint(market.creator, 4, 4)} <ExternalLink className="inline h-2.5 w-2.5" aria-hidden />
@@ -455,12 +467,13 @@ export function MarketDetailDrawer({
                     <span>—</span>
                   )}
                   {" · "}
-                  <strong className="font-medium text-foreground/85">Mint</strong>{" "}
+                  <strong className="font-medium text-foreground/85">{isZh ? "Mint" : "Mint"}</strong>{" "}
                   <span className="font-mono">{shortenMint(market.mint, 4, 4)}</span>
                 </p>
                 <p className="mt-1">
-                  Read-only data via the Syra → RISE proxy. Trade actions deep-link to rise.rich; nothing is signed in
-                  this dashboard.
+                  {isZh
+                    ? "数据通过 Syra 到 RISE 的只读代理提供。交易按钮会跳转到 rise.rich；本看板不会进行签名。"
+                    : "Read-only data via the Syra -> RISE proxy. Trade actions deep-link to rise.rich; nothing is signed in this dashboard."}
                 </p>
               </div>
             </div>

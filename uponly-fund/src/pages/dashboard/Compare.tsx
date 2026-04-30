@@ -21,6 +21,7 @@ import {
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { useWatchlist } from "@/lib/useWatchlist";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const MAX = 4;
 const PICKER_ROW_HEIGHT = 44;
@@ -29,56 +30,60 @@ const PICKER_OVERSCAN = 6;
 
 type MetricRow = { id: string; label: string; render: (m: RiseMarketRow) => ReactNode };
 
-const METRICS: MetricRow[] = [
-  { id: "price", label: "Price", render: (m) => formatPriceSmart(m.priceUsd) },
-  {
-    id: "ch24",
-    label: "24h change",
-    render: (m) => <ChangePill pct={m.priceChange24hPct} />,
-  },
-  { id: "vol", label: "24h volume", render: (m) => formatUsd(m.volume24hUsd, { compact: true }) },
-  { id: "mcap", label: "Market cap", render: (m) => formatUsd(m.marketCapUsd, { compact: true }) },
-  { id: "floor", label: "Floor price", render: (m) => formatPriceSmart(m.floorPriceUsd) },
-  {
-    id: "floorD",
-    label: "Floor delta",
-    render: (m) => <ChangePill pct={m.floorDeltaPct} />,
-  },
-  { id: "floorMc", label: "Floor market cap", render: (m) => formatUsd(m.floorMarketCapUsd, { compact: true }) },
-  { id: "hold", label: "Holders", render: (m) => formatInt(m.holders) },
-  {
-    id: "fee",
-    label: "Creator fee",
-    render: (m) => (m.creatorFeePct != null ? `${m.creatorFeePct}%` : "—"),
-  },
-  {
-    id: "lock",
-    label: "Locked supply",
-    render: (m) => (m.lockedSupplyPct != null ? `${m.lockedSupplyPct.toFixed(0)}%` : "—"),
-  },
-  {
-    id: "lvl",
-    label: "Level",
-    render: (m) => <LevelChip level={m.level} />,
-  },
-  {
-    id: "ver",
-    label: "Verified",
-    render: (m) => (m.isVerified ? <span className="text-foreground/90">Yes</span> : <span className="text-muted-foreground">—</span>),
-  },
-  { id: "age", label: "Age", render: (m) => formatRelativeAge(m.ageHours) },
-];
+function getMetrics(isZh: boolean): MetricRow[] {
+  return [
+    { id: "price", label: isZh ? "价格" : "Price", render: (m) => formatPriceSmart(m.priceUsd) },
+    {
+      id: "ch24",
+      label: isZh ? "24h变化" : "24h change",
+      render: (m) => <ChangePill pct={m.priceChange24hPct} />,
+    },
+    { id: "vol", label: isZh ? "24h成交量" : "24h volume", render: (m) => formatUsd(m.volume24hUsd, { compact: true }) },
+    { id: "mcap", label: isZh ? "市值" : "Market cap", render: (m) => formatUsd(m.marketCapUsd, { compact: true }) },
+    { id: "floor", label: isZh ? "底线价格" : "Floor price", render: (m) => formatPriceSmart(m.floorPriceUsd) },
+    {
+      id: "floorD",
+      label: isZh ? "底线变化" : "Floor delta",
+      render: (m) => <ChangePill pct={m.floorDeltaPct} />,
+    },
+    { id: "floorMc", label: isZh ? "底线市值" : "Floor market cap", render: (m) => formatUsd(m.floorMarketCapUsd, { compact: true }) },
+    { id: "hold", label: isZh ? "持有人" : "Holders", render: (m) => formatInt(m.holders) },
+    {
+      id: "fee",
+      label: isZh ? "创作者费率" : "Creator fee",
+      render: (m) => (m.creatorFeePct != null ? `${m.creatorFeePct}%` : "—"),
+    },
+    {
+      id: "lock",
+      label: isZh ? "锁仓供应" : "Locked supply",
+      render: (m) => (m.lockedSupplyPct != null ? `${m.lockedSupplyPct.toFixed(0)}%` : "—"),
+    },
+    {
+      id: "lvl",
+      label: isZh ? "等级" : "Level",
+      render: (m) => <LevelChip level={m.level} />,
+    },
+    {
+      id: "ver",
+      label: isZh ? "已验证" : "Verified",
+      render: (m) => (m.isVerified ? <span className="text-foreground/90">{isZh ? "是" : "Yes"}</span> : <span className="text-muted-foreground">—</span>),
+    },
+    { id: "age", label: isZh ? "时长" : "Age", render: (m) => formatRelativeAge(m.ageHours) },
+  ];
+}
 
 function MarketColumnHeader({
   row,
   onRemove,
   onWatchToggle,
   watching,
+  isZh,
 }: {
   row: RiseMarketRow;
   onRemove: () => void;
   onWatchToggle: () => void;
   watching: boolean;
+  isZh: boolean;
 }) {
   return (
     <div className="flex min-w-[7.5rem] flex-col items-stretch gap-2 sm:min-w-[8.5rem]">
@@ -95,14 +100,14 @@ function MarketColumnHeader({
           size="icon"
           variant="ghost"
           onClick={onWatchToggle}
-          title="Watchlist"
+          title={isZh ? "观察列表" : "Watchlist"}
           className="h-8 w-8 rounded-lg"
         >
           <Star className={cn("h-3.5 w-3.5", watching && "fill-current")} />
         </Button>
         <RiseTradeButton mint={row.mint} size="sm" className="shrink-0" />
         <Button type="button" size="sm" variant="ghost" onClick={onRemove} className="h-8 rounded-lg px-2 text-xs">
-          Remove
+          {isZh ? "移除" : "Remove"}
         </Button>
       </div>
     </div>
@@ -123,6 +128,8 @@ function MetricCell({ children, align = "right" }: { children: ReactNode; align?
 }
 
 export default function ComparePage() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [selectedMints, setSelectedMints] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -152,6 +159,7 @@ export default function ComparePage() {
   const virtualRows = filteredToAdd.slice(startIndex, endIndex);
   const topOffset = startIndex * PICKER_ROW_HEIGHT;
   const totalHeight = filteredToAdd.length * PICKER_ROW_HEIGHT;
+  const metrics = useMemo(() => getMetrics(isZh), [isZh]);
 
   return (
     <div className="relative flex flex-col gap-8">
@@ -169,10 +177,10 @@ export default function ComparePage() {
           <div className="border-b border-border/40 bg-gradient-to-b from-card/45 to-transparent pb-5">
             <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               <BarChart3 className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
-              Comparison set
+              {isZh ? "对比集合" : "Comparison set"}
             </p>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Add markets to compare. Selected tokens are hidden from the picker.
+              {isZh ? "添加市场进行对比。已选代币会从选择器中隐藏。" : "Add markets to compare. Selected tokens are hidden from the picker."}
             </p>
           </div>
 
@@ -201,7 +209,7 @@ export default function ComparePage() {
                         disabled={selectedMints.length >= MAX || availableToAdd.length === 0}
                         className="h-11 min-w-[min(100%,18rem)] max-w-md justify-between rounded-xl border-border/55 bg-background/40 shadow-inner"
                       >
-                        Add market to compare
+                        {isZh ? "添加市场进行对比" : "Add market to compare"}
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </PopoverTrigger>
@@ -214,7 +222,7 @@ export default function ComparePage() {
                             setPickerQuery(e.target.value);
                             setPickerScrollTop(0);
                           }}
-                          placeholder="Search symbol or name..."
+                          placeholder={isZh ? "搜索符号或名称..." : "Search symbol or name..."}
                           className="h-9 rounded-lg border-border/55 pl-8"
                         />
                       </div>
@@ -224,7 +232,7 @@ export default function ComparePage() {
                         onScroll={(e) => setPickerScrollTop(e.currentTarget.scrollTop)}
                       >
                         {filteredToAdd.length === 0 ? (
-                          <p className="px-3 py-6 text-center text-xs text-muted-foreground">No matching markets.</p>
+                          <p className="px-3 py-6 text-center text-xs text-muted-foreground">{isZh ? "没有匹配的市场。" : "No matching markets."}</p>
                         ) : (
                           <div style={{ height: totalHeight, position: "relative" }}>
                             <div style={{ position: "absolute", top: topOffset, left: 0, right: 0 }}>
@@ -259,12 +267,12 @@ export default function ComparePage() {
                     disabled={selectedMints.length === 0}
                     className="h-11 rounded-xl border-border/55"
                   >
-                    Clear all
+                    {isZh ? "清空全部" : "Clear all"}
                   </Button>
                   {allMarkets.isFetching ? (
                     <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                       <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                      Syncing…
+                      {isZh ? "同步中…" : "Syncing..."}
                     </p>
                   ) : null}
                 </div>
@@ -295,11 +303,11 @@ export default function ComparePage() {
         {allMarkets.isError ? (
           <GlassCard className="border-destructive/20">
             <EmptyState
-              title="Unable to load markets"
-              description={(allMarkets.error as Error)?.message || "Try again in a moment."}
+              title={isZh ? "无法加载市场" : "Unable to load markets"}
+              description={(allMarkets.error as Error)?.message || (isZh ? "请稍后重试。" : "Try again in a moment.")}
               action={
                 <Button size="sm" variant="secondary" onClick={() => allMarkets.refetch()}>
-                  Retry
+                  {isZh ? "重试" : "Retry"}
                 </Button>
               }
             />
@@ -308,8 +316,8 @@ export default function ComparePage() {
           <GlassCard className="border-dashed border-border/60 bg-muted/[0.08]">
             <EmptyState
               icon={Plus}
-              title="No markets selected"
-              description="Choose one or more tokens above—your comparison matrix and metric grid appear here instantly."
+              title={isZh ? "尚未选择市场" : "No markets selected"}
+              description={isZh ? "在上方选择一个或多个代币，对比矩阵和指标表会立即显示。" : "Choose one or more tokens above-your comparison matrix and metric grid appear here instantly."}
             />
           </GlassCard>
         ) : (
@@ -319,16 +327,16 @@ export default function ComparePage() {
               <div className="border-b border-border/45 bg-gradient-to-r from-card/40 via-transparent to-card/30 px-5 py-4 sm:px-6">
                 <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
-                  Side-by-side matrix
+                  {isZh ? "并排矩阵" : "Side-by-side matrix"}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">Aligned rows for quick comparisons.</p>
+                <p className="mt-1 text-sm text-muted-foreground">{isZh ? "按行对齐，便于快速比较。" : "Aligned rows for quick comparisons."}</p>
               </div>
               <div className="overflow-x-auto">
                 <Table className="min-w-[720px] text-[0.8125rem]">
                   <TableHeader>
                     <TableRow className="border-border/40 hover:bg-transparent">
                       <TableHead className="sticky left-0 z-[2] min-w-[8rem] bg-card/95 px-4 py-3 text-left text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border)_/_0.45)] backdrop-blur-sm">
-                        Metric
+                        {isZh ? "指标" : "Metric"}
                       </TableHead>
                       {selectedMarkets.map((row) => (
                         <TableHead key={row.mint} className="min-w-[9rem] bg-card/80 px-3 py-3 align-top backdrop-blur-sm">
@@ -337,13 +345,14 @@ export default function ComparePage() {
                             onRemove={() => setSelectedMints((prev) => prev.filter((m) => m !== row.mint))}
                             onWatchToggle={() => toggle(row.mint)}
                             watching={has(row.mint)}
+                            isZh={isZh}
                           />
                         </TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {METRICS.map((metric) => (
+                    {metrics.map((metric) => (
                       <TableRow key={metric.id} className="border-border/30 hover:bg-muted/[0.2]">
                         <TableCell className="sticky left-0 z-[1] bg-card/95 px-4 py-2.5 text-[0.7rem] font-medium text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border)_/_0.45)] backdrop-blur-sm sm:py-3 sm:text-xs">
                           {metric.label}
@@ -386,13 +395,13 @@ export default function ComparePage() {
                           className="rounded-lg"
                           onClick={() => setSelectedMints((prev) => prev.filter((m) => m !== row.mint))}
                         >
-                          Remove
+                          {isZh ? "移除" : "Remove"}
                         </Button>
                       </div>
                     </div>
                   </div>
                   <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {METRICS.map((metric) => (
+                    {metrics.map((metric) => (
                       <div
                         key={metric.id}
                         className="rounded-xl border border-border/40 bg-background/[0.25] px-3 py-2.5 shadow-inner"

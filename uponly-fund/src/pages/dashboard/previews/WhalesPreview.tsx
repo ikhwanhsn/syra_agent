@@ -2,6 +2,7 @@ import { Crown } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { GlassCard } from "@/components/rise/RiseShared";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const SAMPLE_ROWS = [
   { wallet: "7H••••••e2pX", txCount: 42, volumeUsd: 1823450 },
@@ -13,12 +14,18 @@ const SAMPLE_ROWS = [
 ];
 
 export function WhalesPreview() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   return (
     <div className="flex flex-col gap-6">
       <DashboardPageHeader
-        title="Whales"
-        description="Largest active wallets based on recent transaction volume across top RISE markets."
-        eyebrow="Insights"
+        title={isZh ? "巨鲸" : "Whales"}
+        description={
+          isZh
+            ? "基于近期交易量统计，展示 RISE 头部市场中最活跃的钱包。"
+            : "Largest active wallets based on recent transaction volume across top RISE markets."
+        }
+        eyebrow={isZh ? "洞察" : "Insights"}
       />
       <GlassCard>
         <div className="flex flex-col gap-2">
@@ -32,7 +39,7 @@ export function WhalesPreview() {
               </span>
               <span className="min-w-0 flex-1 truncate font-mono text-foreground">{row.wallet}</span>
               {index < 3 ? <Crown className="h-3.5 w-3.5 text-amber-400" aria-hidden /> : null}
-              <span className="w-24 shrink-0 text-right text-muted-foreground">{formatInt(row.txCount)} tx</span>
+              <span className="w-24 shrink-0 text-right text-muted-foreground">{formatInt(row.txCount)} {isZh ? "笔" : "tx"}</span>
               <span className="w-24 shrink-0 text-right font-medium text-foreground">
                 {formatUsd(row.volumeUsd, { compact: true })}
               </span>

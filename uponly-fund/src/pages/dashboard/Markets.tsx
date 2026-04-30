@@ -8,6 +8,8 @@ import ComparePage from "@/pages/dashboard/Compare";
 import WatchlistPage from "@/pages/dashboard/Watchlist";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLanguage } from "@/lib/LanguageContext";
+import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 
 const TAB_VALUES = ["screener", "floor-scanner", "compare", "watchlist"] as const;
 type MarketTab = (typeof TAB_VALUES)[number];
@@ -22,6 +24,8 @@ export default function MarketsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeTab = useMemo(() => parseTab(searchParams.get("tab")), [searchParams]);
+  const { language } = useLanguage();
+  const copy = DASHBOARD_COPY[language];
 
   const setActiveTab = (tab: string) => {
     const nextTab = parseTab(tab);
@@ -29,7 +33,7 @@ export default function MarketsPage() {
     if (nextTab === "screener") nextParams.delete("tab");
     else nextParams.set("tab", nextTab);
     const query = nextParams.toString();
-    navigate({ pathname: "/dashboard/markets", search: query ? `?${query}` : "" }, { replace: true });
+    navigate({ pathname: "/market", search: query ? `?${query}` : "" }, { replace: true });
   };
 
   return (
@@ -40,23 +44,23 @@ export default function MarketsPage() {
       />
       <div className="relative z-[1] flex flex-col gap-8">
         <DashboardPageHeader
-          eyebrow="Market intelligence"
-          title="Markets dashboard"
-          description="Screener, Floor Scanner, Compare, and Watchlist in one workspace."
+          eyebrow={copy.pages.marketEyebrow}
+          title={copy.pages.marketTitle}
+          description={copy.pages.marketDescription}
         />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border border-border/50 bg-card/50 p-1">
             <TabsTrigger value="screener" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
-              Screener
+              {copy.tabs.screener}
             </TabsTrigger>
             <TabsTrigger value="floor-scanner" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
-              Floor Scanner
+              {copy.tabs.floorScanner}
             </TabsTrigger>
             <TabsTrigger value="compare" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
-              Compare
+              {copy.tabs.compare}
             </TabsTrigger>
             <TabsTrigger value="watchlist" className="rounded-lg px-3 py-2 text-xs sm:text-sm">
-              Watchlist
+              {copy.tabs.watchlist}
             </TabsTrigger>
           </TabsList>
 

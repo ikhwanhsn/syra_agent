@@ -19,12 +19,14 @@ export function SidebarNavLink({
   children,
   end,
   rightAdornment,
+  compact = false,
 }: {
   to: string;
   icon: ComponentType<LucideProps>;
   children: ReactNode;
   end?: boolean;
   rightAdornment?: ReactNode;
+  compact?: boolean;
 }) {
   return (
     <NavLink
@@ -36,6 +38,7 @@ export function SidebarNavLink({
         <span
           className={cn(
             "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium leading-none tracking-tight transition-all duration-200",
+            compact && "justify-center gap-0 px-2.5",
             "border border-transparent",
             isActive
               ? "border-sidebar-border/70 bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
@@ -52,8 +55,8 @@ export function SidebarNavLink({
           >
             <Icon className="h-4 w-4 shrink-0" strokeWidth={isActive ? 2.25 : 2} aria-hidden />
           </span>
-          <span className="min-w-0 flex-1 truncate">{children}</span>
-          {rightAdornment ? <span className="shrink-0 text-muted-foreground">{rightAdornment}</span> : null}
+          {!compact ? <span className="min-w-0 flex-1 truncate">{children}</span> : null}
+          {!compact && rightAdornment ? <span className="shrink-0 text-muted-foreground">{rightAdornment}</span> : null}
         </span>
       )}
     </NavLink>

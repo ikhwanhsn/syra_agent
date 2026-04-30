@@ -172,17 +172,17 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
     },
   },
   {
-    slug: "dexscreener",
-    name: "DexScreener",
-    href: "https://dexscreener.com",
+    slug: "rise-screener-intelligence",
+    name: "Rise Screener Intelligence",
+    href: "https://syra.fund",
     category: "data",
-    tagline: "DEX pair discovery",
+    tagline: "Fund-grade market discovery",
     summary:
-      "Live pairs, charts, and liquidity screeners to ground token discovery in market reality.",
+      "Institutional-grade screener for Rise, fused with fund-grade intelligence.",
     integration: {
       status: "live",
       overview:
-        "DexScreener is a universal lens on DEX pairs. Syra references this layer when users need quick, multi-venue context on a token’s trading footprint and pair-level activity.",
+        "Syra’s screener layer blends fast pair discovery, live chart context, and fund-grade intelligence so users can evaluate a token’s footprint with institutional framing.",
       capabilities: [
         "Pair and chart context across supported venues",
         "Screening input for what’s live vs. theoretical",
@@ -280,7 +280,7 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
         "Pump and similar launchpads shape a large share of new Solana token activity. Syra acknowledges this venue class in discovery and risk copy so high-volatility, early-stage names are framed with appropriate caveats.",
       capabilities: [
         "Awareness of launchpad class dynamics in product messaging where relevant",
-        "Complements DexScreener and on-chain data for very new markets",
+        "Complements Syra screener and on-chain data for very new markets",
         "User guidance toward diligence, not promotion",
       ],
     },

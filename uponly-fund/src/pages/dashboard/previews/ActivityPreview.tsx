@@ -1,6 +1,7 @@
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { GlassCard } from "@/components/rise/RiseShared";
 import { formatUsd } from "@/lib/marketDisplayFormat";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const SAMPLE_TX = [
   { kind: "buy", wallet: "6F••••••e1Mz", amountUsd: 12600, priceUsd: 0.092, time: "11:02:15" },
@@ -14,12 +15,18 @@ const SAMPLE_TX = [
 ];
 
 export function ActivityPreview() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   return (
     <div className="flex flex-col gap-6">
       <DashboardPageHeader
-        title="Activity feed"
-        description="Merged cross-market transaction stream from top-volume RISE markets."
-        eyebrow="Insights"
+        title={isZh ? "活动流" : "Activity feed"}
+        description={
+          isZh
+            ? "来自高成交量 RISE 市场的跨市场交易流聚合。"
+            : "Merged cross-market transaction stream from top-volume RISE markets."
+        }
+        eyebrow={isZh ? "洞察" : "Insights"}
         right={
           <div className="flex items-center gap-1 opacity-70">
             {(["ALL", "BUY", "SELL"] as const).map((filter) => (

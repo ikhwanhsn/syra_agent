@@ -7,7 +7,7 @@ type BrandMarkProps = {
   className?: string;
   /** When false, only the symbol (for compact mobile). */
   showWordmark?: boolean;
-  /** Shorter lockup: hides the “Tech utility program” subline (e.g. navbar). */
+  /** Shorter lockup: hides the Smart Agent Fund subline (e.g. navbar). */
   compact?: boolean;
   /**
    * Navbar: primary click forces full document navigation to `/` (hard refresh behavior).
@@ -67,7 +67,7 @@ export function BrandMark({
           </div>
           {!compact ? (
             <p className="mt-0.5 hidden text-[0.6rem] font-medium uppercase tracking-[0.18em] text-muted-foreground/80 sm:block">
-              Tech utility program
+              Smart Agent Fund · RISE
             </p>
           ) : null}
         </div>

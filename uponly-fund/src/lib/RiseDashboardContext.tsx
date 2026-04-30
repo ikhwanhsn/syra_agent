@@ -40,6 +40,7 @@ const OHLC_REFETCH_MS = 60_000;
 const TX_REFETCH_MS = 30_000;
 const PORTFOLIO_STALE_MS = 30_000;
 const DEFAULT_PAGE_LIMIT = 10;
+const MARKETS_ALL_CONCURRENCY = 4;
 
 type RiseDashboardContextValue = {
   aggregate: UseQueryResult<RiseAggregateResponse, Error>;
@@ -184,9 +185,17 @@ export function useRiseMarketsAll(limit = 100) {
       const first = await getRiseMarkets({ page: 1, limit }, signal);
       const totalPages = Math.max(1, first.totalPages ?? 1);
       const merged: RiseMarketRow[] = [...first.markets];
-      for (let page = 2; page <= totalPages; page += 1) {
-        const next = await getRiseMarkets({ page, limit }, signal);
-        merged.push(...next.markets);
+      if (totalPages > 1) {
+        const remainingPages = Array.from({ length: totalPages - 1 }, (_, idx) => idx + 2);
+        for (let i = 0; i < remainingPages.length; i += MARKETS_ALL_CONCURRENCY) {
+          const chunk = remainingPages.slice(i, i + MARKETS_ALL_CONCURRENCY);
+          const chunkResponses = await Promise.all(
+            chunk.map((page) => getRiseMarkets({ page, limit }, signal)),
+          );
+          for (const next of chunkResponses) {
+            merged.push(...next.markets);
+          }
+        }
       }
       const dedup = new Map<string, RiseMarketRow>();
       for (const row of merged) {
@@ -194,10 +203,14 @@ export function useRiseMarketsAll(limit = 100) {
         if (!dedup.has(row.mint)) dedup.set(row.mint, row);
       }
       // Ensure UPONLY is searchable even when not included in paginated list endpoint.
-      const aggregate = await getRiseAggregate(signal);
-      const uponly = aggregate.uponly;
-      if (uponly?.mint && !dedup.has(uponly.mint)) {
-        dedup.set(uponly.mint, uponly);
+      try {
+        const aggregate = await getRiseAggregate(signal);
+        const uponly = aggregate.uponly;
+        if (uponly?.mint && !dedup.has(uponly.mint)) {
+          dedup.set(uponly.mint, uponly);
+        }
+      } catch {
+        // Keep markets list usable if aggregate endpoint is temporarily degraded.
       }
       return Array.from(dedup.values());
     },

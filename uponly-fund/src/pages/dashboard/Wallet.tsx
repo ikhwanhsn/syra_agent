@@ -1,7 +1,12 @@
 import { WalletLookup } from "@/components/rise/WalletLookup";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { useLanguage } from "@/lib/LanguageContext";
+import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 
 export default function WalletPage() {
+  const { language } = useLanguage();
+  const copy = DASHBOARD_COPY[language];
+
   return (
     <div className="relative flex flex-col gap-8">
       <div
@@ -10,9 +15,9 @@ export default function WalletPage() {
       />
       <div className="relative z-[1] flex flex-col gap-8">
         <DashboardPageHeader
-          eyebrow="On-chain intel"
-          title="Wallet lookup"
-          description="Paste any Solana address to pull RISE portfolio totals and positions from Syra’s read APIs—shareable via URL, nothing signed."
+          eyebrow={copy.pages.walletEyebrow}
+          title={copy.pages.walletTitle}
+          description={copy.pages.walletDescription}
         />
         <WalletLookup />
       </div>

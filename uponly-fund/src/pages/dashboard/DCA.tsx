@@ -17,8 +17,11 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MarketSearchPicker } from "@/components/rise/MarketSearchPicker";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export function DcaSimulator() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const { uponly } = useRiseDashboard();
   const markets = useRiseMarketsAll();
   const [mint, setMint] = useState(uponly?.mint ?? "");
@@ -71,11 +74,14 @@ export function DcaSimulator() {
           <div className="border-b border-border/45 bg-gradient-to-b from-card/55 to-transparent px-4 py-5 sm:px-6">
             <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
-              Recurring accumulation
+              {isZh ? "定投累积" : "Recurring accumulation"}
             </p>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Uses the last ~180 daily OHLC closes from the dashboard feed. Interval skips{" "}
-              <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.7rem]">n</code> candles between buys—not calendar days—so tune cadence to match how you think about spacing.
+              {isZh
+                ? "使用仪表盘数据流最近约 180 根日线收盘价。间隔按 K 线跳跃 "
+                : "Uses the last ~180 daily OHLC closes from the dashboard feed. Interval skips "}
+              <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.7rem]">n</code>
+              {isZh ? " 根再买入（不是自然日），可按你的节奏偏好调整。" : " candles between buys-not calendar days-so tune cadence to match how you think about spacing."}
             </p>
           </div>
 
@@ -83,7 +89,7 @@ export function DcaSimulator() {
             <div className="grid gap-5">
               <div>
                 <Label htmlFor="dca-market" className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Market
+                  {isZh ? "市场" : "Market"}
                 </Label>
                 <MarketSearchPicker
                   id="dca-market"
@@ -91,14 +97,14 @@ export function DcaSimulator() {
                   value={mint}
                   onValueChange={setMint}
                   disabled={markets.isPending}
-                  triggerPlaceholder={markets.isPending ? "Loading markets..." : "Choose a market"}
+                  triggerPlaceholder={markets.isPending ? (isZh ? "加载市场中..." : "Loading markets...") : (isZh ? "选择市场" : "Choose a market")}
                 />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="dca-amount" className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Size per buy (USD)
+                    {isZh ? "每次买入金额（USD）" : "Size per buy (USD)"}
                   </Label>
                   <Input
                     id="dca-amount"
@@ -114,7 +120,7 @@ export function DcaSimulator() {
                 </div>
                 <div>
                   <Label htmlFor="dca-step" className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Skip candles between buys
+                    {isZh ? "买入间隔（跳过K线）" : "Skip candles between buys"}
                   </Label>
                   <Input
                     id="dca-step"
@@ -128,14 +134,14 @@ export function DcaSimulator() {
                     aria-invalid={(!Number.isFinite(stepNum) || stepNum < 1) && step.trim() !== ""}
                   />
                   <p className="mt-2 text-[0.72rem] text-muted-foreground sm:text-xs">
-                    Example: <span className="font-medium text-foreground/85">7</span> ≈ weekly cadence on daily data.
+                    {isZh ? "示例：" : "Example:"} <span className="font-medium text-foreground/85">7</span> {isZh ? "≈ 日线下接近每周一次。" : "≈ weekly cadence on daily data."}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Spot context</p>
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isZh ? "现货上下文" : "Spot context"}</p>
               {selected ? (
                 <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/70 via-card/35 to-card/20 p-4 shadow-inner">
                   <div
@@ -150,14 +156,14 @@ export function DcaSimulator() {
                         <ChangePill pct={selected.priceChange24hPct} />
                       </div>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">{selected.name}</p>
-                      <p className="mt-3 text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Last close (feed)</p>
+                      <p className="mt-3 text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">{isZh ? "最新收盘（数据流）" : "Last close (feed)"}</p>
                       <p className="font-display text-xl font-semibold tabular-nums text-foreground">{formatPriceSmart(selected.priceUsd)}</p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-border/50 bg-muted/[0.08] p-6 text-center text-sm text-muted-foreground">
-                  Select a market to anchor the simulation.
+                  {isZh ? "请选择一个市场作为模拟基准。" : "Select a market to anchor the simulation."}
                 </div>
               )}
             </div>
@@ -166,13 +172,13 @@ export function DcaSimulator() {
           <div className="border-t border-border/45 bg-muted/[0.08] px-4 py-5 sm:px-6 sm:py-6">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Output</p>
-                <h2 className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">Simulation results</h2>
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{isZh ? "输出" : "Output"}</p>
+                <h2 className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">{isZh ? "模拟结果" : "Simulation results"}</h2>
               </div>
               {resultsLoading ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-border/45 bg-background/40 px-3 py-1 text-[0.7rem] font-medium text-muted-foreground">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-uof" aria-hidden />
-                  Loading candles…
+                  {isZh ? "加载K线中…" : "Loading candles..."}
                 </span>
               ) : null}
             </div>
@@ -181,9 +187,9 @@ export function DcaSimulator() {
               <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] py-8">
                 <EmptyState
                   icon={AlertTriangle}
-                  title="Simulation data unavailable"
+                  title={isZh ? "模拟数据不可用" : "Simulation data unavailable"}
                   description={
-                    (markets.error as Error)?.message || (ohlc.error as Error)?.message || "Try again in a moment."
+                    (markets.error as Error)?.message || (ohlc.error as Error)?.message || (isZh ? "请稍后重试。" : "Try again in a moment.")
                   }
                   action={
                     <Button
@@ -194,7 +200,7 @@ export function DcaSimulator() {
                         ohlc.refetch();
                       }}
                     >
-                      Retry
+                      {isZh ? "重试" : "Retry"}
                     </Button>
                   }
                 />
@@ -211,35 +217,41 @@ export function DcaSimulator() {
                   <div className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-background/35 backdrop-blur-[2px]" aria-hidden />
                 ) : null}
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                  <StatTile label="Total invested" value={formatUsd(dca.invested, { compact: false })} />
-                  <StatTile label="Mark value" value={formatUsd(dca.value, { compact: false })} />
+                  <StatTile label={isZh ? "总投入" : "Total invested"} value={formatUsd(dca.invested, { compact: false })} />
+                  <StatTile label={isZh ? "市值" : "Mark value"} value={formatUsd(dca.value, { compact: false })} />
                   <StatTile
-                    label="PnL"
+                    label={isZh ? "盈亏" : "PnL"}
                     value={formatUsd(dca.pnl, { compact: false })}
                     accent={dca.pnl >= 0}
-                    sub={dca.pnl >= 0 ? "Vs. cost basis" : "Below cost basis"}
+                    sub={dca.pnl >= 0 ? (isZh ? "相对成本为正" : "Vs. cost basis") : isZh ? "低于成本" : "Below cost basis"}
                   />
-                  <StatTile label="Avg entry" value={formatPriceSmart(dca.avgEntry)} />
-                  <StatTile label="Last candle close" value={formatPriceSmart(dca.current)} />
-                  <StatTile label="Accumulated tokens" value={dca.tokens.toFixed(4)} sub="Synthetic units" />
+                  <StatTile label={isZh ? "平均成本" : "Avg entry"} value={formatPriceSmart(dca.avgEntry)} />
+                  <StatTile label={isZh ? "最新收盘价" : "Last candle close"} value={formatPriceSmart(dca.current)} />
+                  <StatTile label={isZh ? "累计代币" : "Accumulated tokens"} value={dca.tokens.toFixed(4)} sub={isZh ? "模拟单位" : "Synthetic units"} />
                 </div>
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border/50 bg-background/[0.12] py-10 sm:py-12">
                 <EmptyState
                   icon={CalendarClock}
-                  title={inputsInvalid ? "Check inputs" : "Not enough history"}
+                  title={inputsInvalid ? (isZh ? "请检查输入" : "Check inputs") : isZh ? "历史数据不足" : "Not enough history"}
                   description={
                     inputsInvalid
-                      ? "Pick a market, positive USD size per leg, and interval ≥ 1 candle."
-                      : "Need at least two valid closes in the OHLC window—try another market or refresh."
+                      ? isZh
+                        ? "请选择市场、输入正数买入金额，且间隔需 >= 1 根K线。"
+                        : "Pick a market, positive USD size per leg, and interval >= 1 candle."
+                      : isZh
+                        ? "OHLC窗口至少需要两个有效收盘价，可尝试其他市场或刷新。"
+                        : "Need at least two valid closes in the OHLC window-try another market or refresh."
                   }
                 />
               </div>
             )}
 
             <p className="mt-6 border-t border-border/35 pt-5 text-[0.72rem] leading-relaxed text-muted-foreground sm:text-xs">
-              Educational model only: assumes fills at sampled closes, ignores fees, slippage, and liquidity. Not investment advice.
+              {isZh
+                ? "仅用于教育演示：默认按采样收盘价成交，未计手续费、滑点与流动性。非投资建议。"
+                : "Educational model only: assumes fills at sampled closes, ignores fees, slippage, and liquidity. Not investment advice."}
             </p>
           </div>
     </GlassCard>
@@ -247,6 +259,8 @@ export function DcaSimulator() {
 }
 
 export default function DcaPage() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   return (
     <div className="relative flex flex-col gap-8">
       <div
@@ -255,9 +269,13 @@ export default function DcaPage() {
       />
       <div className="relative z-[1] flex flex-col gap-8">
         <DashboardPageHeader
-          eyebrow="Strategy lab"
-          title="DCA simulator"
-          description="Backtest fixed-size buys on historical daily candles—model average entry, stacked exposure, and mark-to-market without placing trades."
+          eyebrow={isZh ? "策略实验室" : "Strategy lab"}
+          title={isZh ? "DCA 模拟器" : "DCA simulator"}
+          description={
+            isZh
+              ? "基于历史日线回测固定金额买入，模拟平均成本、累积敞口与市值变化，无需下单。"
+              : "Backtest fixed-size buys on historical daily candles-model average entry, stacked exposure, and mark-to-market without placing trades."
+          }
         />
         <DcaSimulator />
       </div>

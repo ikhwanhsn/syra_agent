@@ -172,7 +172,17 @@ function Rail({
   );
 }
 
-export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => void }) {
+export function TopMoversRails({
+  onSelect,
+  eyebrow = "Movers",
+  title = "Top movers across RISE",
+  description = "Live leaders",
+}: {
+  onSelect: (m: RiseMarketRow) => void;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+}) {
   const { aggregate } = useRiseDashboard();
   const data = aggregate.data;
   const isLoading = aggregate.isPending && !data;
@@ -180,9 +190,9 @@ export function TopMoversRails({ onSelect }: { onSelect: (m: RiseMarketRow) => v
   return (
     <section aria-labelledby="rise-movers-heading" className="flex flex-col gap-5">
       <SectionHeader
-        eyebrow="Movers"
-        title="Top movers across RISE"
-        description="Live leaders"
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
       />
       <div id="rise-movers-heading" className="sr-only">
         Top movers

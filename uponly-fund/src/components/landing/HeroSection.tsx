@@ -126,7 +126,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                   className="h-12 min-h-[3rem] rounded-lg border-border/65 bg-background/50 px-8 font-medium backdrop-blur-sm hover:bg-background/80"
                 >
                   <Link
-                    to="/dashboard"
+                    to="/terminal"
                     className="inline-flex items-center justify-center gap-2"
                   >
                     Institutional dashboard

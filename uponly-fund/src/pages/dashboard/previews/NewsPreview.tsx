@@ -1,5 +1,6 @@
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { GlassCard } from "@/components/rise/RiseShared";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const SAMPLE_NEWS = [
   { title: "Solana ecosystem sees liquidity rebound as memecoin floors stabilize", source: "Blockwire", date: "2026-04-28", sentiment: "positive" },
@@ -10,16 +11,22 @@ const SAMPLE_NEWS = [
 ];
 
 export function NewsPreview() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   return (
     <div className="flex flex-col gap-6">
       <DashboardPageHeader
-        title="News"
-        description="Free market headlines from Syra preview news endpoint to keep dashboard context-aware."
-        eyebrow="Insights"
+        title={isZh ? "新闻" : "News"}
+        description={
+          isZh
+            ? "来自 Syra 预览新闻接口的免费市场头条，帮助保持仪表盘上下文。"
+            : "Free market headlines from Syra preview news endpoint to keep dashboard context-aware."
+        }
+        eyebrow={isZh ? "洞察" : "Insights"}
       />
       <GlassCard>
         <label htmlFor="news-preview" className="mb-1 block text-xs font-medium text-muted-foreground">
-          Ticker (e.g. general, sol, btc)
+          {isZh ? "Ticker（例如 general、sol、btc）" : "Ticker (e.g. general, sol, btc)"}
         </label>
         <input
           id="news-preview"

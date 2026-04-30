@@ -29,7 +29,7 @@ export default function TokenDetailPage() {
         eyebrow="Token"
         right={
           <Link
-            to="/dashboard"
+            to="/terminal"
             className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border/55 px-3 text-sm font-medium text-foreground/90 hover:bg-muted/20"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />

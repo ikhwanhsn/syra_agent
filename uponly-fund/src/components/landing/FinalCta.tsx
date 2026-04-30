@@ -39,7 +39,7 @@ export function FinalCta({ className }: FinalCtaProps) {
               size="lg"
               className="h-12 min-w-[13rem] rounded-lg bg-uof !text-[hsl(var(--uof-foreground))] px-8 font-semibold shadow-[0_10px_32px_-8px_hsl(var(--uof)/0.45)] hover:bg-uof/92"
             >
-              <Link to="/dashboard" className="inline-flex items-center justify-center gap-2">
+              <Link to="/terminal" className="inline-flex items-center justify-center gap-2">
                 Open live desk
                 <ArrowRight className="h-4 w-4" />
               </Link>

@@ -41,6 +41,7 @@ import {
   formatRelativeAge,
   shortenMint,
 } from "./RiseShared";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const PAGE_SIZE = 10;
 
@@ -205,6 +206,8 @@ function ScreenerStatCard({
 }
 
 export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => void }) {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -237,16 +240,20 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
     minHolders != null;
 
   const allMarketsQuery = useRiseMarketsAll();
+  const firstPageQuery = useRiseMarkets({ page: 1, limit: 10 });
   const isGlobalSearchMode = true;
 
-  const total = allMarketsQuery.data?.length ?? null;
-  const sourceRows = useMemo(() => allMarketsQuery.data ?? [], [allMarketsQuery.data]);
+  const sourceRows = useMemo(
+    () => allMarketsQuery.data ?? firstPageQuery.data?.markets ?? [],
+    [allMarketsQuery.data, firstPageQuery.data?.markets],
+  );
+  const total = allMarketsQuery.data?.length ?? firstPageQuery.data?.total ?? null;
 
   const filtered = useMemo(
     () => applyFilters(sourceRows, deferredSearch, verifiedOnly, hasFloorOnly, minMarketCap, minVolume24h, minHolders),
     [sourceRows, deferredSearch, verifiedOnly, hasFloorOnly, minMarketCap, minVolume24h, minHolders],
   );
-  const globalRows = allMarketsQuery.data ?? [];
+  const globalRows = sourceRows;
   const todayStats = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -277,11 +284,13 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
     () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     [sorted, page],
   );
-  const isPending = allMarketsQuery.isPending;
-  const isFetching = allMarketsQuery.isFetching;
-  const isError = allMarketsQuery.isError;
-  const error = allMarketsQuery.error;
-  const refetch = allMarketsQuery.refetch;
+  const isPending = allMarketsQuery.isPending && firstPageQuery.isPending && sourceRows.length === 0;
+  const isFetching = allMarketsQuery.isFetching || firstPageQuery.isFetching;
+  const isError = sourceRows.length === 0 && allMarketsQuery.isError && firstPageQuery.isError;
+  const error = allMarketsQuery.error ?? firstPageQuery.error;
+  const refetch = async () => {
+    await Promise.all([allMarketsQuery.refetch(), firstPageQuery.refetch()]);
+  };
 
   useEffect(() => {
     setPage(1);
@@ -312,11 +321,24 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
     (minVolume24h != null ? 1 : 0) +
     (minHolders != null ? 1 : 0);
   const hasActiveFilters = search.trim().length > 0 || activeFilterCount > 0;
+  const sortLabel = {
+    marketCapUsd: isZh ? "市值" : "Market cap",
+    volume24hUsd: isZh ? "24h成交量" : "24h volume",
+    priceUsd: isZh ? "价格" : "Price",
+    priceChange24hPct: isZh ? "24hΔ" : "24h Δ",
+    floorPriceUsd: isZh ? "底线" : "Floor",
+    floorMarketCapUsd: isZh ? "底线市值" : "Floor MC",
+    floorDeltaPct: isZh ? "底线Δ" : "Floor Δ",
+    holders: isZh ? "持有人" : "Holders",
+    creatorFeePct: isZh ? "费率" : "Fee",
+    lockedSupplyPct: isZh ? "锁仓" : "Locked",
+    ageHours: isZh ? "时长" : "Age",
+  } as const;
 
   return (
     <section aria-labelledby="rise-screener-heading" className="flex flex-col gap-5">
       <h2 id="rise-screener-heading" className="sr-only">
-        RISE market screener
+        {isZh ? "RISE 市场筛选器" : "RISE market screener"}
       </h2>
 
       {/* KPI strip */}
@@ -336,23 +358,23 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
           <>
             <ScreenerStatCard
               icon={Globe2}
-              label="Listed universe"
+              label={isZh ? "已上市池" : "Listed universe"}
               value={total != null ? formatInt(total) : "—"}
-              hint="Markets in current server scope."
+              hint={isZh ? "当前服务端范围内的市场。" : "Markets in current server scope."}
               gradientClass="from-sky-500/28 to-cyan-700/12"
               ringClass="ring-sky-400/22"
             />
             <ScreenerStatCard
               icon={Layers}
-              label="New tokens today"
+              label={isZh ? "今日新币" : "New tokens today"}
               value={formatInt(todayStats.newToday)}
-              hint="Tokens created since 00:00 local time."
+              hint={isZh ? "本地时间 00:00 以来创建的代币。" : "Tokens created since 00:00 local time."}
               gradientClass="from-emerald-500/25 to-teal-800/12"
               ringClass="ring-emerald-400/22"
             />
             <ScreenerStatCard
               icon={RefreshCw}
-              label="Average market / floor MC"
+              label={isZh ? "平均市值 / 底线市值" : "Average market / floor MC"}
               value={
                 <span className="text-[1.15rem] sm:text-[1.35rem]">
                   {todayStats.avgMarketCap != null ? formatUsd(todayStats.avgMarketCap, { compact: true }) : "—"}
@@ -360,7 +382,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   {todayStats.avgFloorMarketCap != null ? formatUsd(todayStats.avgFloorMarketCap, { compact: true }) : "—"}
                 </span>
               }
-              hint="Average market cap and average floor market cap."
+              hint={isZh ? "平均市值与平均底线市值。" : "Average market cap and average floor market cap."}
               gradientClass="from-violet-500/24 to-fuchsia-800/12"
               ringClass="ring-violet-400/20"
             />
@@ -378,10 +400,10 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
             <div className="min-w-0">
               <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
-                Full-depth book
+                {isZh ? "全深度市场簿" : "Full-depth book"}
               </p>
               <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Search and apply advanced filters to isolate the markets that matter.
+                {isZh ? "搜索并应用高级筛选，快速定位关键市场。" : "Search and apply advanced filters to isolate the markets that matter."}
               </p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
@@ -393,16 +415,16 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search symbol, name, or mint…"
+                  placeholder={isZh ? "搜索代币符号、名称或 mint..." : "Search symbol, name, or mint..."}
                   className="h-11 rounded-xl border-border/55 bg-background/40 pl-10 pr-10 shadow-inner placeholder:text-muted-foreground/75"
-                  aria-label="Search markets"
+                  aria-label={isZh ? "搜索市场" : "Search markets"}
                 />
                 {search ? (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                    aria-label="Clear search"
+                    aria-label={isZh ? "清空搜索" : "Clear search"}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -413,7 +435,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-11 rounded-xl border-border/55 px-3 text-xs sm:text-sm">
                     <SlidersHorizontal className="mr-1.5 h-4 w-4" />
-                    Filters
+                    {isZh ? "筛选" : "Filters"}
                     {activeFilterCount > 0 ? (
                       <span className="ml-1 rounded-full bg-uof/20 px-1.5 py-0.5 text-[10px] font-semibold text-uof">
                         {activeFilterCount}
@@ -422,10 +444,10 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-[20rem] space-y-3 rounded-xl border-border/60 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Quick Filters</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isZh ? "快速筛选" : "Quick Filters"}</p>
 
                   <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border/40 bg-muted/[0.12] px-2.5 py-2">
-                    <span className="text-xs font-medium text-foreground">Verified only</span>
+                    <span className="text-xs font-medium text-foreground">{isZh ? "仅已验证" : "Verified only"}</span>
                     <input
                       type="checkbox"
                       className="h-4 w-4 accent-current"
@@ -434,7 +456,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     />
                   </label>
                   <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border/40 bg-muted/[0.12] px-2.5 py-2">
-                    <span className="text-xs font-medium text-foreground">Has floor price</span>
+                    <span className="text-xs font-medium text-foreground">{isZh ? "有底线价格" : "Has floor price"}</span>
                     <input
                       type="checkbox"
                       className="h-4 w-4 accent-current"
@@ -445,7 +467,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                      Min market cap (USD)
+                      {isZh ? "最小市值（USD）" : "Min market cap (USD)"}
                     </label>
                     <Input
                       type="number"
@@ -453,13 +475,13 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                       step="1000"
                       value={minMarketCapInput}
                       onChange={(e) => setMinMarketCapInput(e.target.value)}
-                      placeholder="e.g. 1000000"
+                      placeholder={isZh ? "例如 1000000" : "e.g. 1000000"}
                       className="h-9 rounded-lg"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                      Min 24h volume (USD)
+                      {isZh ? "最小 24h 成交量（USD）" : "Min 24h volume (USD)"}
                     </label>
                     <Input
                       type="number"
@@ -467,13 +489,13 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                       step="1000"
                       value={minVolumeInput}
                       onChange={(e) => setMinVolumeInput(e.target.value)}
-                      placeholder="e.g. 50000"
+                      placeholder={isZh ? "例如 50000" : "e.g. 50000"}
                       className="h-9 rounded-lg"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                      Min holders
+                      {isZh ? "最小持有人数" : "Min holders"}
                     </label>
                     <Input
                       type="number"
@@ -481,7 +503,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                       step="1"
                       value={minHoldersInput}
                       onChange={(e) => setMinHoldersInput(e.target.value)}
-                      placeholder="e.g. 250"
+                      placeholder={isZh ? "例如 250" : "e.g. 250"}
                       className="h-9 rounded-lg"
                     />
                   </div>
@@ -495,7 +517,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   onClick={resetFilters}
                   className="h-11 rounded-xl border-border/55 px-3 text-xs sm:text-sm"
                 >
-                  Clear
+                  {isZh ? "清除" : "Clear"}
                 </Button>
               ) : null}
             </div>
@@ -506,10 +528,10 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
           <div className="p-8 sm:p-10">
             <EmptyState
               title="Could not load markets"
-              description={(error as Error)?.message ?? "Check your connection and try again."}
+              description={(error as Error)?.message ?? (isZh ? "请检查网络后重试。" : "Check your connection and try again.")}
               action={
                 <Button size="sm" variant="secondary" onClick={() => refetch()}>
-                  Retry
+                  {isZh ? "重试" : "Retry"}
                 </Button>
               }
             />
@@ -522,11 +544,11 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 <TableHeader>
                   <TableRow className="border-border/40 bg-muted/[0.12] hover:bg-transparent">
                     <TableHead className="h-12 min-w-[11rem] px-4 text-left text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      Token
+                      {isZh ? "代币" : "Token"}
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.priceUsd}
+                        label={sortLabel.priceUsd}
                         active={sortKey === "priceUsd"}
                         dir={sortDir}
                         onClick={() => onSort("priceUsd")}
@@ -534,7 +556,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.priceChange24hPct}
+                        label={sortLabel.priceChange24hPct}
                         active={sortKey === "priceChange24hPct"}
                         dir={sortDir}
                         onClick={() => onSort("priceChange24hPct")}
@@ -542,7 +564,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.floorPriceUsd}
+                        label={sortLabel.floorPriceUsd}
                         active={sortKey === "floorPriceUsd"}
                         dir={sortDir}
                         onClick={() => onSort("floorPriceUsd")}
@@ -550,7 +572,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.floorDeltaPct}
+                        label={sortLabel.floorDeltaPct}
                         active={sortKey === "floorDeltaPct"}
                         dir={sortDir}
                         onClick={() => onSort("floorDeltaPct")}
@@ -558,7 +580,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.marketCapUsd}
+                        label={sortLabel.marketCapUsd}
                         active={sortKey === "marketCapUsd"}
                         dir={sortDir}
                         onClick={() => onSort("marketCapUsd")}
@@ -566,7 +588,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.volume24hUsd}
+                        label={sortLabel.volume24hUsd}
                         active={sortKey === "volume24hUsd"}
                         dir={sortDir}
                         onClick={() => onSort("volume24hUsd")}
@@ -574,7 +596,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.holders}
+                        label={sortLabel.holders}
                         active={sortKey === "holders"}
                         dir={sortDir}
                         onClick={() => onSort("holders")}
@@ -582,7 +604,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.creatorFeePct}
+                        label={sortLabel.creatorFeePct}
                         active={sortKey === "creatorFeePct"}
                         dir={sortDir}
                         onClick={() => onSort("creatorFeePct")}
@@ -590,7 +612,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.lockedSupplyPct}
+                        label={sortLabel.lockedSupplyPct}
                         active={sortKey === "lockedSupplyPct"}
                         dir={sortDir}
                         onClick={() => onSort("lockedSupplyPct")}
@@ -598,14 +620,14 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                     </TableHead>
                     <TableHead className="h-12 px-2">
                       <SortableHeader
-                        label={SORT_LABEL.ageHours}
+                        label={sortLabel.ageHours}
                         active={sortKey === "ageHours"}
                         dir={sortDir}
                         onClick={() => onSort("ageHours")}
                       />
                     </TableHead>
                     <TableHead className="h-12 px-4 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      Action
+                      {isZh ? "操作" : "Action"}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -681,7 +703,10 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 </div>
               ) : pagedRows.length === 0 ? (
                 <div className="px-4 py-10 sm:px-6">
-                  <EmptyState title="No markets match" description="Try clearing filters or search." />
+                  <EmptyState
+                    title={isZh ? "没有匹配的市场" : "No markets match"}
+                    description={isZh ? "请尝试清空筛选或搜索条件。" : "Try clearing filters or search."}
+                  />
                 </div>
               ) : (
                 <ul className="flex flex-col gap-3 p-4">
@@ -708,19 +733,19 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                         </div>
                         <div className="grid grid-cols-2 gap-2 border-t border-border/35 pt-3 text-[0.68rem] text-muted-foreground sm:grid-cols-3">
                           <div>
-                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">Market cap</p>
+                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">{isZh ? "市值" : "Market cap"}</p>
                             <p className="mt-0.5 font-medium text-foreground">{formatUsd(m.marketCapUsd, { compact: true })}</p>
                           </div>
                           <div>
-                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">24h vol</p>
+                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">{isZh ? "24h量" : "24h vol"}</p>
                             <p className="mt-0.5 font-medium text-foreground">{formatUsd(m.volume24hUsd, { compact: true })}</p>
                           </div>
                           <div>
-                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">Holders</p>
+                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">{isZh ? "持有人" : "Holders"}</p>
                             <p className="mt-0.5 font-medium text-foreground">{formatInt(m.holders)}</p>
                           </div>
                           <div className="col-span-2 sm:col-span-1">
-                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">Floor Δ</p>
+                            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.08em]">{isZh ? "底线Δ" : "Floor Δ"}</p>
                             <div className="mt-1">
                               <ChangePill pct={m.floorDeltaPct} />
                             </div>
@@ -737,18 +762,21 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
             <div className="flex flex-col gap-3 border-t border-border/45 bg-muted/[0.12] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="min-w-0 text-[0.7rem] text-muted-foreground sm:text-xs">
                 {isError ? (
-                  <span className="text-destructive">{(error as Error)?.message ?? "Failed to load markets."}</span>
+                  <span className="text-destructive">{(error as Error)?.message ?? (isZh ? "市场加载失败。" : "Failed to load markets.")}</span>
                 ) : (
                   <>
                     <span className="font-medium text-foreground/90">
-                      Page {isGlobalSearchMode ? page : (listQuery.data?.page ?? page)}
-                      {totalPages != null ? ` of ${formatInt(totalPages)}` : ""}
+                      {isZh ? "第" : "Page "}
+                      {isGlobalSearchMode ? page : (listQuery.data?.page ?? page)}
+                      {totalPages != null ? (isZh ? ` / ${formatInt(totalPages)}` : ` of ${formatInt(totalPages)}`) : ""}
                     </span>
                     <span className="text-muted-foreground/85">
                       {" "}
-                      · {isFetching ? "Refreshing…" : "Up to date"}
+                      · {isFetching ? (isZh ? "刷新中…" : "Refreshing...") : isZh ? "已是最新" : "Up to date"}
                       {hasActiveFilters
-                        ? ` · ${formatInt(isGlobalSearchMode ? filtered.length : sorted.length)} rows after local filters`
+                        ? isZh
+                          ? ` · 本地筛选后 ${formatInt(isGlobalSearchMode ? filtered.length : sorted.length)} 行`
+                          : ` · ${formatInt(isGlobalSearchMode ? filtered.length : sorted.length)} rows after local filters`
                         : ""}
                     </span>
                   </>
@@ -762,7 +790,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="h-9 gap-1 rounded-lg px-3 text-xs"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                  <ChevronLeft className="h-3.5 w-3.5" /> {isZh ? "上一页" : "Previous"}
                 </Button>
                 <Button
                   variant="ghost"
@@ -775,11 +803,11 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   onClick={() => setPage((p) => Math.min((totalPages ?? p + 1), p + 1))}
                   className="h-9 gap-1 rounded-lg px-3 text-xs"
                 >
-                  Next <ChevronRight className="h-3.5 w-3.5" />
+                  {isZh ? "下一页" : "Next"} <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
                 {isError ? (
                   <Button size="sm" variant="secondary" onClick={() => refetch()} className="h-9 px-3 text-xs">
-                    Retry
+                    {isZh ? "重试" : "Retry"}
                   </Button>
                 ) : null}
               </div>

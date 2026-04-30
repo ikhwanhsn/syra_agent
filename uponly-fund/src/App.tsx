@@ -9,12 +9,14 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import DashboardOverview from "@/pages/dashboard/Overview";
+import TerminalPage from "@/pages/dashboard/Terminal";
 import MarketsPage from "@/pages/dashboard/Markets";
 import WalletPage from "@/pages/dashboard/Wallet";
 import SimulatorPage from "@/pages/dashboard/Simulator";
 import InsightsPage from "@/pages/dashboard/Insights";
 import TokenDetailPage from "@/pages/token/TokenDetail";
+import { getRiseAggregate, getRiseMarkets } from "@/lib/riseDashboardApi";
+import { LanguageProvider } from "@/lib/LanguageContext";
 
 const queryClient = new QueryClient();
 
@@ -34,46 +36,72 @@ function ScrollToTop() {
   return null;
 }
 
+function DashboardDataWarmup() {
+  useEffect(() => {
+    void queryClient.prefetchQuery({
+      queryKey: ["rise-aggregate"],
+      queryFn: ({ signal }) => getRiseAggregate(signal),
+      staleTime: 60_000,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: ["rise-markets", 1, 10, false, false, 0],
+      queryFn: ({ signal }) => getRiseMarkets({ page: 1, limit: 10 }, signal),
+      staleTime: 60_000,
+    });
+  }, []);
+  return null;
+}
+
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<DashboardOverview />} />
-              <Route path="markets" element={<MarketsPage />} />
-              <Route path="wallet" element={<WalletPage />} />
-              <Route path="simulator" element={<SimulatorPage />} />
-              <Route path="quote" element={<Navigate to="/dashboard/simulator" replace />} />
-              <Route path="borrow" element={<Navigate to="/dashboard/simulator?tab=borrow" replace />} />
-              <Route path="watchlist" element={<Navigate to="/dashboard/markets?tab=watchlist" replace />} />
-              <Route path="compare" element={<Navigate to="/dashboard/markets?tab=compare" replace />} />
-              <Route path="floor-scanner" element={<Navigate to="/dashboard/markets?tab=floor-scanner" replace />} />
-              <Route path="insights" element={<InsightsPage />} />
-              <Route path="activity" element={<Navigate to="/dashboard/insights" replace />} />
-              <Route path="whales" element={<Navigate to="/dashboard/insights?tab=whales" replace />} />
-              <Route path="signals" element={<Navigate to="/dashboard/insights?tab=signals" replace />} />
-              <Route path="dca" element={<Navigate to="/dashboard/simulator?tab=dca" replace />} />
-              <Route path="news" element={<Navigate to="/dashboard/insights?tab=news" replace />} />
+  <LanguageProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <DashboardDataWarmup />
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
+            <Route path="/" element={<Navigate to="/terminal" replace />} />
+            <Route path="/landing" element={<Index />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/terminal" element={<TerminalPage />} />
+              <Route path="/market" element={<MarketsPage />} />
+              <Route path="/wallet" element={<WalletPage />} />
+              <Route path="/simulator" element={<SimulatorPage />} />
+              <Route path="/insights" element={<InsightsPage />} />
             </Route>
+            <Route path="/dashboard" element={<Navigate to="/terminal" replace />} />
+            <Route path="/dashboard/overview" element={<Navigate to="/terminal" replace />} />
+            <Route path="/dashboard/markets" element={<Navigate to="/market" replace />} />
+            <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
+            <Route path="/dashboard/simulator" element={<Navigate to="/simulator" replace />} />
+            <Route path="/dashboard/insights" element={<Navigate to="/insights" replace />} />
+            <Route path="/dashboard/quote" element={<Navigate to="/simulator" replace />} />
+            <Route path="/dashboard/borrow" element={<Navigate to="/simulator?tab=borrow" replace />} />
+            <Route path="/dashboard/watchlist" element={<Navigate to="/market?tab=watchlist" replace />} />
+            <Route path="/dashboard/compare" element={<Navigate to="/market?tab=compare" replace />} />
+            <Route path="/dashboard/floor-scanner" element={<Navigate to="/market?tab=floor-scanner" replace />} />
+            <Route path="/dashboard/activity" element={<Navigate to="/insights" replace />} />
+            <Route path="/dashboard/whales" element={<Navigate to="/insights?tab=whales" replace />} />
+            <Route path="/dashboard/signals" element={<Navigate to="/insights?tab=signals" replace />} />
+            <Route path="/dashboard/dca" element={<Navigate to="/simulator?tab=dca" replace />} />
+            <Route path="/dashboard/news" element={<Navigate to="/insights?tab=news" replace />} />
             <Route path="/uponly/overview" element={<Navigate to="/" replace />} />
             <Route path="/uponly/fund" element={<Navigate to="/" replace />} />
-            <Route path="/uponly/rise" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/uponly/rise" element={<Navigate to="/terminal" replace />} />
             <Route path="/tranche" element={<Navigate to="/" replace />} />
             <Route path="/treasury" element={<Navigate to="/" replace />} />
             <Route path="/token/:address" element={<TokenDetailPage />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-          <ScrollToTopButton />
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+            </Routes>
+            <ScrollToTopButton />
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </LanguageProvider>
 );
 
 export default App;

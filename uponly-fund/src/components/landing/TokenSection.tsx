@@ -77,7 +77,7 @@ export function TokenSection({ className }: TokenSectionProps) {
             </Button>
           )}
           <Button asChild variant="outline" size="lg" className="min-h-12 rounded-lg border-border/60 bg-background/60 font-medium">
-            <Link to="/dashboard">Open dashboard first</Link>
+            <Link to="/terminal">Open dashboard first</Link>
           </Button>
           <p className="text-xs text-muted-foreground">Not financial advice. Tokens are volatile; only risk what you can afford to lose.</p>
         </div>

@@ -24,6 +24,7 @@ import {
   formatPriceSmart,
   shortenMint,
 } from "./RiseShared";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const ADDR_MIN = 32;
 const ADDR_MAX = 50;
@@ -80,6 +81,8 @@ function PositionCard({ p }: { p: RisePortfolioPosition }) {
 }
 
 export function WalletLookup() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [searchParams, setSearchParams] = useSearchParams();
   const walletFromUrl = searchParams.get("wallet") || "";
   const initial = walletFromUrl;
@@ -125,7 +128,7 @@ export function WalletLookup() {
   return (
     <section aria-labelledby="rise-wallet-heading">
       <h2 id="rise-wallet-heading" className="sr-only">
-        Solana wallet portfolio lookup
+        {isZh ? "Solana 钱包资产查询" : "Solana wallet portfolio lookup"}
       </h2>
 
       <GlassCard
@@ -135,10 +138,14 @@ export function WalletLookup() {
         <div className="border-b border-border/45 bg-gradient-to-b from-card/55 to-transparent px-4 py-5 sm:px-6">
           <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-foreground/45" aria-hidden />
-            Portfolio probe
+            {isZh ? "资产探针" : "Portfolio probe"}
           </p>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Submitting syncs <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.7rem]">?wallet=…</code> so you can bookmark or share a read-only snapshot. Paste-only—no wallet connection required.
+            {isZh ? "提交后会同步 " : "Submitting syncs "}
+            <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.7rem]">?wallet=…</code>
+            {isZh
+              ? "，可收藏或分享只读快照。仅粘贴地址即可，无需连接钱包。"
+              : " so you can bookmark or share a read-only snapshot. Paste-only-no wallet connection required."}
           </p>
         </div>
 
@@ -151,13 +158,13 @@ export function WalletLookup() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Solana address (base58, 32–44 chars)"
+              placeholder={isZh ? "Solana 地址（base58，32-44 位）" : "Solana address (base58, 32-44 chars)"}
               className={cn(
                 "h-11 rounded-xl border-border/55 bg-background/40 pl-10 pr-10 font-mono text-sm shadow-inner sm:text-sm",
                 inputInvalid && "border-destructive/50",
               )}
               aria-invalid={inputInvalid}
-              aria-label="Solana wallet address"
+              aria-label={isZh ? "Solana 钱包地址" : "Solana wallet address"}
               spellCheck={false}
             />
             {input ? (
@@ -165,7 +172,7 @@ export function WalletLookup() {
                 type="button"
                 onClick={onClear}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                aria-label="Clear wallet"
+                aria-label={isZh ? "清空钱包地址" : "Clear wallet"}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -173,7 +180,7 @@ export function WalletLookup() {
           </div>
           <Button type="submit" disabled={!isValidAddress(input.trim())} className="h-11 shrink-0 gap-2 rounded-xl px-5">
             <Search className="h-3.5 w-3.5" aria-hidden />
-            Look up
+            {isZh ? "查询" : "Look up"}
           </Button>
         </form>
 
@@ -182,16 +189,20 @@ export function WalletLookup() {
             <div className="rounded-xl border border-dashed border-border/55 bg-muted/[0.06] py-12 sm:py-14">
               <EmptyState
                 icon={Briefcase}
-                title="Enter a wallet to inspect"
-                description="We’ll load aggregate totals and open RISE positions from the portfolio APIs—nothing is signed or broadcast."
+                title={isZh ? "输入钱包开始查看" : "Enter a wallet to inspect"}
+                description={
+                  isZh
+                    ? "我们将从资产 API 加载总览与 RISE 持仓信息，不会签名或广播交易。"
+                    : "We'll load aggregate totals and open RISE positions from the portfolio APIs-nothing is signed or broadcast."
+                }
               />
             </div>
           ) : isError ? (
             <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] py-8">
               <EmptyState
                 icon={Briefcase}
-                title="Lookup failed"
-                description={errMsg || "RISE portfolio API did not return a result for this wallet."}
+                title={isZh ? "查询失败" : "Lookup failed"}
+                description={errMsg || (isZh ? "RISE 资产接口未返回该钱包结果。" : "RISE portfolio API did not return a result for this wallet.")}
                 action={
                   <Button
                     size="sm"
@@ -201,7 +212,7 @@ export function WalletLookup() {
                       positions.refetch();
                     }}
                   >
-                    Retry
+                    {isZh ? "重试" : "Retry"}
                   </Button>
                 }
               />
@@ -215,14 +226,14 @@ export function WalletLookup() {
                   </span>
                   <div className="min-w-0">
                     <p className="font-mono text-sm font-medium text-foreground">{shortenMint(submitted, 8, 8)}</p>
-                    <p className="text-[0.65rem] text-muted-foreground">Active lookup</p>
+                    <p className="text-[0.65rem] text-muted-foreground">{isZh ? "当前查询" : "Active lookup"}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {solscanUrl ? (
                     <Button variant="outline" size="sm" asChild className="h-9 gap-1.5 rounded-lg border-border/55">
                       <a href={solscanUrl} target="_blank" rel="noopener noreferrer">
-                        Solscan
+                        {isZh ? "Solscan" : "Solscan"}
                         <ExternalLink className="h-3 w-3" aria-hidden />
                       </a>
                     </Button>
@@ -231,10 +242,10 @@ export function WalletLookup() {
                     {summary.isFetching || positions.isFetching ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin text-uof" aria-hidden />
-                        Refreshing…
+                        {isZh ? "刷新中…" : "Refreshing..."}
                       </>
                     ) : (
-                      "Up to date"
+                      isZh ? "已是最新" : "Up to date"
                     )}
                   </span>
                 </div>
@@ -242,7 +253,7 @@ export function WalletLookup() {
 
               <div>
                 <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Portfolio summary
+                  {isZh ? "资产总览" : "Portfolio summary"}
                 </p>
                 <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {(summary.isFetching || positions.isFetching) && sumData ? (
@@ -252,20 +263,20 @@ export function WalletLookup() {
                     Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[5.25rem] rounded-xl" />)
                   ) : sumData ? (
                     <>
-                      <StatTile label="Total value" value={formatUsd(sumData.totalValueUsd, { compact: false })} />
+                      <StatTile label={isZh ? "总资产" : "Total value"} value={formatUsd(sumData.totalValueUsd, { compact: false })} />
                       <StatTile
-                        label="Total P&L"
+                        label={isZh ? "总盈亏" : "Total P&L"}
                         value={formatUsd(sumData.totalPnlUsd, { compact: false })}
                         sub={
                           sumData.totalValueUsd > 0
-                            ? `${((sumData.totalPnlUsd / sumData.totalValueUsd) * 100).toFixed(1)}% of NAV`
+                            ? `${((sumData.totalPnlUsd / sumData.totalValueUsd) * 100).toFixed(1)}% ${isZh ? "占净值" : "of NAV"}`
                             : undefined
                         }
                         accent={sumData.totalPnlUsd >= 0}
                       />
-                      <StatTile label="Tokens held" value={formatInt(sumData.tokensHeld)} />
-                      <StatTile label="Created" value={formatInt(sumData.tokensCreatedCount)} />
-                      <StatTile label="Transactions" value={formatInt(sumData.totalTransactions)} />
+                      <StatTile label={isZh ? "持有代币" : "Tokens held"} value={formatInt(sumData.tokensHeld)} />
+                      <StatTile label={isZh ? "创建代币" : "Created"} value={formatInt(sumData.tokensCreatedCount)} />
+                      <StatTile label={isZh ? "交易数" : "Transactions"} value={formatInt(sumData.totalTransactions)} />
                     </>
                   ) : null}
                 </div>
@@ -273,11 +284,11 @@ export function WalletLookup() {
 
               <div>
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Positions</p>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{isZh ? "持仓" : "Positions"}</p>
                   {positions.data?.total != null ? (
                     <span className="text-[0.7rem] tabular-nums text-muted-foreground sm:text-xs">
-                      {formatInt(positions.data.count)} shown
-                      {positions.data.total > positions.data.count ? ` · ${formatInt(positions.data.total)} total` : ""}
+                      {formatInt(positions.data.count)} {isZh ? "已显示" : "shown"}
+                      {positions.data.total > positions.data.count ? ` · ${formatInt(positions.data.total)} ${isZh ? "总计" : "total"}` : ""}
                     </span>
                   ) : null}
                 </div>
@@ -288,22 +299,22 @@ export function WalletLookup() {
                       <TableHeader>
                         <TableRow className="border-border/40 bg-muted/[0.12] hover:bg-transparent">
                           <TableHead className="h-11 px-4 text-left text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                            Token
+                            {isZh ? "代币" : "Token"}
                           </TableHead>
                           <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                            Balance
+                            {isZh ? "余额" : "Balance"}
                           </TableHead>
                           <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                            USD value
+                            {isZh ? "美元价值" : "USD value"}
                           </TableHead>
                           <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                            Avg entry
+                            {isZh ? "平均成本" : "Avg entry"}
                           </TableHead>
                           <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                             P&amp;L
                           </TableHead>
                           <TableHead className="h-11 px-4 text-right text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                            Trade
+                            {isZh ? "交易" : "Trade"}
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -319,7 +330,7 @@ export function WalletLookup() {
                         ) : (positions.data?.positions.length ?? 0) === 0 ? (
                           <TableRow>
                             <TableCell colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                              No RISE positions found for this wallet.
+                              {isZh ? "该钱包未找到 RISE 持仓。" : "No RISE positions found for this wallet."}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -359,7 +370,7 @@ export function WalletLookup() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="px-4 py-3 text-right">
-                                  {url ? <RiseTradeButton mint={p.mint} /> : <span className="text-xs text-muted-foreground">—</span>}
+                                  {url ? <RiseTradeButton mint={p.mint} /> : <span className="text-xs text-muted-foreground">-</span>}
                                 </TableCell>
                               </TableRow>
                             );
@@ -375,7 +386,7 @@ export function WalletLookup() {
                     Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-2xl" />)
                   ) : (positions.data?.positions.length ?? 0) === 0 ? (
                     <li className="rounded-xl border border-dashed border-border/50 py-10 text-center text-sm text-muted-foreground">
-                      No RISE positions found for this wallet.
+                      {isZh ? "该钱包未找到 RISE 持仓。" : "No RISE positions found for this wallet."}
                     </li>
                   ) : (
                     positions.data?.positions.map((p) => (
@@ -388,7 +399,9 @@ export function WalletLookup() {
               </div>
 
               <p className="border-t border-border/35 pt-5 text-[0.72rem] leading-relaxed text-muted-foreground sm:text-xs">
-                Read-only portfolio snapshot. P&amp;L and balances depend on RISE indexer freshness—always verify large moves on-chain.
+                {isZh
+                  ? "只读资产快照。盈亏与余额依赖 RISE 索引器更新，请始终在链上复核大额变动。"
+                  : "Read-only portfolio snapshot. P&L and balances depend on RISE indexer freshness-always verify large moves on-chain."}
               </p>
             </div>
           )}

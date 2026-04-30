@@ -1,57 +1,32 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowUpRight } from "lucide-react";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
-import { RiseHero } from "@/components/rise/RiseHero";
 import { TopMoversRails } from "@/components/rise/TopMoversRails";
 import { MarketDetailDrawer } from "@/components/rise/MarketDetailDrawer";
-import { GlassCard } from "@/components/rise/RiseShared";
-import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
-
-const quickLinks = [
-  { to: "/dashboard/markets", label: "Screener" },
-  { to: "/dashboard/watchlist", label: "Watchlist" },
-  { to: "/dashboard/compare", label: "Compare" },
-  { to: "/dashboard/signals", label: "Signals" },
-  { to: "/dashboard/news", label: "News" },
-  { to: "/dashboard/wallet", label: "Wallet" },
-];
+import { UponlySpotlight } from "@/components/rise/UponlySpotlight";
+import { FundCommandHero } from "@/components/dashboard/FundCommandHero";
+import { AllocationPanel } from "@/components/dashboard/AllocationPanel";
+import { AgentActivityFeed } from "@/components/dashboard/AgentActivityFeed";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function DashboardOverview() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
-      <DashboardPageHeader
-        title="Market overview"
-        description="Live RISE market intelligence."
-        eyebrow="Live"
+      <FundCommandHero />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <AllocationPanel className="lg:col-span-2" onSelect={setOpenMarket} />
+        <AgentActivityFeed />
+      </div>
+      <TopMoversRails
+        onSelect={setOpenMarket}
+        eyebrow={isZh ? "ALPHA 轨道" : "ALPHA RAILS"}
+        title={isZh ? "今日 Alpha 候选" : "Today's alpha picks"}
+        description={isZh ? "按 24h 信号评分对 RISE 全市场排序。" : "Ranked by 24h signal score across the RISE universe."}
       />
-      <RiseHero onSelect={setOpenMarket} />
-      <TopMoversRails onSelect={setOpenMarket} />
-      <section>
-        <DashboardPageHeader
-          title="Workspace"
-          description="Core tools"
-          eyebrow="Actions"
-          className="mb-3"
-        />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {quickLinks.map((item) => (
-            <GlassCard key={item.to} className="p-0">
-              <Link
-                to={item.to}
-                className="group block rounded-2xl p-4 transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </div>
-              </Link>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
+      <UponlySpotlight />
       <MarketDetailDrawer
         market={openMarket}
         open={openMarket !== null}

@@ -15,6 +15,7 @@ import {
 } from "@/components/rise/RiseShared";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type SortBy = "backing" | "delta";
 
@@ -77,6 +78,8 @@ function KpiCard({
 }
 
 export default function FloorScannerPage() {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [sortBy, setSortBy] = useState<SortBy>("backing");
   const [page, setPage] = useState(1);
   const markets = useRiseMarketsAll();
@@ -135,25 +138,25 @@ export default function FloorScannerPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <KpiCard
             icon={Layers3}
-            label="Floor universe"
+            label={isZh ? "底线市场池" : "Floor universe"}
             value={formatInt(stats.floorEligible)}
-            hint="Markets with floor and market cap data."
+            hint={isZh ? "具备底线与市值数据的市场。" : "Markets with floor and market cap data."}
             gradientClass="from-sky-500/25 to-cyan-600/10"
             ringClass="ring-sky-400/25"
           />
           <KpiCard
             icon={ShieldCheck}
-            label="Strong backing"
+            label={isZh ? "强支撑" : "Strong backing"}
             value={formatInt(stats.strongBacking)}
-            hint="Floor market cap >= 35% of spot market cap."
+            hint={isZh ? "底线市值 >= 现货市值的 35%。" : "Floor market cap >= 35% of spot market cap."}
             gradientClass="from-emerald-500/25 to-teal-700/10"
             ringClass="ring-emerald-400/25"
           />
           <KpiCard
             icon={Waves}
-            label="Avg floor delta"
+            label={isZh ? "平均底线变化" : "Avg floor delta"}
             value={`${stats.avgFloorDelta.toFixed(2)}%`}
-            hint="Average floor change vs spot."
+            hint={isZh ? "底线相对现货的平均变化。" : "Average floor change vs spot."}
             gradientClass="from-violet-500/22 to-fuchsia-700/10"
             ringClass="ring-violet-400/22"
           />
@@ -165,15 +168,15 @@ export default function FloorScannerPage() {
               <div className="min-w-0">
                 <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 text-foreground/50" aria-hidden />
-                  Scanner feed
+                  {isZh ? "扫描数据流" : "Scanner feed"}
                 </p>
                 <h2 className="mt-1.5 text-balance text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
-                  Ranked floor book
+                  {isZh ? "底线排序簿" : "Ranked floor book"}
                 </h2>
                 <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
                   {sortBy === "backing"
-                    ? "Sorted by floor backing."
-                    : "Sorted by floor delta."}
+                    ? (isZh ? "按底线支撑排序。" : "Sorted by floor backing.")
+                    : (isZh ? "按底线变化排序。" : "Sorted by floor delta.")}
                 </p>
               </div>
               <ToggleGroup
@@ -186,19 +189,19 @@ export default function FloorScannerPage() {
                   }
                 }}
                 className="inline-flex shrink-0 rounded-xl border border-border/55 bg-muted/25 p-1 shadow-inner"
-                aria-label="Sort scanner by"
+                aria-label={isZh ? "扫描排序方式" : "Sort scanner by"}
               >
                 <ToggleGroupItem
                   value="backing"
                   className="rounded-lg px-4 py-2 text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:px-5"
                 >
-                  Floor backing
+                  {isZh ? "底线支撑" : "Floor backing"}
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   value="delta"
                   className="rounded-lg px-4 py-2 text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:px-5"
                 >
-                  Floor delta
+                  {isZh ? "底线变化" : "Floor delta"}
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -219,18 +222,18 @@ export default function FloorScannerPage() {
           ) : markets.isError ? (
             <div className="p-6 sm:p-8">
               <EmptyState
-                title="Could not load floor scanner"
-                description={(markets.error as Error)?.message || "Please retry in a few seconds."}
+                title={isZh ? "无法加载底线扫描" : "Could not load floor scanner"}
+                description={(markets.error as Error)?.message || (isZh ? "请稍后重试。" : "Please retry in a few seconds.")}
                 action={
                   <Button size="sm" variant="secondary" onClick={() => markets.refetch()}>
-                    Retry scanner
+                    {isZh ? "重试扫描" : "Retry scanner"}
                   </Button>
                 }
               />
             </div>
           ) : rows.length === 0 ? (
             <div className="p-6 sm:p-8">
-              <EmptyState title="No floor-backed markets found" description="Try again after refresh." />
+              <EmptyState title={isZh ? "未找到底线支撑市场" : "No floor-backed markets found"} description={isZh ? "刷新后重试。" : "Try again after refresh."} />
             </div>
           ) : (
             <>
@@ -243,25 +246,25 @@ export default function FloorScannerPage() {
                         #
                       </TableHead>
                       <TableHead className="h-11 min-w-[10rem] px-2 text-left text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Asset
+                        {isZh ? "资产" : "Asset"}
                       </TableHead>
                       <TableHead className="h-11 px-3 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Spot
+                        {isZh ? "现货" : "Spot"}
                       </TableHead>
                       <TableHead className="h-11 px-3 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Floor
+                        {isZh ? "底线" : "Floor"}
                       </TableHead>
                       <TableHead className="h-11 px-3 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Backing
+                        {isZh ? "支撑比" : "Backing"}
                       </TableHead>
                       <TableHead className="h-11 px-3 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Floor MC
+                        {isZh ? "底线市值" : "Floor MC"}
                       </TableHead>
                       <TableHead className="h-11 px-3 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Floor Δ
+                        {isZh ? "底线Δ" : "Floor Δ"}
                       </TableHead>
                       <TableHead className="h-11 w-[1%] px-4 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Action
+                        {isZh ? "操作" : "Action"}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -344,25 +347,25 @@ export default function FloorScannerPage() {
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                         <div className="rounded-xl border border-border/40 bg-background/35 px-3 py-2.5">
-                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">Spot</p>
+                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">{isZh ? "现货" : "Spot"}</p>
                           <p className="mt-1 font-semibold tabular-nums text-foreground">{formatPriceSmart(row.priceUsd)}</p>
                         </div>
                         <div className="rounded-xl border border-border/40 bg-background/35 px-3 py-2.5">
-                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">Floor</p>
+                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">{isZh ? "底线" : "Floor"}</p>
                           <p className="mt-1 font-semibold tabular-nums text-foreground">{formatPriceSmart(row.floorPriceUsd)}</p>
                         </div>
                         <div className="rounded-xl border border-border/40 bg-background/35 px-3 py-2.5">
-                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">Backing</p>
+                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">{isZh ? "支撑比" : "Backing"}</p>
                           <p className="mt-1 font-semibold tabular-nums text-foreground">{backing.toFixed(1)}%</p>
                         </div>
                         <div className="rounded-xl border border-border/40 bg-background/35 px-3 py-2.5">
-                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">Floor MC</p>
+                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">{isZh ? "底线市值" : "Floor MC"}</p>
                           <p className="mt-1 font-semibold tabular-nums text-foreground">
                             {formatUsd(row.floorMarketCapUsd, { compact: true })}
                           </p>
                         </div>
                         <div className="col-span-2 rounded-xl border border-border/40 bg-background/35 px-3 py-2.5 sm:col-span-1">
-                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">Floor Δ</p>
+                          <p className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">{isZh ? "底线Δ" : "Floor Δ"}</p>
                           <div className="mt-1.5">
                             <ChangePill pct={row.floorDeltaPct ?? null} />
                           </div>
@@ -376,11 +379,11 @@ export default function FloorScannerPage() {
               <div className="flex flex-col gap-3 border-t border-border/45 bg-muted/[0.15] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <p className="text-[0.7rem] text-muted-foreground sm:text-xs">
                   <span className="font-medium text-foreground/90">
-                    Page {page} of {totalPages}
+                    {isZh ? "第" : "Page "} {page} {isZh ? "页，共" : "of"} {totalPages} {isZh ? "页" : ""}
                   </span>
                   <span className="text-muted-foreground/85">
                     {" "}
-                    · Rows {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, rows.length)} of {rows.length}
+                    · {isZh ? "行" : "Rows"} {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, rows.length)} {isZh ? "/" : "of"} {rows.length}
                   </span>
                 </p>
                 <div className="flex items-center justify-end gap-1">
@@ -391,7 +394,7 @@ export default function FloorScannerPage() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     className="h-9 gap-1 rounded-lg px-3 text-xs"
                   >
-                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                    <ChevronLeft className="h-3.5 w-3.5" /> {isZh ? "上一页" : "Previous"}
                   </Button>
                   <Button
                     variant="ghost"
@@ -400,7 +403,7 @@ export default function FloorScannerPage() {
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     className="h-9 gap-1 rounded-lg px-3 text-xs"
                   >
-                    Next <ChevronRight className="h-3.5 w-3.5" />
+                    {isZh ? "下一页" : "Next"} <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
