@@ -29,14 +29,14 @@ export function HeroSection({ className }: HeroSectionProps) {
             variant="secondary"
             className="border border-border/50 bg-background/50 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-[0.18em] shadow-sm"
           >
-            Syra × RISE ecosystem
+            Syra × RISE venture desk
           </Badge>
           <Badge
             variant="outline"
             className="border border-success/25 bg-success/[0.07] text-foreground/95 shadow-sm backdrop-blur"
           >
             <Building2 className="mr-1.5 h-3 w-3" aria-hidden />
-            Treasury fund
+            Growth allocator
           </Badge>
         </div>
         <SectionEyebrow>Transparent mandate</SectionEyebrow>

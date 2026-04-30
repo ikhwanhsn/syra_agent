@@ -17,21 +17,21 @@ export function MissionSection({ className }: MissionSectionProps) {
   const reduceMotion = useReducedMotion() ?? false;
   return (
     <section
-      className={cn("mb-20 sm:mb-28", className)}
+      className={cn("scroll-mt-24 mb-20 sm:mb-28", className)}
       aria-labelledby="uof-mission"
     >
-      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-uof">Mission</p>
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-uof">Mission</p>
       <h2
         id="uof-mission"
-        className="mt-2 max-w-3xl font-display text-2xl font-semibold leading-[1.15] tracking-[-0.02em] text-foreground sm:text-3xl md:text-[2rem] lg:text-[2.25rem]"
+        className="landing-section-title mt-3 max-w-4xl text-foreground"
       >
-        Make tech-utility allocation in the RISE stack{" "}
-        <span className="text-foreground/75">as legible and auditable as a top-tier product org.</span>
+        Back RISE-native winners with{" "}
+        <span className="text-foreground/78">capital and strategy at institutional rigor.</span>
       </h2>
-      <div className="mt-10 grid gap-6 md:grid-cols-2 md:gap-8">
+      <div className="mt-12 grid gap-6 md:grid-cols-2 md:gap-8 lg:gap-10">
         <motion.div
           {...fade(reduceMotion)}
-          className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/20 p-6 sm:p-8"
+          className="landing-mission-card relative overflow-hidden rounded-xl border border-border/55 bg-card/40 p-7 sm:p-8"
         >
           <div
             className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[radial-gradient(closest-side,hsl(var(--uof)/0.2),transparent)]"
@@ -46,15 +46,15 @@ export function MissionSection({ className }: MissionSectionProps) {
                 North star
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Fund the experiments and integrations that make RISE venues easier to use safely: open specs, real
-                tooling, and a bias toward durable utility over short-term attention.
+                Identify teams with structural edges on RISE—then fund distribution, liquidity, and integrations so they
+                scale like venture-backed companies, not one-off launches.
               </p>
             </div>
           </div>
         </motion.div>
         <motion.div
           {...fade(reduceMotion)}
-          className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/20 p-6 sm:p-8"
+          className="landing-mission-card relative overflow-hidden rounded-xl border border-border/55 bg-card/40 p-7 sm:p-8"
         >
           <div
             className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(closest-side,hsl(var(--ring)/0.18),transparent)]"
@@ -69,9 +69,9 @@ export function MissionSection({ className }: MissionSectionProps) {
                 How we work
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Publish the mandate, separate the liquid tranche from the program, and route execution to the venues
-                you already know. Syra is behind the curtain on APIs and the agent; Up Only Fund is the story on this
-                site.
+                Publish mandate and treasury intent like a GP memo; separate the liquid <span className="font-mono text-foreground/85">$UPONLY</span>{" "}
+                sleeve from program wallets; route execution through venues you can verify on-chain. Syra ships infra—Up
+                Only Fund owns allocator narrative and disclosures here.
               </p>
             </div>
           </div>

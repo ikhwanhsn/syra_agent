@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -8,21 +9,41 @@ type BrandMarkProps = {
   showWordmark?: boolean;
   /** Shorter lockup: hides the “Tech utility program” subline (e.g. navbar). */
   compact?: boolean;
+  /**
+   * Navbar: primary click forces full document navigation to `/` (hard refresh behavior).
+   * Modifier clicks (new tab, etc.) keep default `<a href="/">` behavior.
+   */
+  hardRefreshHome?: boolean;
 };
+
+function onHardHomeClick(e: MouseEvent<HTMLAnchorElement>) {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+  e.preventDefault();
+  const path = window.location.pathname;
+  const atHome = path === "/" || path === "";
+  if (atHome && !window.location.hash) {
+    window.location.reload();
+  } else {
+    window.location.assign("/");
+  }
+}
 
 /**
  * Up Only Fund — primary mark. Distinct from Syra; infrastructure partner is called out elsewhere.
  */
-export function BrandMark({ className, showWordmark = true, compact = false }: BrandMarkProps) {
-  return (
-    <Link
-      to="/"
-      className={cn(
-        "group flex min-w-0 max-w-full items-center gap-2 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-uof/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg sm:gap-3",
-        className,
-      )}
-      aria-label="Up Only Fund home"
-    >
+export function BrandMark({
+  className,
+  showWordmark = true,
+  compact = false,
+  hardRefreshHome = false,
+}: BrandMarkProps) {
+  const markClasses = cn(
+    "group flex min-w-0 max-w-full items-center gap-2 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-uof/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg sm:gap-3",
+    className,
+  );
+
+  const inner = (
+    <>
       <motion.div
         className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/50 bg-black shadow-[0_1px_0_0_hsl(0_0%_100%_/_0.06)_inset,0_8px_32px_-8px_hsl(0_0%_0%_/_0.5),0_0_0_1px_hsl(var(--uof)/0.2)] sm:h-10 sm:w-10"
         whileHover={{ scale: 1.02 }}
@@ -51,6 +72,20 @@ export function BrandMark({ className, showWordmark = true, compact = false }: B
           ) : null}
         </div>
       ) : null}
+    </>
+  );
+
+  if (hardRefreshHome) {
+    return (
+      <a href="/" className={markClasses} aria-label="Up Only Fund home" onClick={onHardHomeClick}>
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <Link to="/" className={markClasses} aria-label="Up Only Fund home">
+      {inner}
     </Link>
   );
 }

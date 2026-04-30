@@ -66,7 +66,11 @@
       hsl(0 0% 46%) 100%
     );
     --gradient-primary: var(--gradient-hero);
-    --gradient-dark: linear-gradient(180deg, hsl(0 0% 97%) 0%, hsl(0 0% 100%) 100%);
+    --gradient-dark: linear-gradient(
+      180deg,
+      hsl(0 0% 97%) 0%,
+      hsl(0 0% 100%) 100%
+    );
 
     --sidebar-background: 0 0% 97%;
     --sidebar-foreground: 0 0% 10%;
@@ -134,7 +138,11 @@
       hsl(0 0% 52%) 100%
     );
     --gradient-primary: var(--gradient-hero);
-    --gradient-dark: linear-gradient(180deg, hsl(0 0% 2.5%) 0%, hsl(0 0% 5.5%) 100%);
+    --gradient-dark: linear-gradient(
+      180deg,
+      hsl(0 0% 2.5%) 0%,
+      hsl(0 0% 5.5%) 100%
+    );
 
     --sidebar-background: 0 0% 4%;
     --sidebar-foreground: 0 0% 93%;
@@ -154,14 +162,29 @@
 
   html {
     scroll-behavior: smooth;
-    /* Fixed navbar — single bar + optional drawer; err below anchor than overlap */
-    scroll-padding-top: max(4.75rem, calc(env(safe-area-inset-top, 0px) + 3.25rem));
+    /* Fixed navbar — align with hero top padding so hash links aren’t under the bar */
+    scroll-padding-top: max(
+      7rem,
+      calc(env(safe-area-inset-top, 0px) + 5.75rem)
+    );
     overflow-x: clip;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      scroll-padding-top: max(
+        7.5rem,
+        calc(env(safe-area-inset-top, 0px) + 6.25rem)
+      );
+    }
   }
 
   @media (min-width: 1024px) {
     html {
-      scroll-padding-top: max(5.25rem, calc(env(safe-area-inset-top, 0px) + 3.5rem));
+      scroll-padding-top: max(
+        8rem,
+        calc(env(safe-area-inset-top, 0px) + 6.75rem)
+      );
     }
   }
 
@@ -255,9 +278,21 @@
 
   .uof-hero-mesh {
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--uof) / 0.14), transparent 55%),
-      radial-gradient(ellipse 60% 40% at 100% 0%, hsl(200 40% 50% / 0.08), transparent 50%),
-      radial-gradient(ellipse 50% 60% at 0% 100%, hsl(var(--ring) / 0.1), transparent 50%);
+      radial-gradient(
+        ellipse 80% 50% at 50% -20%,
+        hsl(var(--uof) / 0.14),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 100% 0%,
+        hsl(200 40% 50% / 0.08),
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse 50% 60% at 0% 100%,
+        hsl(var(--ring) / 0.1),
+        transparent 50%
+      );
   }
 
   .uof-grain {
@@ -275,7 +310,8 @@
   }
 
   .neon-glow {
-    box-shadow: 0 0 24px hsl(var(--foreground) / 0.06),
+    box-shadow:
+      0 0 24px hsl(var(--foreground) / 0.06),
       0 0 48px hsl(var(--ring) / 0.2);
   }
 
@@ -299,7 +335,9 @@
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--foreground) / 0.12);
+    box-shadow:
+      0 4px 20px hsl(0 0% 0% / 0.35),
+      0 0 0 1px hsl(var(--foreground) / 0.12);
   }
 
   html:not(.dark) .btn-primary {
@@ -307,7 +345,9 @@
   }
 
   html:not(.dark) .btn-primary:hover {
-    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.15), 0 0 0 1px hsl(0 0% 0% / 0.08);
+    box-shadow:
+      0 4px 20px hsl(0 0% 0% / 0.15),
+      0 0 0 1px hsl(0 0% 0% / 0.08);
   }
 
   .btn-secondary {
@@ -334,21 +374,171 @@
   }
 
   .grid-pattern {
-    background-image: linear-gradient(
-        hsl(var(--primary) / 0.04) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
     background-size: 60px 60px;
   }
 
   .grid-pattern-accent {
-    background-image: linear-gradient(
-        hsl(var(--foreground) / 0.07) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--foreground) / 0.07) 1px, transparent 1px);
     background-size: 48px 48px;
+  }
+
+  /** Landing — institutional shell (depth without clutter) */
+  .uof-premium-strip {
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.07),
+      0 28px 56px -28px hsl(0 0% 0% / 0.45),
+      inset 0 1px 0 0 hsl(var(--foreground) / 0.05);
+  }
+
+  html:not(.dark) .uof-premium-strip {
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.06),
+      0 20px 40px -20px hsl(0 0% 0% / 0.12),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.6);
+  }
+
+  .uof-nav-premium {
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.06),
+      0 12px 40px -12px hsl(0 0% 0% / 0.35),
+      inset 0 1px 0 0 hsl(var(--foreground) / 0.04);
+  }
+
+  html:not(.dark) .uof-nav-premium {
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.08),
+      0 8px 32px -8px hsl(0 0% 0% / 0.1),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.85);
+  }
+
+  .uof-hero-copy-panel {
+    border-radius: 1.5rem;
+    border: 1px solid hsl(var(--border) / 0.65);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card) / 0.42) 0%,
+      hsl(var(--background) / 0.15) 55%,
+      hsl(var(--uof) / 0.06) 100%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.04) inset,
+      0 32px 64px -32px hsl(0 0% 0% / 0.4);
+    backdrop-filter: blur(12px);
+  }
+
+  html:not(.dark) .uof-hero-copy-panel {
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card) / 0.85) 0%,
+      hsl(0 0% 100% / 0.5) 50%,
+      hsl(var(--uof) / 0.08) 100%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.05) inset,
+      0 24px 48px -24px hsl(0 0% 0% / 0.12);
+  }
+
+  /** Landing — allocator / venture marketing typography */
+  .landing-display {
+    font-family: "Outfit", "Space Grotesk", system-ui, sans-serif;
+    font-size: clamp(2.125rem, 4.5vw + 1rem, 3.75rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+
+  .landing-section-title {
+    font-family: "Outfit", "Space Grotesk", system-ui, sans-serif;
+    font-size: clamp(1.5rem, 2vw + 1rem, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.18;
+  }
+
+  .landing-hero-accent {
+    padding-bottom: 0.125rem;
+  }
+
+  .landing-hero-visual-ring::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: -12%;
+    border-radius: 1.5rem;
+    background: radial-gradient(
+      closest-side,
+      hsl(var(--uof) / 0.08) 0%,
+      transparent 70%
+    );
+    z-index: 0;
+  }
+
+  .landing-anchor-card {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.04) inset,
+      0 24px 48px -28px hsl(0 0% 0% / 0.35);
+  }
+
+  html:not(.dark) .landing-anchor-card {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.05) inset,
+      0 16px 40px -20px hsl(0 0% 0% / 0.1);
+  }
+
+  .landing-mission-card {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.05) inset,
+      0 12px 36px -18px hsl(0 0% 0% / 0.28);
+  }
+
+  html:not(.dark) .landing-mission-card {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.06) inset,
+      0 8px 28px -14px hsl(0 0% 0% / 0.08);
+  }
+
+  .landing-final-cta {
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.6),
+      0 32px 64px -24px hsl(0 0% 0% / 0.4),
+      inset 0 1px 0 0 hsl(var(--foreground) / 0.05);
+  }
+
+  html:not(.dark) .landing-final-cta {
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.45),
+      0 24px 48px -20px hsl(0 0% 0% / 0.12),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.65);
+  }
+
+  .landing-principle-card {
+    border-radius: 0.875rem;
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.04) inset,
+      0 10px 28px -14px hsl(0 0% 0% / 0.22);
+  }
+
+  html:not(.dark) .landing-principle-card {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.05) inset,
+      0 6px 20px -10px hsl(0 0% 0% / 0.08);
+  }
+
+  .landing-token-panel {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.05) inset,
+      0 20px 44px -22px hsl(0 0% 0% / 0.32);
+  }
+
+  html:not(.dark) .landing-token-panel {
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.06) inset,
+      0 14px 36px -16px hsl(0 0% 0% / 0.1);
   }
 
   .section-glow-left {

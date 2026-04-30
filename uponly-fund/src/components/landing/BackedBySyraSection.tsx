@@ -1,4 +1,3 @@
-import { useReducedMotion, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const SYRA_HOME = "https://www.syraa.fun/" as const;
@@ -7,55 +6,39 @@ type BackedBySyraSectionProps = {
   className?: string;
 };
 
-/**
- * High-visibility trust line: program is Syra-backed (distinct from infra partner section below).
- */
 export function BackedBySyraSection({ className }: BackedBySyraSectionProps) {
-  const reduceMotion = useReducedMotion() ?? false;
   return (
-    <motion.section
-      {...(reduceMotion
-        ? {}
-        : { initial: { opacity: 0, y: 16 }, whileInView: { opacity: 1, y: 0 } })}
-      viewport={{ once: true, margin: "-12%" }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("mb-20 w-full min-w-0 sm:mb-24", className)}
+    <section
+      className={cn("w-full min-w-0 scroll-mt-24", className)}
       aria-labelledby="uof-backed-heading"
     >
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-2xl border border-uof/25 bg-gradient-to-br from-card/80 via-card/40 to-background/60 px-5 py-8 shadow-[0_0_0_1px_hsl(var(--uof)/0.08)_inset] sm:rounded-3xl sm:px-8 sm:py-10 md:px-10 md:py-12",
-        )}
-      >
+      <div className="landing-anchor-card relative overflow-hidden rounded-2xl border border-border/50 bg-card/[0.35] px-6 py-10 shadow-sm sm:rounded-[1.25rem] sm:px-10 sm:py-12 md:px-12 md:py-14">
         <div
-          className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,hsl(var(--uof)/0.22),transparent_70%)]"
+          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-uof via-uof/70 to-uof/30"
           aria-hidden
         />
-        <div
-          className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[radial-gradient(closest-side,hsl(var(--ring)/0.12),transparent_70%)]"
-          aria-hidden
-        />
-        <p className="relative text-[0.65rem] font-bold uppercase tracking-[0.22em] text-uof">Backed by</p>
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.26em] text-uof">Strategic anchor</p>
         <h2
           id="uof-backed-heading"
-          className="relative mt-3 max-w-4xl font-display text-2xl font-extrabold leading-[1.12] tracking-[-0.03em] text-foreground sm:mt-4 sm:text-3xl sm:leading-[1.1] md:text-4xl md:leading-[1.08]"
+          className="mt-4 max-w-4xl font-display text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-3xl md:text-[2.125rem] md:leading-[1.1]"
         >
-          <span className="uof-wordmark">Up Only Fund</span> is backed by{" "}
+          <span className="uof-wordmark">Up Only Fund</span> is anchored by{" "}
           <a
             href={SYRA_HOME}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground underline decoration-uof/50 underline-offset-[0.2em] transition hover:decoration-uof"
+            className="text-foreground underline decoration-uof/45 underline-offset-[0.18em] transition hover:decoration-uof"
           >
             Syra
-          </a>
-          .
+          </a>{" "}
+          — the operating stack behind execution.
         </h2>
-        <p className="relative mt-4 max-w-2xl text-pretty text-sm font-medium leading-relaxed text-muted-foreground sm:mt-5 sm:text-base">
-          Syra seeds the treasury and builds the intelligence rails; mandate, disclosures, and the liquid{" "}
-          <span className="font-mono text-foreground/85">$UPONLY</span> program narrative stay on this site.
+        <p className="mt-5 max-w-3xl text-pretty text-sm font-medium leading-relaxed text-muted-foreground sm:mt-6 sm:text-base">
+          Syra seeds treasury capacity and ships agent-grade rails; Up Only Fund publishes allocator mandate, diligence
+          posture, and the liquid <span className="font-mono text-foreground/88">$UPONLY</span> sleeve so capital markets
+          can price the same growth story founders see on the ground.
         </p>
       </div>
-    </motion.section>
+    </section>
   );
 }

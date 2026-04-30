@@ -53,10 +53,10 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   name: "Up Only Fund",
   shortName: "UOF",
   publicSummary:
-    "Syra-seeded treasury with a public mandate to allocate across the RISE ecosystem. The fund page will publish the treasury address and positions as they go live—no public deposits in v1.",
+    "Syra-seeded venture allocator with a published mandate to deploy capital and operator leverage across the RISE ecosystem. Treasury address and positions publish as they go live—no public LP subscriptions in v1.",
   backedBy: "Syra",
   mandate:
-    "A Syra-seeded treasury that allocates to projects in the RISE ecosystem—subject to our diligence, risk limits, and published transparency. This is not a promise of returns: outcomes are uncertain and you should treat any allocation as high risk.",
+    "A Syra-seeded venture and strategic hedge desk focused on RISE-native teams—capital for liquidity and distribution, strategy support where Syra tooling compounds outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
   treasuryAddress: null,
   stats: {
     aumUsd: null,

@@ -27,9 +27,9 @@ const RISE_LOGO_PLACEHOLDER = "/images/partners/placeholder.svg";
 
 export const UP_ONLY_HERO_ART = "/images/experiment/rise_uponly.png";
 export const HERO_IMAGE_ALT =
-  "Up Only — official Syra and RISE on-chain experiment key art, Syra by RISE";
+  "Up Only Fund — Syra × RISE institutional mark and coin artwork";
 export const UP_ONLY_LOGO_MARK = "/images/experiment/rise_uponly.png";
-const UP_ONLY_LOGO_ALT = "Up Only — experiment logo mark";
+const UP_ONLY_LOGO_ALT = "Up Only Fund logo mark";
 
 export const fadeUp = (reduce: boolean) =>
   reduce

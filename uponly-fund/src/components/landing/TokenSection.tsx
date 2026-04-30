@@ -28,22 +28,23 @@ export function TokenSection({ className }: TokenSectionProps) {
 
   return (
     <section id="landing-token" className={cn("mb-20 scroll-mt-24 sm:mb-24", className)} aria-labelledby="landing-token-heading">
-      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Token</p>
-      <h2 id="landing-token-heading" className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-        Buy <span className="uof-wordmark">$UPONLY</span>
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-muted-foreground">Liquid sleeve</p>
+      <h2 id="landing-token-heading" className="landing-section-title mt-3 text-foreground">
+        Align with <span className="uof-wordmark">$UPONLY</span>
       </h2>
-      <p className="mt-3 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-        The official Syra x RISE token is live on RISE. Verify the mint, then buy from the venue or use the dashboard before trading.
+      <p className="mt-4 max-w-3xl text-pretty text-sm text-muted-foreground sm:text-base md:text-[1.0625rem] md:leading-relaxed">
+        The Syra × RISE liquid tranche lets markets participate alongside our allocator mandate—same ecosystem upside,
+        venue-native liquidity. Verify the mint, then trade through RISE or prep inside the dashboard.
       </p>
 
-      <Card className="mt-8 grid gap-5 border-border/50 bg-gradient-to-b from-card/55 to-card/15 p-5 sm:p-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="min-w-0">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Token mint</p>
-          <code className="mt-2 block break-all rounded-lg border border-border/50 bg-background/40 px-3 py-2 font-mono text-xs text-foreground/90">
+      <Card className="landing-token-panel mt-10 grid gap-0 overflow-hidden rounded-xl border border-border/50 bg-card/45 p-0 sm:mt-12 lg:grid-cols-[1.15fr_minmax(0,0.95fr)]">
+        <div className="min-w-0 border-border/45 p-6 sm:p-8 lg:border-r lg:py-10">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Token mint</p>
+          <code className="mt-3 block break-all rounded-lg border border-border/55 bg-background/50 px-3.5 py-2.5 font-mono text-[0.8125rem] leading-relaxed text-foreground/92">
             {RISE_UP_ONLY.mint ?? "TBA"}
           </code>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" className="min-h-10 gap-2" onClick={onCopyMint} disabled={!RISE_UP_ONLY.mint}>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" className="min-h-10 gap-2 rounded-lg" onClick={onCopyMint} disabled={!RISE_UP_ONLY.mint}>
               <Copy className="h-4 w-4" />
               {copied ? "Copied" : "Copy mint"}
             </Button>
@@ -61,21 +62,21 @@ export function TokenSection({ className }: TokenSectionProps) {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col justify-center gap-3">
+        <div className="flex min-w-0 flex-col justify-center gap-3 border-t border-border/45 bg-muted/[0.12] p-6 sm:p-8 lg:border-t-0 lg:py-10">
           {canBuy && tradeUrl ? (
-            <Button asChild size="lg" className="min-h-12">
+            <Button asChild size="lg" className="min-h-12 rounded-lg font-semibold">
               <a href={tradeUrl} target="_blank" rel="noopener noreferrer">
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Buy on RISE
               </a>
             </Button>
           ) : (
-            <Button type="button" size="lg" className="min-h-12" disabled>
+            <Button type="button" size="lg" className="min-h-12 rounded-lg" disabled>
               <ShoppingCart className="mr-2 h-4 w-4" />
               Buy on RISE
             </Button>
           )}
-          <Button asChild variant="outline" size="lg" className="min-h-12">
+          <Button asChild variant="outline" size="lg" className="min-h-12 rounded-lg border-border/60 bg-background/60 font-medium">
             <Link to="/dashboard">Open dashboard first</Link>
           </Button>
           <p className="text-xs text-muted-foreground">Not financial advice. Tokens are volatile; only risk what you can afford to lose.</p>

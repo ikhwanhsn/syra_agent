@@ -13,18 +13,18 @@ const fade = (reduce: boolean) => ({
 const cards = [
   {
     icon: Fingerprint,
-    title: "Identity",
-    body: "Up Only Fund is its own program narrative—mandate, treasury, and published intent—so you can reason about the fund without conflating it with any single vendor brand.",
+    title: "Fund identity",
+    body: "Up Only Fund reads like a venture practice—mandate, diligence posture, treasury cadence—distinct from any single vendor so LPs and founders know exactly what sleeve they are interacting with.",
   },
   {
     icon: Layers,
-    title: "Separation of surfaces",
-    body: "The liquid tranche, the treasury program, and the RISE screener are three different jobs. We link them, but we do not smear them into one product shape.",
+    title: "Separation of sleeves",
+    body: "Portfolio allocations, operating treasury, and the liquid $UPONLY reference each serve different risk budgets. We surface them clearly instead of blending charts into one ambiguous ticker story.",
   },
   {
     icon: Scale,
-    title: "Rules, not romance",
-    body: "The goal is institutional legibility: what is funded, under what policy, and where risk is owned—before any marketing gloss.",
+    title: "Risk-first disclosure",
+    body: "Institutional legibility wins: what we fund, where leverage sits, and how outcomes might behave before anyone sizes exposure.",
   },
 ] as const;
 
@@ -36,26 +36,23 @@ export function WhatIsUof({ className }: WhatIsUofProps) {
   const reduceMotion = useReducedMotion() ?? false;
   return (
     <section
-      className={cn("mb-20 sm:mb-24", className)}
+      className={cn("scroll-mt-24 mb-20 sm:mb-24", className)}
       aria-labelledby="what-is-uof-heading"
     >
-      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-muted-foreground">
         Principles
       </p>
-      <h2
-        id="what-is-uof-heading"
-        className="mt-2 max-w-2xl font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
-      >
-        How we think
+      <h2 id="what-is-uof-heading" className="landing-section-title mt-3 max-w-3xl text-foreground">
+        How the partnership behaves
       </h2>
-      <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-        If this reads more like a product spec than a hype page, that is the point. We are optimizing for the kind of
-        people who underwrite with checklists.
+      <p className="mt-4 max-w-3xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:text-[1.0625rem] md:leading-relaxed">
+        We speak LP- and founder-clean: risk budgets, sleeves, and disclosures before hype—because venture reputations
+        are earned when markets stress-test them.
       </p>
-      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5">
+      <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-3 sm:gap-6 lg:gap-8">
         {cards.map((c) => (
           <motion.div key={c.title} {...fade(reduceMotion)}>
-            <Card className="h-full border-border/50 bg-gradient-to-b from-card/50 to-card/[0.2] p-6 shadow-sm backdrop-blur-sm transition duration-300 hover:border-uof/25 sm:p-7">
+            <Card className="landing-principle-card h-full border-border/55 bg-card/45 p-7 shadow-none backdrop-blur-sm transition duration-300 hover:border-uof/35 sm:p-8">
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-border/45 bg-background/50">
                 <c.icon className="h-5 w-5 text-uof" aria-hidden />
               </div>

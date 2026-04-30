@@ -1,18 +1,30 @@
-import { useReducedMotion, motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HeroIllustration } from "./HeroIllustration";
+import { LANDING_EASE } from "./landingMotion";
 
-function fadeUp(reduce: boolean) {
-  return {
-    initial: reduce ? false : { opacity: 0, y: 20 },
-    animate: reduce ? undefined : { opacity: 1, y: 0 },
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
-  };
-}
+const heroIntro = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.085,
+      delayChildren: 0.06,
+    },
+  },
+};
+
+const heroChild = {
+  hidden: { opacity: 0, y: 22 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.52, ease: LANDING_EASE },
+  },
+};
 
 type HeroSectionProps = {
   className?: string;
@@ -20,77 +32,128 @@ type HeroSectionProps = {
 
 export function HeroSection({ className }: HeroSectionProps) {
   const reduceMotion = useReducedMotion() ?? false;
+  const v = reduceMotion ? undefined : heroIntro;
+  const item = reduceMotion ? undefined : heroChild;
+
   return (
-    <div className={cn("mb-4 sm:mb-6", className)}>
-      <motion.header
-        {...fadeUp(reduceMotion)}
-        className="relative"
-        aria-labelledby="uof-landing-hero"
-      >
-        <div className="grid grid-cols-1 items-center gap-10 sm:gap-12 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-12 2xl:grid-cols-[minmax(0,1fr)_27rem] 2xl:gap-16">
-          <div className="min-w-0 max-w-3xl lg:max-w-none 2xl:pr-2">
-            <div className="mb-5 flex flex-wrap items-center gap-2">
-              <Badge
-                variant="secondary"
-                className="border border-border/50 bg-foreground/[0.04] px-2.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.2em] text-foreground/90"
-              >
-                Tech utility program fund
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-uof/30 bg-uof/[0.08] text-[0.6rem] font-medium text-foreground/90"
-              >
-                Independent program
-              </Badge>
-            </div>
-
-            <h1
-              id="uof-landing-hero"
-              className="max-w-[22rem] font-display text-[2rem] font-semibold leading-[1.05] tracking-[-0.03em] text-foreground min-[400px]:max-w-2xl min-[400px]:text-[2.35rem] sm:max-w-3xl sm:text-5xl sm:leading-[1.02] md:text-6xl md:leading-[0.98] lg:max-w-[20ch] lg:text-[2.6rem] lg:leading-[1.05] xl:max-w-[18ch] xl:text-5xl 2xl:text-6xl 2xl:leading-[0.98]"
+    <div className={cn("relative", className)}>
+      <header className="relative" aria-labelledby="uof-landing-hero">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-16">
+          {/* Editorial column — staggered mount */}
+          <div className="min-w-0 lg:col-span-7 xl:col-span-7 lg:self-start">
+            <motion.div
+              className="landing-hero-accent border-l-[3px] border-uof pl-5 sm:pl-7 md:pl-8"
+              variants={v}
+              initial={reduceMotion ? false : "hidden"}
+              animate={reduceMotion ? false : "show"}
             >
-              <span className="uof-wordmark">Up Only Fund</span>
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-pretty text-base font-medium leading-relaxed text-foreground/88 sm:mt-5 sm:text-lg sm:leading-relaxed">
-              A mandate-led treasury for the RISE era—built for operators who want{" "}
-              <span className="text-foreground">clarity</span> before they size risk. Not a pooled retail product in v1; a
-              published way to fund tech utility in the stack.
-            </p>
-
-            <p className="mt-4 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]">
-              Syra supports the rails (agent, APIs, execution culture). This site is the program: what we fund, how we
-              disclose it, and where the liquid <span className="font-mono text-foreground/80">$UPONLY</span> tranche lives
-              as a separate surface.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:flex-wrap min-[480px]:items-stretch sm:mt-10">
-              <Button
-                asChild
-                size="lg"
-                className="h-12 min-h-[3rem] rounded-xl bg-uof !text-[hsl(var(--uof-foreground))] font-semibold shadow-lg shadow-uof/10 hover:bg-uof/90 sm:min-w-[13rem]"
+              <motion.div
+                variants={item}
+                className="flex flex-wrap items-center gap-2 sm:gap-2.5"
               >
-                <Link to="/#mandate" className="inline-flex items-center justify-center gap-2">
-                  Read the overview
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="h-12 min-h-[3rem] rounded-xl border-border/60 bg-background/40 font-medium backdrop-blur-sm"
+                <Badge
+                  variant="secondary"
+                  className="rounded-md border border-border/55 bg-background/80 px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-foreground/90 shadow-sm"
+                >
+                  Venture &amp; growth allocator
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="rounded-md border-uof/40 bg-uof/[0.09] px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-foreground/90"
+                >
+                  RISE ecosystem
+                </Badge>
+              </motion.div>
+
+              <motion.h1
+                variants={item}
+                id="uof-landing-hero"
+                className="landing-display mt-6 max-w-[22rem] text-foreground min-[400px]:max-w-none sm:mt-8"
               >
-                <Link to="/dashboard" className="inline-flex items-center justify-center gap-2">
-                  Open dashboard
-                  <ChevronRight className="h-4 w-4 opacity-60" />
-                </Link>
-              </Button>
-            </div>
+                <span className="uof-wordmark">Up Only Fund</span>
+              </motion.h1>
+
+              <motion.div
+                variants={item}
+                className="mt-6 h-px max-w-xs bg-gradient-to-r from-border/80 via-border/40 to-transparent sm:mt-8"
+              />
+
+              <motion.p
+                variants={item}
+                className="mt-6 max-w-2xl text-pretty text-base font-medium leading-[1.65] text-foreground/[0.92] sm:mt-7 sm:text-lg sm:leading-relaxed"
+              >
+                A real allocator on RISE: we deploy{" "}
+                <span className="text-foreground">
+                  capital, strategy, and operator leverage
+                </span>{" "}
+                so serious teams can compound distribution, liquidity, and
+                product velocity—not a lab experiment, an institutional mandate
+                with public disclosures.
+              </motion.p>
+
+              <motion.p
+                variants={item}
+                className="mt-5 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:max-w-2xl"
+              >
+                Syra powers execution rails (agents, APIs, research). Up Only
+                Fund is the venture surface—who we back, how the treasury is
+                run, and why the liquid{" "}
+                <span className="font-mono text-foreground/85">$UPONLY</span>{" "}
+                tranche aligns incentives with that growth story.
+              </motion.p>
+
+              <motion.div
+                variants={item}
+                className="mt-9 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:flex-wrap sm:mt-11"
+              >
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-12 min-h-[3rem] rounded-lg bg-uof !text-[hsl(var(--uof-foreground))] px-8 font-semibold shadow-[0_8px_28px_-6px_hsl(var(--uof)/0.45)] hover:bg-uof/92 sm:min-w-[13.5rem]"
+                >
+                  <Link
+                    to="/#mandate"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
+                    Investment mandate
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="h-12 min-h-[3rem] rounded-lg border-border/65 bg-background/50 px-8 font-medium backdrop-blur-sm hover:bg-background/80"
+                >
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
+                    Institutional dashboard
+                    <ChevronRight className="h-4 w-4 opacity-55" />
+                  </Link>
+                </Button>
+              </motion.div>
+            </motion.div>
           </div>
 
-          <HeroIllustration className="lg:self-start" />
+          {/* Visual — delayed fade-rise */}
+          <motion.div
+            className="relative flex min-h-0 w-full flex-col items-center justify-center lg:col-span-5 xl:col-span-5"
+            initial={reduceMotion ? false : { opacity: 0, y: 36 }}
+            animate={reduceMotion ? false : { opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.68,
+              delay: reduceMotion ? 0 : 0.32,
+              ease: LANDING_EASE,
+            }}
+          >
+            <div className="landing-hero-visual-ring relative isolate mx-auto flex w-full max-w-[min(22rem,100%)] justify-center sm:max-w-[24rem] lg:max-w-[min(26rem,100%)] xl:max-w-[28rem]">
+              <HeroIllustration />
+            </div>
+          </motion.div>
         </div>
-      </motion.header>
+      </header>
     </div>
   );
 }

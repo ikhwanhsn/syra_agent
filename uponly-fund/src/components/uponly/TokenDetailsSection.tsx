@@ -72,22 +72,22 @@ function WhatWeLearn() {
     <section className="mb-20" aria-labelledby="learning-heading">
       <div className="grid min-w-0 gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
         <div className="min-w-0">
-          <SectionEyebrow>What we are learning</SectionEyebrow>
+          <SectionEyebrow>Operating signals</SectionEyebrow>
           <h2
             id="learning-heading"
             className="mt-2 text-2xl font-bold tracking-[-0.02em] sm:text-3xl md:text-4xl text-balance"
           >
-            What <span className="neon-text">$UPONLY</span> is testing for Syra
+            What <span className="neon-text">$UPONLY</span> validates for the allocator stack
           </h2>
           <p className="mt-4 text-muted-foreground sm:text-lg sm:leading-relaxed">
-            We validate end-to-end creation, trade, and documented borrow / floor behavior so our agents and education
-            tracks reference RISE with first-party context — not a promise of any price path.
+            We stress-test creation, venue liquidity, and documented borrow / floor behavior end-to-end so Syra tooling and
+            education tracks mirror production reality—not a forecast of any price path.
           </p>
           <ul className="mt-8 space-y-4">
             {[
-              "UX and clarity of RISE launch and trading in real use.",
-              "How Syra audiences respond to a floor + borrow design vs a classic memecoin curve.",
-              "Signals for when Syra should deep-link to RISE in answers and automations.",
+              "Operational UX for launches and institutional-grade sizing on RISE.",
+              "Market appetite for floor plus borrow mechanics versus classic meme-curve launches.",
+              "Product triggers for when Syra agents deep-link RISE venues inside workflows.",
             ].map((line) => (
               <li key={line} className="flex gap-3 text-sm sm:text-base text-muted-foreground">
                 <span className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border/70 bg-card/50">

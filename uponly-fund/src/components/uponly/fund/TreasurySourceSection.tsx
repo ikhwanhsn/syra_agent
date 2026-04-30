@@ -1,8 +1,7 @@
 import { useId } from "react";
-import { useReducedMotion, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { fadeUp, SectionEyebrow } from "../primitives";
+import { SectionEyebrow } from "../primitives";
 import { Banknote, Coins } from "lucide-react";
 import { UP_ONLY_FUND } from "@/data/upOnlyFund";
 
@@ -68,10 +67,8 @@ function TreasuryCapIllustration({ className }: { className?: string }) {
 }
 
 export function TreasurySourceSection({ className }: TreasurySourceSectionProps) {
-  const reduce = useReducedMotion() ?? false;
   return (
-    <motion.section
-      {...fadeUp(reduce)}
+    <section
       className={cn("mb-20 min-w-0", className)}
       id="treasury"
       aria-labelledby="uof-treasury-heading"
@@ -81,7 +78,7 @@ export function TreasurySourceSection({ className }: TreasurySourceSectionProps)
           <SectionEyebrow>How it&apos;s capitalized</SectionEyebrow>
           <h2
             id="uof-treasury-heading"
-            className="text-balance break-words text-xl font-bold tracking-[-0.02em] min-[500px]:text-2xl sm:text-3xl md:text-4xl"
+            className="landing-section-title text-balance break-words max-w-4xl"
           >
             Syra-backed — treasury + RISE tranche policy
           </h2>
@@ -129,6 +126,6 @@ export function TreasurySourceSection({ className }: TreasurySourceSectionProps)
           </p>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

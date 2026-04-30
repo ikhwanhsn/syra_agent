@@ -15,10 +15,10 @@ import { cn } from "@/lib/utils";
 import { siteShell } from "@/lib/siteLayout";
 
 const navLinks = [
-  { label: "Overview", href: "/#uof-landing-hero", desc: "Landing" },
-  { label: "Token", href: "/#landing-token", desc: "$UPONLY" },
-  { label: "Mandate", href: "/#mandate", desc: "Treasury" },
-  { label: "Risk", href: "/#risk-disclosure", desc: "Disclosure" },
+  { label: "Fund", href: "/#uof-landing-hero", desc: "Overview" },
+  { label: "Sleeve", href: "/#landing-token", desc: "$UPONLY" },
+  { label: "Mandate", href: "/#mandate", desc: "Strategy" },
+  { label: "Risk", href: "/#risk-disclosure", desc: "Legal" },
 ] as const;
 
 export const Navbar = () => {
@@ -41,13 +41,17 @@ export const Navbar = () => {
     >
       <div className={siteShell}>
         <nav
-          className="mt-2 max-h-[min-content] border border-border/50 bg-background/80 shadow-[0_4px_24px_-8px_hsl(0_0%_0%_/_0.4)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 sm:mt-3 sm:rounded-2xl sm:px-2 sm:py-2"
+          className="uof-nav-premium mt-3 max-h-[min-content] border border-border/40 bg-background/[0.82] backdrop-blur-[20px] supports-[backdrop-filter]:bg-background/72 sm:mt-4 sm:rounded-xl sm:px-3 sm:py-2.5"
           aria-label="Main"
         >
-          <div className="flex min-w-0 items-center justify-between gap-2 py-2 pl-1.5 pr-1 sm:gap-3 sm:pl-2 sm:pr-2.5 sm:py-2.5 lg:pl-3">
-            <BrandMark className="min-w-0 max-w-[55%] shrink sm:max-w-[60%] lg:max-w-none" compact />
+          <div className="flex min-w-0 items-center justify-between gap-2 py-2 pl-2 pr-1.5 sm:gap-4 sm:pl-3 sm:pr-3 lg:pl-4">
+            <BrandMark
+              className="min-w-0 max-w-[55%] shrink sm:max-w-[60%] lg:max-w-none"
+              compact
+              hardRefreshHome
+            />
 
-            <div className="hidden min-w-0 items-center gap-0.5 lg:flex lg:flex-1 lg:justify-center">
+            <div className="hidden min-w-0 items-center gap-1 lg:flex lg:flex-1 lg:justify-center xl:gap-2">
               {navLinks.map((link) => {
                 const active = isActiveLink(link.href);
                 return (
@@ -56,10 +60,10 @@ export const Navbar = () => {
                     to={link.href}
                     title={`${link.label} · ${link.desc}`}
                     className={cn(
-                      "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "whitespace-nowrap rounded-md px-3 py-2 text-[13px] font-semibold tracking-wide transition-colors xl:px-3.5",
                       active
-                        ? "bg-foreground/[0.08] text-foreground"
-                        : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+                        ? "bg-foreground/[0.07] text-foreground"
+                        : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
                     )}
                   >
                     {link.label}
@@ -90,10 +94,10 @@ export const Navbar = () => {
               <Button
                 asChild
                 size="sm"
-                className="h-8 shrink-0 px-2.5 text-xs font-semibold !text-[hsl(var(--uof-foreground))] sm:h-9 sm:px-3 sm:text-sm"
+                className="h-9 shrink-0 rounded-lg px-3 text-xs font-semibold !text-[hsl(var(--uof-foreground))] shadow-sm sm:h-9 sm:px-4 sm:text-[13px]"
               >
                 <Link to="/dashboard" onClick={() => setIsOpen(false)}>
-                  Open dashboard
+                  Dashboard
                 </Link>
               </Button>
 

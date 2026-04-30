@@ -32,12 +32,12 @@ export const Footer = () => {
           />
           <div className="relative z-10 mx-auto max-w-2xl text-center">
             <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-              Build conviction from{" "}
-              <span className="uof-wordmark">the mandate</span>, not the narrative.
+              Underwrite{" "}
+              <span className="uof-wordmark">Up Only Fund</span> like a venture allocator—not a headline.
             </h2>
             <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Up Only Fund publishes how capital is meant to be deployed across the RISE ecosystem. Execution and venue
-              rules still live with RISE and on-chain reality — this site is for transparency and tools, not promises.
+              We publish how capital and strategy are aimed at RISE-native growth; execution, venue rules, and token risk
+              still live on-chain. This site is transparency and tooling—never a promise of returns.
             </p>
             <div className="mt-8 flex min-w-0 flex-col items-stretch justify-center gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-center">
               <Link

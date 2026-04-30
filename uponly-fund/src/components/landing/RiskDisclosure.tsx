@@ -10,21 +10,25 @@ export function RiskDisclosure({ className }: RiskDisclosureProps) {
     <aside
       id="risk-disclosure"
       className={cn(
-        "mb-16 scroll-mt-24 rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.05] to-transparent p-5 sm:mb-20 sm:p-7",
+        "mb-16 scroll-mt-24 rounded-xl border border-border/50 bg-muted/[0.18] p-6 sm:mb-20 sm:rounded-[1.05rem] sm:p-8 md:p-10",
         className,
       )}
       role="note"
     >
       <div className="flex gap-4 sm:gap-5">
-        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/25 bg-background/60">
-          <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" aria-hidden />
+        <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/55 bg-background/70">
+          <AlertTriangle className="h-[1.125rem] w-[1.125rem] text-foreground/70" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="font-display text-base font-semibold text-foreground sm:text-lg">Risk &amp; disclosure</h2>
+          <h2 className="font-display text-base font-semibold tracking-tight text-foreground sm:text-lg">
+            Risk &amp; disclosure
+          </h2>
           <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-            This is <strong className="font-medium text-foreground/90">not</strong> investment advice, a security, or a
-            pooled “fund” you subscribe to in v1. Token and protocol risk can go to zero. Do your own research and
-            read venue terms on RISE. Past or hypothetical performance is not a guarantee of future results.
+            Up Only Fund describes a venture-style allocator mandate; this is still{" "}
+            <strong className="font-medium text-foreground/90">not</strong> personalized investment advice, a registered
+            security offering, or a retail subscription product in v1. Token and venue risk can go to zero—read RISE terms,
+            verify contracts, and size only what you can lose. Past or hypothetical performance is not a guarantee of
+            future results.
           </p>
         </div>
       </div>
