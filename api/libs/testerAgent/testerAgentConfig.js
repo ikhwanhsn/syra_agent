@@ -41,8 +41,9 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
   paidResponseChecksWhenPayerSet: true,
   /**
    * When true and `CMC_PAYER_PRIVATE_KEY` is set, register GET /news paid E2E on Base (eip155 USDC).
+   * Off by default — Solana-only tester runs until Base E2E is needed again.
    */
-  includeBasePaidNewsE2E: true,
+  includeBasePaidNewsE2E: false,
   /** In-process 24h-style runner in `api/index.js`. */
   inProcessScheduleEnabled: true,
   scheduleIntervalMs: 24 * 60 * 60 * 1000,
