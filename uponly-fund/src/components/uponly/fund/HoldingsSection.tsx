@@ -3,7 +3,7 @@ import { ArrowUpRight, PieChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UP_ONLY_FUND, getFundHoldingRiseUrl } from "@/data/upOnlyFund";
 import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
-import { syraSolscanTokenUrl } from "@/data/agentIdentity";
+import { solscanTokenUrl } from "@/data/agentIdentity";
 import { cn } from "@/lib/utils";
 import { fadeUp, SectionEyebrow } from "../primitives";
 
@@ -62,7 +62,7 @@ export function HoldingsSection({ className }: HoldingsSectionProps) {
                     <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere] sm:text-base">{h.thesisOneLiner}</p>
                     {h.mint ? (
                       <a
-                        href={syraSolscanTokenUrl(h.mint)}
+                        href={solscanTokenUrl(h.mint)}
                         className="mt-2 inline-flex min-h-11 w-full min-w-0 break-all py-1 text-xs font-mono text-foreground/90 underline-offset-2 hover:underline min-[500px]:min-h-0 min-[500px]:w-auto min-[500px]:py-0 sm:text-sm"
                         target="_blank"
                         rel="noopener noreferrer"

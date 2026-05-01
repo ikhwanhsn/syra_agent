@@ -3,7 +3,7 @@ import { Footer } from "@/components/Footer";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HomeStatsStrip } from "@/components/landing/HomeStatsStrip";
-import { BackedBySyraSection } from "@/components/landing/BackedBySyraSection";
+import { StrategicAnchorSection } from "@/components/landing/StrategicAnchorSection";
 import { MissionSection } from "@/components/landing/MissionSection";
 import { WhatIsUof } from "@/components/landing/WhatIsUof";
 import { RiskDisclosure } from "@/components/landing/RiskDisclosure";
@@ -90,7 +90,7 @@ const Index = () => {
         </LandingBand>
 
         <LandingBand variant="transparent">
-          <BackedBySyraSection className="mb-0 sm:mb-0" />
+          <StrategicAnchorSection className="mb-0 sm:mb-0" />
           <LandingRule />
           <MissionSection className="mb-0 sm:mb-0" />
         </LandingBand>

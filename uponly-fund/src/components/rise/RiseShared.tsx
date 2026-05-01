@@ -5,9 +5,9 @@
  * narrow and readable — anything reused by 2+ rise components lives here.
  */
 import { type ReactNode, useMemo } from "react";
-import { ArrowUpRight, BadgeCheck, ImageOff, ShieldAlert, ShoppingCart } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, ChartCandlestick, ImageOff, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatInt, formatPct, formatUsd } from "@/lib/marketDisplayFormat";
+import { formatInt, formatPct, formatPctSigned, formatUsd } from "@/lib/marketDisplayFormat";
 import { buildRiseTradeUrl } from "@/lib/riseDashboardApi";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 
@@ -19,12 +19,7 @@ export function shortenMint(mint: string | null | undefined, leading = 4, traili
   return `${mint.slice(0, leading)}…${mint.slice(-trailing)}`;
 }
 
-export function formatPctSigned(pct: number | null): string {
-  if (pct === null || !Number.isFinite(pct)) return "—";
-  const sign = pct > 0 ? "+" : "";
-  const fixed = Math.abs(pct) < 1 ? pct.toFixed(2) : pct.toFixed(1);
-  return `${sign}${fixed.replace(/\.0$/, "")}%`;
-}
+export { formatPctSigned };
 
 export function formatRelativeAge(hours: number | null): string {
   if (hours === null || !Number.isFinite(hours) || hours < 0) return "—";
@@ -192,20 +187,43 @@ export function RiseTradeButton({
 }) {
   const url = useMemo(() => buildRiseTradeUrl(mint), [mint]);
   if (!url) return null;
+  const iconClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const launchClass = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="Trade on RISE (opens in new tab)"
+      title="Trade on RISE"
       className={cn(
-        "inline-flex items-center justify-center gap-1 rounded-md border border-border/55 bg-background/40 font-medium text-foreground/95 transition-colors hover:border-success/40 hover:bg-success/[0.05] hover:text-foreground",
-        size === "sm" ? "px-2 py-1 text-[0.7rem]" : "px-3 py-1.5 text-xs",
+        "group/trade relative inline-flex shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border font-semibold tabular-nums tracking-tight text-foreground/92 antialiased",
+        "border-border/50 bg-gradient-to-b from-background/[0.92] to-background/[0.52]",
+        "shadow-[0_1px_0_0_hsl(0_0%_100%/0.07)_inset,0_1px_2px_-1px_hsl(0_0%_0%/0.22)]",
+        "transition-[transform,box-shadow,border-color,background-color,color] duration-200 ease-out",
+        "hover:border-emerald-500/38 hover:from-emerald-500/[0.09] hover:to-background/[0.58]",
+        "hover:text-foreground hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.08)_inset,0_10px_28px_-14px_hsl(160_55%_38%/0.42)]",
+        "active:scale-[0.97] motion-reduce:active:scale-100",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "dark:border-border/40 dark:from-background/[0.55] dark:to-background/[0.28] dark:hover:border-emerald-400/32 dark:hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.05)_inset,0_14px_36px_-16px_hsl(160_65%_42%/0.35)]",
+        size === "sm" ? "min-h-8 px-2.5 py-1 text-[0.6875rem] leading-none" : "min-h-9 px-3 py-1.5 text-xs leading-none",
         className,
       )}
     >
-      <ShoppingCart className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />
-      Trade
-      <ArrowUpRight className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />
+      <ChartCandlestick
+        className={cn(iconClass, "shrink-0 stroke-[2.15] text-emerald-600/95 opacity-[0.92] transition-[opacity,color,transform] duration-200 dark:text-emerald-400/95")}
+        aria-hidden
+      />
+      <span className="select-none">Trade</span>
+      <ArrowUpRight
+        className={cn(
+          launchClass,
+          "shrink-0 stroke-[2.25] text-muted-foreground/45 opacity-90 transition-[opacity,transform,color] duration-200 ease-out",
+          "group-hover/trade:-translate-y-px group-hover/trade:translate-x-px group-hover/trade:text-emerald-600/85 dark:group-hover/trade:text-emerald-400/90",
+          "motion-reduce:group-hover/trade:translate-x-0 motion-reduce:group-hover/trade:translate-y-0",
+        )}
+        aria-hidden
+      />
     </a>
   );
 }

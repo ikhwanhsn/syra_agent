@@ -18,8 +18,8 @@ export function SignalsPreview() {
         title={isZh ? "信号" : "Signals"}
         description={
           isZh
-            ? "将 Syra 宏观方向信号与 RISE 本地技术指标结合。"
-            : "Blend macro directional context from Syra signal endpoints with RISE-native technical indicators."
+            ? "将宏观方向信号与 RISE 本地技术指标结合。"
+            : "Blend macro directional context from signal endpoints with RISE-native technical indicators."
         }
         eyebrow={isZh ? "洞察" : "Insights"}
       />

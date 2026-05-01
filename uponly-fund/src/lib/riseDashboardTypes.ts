@@ -1,6 +1,6 @@
 /**
  * Strict types for the Rise dashboard / screener. Mirrors the shapes returned
- * by the Syra api proxies (see api/routes/uponlyRiseMarket.js).
+ * by the API RISE proxies (see api/routes/uponlyRiseMarket.js).
  *
  * Naming convention: every field that may legitimately be missing on the
  * upstream is `T | null` rather than `undefined`, so UI components only need

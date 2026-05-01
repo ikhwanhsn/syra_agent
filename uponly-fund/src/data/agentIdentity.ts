@@ -1,9 +1,9 @@
 /**
- * Public Syra agent identity anchors (landing /identity).
+ * On-chain identity anchors (mint, explorer helpers, integrations).
  */
 
-/** $SYRA SPL mint (utility / governance token). */
-export const SYRA_TOKEN_MINT =
+/** Companion / paired SPL mint referenced in Up Only fee policy UI. */
+export const PAIRED_LIQUIDITY_TOKEN_MINT =
   "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
 
 /**
@@ -37,11 +37,9 @@ export function truncateBase58(addr: string, head = 8, tail = 8): string {
   return `${addr.slice(0, head)}…${addr.slice(-tail)}`;
 }
 
-export const syraSolscanAccountUrl = (address: string) =>
-  `https://solscan.io/account/${address}`;
+export const solscanAccountUrl = (address: string) => `https://solscan.io/account/${address}`;
 
-export const syraSolscanTokenUrl = (mint: string) =>
-  `https://solscan.io/token/${mint}`;
+export const solscanTokenUrl = (mint: string) => `https://solscan.io/token/${mint}`;
 
-/** Production API origin for public identity / discovery links on the marketing page. */
-export const SYRA_API_PUBLIC_ORIGIN = "https://api.syraa.fun";
+/** Production API gateway origin (public routes). */
+export const API_GATEWAY_PUBLIC_ORIGIN = "https://api.syraa.fun";

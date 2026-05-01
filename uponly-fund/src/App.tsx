@@ -10,12 +10,13 @@ import NotFound from "./pages/NotFound";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import TerminalPage from "@/pages/dashboard/Terminal";
+import TrendingPage from "@/pages/dashboard/Trending";
 import MarketsPage from "@/pages/dashboard/Markets";
 import WalletPage from "@/pages/dashboard/Wallet";
 import SimulatorPage from "@/pages/dashboard/Simulator";
 import InsightsPage from "@/pages/dashboard/Insights";
 import TokenDetailPage from "@/pages/token/TokenDetail";
-import { getRiseAggregate, getRiseMarkets } from "@/lib/riseDashboardApi";
+import { getRiseAggregate, getRiseMarkets, getRiseMarketsAll } from "@/lib/riseDashboardApi";
 import { LanguageProvider } from "@/lib/LanguageContext";
 
 const queryClient = new QueryClient();
@@ -44,8 +45,13 @@ function DashboardDataWarmup() {
       staleTime: 60_000,
     });
     void queryClient.prefetchQuery({
-      queryKey: ["rise-markets", 1, 10, false, false, 0],
-      queryFn: ({ signal }) => getRiseMarkets({ page: 1, limit: 10 }, signal),
+      queryKey: ["rise-markets", 1, 100, false, false, 0],
+      queryFn: ({ signal }) => getRiseMarkets({ page: 1, limit: 100 }, signal),
+      staleTime: 60_000,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: ["rise-markets-all", 150],
+      queryFn: ({ signal }) => getRiseMarketsAll(150, signal),
       staleTime: 60_000,
     });
   }, []);
@@ -63,17 +69,17 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <Routes>
-            <Route path="/" element={<Navigate to="/terminal" replace />} />
             <Route path="/landing" element={<Index />} />
             <Route element={<DashboardLayout />}>
+              <Route path="/" element={<TrendingPage />} />
               <Route path="/terminal" element={<TerminalPage />} />
               <Route path="/market" element={<MarketsPage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/simulator" element={<SimulatorPage />} />
               <Route path="/insights" element={<InsightsPage />} />
             </Route>
-            <Route path="/dashboard" element={<Navigate to="/terminal" replace />} />
-            <Route path="/dashboard/overview" element={<Navigate to="/terminal" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/dashboard/overview" element={<Navigate to="/" replace />} />
             <Route path="/dashboard/markets" element={<Navigate to="/market" replace />} />
             <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
             <Route path="/dashboard/simulator" element={<Navigate to="/simulator" replace />} />

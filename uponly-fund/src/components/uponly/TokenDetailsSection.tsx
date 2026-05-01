@@ -29,13 +29,13 @@ function ProgramNarrative({ reduceMotion }: { reduceMotion: boolean }) {
               id="program-narrative-heading"
               className="mt-1 max-w-3xl text-2xl font-bold leading-tight tracking-[-0.02em] text-balance sm:text-3xl md:text-4xl"
             >
-              <span className="neon-text">Syra × RISE</span>{" "}
+              <span className="neon-text">Up Only × RISE</span>{" "}
               <span className="text-foreground/90">in production, not a slide deck</span>
             </h2>
             <p className="mt-4 max-w-[34rem] text-[0.95rem] leading-[1.65] text-muted-foreground sm:text-base sm:leading-7 text-pretty">
-              A public collaboration to stress-test a next-generation RISE launch on Solana. The Syra community token
-              on Pump remains the long-term base case; <strong>Up Only</strong> is the RISE tranche to learn the
-              protocol in live markets, with published fee routing to liquidity.{" "}
+              A public program to stress-test a next-generation RISE launch on Solana. The companion community mint
+              remains a separate base-case reference; <strong>Up Only</strong> is the RISE tranche to learn the protocol
+              in live markets, with published fee routing to liquidity.{" "}
             </p>
             <div className="mt-8 flex w-full min-w-0 flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center">
               <Button
@@ -80,14 +80,14 @@ function WhatWeLearn() {
             What <span className="neon-text">$UPONLY</span> validates for the allocator stack
           </h2>
           <p className="mt-4 text-muted-foreground sm:text-lg sm:leading-relaxed">
-            We stress-test creation, venue liquidity, and documented borrow / floor behavior end-to-end so Syra tooling and
+            We stress-test creation, venue liquidity, and documented borrow / floor behavior end-to-end so tooling and
             education tracks mirror production reality—not a forecast of any price path.
           </p>
           <ul className="mt-8 space-y-4">
             {[
               "Operational UX for launches and institutional-grade sizing on RISE.",
               "Market appetite for floor plus borrow mechanics versus classic meme-curve launches.",
-              "Product triggers for when Syra agents deep-link RISE venues inside workflows.",
+              "Product triggers for when agents and dashboards deep-link RISE venues inside workflows.",
             ].map((line) => (
               <li key={line} className="flex gap-3 text-sm sm:text-base text-muted-foreground">
                 <span className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border/70 bg-card/50">
@@ -104,7 +104,7 @@ function WhatWeLearn() {
             Build posture
           </div>
           <p className="mt-3 break-words text-sm leading-relaxed text-muted-foreground">
-            This is the live Syra × RISE <strong>Up Only</strong> spec page. It is not in the main site nav: share the{" "}
+            This is the live <strong>Up Only</strong> × RISE spec page. It is not in the main site nav: share the{" "}
             <code className="rounded border border-border/50 bg-background/30 px-1 font-mono text-xs">/uponly/overview</code> path
             with partners. Read RISE’s{" "}
             <ExternalLink href="https://docs.rise.rich/legal/terms" className="text-sm">
@@ -184,7 +184,7 @@ export function TokenDetailsSection({ reduceMotion }: { reduceMotion: boolean })
           $UPONLY <span className="text-foreground/75">identifiers &amp; policy</span>
         </h2>
         <p className="mt-3 max-w-2xl break-words text-sm text-muted-foreground sm:text-base">
-          Contract-level transparency for the RISE tranche, plus the Syra fee policy for liquidity. Update{" "}
+          Contract-level transparency for the RISE tranche, plus the published fee policy for liquidity. Update{" "}
           <code className="rounded border border-border/50 bg-background/50 px-1.5 py-0.5 font-mono text-xs">
             riseUpOnly.ts
           </code>{" "}

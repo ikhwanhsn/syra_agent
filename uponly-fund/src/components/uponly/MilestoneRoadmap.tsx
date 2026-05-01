@@ -9,7 +9,7 @@ const STAGE_INFO: Record<string, { unlock: string }> = {
     unlock: "Narrative + on-chain spec published; RISE market live; learning loops open.",
   },
   "5m": {
-    unlock: "Deeper market structure tests; expanded Syra RISE content and analytics.",
+    unlock: "Deeper market structure tests; expanded RISE content and analytics.",
   },
   "25m": {
     unlock: "Institutional story compounding: partnerships, data room depth, and borrow usage telemetry.",

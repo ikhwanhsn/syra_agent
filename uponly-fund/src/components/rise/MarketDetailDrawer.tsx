@@ -472,8 +472,8 @@ export function MarketDetailDrawer({
                 </p>
                 <p className="mt-1">
                   {isZh
-                    ? "数据通过 Syra 到 RISE 的只读代理提供。交易按钮会跳转到 rise.rich；本看板不会进行签名。"
-                    : "Read-only data via the Syra -> RISE proxy. Trade actions deep-link to rise.rich; nothing is signed in this dashboard."}
+                    ? "数据通过只读 RISE 代理提供。交易按钮会跳转到 rise.rich；本看板不会进行签名。"
+                    : "Read-only data via the RISE proxy. Trade actions deep-link to rise.rich; nothing is signed in this dashboard."}
                 </p>
               </div>
             </div>

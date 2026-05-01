@@ -29,7 +29,7 @@ function onHardHomeClick(e: MouseEvent<HTMLAnchorElement>) {
 }
 
 /**
- * Up Only Fund — primary mark. Distinct from Syra; infrastructure partner is called out elsewhere.
+ * Up Only Fund — primary mark.
  */
 export function BrandMark({
   className,

@@ -39,7 +39,6 @@ export type UpOnlyFundData = {
   shortName: string;
   /** One short paragraph for hero, CTAs, and cross-links (not the legal mandate). */
   publicSummary: string;
-  backedBy: "Syra";
   mandate: string;
   treasuryAddress: string | null;
   stats: UpOnlyFundStats;
@@ -53,10 +52,9 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   name: "Up Only Fund",
   shortName: "UOF",
   publicSummary:
-    "Syra-seeded venture allocator with a published mandate to deploy capital and operator leverage across the RISE ecosystem. Treasury address and positions publish as they go live—no public LP subscriptions in v1.",
-  backedBy: "Syra",
+    "Independent venture allocator with a published mandate to deploy capital and operator leverage across the RISE ecosystem. Treasury address and positions publish as they go live—no public LP subscriptions in v1.",
   mandate:
-    "A Syra-seeded venture and strategic hedge desk focused on RISE-native teams—capital for liquidity and distribution, strategy support where Syra tooling compounds outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
+    "A venture and strategic hedge desk focused on RISE-native teams—capital for liquidity and distribution, plus operator support where data and execution tooling compound outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
   treasuryAddress: null,
   stats: {
     aumUsd: null,
@@ -76,10 +74,11 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
         "This page: mandate, future treasury address, and holdings as they are published. No public deposits in v1.",
     },
     {
-      id: "uof-syra-tools",
-      title: "Syra tooling for fund analytics",
+      id: "uof-analytics-tools",
+      title: "Fund-grade analytics",
       status: "planned",
-      description: "Deeper on-chain and market context for RISE ecosystem positions via Syra agents and dashboard surfaces (roadmap TBA).",
+      description:
+        "Deeper on-chain and market context for RISE ecosystem positions via dashboards and automation (roadmap TBA).",
     },
     {
       id: "uof-broader-utility",

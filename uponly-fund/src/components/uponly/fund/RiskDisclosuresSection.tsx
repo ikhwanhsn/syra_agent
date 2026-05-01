@@ -27,7 +27,7 @@ export function RiskDisclosuresSection({ className }: RiskDisclosuresSectionProp
           <p className="mt-2 [overflow-wrap:anywhere]">
             Nothing on this page is an offer, solicitation, or financial advice. Cryptocurrency and early-stage
             projects can lose 100% of value. <strong>Do your own research (DYOR)</strong> and only risk capital
-            you can afford to lose entirely. Syra, RISE, and third parties are separate; verify on-chain and in
+            you can afford to lose entirely. This program, RISE, and third parties are separate; verify on-chain and in
             current documentation—do not trust this page alone. Past and hypothetical outcomes are not indicative
             of future results.
           </p>

@@ -20,9 +20,9 @@ import { StickyBuyBar } from "@/components/uponly/StickyBuyBar";
 import { RiseUpOnlyMarketProvider } from "@/lib/RiseUpOnlyMarketContext";
 import { motion, useScroll, useSpring } from "framer-motion";
 
-const PAGE_TITLE = "Up Only ($UPONLY) | Syra × RISE — Road to $100M" as const;
+const PAGE_TITLE = "Up Only ($UPONLY) | RISE — Road to $100M" as const;
 const PAGE_DESC =
-  "The Syra × RISE $UPONLY tranche: protocol floor, elastic supply, 0% borrow interest per RISE design, and a public milestone toward $100M market cap. DYOR — not financial advice." as const;
+  "The Up Only $UPONLY tranche on RISE: protocol floor, elastic supply, 0% borrow interest per RISE design, and a public milestone toward $100M market cap. DYOR — not financial advice." as const;
 
 function ReadingProgress() {
   const { scrollYProgress } = useScroll();

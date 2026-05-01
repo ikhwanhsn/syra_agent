@@ -14,11 +14,11 @@ const ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "What happens if the RISE platform is unavailable?",
-    a: "This page is a Syra-hosted explainer, not a guarantee of uptime for third-party infrastructure. Your positions live on Solana; verify contracts and the official RISE front-end status.",
+    a: "This page is an explainer only—not a guarantee of uptime for third-party infrastructure. Your positions live on Solana; verify contracts and the official RISE front-end status.",
   },
   {
-    q: "Is $UPONLY the same as the canonical $SYRA token?",
-    a: "No. $UPONLY is the RISE tranche. Canonical $SYRA remains the community token on the Pump.fun reference, with 50% of Syra-allocated fee liquidity; $UPONLY receives the other 50% per the policy on this page.",
+    q: "Is $UPONLY the same as the companion liquidity token?",
+    a: "No. $UPONLY is the RISE tranche. The companion token remains the separate community reference mint; program-allocated fee liquidity is split 50% / 50% between that mint and $UPONLY per the policy on this page.",
   },
   {
     q: "Is borrowing free?",

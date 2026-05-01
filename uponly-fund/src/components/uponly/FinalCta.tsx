@@ -36,7 +36,7 @@ export function FinalCta({ className }: { className?: string }) {
               <Building2 className="h-3.5 w-3.5" aria-hidden />
               Up Only Fund
             </Link>
-            <span> — Syra-backed mandate to allocate across the RISE ecosystem (transparency page).</span>
+            <span> — published mandate to allocate across the RISE ecosystem (transparency page).</span>
           </p>
           <div className="mt-6 flex w-full min-w-0 max-w-md flex-col items-stretch justify-center gap-2.5 min-[500px]:gap-3 sm:mx-auto sm:mt-8 sm:max-w-none sm:flex-row sm:gap-4">
             {canBuy && u ? (
@@ -83,7 +83,7 @@ export function FinalCta({ className }: { className?: string }) {
         <p className="font-medium text-foreground/90">Important</p>
         <p className="mt-2">
           Nothing on this page is financial advice, an offer, or a solicitation. Cryptocurrency markets are volatile;
-          you can lose your entire position. RISE and Syra are independent projects — verify every claim in the
+          you can lose your entire position. RISE and this program are independent efforts — verify every claim in the
           current documentation and on-chain, not from this page alone. Past and simulated performance is not
           indicative of future results. <strong>Do your own research (DYOR).</strong>
         </p>

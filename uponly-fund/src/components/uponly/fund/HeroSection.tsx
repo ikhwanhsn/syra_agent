@@ -29,7 +29,7 @@ export function HeroSection({ className }: HeroSectionProps) {
             variant="secondary"
             className="border border-border/50 bg-background/50 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-[0.18em] shadow-sm"
           >
-            Syra × RISE venture desk
+            RISE venture desk
           </Badge>
           <Badge
             variant="outline"
@@ -47,7 +47,7 @@ export function HeroSection({ className }: HeroSectionProps) {
               className="text-balance break-words text-[1.375rem] font-bold leading-[1.15] tracking-[-0.02em] min-[380px]:text-2xl min-[480px]:text-3xl sm:text-4xl md:leading-[1.1] md:text-5xl"
             >
               <span className="neon-text">{UP_ONLY_FUND.name}</span>{" "}
-              <span className="text-foreground/80">— backed by Syra</span>
+              <span className="text-foreground/80">— independent program brand</span>
             </h1>
             <p className="mt-3 max-w-2xl break-words text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
               {UP_ONLY_FUND.mandate}

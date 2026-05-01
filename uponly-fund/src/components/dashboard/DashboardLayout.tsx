@@ -1,29 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import {
-  Activity,
-  ArrowUpRight,
-  BarChart3,
-  Calculator,
-  Menu,
-  MessageCircle,
-  Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Sun,
-  Terminal,
-  Wallet,
-  XIcon,
-} from "lucide-react";
+import { Activity, BarChart3, Calculator, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Terminal, Wallet } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandMark } from "@/components/BrandMark";
 import { cn } from "@/lib/utils";
 import { RiseDashboardProvider } from "@/lib/RiseDashboardContext";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarNavLink } from "./SidebarPrimitives";
+import { SidebarOutboundDock } from "./SidebarOutboundDock";
 import { WalletProvider } from "@/lib/WalletContext";
 import { ConnectWalletButton } from "./ConnectWalletButton";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -57,7 +43,7 @@ function SidebarContent({
     <>
       <div className={cn("flex items-center gap-2 border-b border-sidebar-border/90 px-3 py-3", compact && "justify-center px-2 py-2.5")}>
         <div className={cn("min-w-0 flex-1", compact && "flex flex-1 justify-center")}>
-          <Link to="/terminal" className={cn("block rounded-lg p-1 hover:bg-muted/30", compact && "inline-flex")} onClick={onNavigate}>
+          <Link to="/" className={cn("block rounded-lg p-1 hover:bg-muted/30", compact && "inline-flex")} onClick={onNavigate}>
             <BrandMark compact className={cn("max-w-full", compact && "max-w-[2.25rem]")} />
           </Link>
           {!compact ? (
@@ -97,89 +83,27 @@ function SidebarContent({
 
       <div
         className={cn(
-          "shrink-0 border-t border-sidebar-border/60 bg-gradient-to-b from-sidebar via-sidebar to-sidebar/90 px-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-3",
+          "shrink-0 border-t border-sidebar-border/55 bg-gradient-to-b from-sidebar via-sidebar to-sidebar/95 px-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-3.5",
           compact && "px-1.5 pt-2.5",
         )}
       >
         {!compact ? (
-          <p className="mb-2 px-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground/75">
-            {dictionary.sidebarFooter.sectionLabel}
-          </p>
+          <div className="mb-2.5 space-y-1 px-0.5">
+            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">{dictionary.sidebarFooter.sectionLabel}</p>
+            <p className="text-[0.68rem] leading-snug text-muted-foreground/55">{dictionary.sidebarFooter.sectionSubtitle}</p>
+          </div>
         ) : (
-          <p className="sr-only">{dictionary.sidebarFooter.sectionLabel}</p>
+          <p className="sr-only">
+            {dictionary.sidebarFooter.sectionLabel} — {dictionary.sidebarFooter.sectionSubtitle}
+          </p>
         )}
-        <div
-          className={cn(
-            "overflow-hidden rounded-xl border border-border/40 bg-background/[0.35] p-1 shadow-[0_1px_0_0_hsl(0_0%_100%_/0.04)_inset] backdrop-blur-md dark:border-border/25 dark:bg-background/[0.08] dark:shadow-[0_1px_0_0_hsl(0_0%_100%_/0.06)_inset]",
-            compact ? "flex flex-col gap-0.5" : "flex flex-row gap-0.5",
-          )}
-        >
-          <Tooltip delayDuration={300}>
-            <TooltipTrigger asChild>
-              <a
-                href={xUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={dictionary.sidebarFooter.xAria}
-                className={cn(
-                  "group flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg text-muted-foreground outline-none transition-[color,transform,background-color] duration-150",
-                  "hover:bg-muted/55 hover:text-foreground",
-                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  compact && "min-h-12",
-                )}
-              >
-                <XIcon className="h-[18px] w-[18px] shrink-0 opacity-90 transition-transform duration-150 group-hover:scale-[1.06] group-hover:opacity-100 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side={compact ? "right" : "top"} sideOffset={8} className="max-w-[14rem] rounded-lg border border-border/60 bg-popover px-2.5 py-1.5 text-xs font-medium shadow-lg">
-              {dictionary.sidebarFooter.xAria}
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip delayDuration={300}>
-            <TooltipTrigger asChild>
-              <a
-                href={telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={dictionary.sidebarFooter.telegramAria}
-                className={cn(
-                  "group flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg text-muted-foreground outline-none transition-[color,transform,background-color] duration-150",
-                  "hover:bg-muted/55 hover:text-foreground",
-                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  compact && "min-h-12",
-                )}
-              >
-                <MessageCircle className="h-[18px] w-[18px] shrink-0 opacity-90 transition-transform duration-150 group-hover:scale-[1.06] group-hover:opacity-100 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side={compact ? "right" : "top"} sideOffset={8} className="max-w-[14rem] rounded-lg border border-border/60 bg-popover px-2.5 py-1.5 text-xs font-medium shadow-lg">
-              {dictionary.sidebarFooter.telegramAria}
-            </TooltipContent>
-          </Tooltip>
-          {riseTradeUrl ? (
-            <Tooltip delayDuration={300}>
-              <TooltipTrigger asChild>
-                <a
-                  href={riseTradeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={dictionary.sidebarFooter.riseTradeAria}
-                  className={cn(
-                    "group flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg text-muted-foreground outline-none transition-[color,transform,background-color] duration-150",
-                    "hover:bg-muted/55 hover:text-foreground",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    compact && "min-h-12",
-                  )}
-                >
-                  <ArrowUpRight className="h-[18px] w-[18px] shrink-0 opacity-90 transition-transform duration-150 group-hover:scale-[1.06] group-hover:opacity-100 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-                </a>
-              </TooltipTrigger>
-              <TooltipContent side={compact ? "right" : "top"} sideOffset={8} className="max-w-[14rem] rounded-lg border border-border/60 bg-popover px-2.5 py-1.5 text-xs font-medium shadow-lg">
-                {dictionary.sidebarFooter.riseTradeAria}
-              </TooltipContent>
-            </Tooltip>
-          ) : null}
-        </div>
+        <SidebarOutboundDock
+          dictionary={dictionary.sidebarFooter}
+          xUrl={xUrl}
+          telegramUrl={telegramUrl}
+          riseTradeUrl={riseTradeUrl}
+          compact={compact}
+        />
       </div>
     </>
   );

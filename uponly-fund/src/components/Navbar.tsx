@@ -149,7 +149,7 @@ export const Navbar = () => {
                     href={`mailto:${EMAIL_SUPPORT}`}
                     className="flex min-h-11 min-w-0 items-center break-words rounded-lg px-3 text-sm text-muted-foreground"
                   >
-                    {EMAIL_SUPPORT}
+                    Email support
                   </a>
                 </div>
               </div>

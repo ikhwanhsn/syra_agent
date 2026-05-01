@@ -33,7 +33,7 @@ export function TokenSection({ className }: TokenSectionProps) {
         Align with <span className="uof-wordmark">$UPONLY</span>
       </h2>
       <p className="mt-4 max-w-3xl text-pretty text-sm text-muted-foreground sm:text-base md:text-[1.0625rem] md:leading-relaxed">
-        The Syra × RISE liquid tranche lets markets participate alongside our allocator mandate—same ecosystem upside,
+        The RISE-listed liquid tranche lets markets participate alongside our allocator mandate—same ecosystem upside,
         venue-native liquidity. Verify the mint, then trade through RISE or prep inside the dashboard.
       </p>
 

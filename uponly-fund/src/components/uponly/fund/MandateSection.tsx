@@ -39,7 +39,7 @@ export function MandateSection({ className }: MandateSectionProps) {
       >
         {[
           "Source of truth remains on-chain plus disclosures published here—this site mirrors intent; contracts define settlement.",
-          "Mandate: multi-year backing for RISE-native founders—capital for liquidity and distribution, operator support where Syra tooling compounds execution.",
+          "Mandate: multi-year backing for RISE-native founders—capital for liquidity and distribution, operator support where analytics and execution tooling compound outcomes.",
           "Not personalized investment advice; not an open-ended pooled vehicle for retail subscribers in v1—education and sleeve transparency first.",
         ].map((line) => (
           <motion.li

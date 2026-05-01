@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-
-const SITE_ORIGIN = "https://www.syraa.fun" as const;
+import { SITE_ORIGIN } from "@/config/site";
 
 export type DocumentMeta = {
   title: string;

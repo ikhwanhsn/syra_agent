@@ -12,8 +12,7 @@ import {
   LINK_TELEGRAM,
   LINK_X,
 } from "../../config/global";
-
-const SYRA_HOME = "https://www.syraa.fun/" as const;
+import { SITE_ORIGIN } from "@/config/site";
 
 export const Footer = () => {
   return (
@@ -51,26 +50,21 @@ export const Footer = () => {
                 className="inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2 break-all rounded-xl border border-border/60 bg-background/50 px-3 text-sm font-medium text-foreground backdrop-blur-sm transition hover:border-border min-[400px]:w-auto min-[400px]:px-6 sm:break-normal"
               >
                 <Mail className="h-4 w-4 shrink-0" />
-                {EMAIL_SUPPORT}
+                Email support
               </a>
             </div>
             <p className="mt-6 text-xs text-muted-foreground/90">
-              Need agent or API access?{" "}
-              <a
-                href={SYRA_HOME}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-foreground/90 underline-offset-2 hover:underline"
-              >
-                Syra
-              </a>{" "}
-              operates the infrastructure layer —{" "}
+              Agent, APIs, and playground:{" "}
               <a href={LINK_AGENT} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
                 open agent
               </a>
               ,{" "}
               <a href={LINK_DOCS} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
-                read docs
+                docs
+              </a>
+              ,{" "}
+              <a href={LINK_PLAYGROUND} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
+                playground
               </a>
               .
             </p>
@@ -126,18 +120,17 @@ export const Footer = () => {
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Partner stack</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Developers</h4>
               <ul className="mt-4 space-y-3 text-sm">
                 <li>
                   <a
-                    href={SYRA_HOME}
+                    href={LINK_DOCS}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-muted-foreground transition hover:text-foreground"
                   >
-                    Syra
-                  </a>{" "}
-                  <span className="text-[0.65rem] text-muted-foreground/80">(infra)</span>
+                    API docs
+                  </a>
                 </li>
                 <li>
                   <a
@@ -167,7 +160,7 @@ export const Footer = () => {
               <ul className="mt-4 space-y-3 text-sm">
                 <li>
                   <a
-                    href={`${SYRA_HOME}privacy`}
+                    href={`${SITE_ORIGIN}/privacy`}
                     className="text-muted-foreground transition hover:text-foreground"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -177,7 +170,7 @@ export const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href={`${SYRA_HOME}terms`}
+                    href={`${SITE_ORIGIN}/terms`}
                     className="text-muted-foreground transition hover:text-foreground"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -187,7 +180,7 @@ export const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href={`${SYRA_HOME}cookies`}
+                    href={`${SITE_ORIGIN}/cookies`}
                     className="text-muted-foreground transition hover:text-foreground"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -202,18 +195,7 @@ export const Footer = () => {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/40 pt-8 text-xs text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} Up Only Fund program. All rights reserved.</p>
-          <p className="text-center sm:text-right">
-            Infrastructure from{" "}
-            <a
-              href={SYRA_HOME}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground/85 underline-offset-2 hover:underline"
-            >
-              Syra
-            </a>
-            . Program narrative is UOF.
-          </p>
+          <p className="text-center sm:text-right">Independent brand · RISE ecosystem focus</p>
         </div>
       </div>
     </footer>

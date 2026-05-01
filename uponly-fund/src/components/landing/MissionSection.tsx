@@ -70,8 +70,8 @@ export function MissionSection({ className }: MissionSectionProps) {
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Publish mandate and treasury intent like a GP memo; separate the liquid <span className="font-mono text-foreground/85">$UPONLY</span>{" "}
-                sleeve from program wallets; route execution through venues you can verify on-chain. Syra ships infra—Up
-                Only Fund owns allocator narrative and disclosures here.
+                sleeve from program wallets; route execution through venues you can verify on-chain. Up Only Fund owns
+                allocator narrative and disclosures here.
               </p>
             </div>
           </div>

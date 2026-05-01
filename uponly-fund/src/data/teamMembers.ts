@@ -1,28 +1,28 @@
-export type SyraTeamRole = "founder" | "core" | "advisor" | "contributor";
+export type UofTeamRole = "founder" | "core" | "advisor" | "contributor";
 
-export type SyraTeamPlatform = "x" | "telegram";
+export type UofTeamPlatform = "x" | "telegram";
 
-export interface SyraTeamContact {
+export interface UofTeamContact {
   /** Normalized handle without @ (lowercase). */
   readonly handle: string;
   readonly profileUrl: string;
 }
 
-export interface SyraTeamMember {
+export interface UofTeamMember {
   readonly displayName: string;
-  readonly role: SyraTeamRole;
+  readonly role: UofTeamRole;
   /** Human-readable role for UI (e.g. "Founder"). */
   readonly roleLabel: string;
-  readonly x?: SyraTeamContact;
-  readonly telegram?: SyraTeamContact;
+  readonly x?: UofTeamContact;
+  readonly telegram?: UofTeamContact;
 }
 
 /**
- * Public Syra team directory for in-app / on-site verification.
+ * Public team directory for in-app / on-site verification.
  * Extend this list as the team grows. Lookup is case-insensitive; leading @ is ignored.
  * Pasted profile URLs are normalized when possible.
  */
-export const SYRA_TEAM_MEMBERS: readonly SyraTeamMember[] = [
+export const UOF_TEAM_MEMBERS: readonly UofTeamMember[] = [
   {
     displayName: "Ikhwanul Husna",
     role: "founder",
@@ -39,30 +39,30 @@ export const SYRA_TEAM_MEMBERS: readonly SyraTeamMember[] = [
   },
 ] as const;
 
-const byXHandle: ReadonlyMap<string, SyraTeamMember> = (() => {
-  const map = new Map<string, SyraTeamMember>();
-  for (const member of SYRA_TEAM_MEMBERS) {
+const byXHandle: ReadonlyMap<string, UofTeamMember> = (() => {
+  const map = new Map<string, UofTeamMember>();
+  for (const member of UOF_TEAM_MEMBERS) {
     if (member.x) map.set(member.x.handle.toLowerCase(), member);
   }
   return map;
 })();
 
-const byTelegramHandle: ReadonlyMap<string, SyraTeamMember> = (() => {
-  const map = new Map<string, SyraTeamMember>();
-  for (const member of SYRA_TEAM_MEMBERS) {
+const byTelegramHandle: ReadonlyMap<string, UofTeamMember> = (() => {
+  const map = new Map<string, UofTeamMember>();
+  for (const member of UOF_TEAM_MEMBERS) {
     if (member.telegram) map.set(member.telegram.handle.toLowerCase(), member);
   }
   return map;
 })();
 
-export type SyraTeamLookupHit = {
-  readonly member: SyraTeamMember;
-  readonly platform: SyraTeamPlatform;
+export type UofTeamLookupHit = {
+  readonly member: UofTeamMember;
+  readonly platform: UofTeamPlatform;
   readonly handle: string;
   readonly profileUrl: string;
 };
 
-export function normalizeSocialHandle(raw: string, platform: SyraTeamPlatform): string {
+export function normalizeSocialHandle(raw: string, platform: UofTeamPlatform): string {
   const trimmed = raw.trim();
   if (!trimmed) return "";
 
@@ -81,10 +81,10 @@ export function normalizeSocialHandle(raw: string, platform: SyraTeamPlatform): 
   return trimmed.replace(/^@+/u, "").toLowerCase();
 }
 
-export function lookupSyraTeamContact(
-  platform: SyraTeamPlatform,
+export function lookupUofTeamContact(
+  platform: UofTeamPlatform,
   raw: string,
-): SyraTeamLookupHit | undefined {
+): UofTeamLookupHit | undefined {
   const handle = normalizeSocialHandle(raw, platform);
   if (!handle) return undefined;
 

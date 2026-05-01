@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Bot, Radar, ShieldCheck, Zap } from "lucide-react";
 import { useRiseDashboard } from "@/lib/RiseDashboardContext";
-import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
+import { formatPctSigned, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import { ChangePill, GlassCard } from "@/components/rise/RiseShared";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -47,7 +47,7 @@ export function AgentActivityFeed({ className }: { className?: string }) {
           metric:
             row.priceChange24hPct === null
               ? isZh ? "无波动数据" : "No move data"
-              : `${row.priceChange24hPct > 0 ? "+" : ""}${formatPct(Math.abs(row.priceChange24hPct))}`,
+              : formatPctSigned(row.priceChange24hPct),
           pctValue: row.priceChange24hPct,
           ago: AGO_LABELS[index] ?? (isZh ? "20分钟前" : "20m ago"),
         };

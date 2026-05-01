@@ -1,5 +1,5 @@
 /**
- * Typed client for the Syra public RISE proxies. All endpoints live under
+ * Typed client for public RISE HTTP proxies. All endpoints live under
  * `${API_BASE}/uponly-rise-market(s)/...` and require no client-side secrets —
  * the API auto-injects auth for trusted origins (see api/utils/trustedOriginAuth.js).
  *
@@ -10,6 +10,7 @@ import { API_BASE, getApiHeaders } from "../../config/global";
 import type {
   RiseAggregateResponse,
   RiseBorrowQuoteResponse,
+  RiseMarketRow,
   RiseMarketsListResponse,
   RiseOhlcResponse,
   RisePortfolioPositionsResponse,
@@ -97,6 +98,43 @@ export function getRiseMarkets(
     minMarketCap: params.minMarketCap,
   });
   return riseFetch<RiseMarketsListResponse>(`/uponly-rise-markets${q}`, { signal });
+}
+
+const MARKETS_ALL_PAGE_CONCURRENCY = 4;
+
+/**
+ * Full sorted universe for terminal-style views: walks every page at `limit`,
+ * dedupes by mint, and merges UPONLY from aggregate when missing from the list.
+ */
+export async function getRiseMarketsAll(limit: number, signal?: AbortSignal): Promise<RiseMarketRow[]> {
+  const first = await getRiseMarkets({ page: 1, limit }, signal);
+  const totalPages = Math.max(1, first.totalPages ?? 1);
+  const merged: RiseMarketRow[] = [...first.markets];
+  if (totalPages > 1) {
+    const remainingPages = Array.from({ length: totalPages - 1 }, (_, idx) => idx + 2);
+    for (let i = 0; i < remainingPages.length; i += MARKETS_ALL_PAGE_CONCURRENCY) {
+      const chunk = remainingPages.slice(i, i + MARKETS_ALL_PAGE_CONCURRENCY);
+      const chunkResponses = await Promise.all(chunk.map((page) => getRiseMarkets({ page, limit }, signal)));
+      for (const next of chunkResponses) {
+        merged.push(...next.markets);
+      }
+    }
+  }
+  const dedup = new Map<string, RiseMarketRow>();
+  for (const row of merged) {
+    if (!row.mint) continue;
+    if (!dedup.has(row.mint)) dedup.set(row.mint, row);
+  }
+  try {
+    const aggregate = await getRiseAggregate(signal);
+    const uponly = aggregate.uponly;
+    if (uponly?.mint && !dedup.has(uponly.mint)) {
+      dedup.set(uponly.mint, uponly);
+    }
+  } catch {
+    // Keep markets list usable if aggregate endpoint is temporarily degraded.
+  }
+  return Array.from(dedup.values());
 }
 
 /* --- Per-market --- */

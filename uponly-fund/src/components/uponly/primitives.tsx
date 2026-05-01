@@ -3,11 +3,10 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Coins, Copy, Droplets, MessageCircle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SYRA_TOKEN_MINT, syraSolscanTokenUrl } from "@/data/agentIdentity";
+import { PAIRED_LIQUIDITY_TOKEN_MINT, solscanTokenUrl } from "@/data/agentIdentity";
 import { getRiseRichTradeUrl, riseUpOnlyHasAnyMarketStats, type RiseUpOnlyManual } from "@/data/riseUpOnly";
 import { useRiseUpOnlyMarket } from "@/lib/RiseUpOnlyMarketContext";
 import { formatInt, formatPct, formatUsd } from "@/lib/marketDisplayFormat";
-import syraMark from "/images/logo.jpg";
 
 /** RISE public docs and social */
 export const RISE_DOCS = {
@@ -26,8 +25,7 @@ const RISE_PARTNER_LOGO = "/images/partners/rise.jpg";
 const RISE_LOGO_PLACEHOLDER = "/images/partners/placeholder.svg";
 
 export const UP_ONLY_HERO_ART = "/images/experiment/rise_uponly.png";
-export const HERO_IMAGE_ALT =
-  "Up Only Fund — Syra × RISE institutional mark and coin artwork";
+export const HERO_IMAGE_ALT = "Up Only Fund — RISE ecosystem mark and coin artwork";
 export const UP_ONLY_LOGO_MARK = "/images/experiment/rise_uponly.png";
 const UP_ONLY_LOGO_ALT = "Up Only Fund logo mark";
 
@@ -65,7 +63,7 @@ export const itemFade = (reduce: boolean) =>
         },
       };
 
-export function SyraRiseLockup({ className }: { className?: string }) {
+export function UpOnlyRiseLockup({ className }: { className?: string }) {
   return (
     <div className={cn("w-full min-w-0", className)}>
       <div className="relative mx-auto w-full min-w-0 max-w-md sm:max-w-none sm:mx-0">
@@ -77,11 +75,11 @@ export function SyraRiseLockup({ className }: { className?: string }) {
           <div className="grid grid-cols-1 place-items-stretch gap-2 px-2.5 py-3.5 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-3 sm:px-5 sm:py-4 sm:place-items-stretch">
             <div
               className="flex h-auto min-h-[3.25rem] w-full min-w-0 items-center justify-center rounded-xl border border-border/50 bg-gradient-to-b from-background/80 to-background/30 px-2.5 py-2.5 shadow-inner sm:h-16 sm:px-3"
-              title="Syra"
+              title="Up Only Fund"
             >
               <img
-                src={syraMark}
-                alt="Syra"
+                src={UP_ONLY_LOGO_MARK}
+                alt="Up Only Fund"
                 width={160}
                 height={160}
                 className="h-11 w-11 shrink-0 object-contain object-center sm:h-14 sm:w-14"
@@ -118,7 +116,7 @@ export function SyraRiseLockup({ className }: { className?: string }) {
           </div>
           <div className="border-t border-border/40 bg-gradient-to-b from-foreground/[0.02] to-transparent px-3 py-2.5 sm:px-5">
             <p className="text-balance text-center text-[0.65rem] font-medium uppercase leading-snug tracking-[0.12em] text-muted-foreground/90 sm:tracking-[0.2em] min-[400px]:text-xs">
-              Syra × RISE — <span className="text-foreground/85">$UPONLY</span>
+              Up Only × RISE — <span className="text-foreground/85">$UPONLY</span>
             </p>
           </div>
         </div>
@@ -129,13 +127,13 @@ export function SyraRiseLockup({ className }: { className?: string }) {
 
 export function FeeAllocationIllustration({ className }: { className?: string }) {
   const uid = useId().replace(/:/g, "");
-  const gSyra = `uponlyFeePoolSyra-${uid}`;
+  const gPair = `uponlyFeePoolPair-${uid}`;
   const gUp = `uponlyFeePoolUp-${uid}`;
   return (
     <div
       className={cn("relative w-full select-none", className)}
       role="img"
-      aria-label="Illustration: fees split equally into $SYRA and $UPONLY liquidity pools for the RISE Up Only program."
+      aria-label="Illustration: fees split equally between the companion liquidity token and $UPONLY for the RISE Up Only program."
     >
       <svg
         viewBox="0 0 400 200"
@@ -146,7 +144,7 @@ export function FeeAllocationIllustration({ className }: { className?: string })
         aria-hidden
       >
         <defs>
-          <linearGradient id={gSyra} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={gPair} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="hsl(var(--ring))" stopOpacity="0.5" />
             <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0.12" />
           </linearGradient>
@@ -193,10 +191,10 @@ export function FeeAllocationIllustration({ className }: { className?: string })
           rx="14"
           className="stroke-border/50"
           strokeWidth="1"
-          fill={`url(#${gSyra})`}
+          fill={`url(#${gPair})`}
         />
         <text x="105" y="128" textAnchor="middle" className="fill-foreground/80" style={{ fontSize: "9px", fontWeight: 700 }}>
-          50% · $SYRA
+          50% · paired token
         </text>
         <text x="105" y="144" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: "6.5px" }}>
           Liquidity
@@ -242,7 +240,7 @@ export function FeeAllocationIllustration({ className }: { className?: string })
           className="fill-muted-foreground/75"
           style={{ fontSize: "6.5px", fontWeight: 500, letterSpacing: "0.12em" }}
         >
-          SYRA × RISE · UP ONLY
+          RISE · UP ONLY
         </text>
       </svg>
     </div>
@@ -286,7 +284,7 @@ export function HeroArtwork({ reduceMotion, belowFold = true }: { reduceMotion: 
         />
       </div>
       <figcaption className="mt-3 text-center text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground/75 sm:mt-4 sm:text-xs">
-        Up Only key art — Syra × RISE
+        Up Only key art — RISE ecosystem
       </figcaption>
     </motion.figure>
   );
@@ -440,7 +438,7 @@ function MintOrTba({ mint, emptyLabel }: { mint: string | null; emptyLabel: stri
       </code>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <a
-          href={syraSolscanTokenUrl(mint)}
+          href={solscanTokenUrl(mint)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs font-medium text-foreground/90 underline-offset-2 hover:underline"
@@ -470,7 +468,7 @@ function OnChainAddress({
   if (!value) {
     return <span className="text-sm italic text-muted-foreground/95">{emptyLabel}</span>;
   }
-  const solscan = kind === "token" ? syraSolscanTokenUrl(value) : `https://solscan.io/account/${value}`;
+  const solscan = kind === "token" ? solscanTokenUrl(value) : `https://solscan.io/account/${value}`;
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(value);
@@ -618,7 +616,7 @@ export function RiseTokenDetailsCard() {
             <TokenDetailRow label="Mint">
               <p className="mb-2 text-sm text-muted-foreground">
                 RISE <strong className="font-medium text-foreground/90">$UPONLY</strong> SPL —{" "}
-                <strong className="font-medium text-foreground/90">50%</strong> of Syra-allocated fee liquidity.
+                <strong className="font-medium text-foreground/90">50%</strong> of program-allocated fee liquidity.
               </p>
               <OnChainAddress value={v.mint} kind="token" emptyLabel="—" />
             </TokenDetailRow>
@@ -662,19 +660,19 @@ export function RiseTokenDetailsCard() {
               {v.launchVenue}{" "}
               <span className="text-muted-foreground/95">(bonding + floor per RISE)</span>
             </TokenDetailRow>
-            <TokenDetailRow label="Up Only (Syra) mint">
+            <TokenDetailRow label="Program experiment mint">
               <MintOrTba
-                mint={v.syraExperimentMint}
-                emptyLabel="To be published when the RISE market is live — set syraExperimentMint in riseUpOnly.ts when ready."
+                mint={v.programExperimentMint}
+                emptyLabel="To be published when the RISE market is live — set programExperimentMint in riseUpOnly.ts when ready."
               />
             </TokenDetailRow>
-            <TokenDetailRow label="Canonical $SYRA">
+            <TokenDetailRow label="Companion liquidity token">
               <p className="text-sm text-muted-foreground">
-                Community reference (Pump.fun) — <strong className="font-medium text-foreground/90">50%</strong> of
-                Syra-allocated fee liquidity.
+                Community reference mint — <strong className="font-medium text-foreground/90">50%</strong> of
+                program-allocated fee liquidity.
               </p>
               <div className="mt-2.5">
-                <MintOrTba mint={SYRA_TOKEN_MINT} emptyLabel="Unavailable" />
+                <MintOrTba mint={PAIRED_LIQUIDITY_TOKEN_MINT} emptyLabel="Unavailable" />
               </div>
             </TokenDetailRow>
           </dl>
@@ -684,7 +682,7 @@ export function RiseTokenDetailsCard() {
   );
 }
 
-/** Right column: Syra fee policy + diagram */
+/** Right column: fee policy + diagram */
 export function FeeAllocationCard() {
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl border border-success/25 bg-gradient-to-b from-card/60 via-card/35 to-success/[0.1] shadow-[0_0_0_1px_hsl(0_0%_100%/0.04)_inset,0_20px_56px_-12px_hsl(0_0%_0%/0.2)] backdrop-blur-md">
@@ -701,16 +699,17 @@ export function FeeAllocationCard() {
           Fee allocation
         </div>
         <h3 className="mt-3 text-balance break-words text-base font-semibold leading-snug tracking-[-0.02em] text-foreground sm:text-lg md:text-xl">
-          50% $SYRA · 50% $UPONLY — liquidity
+          50% paired token · 50% $UPONLY — liquidity
         </h3>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <strong className="font-medium text-foreground/95">Syra&apos;s policy for Up Only:</strong> every cent of{" "}
-          <strong>fees that accrue to Syra</strong> in connection with this program—after pass-throughs where
-          required—is used for <strong>on-chain liquidity</strong> only, split <strong>50% canonical $SYRA</strong> and{" "}
-          <strong>50% $UPONLY</strong>.
+          <strong className="font-medium text-foreground/95">Published fee policy for Up Only:</strong> every cent of{" "}
+          <strong>fees that accrue to the program operator</strong> in connection with this program—after pass-throughs
+          where required—is used for <strong>on-chain liquidity</strong> only, split{" "}
+          <strong>50% companion liquidity token</strong> and <strong>50% $UPONLY</strong>.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          RISE has its own fee schedule; anything not received by Syra is outside this commitment.
+          RISE has its own fee schedule; anything not routed through this program&apos;s fee share is outside this
+          commitment.
         </p>
         <ul className="mt-5 space-y-2.5 text-sm text-foreground/90 sm:mt-6">
           <li className="flex gap-3 rounded-2xl border border-border/35 bg-background/25 p-3.5 shadow-sm backdrop-blur-sm">
@@ -718,8 +717,8 @@ export function FeeAllocationCard() {
               <Droplets className="h-3.5 w-3.5 text-success" aria-hidden />
             </span>
             <span className="min-w-0 leading-relaxed">
-              <strong className="text-foreground">50% — $SYRA:</strong> half of Syra-allocated fees fund liquidity for the
-              canonical $SYRA token.
+              <strong className="text-foreground">50% — paired token:</strong> half of program-allocated fees fund
+              liquidity for the companion token (mint below).
             </span>
           </li>
           <li className="flex gap-3 rounded-2xl border border-border/35 bg-background/25 p-3.5 shadow-sm backdrop-blur-sm">

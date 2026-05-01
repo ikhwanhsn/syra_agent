@@ -5,16 +5,11 @@ import { Button } from "@/components/ui/button";
 import { LINK_AGENT, LINK_DOCS } from "../../../config/global";
 import { cn } from "@/lib/utils";
 
-const SYRA = "https://www.syraa.fun/" as const;
-
 type InfrastructurePartnerProps = {
   className?: string;
 };
 
-/**
- * Syra is positioned as infrastructure — not the brand hero of the app.
- * Layout is stacked (no side-by-side text + actions on md) so copy never collapses to a narrow column.
- */
+/** Developer-facing links; optional band on marketing pages. */
 export function InfrastructurePartner({ className }: InfrastructurePartnerProps) {
   const reduceMotion = useReducedMotion() ?? false;
   return (
@@ -37,38 +32,20 @@ export function InfrastructurePartner({ className }: InfrastructurePartnerProps)
         id="infra-partner-title"
         className="mt-2 w-full min-w-0 max-w-3xl font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl"
       >
-        Infrastructure from Syra
+        APIs &amp; agent access
       </h2>
       <p
         className="mt-3 w-full min-w-0 max-w-3xl text-pretty text-sm leading-relaxed text-muted-foreground sm:mt-4 sm:text-base sm:leading-relaxed [overflow-wrap:anywhere] [hyphens:none]"
         style={{ wordBreak: "normal" }}
       >
-        APIs, the agent, and the execution discipline are powered by the Syra stack. Up Only Fund is a distinct
-        program; Syra is the support layer—think of it as the rails, not the logo on the cover.
+        Docs and the web agent are available for builders who want programmatic market context. Up Only Fund stays the
+        public program brand; technical endpoints are separate from allocator disclosures on this site.
       </p>
 
       <ul
-        className="mt-6 grid w-full min-w-0 list-none grid-cols-2 gap-2 p-0 sm:mt-7 sm:gap-2.5 lg:grid-cols-4"
-        aria-label="Syra and program links"
+        className="mt-6 grid w-full min-w-0 list-none grid-cols-1 gap-2 p-0 sm:mt-7 sm:grid-cols-3 sm:gap-2.5"
+        aria-label="Developer and program links"
       >
-        <li className="min-w-0">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="h-10 w-full min-w-0 rounded-lg border-border/50 bg-background/40"
-          >
-            <a
-              href={SYRA}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-1.5 px-2"
-            >
-              Syra
-              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-            </a>
-          </Button>
-        </li>
         <li className="min-w-0">
           <Button
             asChild

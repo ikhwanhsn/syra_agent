@@ -1,6 +1,6 @@
 const LINK_AGENT = "https://agent.syraa.fun";
 
-/** Opens the Syra agent with a prefilled question (`?q=`). Agent app auto-sends after load. */
+/** Opens the web agent with a prefilled question (`?q=`). Agent app auto-sends after load. */
 function getAgentAskUrl(question: string): string {
   const trimmed = question.trim();
   if (!trimmed) return LINK_AGENT;
@@ -22,7 +22,7 @@ const LINK_TELEGRAM = "https://t.me/uponly_fund";
 const LINK_X = "https://x.com/uponly_fund";
 const EMAIL_SUPPORT = "support@syraa.fun";
 
-/** Headers for Syra API. Do not embed API keys in client code; the API injects auth for trusted origins (syraa.fun). */
+/** API request headers. Do not embed API keys in client code; the gateway injects auth for trusted origins. */
 function getApiHeaders(): Record<string, string> {
   return {};
 }

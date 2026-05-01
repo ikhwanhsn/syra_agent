@@ -13,10 +13,10 @@ export type RiseUpOnlyManual = {
   /** SPL token mint (RISE) */
   mint: string | null;
   /**
-   * Syra-published experiment mint for Up Only, if it differs from `mint` or is announced later.
-   * When null, the “Up Only (Syra) mint” row shows TBA.
+   * Optional alternate / experiment mint for this program, if it differs from `mint` or is announced later.
+   * When null, the program experiment row shows TBA.
    */
-  syraExperimentMint: string | null;
+  programExperimentMint: string | null;
   creator: string | null;
   createdAtLabel: string | null;
   tokenMetadataUri: string | null;
@@ -77,7 +77,7 @@ function mergeNumber(base: number | null, live: number | null | undefined): numb
   return base;
 }
 
-/** Merge RISE public API snapshot (Syra API proxy) over static TBA / manual fields. */
+/** Merge RISE public API snapshot over static TBA / manual fields. */
 export function mergeRiseUpOnlyWithLive(base: RiseUpOnlyManual, live: Partial<RiseUpOnlyLiveStats> | null): RiseUpOnlyManual {
   if (!live) return base;
   return {
@@ -120,7 +120,7 @@ export const RISE_UP_ONLY: RiseUpOnlyManual = {
   launchVenue: "RISE",
   imageUrl: null,
   mint: "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise",
-  syraExperimentMint: null,
+  programExperimentMint: null,
   creator: null,
   createdAtLabel: null,
   tokenMetadataUri: null,

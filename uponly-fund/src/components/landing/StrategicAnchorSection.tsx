@@ -1,12 +1,10 @@
 import { cn } from "@/lib/utils";
 
-const SYRA_HOME = "https://www.syraa.fun/" as const;
-
-type BackedBySyraSectionProps = {
+type StrategicAnchorSectionProps = {
   className?: string;
 };
 
-export function BackedBySyraSection({ className }: BackedBySyraSectionProps) {
+export function StrategicAnchorSection({ className }: StrategicAnchorSectionProps) {
   return (
     <section
       className={cn("w-full min-w-0 scroll-mt-24", className)}
@@ -22,21 +20,13 @@ export function BackedBySyraSection({ className }: BackedBySyraSectionProps) {
           id="uof-backed-heading"
           className="mt-4 max-w-4xl font-display text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-3xl md:text-[2.125rem] md:leading-[1.1]"
         >
-          <span className="uof-wordmark">Up Only Fund</span> is anchored by{" "}
-          <a
-            href={SYRA_HOME}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-foreground underline decoration-uof/45 underline-offset-[0.18em] transition hover:decoration-uof"
-          >
-            Syra
-          </a>{" "}
-          — the operating stack behind execution.
+          <span className="uof-wordmark">Up Only Fund</span> is a{" "}
+          <span className="text-foreground/85">standalone program brand</span> on Solana and RISE.
         </h2>
         <p className="mt-5 max-w-3xl text-pretty text-sm font-medium leading-relaxed text-muted-foreground sm:mt-6 sm:text-base">
-          Syra seeds treasury capacity and ships agent-grade rails; Up Only Fund publishes allocator mandate, diligence
-          posture, and the liquid <span className="font-mono text-foreground/88">$UPONLY</span> sleeve so capital markets
-          can price the same growth story founders see on the ground.
+          Mandate, diligence, and the liquid <span className="font-mono text-foreground/88">$UPONLY</span> sleeve are
+          published here; execution routes through venues you can verify on-chain. Treat dashboards and APIs as tooling,
+          not a guarantee of third-party uptime—always confirm contracts and venue status yourself.
         </p>
       </div>
     </section>

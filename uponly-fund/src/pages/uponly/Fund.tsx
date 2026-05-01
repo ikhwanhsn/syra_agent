@@ -17,9 +17,9 @@ import { FaqSection } from "@/components/uponly/fund/FaqSection";
 import { FinalCta } from "@/components/uponly/fund/FinalCta";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
-const PAGE_TITLE = "Up Only Fund (UOF) | Syra-backed RISE ecosystem treasury" as const;
+const PAGE_TITLE = "Up Only Fund (UOF) | RISE ecosystem treasury" as const;
 const PAGE_DESC =
-  "A Syra-seeded treasury to allocate across the RISE ecosystem, with a published mandate and (when live) on-chain transparency. DYOR — not financial advice." as const;
+  "An independent treasury program to allocate across the RISE ecosystem, with a published mandate and (when live) on-chain transparency. DYOR — not financial advice." as const;
 
 function ReadingProgress() {
   const { scrollYProgress } = useScroll();

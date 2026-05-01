@@ -16,7 +16,7 @@ function TreasuryCapIllustration({ className }: { className?: string }) {
     <div
       className={cn("relative w-full max-w-md select-none sm:max-w-lg", className)}
       role="img"
-      aria-label="Illustration: Syra treasury allocation and Up Only fee flow into the fund wallet."
+      aria-label="Illustration: program treasury allocation and Up Only fee flow into the fund wallet."
     >
       <svg
         viewBox="0 0 400 200"
@@ -38,7 +38,7 @@ function TreasuryCapIllustration({ className }: { className?: string }) {
         </defs>
         <rect x="40" y="24" width="140" height="72" rx="14" className="stroke-border/50" strokeWidth="1" fill={`url(#${gTreasury})`} />
         <text x="110" y="52" textAnchor="middle" className="fill-foreground/85" style={{ fontSize: "9px", fontWeight: 700 }}>
-          Syra treasury
+          Program treasury
         </text>
         <text x="110" y="68" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: "6.5px" }}>
           Seed allocation
@@ -48,7 +48,7 @@ function TreasuryCapIllustration({ className }: { className?: string }) {
           $UPONLY fee path
         </text>
         <text x="290" y="68" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: "6.5px" }}>
-          Syra-allocated share
+          Program-allocated share
         </text>
         <path
           d="M 180 100 L 200 120 L 200 128 L 125 150 M 200 120 L 200 128 L 290 150"
@@ -80,12 +80,12 @@ export function TreasurySourceSection({ className }: TreasurySourceSectionProps)
             id="uof-treasury-heading"
             className="landing-section-title text-balance break-words max-w-4xl"
           >
-            Syra-backed — treasury + RISE tranche policy
+            Treasury + RISE tranche policy
           </h2>
           <p className="mt-4 break-words text-pretty text-sm text-muted-foreground [overflow-wrap:anywhere] sm:text-base sm:leading-relaxed">
             {UP_ONLY_FUND.name} is <strong className="font-medium text-foreground/90">not</strong> open to public deposits in
-            v1. Capitalization comes from Syra treasury allocation and the portion of program economics that accrues to Syra
-            under the Up Only fee policy             (see{" "}
+            v1. Capitalization comes from program treasury allocation and the portion of program economics that accrues to
+            the operator under the Up Only fee policy (see{" "}
             <Link to="/uponly/overview#on-chain-details" className="font-medium text-foreground/90 underline-offset-2 hover:underline">
               $UPONLY on-chain + fees
             </Link>
@@ -95,15 +95,15 @@ export function TreasurySourceSection({ className }: TreasurySourceSectionProps)
             <li className="flex gap-3">
               <Banknote className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
               <span>
-                <strong className="font-medium text-foreground/90">Treasury seed</strong> — Syra sets aside capital to deploy
+                <strong className="font-medium text-foreground/90">Treasury seed</strong> — capital set aside to deploy
                 across the RISE ecosystem with published mandate and (later) position transparency.
               </span>
             </li>
             <li className="flex gap-3">
               <Coins className="mt-0.5 h-5 w-5 shrink-0 text-foreground/70" aria-hidden />
               <span>
-                <strong className="font-medium text-foreground/90">$UPONLY-aligned flow</strong> — fee routing that reaches Syra
-                under the 50% / 50% liquidity program supports the same “Up Only” thesis; fund accounting will be published when
+                <strong className="font-medium text-foreground/90">$UPONLY-aligned flow</strong> — fee routing under the 50% /
+                50% liquidity program supports the same “Up Only” thesis; fund accounting will be published when
                 operational.
               </span>
             </li>

@@ -15,6 +15,7 @@ import {
   getRiseMarketOhlc,
   getRiseMarketTransactions,
   getRiseMarkets,
+  getRiseMarketsAll,
   getRisePortfolioPositions,
   getRisePortfolioSummary,
   postRiseBorrowQuote,
@@ -40,7 +41,10 @@ const OHLC_REFETCH_MS = 60_000;
 const TX_REFETCH_MS = 30_000;
 const PORTFOLIO_STALE_MS = 30_000;
 const DEFAULT_PAGE_LIMIT = 10;
-const MARKETS_ALL_CONCURRENCY = 4;
+/** Optional polling override for market list queries (e.g. terminal table). */
+export type RiseMarketsQueryOptions = {
+  refetchInterval?: number | false;
+};
 
 type RiseDashboardContextValue = {
   aggregate: UseQueryResult<RiseAggregateResponse, Error>;
@@ -73,7 +77,7 @@ export function useRiseDashboard(): RiseDashboardContextValue {
   return ctx;
 }
 
-export function useRiseMarkets(params: RiseMarketsListParams = {}) {
+export function useRiseMarkets(params: RiseMarketsListParams = {}, queryOptions?: RiseMarketsQueryOptions) {
   const queryKey = [
     "rise-markets",
     params.page ?? 1,
@@ -82,11 +86,13 @@ export function useRiseMarkets(params: RiseMarketsListParams = {}) {
     params.hasFloor ?? false,
     params.minMarketCap ?? 0,
   ];
+  const refetchInterval =
+    queryOptions?.refetchInterval !== undefined ? queryOptions.refetchInterval : LIST_REFETCH_MS;
   return useQuery<RiseMarketsListResponse, Error>({
     queryKey,
     queryFn: ({ signal }) => getRiseMarkets(params, signal),
     staleTime: LIST_REFETCH_MS,
-    refetchInterval: LIST_REFETCH_MS,
+    refetchInterval,
     placeholderData: (prev) => prev,
     retry: 1,
   });
@@ -178,43 +184,13 @@ export function useRisePortfolioPositions(wallet: string | null | undefined, pag
   });
 }
 
-export function useRiseMarketsAll(limit = 100) {
+export function useRiseMarketsAll(limit = 100, queryOptions?: RiseMarketsQueryOptions) {
+  const refetchInterval = queryOptions?.refetchInterval;
   return useQuery<RiseMarketRow[], Error>({
     queryKey: ["rise-markets-all", limit],
-    queryFn: async ({ signal }) => {
-      const first = await getRiseMarkets({ page: 1, limit }, signal);
-      const totalPages = Math.max(1, first.totalPages ?? 1);
-      const merged: RiseMarketRow[] = [...first.markets];
-      if (totalPages > 1) {
-        const remainingPages = Array.from({ length: totalPages - 1 }, (_, idx) => idx + 2);
-        for (let i = 0; i < remainingPages.length; i += MARKETS_ALL_CONCURRENCY) {
-          const chunk = remainingPages.slice(i, i + MARKETS_ALL_CONCURRENCY);
-          const chunkResponses = await Promise.all(
-            chunk.map((page) => getRiseMarkets({ page, limit }, signal)),
-          );
-          for (const next of chunkResponses) {
-            merged.push(...next.markets);
-          }
-        }
-      }
-      const dedup = new Map<string, RiseMarketRow>();
-      for (const row of merged) {
-        if (!row.mint) continue;
-        if (!dedup.has(row.mint)) dedup.set(row.mint, row);
-      }
-      // Ensure UPONLY is searchable even when not included in paginated list endpoint.
-      try {
-        const aggregate = await getRiseAggregate(signal);
-        const uponly = aggregate.uponly;
-        if (uponly?.mint && !dedup.has(uponly.mint)) {
-          dedup.set(uponly.mint, uponly);
-        }
-      } catch {
-        // Keep markets list usable if aggregate endpoint is temporarily degraded.
-      }
-      return Array.from(dedup.values());
-    },
+    queryFn: ({ signal }) => getRiseMarketsAll(limit, signal),
     staleTime: LIST_REFETCH_MS,
+    ...(refetchInterval !== undefined ? { refetchInterval } : {}),
     retry: 1,
   });
 }

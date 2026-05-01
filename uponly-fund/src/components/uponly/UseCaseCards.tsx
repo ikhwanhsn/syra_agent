@@ -34,7 +34,7 @@ export function UseCaseCards() {
           {
             icon: Wallet,
             title: "The long-term holder",
-            text: "You care that Syra-allocated fee liquidity is 50% canonical $SYRA and 50% $UPONLY, published on this page, not buried in a Discord post.",
+            text: "You care that program-allocated fee liquidity is split 50% / 50% between the companion token and $UPONLY, published on this page—not buried in a Discord post.",
             href: "#on-chain-details",
             cta: "Jump to on-chain details",
             internal: true,

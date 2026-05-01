@@ -4,10 +4,9 @@ import { ArrowLeft, ArrowUpRight, BookOpen, Building2, LineChart, Shield, Sparkl
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { fadeUp, RISE_DOCS, RiseBuyTokenCta, SectionEyebrow } from "./primitives";
+import { fadeUp, RISE_DOCS, RiseBuyTokenCta, SectionEyebrow, UP_ONLY_LOGO_MARK } from "./primitives";
 import { LiveMarketStrip } from "./LiveMarketStrip";
 import { UP_ONLY_FUND } from "@/data/upOnlyFund";
-import syraMark from "/images/logo.jpg";
 
 const RISE_PARTNER_LOGO = "/images/partners/rise.jpg";
 const RISE_LOGO_PLACEHOLDER = "/images/partners/placeholder.svg" as const;
@@ -48,8 +47,8 @@ function PartnerStrip({ className }: { className?: string }) {
     >
       <div className="flex min-w-0 items-center justify-center gap-1.5 sm:gap-2.5">
         <img
-          src={syraMark}
-          alt="Syra"
+          src={UP_ONLY_LOGO_MARK}
+          alt="Up Only Fund"
           width={128}
           height={128}
           className="h-8 w-8 shrink-0 rounded-md object-contain sm:h-9 sm:w-9"
@@ -75,7 +74,7 @@ function PartnerStrip({ className }: { className?: string }) {
         />
       </div>
       <p className="ml-auto hidden min-w-0 pl-2 text-right text-[0.65rem] font-medium uppercase leading-tight tracking-[0.12em] text-muted-foreground/90 sm:block sm:max-w-[12rem] sm:leading-snug min-[600px]:max-w-none min-[600px]:tracking-[0.16em] sm:text-xs">
-        Official <span className="text-foreground/85">Syra × RISE</span> tranche
+        Official <span className="text-foreground/85">Up Only × RISE</span> tranche
       </p>
     </div>
   );
@@ -119,11 +118,11 @@ export function HeroSection({ className }: HeroSectionProps) {
               className="mt-2.5 text-balance break-words text-[1.4rem] font-bold leading-[1.12] tracking-[-0.02em] min-[380px]:text-2xl min-[480px]:text-3xl sm:mt-3 sm:text-4xl md:leading-[1.08] md:text-[2.4rem] lg:text-[2.5rem] xl:text-[2.75rem]"
             >
               <span className="neon-text">$UPONLY</span>
-              <span className="text-foreground/85"> — the Syra-backed RISE token you trade on-chain</span>
+              <span className="text-foreground/85"> — the RISE-listed token you trade on-chain</span>
             </h1>
             <p className="mt-3.5 max-w-2xl text-pretty text-sm leading-[1.65] text-muted-foreground sm:mt-4 sm:text-base sm:leading-relaxed">
               A Solana <strong className="font-medium text-foreground/90">SPL</strong> token, listed on{" "}
-              <strong className="font-medium text-foreground/90">RISE</strong> (rise.rich). It is the first Syra ×
+              <strong className="font-medium text-foreground/90">RISE</strong> (rise.rich). It is the published Up Only ×
               RISE <strong className="font-medium text-foreground/90">tranche</strong>—the liquid way to get exposure
               to RISE’s structure (protocol floor, elastic supply, 0% ongoing borrow interest in the RISE spec) and a
               public <strong className="font-medium text-foreground/90">$100M</strong> market cap milestone, all
@@ -140,7 +139,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 Trade the same tranche the page documents; live stats and progress to $100M are below the fold.
               </HeroBullet>
               <HeroBullet icon={BookOpen} title="Separate: Up Only Fund (UOF)">
-                {UP_ONLY_FUND.name} is Syra’s <strong className="font-medium text-foreground/85">treasury</strong> for
+                {UP_ONLY_FUND.name} is the program <strong className="font-medium text-foreground/85">treasury</strong> for
                 ecosystem allocation—the token and the fund are different products. The linked treasury card in this
                 section opens the full mandate and transparency page.
               </HeroBullet>

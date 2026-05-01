@@ -95,7 +95,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 variants={item}
                 className="mt-5 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:max-w-2xl"
               >
-                Syra powers execution rails (agents, APIs, research). Up Only
+                Agents, APIs, and research tooling sit behind the scenes. Up Only
                 Fund is the venture surface—who we back, how the treasury is
                 run, and why the liquid{" "}
                 <span className="font-mono text-foreground/85">$UPONLY</span>{" "}

@@ -21,9 +21,19 @@ export type DashboardDictionary = {
   sidebarFooter: {
     /** Small eyebrow above outbound links */
     sectionLabel: string;
+    /** Second line under the eyebrow (expanded sidebar only) */
+    sectionSubtitle: string;
     xAria: string;
     telegramAria: string;
     riseTradeAria: string;
+    /** Visible row titles when the sidebar is expanded */
+    xLabel: string;
+    telegramLabel: string;
+    riseTradeLabel: string;
+    /** Muted line under each row title */
+    xHint: string;
+    telegramHint: string;
+    riseTradeHint: string;
   };
   pages: {
     riseTerminal: string;
@@ -52,6 +62,11 @@ export type DashboardDictionary = {
     walletEyebrow: string;
     walletTitle: string;
     walletDescription: string;
+    /** Home `/` overview screener */
+    overviewEyebrow: string;
+    overviewTitle: string;
+    overviewDescription: string;
+    overviewPageTitle: string;
   };
   tabs: {
     screener: string;
@@ -77,18 +92,19 @@ export type DashboardDictionary = {
     feedPartial: string;
     liveRiseTerminal: string;
     asOf: string;
-    narrativeBuckets: string;
-    clearFilter: string;
     alphaLeaderboard: string;
     topTen: string;
     riskWatchlist: string;
     highestFlags: string;
+    /** Risk watchlist row — no flags surfaced */
+    riskWatchlistClear: string;
+    /** Alpha / risk side panels when the markets feed is empty */
+    sidebarListsEmpty: string;
     volSuffix: string;
     filters: string;
     verified: string;
     floorBacked: string;
     clear: string;
-    refresh: string;
     searchPlaceholder: string;
     riskFlags: string;
     narratives: string;
@@ -104,6 +120,42 @@ export type DashboardDictionary = {
     risk: string;
     narrative: string;
     trade: string;
+    actions: string;
+    share: string;
+    shareDialogTitle: string;
+    shareDialogDescription: string;
+    shareDownloadImage: string;
+    shareCopyImage: string;
+    shareCopiedImage: string;
+    shareCopyImageFailed: string;
+    /** Shown when Clipboard API cannot write image/png (browser / permissions). */
+    shareCopyImageUnsupported: string;
+    shareOnX: string;
+    shareOnTelegram: string;
+    shareCopyLink: string;
+    shareCopyMint: string;
+    shareCopiedLink: string;
+    shareCopiedMint: string;
+    shareNative: string;
+    shareCardEyebrow: string;
+    /** `{symbol}` placeholder */
+    shareCardCta: string;
+    shareCardBragline: string;
+    /** `{rank}` placeholder */
+    shareCardBraglineRanked: string;
+    /** `{rank}` placeholder */
+    topNAlpha: string;
+    shareCardScoreLabel: string;
+    /** Short hint under score label (e.g. scale) */
+    shareCardScoreRange: string;
+    shareCardMintLabel: string;
+    shareCardVia: string;
+    shareCardLive: string;
+    /** `{symbol}`, `{rank}`, `{score}`, `{change24h}`, `{url}` */
+    shareSocialTextRanked: string;
+    /** `{symbol}`, `{score}`, `{change24h}`, `{url}` */
+    shareSocialTextUnranked: string;
+    shareDownloadFailed: string;
     showing: string;
     of: string;
     prev: string;
@@ -143,9 +195,16 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
     },
     sidebarFooter: {
       sectionLabel: "Connect",
+      sectionSubtitle: "Official channels",
       xAria: "Up Only Fund on X",
       telegramAria: "Up Only Fund on Telegram",
       riseTradeAria: "Trade $UPONLY on RISE",
+      xLabel: "X",
+      telegramLabel: "Telegram",
+      riseTradeLabel: "Trade on RISE",
+      xHint: "@uponly_fund",
+      telegramHint: "Community & updates",
+      riseTradeHint: "$UPONLY · rise.rich",
     },
     pages: {
       riseTerminal: "Rise Terminal",
@@ -173,7 +232,13 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       insightsDescription: "Whales, signals, news, and on-chain activity - gated by $UPONLY.",
       walletEyebrow: "On-chain intel",
       walletTitle: "Wallet lookup",
-      walletDescription: "Paste any Solana address to pull RISE portfolio totals and positions from Syra’s read APIs—shareable via URL, nothing signed.",
+      walletDescription:
+        "Paste any Solana address to pull RISE portfolio totals and positions from read-only market APIs—shareable via URL, nothing signed.",
+      overviewEyebrow: "GENERAL OVERVIEW",
+      overviewTitle: "General overview",
+      overviewDescription:
+        "All RISE markets in one place — default composite trending rank (volume, holders, and move), 100 rows per page, with filters and column sort.",
+      overviewPageTitle: "General overview",
     },
     tabs: {
       screener: "Screener",
@@ -199,18 +264,17 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       feedPartial: "Partial",
       liveRiseTerminal: "Live · Rise terminal",
       asOf: "As of",
-      narrativeBuckets: "Narrative buckets",
-      clearFilter: "Clear filter",
       alphaLeaderboard: "Alpha leaderboard",
       topTen: "Top 10",
       riskWatchlist: "Risk watchlist",
       highestFlags: "Highest flags",
+      riskWatchlistClear: "No active flags",
+      sidebarListsEmpty: "No market data yet.",
       volSuffix: "vol",
       filters: "Filters",
       verified: "Verified",
       floorBacked: "Floor-backed",
       clear: "Clear",
-      refresh: "Refresh",
       searchPlaceholder: "Search symbol, token name, mint...",
       riskFlags: "Risk flags",
       narratives: "Narratives",
@@ -226,6 +290,37 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       risk: "Risk",
       narrative: "Narrative",
       trade: "Trade",
+      actions: "Actions",
+      share: "Share",
+      shareDialogTitle: "Share this market",
+      shareDialogDescription: "Make your alpha pick impossible to ignore.",
+      shareDownloadImage: "Download card",
+      shareCopyImage: "Copy image",
+      shareCopiedImage: "Image copied",
+      shareCopyImageFailed: "Could not copy image. Try Download, or use Chrome / Edge / Safari 15.4+.",
+      shareCopyImageUnsupported: "Copy image isn’t supported in this browser. Use Download.",
+      shareOnX: "Share on X",
+      shareOnTelegram: "Share on Telegram",
+      shareCopyLink: "Copy link",
+      shareCopyMint: "Copy mint",
+      shareCopiedLink: "Link copied",
+      shareCopiedMint: "Mint copied",
+      shareNative: "Share…",
+      shareCardEyebrow: "RISE Terminal · Up Only Fund",
+      shareCardCta: "Trade {symbol} on RISE",
+      shareCardBragline: "Fund-grade intelligence. Retail-proof conviction.",
+      shareCardBraglineRanked: "Top {rank} on the Alpha leaderboard — publicly.",
+      topNAlpha: "#{rank} ALPHA",
+      shareCardScoreLabel: "Alpha score",
+      shareCardScoreRange: "0–100 scale",
+      shareCardMintLabel: "Mint",
+      shareCardVia: "via uplonlyfund.com",
+      shareCardLive: "Live",
+      shareSocialTextRanked:
+        "{symbol} is #{rank} on the Rise Alpha leaderboard — score {score}. {change24h} 24h. {url}",
+      shareSocialTextUnranked:
+        "{symbol} on Rise Terminal — Alpha score {score}. {change24h} 24h. {url}",
+      shareDownloadFailed: "Could not export image. Try again.",
       showing: "Showing",
       of: "of",
       prev: "Prev",
@@ -278,9 +373,16 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
     },
     sidebarFooter: {
       sectionLabel: "链接",
+      sectionSubtitle: "官方渠道",
       xAria: "Up Only Fund 在 X",
       telegramAria: "Up Only Fund 在 Telegram",
       riseTradeAria: "在 RISE 交易 $UPONLY",
+      xLabel: "X",
+      telegramLabel: "Telegram",
+      riseTradeLabel: "RISE 交易",
+      xHint: "@uponly_fund",
+      telegramHint: "社群与动态",
+      riseTradeHint: "$UPONLY · rise.rich",
     },
     pages: {
       riseTerminal: "Rise 终端",
@@ -309,6 +411,11 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       walletEyebrow: "链上情报",
       walletTitle: "钱包查询",
       walletDescription: "输入任意 Solana 地址，查看 RISE 资产与持仓数据，可通过 URL 分享，无需签名。",
+      overviewEyebrow: "总览",
+      overviewTitle: "总览",
+      overviewDescription:
+        "汇集全部 RISE 市场 — 默认按综合热门分排序（成交量、持有人与波动），每页 100 条，支持筛选与列排序。",
+      overviewPageTitle: "总览",
     },
     tabs: {
       screener: "筛选器",
@@ -334,18 +441,17 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       feedPartial: "部分",
       liveRiseTerminal: "实时 · Rise 终端",
       asOf: "更新时间",
-      narrativeBuckets: "叙事分桶",
-      clearFilter: "清除筛选",
       alphaLeaderboard: "Alpha 排行",
       topTen: "前 10",
       riskWatchlist: "风险观察",
       highestFlags: "最高风险标记",
+      riskWatchlistClear: "无活跃标记",
+      sidebarListsEmpty: "暂无市场数据。",
       volSuffix: "量",
       filters: "筛选",
       verified: "已验证",
       floorBacked: "底线支撑",
       clear: "清除",
-      refresh: "刷新",
       searchPlaceholder: "搜索代币、名称或 Mint...",
       riskFlags: "风险标记",
       narratives: "叙事",
@@ -361,6 +467,36 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       risk: "风险",
       narrative: "叙事",
       trade: "交易",
+      actions: "操作",
+      share: "分享",
+      shareDialogTitle: "分享该市场",
+      shareDialogDescription: "让你的 Alpha 观点一眼难忘。",
+      shareDownloadImage: "下载卡片",
+      shareCopyImage: "复制图片",
+      shareCopiedImage: "图片已复制",
+      shareCopyImageFailed: "无法复制图片。请使用下载，或换用 Chrome / Edge / Safari 15.4+。",
+      shareCopyImageUnsupported: "此浏览器无法复制图片，请使用下载。",
+      shareOnX: "分享到 X",
+      shareOnTelegram: "分享到 Telegram",
+      shareCopyLink: "复制链接",
+      shareCopyMint: "复制 Mint",
+      shareCopiedLink: "链接已复制",
+      shareCopiedMint: "Mint 已复制",
+      shareNative: "分享…",
+      shareCardEyebrow: "RISE 终端 · Up Only Fund",
+      shareCardCta: "在 RISE 交易 {symbol}",
+      shareCardBragline: "基金级情报，经得起公开检阅。",
+      shareCardBraglineRanked: "Alpha 排行第 {rank} 名 — 公开可查。",
+      topNAlpha: "ALPHA 第{rank}名",
+      shareCardScoreLabel: "Alpha 评分",
+      shareCardScoreRange: "0–100 分制",
+      shareCardMintLabel: "Mint",
+      shareCardVia: "via uplonlyfund.com",
+      shareCardLive: "实时",
+      shareSocialTextRanked:
+        "{symbol} 位列 Rise Alpha 排行第 {rank} 名 — 评分 {score}，24h {change24h}。{url}",
+      shareSocialTextUnranked: "{symbol} · Rise 终端 — Alpha {score}，24h {change24h}。{url}",
+      shareDownloadFailed: "导出图片失败，请重试。",
       showing: "显示",
       of: "共",
       prev: "上一页",
@@ -398,6 +534,7 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
 };
 
 export function getPageTitle(pathname: string, t: DashboardDictionary["pages"]): string {
+  if (pathname === "/" || pathname === "") return t.overviewPageTitle;
   if (pathname === "/terminal") return t.riseTerminal;
   if (pathname.endsWith("/market")) return t.market;
   if (pathname.endsWith("/wallet")) return t.wallet;

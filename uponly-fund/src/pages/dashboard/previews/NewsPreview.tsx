@@ -19,8 +19,8 @@ export function NewsPreview() {
         title={isZh ? "新闻" : "News"}
         description={
           isZh
-            ? "来自 Syra 预览新闻接口的免费市场头条，帮助保持仪表盘上下文。"
-            : "Free market headlines from Syra preview news endpoint to keep dashboard context-aware."
+            ? "来自预览新闻接口的免费市场头条，帮助保持仪表盘上下文。"
+            : "Free market headlines from the preview news endpoint to keep dashboard context-aware."
         }
         eyebrow={isZh ? "洞察" : "Insights"}
       />

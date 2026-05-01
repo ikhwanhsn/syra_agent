@@ -13,11 +13,11 @@ type FaqItem = { q: string; a: ReactNode };
 const ITEMS: FaqItem[] = [
   {
     q: "Is the Up Only Fund a pooled investment I can buy into?",
-    a: "In v1, no. The fund is a Syra-backed treasury program described for transparency, not a public offer of securities or a pooled product. That may change in the future; if it does, we will publish a separate legal and product disclosure.",
+    a: "In v1, no. The fund is a treasury program described here for transparency, not a public offer of securities or a pooled product. That may change in the future; if it does, we will publish a separate legal and product disclosure.",
   },
   {
-    q: "What does “backed by Syra” mean?",
-    a: "It means the fund is capitalized and overseen in connection with Syra (treasury and program alignment), as described in the Treasury section—not that any return is guaranteed.",
+    q: "Who operates the fund?",
+    a: "Up Only Fund is presented as its own program brand. Capitalization and oversight are described in the Treasury section—this is not a guarantee of any return.",
   },
   {
     q: "Will I see the treasury and positions on-chain?",
@@ -44,7 +44,7 @@ const ITEMS: FaqItem[] = [
     q: "Is this the same as RISE’s protocol guarantees?",
     a: (
       <>
-        No. RISE has its own protocol and legal terms. This page is about Syra’s fund narrative and (later) disclosures. Read{" "}
+        No. RISE has its own protocol and legal terms. This page is about the fund narrative and (later) disclosures. Read{" "}
         <a
           className="font-medium text-foreground/90 underline-offset-2 hover:underline"
           href="https://docs.rise.rich/legal/terms"
