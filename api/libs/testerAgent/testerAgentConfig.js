@@ -19,13 +19,17 @@ export const SYRA_PROBE_BASE_URL = "https://api.syraa.fun";
 
 /** @type {Readonly<{ smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; includeBasePaidNewsE2E: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number; healthX402MonitorIntervalMs: number; healthX402MonitorTimeoutMs: number; healthX402MonitorRunOnStart: boolean }>} */
 export const TESTER_AGENT_CONFIG = Object.freeze({
-  /** Parallel unpaid smoke fetches per batch when not using inter-probe throttling or grouped smoke batches. */
-  smokeConcurrency: 8,
+  /**
+   * Parallel unpaid smoke fetches per batch when not using inter-probe throttling or grouped smoke batches.
+   * 3× baseline (was 8): higher fan-out against the API smoke catalog.
+   */
+  smokeConcurrency: 24,
   /**
    * Pause between paid probes when `interProbeDelayMs` is 0 (ms). Increase if Corbits still returns 429
    * after retries (each probe opens a new payment / facilitator round-trip).
+   * 3× baseline (was 2200 ms): faster Solana paid catalog cadence.
    */
-  paidDelayBetweenProbesMs: 2200,
+  paidDelayBetweenProbesMs: 733,
   /**
    * Pause between each smoke and each paid probe when greater than 0 (flat sequential run; ignores `runByExampleGroup`).
    * Example: `3 * 60_000` for long soak cadence against the facilitator.
@@ -33,8 +37,8 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
   interProbeDelayMs: 0,
   /** When true (and interProbeDelayMs is 0), smoke/paid run per Example-flow group with inter-group pause. */
   runByExampleGroup: false,
-  /** Pause between groups when `runByExampleGroup` is true (milliseconds). */
-  interGroupDelayMsWhenGrouped: 15 * 60_000,
+  /** Pause between groups when `runByExampleGroup` is true (milliseconds). 3× baseline (was 15 min). */
+  interGroupDelayMsWhenGrouped: 5 * 60_000,
   /** Base AbortSignal timeout before `computeTesterAgentSuiteTimeoutMs` raises the floor for long runs. */
   defaultSuiteTimeoutMs: 15 * 60_000,
   /** If `PAYER_KEYPAIR` is set, run the full paid JSON catalog (not only GET /news). */
@@ -44,9 +48,9 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
    * Off by default — Solana-only tester runs until Base E2E is needed again.
    */
   includeBasePaidNewsE2E: false,
-  /** In-process 24h-style runner in `api/index.js`. */
+  /** In-process scheduled runner in `api/index.js`. 3× baseline (was 24h → 8h between full suite runs). */
   inProcessScheduleEnabled: true,
-  scheduleIntervalMs: 24 * 60 * 60 * 1000,
+  scheduleIntervalMs: 8 * 60 * 60 * 1000,
   scheduleRunOnStart: true,
   /** End the tester run on HTTP 429 / facilitator “Too Many Requests” (skip remaining probes and later suite steps). */
   stopSuiteOnRateLimit429: true,
@@ -56,8 +60,8 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
    */
   facilitatorRetryMaxAttempts: 6,
   facilitatorRetryBaseDelayMs: 2000,
-  /** Paid GET /health x402 monitor (`healthX402Monitor.js`). */
-  healthX402MonitorIntervalMs: 60_000,
+  /** Paid GET /health x402 monitor (`healthX402Monitor.js`). 3× baseline (was 60s). */
+  healthX402MonitorIntervalMs: 20_000,
   healthX402MonitorTimeoutMs: 120_000,
   healthX402MonitorRunOnStart: true,
 });
