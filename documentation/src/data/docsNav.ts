@@ -31,6 +31,7 @@ export const navigation: NavItem[] = [
           { title: "Syra Brain", href: api("brain") },
           { title: "Preview & Dashboard (no x402)", href: api("preview-dashboard") },
           { title: "X (Twitter) API", href: api("x-api") },
+          { title: "X Project Analyzer", href: api("x-analyzer") },
         ],
       },
       {

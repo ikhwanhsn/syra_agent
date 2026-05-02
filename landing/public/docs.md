@@ -25,6 +25,7 @@ This file mirrors the **structure of the public documentation** published at [do
 - [Syra Brain](https://docs.syraa.fun/docs/api/brain) — single question → tool selection and synthesized answer
 - [Preview & dashboard (no x402)](https://docs.syraa.fun/docs/api/preview-dashboard)
 - [X (Twitter) API](https://docs.syraa.fun/docs/api/x-api)
+- [X Project Analyzer](https://docs.syraa.fun/docs/api/x-analyzer) — x402; profile + tweets → deterministic score (+ optional AI summary)
 
 ### News and sentiment
 

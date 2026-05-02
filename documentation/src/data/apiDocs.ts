@@ -1738,7 +1738,7 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
     extraSections: [
       {
         title: "X (Twitter) API",
-        content: "X API endpoints (/x/user, /x/feed, /x/search/recent, /x/user/:username/tweets) are x402 paid. Use the x402 payment protocol; GET and POST are supported. See the X API doc for details.",
+        content: "X API endpoints (/x/user, /x/feed, /x/search/recent, /x/user/:username/tweets) are x402 paid. Project scoring: GET/POST /x-analyzer — see the X Project Analyzer doc.",
       },
       {
         title: "Deprecated paths",
@@ -1786,6 +1786,113 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
       {
         title: "GET and POST",
         content: "Every endpoint supports GET (query string) and POST (JSON body). Same parameter names; first request returns 402 with payment instructions; retry with payment header to receive data.",
+      },
+    ],
+  }),
+
+  "x-analyzer": doc({
+    title: "X Project Analyzer",
+    overview:
+      "Paid x402 endpoint: loads an X (Twitter) profile plus a sample of recent tweets, then returns a deterministic 0–100 project score, category breakdown (identity, reach, engagement, cadence, content diversity), numeric signals, optional red flags, and optional grounded LLM bullets when `includeAiSummary=true`. Default `username` is `syra_agent`. Discoverable via GET /.well-known/x402 and documented in GET /openapi.json (example response included).",
+    price: "$0.02 USD per request (production); lower in non-production.",
+    paymentFlow: {
+      step1: "Initial request returns 402 with payment instructions.",
+      step2: "Complete payment (USDC via x402 per response body).",
+      step3: "Retry the same URL with payment proof headers to receive `{ success, data }`.",
+      response402: standard402(0.02),
+    },
+    responseCodes: [
+      { code: "200", description: "Success — analysis JSON returned" },
+      { code: "400", description: "Invalid username or parameters" },
+      { code: "402", description: "Payment Required — complete payment first" },
+      { code: "404", description: "X user not found" },
+      { code: "502", description: "X API upstream error" },
+      { code: "503", description: "Server not configured (missing X_BEARER_TOKEN)" },
+      { code: "5xx", description: "Other server error — retry later" },
+    ],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/x-analyzer",
+        description:
+          "Query: `username` (optional, default syra_agent), `max_results` (5–50, default 20), `includeAiSummary` (optional boolean). Responses are cached briefly server-side for identical params.",
+        requestExample: `curl "${BASE_URL}/x-analyzer?username=syra_agent&max_results=20&includeAiSummary=false"`,
+        responseExample: `{
+  "success": true,
+  "data": {
+    "username": "syra_agent",
+    "user": {
+      "id": "1983380098406592515",
+      "username": "syra_agent",
+      "name": "Syra",
+      "description": "Smart Intelligence Agent for Traders on Solana. …",
+      "url": "https://t.co/…",
+      "created_at": "2025-10-29T03:47:33.000Z",
+      "verified": true,
+      "verified_type": "blue",
+      "public_metrics": {
+        "followers_count": 2177,
+        "following_count": 158,
+        "tweet_count": 1276
+      }
+    },
+    "score": 53,
+    "grade": "F",
+    "breakdown": {
+      "identity": { "score": 8.35, "max": 15, "details": { "verifiedBonus": 5, "ageYears": 0.51 } },
+      "reach": { "score": 14.05, "max": 25, "details": { "followersCount": 2177 } },
+      "engagement": { "score": 6.78, "max": 30, "details": { "avgEngagementRatePct": 0.3768, "tweetsAnalyzed": 14 } },
+      "cadence": { "score": 14.15, "max": 15, "details": { "tweetsPerDay": 5.42, "lastTweetDaysAgo": 0 } },
+      "contentDiversity": { "score": 9.66, "max": 15, "details": { "profileTweetCount": 1276 } }
+    },
+    "signals": {
+      "followersCount": 2177,
+      "followingCount": 158,
+      "tweetsAnalyzed": 14,
+      "profileTweetCount": 1276,
+      "avgEngagementRatePct": 0.3768,
+      "tweetsPerDay": 5.4152,
+      "lastTweetDaysAgo": 0,
+      "accountAgeDays": 185
+    },
+    "redFlags": [],
+    "aiSummary": null,
+    "updatedAt": "2026-05-02T14:33:46.739Z"
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/x-analyzer",
+        description: "Same as GET. JSON body may include `username`, `max_results`, `includeAiSummary`.",
+        bodyExample: `{
+  "username": "syra_agent",
+  "max_results": 20,
+  "includeAiSummary": false
+}`,
+        requestExample: `curl -X POST "${BASE_URL}/x-analyzer" \\
+  -H "Content-Type: application/json" \\
+  -d '{"username":"syra_agent","max_results":20,"includeAiSummary":false}'`,
+        responseExample:
+          "Same JSON shape as GET `200` — see the GET /x-analyzer example above.",
+      },
+    ],
+    extraSections: [
+      {
+        title: "Machine-readable docs & sample file",
+        content:
+          "OpenAPI: " +
+          BASE_URL +
+          "/openapi.json (operation `/x-analyzer`, includes a full example). x402 catalog: " +
+          BASE_URL +
+          "/.well-known/x402. MPP discovery: " +
+          BASE_URL +
+          "/mpp-openapi.json. In the Syra monorepo, a maintained snapshot lives at api/docs/examples/x-analyzer-response.example.json.",
+      },
+      {
+        title: "Related",
+        content:
+          "For raw profile and tweets without scoring, see the X (Twitter) API page (/docs/api/x-api): /x/user, /x/feed, etc.",
       },
     ],
   }),
