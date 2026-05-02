@@ -116,6 +116,9 @@ export const X402_API_PRICE_BRAIN_USD = price(0.05);
 /** X (Twitter) API proxy — user lookup, search recent, user tweets, feed */
 export const X402_API_PRICE_X_USD = price(0.01);
 
+/** X Project Analyzer — profile + tweets + deterministic score (+ optional AI summary) */
+export const X402_API_PRICE_X_ANALYZER_USD = price(0.02);
+
 /** Giza Agent SDK — DeFi yield optimization (protocols, agent, portfolio, apr, activate, withdraw, etc.) */
 export const X402_API_PRICE_GIZA_USD = price(0.01);
 
@@ -167,6 +170,7 @@ export const X402_DISPLAY_PRICE_8004SCAN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_HEYLOL_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BRAIN_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_X_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_X_ANALYZER_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_GIZA_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PURCH_VAULT_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_QUICKNODE_USD = 0.01 * PRODUCTION_MULT;

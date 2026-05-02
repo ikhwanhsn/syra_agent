@@ -11,6 +11,7 @@ import {
   createSignalRouterRegular,
 } from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
+import { createXProjectAnalyzerRouter } from "./agents/x-project-analyzer.js";
 import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
@@ -27,7 +28,10 @@ import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
-import { SYRA_PROBE_BASE_URL, TESTER_AGENT_CONFIG } from "./libs/testerAgent/testerAgentConfig.js";
+import {
+  SYRA_PROBE_BASE_URL,
+  TESTER_AGENT_CONFIG,
+} from "./libs/testerAgent/testerAgentConfig.js";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
@@ -91,7 +95,8 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 // See utils/x402Payment.js for configuration details.
 
 const app = express();
-const { requirePayment: requirePaymentV2, settlePaymentAndSetResponse } = await getV2Payment();
+const { requirePayment: requirePaymentV2, settlePaymentAndSetResponse } =
+  await getV2Payment();
 
 // Trust first proxy (e.g. Nginx, Cloudflare) so req.ip / X-Forwarded-For are correct for rate limiting
 if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
@@ -101,7 +106,7 @@ if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
 // NOTE: @x402/express paymentMiddleware DISABLED
 // We use custom V1-compatible requirePayment middleware in each route file instead.
 // This ensures x402scan compatibility with x402Version: 1 format.
-// 
+//
 // The individual routes (news.js, signal.js, etc.) use requirePayment() from
 // utils/x402Payment.js which returns the correct V1 format with:
 // - x402Version: 1
@@ -185,7 +190,11 @@ const CORS_OPTIONS_REGULAR = {
     // Allow requests with no origin (e.g. same-origin, Postman, server-side)
     if (!origin) return cb(null, true);
     const normalized = origin.replace(/\/$/, ""); // strip trailing slash
-    if (CORS_ALLOWED_ORIGINS_SET.has(origin) || CORS_ALLOWED_ORIGINS_SET.has(normalized)) return cb(null, true);
+    if (
+      CORS_ALLOWED_ORIGINS_SET.has(origin) ||
+      CORS_ALLOWED_ORIGINS_SET.has(normalized)
+    )
+      return cb(null, true);
     return cb(null, false);
   },
   // Required when browsers use fetch(..., { credentials: "include" }) — e.g. ai-agent trading experiment page
@@ -235,7 +244,10 @@ function isX402Route(p) {
   if (p.startsWith("/signal")) return true;
   if (p === "/arbitrage" || p.startsWith("/arbitrage/")) return true;
   if (p.startsWith("/health")) return true;
-  if (p === "/check-status" || (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent")))
+  if (
+    p === "/check-status" ||
+    (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent"))
+  )
     return true;
   if (p.startsWith("/mpp/v1")) return true;
   if (p.startsWith("/solana-agent")) return true;
@@ -253,6 +265,7 @@ function isX402Route(p) {
   if (p.startsWith("/neynar")) return true;
   if (p.startsWith("/siwa")) return true;
   if (p === "/x" || p.startsWith("/x/")) return true;
+  if (p === "/x-analyzer" || p.startsWith("/x-analyzer/")) return true;
   return false;
 }
 
@@ -328,7 +341,8 @@ function parseTempoChallengeFromWwwAuthenticate(headerValue) {
   const raw = headerValue;
   if (!/^\s*payment\s/i.test(raw)) return null;
   const methodMatch = raw.match(/method="([^"]+)"/i);
-  if (!methodMatch || String(methodMatch[1]).toLowerCase() !== "tempo") return null;
+  if (!methodMatch || String(methodMatch[1]).toLowerCase() !== "tempo")
+    return null;
   const requestMatch = raw.match(/request="([^"]+)"/i);
   if (!requestMatch?.[1]) return null;
   const reqPayload = decodeBase64UrlJson(requestMatch[1]);
@@ -363,7 +377,12 @@ app.post(
   "/api/playground-proxy",
   express.json({ limit: "2mb" }),
   async (req, res) => {
-    const { url: targetUrl, method = "GET", body: forwardBody, headers: forwardHeaders = {} } = req.body || {};
+    const {
+      url: targetUrl,
+      method = "GET",
+      body: forwardBody,
+      headers: forwardHeaders = {},
+    } = req.body || {};
     if (!targetUrl || typeof targetUrl !== "string") {
       res.status(400).json({ error: "Missing or invalid url in body" });
       return;
@@ -371,20 +390,35 @@ app.post(
     const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"];
     const forwardMethod = (method || "GET").toUpperCase();
     if (!allowedMethods.includes(forwardMethod)) {
-      res.status(400).json({ error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}` });
+      res
+        .status(400)
+        .json({
+          error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}`,
+        });
       return;
     }
     const sentinelFetch = getSentinelFetch("playground");
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), PLAYGROUND_PROXY_TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      PLAYGROUND_PROXY_TIMEOUT_MS,
+    );
     try {
       const fetchOpts = {
         method: forwardMethod,
         headers: { ...forwardHeaders },
         signal: controller.signal,
       };
-      if (forwardBody != null && forwardBody !== "" && forwardMethod !== "GET" && forwardMethod !== "HEAD") {
-        fetchOpts.body = typeof forwardBody === "string" ? forwardBody : JSON.stringify(forwardBody);
+      if (
+        forwardBody != null &&
+        forwardBody !== "" &&
+        forwardMethod !== "GET" &&
+        forwardMethod !== "HEAD"
+      ) {
+        fetchOpts.body =
+          typeof forwardBody === "string"
+            ? forwardBody
+            : JSON.stringify(forwardBody);
       }
       const proxyRes = await sentinelFetch(targetUrl, fetchOpts);
       clearTimeout(timeoutId);
@@ -407,7 +441,7 @@ app.post(
       }
       const isMppPath = target?.pathname?.toLowerCase().includes("/mpp/");
       const tempoChallenge = parseTempoChallengeFromWwwAuthenticate(
-        getHeaderCaseInsensitive(forwardedHeaders, "www-authenticate")
+        getHeaderCaseInsensitive(forwardedHeaders, "www-authenticate"),
       );
       if (proxyRes.status === 402 && isMppPath && tempoChallenge) {
         const relayPrice = tempoChallenge.amountUsd.toFixed(6);
@@ -416,19 +450,34 @@ app.post(
           method: forwardMethod,
           discoverable: false,
           resource: "/api/playground-proxy",
-          description: "MPP Tempo relay payment (user pays with x402; server settles Tempo challenge)",
+          description:
+            "MPP Tempo relay payment (user pays with x402; server settles Tempo challenge)",
           inputSchema: {
             bodyType: "json",
             bodyFields: {
-              url: { type: "string", required: true, description: "Target URL" },
-              method: { type: "string", required: false, description: "HTTP method" },
-              body: { type: "object", required: false, description: "Request body" },
+              url: {
+                type: "string",
+                required: true,
+                description: "Target URL",
+              },
+              method: {
+                type: "string",
+                required: false,
+                description: "HTTP method",
+              },
+              body: {
+                type: "object",
+                required: false,
+                description: "Request body",
+              },
             },
           },
         });
         if (!paid) return;
 
-        const memo = tempoChallenge.id ? tempoChallenge.id.slice(0, 32) : undefined;
+        const memo = tempoChallenge.id
+          ? tempoChallenge.id.slice(0, 32)
+          : undefined;
         const payout = await sendTempoPayout({
           to: tempoChallenge.recipient,
           amountUsd: tempoChallenge.amountUsd,
@@ -440,14 +489,21 @@ app.post(
           res.status(502).json({
             success: false,
             error: "Tempo relay payout failed",
-            message: payout.error || "Could not settle Tempo challenge from server wallet.",
+            message:
+              payout.error ||
+              "Could not settle Tempo challenge from server wallet.",
           });
           return;
         }
 
         const retryRes = await sentinelFetch(targetUrl, fetchOpts);
         const retryText = await retryRes.text();
-        const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
+        const skipHeaders = [
+          "content-encoding",
+          "transfer-encoding",
+          "content-length",
+          "connection",
+        ];
         retryRes.headers.forEach((value, key) => {
           if (!skipHeaders.includes(key.toLowerCase())) {
             res.setHeader(key, value);
@@ -461,7 +517,12 @@ app.post(
       }
 
       // Forward safe response headers (exclude hop-by-hop and encoding)
-      const skipHeaders = ["content-encoding", "transfer-encoding", "content-length", "connection"];
+      const skipHeaders = [
+        "content-encoding",
+        "transfer-encoding",
+        "content-length",
+        "connection",
+      ];
       proxyRes.headers.forEach((value, key) => {
         if (!skipHeaders.includes(key.toLowerCase())) {
           res.setHeader(key, value);
@@ -470,7 +531,11 @@ app.post(
       res.status(proxyRes.status).send(responseText);
     } catch (err) {
       clearTimeout(timeoutId);
-      if (err && (err.name === "SentinelBudgetError" || err instanceof SentinelBudgetError)) {
+      if (
+        err &&
+        (err.name === "SentinelBudgetError" ||
+          err instanceof SentinelBudgetError)
+      ) {
         res.status(402).json({
           error: "Playground spend limit exceeded",
           message: err.message || String(err),
@@ -481,13 +546,15 @@ app.post(
       const isTimeout = err && err.name === "AbortError";
       res.status(502).json({
         error: "Proxy fetch failed",
-        message: isTimeout ? "The request to the target API timed out." : (err.message || String(err)),
+        message: isTimeout
+          ? "The request to the target API timed out."
+          : err.message || String(err),
         hint: isTimeout
           ? "The target API took too long to respond. It may be slow or blocking server-side requests."
           : "The target API may be unreachable from our server (e.g. blocking our IP, firewall, or down).",
       });
     }
-  }
+  },
 );
 
 app.use(express.json({ limit: "200kb" })); // Prevent large-payload DoS
@@ -500,11 +567,13 @@ app.use((req, res, next) => {
   res.once("finish", () => {
     if (skip) return;
     const durationMs = Date.now() - start;
-    import("./utils/recordApiRequest.js").then(({ recordApiRequest }) =>
-      recordApiRequest(req, res, durationMs, {
-        paid: req._requestInsightPaid === true,
-      })
-    ).catch(() => {});
+    import("./utils/recordApiRequest.js")
+      .then(({ recordApiRequest }) =>
+        recordApiRequest(req, res, durationMs, {
+          paid: req._requestInsightPaid === true,
+        }),
+      )
+      .catch(() => {});
   });
   next();
 });
@@ -523,7 +592,9 @@ app.use(
     burstMax: 25,
     windowMs: 60 * 1000,
     max: 100,
-    skip: (req) => isX402Route(req.path) || (req.path || "").startsWith("/internal/tester-agent"),
+    skip: (req) =>
+      isX402Route(req.path) ||
+      (req.path || "").startsWith("/internal/tester-agent"),
   }),
 );
 
@@ -534,31 +605,29 @@ app.use(injectTrustedOriginApiKey);
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for x402 routes and public paths. /8004 is protected by API key (same as other non-x402 APIs).
 app.use(
-  requireApiKey(
-    (req) => {
-      const p = req.path || "";
-      if (p.startsWith("/internal/tester-agent")) {
-        const secret = (process.env.TESTER_AGENT_CRON_SECRET || "").trim();
-        if (secret) {
-          const got = (req.get("x-tester-agent-cron-secret") || "").trim();
-          if (got === secret) return true;
-        }
+  requireApiKey((req) => {
+    const p = req.path || "";
+    if (p.startsWith("/internal/tester-agent")) {
+      const secret = (process.env.TESTER_AGENT_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-tester-agent-cron-secret") || "").trim();
+        if (got === secret) return true;
       }
-      return (
-        isX402Route(p) ||
-        p === "/" ||
-        p === "/favicon.ico" ||
-        p.startsWith("/og") ||
-        p.startsWith("/info") ||
-        p.startsWith("/playground") ||
-        p.startsWith("/prediction-game") ||
-        p.startsWith("/streamflow-locks") ||
-        p.startsWith("/staking") ||
-        p.startsWith("/uponly-rise-market") ||
-        p.startsWith("/uponly-rise-portfolio")
-      );
-    },
-  ),
+    }
+    return (
+      isX402Route(p) ||
+      p === "/" ||
+      p === "/favicon.ico" ||
+      p.startsWith("/og") ||
+      p.startsWith("/info") ||
+      p.startsWith("/playground") ||
+      p.startsWith("/prediction-game") ||
+      p.startsWith("/streamflow-locks") ||
+      p.startsWith("/staking") ||
+      p.startsWith("/uponly-rise-market") ||
+      p.startsWith("/uponly-rise-portfolio")
+    );
+  }),
 );
 
 // ZAuth x402 monitoring (before x402 routes) – telemetry & optional validation/refunds via zauthx402.com
@@ -569,15 +638,25 @@ app.use(
 const ZAUTH_API_KEY = (process.env.ZAUTH_API_KEY || "").trim();
 if (ZAUTH_API_KEY) {
   const zauthSampleRaw = (process.env.ZAUTH_TELEMETRY_SAMPLE_RATE || "").trim();
-  const zauthSample = zauthSampleRaw === "" ? null : Number.parseFloat(zauthSampleRaw);
+  const zauthSample =
+    zauthSampleRaw === "" ? null : Number.parseFloat(zauthSampleRaw);
   const zauthRespBody =
-    String(process.env.ZAUTH_TELEMETRY_INCLUDE_RESPONSE_BODY || "").toLowerCase() === "false" ||
+    String(
+      process.env.ZAUTH_TELEMETRY_INCLUDE_RESPONSE_BODY || "",
+    ).toLowerCase() === "false" ||
     String(process.env.ZAUTH_TELEMETRY_INCLUDE_RESPONSE_BODY || "") === "0";
   const zauthTelemetry =
-    (zauthSample != null && Number.isFinite(zauthSample) && zauthSample >= 0 && zauthSample <= 1) || zauthRespBody
+    (zauthSample != null &&
+      Number.isFinite(zauthSample) &&
+      zauthSample >= 0 &&
+      zauthSample <= 1) ||
+    zauthRespBody
       ? {
           telemetry: {
-            ...(zauthSample != null && Number.isFinite(zauthSample) && zauthSample >= 0 && zauthSample <= 1
+            ...(zauthSample != null &&
+            Number.isFinite(zauthSample) &&
+            zauthSample >= 0 &&
+            zauthSample <= 1
               ? { sampleRate: zauthSample }
               : {}),
             ...(zauthRespBody ? { includeResponseBody: false } : {}),
@@ -794,7 +873,8 @@ app.use("/binance-ticker", await createBinanceTickerPriceRouter());
 app.use("/v1", (req, res) => {
   res.status(410).json({
     success: false,
-    error: "v1 API is no longer available. Use /dashboard-summary, /preview/* (free) or x402 paths (e.g. /x, /news, /signal).",
+    error:
+      "v1 API is no longer available. Use /dashboard-summary, /preview/* (free) or x402 paths (e.g. /x, /news, /signal).",
     migration: "https://api.syraa.fun",
     docs: "https://docs.syraa.fun",
   });
@@ -807,7 +887,10 @@ app.use("/arbitrage", await createArbitrageExperimentX402Router());
 // Legacy /check-status → /health (308). Agent + discovery use /health.
 app.use((req, res, next) => {
   const p = req.path || "";
-  if (p === "/check-status" || (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent"))) {
+  if (
+    p === "/check-status" ||
+    (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent"))
+  ) {
     const rest = p === "/check-status" ? "" : p.slice("/check-status".length);
     const q = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
     return res.redirect(308, `/health${rest}${q}`);
@@ -818,7 +901,10 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const p = req.path || "";
   if (p === "/mpp/v1/check-status" || p.startsWith("/mpp/v1/check-status/")) {
-    const rest = p === "/mpp/v1/check-status" ? "" : p.slice("/mpp/v1/check-status".length);
+    const rest =
+      p === "/mpp/v1/check-status"
+        ? ""
+        : p.slice("/mpp/v1/check-status".length);
     const q = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
     return res.redirect(308, `/mpp/v1/health${rest}${q}`);
   }
@@ -827,6 +913,7 @@ app.use((req, res, next) => {
 app.use("/health", await createHealthRouter());
 app.use("/mpp/v1", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
+app.use("/x-analyzer", await createXProjectAnalyzerRouter());
 app.use("/brain", await createBrainRouter());
 app.use("/openrouter", await createOpenRouterChatRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
@@ -915,7 +1002,9 @@ app.get("/.well-known/x402", (req, res) => {
     ownershipProofs.push(process.env.X402_OWNERSHIP_PROOF);
   }
 
-  const resources = X402_DISCOVERY_RESOURCE_PATHS.map((p) => `${X402_BASE}/${p}`);
+  const resources = X402_DISCOVERY_RESOURCE_PATHS.map(
+    (p) => `${X402_BASE}/${p}`,
+  );
 
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)
@@ -968,56 +1057,88 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB (Mongoose) for prediction game
-connectMongoose().then(() => {}).catch(() => {});
+connectMongoose()
+  .then(() => {})
+  .catch(() => {});
 
 // Eager-init x402 V2 Corbits bundle (default facilitator) so first paid request doesn't wait for /supported
-import("./utils/x402ResourceServer.js").then(({ ensureX402CorbitsResourceServerInitialized }) => {
-  ensureX402CorbitsResourceServerInitialized().catch(() => {});
-});
+import("./utils/x402ResourceServer.js").then(
+  ({ ensureX402CorbitsResourceServerInitialized }) => {
+    ensureX402CorbitsResourceServerInitialized().catch(() => {});
+  },
+);
 
 app.listen(PORT, () => {
   const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
   const signalMs = Number(process.env.TRADING_EXPERIMENT_SIGNAL_CRON_MS || 0);
-  const validateMs = Number(process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0);
+  const validateMs = Number(
+    process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0,
+  );
 
   const runValidate = () =>
     import("./libs/tradingExperimentService.js")
-      .then(({ resolveOpenExperimentRunsIncremental1m }) => resolveOpenExperimentRunsIncremental1m())
+      .then(({ resolveOpenExperimentRunsIncremental1m }) =>
+        resolveOpenExperimentRunsIncremental1m(),
+      )
       .then((out) => {
         if (out.errors?.length) {
-          console.warn("[Trading experiment] validate errors:", out.errors.slice(0, 3));
+          console.warn(
+            "[Trading experiment] validate errors:",
+            out.errors.slice(0, 3),
+          );
         }
       })
-      .catch((err) => console.warn("[Trading experiment] validate failed:", err?.message || err));
+      .catch((err) =>
+        console.warn(
+          "[Trading experiment] validate failed:",
+          err?.message || err,
+        ),
+      );
 
   const runSignal = () =>
     Promise.all([
-      import("./libs/tradingExperimentService.js").then(({ runAllExperimentSignalCycles }) =>
-        runAllExperimentSignalCycles(),
+      import("./libs/tradingExperimentService.js").then(
+        ({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles(),
       ),
-      import("./libs/userCustomStrategyService.js").then(({ runUserCustomSignalCycle }) =>
-        runUserCustomSignalCycle(),
+      import("./libs/userCustomStrategyService.js").then(
+        ({ runUserCustomSignalCycle }) => runUserCustomSignalCycle(),
       ),
     ])
       .then(([out, userOut]) => {
         if (out.errors?.length) {
-          console.warn("[Trading experiment] signal errors:", out.errors.slice(0, 3));
+          console.warn(
+            "[Trading experiment] signal errors:",
+            out.errors.slice(0, 3),
+          );
         }
         if (userOut.errors?.length) {
-          console.warn("[Trading experiment] user custom signal errors:", userOut.errors.slice(0, 3));
+          console.warn(
+            "[Trading experiment] user custom signal errors:",
+            userOut.errors.slice(0, 3),
+          );
         }
       })
-      .catch((err) => console.warn("[Trading experiment] signal failed:", err?.message || err));
+      .catch((err) =>
+        console.warn(
+          "[Trading experiment] signal failed:",
+          err?.message || err,
+        ),
+      );
 
   const runFull = () =>
     import("./libs/tradingExperimentService.js")
       .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
       .then((out) => {
         if (out.errors?.length) {
-          console.warn("[Trading experiment] cycle errors:", out.errors.slice(0, 5));
+          console.warn(
+            "[Trading experiment] cycle errors:",
+            out.errors.slice(0, 5),
+          );
         }
       })
-      .catch((err) => console.warn("[Trading experiment] cycle failed:", err?.message || err));
+      .catch((err) =>
+        console.warn("[Trading experiment] cycle failed:", err?.message || err),
+      );
 
   if (validateMs >= 1_000) {
     setInterval(runValidate, validateMs);
@@ -1037,7 +1158,10 @@ app.listen(PORT, () => {
         runTradingExperimentEvolution()
           .then((out) => {
             if (!out.ok) {
-              console.warn("[Trading experiment evolution]", out.skipped || out);
+              console.warn(
+                "[Trading experiment evolution]",
+                out.skipped || out,
+              );
               return;
             }
             console.info(
@@ -1049,33 +1173,45 @@ app.listen(PORT, () => {
             );
           })
           .catch((err) =>
-            console.warn("[Trading experiment evolution failed]", err?.message || err),
+            console.warn(
+              "[Trading experiment evolution failed]",
+              err?.message || err,
+            ),
           );
       setInterval(tick, evo.ms);
     })
     .catch(() => {});
 
   const testerSchedule = TESTER_AGENT_CONFIG.inProcessScheduleEnabled === true;
-  const testerIntervalMs = testerSchedule ? TESTER_AGENT_CONFIG.scheduleIntervalMs : 0;
+  const testerIntervalMs = testerSchedule
+    ? TESTER_AGENT_CONFIG.scheduleIntervalMs
+    : 0;
   if (testerSchedule && testerIntervalMs >= 60_000) {
     const runTesterAgentCron = async () => {
       try {
-        const { runTesterAgentSuite, computeTesterAgentSuiteTimeoutMs } = await import(
-          "./libs/testerAgent/tests.js"
-        );
+        const { runTesterAgentSuite, computeTesterAgentSuiteTimeoutMs } =
+          await import("./libs/testerAgent/tests.js");
         const baseUrl = SYRA_PROBE_BASE_URL.replace(/\/+$/, "");
         const timeoutMs = computeTesterAgentSuiteTimeoutMs();
         const signal =
-          typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+          typeof AbortSignal !== "undefined" &&
+          typeof AbortSignal.timeout === "function"
             ? AbortSignal.timeout(timeoutMs)
             : undefined;
         const report = await runTesterAgentSuite(baseUrl, { signal });
         if (!report.success) {
           const bad = report.results?.find((r) => !r.ok);
-          console.warn("[tester-agent-schedule] first failure:", bad?.id, bad?.error || bad?.failedIds);
+          console.warn(
+            "[tester-agent-schedule] first failure:",
+            bad?.id,
+            bad?.error || bad?.failedIds,
+          );
         }
       } catch (e) {
-        console.warn("[tester-agent-schedule]", e instanceof Error ? e.message : e);
+        console.warn(
+          "[tester-agent-schedule]",
+          e instanceof Error ? e.message : e,
+        );
       }
     };
     if (TESTER_AGENT_CONFIG.scheduleRunOnStart === true) {
@@ -1088,5 +1224,10 @@ app.listen(PORT, () => {
     .then(({ startHealthX402Monitor }) => {
       startHealthX402Monitor();
     })
-    .catch((e) => console.warn("[health-x402-monitor] load failed:", e instanceof Error ? e.message : e));
+    .catch((e) =>
+      console.warn(
+        "[health-x402-monitor] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
 });

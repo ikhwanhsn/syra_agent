@@ -1,0 +1,91 @@
+{
+  "success": true,
+  "data": {
+    "username": "syra_agent",
+    "user": {
+      "id": "1983380098406592515",
+      "username": "syra_agent",
+      "name": "Syra",
+      "description": "Smart Intelligence Agent for Traders on Solana. https://t.co/9hRxUXzQFD",
+      "url": "https://t.co/3Z1z9rVl2p",
+      "created_at": "2025-10-29T03:47:33.000Z",
+      "verified": true,
+      "verified_type": "blue",
+      "public_metrics": {
+        "followers_count": 2177,
+        "following_count": 158,
+        "tweet_count": 1276,
+        "listed_count": 8,
+        "like_count": 1985,
+        "media_count": 285
+      }
+    },
+    "score": 53,
+    "grade": "F",
+    "breakdown": {
+      "identity": {
+        "score": 8.35,
+        "max": 15,
+        "details": {
+          "verifiedBonus": 5,
+          "ageYears": 0.51,
+          "agePoints": 0.35,
+          "bioLengthBonus": 2,
+          "urlBonus": 1
+        }
+      },
+      "reach": {
+        "score": 14.05,
+        "max": 25,
+        "details": {
+          "followersCount": 2177,
+          "followingCount": 158,
+          "log10Followers": 3.338,
+          "logMappedPoints": 11.13,
+          "ratioBonus": 2.92
+        }
+      },
+      "engagement": {
+        "score": 6.78,
+        "max": 30,
+        "details": {
+          "avgEngagementRatePct": 0.3768,
+          "tweetsAnalyzed": 14
+        }
+      },
+      "cadence": {
+        "score": 14.15,
+        "max": 15,
+        "details": {
+          "tweetsPerDay": 5.41521244380721,
+          "lastTweetDaysAgo": 0,
+          "idealBand": "0.5-3/day",
+          "recentActivityBonus": true
+        }
+      },
+      "contentDiversity": {
+        "score": 9.66,
+        "max": 15,
+        "details": {
+          "dominanceRatio": 0.344,
+          "spreadPoints": 6.56,
+          "volumePoints": 3.11,
+          "profileTweetCount": 1276
+        }
+      }
+    },
+    "signals": {
+      "followersCount": 2177,
+      "followingCount": 158,
+      "tweetsAnalyzed": 14,
+      "profileTweetCount": 1276,
+      "avgEngagementRatePct": 0.3768,
+      "tweetsPerDay": 5.4152,
+      "lastTweetDaysAgo": 0,
+      "accountAgeDays": 185
+    },
+    "redFlags": [],
+    "aiSummary": null,
+    "updatedAt": "2026-05-02T14:33:46.739Z"
+  }
+}

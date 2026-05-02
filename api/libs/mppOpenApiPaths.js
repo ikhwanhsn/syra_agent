@@ -36,6 +36,7 @@ import {
   X402_DISPLAY_PRICE_SIWA_USD,
   X402_DISPLAY_PRICE_BRAIN_USD,
   X402_DISPLAY_PRICE_X_USD,
+  X402_DISPLAY_PRICE_X_ANALYZER_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -107,6 +108,7 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/8004scan') || p === '/erc8004') return X402_DISPLAY_PRICE_8004SCAN_USD;
   if (p.startsWith('/8004')) return X402_DISPLAY_PRICE_8004_USD;
   if (p.startsWith('/heylol')) return X402_DISPLAY_PRICE_HEYLOL_USD;
+  if (p.startsWith('/x-analyzer')) return X402_DISPLAY_PRICE_X_ANALYZER_USD;
   if (p === '/x' || p.startsWith('/x/')) return X402_DISPLAY_PRICE_X_USD;
   if (p.startsWith('/quicknode/')) return X402_DISPLAY_PRICE_QUICKNODE_USD;
   if (p.startsWith('/bankr/')) return X402_DISPLAY_PRICE_BANKR_USD;

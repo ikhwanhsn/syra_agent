@@ -22,4 +22,5 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   // Analytics (internal: Jupiter + Nansen + Binance correlation math; no public /binance routes)
   "analytics/summary",
   "x",
+  "x-analyzer",
 ];

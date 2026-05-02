@@ -2,7 +2,40 @@
  * OpenAPI 3.1 for Syra gateway — multiple real routes (strict-schema friendly: no info.guidance, no x-payment-info).
  * Served at GET /openapi.json and repo-root openapi.json (`npm run openapi`).
  */
+import { readFileSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { SIGNAL_CEX_SOURCES } from './cexSignalAnalysis.js';
+
+const GATEWAY_DIR = path.dirname(fileURLToPath(import.meta.url));
+
+/** Loaded from docs/examples (same snapshot clients can rely on for shape). */
+function loadXAnalyzerOpenApiExample() {
+  try {
+    return JSON.parse(
+      readFileSync(
+        path.join(GATEWAY_DIR, '../docs/examples/x-analyzer-response.example.json'),
+        'utf8',
+      ),
+    );
+  } catch {
+    return {
+      success: true,
+      data: {
+        username: 'syra_agent',
+        score: 0,
+        grade: 'F',
+        breakdown: {},
+        signals: {},
+        redFlags: [],
+        aiSummary: null,
+        updatedAt: new Date().toISOString(),
+      },
+    };
+  }
+}
+
+const X_ANALYZER_OPENAPI_EXAMPLE = loadXAnalyzerOpenApiExample();
 
 const DEFAULT_SERVER = 'https://api.syraa.fun';
 
@@ -295,6 +328,114 @@ export function buildGatewayOpenApi() {
         true,
       ),
     },
+
+    '/x-analyzer': {
+      get: {
+        tags: ['Social (x402)'],
+        summary: 'X Project Analyzer — profile + tweets + score (x402)',
+        description:
+          'Micropayment via x402. Returns deterministic 0–100 score, category breakdown, signals, red flags; optional `includeAiSummary` adds grounded LLM bullets. Example `200` body is maintained at `api/docs/examples/x-analyzer-response.example.json`.',
+        operationId: 'getXAnalyzer',
+        parameters: [
+          {
+            name: 'username',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'syra_agent' },
+            description: 'X handle without @.',
+          },
+          {
+            name: 'max_results',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 5, maximum: 50, default: 20 },
+            description: 'Recent tweets sampled for scoring.',
+          },
+          {
+            name: 'includeAiSummary',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description: 'If true, append optional LLM summary (still grounded on returned metrics).',
+          },
+        ],
+        responses: {
+          '200': {
+            description:
+              'Success — `success: true` and `data` (shape matches checked-in example file).',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['success'],
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: { type: 'object', additionalProperties: true },
+                    error: { type: 'string' },
+                  },
+                },
+                example: X_ANALYZER_OPENAPI_EXAMPLE,
+              },
+            },
+          },
+          '402': responsesFor(true)['402'],
+          '404': { description: 'X user not found' },
+          '502': { description: 'X API upstream error' },
+          '503': { description: 'Server missing X_BEARER_TOKEN' },
+        },
+      },
+      post: {
+        tags: ['Social (x402)'],
+        summary: 'X Project Analyzer — POST body (x402)',
+        description:
+          'Same as GET; body may include `username`, `max_results`, `includeAiSummary`. Example response identical to GET.',
+        operationId: 'postXAnalyzer',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  username: { type: 'string', description: 'Default syra_agent' },
+                  max_results: { type: 'integer', minimum: 5, maximum: 50 },
+                  includeAiSummary: { type: 'boolean' },
+                },
+              },
+              example: {
+                username: 'syra_agent',
+                max_results: 20,
+                includeAiSummary: false,
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description:
+              'Success — same shape as GET; see example file and GET operation example.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['success'],
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: { type: 'object', additionalProperties: true },
+                    error: { type: 'string' },
+                  },
+                },
+                example: X_ANALYZER_OPENAPI_EXAMPLE,
+              },
+            },
+          },
+          '402': responsesFor(true)['402'],
+          '404': { description: 'X user not found' },
+          '502': { description: 'X API upstream error' },
+          '503': { description: 'Server missing X_BEARER_TOKEN' },
+        },
+      },
+    },
   };
 
   return {
@@ -319,6 +460,10 @@ export function buildGatewayOpenApi() {
       { name: 'Market data (x402)', description: 'Cryptonews-backed; payment via x402' },
       { name: 'Gateway (x402)', description: 'Health and gateway checks' },
       { name: 'AI (x402)', description: 'Syra Brain Q&A' },
+      {
+        name: 'Social (x402)',
+        description: 'X (Twitter) analysis — pay-per-call via x402',
+      },
     ],
     components: {
       securitySchemes: {
