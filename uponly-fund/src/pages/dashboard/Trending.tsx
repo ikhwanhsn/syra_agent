@@ -1,13 +1,11 @@
-import { useState } from "react";
-import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { RiseTrendingMarkets } from "@/components/rise/RiseTrendingMarkets";
-import { MarketDetailDrawer } from "@/components/rise/MarketDetailDrawer";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
+import { useNavigateToToken } from "@/lib/useNavigateToToken";
 
 export default function TrendingPage() {
-  const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);
+  const goToToken = useNavigateToToken();
   const { language } = useLanguage();
   const copy = DASHBOARD_COPY[language];
 
@@ -23,14 +21,7 @@ export default function TrendingPage() {
           title={copy.pages.overviewTitle}
           description={copy.pages.overviewDescription}
         />
-        <RiseTrendingMarkets onSelect={setOpenMarket} />
-        <MarketDetailDrawer
-          market={openMarket}
-          open={openMarket !== null}
-          onOpenChange={(next) => {
-            if (!next) setOpenMarket(null);
-          }}
-        />
+        <RiseTrendingMarkets onSelect={goToToken} />
       </div>
     </div>
   );

@@ -50,8 +50,8 @@ function DashboardDataWarmup() {
       staleTime: 60_000,
     });
     void queryClient.prefetchQuery({
-      queryKey: ["rise-markets-all", 150],
-      queryFn: ({ signal }) => getRiseMarketsAll(150, signal),
+      queryKey: ["rise-markets-all", 250],
+      queryFn: ({ signal }) => getRiseMarketsAll(250, signal),
       staleTime: 60_000,
     });
   }, []);
@@ -77,6 +77,7 @@ const App = () => (
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/simulator" element={<SimulatorPage />} />
               <Route path="/insights" element={<InsightsPage />} />
+              <Route path="/token/:address" element={<TokenDetailPage />} />
             </Route>
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/dashboard/overview" element={<Navigate to="/" replace />} />
@@ -99,7 +100,6 @@ const App = () => (
             <Route path="/uponly/rise" element={<Navigate to="/terminal" replace />} />
             <Route path="/tranche" element={<Navigate to="/" replace />} />
             <Route path="/treasury" element={<Navigate to="/" replace />} />
-            <Route path="/token/:address" element={<TokenDetailPage />} />
             <Route path="*" element={<NotFound />} />
             </Routes>
             <ScrollToTopButton />

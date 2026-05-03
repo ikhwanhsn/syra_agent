@@ -174,6 +174,117 @@ export type DashboardDictionary = {
     viewOnSolscan: string;
     disconnect: string;
   };
+  tokenDetail: {
+    pageTitle: string;
+    eyebrow: string;
+    pageDescription: string;
+    notFoundTitle: string;
+    notFoundDescription: string;
+    browseMarkets: string;
+    back: string;
+    copyMint: string;
+    mintCopied: string;
+    watchlistAdd: string;
+    watchlistRemove: string;
+    share: string;
+    linkCopied: string;
+    openSimulator: string;
+    loadingToken: string;
+    sectionScore: string;
+    sectionKpis: string;
+    sectionPrice: string;
+    sectionTrades: string;
+    sectionQuote: string;
+    sectionLiquidity: string;
+    sectionEcosystem: string;
+    sectionAbout: string;
+    sectionSimilar: string;
+    kpiPrice: string;
+    kpiFloor: string;
+    kpiFloorDelta: string;
+    kpiMcap: string;
+    kpiFloorMcap: string;
+    kpiVol24h: string;
+    kpiVolAll: string;
+    kpiStartPrice: string;
+    kpiRoi: string;
+    kpiTurnover: string;
+    kpiHolders: string;
+    kpiLocked: string;
+    kpiCreatorFee: string;
+    kpiAge: string;
+    kpiCreatedAt: string;
+    kpiUpdatedAt: string;
+    chartHigh: string;
+    chartLow: string;
+    chartRange: string;
+    chartAvgClose: string;
+    chartVolSum: string;
+    chartWindowChg: string;
+    chartRsi: string;
+    chartMom: string;
+    chartVolSample: string;
+    chartNoData: string;
+    chartSource: string;
+    chartUpdated: string;
+    chartAllTimeframe: string;
+    tradesTitle: string;
+    tradesPartial: string;
+    tradesBuySell: string;
+    tradesUniqueWallets: string;
+    tradesAvg: string;
+    tradesLargest: string;
+    tradesSide: string;
+    tradesWallet: string;
+    tradesPrice: string;
+    tradesAmount: string;
+    tradesUsd: string;
+    tradesWhen: string;
+    tradesSideBuy: string;
+    tradesSideSell: string;
+    tradesSideBorrow: string;
+    tradesSideRepay: string;
+    tradesSideCreate: string;
+    tradesAggregated: string;
+    tradesJustNow: string;
+    tradesAgoUnit: string;
+    tradesViewSolscan: string;
+    quoteAmount: string;
+    quoteBuy: string;
+    quoteSell: string;
+    quoteImpact: string;
+    quoteAvgFill: string;
+    quoteFee: string;
+    quoteFooter: string;
+    liquidityLocked: string;
+    liquidityFloorCover: string;
+    liquidityFeeMedian: string;
+    rankMcap: string;
+    rankVol: string;
+    rankHolders: string;
+    rankAge: string;
+    rankTop: string;
+    /** `{pct}` — percentile bucket label, e.g. Top 12% */
+    topPercentLabel: string;
+    aboutCreator: string;
+    aboutMarketAddr: string;
+    aboutMint: string;
+    aboutCreated: string;
+    aboutUpdated: string;
+    aboutTokenUri: string;
+    aboutSocials: string;
+    aboutDisableSell: string;
+    similarTitle: string;
+    similarSubtitle: string;
+    scoreMomentum: string;
+    scoreFlow: string;
+    scoreDepth: string;
+    scoreFreshness: string;
+    metaDisclaimer: string;
+    tradeOnRise: string;
+    solscan: string;
+    discord: string;
+  };
 };
 
 export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
@@ -354,6 +465,117 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       viewOnSolscan: "View on Solscan",
       disconnect: "Disconnect",
     },
+    tokenDetail: {
+      pageTitle: "Token",
+      eyebrow: "RISE MARKET",
+      pageDescription: "Full-fidelity snapshot: live Rise endpoints plus fund-grade derived signals.",
+      notFoundTitle: "Token not found",
+      notFoundDescription: "This mint is not in the current Rise universe snapshot. Try browsing markets or Terminal.",
+      browseMarkets: "Browse markets",
+      back: "Back",
+      copyMint: "Copy mint",
+      mintCopied: "Mint copied",
+      watchlistAdd: "Watchlist",
+      watchlistRemove: "Remove",
+      share: "Share",
+      linkCopied: "Link copied",
+      openSimulator: "Open full simulator",
+      loadingToken: "Resolving token…",
+      sectionScore: "Intelligence",
+      sectionKpis: "Market snapshot",
+      sectionPrice: "Price action",
+      sectionTrades: "Recent trades",
+      sectionQuote: "Curve quote",
+      sectionLiquidity: "Liquidity & structure",
+      sectionEcosystem: "Ecosystem rank",
+      sectionAbout: "On-chain metadata",
+      sectionSimilar: "Similar markets",
+      kpiPrice: "Spot price",
+      kpiFloor: "Floor price",
+      kpiFloorDelta: "Floor delta",
+      kpiMcap: "Market cap",
+      kpiFloorMcap: "Floor mcap",
+      kpiVol24h: "24h volume",
+      kpiVolAll: "All-time volume",
+      kpiStartPrice: "Starting price",
+      kpiRoi: "ROI vs start",
+      kpiTurnover: "24h vol / mcap",
+      kpiHolders: "Holders",
+      kpiLocked: "Locked supply",
+      kpiCreatorFee: "Creator fee",
+      kpiAge: "Age",
+      kpiCreatedAt: "Created (API)",
+      kpiUpdatedAt: "Updated (API)",
+      chartHigh: "High",
+      chartLow: "Low",
+      chartRange: "Range",
+      chartAvgClose: "Avg close",
+      chartVolSum: "Σ volume",
+      chartWindowChg: "Window Δ",
+      chartRsi: "RSI(14)",
+      chartMom: "Mom(14)",
+      chartVolSample: "Vol index",
+      chartNoData: "No chart data for this timeframe.",
+      chartSource: "Source",
+      chartUpdated: "Updated",
+      chartAllTimeframe: "ALL (1d)",
+      tradesTitle: "Tape",
+      tradesPartial: "Some rows have partial metadata from upstream.",
+      tradesBuySell: "Buy flow",
+      tradesUniqueWallets: "Unique wallets",
+      tradesAvg: "Avg trade",
+      tradesLargest: "Largest",
+      tradesSide: "Side",
+      tradesWallet: "Wallet",
+      tradesPrice: "Price",
+      tradesAmount: "Amount",
+      tradesUsd: "USD",
+      tradesWhen: "When",
+      tradesSideBuy: "Buy",
+      tradesSideSell: "Sell",
+      tradesSideBorrow: "Borrow",
+      tradesSideRepay: "Repay",
+      tradesSideCreate: "Create",
+      tradesAggregated: "aggregated",
+      tradesJustNow: "just now",
+      tradesAgoUnit: "ago",
+      tradesViewSolscan: "View on Solscan",
+      quoteAmount: "Amount (tokens)",
+      quoteBuy: "Buy",
+      quoteSell: "Sell",
+      quoteImpact: "Price impact",
+      quoteAvgFill: "Avg fill",
+      quoteFee: "Fee (USD)",
+      quoteFooter: "Opens the quote simulator with this mint prefilled.",
+      liquidityLocked: "Locked supply",
+      liquidityFloorCover: "Floor / mcap coverage",
+      liquidityFeeMedian: "Creator fee vs median",
+      rankMcap: "Market cap",
+      rankVol: "24h volume",
+      rankHolders: "Holders",
+      rankAge: "Age",
+      rankTop: "Positioning",
+      topPercentLabel: "Top {pct}%",
+      aboutCreator: "Creator",
+      aboutMarketAddr: "Market account",
+      aboutMint: "Mint",
+      aboutCreated: "Created",
+      aboutUpdated: "Last updated",
+      aboutTokenUri: "Token URI",
+      aboutSocials: "Community",
+      aboutDisableSell: "Selling is disabled for this market.",
+      similarTitle: "Similar by profile",
+      similarSubtitle: "Mcap proximity + overlapping narratives.",
+      scoreMomentum: "Momentum",
+      scoreFlow: "Flow",
+      scoreDepth: "Depth",
+      scoreFreshness: "Freshness",
+      metaDisclaimer:
+        "Read-only Rise proxy data. Trade links open rise.rich; nothing is signed in this dashboard. Not financial advice.",
+      tradeOnRise: "Trade on RISE",
+      solscan: "Solscan",
+      discord: "Discord",
+    },
   },
   zh: {
     sidebar: "智能代理基金 · RISE",
@@ -530,10 +752,123 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       viewOnSolscan: "在 Solscan 查看",
       disconnect: "断开连接",
     },
+    tokenDetail: {
+      pageTitle: "代币",
+      eyebrow: "RISE 市场",
+      pageDescription: "全量快照：实时 Rise 接口 + 基金级衍生信号。",
+      notFoundTitle: "未找到代币",
+      notFoundDescription: "当前市场快照中无此 Mint。请从市场或终端浏览。",
+      browseMarkets: "浏览市场",
+      back: "返回",
+      copyMint: "复制 Mint",
+      mintCopied: "Mint 已复制",
+      watchlistAdd: "观察列表",
+      watchlistRemove: "移除",
+      share: "分享",
+      linkCopied: "链接已复制",
+      openSimulator: "打开完整模拟器",
+      loadingToken: "正在解析代币…",
+      sectionScore: "情报",
+      sectionKpis: "市场快照",
+      sectionPrice: "价格走势",
+      sectionTrades: "近期成交",
+      sectionQuote: "曲线报价",
+      sectionLiquidity: "流动性与结构",
+      sectionEcosystem: "生态排位",
+      sectionAbout: "链上元数据",
+      sectionSimilar: "相似市场",
+      kpiPrice: "现价",
+      kpiFloor: "底线价",
+      kpiFloorDelta: "底线变化",
+      kpiMcap: "市值",
+      kpiFloorMcap: "底线市值",
+      kpiVol24h: "24h 成交量",
+      kpiVolAll: "累计成交量",
+      kpiStartPrice: "起始价",
+      kpiRoi: "相对起始回报",
+      kpiTurnover: "24h 量 / 市值",
+      kpiHolders: "持有人",
+      kpiLocked: "锁仓占比",
+      kpiCreatorFee: "创作者费率",
+      kpiAge: "时长",
+      kpiCreatedAt: "创建时间（API）",
+      kpiUpdatedAt: "更新时间（API）",
+      chartHigh: "高",
+      chartLow: "低",
+      chartRange: "区间",
+      chartAvgClose: "均价收盘",
+      chartVolSum: "成交量合计",
+      chartWindowChg: "窗口涨跌",
+      chartRsi: "RSI(14)",
+      chartMom: "动量(14)",
+      chartVolSample: "波动指数",
+      chartNoData: "该周期暂无图表数据。",
+      chartSource: "来源",
+      chartUpdated: "更新",
+      chartAllTimeframe: "全部（1d）",
+      tradesTitle: "成交明细",
+      tradesPartial: "部分成交字段上游不完整。",
+      tradesBuySell: "买入占比",
+      tradesUniqueWallets: "独立钱包",
+      tradesAvg: "平均单笔",
+      tradesLargest: "最大单笔",
+      tradesSide: "方向",
+      tradesWallet: "钱包",
+      tradesPrice: "价格",
+      tradesAmount: "数量",
+      tradesUsd: "USD",
+      tradesWhen: "时间",
+      tradesSideBuy: "买入",
+      tradesSideSell: "卖出",
+      tradesSideBorrow: "借入",
+      tradesSideRepay: "偿还",
+      tradesSideCreate: "创建",
+      tradesAggregated: "聚合",
+      tradesJustNow: "刚刚",
+      tradesAgoUnit: "前",
+      tradesViewSolscan: "在 Solscan 查看",
+      quoteAmount: "数量（代币）",
+      quoteBuy: "买入",
+      quoteSell: "卖出",
+      quoteImpact: "价格冲击",
+      quoteAvgFill: "均价成交",
+      quoteFee: "手续费（USD）",
+      quoteFooter: "在报价模拟器中预填该 Mint。",
+      liquidityLocked: "锁仓",
+      liquidityFloorCover: "底线 / 市值覆盖",
+      liquidityFeeMedian: "创作者费率 vs 中位数",
+      rankMcap: "市值",
+      rankVol: "24h 量",
+      rankHolders: "持有人",
+      rankAge: "时长",
+      rankTop: "排位",
+      topPercentLabel: "前 {pct}%",
+      aboutCreator: "创建者",
+      aboutMarketAddr: "市场账户",
+      aboutMint: "Mint",
+      aboutCreated: "创建",
+      aboutUpdated: "最近更新",
+      aboutTokenUri: "Token URI",
+      aboutSocials: "社区",
+      aboutDisableSell: "该市场已禁用卖出。",
+      similarTitle: "相似市场",
+      similarSubtitle: "市值接近 + 叙事重叠。",
+      scoreMomentum: "动量",
+      scoreFlow: "资金流",
+      scoreDepth: "深度",
+      scoreFreshness: "新鲜度",
+      metaDisclaimer:
+        "只读 Rise 代理数据。交易会跳转 rise.rich；本看板不签名。非投资建议。",
+      tradeOnRise: "在 RISE 交易",
+      solscan: "Solscan",
+      discord: "Discord",
+    },
   },
 };
 
-export function getPageTitle(pathname: string, t: DashboardDictionary["pages"]): string {
+export function getPageTitle(pathname: string, dictionary: DashboardDictionary): string {
+  const t = dictionary.pages;
+  if (pathname.startsWith("/token/")) return dictionary.tokenDetail.pageTitle;
   if (pathname === "/" || pathname === "") return t.overviewPageTitle;
   if (pathname === "/terminal") return t.riseTerminal;
   if (pathname.endsWith("/market")) return t.market;

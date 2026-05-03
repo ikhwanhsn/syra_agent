@@ -45,6 +45,7 @@ import {
   RISE_UPONLY_MINT,
   shortenMint,
 } from "./RiseShared";
+import { MarketSparkline } from "./MarketSparkline";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export const TRENDING_PAGE_SIZE = 100;
@@ -453,6 +454,9 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
                         onClick={() => onSort("priceChange24hPct")}
                       />
                     </TableHead>
+                    <TableHead className="h-11 min-w-[7rem] px-2 text-left text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {isZh ? "走势" : "Trend"}
+                    </TableHead>
                     <TableHead className="h-11 px-2">
                       <SortableHeader
                         label={sortLabel.marketCapUsd}
@@ -494,7 +498,7 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
                   {isPending && markets.length === 0
                     ? Array.from({ length: 12 }).map((_, i) => (
                         <TableRow key={`sk-${i}`} className="border-border/30">
-                          <TableCell colSpan={8} className="px-4 py-3">
+                          <TableCell colSpan={9} className="px-4 py-3">
                             <Skeleton className="h-10 w-full rounded-lg" />
                           </TableCell>
                         </TableRow>
@@ -545,6 +549,14 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
                           </TableCell>
                           <TableCell className="px-2 py-2.5 text-right">
                             <ChangePill pct={m.priceChange24hPct} />
+                          </TableCell>
+                          <TableCell className="px-2 py-2.5 text-left">
+                            <MarketSparkline
+                              address={m.marketAddress || m.mint}
+                              changePct={m.priceChange24hPct}
+                              width={88}
+                              height={26}
+                            />
                           </TableCell>
                           <TableCell className="px-2 py-2.5 text-right text-foreground">
                             {formatUsd(m.marketCapUsd, { compact: true })}
@@ -618,6 +630,15 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
                             <p className="text-sm font-semibold tabular-nums text-foreground">{formatPriceSmart(m.priceUsd)}</p>
                             <ChangePill pct={m.priceChange24hPct} className="mt-1" />
                           </div>
+                        </div>
+                        <div className="-mx-1 flex items-center justify-end">
+                          <MarketSparkline
+                            address={m.marketAddress || m.mint}
+                            changePct={m.priceChange24hPct}
+                            width={120}
+                            height={28}
+                            showVerdict
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-2 border-t border-border/35 pt-3 text-[0.68rem] text-muted-foreground">
                           <div>

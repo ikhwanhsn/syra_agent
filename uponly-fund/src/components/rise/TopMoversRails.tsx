@@ -4,9 +4,7 @@
  *  • Top gainers 24h
  *  • Newest markets
  *
- * Cards are click-targets that open the MarketDetailDrawer (passed in via prop
- * to avoid a hard prop-drill — siblings raise the click event, the page owns
- * the drawer state).
+ * Cards are click-targets; parent passes `onSelect` (typically navigate to `/token/:mint`).
  */
 import { Activity, Clock4, Flame, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";

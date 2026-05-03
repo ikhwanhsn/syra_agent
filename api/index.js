@@ -12,6 +12,7 @@ import {
 } from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createXProjectAnalyzerRouter } from "./agents/x-project-analyzer.js";
+import { createXProjectsBatchAnalyzerRouter } from "./agents/x-projects-batch-analyzer.js";
 import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
@@ -914,6 +915,7 @@ app.use("/health", await createHealthRouter());
 app.use("/mpp/v1", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/x-analyzer", await createXProjectAnalyzerRouter());
+app.use("/x-projects-analyze", createXProjectsBatchAnalyzerRouter());
 app.use("/brain", await createBrainRouter());
 app.use("/openrouter", await createOpenRouterChatRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD

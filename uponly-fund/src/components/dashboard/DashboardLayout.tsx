@@ -127,7 +127,7 @@ export default function DashboardLayout() {
     ],
     [dictionary],
   );
-  const pageTitle = useMemo(() => getPageTitle(pathname, dictionary.pages), [pathname, dictionary.pages]);
+  const pageTitle = useMemo(() => getPageTitle(pathname, dictionary), [pathname, dictionary]);
   const isDark = resolvedTheme !== "light";
   const contentShell = "mx-auto w-full min-w-0 max-w-[1800px] px-3.5 min-[400px]:px-4 sm:px-5 lg:px-7 xl:px-8";
 

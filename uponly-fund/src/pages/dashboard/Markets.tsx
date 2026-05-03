@@ -1,7 +1,5 @@
-import { useMemo, useState } from "react";
-import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
+import { useMemo } from "react";
 import { MarketScreener } from "@/components/rise/MarketScreener";
-import { MarketDetailDrawer } from "@/components/rise/MarketDetailDrawer";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import FloorScannerPage from "@/pages/dashboard/FloorScanner";
 import ComparePage from "@/pages/dashboard/Compare";
@@ -10,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
+import { useNavigateToToken } from "@/lib/useNavigateToToken";
 
 const TAB_VALUES = ["screener", "floor-scanner", "compare", "watchlist"] as const;
 type MarketTab = (typeof TAB_VALUES)[number];
@@ -20,7 +19,7 @@ function parseTab(value: string | null): MarketTab {
 }
 
 export default function MarketsPage() {
-  const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);
+  const goToToken = useNavigateToToken();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeTab = useMemo(() => parseTab(searchParams.get("tab")), [searchParams]);
@@ -65,7 +64,7 @@ export default function MarketsPage() {
           </TabsList>
 
           <TabsContent value="screener" className="mt-4">
-            <MarketScreener onSelect={setOpenMarket} />
+            <MarketScreener onSelect={goToToken} />
           </TabsContent>
           <TabsContent value="floor-scanner" className="mt-4">
             <FloorScannerPage />
@@ -77,13 +76,6 @@ export default function MarketsPage() {
             <WatchlistPage />
           </TabsContent>
         </Tabs>
-        <MarketDetailDrawer
-          market={openMarket}
-          open={openMarket !== null}
-          onOpenChange={(next) => {
-            if (!next) setOpenMarket(null);
-          }}
-        />
       </div>
     </div>
   );

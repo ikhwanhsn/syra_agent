@@ -15,6 +15,7 @@ import {
   formatPriceSmart,
   shortenMint,
 } from "@/components/rise/RiseShared";
+import { MarketSparkline } from "@/components/rise/MarketSparkline";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -184,6 +185,9 @@ export default function WatchlistPage() {
                         <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           24h Δ
                         </TableHead>
+                        <TableHead className="h-11 min-w-[7rem] px-3 text-left text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          {isZh ? "走势" : "Trend"}
+                        </TableHead>
                         <TableHead className="h-11 px-3 text-right text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           MCap
                         </TableHead>
@@ -221,6 +225,14 @@ export default function WatchlistPage() {
                           </TableCell>
                           <TableCell className="px-3 py-3 text-right">
                             <ChangePill pct={row.priceChange24hPct} />
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-left">
+                            <MarketSparkline
+                              address={row.marketAddress || row.mint}
+                              changePct={row.priceChange24hPct}
+                              width={88}
+                              height={26}
+                            />
                           </TableCell>
                           <TableCell className="px-3 py-3 text-right text-foreground">
                             {formatUsd(row.marketCapUsd, { compact: true })}
@@ -273,6 +285,15 @@ export default function WatchlistPage() {
                               </Button>
                             </div>
                           </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-end">
+                          <MarketSparkline
+                            address={row.marketAddress || row.mint}
+                            changePct={row.priceChange24hPct}
+                            width={140}
+                            height={30}
+                            showVerdict
+                          />
                         </div>
                         <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-border/35 pt-4 text-[0.68rem] sm:grid-cols-4">
                           <div className="rounded-xl border border-border/40 bg-background/[0.25] px-2.5 py-2">

@@ -13,6 +13,7 @@ import {
   TokenAvatar,
   formatPriceSmart,
 } from "@/components/rise/RiseShared";
+import { MarketSparkline } from "@/components/rise/MarketSparkline";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -263,6 +264,9 @@ export default function FloorScannerPage() {
                       <TableHead className="h-11 px-3 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                         {isZh ? "底线Δ" : "Floor Δ"}
                       </TableHead>
+                      <TableHead className="h-11 min-w-[7rem] px-3 text-left text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                        {isZh ? "走势" : "Trend"}
+                      </TableHead>
                       <TableHead className="h-11 w-[1%] px-4 text-right text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                         {isZh ? "操作" : "Action"}
                       </TableHead>
@@ -309,6 +313,14 @@ export default function FloorScannerPage() {
                           <TableCell className="px-3 py-3.5 text-right">
                             <ChangePill pct={row.floorDeltaPct ?? null} />
                           </TableCell>
+                          <TableCell className="px-3 py-3.5 text-left">
+                            <MarketSparkline
+                              address={row.marketAddress || row.mint}
+                              changePct={row.priceChange24hPct}
+                              width={88}
+                              height={26}
+                            />
+                          </TableCell>
                           <TableCell className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <RiseTradeButton mint={row.mint} />
                           </TableCell>
@@ -344,6 +356,15 @@ export default function FloorScannerPage() {
                           </div>
                         </div>
                         <RiseTradeButton mint={row.mint} />
+                      </div>
+                      <div className="mt-3 flex items-center justify-end">
+                        <MarketSparkline
+                          address={row.marketAddress || row.mint}
+                          changePct={row.priceChange24hPct}
+                          width={140}
+                          height={28}
+                          showVerdict
+                        />
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                         <div className="rounded-xl border border-border/40 bg-background/35 px-3 py-2.5">

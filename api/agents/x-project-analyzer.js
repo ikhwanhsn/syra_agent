@@ -114,6 +114,26 @@ function pickRepresentativeTweets(tweets, limit = 5) {
   return out;
 }
 
+/**
+ * Recent tweets for detail views (text truncated; no media entities).
+ * @param {unknown[]} tweets
+ * @param {number} limit
+ */
+function trimTweetsForPayload(tweets, limit) {
+  if (!Array.isArray(tweets)) return [];
+  const n = Math.min(50, Math.max(0, Number(limit) || 0));
+  if (n === 0) return [];
+  return tweets.slice(0, n).map((t) => ({
+    id: t?.id != null ? String(t.id) : undefined,
+    created_at: t?.created_at,
+    text: typeof t?.text === "string" ? t.text.slice(0, 320) : "",
+    public_metrics:
+      t?.public_metrics && typeof t.public_metrics === "object"
+        ? t.public_metrics
+        : undefined,
+  }));
+}
+
 function trimUserForPayload(user) {
   if (!user || typeof user !== "object") return {};
   return {
@@ -130,13 +150,14 @@ function trimUserForPayload(user) {
 }
 
 /**
- * @param {{ username?: string; maxResults?: number; includeAiSummary?: boolean }} opts
+ * @param {{ username?: string; maxResults?: number; includeAiSummary?: boolean; includeRecentTweets?: boolean }} opts
  * @returns {Promise<{ success: true, data: object } | { success: false, error: string, code?: string }>}
  */
 export async function runXProjectAnalysis({
   username: usernameRaw,
   maxResults = 20,
   includeAiSummary = false,
+  includeRecentTweets = false,
 }) {
   const username = normalizeUsername(usernameRaw);
   if (!USERNAME_RE.test(username)) {
@@ -245,6 +266,9 @@ export async function runXProjectAnalysis({
     redFlags: scored.redFlags,
     aiSummary,
     updatedAt: new Date().toISOString(),
+    ...(includeRecentTweets
+      ? { recentTweets: trimTweetsForPayload(tweets, max_results) }
+      : {}),
   };
 
   return { success: true, data };

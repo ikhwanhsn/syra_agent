@@ -1,87 +1,116 @@
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
-import { ChangePill, GlassCard, StatTile, TokenAvatar, formatPriceSmart, shortenMint } from "@/components/rise/RiseShared";
-import { useRiseMarketsAll, useRiseOhlc } from "@/lib/RiseDashboardContext";
-import { formatInt, formatPct, formatUsd } from "@/lib/marketDisplayFormat";
+import { TokenAboutPanel } from "@/components/token/TokenAboutPanel";
+import { TokenEcosystemRank } from "@/components/token/TokenEcosystemRank";
+import { TokenHeroHeader } from "@/components/token/TokenHeroHeader";
+import { TokenKpiGrid } from "@/components/token/TokenKpiGrid";
+import { TokenLiquidityPanel } from "@/components/token/TokenLiquidityPanel";
+import { TokenPriceChart } from "@/components/token/TokenPriceChart";
+import { TokenQuotePanel } from "@/components/token/TokenQuotePanel";
+import { TokenScoreStrip } from "@/components/token/TokenScoreStrip";
+import { TokenSimilarMarkets } from "@/components/token/TokenSimilarMarkets";
+import { TokenTradesPanel } from "@/components/token/TokenTradesPanel";
+import { EmptyState, GlassCard } from "@/components/rise/RiseShared";
+import { useResolveRiseMarket } from "@/hooks/useResolveRiseMarket";
+import { useRiseDashboard, useRiseMarketsAll } from "@/lib/RiseDashboardContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { useLanguage } from "@/lib/LanguageContext";
+import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 
 export default function TokenDetailPage() {
   const { address } = useParams<{ address: string }>();
   const normalizedAddress = (address ?? "").trim();
-  const markets = useRiseMarketsAll(100);
-  const market =
-    markets.data?.find((row) => row.mint === normalizedAddress || row.marketAddress === normalizedAddress) ?? null;
-  const ohlc = useRiseOhlc(market?.marketAddress ?? market?.mint ?? null, "1h", 96);
+  const { language } = useLanguage();
+  const copy = DASHBOARD_COPY[language];
+  const t = copy.tokenDetail;
+
+  const { market, isPending, marketsQuery } = useResolveRiseMarket(normalizedAddress);
+  const { aggregate } = useRiseDashboard();
+  const cohort = useRiseMarketsAll(250);
+
+  const titleSymbol = market?.symbol ? `$${market.symbol}` : t.pageTitle;
+  useDocumentMeta({
+    title: `${titleSymbol} · Up Only Fund`,
+    description: t.pageDescription,
+    canonicalPath: normalizedAddress ? `/token/${normalizedAddress}` : "/token",
+  });
 
   if (!normalizedAddress) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
-        <DashboardPageHeader title="Token not found" description="Missing token address." eyebrow="Token" />
+      <div className="relative flex flex-col gap-6">
+        <DashboardPageHeader title={t.notFoundTitle} description={t.notFoundDescription} eyebrow={t.eyebrow} />
       </div>
     );
   }
 
+  const universe = cohort.data ?? marketsQuery.data ?? [];
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6">
-      <DashboardPageHeader
-        title={market?.name || "Token detail"}
-        description={market ? `Live market snapshot for ${market.symbol}` : "Loading token data..."}
-        eyebrow="Token"
-        right={
-          <Link
-            to="/terminal"
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border/55 px-3 text-sm font-medium text-foreground/90 hover:bg-muted/20"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            Back
-          </Link>
-        }
+    <div className="relative flex flex-col gap-6">
+      <div
+        className="pointer-events-none absolute inset-x-0 -top-32 z-0 h-[28rem] bg-[radial-gradient(ellipse_72%_56%_at_50%_-8%,hsl(var(--uof)_/_0.13),transparent_56%),radial-gradient(ellipse_48%_42%_at_85%_18%,hsl(215_85%_55%/0.07),transparent_52%),radial-gradient(ellipse_42%_38%_at_12%_28%,hsl(280_70%_50%/0.06),transparent_50%)]"
+        aria-hidden
       />
 
-      {markets.isPending ? (
-        <GlassCard>
-          <p className="text-sm text-muted-foreground">Loading market data...</p>
-        </GlassCard>
-      ) : !market ? (
-        <GlassCard>
-          <p className="text-sm text-muted-foreground">No token found for address `{normalizedAddress}`.</p>
-        </GlassCard>
-      ) : (
-        <>
-          <GlassCard className="p-4 sm:p-5">
-            <div className="flex items-center gap-3">
-              <TokenAvatar imageUrl={market.imageUrl} symbol={market.symbol} size="lg" />
-              <div className="min-w-0">
-                <p className="truncate text-xl font-semibold text-foreground">{market.name}</p>
-                <p className="font-mono text-sm text-muted-foreground">
-                  ${market.symbol} · {shortenMint(market.mint, 8, 8)}
-                </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-lg font-semibold tabular-nums text-foreground">
-                    {formatPriceSmart(market.priceUsd)}
-                  </span>
-                  <ChangePill pct={market.priceChange24hPct} />
-                </div>
-              </div>
-            </div>
-          </GlassCard>
+      <div className="relative z-[1] flex flex-col gap-6">
+        <DashboardPageHeader
+          eyebrow={t.eyebrow}
+          title={market?.name ?? (isPending ? t.loadingToken : t.notFoundTitle)}
+          description={market ? t.pageDescription : t.notFoundDescription}
+          right={
+            <Button asChild variant="outline" size="sm" className="gap-2 border-border/55">
+              <Link to="/market">
+                <ArrowLeft className="h-4 w-4" />
+                {t.back}
+              </Link>
+            </Button>
+          }
+        />
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <StatTile label="Market cap" value={formatUsd(market.marketCapUsd, { compact: false })} />
-            <StatTile label="24h volume" value={formatUsd(market.volume24hUsd, { compact: false })} />
-            <StatTile label="Holders" value={formatInt(market.holders)} />
-            <StatTile label="Floor price" value={formatPriceSmart(market.floorPriceUsd)} />
-            <StatTile label="Floor mcap" value={formatUsd(market.floorMarketCapUsd, { compact: false })} />
-            <StatTile label="Creator fee" value={formatPct(market.creatorFeePct)} />
-          </div>
-
+        {isPending && !market ? (
           <GlassCard>
-            <p className="text-sm text-muted-foreground">
-              1h candles loaded: {ohlc.data?.candles?.length ?? 0}
-            </p>
+            <Skeleton className="h-40 w-full rounded-xl" />
           </GlassCard>
-        </>
-      )}
+        ) : null}
+
+        {!isPending && !market ? (
+          <GlassCard>
+            <EmptyState
+              title={t.notFoundTitle}
+              description={t.notFoundDescription}
+              action={
+                <Button asChild>
+                  <Link to="/market">{t.browseMarkets}</Link>
+                </Button>
+              }
+            />
+          </GlassCard>
+        ) : null}
+
+        {market ? (
+          <>
+            <TokenHeroHeader market={market} />
+            <TokenScoreStrip market={market} />
+            <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+              <TokenPriceChart market={market} className="lg:col-span-2" />
+              <TokenQuotePanel market={market} />
+            </div>
+            <TokenKpiGrid market={market} />
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+              <TokenLiquidityPanel market={market} aggregate={aggregate.data} />
+              <TokenEcosystemRank market={market} all={universe} />
+            </div>
+            <TokenTradesPanel market={market} />
+            <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+              <TokenAboutPanel market={market} className="lg:col-span-1" />
+              <TokenSimilarMarkets market={market} all={universe} className="lg:col-span-2" />
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

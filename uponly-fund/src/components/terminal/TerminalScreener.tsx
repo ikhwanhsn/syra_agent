@@ -17,6 +17,7 @@ import {
   VerifiedBadge,
   formatPriceSmart,
 } from "@/components/rise/RiseShared";
+import { MarketSparkline } from "@/components/rise/MarketSparkline";
 import {
   computeAlphaScore,
   computeNarrativeTags,
@@ -314,6 +315,9 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
                 <TableHead className="h-11 px-2 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                   {copy.terminal.h24}
                 </TableHead>
+                <TableHead className="h-11 min-w-[6rem] px-2 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  {language === "zh" ? "走势" : "Trend"}
+                </TableHead>
                 <TableHead className="h-11 px-2 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                   <button
                     type="button"
@@ -344,7 +348,7 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
               {marketsQuery.isPending && pageRows.length === 0
                 ? Array.from({ length: 14 }).map((_, i) => (
                     <TableRow key={`skeleton-${i}`}>
-                      <TableCell className="px-2 py-2" colSpan={9}>
+                      <TableCell className="px-2 py-2" colSpan={10}>
                         <Skeleton className="h-8 w-full rounded-md" />
                       </TableCell>
                     </TableRow>
@@ -378,6 +382,14 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
                       </TableCell>
                       <TableCell className="px-2 py-2">
                         <ChangePill pct={row.market.priceChange24hPct} />
+                      </TableCell>
+                      <TableCell className="px-2 py-2">
+                        <MarketSparkline
+                          address={row.market.marketAddress || row.market.mint}
+                          changePct={row.market.priceChange24hPct}
+                          width={80}
+                          height={24}
+                        />
                       </TableCell>
                       <TableCell className="truncate px-2 py-2 text-xs tabular-nums sm:text-[13px]">
                         {formatUsd(row.market.volume24hUsd, { compact: true })}
@@ -426,6 +438,15 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
                       <p className="text-sm font-semibold text-foreground">{formatPriceSmart(row.market.priceUsd)}</p>
                       <ChangePill pct={row.market.priceChange24hPct} className="mt-1" />
                     </div>
+                  </div>
+                  <div className="-mx-1 flex justify-end">
+                    <MarketSparkline
+                      address={row.market.marketAddress || row.market.mint}
+                      changePct={row.market.priceChange24hPct}
+                      width={120}
+                      height={26}
+                      showVerdict
+                    />
                   </div>
                   <div className="grid gap-2">
                     <AlphaCell alpha={computeAlphaScore(row.market)} compact />

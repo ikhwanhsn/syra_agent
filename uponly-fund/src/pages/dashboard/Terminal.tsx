@@ -1,16 +1,14 @@
-import { useState } from "react";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
-import { MarketDetailDrawer } from "@/components/rise/MarketDetailDrawer";
 import { AlphaLeaderboard } from "@/components/terminal/AlphaLeaderboard";
 import { RiskWatchlist } from "@/components/terminal/RiskWatchlist";
 import { TerminalKpiStrip } from "@/components/terminal/TerminalKpiStrip";
 import { TerminalScreener } from "@/components/terminal/TerminalScreener";
-import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
+import { useNavigateToToken } from "@/lib/useNavigateToToken";
 
 export default function TerminalPage() {
-  const [openMarket, setOpenMarket] = useState<RiseMarketRow | null>(null);
+  const goToToken = useNavigateToToken();
   const { language } = useLanguage();
   const copy = DASHBOARD_COPY[language];
 
@@ -35,22 +33,15 @@ export default function TerminalPage() {
         description={copy.pages.terminalDescription}
       />
       <TerminalKpiStrip />
-      <TerminalScreener onSelect={setOpenMarket} />
+      <TerminalScreener onSelect={goToToken} />
       <div className="grid w-full min-w-0 gap-5 md:grid-cols-2 md:items-stretch lg:gap-6">
         <div className="flex min-h-0 h-full min-w-0">
-          <AlphaLeaderboard onSelect={setOpenMarket} />
+          <AlphaLeaderboard onSelect={goToToken} />
         </div>
         <div className="flex min-h-0 h-full min-w-0">
-          <RiskWatchlist onSelect={setOpenMarket} />
+          <RiskWatchlist onSelect={goToToken} />
         </div>
       </div>
-      <MarketDetailDrawer
-        market={openMarket}
-        open={openMarket !== null}
-        onOpenChange={(next) => {
-          if (!next) setOpenMarket(null);
-        }}
-      />
     </div>
   );
 }

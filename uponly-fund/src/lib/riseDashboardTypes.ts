@@ -36,6 +36,10 @@ export type RiseMarketRow = {
   updatedAt: string | null;
   ageHours: number | null;
   creator: string | null;
+  /** SPL decimals for the launched token (e.g. 9). Used to render trade base amounts. */
+  tokenDecimals: number | null;
+  /** Quote / collateral mint (e.g. wSOL or USDC). */
+  mintMain: string | null;
 };
 
 export type RiseEcosystemTotals = {
@@ -94,14 +98,24 @@ export type RiseOhlcResponse = {
 };
 
 export type RiseTransactionRow = {
+  /** Normalized side: "buy" | "sell" | "borrow" | "repay" | "create" | other. */
   kind: string | null;
   wallet: string | null;
   walletShort: string | null;
   priceUsd: number | null;
+  /** Raw price in collateral token (e.g. SOL per token). Not USD. */
+  priceCollateral: number | null;
   amountTokens: number | null;
+  /** Raw token base units (apply `market.tokenDecimals`). */
+  amountTokensRaw: number | null;
+  /** Raw collateral base units (lamports for SOL). */
+  amountCollateralRaw: number | null;
   amountUsd: number | null;
   feeUsd: number | null;
   txSig: string | null;
+  slot: number | null;
+  floorPriceCollateral: number | null;
+  /** Unix seconds. */
   ts: number | null;
 };
 

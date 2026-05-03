@@ -173,6 +173,11 @@ function normalizeRiseMarketRow(m) {
   const tokenImage = toStr(m.token_image);
   const imageUrl = tokenImage && tokenImage.startsWith("http") ? tokenImage : null;
   const tokenUri = toStr(m.token_uri);
+  const tokenDecimalsRaw = toNum(m.token_decimals);
+  const tokenDecimals =
+    tokenDecimalsRaw != null && Number.isFinite(tokenDecimalsRaw)
+      ? Math.max(0, Math.min(18, Math.round(tokenDecimalsRaw)))
+      : null;
 
   return {
     mint,
@@ -203,6 +208,8 @@ function normalizeRiseMarketRow(m) {
     updatedAt,
     ageHours,
     creator: toStr(m.creator),
+    tokenDecimals,
+    mintMain: mintMain || null,
   };
 }
 
@@ -302,21 +309,82 @@ function normalizeOhlcCandle(c) {
   };
 }
 
+/** Allowed transaction sides surfaced to the dashboard. */
+const TX_KIND_MAP = new Map([
+  ["buy", "buy"],
+  ["sell", "sell"],
+  ["borrow", "borrow"],
+  ["repay", "repay"],
+  ["create", "create"],
+  ["mint", "create"],
+  ["deposit", "borrow"],
+  ["withdraw", "repay"],
+]);
+
+function normalizeKind(raw) {
+  const v = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (!v) return null;
+  if (TX_KIND_MAP.has(v)) return TX_KIND_MAP.get(v);
+  return v; // surface unknown sides verbatim instead of dropping them
+}
+
+/**
+ * Parses a Rise timestamp value (ISO string, unix seconds, or ms) and returns
+ * unix seconds. Rise transactions use `created_at` as ISO strings — earlier
+ * versions of this normalizer relied on `pickNum` which silently produced
+ * `null` for those, so the UI lost the trade time entirely.
+ */
+function parseTxTimestampSeconds(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value > 1_000_000_000_000 ? Math.floor(value / 1000) : Math.floor(value);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const asNum = Number(trimmed);
+    if (Number.isFinite(asNum) && asNum > 0) {
+      return asNum > 1_000_000_000_000 ? Math.floor(asNum / 1000) : Math.floor(asNum);
+    }
+    const parsedMs = Date.parse(trimmed);
+    return Number.isFinite(parsedMs) ? Math.floor(parsedMs / 1000) : null;
+  }
+  return null;
+}
+
+function pickFirstNumber(values) {
+  for (const v of values) {
+    const n = toNum(v);
+    if (n != null) return n;
+  }
+  return null;
+}
+
 function normalizeTransaction(tx) {
   if (!tx || typeof tx !== "object") return null;
-  const tsNum = pickNum(tx, [
-    "timestamp",
-    "time",
-    "created_at",
-    "ts",
-    "blockTime",
-    "slot_time",
-    "trade.timestamp",
-    "trade.time",
-    "event.timestamp",
-    "event.time",
-  ]);
+
+  // RISE upstream uses snake_case keys (`transaction_type`, `wallet_address`,
+  // `transaction_signature`, `created_at`). We keep camelCase + agent fallbacks
+  // so the same normalizer survives a future schema rename.
+  const directionRaw =
+    pickStr(tx, [
+      "transaction_type",
+      "transactionType",
+      "direction",
+      "type",
+      "kind",
+      "side",
+      "trade.direction",
+      "trade.side",
+      "event.direction",
+      "event.side",
+    ]) ||
+    (typeof getPath(tx, "isBuy") === "boolean" ? (getPath(tx, "isBuy") ? "buy" : "sell") : null);
+  const kind = normalizeKind(directionRaw);
+
   const wallet = pickStr(tx, [
+    "wallet_address",
+    "walletAddress",
     "wallet",
     "user",
     "signer",
@@ -331,7 +399,10 @@ function normalizeTransaction(tx) {
     "event.wallet",
     "event.user",
   ]);
+
   const sig = pickStr(tx, [
+    "transaction_signature",
+    "transactionSignature",
     "signature",
     "tx",
     "tx_signature",
@@ -341,67 +412,98 @@ function normalizeTransaction(tx) {
     "event.signature",
     "trade.signature",
   ]);
-  const directionRaw = pickStr(tx, [
-    "direction",
-    "type",
-    "kind",
-    "side",
-    "trade.direction",
-    "trade.side",
-    "event.direction",
-    "event.side",
-  ]);
-  const isBuy = getPath(tx, "isBuy");
-  const direction =
-    directionRaw ||
-    (typeof isBuy === "boolean" ? (isBuy ? "buy" : "sell") : null);
+
   const priceUsd = pickNum(tx, [
     "price_usd",
     "priceUsd",
-    "price",
     "execution_price_usd",
     "trade.price_usd",
-    "trade.price",
+    "trade.price_usd",
     "event.price_usd",
-    "event.price",
   ]);
-  const amountTokens = pickNum(tx, [
-    "amount_tokens",
-    "amountTokens",
-    "token_amount",
-    "amount",
-    "size",
-    "qty",
-    "quantity",
-    "base_amount",
-    "trade.amount_tokens",
-    "trade.amount",
-    "trade.size",
-    "event.amount_tokens",
-    "event.amount",
+  // RISE transactions expose `price` in the market's collateral token (e.g.
+  // SOL), not USD. We expose it under `priceCollateral` so callers can decide
+  // how to render it; never let it leak into the USD price slot.
+  const priceCollateral = toNum(tx.price);
+
+  const amountUsd = pickFirstNumber([
+    tx.volume_usd,
+    tx.amount_usd,
+    tx.amountUsd,
+    tx.notional_usd,
+    tx.quote_amount_usd,
+    tx.value_usd,
+    getPath(tx, "trade.amount_usd"),
+    getPath(tx, "trade.notional_usd"),
+    getPath(tx, "event.amount_usd"),
+    getPath(tx, "event.notional_usd"),
   ]);
-  const amountUsd = pickNum(tx, [
-    "amount_usd",
-    "amountUsd",
-    "volume_usd",
-    "notional_usd",
-    "quote_amount_usd",
-    "value_usd",
-    "trade.amount_usd",
-    "trade.notional_usd",
-    "event.amount_usd",
-    "event.notional_usd",
+
+  // amount_put / amount_received are raw lamports (collateral) or raw token
+  // base units depending on the side. We expose them as-is so the UI can apply
+  // the market's `tokenDecimals` and render a real amount.
+  const amountPutRaw = toNum(tx.amount_put);
+  const amountReceivedRaw = toNum(tx.amount_received);
+
+  let tokensRaw = null;
+  let collateralRaw = null;
+  if (kind === "buy" || kind === "create") {
+    collateralRaw = amountPutRaw;
+    tokensRaw = amountReceivedRaw;
+  } else if (kind === "sell" || kind === "repay") {
+    tokensRaw = amountPutRaw;
+    collateralRaw = amountReceivedRaw;
+  } else if (kind === "borrow") {
+    collateralRaw = amountReceivedRaw ?? amountPutRaw;
+  }
+
+  // Legacy `amountTokens` slot — if upstream ever sends a pre-decoded value,
+  // surface it; otherwise the UI uses `tokensRaw` + market.tokenDecimals.
+  const amountTokens = pickFirstNumber([
+    tx.amount_tokens,
+    tx.amountTokens,
+    tx.token_amount,
+    tx.amount,
+    tx.size,
+    tx.qty,
+    tx.quantity,
+    tx.base_amount,
+    getPath(tx, "trade.amount_tokens"),
+    getPath(tx, "trade.amount"),
+    getPath(tx, "trade.size"),
+    getPath(tx, "event.amount_tokens"),
+    getPath(tx, "event.amount"),
   ]);
+
+  const tsSec = parseTxTimestampSeconds(
+    tx.created_at ??
+      tx.createdAt ??
+      tx.timestamp ??
+      tx.time ??
+      tx.ts ??
+      tx.blockTime ??
+      tx.slot_time ??
+      getPath(tx, "trade.timestamp") ??
+      getPath(tx, "trade.time") ??
+      getPath(tx, "event.timestamp") ??
+      getPath(tx, "event.time"),
+  );
+
   return {
-    kind: direction ? direction.toLowerCase() : null,
+    kind,
     wallet,
     walletShort: wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : null,
     priceUsd,
+    priceCollateral,
     amountTokens,
+    amountTokensRaw: tokensRaw,
+    amountCollateralRaw: collateralRaw,
     amountUsd,
     feeUsd: toNum(tx.fee_usd) ?? toNum(tx.feeUsd),
     txSig: sig,
-    ts: tsNum != null && Number.isFinite(tsNum) ? tsNum : null,
+    slot: toNum(tx.slot),
+    floorPriceCollateral: toNum(tx.floor_price),
+    ts: tsSec,
   };
 }
 

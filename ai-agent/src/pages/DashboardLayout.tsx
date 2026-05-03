@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   FlaskConical,
   Scale,
+  Telescope,
   Moon,
   Sun,
   PanelLeftClose,
@@ -34,6 +35,7 @@ const MARKETPLACE_SECTIONS = [
 ] as const;
 
 const DASHBOARD_SECTIONS = [
+  { path: "alpha", label: "Alpha", icon: Telescope },
   { path: "trading-experiment", label: "Trading experiment", icon: FlaskConical },
   { path: "arbitrage-experiment", label: "Arbitrage experiment", icon: Scale },
 ] as const;
@@ -81,6 +83,8 @@ function dashboardPageTitle(pathname: string): string {
   }
   if (parts[1] === "trading-experiment" && parts[2] === "agent") return "Agent profile";
   if (parts[1] === "overview") return "Overview";
+  if (parts[1] === "alpha" && parts[2] === "x" && parts[3]) return "Alpha · Intel";
+  if (parts[1] === "alpha") return "Alpha";
   if (parts[1] === "trading-experiment") return "Trading experiment";
   if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
   return "Overview";

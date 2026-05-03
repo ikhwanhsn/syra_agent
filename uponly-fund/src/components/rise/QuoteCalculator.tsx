@@ -6,6 +6,7 @@
  * rise.rich for the actual swap.
  */
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ArrowDownUp,
   Calculator,
@@ -58,12 +59,20 @@ export function QuoteCalculator() {
     return uponly ? [uponly] : [];
   }, [allMarkets.data, uponly]);
 
+  const [searchParams] = useSearchParams();
+  const mintFromUrl = searchParams.get("mint")?.trim() ?? "";
+
   const [mint, setMint] = useState<string>(uponly?.mint || RISE_UPONLY_MINT);
   const selected = useMemo(() => choices.find((m) => m.mint === mint) ?? choices[0] ?? null, [choices, mint]);
 
   useEffect(() => {
     if (!mint && choices[0]) setMint(choices[0].mint);
   }, [choices, mint]);
+
+  useEffect(() => {
+    if (!mintFromUrl) return;
+    if (choices.some((m) => m.mint === mintFromUrl)) setMint(mintFromUrl);
+  }, [mintFromUrl, choices]);
 
   const [direction, setDirection] = useState<Direction>("buy");
   const [amountStr, setAmountStr] = useState<string>("0.1");

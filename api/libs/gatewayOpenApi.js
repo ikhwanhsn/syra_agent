@@ -436,6 +436,150 @@ export function buildGatewayOpenApi() {
         },
       },
     },
+
+    '/x-projects-analyze/types': {
+      get: {
+        tags: ['Social (batch)'],
+        summary: 'List batch analyzer types',
+        description:
+          'Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls. API key when server sets API_KEY.',
+        operationId: 'getXProjectsAnalyzeTypes',
+        responses: {
+          '200': OK_JSON,
+        },
+      },
+    },
+
+    '/x-projects-analyze/account': {
+      get: {
+        tags: ['Social (batch)'],
+        summary: 'Single-account Alpha analysis (allowlisted)',
+        description:
+          '`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample. API key when API_KEY is set.',
+        operationId: 'getXProjectsAnalyzeAccount',
+        parameters: [
+          {
+            name: 'username',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            description: 'X handle without @.',
+          },
+          {
+            name: 'type',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'x402' },
+            description: 'Feed type key.',
+          },
+          {
+            name: 'max_results',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 10, maximum: 50, default: 35 },
+            description: 'Tweet sample size.',
+          },
+          {
+            name: 'includeAiSummary',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: true },
+            description: 'Grounded LLM bullets (OpenRouter).',
+          },
+        ],
+        responses: {
+          ...responsesFor(false),
+          '403': { description: 'Username not in feed type allowlist' },
+          '404': { description: 'X user not found' },
+          '502': { description: 'X API upstream error' },
+          '503': { description: 'Server missing X_BEARER_TOKEN' },
+        },
+      },
+      post: {
+        tags: ['Social (batch)'],
+        summary: 'Single-account Alpha analysis — POST',
+        operationId: 'postXProjectsAnalyzeAccount',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  username: { type: 'string' },
+                  type: { type: 'string', default: 'x402' },
+                  max_results: { type: 'integer', minimum: 10, maximum: 50 },
+                  includeAiSummary: { type: 'boolean' },
+                },
+                required: ['username'],
+              },
+            },
+          },
+        },
+        responses: {
+          ...responsesFor(false),
+          '403': { description: 'Username not in feed type allowlist' },
+          '404': { description: 'X user not found' },
+          '502': { description: 'X API upstream error' },
+          '503': { description: 'Server missing X_BEARER_TOKEN' },
+        },
+      },
+    },
+
+    '/x-projects-analyze': {
+      get: {
+        tags: ['Social (batch)'],
+        summary: 'Batch X project analyzer (no x402)',
+        description:
+          'Runs the same deterministic analysis as /x-analyzer for all X handles configured for `type` (default `x402`). Handles are not client-supplied. See GET /x-projects-analyze/types.',
+        operationId: 'getXProjectsAnalyze',
+        parameters: [
+          {
+            name: 'type',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'x402' },
+            description: 'Analyzer type key (e.g. x402).',
+          },
+          {
+            name: 'max_results',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 5, maximum: 50, default: 20 },
+            description: 'Tweet sample per account.',
+          },
+          {
+            name: 'includeAiSummary',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description: 'Optional grounded LLM summary per account (OpenRouter).',
+          },
+        ],
+        responses: responsesFor(false),
+      },
+      post: {
+        tags: ['Social (batch)'],
+        summary: 'Batch X project analyzer — POST body',
+        operationId: 'postXProjectsAnalyze',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string', default: 'x402' },
+                  max_results: { type: 'integer', minimum: 5, maximum: 50 },
+                  includeAiSummary: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: responsesFor(false),
+      },
+    },
   };
 
   return {
@@ -463,6 +607,10 @@ export function buildGatewayOpenApi() {
       {
         name: 'Social (x402)',
         description: 'X (Twitter) analysis — pay-per-call via x402',
+      },
+      {
+        name: 'Social (batch)',
+        description: 'Batch X project analysis — API key when configured; no x402',
       },
     ],
     components: {

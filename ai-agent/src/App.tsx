@@ -16,6 +16,8 @@ import DashboardLayout from "./pages/DashboardLayout";
 import TradingAgentExperiment from "./pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "./pages/TradingAgentExperimentAgentProfile";
 import ArbitrageExperiment from "./pages/ArbitrageExperiment";
+import Alpha from "./pages/Alpha";
+import AlphaAccountDetail from "./pages/AlphaAccountDetail";
 import DashboardOverview from "./pages/DashboardOverview";
 import {
   LegacyMarketplaceRedirect,
@@ -59,6 +61,8 @@ const App = () => (
                     element={<TradingAgentExperimentAgentProfile embedded />}
                   />
                   <Route path="arbitrage-experiment" element={<ArbitrageExperiment embedded />} />
+                  <Route path="alpha/x/:username" element={<AlphaAccountDetail />} />
+                  <Route path="alpha" element={<Alpha />} />
                 </Route>
                 <Route path="/leaderboard" element={<Navigate to="/dashboard/overview" replace />} />
                 <Route path="/experiment/trading-agent" element={<LegacyTradingExperimentPageRedirect />} />
