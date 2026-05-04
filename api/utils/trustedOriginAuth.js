@@ -1,5 +1,6 @@
 /**
  * Injects API key for requests from trusted browser origins (syraa.fun, dashboard, agent, playground).
+ * Covers agent chat, Alpha /x-projects-analyze, X single-account analyzer, etc.
  * This allows frontends to call the API without embedding the key in client bundles.
  *
  * When Origin (or Referer) is in the allowlist and the path is browser-callable,
@@ -51,6 +52,8 @@ function isBrowserCallablePath(path) {
     path.startsWith("/experiment") ||
     path.startsWith("/internal") ||
     path.startsWith("/agent") ||
+    path.startsWith("/x-projects-analyze") ||
+    path.startsWith("/x-analyzer") ||
     path.startsWith("/8004") ||
     path.startsWith("/uponly-rise-market") ||
     path.startsWith("/uponly-rise-portfolio")

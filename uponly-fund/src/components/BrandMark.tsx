@@ -17,7 +17,8 @@ type BrandMarkProps = {
 };
 
 function onHardHomeClick(e: MouseEvent<HTMLAnchorElement>) {
-  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+    return;
   e.preventDefault();
   const path = window.location.pathname;
   const atHome = path === "/" || path === "";
@@ -77,7 +78,12 @@ export function BrandMark({
 
   if (hardRefreshHome) {
     return (
-      <a href="/" className={markClasses} aria-label="Up Only Fund home" onClick={onHardHomeClick}>
+      <a
+        href="/"
+        className={markClasses}
+        aria-label="Up Only Fund home"
+        onClick={onHardHomeClick}
+      >
         {inner}
       </a>
     );

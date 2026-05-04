@@ -103,6 +103,26 @@ export function getRiseMarkets(
 const MARKETS_ALL_PAGE_CONCURRENCY = 4;
 
 /**
+ * First page of the markets list (default server sort) + UPONLY from aggregate when missing.
+ * Use for overview bubble map / fast above-the-fold UI — avoids walking every list page.
+ */
+export async function getRiseMarketsTop(limit: number, signal?: AbortSignal): Promise<RiseMarketRow[]> {
+  const [first, aggregate] = await Promise.all([
+    getRiseMarkets({ page: 1, limit }, signal),
+    getRiseAggregate(signal).catch((): null => null),
+  ]);
+  const dedup = new Map<string, RiseMarketRow>();
+  for (const row of first.markets) {
+    if (row.mint) dedup.set(row.mint, row);
+  }
+  const uponly = aggregate?.uponly;
+  if (uponly?.mint && !dedup.has(uponly.mint)) {
+    dedup.set(uponly.mint, uponly);
+  }
+  return Array.from(dedup.values());
+}
+
+/**
  * Full sorted universe for terminal-style views: walks every page at `limit`,
  * dedupes by mint, and merges UPONLY from aggregate when missing from the list.
  */

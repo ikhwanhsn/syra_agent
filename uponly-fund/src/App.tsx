@@ -16,7 +16,7 @@ import WalletPage from "@/pages/dashboard/Wallet";
 import SimulatorPage from "@/pages/dashboard/Simulator";
 import InsightsPage from "@/pages/dashboard/Insights";
 import TokenDetailPage from "@/pages/token/TokenDetail";
-import { getRiseAggregate, getRiseMarkets, getRiseMarketsAll } from "@/lib/riseDashboardApi";
+import { getRiseAggregate, getRiseMarkets, getRiseMarketsTop } from "@/lib/riseDashboardApi";
 import { LanguageProvider } from "@/lib/LanguageContext";
 
 const queryClient = new QueryClient();
@@ -50,8 +50,8 @@ function DashboardDataWarmup() {
       staleTime: 60_000,
     });
     void queryClient.prefetchQuery({
-      queryKey: ["rise-markets-all", 250],
-      queryFn: ({ signal }) => getRiseMarketsAll(250, signal),
+      queryKey: ["rise-markets-top", 100],
+      queryFn: ({ signal }) => getRiseMarketsTop(100, signal),
       staleTime: 60_000,
     });
   }, []);

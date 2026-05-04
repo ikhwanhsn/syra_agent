@@ -285,6 +285,35 @@ export type DashboardDictionary = {
     solscan: string;
     discord: string;
   };
+  bubbleMap: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    sizeBy: string;
+    marketCap: string;
+    volume24h: string;
+    holders: string;
+    refreshing: string;
+    /** aria-label for the top map status strip when not refetching */
+    liveStripLabel: string;
+    zoomInAria: string;
+    zoomOutAria: string;
+    dragHint: string;
+    /** Scroll / pinch to zoom; drag empty map to pan */
+    zoomHint: string;
+    a11yListLabel: string;
+    dialogViewToken: string;
+    dialogSubtitle: string;
+    dialogKpiPrice: string;
+    dialogKpi24h: string;
+    dialogKpiMcap: string;
+    dialogKpiFloorMcap: string;
+    dialogKpiVol24h: string;
+    dialogKpiHolders: string;
+    dialogKpiAge: string;
+    loadError: string;
+    retry: string;
+  };
 };
 
 export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
@@ -576,6 +605,34 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       solscan: "Solscan",
       discord: "Discord",
     },
+    bubbleMap: {
+      eyebrow: "LIVE MARKET MAP",
+      title: "RISE bubble map",
+      description:
+        "Top 100 RISE markets. Size by cap, volume, or holders — color by 24h move. Tab changes size only; positions stay put. Drag to explore, tap for details.",
+      sizeBy: "Size by",
+      marketCap: "Market cap",
+      volume24h: "24h volume",
+      holders: "Holders",
+      refreshing: "Refreshing…",
+      liveStripLabel: "Live bubble map; data refreshes periodically",
+      zoomInAria: "Zoom in map",
+      zoomOutAria: "Zoom out map",
+      dragHint: "Drag bubbles · click for details",
+      zoomHint: "Scroll or pinch to zoom · drag empty space to pan",
+      a11yListLabel: "Markets in bubble map (keyboard access)",
+      dialogViewToken: "View token page",
+      dialogSubtitle: "RISE market",
+      dialogKpiPrice: "Price",
+      dialogKpi24h: "24h %",
+      dialogKpiMcap: "Market cap",
+      dialogKpiFloorMcap: "Floor mcap",
+      dialogKpiVol24h: "24h volume",
+      dialogKpiHolders: "Holders",
+      dialogKpiAge: "Age",
+      loadError: "Could not load markets for the bubble map.",
+      retry: "Retry",
+    },
   },
   zh: {
     sidebar: "智能代理基金 · RISE",
@@ -862,6 +919,34 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       tradeOnRise: "在 RISE 交易",
       solscan: "Solscan",
       discord: "Discord",
+    },
+    bubbleMap: {
+      eyebrow: "实时市场图",
+      title: "RISE 气泡图",
+      description:
+        "展示排名前 100 的 RISE 市场。按市值、24h 量或持有人调整大小；颜色表示 24h 涨跌。切换标签仅改变大小，位置不变。拖动探索，点击查看详情。",
+      sizeBy: "大小依据",
+      marketCap: "市值",
+      volume24h: "24h 成交量",
+      holders: "持有人",
+      refreshing: "刷新中…",
+      liveStripLabel: "实时气泡图；数据会定期在后台刷新",
+      zoomInAria: "放大地图",
+      zoomOutAria: "缩小地图",
+      dragHint: "拖动气泡 · 点击查看详情",
+      zoomHint: "滚轮或双指缩放 · 拖空白处平移",
+      a11yListLabel: "气泡图中的市场（键盘访问）",
+      dialogViewToken: "查看代币页",
+      dialogSubtitle: "RISE 市场",
+      dialogKpiPrice: "价格",
+      dialogKpi24h: "24h %",
+      dialogKpiMcap: "市值",
+      dialogKpiFloorMcap: "底线市值",
+      dialogKpiVol24h: "24h 成交量",
+      dialogKpiHolders: "持有人",
+      dialogKpiAge: "时长",
+      loadError: "无法加载气泡图所需的市场数据。",
+      retry: "重试",
     },
   },
 };

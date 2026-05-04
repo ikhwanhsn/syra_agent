@@ -1,3 +1,4 @@
+import { RiseBubbleMap } from "@/components/rise/BubbleMap";
 import { RiseTrendingMarkets } from "@/components/rise/RiseTrendingMarkets";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -21,6 +22,7 @@ export default function TrendingPage() {
           title={copy.pages.overviewTitle}
           description={copy.pages.overviewDescription}
         />
+        <RiseBubbleMap onSelect={goToToken} />
         <RiseTrendingMarkets onSelect={goToToken} />
       </div>
     </div>

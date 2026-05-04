@@ -16,6 +16,7 @@ import {
   getRiseMarketTransactions,
   getRiseMarkets,
   getRiseMarketsAll,
+  getRiseMarketsTop,
   getRisePortfolioPositions,
   getRisePortfolioSummary,
   postRiseBorrowQuote,
@@ -189,6 +190,18 @@ export function useRiseMarketsAll(limit = 100, queryOptions?: RiseMarketsQueryOp
   return useQuery<RiseMarketRow[], Error>({
     queryKey: ["rise-markets-all", limit],
     queryFn: ({ signal }) => getRiseMarketsAll(limit, signal),
+    staleTime: LIST_REFETCH_MS,
+    ...(refetchInterval !== undefined ? { refetchInterval } : {}),
+    retry: 1,
+  });
+}
+
+/** First page only — fast for bubble map / hero surfaces (see `getRiseMarketsTop`). */
+export function useRiseMarketsTop(limit = 100, queryOptions?: RiseMarketsQueryOptions) {
+  const refetchInterval = queryOptions?.refetchInterval;
+  return useQuery<RiseMarketRow[], Error>({
+    queryKey: ["rise-markets-top", limit],
+    queryFn: ({ signal }) => getRiseMarketsTop(limit, signal),
     staleTime: LIST_REFETCH_MS,
     ...(refetchInterval !== undefined ? { refetchInterval } : {}),
     retry: 1,
