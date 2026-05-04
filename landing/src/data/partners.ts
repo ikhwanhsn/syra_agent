@@ -210,25 +210,6 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
     },
   },
   {
-    slug: "bubblemaps",
-    name: "Bubblemaps",
-    href: "https://bubblemaps.io",
-    category: "data",
-    tagline: "Holder visualization",
-    summary:
-      "Visual relationship maps for token holders and supply distribution.",
-    integration: {
-      status: "live",
-      overview:
-        "Bubblemaps helps users see how supply clusters across wallets. Syra treats this as a visual and structural complement to table-based holder stats and narrative summary.",
-      capabilities: [
-        "Intuitive view of distribution and related wallets where supported",
-        "Useful in explainability for “who holds what” questions",
-        "Paired with other risk and flow signals for a balanced read",
-      ],
-    },
-  },
-  {
     slug: "binance",
     name: "Binance",
     href: "https://binance.com",

@@ -38,7 +38,7 @@ The **ai-agent** app calls the **api** backend. Paid and catalogued capabilities
 | `GET /openapi.json` | Gateway OpenAPI (subset of operations) |
 | `GET /mpp-openapi.json` | MPP/x402 discovery document with per-route guidance and pricing hints |
 
-Deeper partner integrations (Binance, Giza, Bankr, Neynar, SIWA, Nansen, Jupiter, Squid, Bubblemaps, etc.) are exposed per `api` configuration—see [Agent tools partners](https://docs.syraa.fun/docs/api/agent-tools-partners) in the docs.
+Deeper partner integrations (Binance, Giza, Bankr, Neynar, SIWA, Nansen, Jupiter, Squid, etc.) are exposed per `api` configuration—see [Agent tools partners](https://docs.syraa.fun/docs/api/agent-tools-partners) in the docs.
 
 **Syra Brain:** `POST /brain` — natural-language question; server selects internal tools and returns one synthesized answer (MCP: `syra_v2_brain`).
 
@@ -66,7 +66,6 @@ The repository `mcp-server` exposes the Syra API as **stdio MCP tools** (one HTT
 | `syra_v2_squid_status` | `GET /squid/status` — cross-chain tx status |
 | `syra_v2_exa_search` | `GET /exa-search` — web search |
 | `syra_v2_token_god_mode` | `GET /token-god-mode` — Nansen token research |
-| `syra_v2_bubblemaps_maps` | `GET /bubblemaps/maps` — holder map |
 | `syra_v2_8004_stats` | 8004 registry global stats |
 | `syra_v2_8004_leaderboard` | 8004 leaderboard; optional `minTier`, `limit` |
 | `syra_v2_8004_agents_search` | Search agents; optional `owner`, `creator`, `collection`, pagination |

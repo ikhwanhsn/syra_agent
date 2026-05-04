@@ -49,8 +49,8 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
     slugs: ["purch-vault"],
   },
   {
-    title: "Partner: Bubblemaps & agent-only partners",
-    slugs: ["bubblemaps-maps", "agent-tools-partners"],
+    title: "Partner: Agent-only tools",
+    slugs: ["agent-tools-partners"],
   },
   {
     title: "8004 Agent Registry",

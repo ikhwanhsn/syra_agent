@@ -104,10 +104,9 @@ export const navigation: NavItem[] = [
         items: [{ title: "Purch Vault API", href: api("purch-vault") }],
       },
       {
-        title: "Partner: Bubblemaps & agent-only partners",
+        title: "Partner: Agent-only tools",
         defaultCollapsed: false,
         items: [
-          { title: "Bubblemaps Maps", href: api("bubblemaps-maps") },
           {
             title: "Agent tools: Binance, Giza, Bankr, Neynar, SIWA",
             href: api("agent-tools-partners"),

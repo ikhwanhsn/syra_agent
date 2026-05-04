@@ -2340,7 +2340,7 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'signal') {
       out.paramsHint =
-        'Optional: token (default bitcoin); omit source = Binance OHLC + engine; or source = coinbase|okx|bybit|kraken|bitget|kucoin|upbit|cryptocom; n8n|webhook for legacy n8n; instId, bar, limit';
+        'Optional: token (default bitcoin); Syra Agent defaults to source=coingecko (USD OHLC). Other: source = binance|coinbase|coingecko|okx|bybit|kraken|bitget|kucoin|upbit|cryptocom; n8n|webhook for legacy n8n; instId, bar, limit';
     }
     if (t.id === 'exa-search') {
       out.paramsHint = 'Params: query (required) — search query from the user, e.g. "bitcoin insight", "latest Nvidia news"';

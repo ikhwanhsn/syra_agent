@@ -343,7 +343,7 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     examplePrompt: "TGM PnL leaderboard / Token PnL leaderboard",
     category: "partner",
   },
-  // Partner: Jupiter, Bubblemaps, Binance, integrations
+  // Partner: Jupiter, Binance, integrations
   {
     id: "trending-jupiter",
     name: "Trending on Jupiter",
@@ -390,14 +390,6 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     description: "Purchase a Purch Vault item by slug (from search). Agent pays item price in USDC on Solana and receives the download.",
     priceUsd: PRICE.purchVault * 2,
     examplePrompt: "Buy the Faith knowledge pack from Purch Vault / Purchase slug faith from Purch Vault",
-    category: "partner",
-  },
-  {
-    id: "bubblemaps-maps",
-    name: "Bubblemaps maps",
-    description: "Bubblemaps map data (public x402 route /bubblemaps/maps).",
-    priceUsd: PRICE.default,
-    examplePrompt: "Bubblemaps / Bubble maps",
     category: "partner",
   },
   {

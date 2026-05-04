@@ -3,17 +3,13 @@
  * Used by AI agent chat/tools by default (reliable vs some CEX geo blocks).
  */
 import { CryptoAnalysisEngine } from '../scripts/cryptoAnalysisEngine.js';
-import { resolveTickerFromCoingecko, getCoinById } from '../utils/coingeckoAPI.js';
+import {
+  resolveTickerFromCoingecko,
+  getCoinById,
+  getCoingeckoDataApiBaseUrl,
+  coingeckoDataApiHeaders,
+} from '../utils/coingeckoAPI.js';
 import { barDurationMsGeneric, lastClosedAnchorFromEngineRows } from './experimentCandleAnchor.js';
-
-const COINGECKO_API = (process.env.COINGECKO_API_BASE_URL || 'https://api.coingecko.com/api/v3').replace(/\/$/, '');
-
-function coingeckoHeaders() {
-  const key = String(process.env.COINGECKO_API_KEY || process.env.COINGECKO_DEMO_API_KEY || '').trim();
-  const h = { Accept: 'application/json' };
-  if (key) h['x-cg-demo-api-key'] = key;
-  return h;
-}
 
 /**
  * CoinGecko OHLC only accepts days in 1 | 7 | 14 | 30 | 90 | 180 | 365 | max
@@ -53,13 +49,15 @@ export async function resolveCoingeckoCoinId(token, instId) {
  * @returns {Promise<{ source: 'coingecko'; meta: { coingecko_id: string; days: number }; report: Record<string, unknown>; anchorCloseMs: number | null }>}
  */
 export async function buildCoingeckoSignalReport(params) {
-  const coinId = await resolveCoingeckoCoinId(params.token, params.instId);
-  const days = barToOhlcDays(params.bar);
-  const url = `${COINGECKO_API}/coins/${encodeURIComponent(coinId)}/ohlc?vs_currency=usd&days=${days}`;
+  const { signal: abortSignal, ...rest } = params && typeof params === 'object' ? params : {};
+  const coinId = await resolveCoingeckoCoinId(rest.token, rest.instId);
+  const days = barToOhlcDays(rest.bar);
+  const base = getCoingeckoDataApiBaseUrl();
+  const url = `${base}/coins/${encodeURIComponent(coinId)}/ohlc?vs_currency=usd&days=${days}`;
 
   const res = await fetch(url, {
-    headers: coingeckoHeaders(),
-    ...(params.signal ? { signal: params.signal } : {}),
+    headers: coingeckoDataApiHeaders(),
+    ...(abortSignal instanceof AbortSignal ? { signal: abortSignal } : {}),
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {

@@ -17,6 +17,7 @@ import {
   substituteAgentToolPath,
   PUMPFUN_TX_TOOL_IDS,
 } from '../../libs/agentPumpfunTools.js';
+import { pickSignalToolQueryParams } from '../../libs/agentSignalToolQuery.js';
 import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
 import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
@@ -225,8 +226,11 @@ router.post('/call', async (req, res) => {
       params = enrichGmgnToolParams(tool.id, params);
     }
 
-    if (tool.id === 'signal' && !String(params.source || '').trim()) {
-      params = { ...params, source: 'coingecko' };
+    if (tool.id === 'signal') {
+      params = pickSignalToolQueryParams(params);
+      if (!String(params.source || '').trim()) {
+        params = { ...params, source: 'coingecko' };
+      }
     }
 
     const paramGateMsg = getAgentToolParamGateMessage(tool.id, tool.method || 'GET', params);

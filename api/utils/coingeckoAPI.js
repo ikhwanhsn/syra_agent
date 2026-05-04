@@ -4,8 +4,49 @@
  * for use by tools that need ticker or token name resolution (e.g. news, sentiment, price).
  */
 
+const DEFAULT_COINGECKO_DATA_API = 'https://api.coingecko.com/api/v3';
 const COINGECKO_LIST_URL = 'https://api.coingecko.com/api/v3/coins/list';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Base URL for CoinGecko **data** calls (OHLC, chart, contract lookup). Pro plans use
+ * `https://pro-api.coingecko.com/api/v3` with `x-cg-pro-api-key`; demo/public use
+ * `https://api.coingecko.com/api/v3` with `x-cg-demo-api-key`.
+ * @returns {string}
+ */
+export function getCoingeckoDataApiBaseUrl() {
+  const raw = String(process.env.COINGECKO_API_BASE_URL || '').trim();
+  if (raw) return raw.replace(/\/$/, '');
+  const keyType = String(process.env.COINGECKO_API_KEY_TYPE || '').trim().toLowerCase();
+  if (keyType === 'pro' || keyType === 'paid') {
+    return 'https://pro-api.coingecko.com/api/v3';
+  }
+  return DEFAULT_COINGECKO_DATA_API;
+}
+
+/**
+ * @returns {boolean}
+ */
+export function isCoingeckoProDataApiUrl() {
+  return getCoingeckoDataApiBaseUrl().toLowerCase().includes('pro-api.coingecko.com');
+}
+
+/**
+ * Headers for authenticated CoinGecko data API requests. Wrong header + host pairs return
+ * invalid API key (e.g. Pro key sent as demo header on api.coingecko.com).
+ * @returns {Record<string, string>}
+ */
+export function coingeckoDataApiHeaders() {
+  const key = String(process.env.COINGECKO_API_KEY || process.env.COINGECKO_DEMO_API_KEY || '').trim();
+  const h = { Accept: 'application/json' };
+  if (!key) return h;
+  if (isCoingeckoProDataApiUrl()) {
+    h['x-cg-pro-api-key'] = key;
+  } else {
+    h['x-cg-demo-api-key'] = key;
+  }
+  return h;
+}
 
 /** @type {{ list: Array<{ id: string; symbol: string; name: string }>; fetchedAt: number } | null } */
 let cache = null;

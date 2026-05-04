@@ -34,6 +34,7 @@ import {
   substituteAgentToolPath,
   PUMPFUN_TX_TOOL_IDS,
 } from '../../libs/agentPumpfunTools.js';
+import { pickSignalToolQueryParams } from '../../libs/agentSignalToolQuery.js';
 import { getAgentToolParamGateMessage } from '../../libs/agentToolParamGate.js';
 import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
@@ -1684,8 +1685,11 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           if (pathSub.consumed?.length) {
             callParams = omitParamsKeys(callParams, pathSub.consumed);
           }
-          if (matched.toolId === 'signal' && !String(callParams.source || '').trim()) {
-            callParams = { ...callParams, source: 'coingecko' };
+          if (matched.toolId === 'signal') {
+            callParams = pickSignalToolQueryParams(callParams);
+            if (!String(callParams.source || '').trim()) {
+              callParams = { ...callParams, source: 'coingecko' };
+            }
           }
           const url = `${resolveAgentBaseUrl(req)}${toolPath}`;
           const method = tool.method || 'GET';

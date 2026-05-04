@@ -71,9 +71,8 @@ This file mirrors the **structure of the public documentation** published at [do
 
 - [Purch Vault API](https://docs.syraa.fun/docs/api/purch-vault)
 
-### Partner: Bubblemaps and agent-only partners
+### Partner: Agent-only tools
 
-- [Bubblemaps maps](https://docs.syraa.fun/docs/api/bubblemaps-maps)
 - [Agent tools: Binance, Giza, Bankr, Neynar, SIWA](https://docs.syraa.fun/docs/api/agent-tools-partners)
 
 ### 8004 Agent Registry

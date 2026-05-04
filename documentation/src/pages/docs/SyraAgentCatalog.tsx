@@ -103,7 +103,7 @@ export default function SyraAgentCatalog() {
       <section className="mb-6">
         <h2 className="text-2xl font-semibold mb-4">Partner tools</h2>
         <p className="text-muted-foreground mb-4">
-          Partner-backed tools: Nansen, Jupiter, Squid Router, Purch Vault, Bubblemaps, 8004 / 8004scan, plus{" "}
+          Partner-backed tools: Nansen, Jupiter, Squid Router, Purch Vault, 8004 / 8004scan, plus{" "}
           <strong className="text-foreground">Binance, Giza, Bankr, Neynar, and SIWA</strong> (those five are agent-executed only on Syra—use{" "}
           <Link to="/docs/api/agent-tools-partners" className="text-primary hover:underline">
             POST /agent/tools/call

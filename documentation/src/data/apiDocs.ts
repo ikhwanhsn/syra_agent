@@ -1512,26 +1512,6 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
-  "bubblemaps-maps": doc({
-    title: "Bubblemaps Maps API",
-    overview: "Partner API with Bubblemaps for holder distribution and map data. Uses the x402 payment protocol.",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/bubblemaps/maps",
-        description: "Fetch Bubblemaps data.",
-        requestExample: `curl ${BASE_URL}/bubblemaps/maps`,
-        responseExample: `{
-  "data": {
-    "maps": [],
-    "holderDistribution": {},
-    "clusterAnalysis": {}
-  }
-}`,
-      },
-    ],
-  }),
-
   "agent-tools-partners": doc({
     title: "Syra Agent tools: Binance, Giza, Bankr, Neynar & SIWA",
     overview:
@@ -1570,7 +1550,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
       {
         title: "Public alternatives on Syra",
         content:
-          "**GET /analytics/summary** — x402 bundle including Binance correlation block. **GET /binance-ticker** — free preview (Binance ticker/price proxy). **GET /bubblemaps/maps** — Bubblemaps remains a normal x402 route.",
+          "**GET /analytics/summary** — x402 bundle including Binance correlation block. **GET /binance-ticker** — free preview (Binance ticker/price proxy).",
       },
       {
         title: "Agent catalog",

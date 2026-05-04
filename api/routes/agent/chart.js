@@ -4,19 +4,9 @@
  *   Either mint=<Solana base58> OR coinId=<CoinGecko coin id, e.g. bitcoin, solana>
  */
 import express from 'express';
+import { getCoingeckoDataApiBaseUrl, coingeckoDataApiHeaders } from '../../utils/coingeckoAPI.js';
 
-const COINGECKO_API = (process.env.COINGECKO_API_BASE_URL || 'https://api.coingecko.com/api/v3').replace(
-  /\/$/,
-  ''
-);
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
-
-function coingeckoHeaders() {
-  const key = String(process.env.COINGECKO_API_KEY || process.env.COINGECKO_DEMO_API_KEY || '').trim();
-  const h = { Accept: 'application/json' };
-  if (key) h['x-cg-demo-api-key'] = key;
-  return h;
-}
 
 /** CoinGecko /ohlc accepts: 1 | 7 | 14 | 30 | 90 | 180 | 365 | max */
 function rangeToDays(range) {
@@ -33,8 +23,9 @@ function rangeToDays(range) {
  */
 async function resolveCoingeckoIdFromMint(mint) {
   if (mint === WSOL_MINT) return 'solana';
-  const url = `${COINGECKO_API}/coins/solana/contract/${encodeURIComponent(mint)}`;
-  const res = await fetch(url, { headers: coingeckoHeaders() });
+  const base = getCoingeckoDataApiBaseUrl();
+  const url = `${base}/coins/solana/contract/${encodeURIComponent(mint)}`;
+  const res = await fetch(url, { headers: coingeckoDataApiHeaders() });
   if (!res.ok) return null;
   const data = await res.json().catch(() => null);
   if (!data || typeof data !== 'object' || typeof data.id !== 'string' || !data.id.trim()) {
@@ -90,8 +81,9 @@ export function createAgentChartRouter() {
         });
       }
 
-      const ohlcUrl = `${COINGECKO_API}/coins/${encodeURIComponent(coinId)}/ohlc?vs_currency=usd&days=${days}`;
-      const ohlcRes = await fetch(ohlcUrl, { headers: coingeckoHeaders() });
+      const ohlcBase = getCoingeckoDataApiBaseUrl();
+      const ohlcUrl = `${ohlcBase}/coins/${encodeURIComponent(coinId)}/ohlc?vs_currency=usd&days=${days}`;
+      const ohlcRes = await fetch(ohlcUrl, { headers: coingeckoDataApiHeaders() });
       const body = await ohlcRes.json().catch(() => null);
 
       if (!ohlcRes.ok) {
