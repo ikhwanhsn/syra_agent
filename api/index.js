@@ -1232,4 +1232,15 @@ app.listen(PORT, () => {
         e instanceof Error ? e.message : e,
       ),
     );
+
+  import("./libs/agentTeamScheduler.js")
+    .then(({ startAgentTeamScheduler }) => {
+      startAgentTeamScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[agent-team] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
 });

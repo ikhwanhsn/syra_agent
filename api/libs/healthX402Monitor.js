@@ -12,35 +12,9 @@
 import { getNansenPaymentFetch } from "./sentinelPayer.js";
 import { runPaidSchemaProbe } from "./testerAgent/tests.js";
 import { SYRA_PROBE_BASE_URL, TESTER_AGENT_CONFIG } from "./testerAgent/testerAgentConfig.js";
+import { isDevTelegramConfigured, sendDevTelegram } from "./devTelegramNotifier.js";
 
 const HEALTH_PROBE = { id: "health_x402_monitor", method: "GET", path: "/health" };
-
-/**
- * @param {string} text
- */
-async function sendTelegramAlert(text) {
-  const token = String(process.env.SYRA_DEV_BOT_TOKEN || "").trim();
-  const chatId = String(process.env.SYRA_DEV_BOT_CHAT_ID || "").trim();
-  if (!token || !chatId) {
-    return false;
-  }
-  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: text.slice(0, 4000),
-      disable_web_page_preview: true,
-    }),
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    console.warn("[health-x402-monitor] Telegram send failed", res.status, t.slice(0, 200));
-    return false;
-  }
-  return true;
-}
 
 function formatFailureMessage(baseUrl, result) {
   const parts = [
@@ -89,11 +63,10 @@ export function startHealthX402Monitor() {
         return;
       }
       if (wasHealthy) {
-        const wantTg = Boolean(String(process.env.SYRA_DEV_BOT_TOKEN || "").trim()) &&
-          Boolean(String(process.env.SYRA_DEV_BOT_CHAT_ID || "").trim());
+        const wantTg = isDevTelegramConfigured();
         const msg = formatFailureMessage(baseUrl, result);
         if (wantTg) {
-          const sent = await sendTelegramAlert(msg);
+          const sent = await sendDevTelegram(msg, { disableWebPagePreview: true });
           if (!sent) {
             console.error("[health-x402-monitor]", msg);
           }
@@ -105,11 +78,10 @@ export function startHealthX402Monitor() {
     } catch (e) {
       const errText = e instanceof Error ? e.message : String(e);
       if (wasHealthy) {
-        const wantTg = Boolean(String(process.env.SYRA_DEV_BOT_TOKEN || "").trim()) &&
-          Boolean(String(process.env.SYRA_DEV_BOT_CHAT_ID || "").trim());
+        const wantTg = isDevTelegramConfigured();
         const msg = `🚨 Syra /health (x402) monitor error\nBase: ${baseUrl}\n${errText.slice(0, 800)}`;
         if (wantTg) {
-          const sent = await sendTelegramAlert(msg);
+          const sent = await sendDevTelegram(msg, { disableWebPagePreview: true });
           if (!sent) {
             console.error(msg);
           }

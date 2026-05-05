@@ -59,7 +59,9 @@ export const Navbar = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    onClick={() =>
+                      setTheme(theme === "dark" ? "light" : "dark")
+                    }
                     className="h-9 w-9 shrink-0"
                   >
                     <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -122,7 +124,9 @@ export const Navbar = () => {
                     variant="ghost"
                     size="sm"
                     className="justify-center gap-2"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    onClick={() =>
+                      setTheme(theme === "dark" ? "light" : "dark")
+                    }
                   >
                     <span className="relative h-4 w-4 shrink-0">
                       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

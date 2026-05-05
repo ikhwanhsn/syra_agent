@@ -62,7 +62,11 @@
       hsl(0 0% 46%) 100%
     );
     --gradient-primary: var(--gradient-hero);
-    --gradient-dark: linear-gradient(180deg, hsl(0 0% 97%) 0%, hsl(0 0% 100%) 100%);
+    --gradient-dark: linear-gradient(
+      180deg,
+      hsl(0 0% 97%) 0%,
+      hsl(0 0% 100%) 100%
+    );
 
     --sidebar-background: 0 0% 97%;
     --sidebar-foreground: 0 0% 10%;
@@ -127,7 +131,11 @@
       hsl(0 0% 52%) 100%
     );
     --gradient-primary: var(--gradient-hero);
-    --gradient-dark: linear-gradient(180deg, hsl(0 0% 2.5%) 0%, hsl(0 0% 5.5%) 100%);
+    --gradient-dark: linear-gradient(
+      180deg,
+      hsl(0 0% 2.5%) 0%,
+      hsl(0 0% 5.5%) 100%
+    );
 
     --sidebar-background: 0 0% 4%;
     --sidebar-foreground: 0 0% 93%;
@@ -217,7 +225,8 @@
   }
 
   .neon-glow {
-    box-shadow: 0 0 24px hsl(var(--foreground) / 0.06),
+    box-shadow:
+      0 0 24px hsl(var(--foreground) / 0.06),
       0 0 48px hsl(var(--ring) / 0.2);
   }
 
@@ -241,7 +250,9 @@
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--foreground) / 0.12);
+    box-shadow:
+      0 4px 20px hsl(0 0% 0% / 0.35),
+      0 0 0 1px hsl(var(--foreground) / 0.12);
   }
 
   html:not(.dark) .btn-primary {
@@ -249,7 +260,9 @@
   }
 
   html:not(.dark) .btn-primary:hover {
-    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.15), 0 0 0 1px hsl(0 0% 0% / 0.08);
+    box-shadow:
+      0 4px 20px hsl(0 0% 0% / 0.15),
+      0 0 0 1px hsl(0 0% 0% / 0.08);
   }
 
   .btn-secondary {
@@ -276,19 +289,15 @@
   }
 
   .grid-pattern {
-    background-image: linear-gradient(
-        hsl(var(--primary) / 0.04) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
     background-size: 60px 60px;
   }
 
   .grid-pattern-accent {
-    background-image: linear-gradient(
-        hsl(var(--foreground) / 0.07) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--foreground) / 0.07) 1px, transparent 1px);
     background-size: 48px 48px;
   }

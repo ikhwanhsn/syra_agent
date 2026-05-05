@@ -162,9 +162,15 @@ export const WhySyra = () => {
                     : "hover:border-success/35 hover:shadow-[0_0_32px_-10px_hsl(var(--success)/0.16)]"
               }`}
             >
-              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
-                index % 3 === 0 ? "bg-accent/10" : index % 3 === 1 ? "bg-neon-gold/10" : "bg-success/10"
-              }`}>
+              <div
+                className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
+                  index % 3 === 0
+                    ? "bg-accent/10"
+                    : index % 3 === 1
+                      ? "bg-neon-gold/10"
+                      : "bg-success/10"
+                }`}
+              >
                 <prop.icon
                   className={`h-7 w-7 stroke-[2] ${
                     index % 3 === 0 ? "text-primary" : "text-foreground"
@@ -203,7 +209,9 @@ export const WhySyra = () => {
                       Feature
                     </th>
                     <th className="px-2 py-3 text-center sm:px-4 sm:py-4">
-                      <span className="text-sm font-bold neon-text sm:text-base">SYRA</span>
+                      <span className="text-sm font-bold neon-text sm:text-base">
+                        SYRA
+                      </span>
                     </th>
                     <th className="px-2 py-3 text-center text-xs text-muted-foreground sm:px-4 sm:py-4 sm:text-sm">
                       Arkham

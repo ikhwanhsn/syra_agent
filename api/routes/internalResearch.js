@@ -7,6 +7,10 @@ import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "./agent/chat.js";
 import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
 import DashboardResearch from "../models/DashboardResearch.js";
+import {
+  runAgentTeamPipeline,
+  AGENT_TEAM_DB_ID,
+} from "../libs/agentTeamScheduler.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -83,6 +87,38 @@ export async function createInternalResearchRouter() {
     } catch (error) {
       return res.status(500).json({
         error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // GET /internal/agent-team/latest — latest chained agent-team run (internal + business JSON)
+  router.get("/agent-team/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: AGENT_TEAM_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // POST /internal/agent-team/run — on-demand full pipeline (crawl + OpenRouter + Telegram + persist)
+  router.post("/agent-team/run", async (_req, res) => {
+    try {
+      const out = await runAgentTeamPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Agent team pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }
