@@ -70,13 +70,20 @@ export async function getUserByUsername(username, userFields = "created_at,descr
  * @param {string} query - Query (e.g. "crypto lang:en", "from:syra_agent")
  * @param {object} [opts]
  * @param {number} [opts.max_results=10] - 10–100
- * @param {string} [opts.tweetFields] - e.g. "created_at,public_metrics,author_id"
+ * @param {string} [opts.tweetFields] - e.g. "created_at,public_metrics,author_id,text"
+ * @param {string} [opts.expansions] - e.g. "author_id" (include `includes.users` when combined with userFields)
+ * @param {string} [opts.userFields] - e.g. "username,name,verified"
  */
 export async function searchRecentTweets(
   query,
   opts = {}
 ) {
-  const { max_results = 10, tweetFields = "created_at,public_metrics,author_id,text" } = opts;
+  const {
+    max_results = 10,
+    tweetFields = "created_at,public_metrics,author_id,text",
+    expansions,
+    userFields,
+  } = opts;
   if (!query || !String(query).trim()) {
     return { errors: [{ message: "query is required" }] };
   }
@@ -85,7 +92,17 @@ export async function searchRecentTweets(
     max_results: Math.min(100, Math.max(10, Number(max_results) || 10)),
   };
   if (tweetFields) params["tweet.fields"] = tweetFields;
+  if (expansions) params.expansions = expansions;
+  if (userFields) params["user.fields"] = userFields;
   return xApiGet("tweets/search/recent", params);
+}
+
+/**
+ * Whether X API v2 Bearer token is configured (app-only).
+ * @returns {boolean}
+ */
+export function isXApiBearerConfigured() {
+  return Boolean((process.env.X_BEARER_TOKEN || "").trim());
 }
 
 /**

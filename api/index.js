@@ -595,7 +595,10 @@ app.use(
     max: 100,
     skip: (req) =>
       isX402Route(req.path) ||
-      (req.path || "").startsWith("/internal/tester-agent"),
+      (req.path || "").startsWith("/internal/tester-agent") ||
+      (req.path || "").startsWith("/internal/agent-team/run") ||
+      (req.path || "").startsWith("/internal/x402-x-trends/run") ||
+      (req.path || "").startsWith("/internal/growth-"),
   }),
 );
 
@@ -613,6 +616,40 @@ app.use(
       if (secret) {
         const got = (req.get("x-tester-agent-cron-secret") || "").trim();
         if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/agent-team/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.AGENT_TEAM_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-agent-team-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/x402-x-trends/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.X402_X_TRENDS_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-x402-x-trends-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
+    if (String(req.method || "").toUpperCase() === "POST") {
+      if (
+        p === "/internal/growth-syra-market/run" ||
+        p === "/internal/growth-syra-social/run" ||
+        p === "/internal/growth-sector-narrative/run" ||
+        p === "/internal/growth-internal-agents/run-all"
+      ) {
+        const secret = (process.env.GROWTH_INTERNAL_AGENTS_CRON_SECRET || "").trim();
+        if (secret) {
+          const got = (req.get("x-growth-internal-agents-cron-secret") || "").trim();
+          if (got === secret) return true;
+        }
       }
     }
     return (
@@ -1240,6 +1277,39 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[agent-team] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/x402XTrendsScheduler.js")
+    .then(({ startX402XTrendsScheduler }) => {
+      startX402XTrendsScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[x402-x-trends] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/growthInternalAgentsScheduler.js")
+    .then(({ startGrowthInternalAgentsScheduler }) => {
+      startGrowthInternalAgentsScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[growth-internal] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/payshClient.js")
+    .then(({ startPayshCatalogAutoRefresh }) => {
+      startPayshCatalogAutoRefresh();
+    })
+    .catch((e) =>
+      console.warn(
+        "[paysh] auto-refresh load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

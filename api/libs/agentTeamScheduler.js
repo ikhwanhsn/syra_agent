@@ -1,6 +1,9 @@
 /**
- * Agent team scheduler: daily at a fixed wall-clock in Asia/Jakarta (WIB, UTC+7, no DST)
+ * Agent team scheduler: runs on a fixed interval (default 24h) while the API process is up
  * → crawl → internal research → business strategy → Telegram → MongoDB.
+ *
+ * Enabled by default in code. Set AGENT_TEAM_ENABLED=0 in env to disable.
+ * Optional {@link getMsUntilNextWibWallClock} remains for external cron / tests (WIB wall clock).
  */
 
 import DashboardResearch from "../models/DashboardResearch.js";
@@ -77,17 +80,22 @@ export function getMsUntilNextWibWallClock(now = new Date(), targetHour = 6, tar
   return Math.max(0, targetUtc - now.getTime());
 }
 
+/** Default 24h between runs (after each pipeline completes). */
+const DEFAULT_AGENT_TEAM_INTERVAL_MS = 86_400_000;
+const MIN_AGENT_TEAM_INTERVAL_MS = 3_600_000;
+const MAX_AGENT_TEAM_INTERVAL_MS = 7 * 86_400_000;
+
 /**
- * @param {string} raw
- * @param {number} fallback
- * @param {number} min
- * @param {number} max
+ * Milliseconds between agent-team runs. Env AGENT_TEAM_INTERVAL_MS optional (min 1h, max 7d).
  * @returns {number}
  */
-function parseBoundedInt(raw, fallback, min, max) {
-  const n = Number.parseInt(String(raw || "").trim(), 10);
-  if (!Number.isFinite(n) || n < min || n > max) return fallback;
-  return n;
+function getAgentTeamIntervalMs() {
+  const n = Number.parseInt(String(process.env.AGENT_TEAM_INTERVAL_MS || "").trim(), 10);
+  if (!Number.isFinite(n)) return DEFAULT_AGENT_TEAM_INTERVAL_MS;
+  return Math.min(
+    MAX_AGENT_TEAM_INTERVAL_MS,
+    Math.max(MIN_AGENT_TEAM_INTERVAL_MS, n),
+  );
 }
 
 /**
@@ -246,20 +254,20 @@ export async function runAgentTeamPipeline() {
 }
 
 /**
- * Start in-process scheduler: one run per day at {@link AGENT_TEAM_TIMEZONE} wall clock
- * (default 06:00 WIB). Uses recursive `setTimeout` so the server does not drift from local morning time.
- * Safe to call once at startup.
+ * Start in-process scheduler: first pipeline run shortly after startup, then every
+ * {@link DEFAULT_AGENT_TEAM_INTERVAL_MS} (24h) after each run finishes. Safe to call once at startup.
  */
 export function startAgentTeamScheduler() {
-  if (String(process.env.AGENT_TEAM_ENABLED || "").trim() !== "1") {
-    console.log("[agent-team] disabled (set AGENT_TEAM_ENABLED=1 to enable)");
+  if (String(process.env.AGENT_TEAM_ENABLED || "").trim() === "0") {
+    console.log("[agent-team] disabled (AGENT_TEAM_ENABLED=0)");
     return;
   }
 
-  const wibHour = parseBoundedInt(process.env.AGENT_TEAM_WIB_HOUR, 6, 0, 23);
-  const wibMinute = parseBoundedInt(process.env.AGENT_TEAM_WIB_MINUTE, 0, 0, 59);
-
-  const runOnStart = String(process.env.AGENT_TEAM_RUN_ON_START || "").trim() === "1";
+  const intervalMs = getAgentTeamIntervalMs();
+  const intervalLabel =
+    intervalMs % 3_600_000 === 0
+      ? `${intervalMs / 3_600_000}h`
+      : `${Math.round(intervalMs / 60_000)} min`;
 
   let running = false;
   /** @type {ReturnType<typeof setTimeout> | null} */
@@ -288,28 +296,34 @@ export function startAgentTeamScheduler() {
     }
   };
 
-  const scheduleNext = () => {
-    const delay = getMsUntilNextWibWallClock(new Date(), wibHour, wibMinute);
+  const scheduleAfter = (delayMs) => {
     if (nextTimer) clearTimeout(nextTimer);
+    if (delayMs > 0) {
+      const nextAt = new Date(Date.now() + delayMs).toISOString();
+      console.log(
+        `[agent-team] next run in ${Math.round(delayMs / 1000)}s (~${nextAt} UTC; every ${intervalLabel} after completion)`,
+      );
+    } else {
+      console.log("[agent-team] first pipeline run scheduled (startup)");
+    }
     nextTimer = setTimeout(async () => {
       await tick();
-      scheduleNext();
-    }, delay);
-    const nextAt = new Date(Date.now() + delay).toISOString();
-    console.log(
-      `[agent-team] next run in ${Math.round(delay / 1000)}s (at ~${nextAt} UTC; local ${String(wibHour).padStart(2, "0")}:${String(wibMinute).padStart(2, "0")} ${AGENT_TEAM_TIMEZONE})`,
-    );
+      scheduleAfter(intervalMs);
+    }, delayMs);
   };
 
-  if (runOnStart) {
-    void tick().finally(() => {
-      scheduleNext();
-    });
-  } else {
-    scheduleNext();
+  scheduleAfter(0);
+
+  if (!isDevTelegramConfigured()) {
+    console.warn(
+      "[agent-team] Telegram disabled: set SYRA_DEV_BOT_TOKEN and SYRA_DEV_BOT_CHAT_ID or digests are skipped",
+    );
   }
 
   console.log(
-    `[agent-team] enabled: daily at ${String(wibHour).padStart(2, "0")}:${String(wibMinute).padStart(2, "0")} ${AGENT_TEAM_TIMEZONE} (WIB); Telegram: ${isDevTelegramConfigured() ? "on" : "off (set SYRA_DEV_BOT_*)"}; runOnStart=${runOnStart}`,
+    `[agent-team] enabled in code (opt-out: AGENT_TEAM_ENABLED=0); every ${intervalLabel}; Telegram: ${isDevTelegramConfigured() ? "on" : "off (set SYRA_DEV_BOT_*)"}`,
+  );
+  console.log(
+    "[agent-team] hint: if this host sleeps or restarts often, use GitHub Actions (.github/workflows/agent-team-daily-wib.yml) + AGENT_TEAM_CRON_SECRET",
   );
 }

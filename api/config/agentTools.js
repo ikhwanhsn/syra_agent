@@ -58,7 +58,7 @@ import {
 } from './x402Pricing.js';
 import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -1398,6 +1398,40 @@ export const AGENT_TOOLS = [
     description:
       'Send stablecoin on Tempo to the user’s own address only (connected 0x wallet or Base agent wallet). Params: amountUsd (required), memo (optional). Treasury pays on Tempo; not deducted from agent Solana USDC. Only when the server enables agent Tempo payouts.',
   },
+  // pay.sh catalog — generic gateway to ~75 x402 providers (pay-skills registry)
+  {
+    id: 'paysh-discover',
+    paysh: 'discover',
+    path: '/paysh/discover',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'pay.sh discover providers',
+    description:
+      'Search the pay.sh catalog of x402 API providers (~75). Params: q (keyword), category, freeOnly (true|false), limit (default 50). Optional forceRefresh true — bypass catalog cache for newest providers.',
+  },
+  {
+    id: 'paysh-endpoints',
+    paysh: 'endpoints',
+    path: '/paysh/endpoints',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'pay.sh list endpoints',
+    description:
+      'List HTTP methods and paths from a provider OpenAPI skill. Params: fqn (required, e.g. paysponge/coingecko), limit (optional, default 500). Optional forceRefresh true — refresh catalog and that provider skill.',
+  },
+  {
+    id: 'paysh-call',
+    paysh: 'call',
+    path: '/paysh/call',
+    method: 'POST',
+    priceUsd: 0.01,
+    displayPriceUsd: 0.01,
+    name: 'pay.sh call provider',
+    description:
+      'Call a pay.sh-listed provider gateway via x402 (agent wallet pays upstream). Params: fqn (required), path (required, e.g. /civicinfo/v2/elections or for quicknode/rpc: /solana-mainnet/), method (omit or POST for JSON-RPC; GET only if the OpenAPI route is GET), query (JSON object string), body (JSON object string for POST/JSON-RPC). Optional forceRefresh true — refresh catalog/skills before resolving route.',
+  },
   ...BIRDEYE_AGENT_TOOLS,
 ];
 
@@ -2322,6 +2356,14 @@ export function getCapabilitiesList() {
       ''
     );
   }
+  const payshTools = AGENT_TOOLS.filter((t) => t.paysh).map((t) => t.id);
+  if (payshTools.length) {
+    lines.push(
+      'pay.sh catalog (~75 x402 providers — discover providers, list OpenAPI endpoints, call gateway with fqn+path):',
+      ...fmt(payshTools),
+      ''
+    );
+  }
 
   return lines;
 }
@@ -2392,6 +2434,18 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'purch-vault-buy') {
       out.paramsHint = 'Params: slug (required — item slug from search, e.g. faith); optional email';
+    }
+    if (t.id === 'paysh-discover') {
+      out.paramsHint =
+        'Optional: q (search text), category (provider category), freeOnly true|false, limit (max 200), forceRefresh true|false (bypass catalog cache). No USDC charge.';
+    }
+    if (t.id === 'paysh-endpoints') {
+      out.paramsHint =
+        'Params: fqn (required) — provider id from catalog e.g. quicknode/rpc, paysponge/coingecko. Optional limit, forceRefresh true|false. No USDC charge.';
+    }
+    if (t.id === 'paysh-call') {
+      out.paramsHint =
+        'Params: fqn (required), path (required — OpenAPI path from paysh-endpoints e.g. QuickNode quicknode/rpc: /solana-mainnet/), method POST for JSON-RPC chains (default is GET unless body is set, then POST); query/body JSON strings. forceRefresh optional. Agent USDC balance must cover provider min_price_usd (see discover).';
     }
     if (t.id === 'tempo-token-list') {
       out.paramsHint =

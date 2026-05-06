@@ -19,7 +19,8 @@
     "publish-sap-tools": "node -r dotenv/config scripts/publish-sap-tools.js",
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
     "openapi": "node scripts/export-openapi.mjs",
-    "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js"
+    "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js",
+    "test-paysh": "node -r dotenv/config scripts/testPayshFlows.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

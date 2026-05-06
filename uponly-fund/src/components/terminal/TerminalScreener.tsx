@@ -33,7 +33,8 @@ import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
-const TERMINAL_TABLE_REFETCH_MS = 10_000;
+/** Full-universe sync walks many upstream pages; keep well above list polling to avoid RISE rate limits. */
+const TERMINAL_TABLE_REFETCH_MS = 120_000;
 const RISK_OPTIONS: RiskFlag[] = ["LowLiquidity", "HighFee", "NewAge", "LowLocked", "Unverified", "DisableSell"];
 const NARRATIVE_OPTIONS: NarrativeTag[] = [
   "Verified",

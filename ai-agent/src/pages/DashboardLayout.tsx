@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Mail,
   Send,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
@@ -28,6 +29,9 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
 import { SidebarNavLink, SidebarSectionLabel } from "@/components/dashboard/SidebarPrimitives";
+import { useWalletContext } from "@/contexts/WalletContext";
+import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
+import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
 
 const MARKETPLACE_SECTIONS = [
   { path: "prompts", label: "Prompts", icon: FileText },
@@ -87,6 +91,17 @@ function dashboardPageTitle(pathname: string): string {
   if (parts[1] === "alpha") return "Alpha";
   if (parts[1] === "trading-experiment") return "Trading experiment";
   if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
+  if (parts[1] === "internal-team-agents") {
+    if (parts[2]) {
+      const slug = parts[2];
+      if (isInternalAgentSlug(slug)) {
+        const meta = getInternalAgentMeta(slug);
+        if (meta) return meta.name;
+      }
+      return "Internal agent";
+    }
+    return "Internal agents";
+  }
   return "Overview";
 }
 
@@ -106,6 +121,9 @@ function DashboardSidebarContent({
   onCollapse,
   onCloseDrawer,
 }: DashboardSidebarContentProps) {
+  const { address } = useWalletContext();
+  const showInternalTeamMonitor = isInternalTeamMonitorWallet(address);
+
   return (
     <>
       {showHeader && (
@@ -162,6 +180,11 @@ function DashboardSidebarContent({
                 {label}
               </SidebarNavLink>
             ))}
+            {showInternalTeamMonitor ? (
+              <SidebarNavLink to="/dashboard/internal-team-agents" icon={UsersRound}>
+                Internal agents
+              </SidebarNavLink>
+            ) : null}
           </div>
         </div>
       </nav>

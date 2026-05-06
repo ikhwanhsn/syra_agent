@@ -117,6 +117,8 @@ const REQUIRE_ALL_KEYS = {
   'gmgn-portfolio-token-balance': ['chain', 'wallet', 'token'],
   'gmgn-portfolio-created-tokens': ['chain', 'wallet'],
   'gmgn-track-follow-wallet': ['chain'],
+  'paysh-endpoints': ['fqn'],
+  'paysh-call': ['fqn', 'path'],
 };
 
 const NANSEN_ADDRESS_TOOLS = new Set([

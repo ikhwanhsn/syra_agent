@@ -1,5 +1,51 @@
 const RISE_DEFAULT_BASE_URL = "https://public.rise.rich";
 
+/** Rise vendor limit: max HTTP requests started per rolling second (single Node process). */
+const RISE_MAX_RPS = (() => {
+  const raw = Number(process.env.RISE_MAX_REQUESTS_PER_SECOND);
+  if (Number.isFinite(raw) && raw > 0) return Math.min(100, Math.floor(raw));
+  return 100;
+})();
+const RISE_RATE_WINDOW_MS = 1000;
+
+const riseRequestTimestamps = [];
+/** Serialized gate so concurrent callers cannot slip past the sliding-window check. */
+let riseRateGate = Promise.resolve();
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wait until a new Rise HTTP request may start without exceeding RISE_MAX_RPS
+ * over the previous rolling second (sliding window). Applies per Node process;
+ * scale horizontally only if total instances × RISE_MAX_RPS ≤ vendor cap.
+ */
+async function acquireRiseRateSlot() {
+  const prev = riseRateGate;
+  let resolveNext;
+  riseRateGate = new Promise((resolve) => {
+    resolveNext = resolve;
+  });
+  await prev;
+  try {
+    for (;;) {
+      const now = Date.now();
+      while (riseRequestTimestamps.length > 0 && riseRequestTimestamps[0] <= now - RISE_RATE_WINDOW_MS) {
+        riseRequestTimestamps.shift();
+      }
+      if (riseRequestTimestamps.length < RISE_MAX_RPS) {
+        riseRequestTimestamps.push(now);
+        return;
+      }
+      const waitMs = riseRequestTimestamps[0] + RISE_RATE_WINDOW_MS - now + 1;
+      await sleep(Math.max(1, Math.ceil(waitMs)));
+    }
+  } finally {
+    resolveNext();
+  }
+}
+
 function getRiseConfig() {
   const apiKey = String(process.env.RISE_API_KEY || "").trim();
   const baseUrl = String(process.env.RISE_API_BASE_URL || RISE_DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
@@ -23,6 +69,8 @@ async function riseRequest(path, options = {}) {
   if (!cfg.configured) {
     return { ok: false, error: "RISE API is not configured. Set RISE_API_KEY in server env.", status: 503 };
   }
+
+  await acquireRiseRateSlot();
 
   const method = options.method || "GET";
   const query = buildQuery(options.query);

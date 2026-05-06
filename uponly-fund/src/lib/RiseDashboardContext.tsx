@@ -39,9 +39,16 @@ import type {
 const AGGREGATE_REFETCH_MS = 60_000;
 const LIST_REFETCH_MS = 60_000;
 const OHLC_REFETCH_MS = 60_000;
-const TX_REFETCH_MS = 30_000;
+const TX_REFETCH_MS = 90_000;
 const PORTFOLIO_STALE_MS = 30_000;
 const DEFAULT_PAGE_LIMIT = 10;
+/**
+ * Upstream list is capped at 100/page (see api/routes/uponlyRiseMarket.js).
+ * One shared TanStack key for the full-universe walk avoids duplicate pagination
+ * when different screens passed 100 vs 150 vs 250 (all clamped server-side anyway).
+ */
+const RISE_MARKETS_UNIVERSE_PAGE_SIZE = 100;
+const RISE_MARKETS_ALL_QUERY_KEY = ["rise-markets-all-universe"] as const;
 /** Optional polling override for market list queries (e.g. terminal table). */
 export type RiseMarketsQueryOptions = {
   refetchInterval?: number | false;
@@ -60,7 +67,6 @@ export function RiseDashboardProvider({ children }: { children: ReactNode }) {
     queryFn: ({ signal }) => getRiseAggregate(signal),
     staleTime: AGGREGATE_REFETCH_MS,
     refetchInterval: AGGREGATE_REFETCH_MS,
-    refetchOnWindowFocus: true,
     retry: 1,
   });
 
@@ -185,11 +191,15 @@ export function useRisePortfolioPositions(wallet: string | null | undefined, pag
   });
 }
 
-export function useRiseMarketsAll(limit = 100, queryOptions?: RiseMarketsQueryOptions) {
+/**
+ * Full sorted universe (paginates every list page server-side).
+ * @param _limit — ignored; API max page size is {@link RISE_MARKETS_UNIVERSE_PAGE_SIZE}.
+ */
+export function useRiseMarketsAll(_limit = RISE_MARKETS_UNIVERSE_PAGE_SIZE, queryOptions?: RiseMarketsQueryOptions) {
   const refetchInterval = queryOptions?.refetchInterval;
   return useQuery<RiseMarketRow[], Error>({
-    queryKey: ["rise-markets-all", limit],
-    queryFn: ({ signal }) => getRiseMarketsAll(limit, signal),
+    queryKey: RISE_MARKETS_ALL_QUERY_KEY,
+    queryFn: ({ signal }) => getRiseMarketsAll(RISE_MARKETS_UNIVERSE_PAGE_SIZE, signal),
     staleTime: LIST_REFETCH_MS,
     ...(refetchInterval !== undefined ? { refetchInterval } : {}),
     retry: 1,

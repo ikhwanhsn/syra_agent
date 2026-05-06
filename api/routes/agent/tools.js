@@ -38,6 +38,12 @@ import { sendTempoPayout } from '../../libs/tempoPayout.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
 import { runAgentPartnerDirectTool } from '../../libs/agentPartnerDirectTools.js';
 import { chargeAgentForInternalTool } from '../../libs/agentInternalToolCharge.js';
+import {
+  runPayshToolForAgent,
+  fetchCatalog,
+  findProvider,
+  parsePayshForceRefresh,
+} from '../../libs/payshClient.js';
 import { resolveAgentBaseUrl } from './utils.js';
 
 const router = express.Router();
@@ -186,6 +192,32 @@ router.post('/call', async (req, res) => {
       });
     }
 
+    // pay.sh catalog: discover + list endpoints — no USDC balance check (public catalog / OpenAPI metadata)
+    if (tool.paysh === 'discover' || tool.paysh === 'endpoints') {
+      const payshParams = Object.fromEntries(
+        Object.entries(rawParams || {}).filter(
+          ([k, v]) => typeof k === 'string' && v != null && v !== ''
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+      );
+      const payshOut = await runPayshToolForAgent(tool.paysh, payshParams, {
+        anonymousId,
+        connectedWalletAddress: undefined,
+      });
+      if (!payshOut.success) {
+        return res.status(payshOut.status ?? 502).json({
+          success: false,
+          error: payshOut.error,
+          toolId: tool.id,
+          ...(payshOut.budgetExceeded ? { budgetExceeded: true } : {}),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: payshOut.data,
+      });
+    }
+
     // Normalize params to string key-value (same as chat flow) so GET query is built correctly
     let params = Object.fromEntries(
       Object.entries(rawParams).filter(
@@ -241,6 +273,77 @@ router.post('/call', async (req, res) => {
         skippedPayment: true,
         error: apiError,
         toolId: tool.id,
+      });
+    }
+
+    // pay.sh gateway call — balance must cover max(tool price floor, provider catalog min_price_usd)
+    if (tool.paysh === 'call') {
+      const balanceResultCall = await getAgentUsdcBalance(anonymousId);
+      if (!balanceResultCall) {
+        return res.status(404).json({
+          success: false,
+          insufficientBalance: true,
+          error: 'Agent wallet not found',
+          message:
+            'You do not have an agent wallet yet. Create one (e.g. connect wallet or start a chat) and deposit USDC to use paid tools.',
+        });
+      }
+      const connectedWalletCall = await getConnectedWalletAddress(anonymousId);
+      let providerMinUsd = 0;
+      try {
+        const catalog = await fetchCatalog({ forceRefresh: parsePayshForceRefresh(params) });
+        const prov = findProvider(catalog.providers, params.fqn || '');
+        if (!prov) {
+          return res.status(404).json({
+            success: false,
+            error: `Unknown pay.sh provider fqn: ${params.fqn}`,
+            toolId: tool.id,
+          });
+        }
+        const m = Number(prov.min_price_usd);
+        providerMinUsd = Number.isFinite(m) ? m : 0;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return res.status(400).json({
+          success: false,
+          error: msg,
+          toolId: tool.id,
+        });
+      }
+      const basePriceCall = Math.max(tool.priceUsd, providerMinUsd);
+      const effectivePriceCall =
+        getEffectivePriceUsd(basePriceCall, connectedWalletCall) ?? basePriceCall;
+      const { usdcBalance: usdcCall } = balanceResultCall;
+      if (usdcCall <= 0 || usdcCall < effectivePriceCall) {
+        return res.status(402).json({
+          success: false,
+          insufficientBalance: true,
+          usdcBalance: usdcCall,
+          requiredUsdc: effectivePriceCall,
+          toolId: tool.id,
+          toolName: tool.name,
+          message:
+            usdcCall <= 0
+              ? `Your agent wallet has 0 USDC balance. pay.sh call requires at least $${effectivePriceCall.toFixed(4)} USDC for this provider. Deposit USDC to continue.`
+              : `Your agent wallet balance ($${usdcCall.toFixed(4)} USDC) is lower than $${effectivePriceCall.toFixed(4)} required for ${tool.name}.`,
+        });
+      }
+      const payshCallOut = await runPayshToolForAgent('call', params, {
+        anonymousId,
+        connectedWalletAddress: connectedWalletCall || undefined,
+      });
+      if (!payshCallOut.success) {
+        return res.status(payshCallOut.status ?? 502).json({
+          success: false,
+          error: payshCallOut.error,
+          toolId: tool.id,
+          ...(payshCallOut.budgetExceeded ? { budgetExceeded: true } : {}),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: payshCallOut.data,
       });
     }
 

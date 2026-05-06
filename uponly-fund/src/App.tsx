@@ -19,7 +19,14 @@ import TokenDetailPage from "@/pages/token/TokenDetail";
 import { getRiseAggregate, getRiseMarkets, getRiseMarketsTop } from "@/lib/riseDashboardApi";
 import { LanguageProvider } from "@/lib/LanguageContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Dashboard hits RISE via Syra API; focus toggles were causing bursty duplicate refetches.
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();

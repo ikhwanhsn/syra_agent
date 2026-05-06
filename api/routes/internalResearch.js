@@ -11,6 +11,19 @@ import {
   runAgentTeamPipeline,
   AGENT_TEAM_DB_ID,
 } from "../libs/agentTeamScheduler.js";
+import {
+  runX402XTrendsPipeline,
+  X402_X_TRENDS_DB_ID,
+} from "../libs/x402XTrendsScheduler.js";
+import {
+  runGrowthSyraMarketPipeline,
+  runGrowthSyraSocialPipeline,
+  runGrowthSectorNarrativePipeline,
+  runAllGrowthInternalAgentsPipelines,
+  GROWTH_SYRA_MARKET_DB_ID,
+  GROWTH_SYRA_SOCIAL_DB_ID,
+  GROWTH_SECTOR_NARRATIVE_DB_ID,
+} from "../libs/growthInternalAgentsScheduler.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -110,7 +123,116 @@ export async function createInternalResearchRouter() {
     }
   });
 
+  // GET /internal/x402-x-trends/latest — latest persisted x402 X trends digest (after a successful pipeline run)
+  router.get("/x402-x-trends/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: X402_X_TRENDS_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // POST /internal/x402-x-trends/run — X recent search + OpenRouter x402 digest + Telegram (optional x-x402-x-trends-cron-secret)
+  router.post("/x402-x-trends/run", async (_req, res) => {
+    try {
+      const out = await runX402XTrendsPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "x402 X trends pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // --- Growth internal agents ($1M-class growth intelligence; DexScreener / Jupiter / CoinGecko / X + OpenRouter)
+
+  /** @param {string} dbId */
+  const growthLatestHandler = (dbId) => async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: dbId }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  router.get("/growth-syra-market/latest", growthLatestHandler(GROWTH_SYRA_MARKET_DB_ID));
+  router.get("/growth-syra-social/latest", growthLatestHandler(GROWTH_SYRA_SOCIAL_DB_ID));
+  router.get("/growth-sector-narrative/latest", growthLatestHandler(GROWTH_SECTOR_NARRATIVE_DB_ID));
+
+  router.post("/growth-syra-market/run", async (_req, res) => {
+    try {
+      const out = await runGrowthSyraMarketPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "growth-syra-market failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/growth-syra-social/run", async (_req, res) => {
+    try {
+      const out = await runGrowthSyraSocialPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "growth-syra-social failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/growth-sector-narrative/run", async (_req, res) => {
+    try {
+      const out = await runGrowthSectorNarrativePipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "growth-sector-narrative failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/growth-internal-agents/run-all", async (_req, res) => {
+    try {
+      const out = await runAllGrowthInternalAgentsPipelines();
+      return res.json({ success: true, ...out });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "growth-internal-agents run-all failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
   // POST /internal/agent-team/run — on-demand full pipeline (crawl + OpenRouter + Telegram + persist)
+  // Optional GitHub cron: .github/workflows/agent-team-daily-wib.yml + x-agent-team-cron-secret (AGENT_TEAM_CRON_SECRET on API).
   router.post("/agent-team/run", async (_req, res) => {
     try {
       const out = await runAgentTeamPipeline();
