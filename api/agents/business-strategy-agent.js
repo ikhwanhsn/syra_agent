@@ -5,7 +5,7 @@
 
 import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
+import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
 
 /**
  * @typedef {import("../libs/agentTeamCrawl.js").CrawlSnapshotItem} CrawlSnapshotItem
@@ -219,8 +219,7 @@ export async function runBusinessStrategyAgent({ snapshot, internalResearch, mod
     throw new Error("runBusinessStrategyAgent: internalResearch is required");
   }
 
-  const modelId =
-    typeof model === "string" && model.trim() ? model.trim() : OPENROUTER_DEFAULT_MODEL;
+  const modelId = resolveInternalPipelineModel(model);
   const userContent = buildUserContent(snapshot, internalResearch);
 
   const messages = [

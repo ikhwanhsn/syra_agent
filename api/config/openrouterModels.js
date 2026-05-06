@@ -1,10 +1,8 @@
 /**
  * OpenRouter model catalog for Syra (curated allowlist).
- * IDs are OpenRouter `provider/model` slugs. Override default with env OPENROUTER_DEFAULT_MODEL.
+ * IDs are OpenRouter `provider/model` slugs.
  */
-export const OPENROUTER_DEFAULT_MODEL =
-  (typeof process.env.OPENROUTER_DEFAULT_MODEL === 'string' && process.env.OPENROUTER_DEFAULT_MODEL.trim()) ||
-  'google/gemini-2.5-flash-lite';
+export const OPENROUTER_DEFAULT_MODEL = "google/gemini-2.5-flash-lite";
 
 export const OPENROUTER_MODELS = [
   {

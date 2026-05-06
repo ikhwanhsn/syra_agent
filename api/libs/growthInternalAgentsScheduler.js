@@ -1,7 +1,9 @@
 /**
  * Three growth-focused internal agents (SYRA market, SYRA social, sector narrative).
- * Default 24h interval each; Telegram via Syra dev bot; Mongo DashboardResearch persistence.
- * Opt-out: GROWTH_INTERNAL_AGENTS_ENABLED=0. Social/sector need X_BEARER_TOKEN; all need OPENROUTER_API_KEY.
+ *
+ * Schedule: daily at WIB anchor (see `./wibDailyWallClock.js`), staggered +0 / +60s / +120s. No run on boot.
+ *
+ * Social/sector need X_BEARER_TOKEN; all need OPENROUTER_API_KEY. Telegram via SYRA dev bot.
  */
 
 import DashboardResearch from "../models/DashboardResearch.js";
@@ -19,28 +21,18 @@ import {
   runGrowthSectorNarrativeAgent,
   formatGrowthSectorNarrativeTelegram,
 } from "../agents/growth-sector-narrative-agent.js";
+import {
+  getMsUntilNextWibWallClock,
+  INTERNAL_AGENT_PIPELINES_WIB_HOUR,
+  INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
+} from "./wibDailyWallClock.js";
 
 export const GROWTH_SYRA_MARKET_DB_ID = "growth-syra-market-latest";
 export const GROWTH_SYRA_SOCIAL_DB_ID = "growth-syra-social-latest";
 export const GROWTH_SECTOR_NARRATIVE_DB_ID = "growth-sector-narrative-latest";
 
-const DEFAULT_INTERVAL_MS = 86_400_000;
-const MIN_INTERVAL_MS = 3_600_000;
-const MAX_INTERVAL_MS = 7 * 86_400_000;
-
-function getIntervalMs() {
-  const n = Number.parseInt(
-    String(process.env.GROWTH_INTERNAL_AGENTS_INTERVAL_MS || "").trim(),
-    10,
-  );
-  if (!Number.isFinite(n)) return DEFAULT_INTERVAL_MS;
-  return Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, n));
-}
-
-function modelFromEnv() {
-  const m = String(process.env.GROWTH_INTERNAL_AGENTS_MODEL || "").trim();
-  return m || null;
-}
+/** Milliseconds after each WIB anchor: market, social, sector. */
+const GROWTH_PIPELINE_STAGGER_MS = [0, 60_000, 120_000];
 
 async function persistPayload(dbId, payload) {
   const savedAt = new Date();
@@ -55,7 +47,7 @@ async function persistPayload(dbId, payload) {
  * @returns {Promise<{ success: true; data: object }>}
  */
 export async function runGrowthSyraMarketPipeline() {
-  const data = await runGrowthSyraMarketAgent({ model: modelFromEnv() });
+  const data = await runGrowthSyraMarketAgent({ model: null });
   await persistPayload(GROWTH_SYRA_MARKET_DB_ID, data);
   if (isDevTelegramConfigured()) {
     const sent = await sendDevTelegram(formatGrowthSyraMarketTelegram(data), {
@@ -73,7 +65,7 @@ export async function runGrowthSyraSocialPipeline() {
   if (!isXApiBearerConfigured()) {
     throw new Error("growth-syra-social: X_BEARER_TOKEN is not set");
   }
-  const data = await runGrowthSyraSocialAgent({ model: modelFromEnv() });
+  const data = await runGrowthSyraSocialAgent({ model: null });
   await persistPayload(GROWTH_SYRA_SOCIAL_DB_ID, data);
   if (isDevTelegramConfigured()) {
     const sent = await sendDevTelegram(formatGrowthSyraSocialTelegram(data), {
@@ -91,7 +83,7 @@ export async function runGrowthSectorNarrativePipeline() {
   if (!isXApiBearerConfigured()) {
     throw new Error("growth-sector: X_BEARER_TOKEN is not set");
   }
-  const data = await runGrowthSectorNarrativeAgent({ model: modelFromEnv() });
+  const data = await runGrowthSectorNarrativeAgent({ model: null });
   await persistPayload(GROWTH_SECTOR_NARRATIVE_DB_ID, data);
   if (isDevTelegramConfigured()) {
     const sent = await sendDevTelegram(formatGrowthSectorNarrativeTelegram(data), {
@@ -136,16 +128,12 @@ export async function runAllGrowthInternalAgentsPipelines() {
 /**
  * @param {() => Promise<unknown>} tick
  * @param {string} label
+ * @param {number} staggerMs offset after each daily WIB anchor
  */
-function createLoop(tick, label) {
+function createLoop(tick, label, staggerMs) {
   let running = false;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let timer = null;
-  const intervalMs = getIntervalMs();
-  const intervalLabel =
-    intervalMs % 3_600_000 === 0
-      ? `${intervalMs / 3_600_000}h`
-      : `${Math.round(intervalMs / 60_000)} min`;
 
   const run = async () => {
     if (running) {
@@ -171,20 +159,33 @@ function createLoop(tick, label) {
 
   const scheduleNext = () => {
     if (timer) clearTimeout(timer);
+    const delayMs =
+      getMsUntilNextWibWallClock(
+        new Date(),
+        INTERNAL_AGENT_PIPELINES_WIB_HOUR,
+        INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
+      ) + staggerMs;
+    const nextAt = new Date(Date.now() + delayMs).toISOString();
+    console.log(
+      `[growth-internal] ${label} next run in ${Math.round(delayMs / 1000)}s (~${nextAt} UTC; WIB anchor + ${Math.round(staggerMs / 1000)}s)`,
+    );
     timer = setTimeout(async () => {
       await run();
       scheduleNext();
-    }, intervalMs);
+    }, delayMs);
   };
 
-  /** @param {number} initialDelayMs */
-  const arm = (initialDelayMs) => {
+  const arm = () => {
     if (timer) clearTimeout(timer);
-    if (initialDelayMs > 0) {
-      console.log(
-        `[growth-internal] ${label} first run in ${Math.round(initialDelayMs / 1000)}s; then every ${intervalLabel}`,
-      );
-    }
+    const initialDelayMs =
+      getMsUntilNextWibWallClock(
+        new Date(),
+        INTERNAL_AGENT_PIPELINES_WIB_HOUR,
+        INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
+      ) + staggerMs;
+    console.log(
+      `[growth-internal] ${label} first run in ${Math.round(initialDelayMs / 1000)}s (daily WIB + ${Math.round(staggerMs / 1000)}s)`,
+    );
     timer = setTimeout(async () => {
       await run();
       scheduleNext();
@@ -195,23 +196,12 @@ function createLoop(tick, label) {
 }
 
 export function startGrowthInternalAgentsScheduler() {
-  if (String(process.env.GROWTH_INTERNAL_AGENTS_ENABLED || "").trim() === "0") {
-    console.log("[growth-internal] disabled (GROWTH_INTERNAL_AGENTS_ENABLED=0)");
-    return;
-  }
-
-  const intervalMs = getIntervalMs();
-  const intervalLabel =
-    intervalMs % 3_600_000 === 0
-      ? `${intervalMs / 3_600_000}h`
-      : `${Math.round(intervalMs / 60_000)} min`;
-
-  createLoop(() => runGrowthSyraMarketPipeline(), "syra-market").arm(0);
-  createLoop(() => runGrowthSyraSocialPipeline(), "syra-social").arm(60_000);
-  createLoop(() => runGrowthSectorNarrativePipeline(), "sector-narrative").arm(120_000);
+  createLoop(() => runGrowthSyraMarketPipeline(), "syra-market", GROWTH_PIPELINE_STAGGER_MS[0]).arm();
+  createLoop(() => runGrowthSyraSocialPipeline(), "syra-social", GROWTH_PIPELINE_STAGGER_MS[1]).arm();
+  createLoop(() => runGrowthSectorNarrativePipeline(), "sector-narrative", GROWTH_PIPELINE_STAGGER_MS[2]).arm();
 
   console.log(
-    `[growth-internal] enabled (opt-out GROWTH_INTERNAL_AGENTS_ENABLED=0); every ${intervalLabel}; stagger market=0s social=60s sector=120s`,
+    `[growth-internal] enabled; WIB daily ${String(INTERNAL_AGENT_PIPELINES_WIB_HOUR).padStart(2, "0")}:${String(INTERNAL_AGENT_PIPELINES_WIB_MINUTE).padStart(2, "0")} Asia/Jakarta + stagger ${GROWTH_PIPELINE_STAGGER_MS.map((ms) => `${Math.round(ms / 1000)}s`).join(" / ")}`,
   );
   if (!isXApiBearerConfigured()) {
     console.warn("[growth-internal] X_BEARER_TOKEN missing — social + sector agents will fail until set");

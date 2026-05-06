@@ -6,12 +6,12 @@ import { searchRecentTweets } from "../libs/xApiClient.js";
 import { callOpenRouter } from "../libs/openrouter.js";
 import { parseJsonObjectFromLlm } from "../libs/llmJsonObjectParse.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
-
-const DEFAULT_QUERIES = Object.freeze([
-  '"$SYRA" OR $SYRA solana -is:retweet lang:en',
-  "(syra_agent OR syraa.fun OR syra agent) -is:retweet lang:en",
-]);
+import {
+  resolveInternalPipelineModel,
+  GROWTH_SYRA_SOCIAL_MAX_PER_QUERY,
+  GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM,
+  GROWTH_SYRA_SOCIAL_SEARCH_QUERIES,
+} from "../config/internalPipelineAgents.js";
 
 const TWEET_FIELDS = "created_at,public_metrics,author_id,text";
 const EXPANSIONS = "author_id";
@@ -33,15 +33,6 @@ Rules:
   "bullets": array of { "title": string, "detail": string, "evidenceTweetIds": string[] } (4-9 items)
 }
 English only. No price guarantees.`;
-
-function parseQueriesFromEnv() {
-  const raw = String(process.env.GROWTH_SYRA_SOCIAL_QUERIES || "").trim();
-  if (!raw) return [...DEFAULT_QUERIES];
-  return raw
-    .split(/\|\|\||\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 function usersByIdFromIncludes(body) {
   const map = new Map();
@@ -106,21 +97,9 @@ function validateOutput(obj) {
  * @param {{ model?: string | null }} params
  */
 export async function runGrowthSyraSocialAgent({ model }) {
-  const queries = parseQueriesFromEnv();
-  const maxPerQuery = Math.min(
-    80,
-    Math.max(
-      10,
-      Number.parseInt(String(process.env.GROWTH_SYRA_SOCIAL_MAX_PER_QUERY || "32"), 10) || 32,
-    ),
-  );
-  const maxForLlm = Math.min(
-    90,
-    Math.max(
-      15,
-      Number.parseInt(String(process.env.GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM || "48"), 10) || 48,
-    ),
-  );
+  const queries = [...GROWTH_SYRA_SOCIAL_SEARCH_QUERIES];
+  const maxPerQuery = Math.min(80, Math.max(10, GROWTH_SYRA_SOCIAL_MAX_PER_QUERY));
+  const maxForLlm = Math.min(90, Math.max(15, GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM));
 
   const merged = new Map();
   for (const q of queries) {
@@ -150,11 +129,7 @@ export async function runGrowthSyraSocialAgent({ model }) {
   );
   const sampled = sorted.slice(0, maxForLlm);
 
-  const modelId =
-    typeof model === "string" && model.trim()
-      ? model.trim()
-      : String(process.env.GROWTH_INTERNAL_AGENTS_MODEL || "").trim() ||
-        OPENROUTER_DEFAULT_MODEL;
+  const modelId = resolveInternalPipelineModel(model);
 
   const userPayload = {
     tweetCount: merged.size,

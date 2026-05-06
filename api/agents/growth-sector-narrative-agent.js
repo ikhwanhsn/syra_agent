@@ -7,12 +7,12 @@ import { searchRecentTweets } from "../libs/xApiClient.js";
 import { callOpenRouter } from "../libs/openrouter.js";
 import { parseJsonObjectFromLlm } from "../libs/llmJsonObjectParse.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
-
-const DEFAULT_QUERIES = Object.freeze([
-  '("ai trading agent" OR "crypto agent" OR "solana agent" OR agentic crypto) -is:retweet lang:en',
-  '("x402" OR "paid api" OR micropayment) (agent OR developer OR crypto) -is:retweet lang:en',
-]);
+import {
+  resolveInternalPipelineModel,
+  GROWTH_SECTOR_MAX_PER_QUERY,
+  GROWTH_SECTOR_MAX_TWEETS_LLM,
+  GROWTH_SECTOR_NARRATIVE_SEARCH_QUERIES,
+} from "../config/internalPipelineAgents.js";
 
 const TWEET_FIELDS = "created_at,public_metrics,author_id,text";
 const EXPANSIONS = "author_id";
@@ -48,15 +48,6 @@ async function fetchMacro() {
   });
   if (!res.ok) return null;
   return res.json().catch(() => null);
-}
-
-function parseQueriesFromEnv() {
-  const raw = String(process.env.GROWTH_SECTOR_NARRATIVE_QUERIES || "").trim();
-  if (!raw) return [...DEFAULT_QUERIES];
-  return raw
-    .split(/\|\|\||\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
 
 function usersByIdFromIncludes(body) {
@@ -118,21 +109,9 @@ function validateOutput(obj) {
  * @param {{ model?: string | null }} params
  */
 export async function runGrowthSectorNarrativeAgent({ model }) {
-  const queries = parseQueriesFromEnv();
-  const maxPerQuery = Math.min(
-    80,
-    Math.max(
-      10,
-      Number.parseInt(String(process.env.GROWTH_SECTOR_MAX_PER_QUERY || "28"), 10) || 28,
-    ),
-  );
-  const maxForLlm = Math.min(
-    85,
-    Math.max(
-      15,
-      Number.parseInt(String(process.env.GROWTH_SECTOR_MAX_TWEETS_LLM || "44"), 10) || 44,
-    ),
-  );
+  const queries = [...GROWTH_SECTOR_NARRATIVE_SEARCH_QUERIES];
+  const maxPerQuery = Math.min(80, Math.max(10, GROWTH_SECTOR_MAX_PER_QUERY));
+  const maxForLlm = Math.min(85, Math.max(15, GROWTH_SECTOR_MAX_TWEETS_LLM));
 
   const merged = new Map();
   for (const q of queries) {
@@ -163,11 +142,7 @@ export async function runGrowthSectorNarrativeAgent({ model }) {
   );
   const sampled = sorted.slice(0, maxForLlm);
 
-  const modelId =
-    typeof model === "string" && model.trim()
-      ? model.trim()
-      : String(process.env.GROWTH_INTERNAL_AGENTS_MODEL || "").trim() ||
-        OPENROUTER_DEFAULT_MODEL;
+  const modelId = resolveInternalPipelineModel(model);
 
   const userPayload = {
     tweetCount: merged.size,

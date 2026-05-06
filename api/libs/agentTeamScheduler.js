@@ -1,9 +1,9 @@
 /**
- * Agent team scheduler: runs on a fixed interval (default 24h) while the API process is up
- * → crawl → internal research → business strategy → Telegram → MongoDB.
+ * Agent team scheduler → crawl → internal research → business strategy → Telegram → MongoDB.
  *
- * Enabled by default in code. Set AGENT_TEAM_ENABLED=0 in env to disable.
- * Optional {@link getMsUntilNextWibWallClock} remains for external cron / tests (WIB wall clock).
+ * Schedule: once per calendar day at the WIB anchor in `./wibDailyWallClock.js` (default 06:00). No run on boot.
+ *
+ * External cron (optional): .github/workflows/agent-team-daily-wib.yml + POST /internal/agent-team/run.
  */
 
 import DashboardResearch from "../models/DashboardResearch.js";
@@ -11,92 +11,18 @@ import { crawlSyraSurfaces } from "./agentTeamCrawl.js";
 import { runInternalResearchAgent } from "../agents/internal-research-agent.js";
 import { runBusinessStrategyAgent } from "../agents/business-strategy-agent.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "./devTelegramNotifier.js";
+import {
+  getMsUntilNextWibWallClock,
+  INTERNAL_AGENT_PIPELINES_WIB_HOUR,
+  INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
+} from "./wibDailyWallClock.js";
+import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
 
 /** Mongo document id for latest agent-team run. */
 export const AGENT_TEAM_DB_ID = "agent-team-latest";
 
-/** IANA zone for WIB (Western Indonesian Time). */
-const AGENT_TEAM_TIMEZONE = "Asia/Jakarta";
-
-/**
- * Calendar + clock parts for `date` in {@link AGENT_TEAM_TIMEZONE}.
- * @param {Date} date
- * @returns {{ year: number; month: number; day: number; hour: number; minute: number; second: number }}
- */
-function getTimeZoneCalendarParts(date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: AGENT_TEAM_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-  const m = /** @type {Record<string, string>} */ ({});
-  for (const p of parts) {
-    if (p.type !== "literal") m[p.type] = p.value;
-  }
-  return {
-    year: Number(m.year),
-    month: Number(m.month),
-    day: Number(m.day),
-    hour: Number(m.hour),
-    minute: Number(m.minute),
-    second: Number(m.second),
-  };
-}
-
-/**
- * UTC instant when the Jakarta wall clock reads `hour:minute:00` on the given calendar day.
- * Jakarta is always UTC+7 (no DST).
- * @param {number} year
- * @param {number} month 1–12
- * @param {number} day 1–31
- * @param {number} hour 0–23
- * @param {number} minute 0–59
- * @returns {number} epoch ms
- */
-function jakartaWallClockToUtcMs(year, month, day, hour, minute) {
-  return Date.UTC(year, month - 1, day, hour - 7, minute, 0, 0);
-}
-
-/**
- * Milliseconds from `now` until the next occurrence of `targetHour:targetMinute` in Asia/Jakarta.
- * If `now` is exactly at or after that instant today, schedules tomorrow’s occurrence.
- *
- * @param {Date} [now]
- * @param {number} [targetHour] default 6 (06:00 WIB)
- * @param {number} [targetMinute] default 0
- * @returns {number}
- */
-export function getMsUntilNextWibWallClock(now = new Date(), targetHour = 6, targetMinute = 0) {
-  const { year, month, day } = getTimeZoneCalendarParts(now);
-  let targetUtc = jakartaWallClockToUtcMs(year, month, day, targetHour, targetMinute);
-  if (targetUtc <= now.getTime()) {
-    targetUtc += 86_400_000;
-  }
-  return Math.max(0, targetUtc - now.getTime());
-}
-
-/** Default 24h between runs (after each pipeline completes). */
-const DEFAULT_AGENT_TEAM_INTERVAL_MS = 86_400_000;
-const MIN_AGENT_TEAM_INTERVAL_MS = 3_600_000;
-const MAX_AGENT_TEAM_INTERVAL_MS = 7 * 86_400_000;
-
-/**
- * Milliseconds between agent-team runs. Env AGENT_TEAM_INTERVAL_MS optional (min 1h, max 7d).
- * @returns {number}
- */
-function getAgentTeamIntervalMs() {
-  const n = Number.parseInt(String(process.env.AGENT_TEAM_INTERVAL_MS || "").trim(), 10);
-  if (!Number.isFinite(n)) return DEFAULT_AGENT_TEAM_INTERVAL_MS;
-  return Math.min(
-    MAX_AGENT_TEAM_INTERVAL_MS,
-    Math.max(MIN_AGENT_TEAM_INTERVAL_MS, n),
-  );
-}
+/** Re-export for callers that imported from this module. */
+export { getMsUntilNextWibWallClock };
 
 /**
  * @typedef {import("../agents/internal-research-agent.js").InternalResearchOutput} InternalResearchOutput
@@ -171,15 +97,6 @@ export function formatBusinessForTelegram(business) {
 }
 
 /**
- * Resolve OpenRouter model from env (empty → agent uses default).
- * @returns {string | null}
- */
-function modelFromEnv() {
-  const m = String(process.env.AGENT_TEAM_MODEL || "").trim();
-  return m || null;
-}
-
-/**
  * Run full chained pipeline once (crawl → research → business → persist; Telegram best-effort).
  * @returns {Promise<{
  *   success: true;
@@ -193,7 +110,7 @@ function modelFromEnv() {
  * }>}
  */
 export async function runAgentTeamPipeline() {
-  const model = modelFromEnv();
+  const model = resolveInternalPipelineModel(null);
   const crawlOut = await crawlSyraSurfaces({});
   const { snapshot, generatedAt, baseUrls } = crawlOut;
 
@@ -253,22 +170,8 @@ export async function runAgentTeamPipeline() {
   };
 }
 
-/**
- * Start in-process scheduler: first pipeline run shortly after startup, then every
- * {@link DEFAULT_AGENT_TEAM_INTERVAL_MS} (24h) after each run finishes. Safe to call once at startup.
- */
+/** Start in-process scheduler: next run at WIB anchor, then same wall clock daily. */
 export function startAgentTeamScheduler() {
-  if (String(process.env.AGENT_TEAM_ENABLED || "").trim() === "0") {
-    console.log("[agent-team] disabled (AGENT_TEAM_ENABLED=0)");
-    return;
-  }
-
-  const intervalMs = getAgentTeamIntervalMs();
-  const intervalLabel =
-    intervalMs % 3_600_000 === 0
-      ? `${intervalMs / 3_600_000}h`
-      : `${Math.round(intervalMs / 60_000)} min`;
-
   let running = false;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let nextTimer = null;
@@ -296,23 +199,24 @@ export function startAgentTeamScheduler() {
     }
   };
 
-  const scheduleAfter = (delayMs) => {
+  const scheduleNextWibAnchor = () => {
     if (nextTimer) clearTimeout(nextTimer);
-    if (delayMs > 0) {
-      const nextAt = new Date(Date.now() + delayMs).toISOString();
-      console.log(
-        `[agent-team] next run in ${Math.round(delayMs / 1000)}s (~${nextAt} UTC; every ${intervalLabel} after completion)`,
-      );
-    } else {
-      console.log("[agent-team] first pipeline run scheduled (startup)");
-    }
+    const delayMs = getMsUntilNextWibWallClock(
+      new Date(),
+      INTERNAL_AGENT_PIPELINES_WIB_HOUR,
+      INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
+    );
+    const nextAt = new Date(Date.now() + delayMs).toISOString();
+    console.log(
+      `[agent-team] next run in ${Math.round(delayMs / 1000)}s (~${nextAt} UTC; daily ${String(INTERNAL_AGENT_PIPELINES_WIB_HOUR).padStart(2, "0")}:${String(INTERNAL_AGENT_PIPELINES_WIB_MINUTE).padStart(2, "0")} Asia/Jakarta)`,
+    );
     nextTimer = setTimeout(async () => {
       await tick();
-      scheduleAfter(intervalMs);
+      scheduleNextWibAnchor();
     }, delayMs);
   };
 
-  scheduleAfter(0);
+  scheduleNextWibAnchor();
 
   if (!isDevTelegramConfigured()) {
     console.warn(
@@ -321,9 +225,9 @@ export function startAgentTeamScheduler() {
   }
 
   console.log(
-    `[agent-team] enabled in code (opt-out: AGENT_TEAM_ENABLED=0); every ${intervalLabel}; Telegram: ${isDevTelegramConfigured() ? "on" : "off (set SYRA_DEV_BOT_*)"}`,
+    `[agent-team] enabled; WIB daily ${String(INTERNAL_AGENT_PIPELINES_WIB_HOUR).padStart(2, "0")}:${String(INTERNAL_AGENT_PIPELINES_WIB_MINUTE).padStart(2, "0")} Asia/Jakarta; Telegram: ${isDevTelegramConfigured() ? "on" : "off (set SYRA_DEV_BOT_*)"}`,
   );
   console.log(
-    "[agent-team] hint: if this host sleeps or restarts often, use GitHub Actions (.github/workflows/agent-team-daily-wib.yml) + AGENT_TEAM_CRON_SECRET",
+    "[agent-team] dual-trigger OK: GitHub Actions (.github/workflows/agent-team-daily-wib.yml) can POST /internal/agent-team/run without changing this schedule",
   );
 }

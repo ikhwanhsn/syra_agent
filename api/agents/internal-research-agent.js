@@ -5,7 +5,7 @@
 
 import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
+import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
 
 /**
  * @typedef {import("../libs/agentTeamCrawl.js").CrawlSnapshotItem} CrawlSnapshotItem
@@ -216,8 +216,7 @@ export async function runInternalResearchAgent({ snapshot, model }) {
     throw new Error("runInternalResearchAgent: snapshot is required");
   }
 
-  const modelId =
-    typeof model === "string" && model.trim() ? model.trim() : OPENROUTER_DEFAULT_MODEL;
+  const modelId = resolveInternalPipelineModel(model);
   const userContent = buildUserContent(snapshot);
 
   const messages = [

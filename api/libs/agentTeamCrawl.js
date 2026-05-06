@@ -8,20 +8,17 @@ import {
   startCrawl,
   pollCrawlUntilComplete,
 } from "./cloudflareCrawl.js";
+import {
+  AGENT_TEAM_CRAWL_BASE_URLS,
+  AGENT_TEAM_CRAWL_DEPTH,
+  AGENT_TEAM_CRAWL_PER_SITE_LIMIT,
+} from "../config/internalPipelineAgents.js";
 
 /** Per-page markdown cap before LLM (characters). */
 const DEFAULT_PAGE_MARKDOWN_MAX = 8192;
 
 /** Total snapshot string budget (sum of markdown lengths, characters). */
 const DEFAULT_SNAPSHOT_TOTAL_MAX = 200_000;
-
-const DEFAULT_BASE_URLS = [
-  "https://syraa.fun",
-  "https://docs.syraa.fun",
-  "https://agent.syraa.fun",
-  "https://api.syraa.fun",
-  "https://playground.syraa.fun",
-];
 
 /**
  * @typedef {{ url: string; title: string; markdown: string }} CrawlSnapshotItem
@@ -37,16 +34,9 @@ function truncateChars(s, max) {
   return `${s.slice(0, max)}…`;
 }
 
-/**
- * @returns {string[]}
- */
-export function getAgentTeamBaseUrlsFromEnv() {
-  const raw = String(process.env.AGENT_TEAM_BASE_URLS || "").trim();
-  if (!raw) return [...DEFAULT_BASE_URLS];
-  return raw
-    .split(",")
-    .map((u) => u.trim().replace(/\/+$/, ""))
-    .filter(Boolean);
+/** @returns {string[]} */
+export function getAgentTeamBaseUrls() {
+  return [...AGENT_TEAM_CRAWL_BASE_URLS];
 }
 
 /**
@@ -183,13 +173,14 @@ export async function crawlSyraSurfaces(options = {}) {
 
   const depth = Math.min(
     10,
-    Math.max(1, Number(options.depth ?? process.env.AGENT_TEAM_CRAWL_DEPTH) || 2),
+    Math.max(1, Number(options.depth ?? AGENT_TEAM_CRAWL_DEPTH) || AGENT_TEAM_CRAWL_DEPTH),
   );
   const perSiteLimit = Math.min(
     500,
     Math.max(
       1,
-      Number(options.perSiteLimit ?? process.env.AGENT_TEAM_PER_SITE_LIMIT) || 30,
+      Number(options.perSiteLimit ?? AGENT_TEAM_CRAWL_PER_SITE_LIMIT) ||
+        AGENT_TEAM_CRAWL_PER_SITE_LIMIT,
     ),
   );
   const pageMax =
@@ -201,7 +192,7 @@ export async function crawlSyraSurfaces(options = {}) {
       ? options.snapshotTotalMax
       : DEFAULT_SNAPSHOT_TOTAL_MAX;
 
-  const baseUrls = getAgentTeamBaseUrlsFromEnv();
+  const baseUrls = getAgentTeamBaseUrls();
   /** @type {CrawlSnapshotItem[]} */
   const snapshot = [];
 

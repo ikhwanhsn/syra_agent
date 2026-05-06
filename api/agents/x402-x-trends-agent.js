@@ -5,12 +5,12 @@
 import { searchRecentTweets } from "../libs/xApiClient.js";
 import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
-
-const DEFAULT_QUERIES = Object.freeze([
-  "x402 -is:retweet lang:en",
-  '("x402" OR payai OR corbits) (payment OR facilitator OR micropayment) -is:retweet lang:en',
-]);
+import {
+  resolveInternalPipelineModel,
+  X402_X_TRENDS_MAX_PER_QUERY,
+  X402_X_TRENDS_MAX_TWEETS_LLM,
+  X402_X_TRENDS_SEARCH_QUERIES,
+} from "../config/internalPipelineAgents.js";
 
 const TWEET_FIELDS = "created_at,public_metrics,author_id,text";
 const EXPANSIONS = "author_id";
@@ -49,34 +49,6 @@ Rules:
  *   tweetsSampled: number;
  * }} X402XTrendsOutput
  */
-
-function parseQueriesFromEnv() {
-  const raw = String(process.env.X402_X_TRENDS_QUERIES || "").trim();
-  if (!raw) return [...DEFAULT_QUERIES];
-  const parts = raw
-    .split(/\|\|\||\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts : [...DEFAULT_QUERIES];
-}
-
-function parseMaxPerQuery() {
-  const n = Number.parseInt(
-    String(process.env.X402_X_TRENDS_MAX_PER_QUERY || "").trim(),
-    10,
-  );
-  if (!Number.isFinite(n)) return 35;
-  return Math.min(80, Math.max(10, n));
-}
-
-function parseMaxForLlm() {
-  const n = Number.parseInt(
-    String(process.env.X402_X_TRENDS_MAX_TWEETS_LLM || "").trim(),
-    10,
-  );
-  if (!Number.isFinite(n)) return 55;
-  return Math.min(100, Math.max(15, n));
-}
 
 /**
  * @param {string} text
@@ -220,9 +192,9 @@ function normalizeTweet(tweet, usersById) {
  * @returns {Promise<X402XTrendsOutput>}
  */
 export async function runX402XTrendsAgent({ model }) {
-  const queries = parseQueriesFromEnv();
-  const maxPerQuery = parseMaxPerQuery();
-  const maxForLlm = parseMaxForLlm();
+  const queries = [...X402_X_TRENDS_SEARCH_QUERIES];
+  const maxPerQuery = Math.min(80, Math.max(10, X402_X_TRENDS_MAX_PER_QUERY));
+  const maxForLlm = Math.min(100, Math.max(15, X402_X_TRENDS_MAX_TWEETS_LLM));
 
   const merged = new Map();
 
@@ -269,11 +241,7 @@ export async function runX402XTrendsAgent({ model }) {
     })),
   };
 
-  const modelId =
-    typeof model === "string" && model.trim()
-      ? model.trim()
-      : String(process.env.X402_X_TRENDS_MODEL || "").trim() ||
-        OPENROUTER_DEFAULT_MODEL;
+  const modelId = resolveInternalPipelineModel(model);
 
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },

@@ -6,7 +6,7 @@
 import { callOpenRouter } from "../libs/openrouter.js";
 import { parseJsonObjectFromLlm } from "../libs/llmJsonObjectParse.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
+import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
 import { SYRA_TOKEN_MINT } from "../libs/syraToken.js";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -152,11 +152,7 @@ export async function runGrowthSyraMarketAgent({ model }) {
     note: "SYRA often 9 decimals on pump.fun style mints; interpret Jupiter outAmount accordingly.",
   };
 
-  const modelId =
-    typeof model === "string" && model.trim()
-      ? model.trim()
-      : String(process.env.GROWTH_INTERNAL_AGENTS_MODEL || "").trim() ||
-        OPENROUTER_DEFAULT_MODEL;
+  const modelId = resolveInternalPipelineModel(model);
 
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
