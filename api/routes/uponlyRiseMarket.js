@@ -60,6 +60,38 @@ function toStr(v) {
   return t.length > 0 ? t : null;
 }
 
+function getIpfsGatewayBase() {
+  const raw = typeof process.env.IPFS_GATEWAY === "string" ? process.env.IPFS_GATEWAY.trim() : "";
+  if (raw) return raw.replace(/\/$/, "");
+  return "https://ipfs.io";
+}
+
+/**
+ * Return an https (or data:) URL browsers and canvas Image can load.
+ * RISE commonly returns ipfs://; we previously dropped those (only http*), so logos were missing.
+ */
+function normalizeTokenImageUrl(raw) {
+  const t = toStr(raw);
+  if (!t) return null;
+  const lower = t.toLowerCase();
+  if (lower.startsWith("http://") || lower.startsWith("https://")) return t;
+  if (lower.startsWith("data:image/")) return t;
+  if (t.startsWith("//")) return `https:${t}`;
+  const gateway = getIpfsGatewayBase();
+  if (lower.startsWith("ipfs://")) {
+    const path = t.slice(7).replace(/^\/+/, "");
+    return `${gateway}/ipfs/${path}`;
+  }
+  if (t.startsWith("/ipfs/")) {
+    return `${gateway}${t}`;
+  }
+  if (lower.startsWith("ar://")) {
+    const id = t.slice(5).replace(/^\/+/, "").split("/")[0];
+    if (id) return `https://arweave.net/${id}`;
+  }
+  return null;
+}
+
 function getPath(obj, path) {
   if (!obj || typeof obj !== "object") return undefined;
   return path.split(".").reduce((acc, part) => (acc && typeof acc === "object" ? acc[part] : undefined), obj);
@@ -171,7 +203,7 @@ function normalizeRiseMarketRow(m) {
   const updatedAt = toStr(m.updated_at);
   const ageHours = createdAt ? Math.max(0, (Date.now() - new Date(createdAt).getTime()) / 3_600_000) : null;
   const tokenImage = toStr(m.token_image);
-  const imageUrl = tokenImage && tokenImage.startsWith("http") ? tokenImage : null;
+  const imageUrl = normalizeTokenImageUrl(tokenImage);
   const tokenUri = toStr(m.token_uri);
   const tokenDecimalsRaw = toNum(m.token_decimals);
   const tokenDecimals =
@@ -267,7 +299,7 @@ export function normalizeRisePublicMarket(m) {
   if (allTimeHighUsd != null && allTimeHighUsd > 0 && floorPriceUsd != null) {
     floorPctOfAth = (floorPriceUsd / allTimeHighUsd) * 100;
   }
-  const imageUrl = typeof m.token_image === "string" && m.token_image.startsWith("http") ? m.token_image : null;
+  const imageUrl = normalizeTokenImageUrl(toStr(m.token_image));
   return {
     priceUsd,
     marketCapUsd,
@@ -917,10 +949,7 @@ async function portfolioPositionsHandler(req, res) {
       marketAddress: toStr(p.rise_market_address) || toStr(p.market),
       name: toStr(p.token_name),
       symbol: toStr(p.token_symbol),
-      imageUrl: (() => {
-        const img = toStr(p.token_image);
-        return img && img.startsWith("http") ? img : null;
-      })(),
+      imageUrl: normalizeTokenImageUrl(toStr(p.token_image)),
       balance: toNum(p.balance) ?? toNum(p.amount),
       balanceUsd: toNum(p.balance_usd) ?? toNum(p.value_usd),
       avgEntryUsd: toNum(p.avg_entry_usd) ?? toNum(p.entry_price_usd),

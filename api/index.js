@@ -587,6 +587,7 @@ app.get("/favicon.ico", (req, res) => {
 
 // Rate limit all non-x402 routes (preview, dashboard-summary, x, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
 // Strict dual-window: burst 25/10s + sustained 100/min. Only x402 (paid) routes skip.
+// Skip RISE proxies: one session loads many list pages (full-universe); counting each page toward burst breaks the UpOnly dashboard with 429.
 app.use(
   rateLimit({
     strict: true,
@@ -594,12 +595,18 @@ app.use(
     burstMax: 25,
     windowMs: 60 * 1000,
     max: 100,
-    skip: (req) =>
-      isX402Route(req.path) ||
-      (req.path || "").startsWith("/internal/tester-agent") ||
-      (req.path || "").startsWith("/internal/agent-team/run") ||
-      (req.path || "").startsWith("/internal/x402-x-trends/run") ||
-      (req.path || "").startsWith("/internal/growth-"),
+    skip: (req) => {
+      const p = req.path || "";
+      return (
+        isX402Route(p) ||
+        p.startsWith("/internal/tester-agent") ||
+        p.startsWith("/internal/agent-team/run") ||
+        p.startsWith("/internal/x402-x-trends/run") ||
+        p.startsWith("/internal/growth-") ||
+        p.startsWith("/uponly-rise-market") ||
+        p.startsWith("/uponly-rise-portfolio")
+      );
+    },
   }),
 );
 

@@ -20,6 +20,46 @@ import type {
   RiseTransactionsResponse,
 } from "./riseDashboardTypes";
 
+/** Same canonical mint as `@/components/rise/RiseShared` (avoid importing React entry from this module). */
+const RISE_UPONLY_MINT = "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise" as const;
+
+function dedupeMarketsByMint(rows: RiseMarketRow[]): Map<string, RiseMarketRow> {
+  const dedup = new Map<string, RiseMarketRow>();
+  for (const row of rows) {
+    if (!row.mint) continue;
+    if (!dedup.has(row.mint)) dedup.set(row.mint, row);
+  }
+  return dedup;
+}
+
+/** Adds UPONLY row from aggregate when missing; skips GET /aggregate if already listed or prefetch provided. */
+async function mergeUponlySpotlightIntoDedup(
+  dedup: Map<string, RiseMarketRow>,
+  signal: AbortSignal | undefined,
+  prefetchedAggregate: RiseAggregateResponse | undefined,
+): Promise<RiseMarketRow[]> {
+  const mergeFromAgg = (agg: RiseAggregateResponse) => {
+    const uponly = agg.uponly;
+    if (uponly?.mint && !dedup.has(uponly.mint)) dedup.set(uponly.mint, uponly);
+  };
+
+  if (prefetchedAggregate !== undefined) {
+    mergeFromAgg(prefetchedAggregate);
+    return Array.from(dedup.values());
+  }
+
+  if (dedup.has(RISE_UPONLY_MINT)) {
+    return Array.from(dedup.values());
+  }
+
+  try {
+    mergeFromAgg(await getRiseAggregate(signal));
+  } catch {
+    // list still valid without spotlight merge
+  }
+  return Array.from(dedup.values());
+}
+
 export class RiseDashboardApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -100,39 +140,58 @@ export function getRiseMarkets(
   return riseFetch<RiseMarketsListResponse>(`/uponly-rise-markets${q}`, { signal });
 }
 
-const MARKETS_ALL_PAGE_CONCURRENCY = 4;
+/** Low concurrency + small gaps between batches avoids RISE/upstream 403s when the full-universe walk races other dashboard calls. */
+const MARKETS_ALL_PAGE_CONCURRENCY = 2;
+const MARKETS_ALL_BATCH_GAP_MS = 80;
 
-/**
- * First page of the markets list (default server sort) + UPONLY from aggregate when missing.
- * Use for overview bubble map / fast above-the-fold UI — avoids walking every list page.
- */
-export async function getRiseMarketsTop(limit: number, signal?: AbortSignal): Promise<RiseMarketRow[]> {
-  const [first, aggregate] = await Promise.all([
-    getRiseMarkets({ page: 1, limit }, signal),
-    getRiseAggregate(signal).catch((): null => null),
-  ]);
-  const dedup = new Map<string, RiseMarketRow>();
-  for (const row of first.markets) {
-    if (row.mint) dedup.set(row.mint, row);
-  }
-  const uponly = aggregate?.uponly;
-  if (uponly?.mint && !dedup.has(uponly.mint)) {
-    dedup.set(uponly.mint, uponly);
-  }
-  return Array.from(dedup.values());
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const t = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(t);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /**
- * Full sorted universe for terminal-style views: walks every page at `limit`,
- * dedupes by mint, and merges UPONLY from aggregate when missing from the list.
+ * First list page merged with UPONLY spotlight from aggregate (bubble map / fast surfaces).
+ * Pass `prefetchedAggregate` from TanStack [`rise-aggregate`] to avoid a duplicate GET /aggregate.
  */
-export async function getRiseMarketsAll(limit: number, signal?: AbortSignal): Promise<RiseMarketRow[]> {
+export async function getRiseMarketsTop(
+  limit: number,
+  signal?: AbortSignal,
+  prefetchedAggregate?: RiseAggregateResponse,
+): Promise<RiseMarketRow[]> {
+  const first = await getRiseMarkets({ page: 1, limit }, signal);
+  const dedup = dedupeMarketsByMint(first.markets);
+  return mergeUponlySpotlightIntoDedup(dedup, signal, prefetchedAggregate);
+}
+
+/**
+ * Full universe (paginated walk). Optional `prefetchedAggregate` avoids a trailing GET /aggregate when
+ * already supplied from TanStack [`rise-aggregate`].
+ */
+export async function getRiseMarketsAll(
+  limit: number,
+  signal?: AbortSignal,
+  prefetchedAggregate?: RiseAggregateResponse,
+): Promise<RiseMarketRow[]> {
   const first = await getRiseMarkets({ page: 1, limit }, signal);
   const totalPages = Math.max(1, first.totalPages ?? 1);
   const merged: RiseMarketRow[] = [...first.markets];
   if (totalPages > 1) {
     const remainingPages = Array.from({ length: totalPages - 1 }, (_, idx) => idx + 2);
     for (let i = 0; i < remainingPages.length; i += MARKETS_ALL_PAGE_CONCURRENCY) {
+      if (i > 0) await delay(MARKETS_ALL_BATCH_GAP_MS, signal);
       const chunk = remainingPages.slice(i, i + MARKETS_ALL_PAGE_CONCURRENCY);
       const chunkResponses = await Promise.all(chunk.map((page) => getRiseMarkets({ page, limit }, signal)));
       for (const next of chunkResponses) {
@@ -140,21 +199,8 @@ export async function getRiseMarketsAll(limit: number, signal?: AbortSignal): Pr
       }
     }
   }
-  const dedup = new Map<string, RiseMarketRow>();
-  for (const row of merged) {
-    if (!row.mint) continue;
-    if (!dedup.has(row.mint)) dedup.set(row.mint, row);
-  }
-  try {
-    const aggregate = await getRiseAggregate(signal);
-    const uponly = aggregate.uponly;
-    if (uponly?.mint && !dedup.has(uponly.mint)) {
-      dedup.set(uponly.mint, uponly);
-    }
-  } catch {
-    // Keep markets list usable if aggregate endpoint is temporarily degraded.
-  }
-  return Array.from(dedup.values());
+  const dedup = dedupeMarketsByMint(merged);
+  return mergeUponlySpotlightIntoDedup(dedup, signal, prefetchedAggregate);
 }
 
 /* --- Per-market --- */

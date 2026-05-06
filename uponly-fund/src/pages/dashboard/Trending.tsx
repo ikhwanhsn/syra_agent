@@ -22,8 +22,8 @@ export default function TrendingPage() {
           title={copy.pages.overviewTitle}
           description={copy.pages.overviewDescription}
         />
-        <RiseBubbleMap onSelect={goToToken} />
         <RiseTrendingMarkets onSelect={goToToken} />
+        <RiseBubbleMap onSelect={goToToken} />
       </div>
     </div>
   );

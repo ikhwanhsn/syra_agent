@@ -8,7 +8,7 @@
  * `useRiseQuote`, etc.) live next to it so callers can opt into them per row
  * (e.g. inside a drawer) without inflating the global cache.
  */
-import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import {
   getRiseAggregate,
@@ -196,10 +196,19 @@ export function useRisePortfolioPositions(wallet: string | null | undefined, pag
  * @param _limit — ignored; API max page size is {@link RISE_MARKETS_UNIVERSE_PAGE_SIZE}.
  */
 export function useRiseMarketsAll(_limit = RISE_MARKETS_UNIVERSE_PAGE_SIZE, queryOptions?: RiseMarketsQueryOptions) {
+  const queryClient = useQueryClient();
   const refetchInterval = queryOptions?.refetchInterval;
   return useQuery<RiseMarketRow[], Error>({
     queryKey: RISE_MARKETS_ALL_QUERY_KEY,
-    queryFn: ({ signal }) => getRiseMarketsAll(RISE_MARKETS_UNIVERSE_PAGE_SIZE, signal),
+    queryFn: async ({ signal }) => {
+      const aggregate = await queryClient.ensureQueryData<RiseAggregateResponse>({
+        queryKey: ["rise-aggregate"],
+        queryFn: ({ signal: s }) => getRiseAggregate(s),
+        staleTime: AGGREGATE_REFETCH_MS,
+        retry: 1,
+      });
+      return getRiseMarketsAll(RISE_MARKETS_UNIVERSE_PAGE_SIZE, signal, aggregate);
+    },
     staleTime: LIST_REFETCH_MS,
     ...(refetchInterval !== undefined ? { refetchInterval } : {}),
     retry: 1,
@@ -208,10 +217,19 @@ export function useRiseMarketsAll(_limit = RISE_MARKETS_UNIVERSE_PAGE_SIZE, quer
 
 /** First page only — fast for bubble map / hero surfaces (see `getRiseMarketsTop`). */
 export function useRiseMarketsTop(limit = 100, queryOptions?: RiseMarketsQueryOptions) {
+  const queryClient = useQueryClient();
   const refetchInterval = queryOptions?.refetchInterval;
   return useQuery<RiseMarketRow[], Error>({
     queryKey: ["rise-markets-top", limit],
-    queryFn: ({ signal }) => getRiseMarketsTop(limit, signal),
+    queryFn: async ({ signal }) => {
+      const aggregate = await queryClient.ensureQueryData<RiseAggregateResponse>({
+        queryKey: ["rise-aggregate"],
+        queryFn: ({ signal: s }) => getRiseAggregate(s),
+        staleTime: AGGREGATE_REFETCH_MS,
+        retry: 1,
+      });
+      return getRiseMarketsTop(limit, signal, aggregate);
+    },
     staleTime: LIST_REFETCH_MS,
     ...(refetchInterval !== undefined ? { refetchInterval } : {}),
     retry: 1,
