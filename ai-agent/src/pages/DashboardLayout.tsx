@@ -20,6 +20,7 @@ import {
   Mail,
   Send,
   UsersRound,
+  Droplets,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
@@ -42,6 +43,7 @@ const DASHBOARD_SECTIONS = [
   { path: "alpha", label: "Alpha", icon: Telescope },
   { path: "trading-experiment", label: "Trading experiment", icon: FlaskConical },
   { path: "arbitrage-experiment", label: "Arbitrage experiment", icon: Scale },
+  { path: "lp-experiment", label: "LP agent experiment", icon: Droplets },
 ] as const;
 
 const MARKETPLACE_PAGE_TITLES: Record<string, string> = {
@@ -91,6 +93,7 @@ function dashboardPageTitle(pathname: string): string {
   if (parts[1] === "alpha") return "Alpha";
   if (parts[1] === "trading-experiment") return "Trading experiment";
   if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
+  if (parts[1] === "lp-experiment") return "LP agent experiment";
   if (parts[1] === "internal-team-agents") {
     if (parts[2]) {
       const slug = parts[2];

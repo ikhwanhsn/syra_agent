@@ -53,6 +53,7 @@ import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 // exa-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter, pumpfun, squid, bubblemaps,
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
+import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
 import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
@@ -975,6 +976,8 @@ app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
+// LP agent experiment lab (Meteora DLMM dry-run simulation only)
+app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
 
@@ -1113,6 +1116,8 @@ app.listen(PORT, () => {
   const validateMs = Number(
     process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0,
   );
+  const lpSignalMs = Number(process.env.LP_AGENT_EXPERIMENT_SIGNAL_CRON_MS || 0);
+  const lpResolveMs = Number(process.env.LP_AGENT_EXPERIMENT_RESOLVE_CRON_MS || 0);
 
   const runValidate = () =>
     import("./libs/tradingExperimentService.js")
@@ -1188,6 +1193,68 @@ app.listen(PORT, () => {
   if (legacyMs >= 60_000 && validateMs < 1_000 && signalMs < 60_000) {
     setInterval(runFull, legacyMs);
   }
+
+  const runLpSignal = () =>
+    import("./libs/lpExperimentService.js")
+      .then(({ runLpExperimentSignalCycle }) => runLpExperimentSignalCycle())
+      .then((out) => {
+        if (out.errors?.length) {
+          console.warn("[LP experiment] signal errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) =>
+        console.warn("[LP experiment] signal failed:", err?.message || err),
+      );
+
+  const runLpResolve = () =>
+    import("./libs/lpExperimentService.js")
+      .then(({ resolveOpenLpRuns }) => resolveOpenLpRuns())
+      .then((out) => {
+        if (out.errors?.length) {
+          console.warn("[LP experiment] resolve errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) =>
+        console.warn("[LP experiment] resolve failed:", err?.message || err),
+      );
+
+  if (lpSignalMs >= 60_000) {
+    setInterval(runLpSignal, lpSignalMs);
+  }
+  if (lpResolveMs >= 5_000) {
+    setInterval(runLpResolve, lpResolveMs);
+  }
+
+  import("./libs/lpExperimentEvolution.js")
+    .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {
+      const evo = lpEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = () =>
+        runLpExperimentEvolution({
+          removeCount: evo.removeCount,
+          minDecided: evo.minDecided,
+          pinned: evo.pinned,
+        })
+          .then((out) => {
+            if (!out.ok) return;
+            if (out.skipped) {
+              console.info("[LP experiment evolution] skipped:", out.skipped);
+              return;
+            }
+            console.info(
+              "[LP experiment evolution]",
+              "culled",
+              out.culled?.length ?? 0,
+              "spawned",
+              out.spawned?.length ?? 0,
+            );
+          })
+          .catch((err) =>
+            console.warn("[LP experiment evolution failed]", err?.message || err),
+          );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
 
   import("./libs/tradingExperimentEvolution.js")
     .then(({ evolutionConfigFromEnv, runTradingExperimentEvolution }) => {
