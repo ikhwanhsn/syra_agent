@@ -1111,13 +1111,13 @@ import("./utils/x402ResourceServer.js").then(
 );
 
 app.listen(PORT, () => {
+  const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
+  const LP_AGENT_RESOLVE_INTERVAL_MS = 15_000;
   const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
   const signalMs = Number(process.env.TRADING_EXPERIMENT_SIGNAL_CRON_MS || 0);
   const validateMs = Number(
     process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0,
   );
-  const lpSignalMs = Number(process.env.LP_AGENT_EXPERIMENT_SIGNAL_CRON_MS || 0);
-  const lpResolveMs = Number(process.env.LP_AGENT_EXPERIMENT_RESOLVE_CRON_MS || 0);
 
   const runValidate = () =>
     import("./libs/tradingExperimentService.js")
@@ -1218,11 +1218,11 @@ app.listen(PORT, () => {
         console.warn("[LP experiment] resolve failed:", err?.message || err),
       );
 
-  if (lpSignalMs >= 60_000) {
-    setInterval(runLpSignal, lpSignalMs);
+  if (LP_AGENT_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runLpSignal, LP_AGENT_SIGNAL_INTERVAL_MS);
   }
-  if (lpResolveMs >= 5_000) {
-    setInterval(runLpResolve, lpResolveMs);
+  if (LP_AGENT_RESOLVE_INTERVAL_MS >= 5_000) {
+    setInterval(runLpResolve, LP_AGENT_RESOLVE_INTERVAL_MS);
   }
 
   import("./libs/lpExperimentEvolution.js")
