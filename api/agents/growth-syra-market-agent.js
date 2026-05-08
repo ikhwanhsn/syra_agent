@@ -13,6 +13,7 @@ const SOL_MINT = "So11111111111111111111111111111111111111112";
 const JUPITER_QUOTE =
   "https://quote-api.jup.ag/v6/quote";
 const DEXSCREENER_TOKEN = "https://api.dexscreener.com/latest/dex/tokens";
+const DEXSCREENER_TOKEN_PAIRS_V1 = "https://api.dexscreener.com/token-pairs/v1/solana";
 const COINGECKO_SIMPLE =
   "https://api.coingecko.com/api/v3/simple/price?ids=solana,bitcoin&vs_currencies=usd&include_24hr_change=true";
 
@@ -36,18 +37,59 @@ Write in English. Be direct; no hype phrases like "guaranteed" or "moon".`;
 /**
  * @returns {Promise<object>}
  */
+async function fetchJsonWithRetry(url, { timeoutMs, retries = 2, optional = false, headers } = {}) {
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          ...(headers || {}),
+        },
+        signal:
+          typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+            ? AbortSignal.timeout(timeoutMs)
+            : undefined,
+      });
+      if (!res.ok) {
+        if (optional) return null;
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return await res.json();
+    } catch (err) {
+      lastError = err;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+        continue;
+      }
+    }
+  }
+
+  const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  if (optional) return null;
+  throw new Error(`fetch failed: ${errorMessage}`);
+}
+
+/**
+ * @returns {Promise<object>}
+ */
 async function fetchDexScreenerPairs(mint) {
   const url = `${DEXSCREENER_TOKEN}/${encodeURIComponent(mint)}`;
-  const res = await fetch(url, {
-    signal:
-      typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(14_000)
-        : undefined,
-  });
-  if (!res.ok) {
-    throw new Error(`DexScreener HTTP ${res.status}`);
+  try {
+    return await fetchJsonWithRetry(url, { timeoutMs: 14_000, retries: 2 });
+  } catch (primaryErr) {
+    // Fallback endpoint helps when one DexScreener route is flaky/rate-limited.
+    const fallbackUrl = `${DEXSCREENER_TOKEN_PAIRS_V1}/${encodeURIComponent(mint)}`;
+    try {
+      const rawPairs = await fetchJsonWithRetry(fallbackUrl, { timeoutMs: 14_000, retries: 2 });
+      const pairs = Array.isArray(rawPairs) ? rawPairs : [];
+      return { pairs };
+    } catch (fallbackErr) {
+      const p = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+      const f = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+      throw new Error(`DexScreener unreachable (${p}; fallback: ${f})`);
+    }
   }
-  return res.json();
 }
 
 /**
@@ -61,30 +103,14 @@ async function fetchJupiterQuoteSolToSyra(mint) {
     slippageBps: "150",
   });
   const url = `${JUPITER_QUOTE}?${params.toString()}`;
-  const res = await fetch(url, {
-    signal:
-      typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(12_000)
-        : undefined,
-  });
-  if (!res.ok) {
-    return null;
-  }
-  return res.json().catch(() => null);
+  return fetchJsonWithRetry(url, { timeoutMs: 12_000, retries: 2, optional: true });
 }
 
 /**
  * @returns {Promise<object | null>}
  */
 async function fetchMacroUsd() {
-  const res = await fetch(COINGECKO_SIMPLE, {
-    signal:
-      typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(10_000)
-        : undefined,
-  });
-  if (!res.ok) return null;
-  return res.json().catch(() => null);
+  return fetchJsonWithRetry(COINGECKO_SIMPLE, { timeoutMs: 10_000, retries: 1, optional: true });
 }
 
 /**
@@ -97,8 +123,9 @@ function validateOutput(obj) {
   if (typeof o.summary !== "string" || !o.summary.trim()) return false;
   const liq = o.liquidityAssessment;
   const vol = o.volumeAssessment;
-  const allowed = new Set(["thin", "moderate", "healthy", "unknown"]);
-  if (!allowed.has(liq) || !allowed.has(vol)) return false;
+  const allowedLiquidity = new Set(["thin", "moderate", "healthy", "unknown"]);
+  const allowedVolume = new Set(["cold", "warming", "active", "unknown"]);
+  if (!allowedLiquidity.has(liq) || !allowedVolume.has(vol)) return false;
   if (!Array.isArray(o.bullSignals) || !Array.isArray(o.riskSignals) || !Array.isArray(o.growthActions))
     return false;
   if (typeof o.oneLineNorthStar !== "string") return false;

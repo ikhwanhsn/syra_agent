@@ -1,4 +1,4 @@
-import type { BubbleDatum, BubbleSizeMetric, BubbleTone } from "./bubbleMapTypes";
+import type { BubbleDatum, BubbleSimNode, BubbleSizeMetric, BubbleTone, WorldBBox } from "./bubbleMapTypes";
 
 const EPS = 1e-9;
 
@@ -93,6 +93,28 @@ export function hslFromTone(
     fillEdge: `hsl(220 16% 22% / 0.5)`,
     glow: `hsl(220 20% 50% / ${0.12 + 0.1 * i})`,
     stroke: `hsl(220 12% 45% / 0.55)`,
+  };
+}
+
+/** Axis-aligned world-bounds over visible bubbles, with `pad` on every edge. Null when graph empty. */
+export function computeBubbleWorldBounds(nodes: readonly BubbleSimNode[], pad: number): WorldBBox | null {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const n of nodes) {
+    if (n.removing && n.alpha < 0.2) continue;
+    if (n.x - n.r < minX) minX = n.x - n.r;
+    if (n.y - n.r < minY) minY = n.y - n.r;
+    if (n.x + n.r > maxX) maxX = n.x + n.r;
+    if (n.y + n.r > maxY) maxY = n.y + n.r;
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
+  return {
+    minX: minX - pad,
+    minY: minY - pad,
+    maxX: maxX + pad,
+    maxY: maxY + pad,
   };
 }
 

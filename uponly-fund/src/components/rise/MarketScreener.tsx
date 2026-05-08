@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useRiseMarkets, useRiseMarketsAll } from "@/lib/RiseDashboardContext";
+import { useRiseMarkets, useRiseMarketsAll, useRiseOhlcBatch } from "@/lib/RiseDashboardContext";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { cn } from "@/lib/utils";
@@ -285,6 +285,12 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
     () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     [sorted, page],
   );
+
+  const sparklineMints = useMemo(
+    () => pagedRows.map((m) => m.marketAddress || m.mint).filter((a): a is string => !!a && a.length >= 32),
+    [pagedRows],
+  );
+  useRiseOhlcBatch(sparklineMints);
   const isPending = allMarketsQuery.isPending && firstPageQuery.isPending && sourceRows.length === 0;
   const isFetching = allMarketsQuery.isFetching || firstPageQuery.isFetching;
   const isError = sourceRows.length === 0 && allMarketsQuery.isError && firstPageQuery.isError;

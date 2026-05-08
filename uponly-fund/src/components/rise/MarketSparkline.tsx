@@ -12,7 +12,7 @@
  * Dedup is automatic — TanStack Query keys on `address` + timeframe + limit,
  * so opening the detail page reuses the same OHLC payload.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRiseOhlc } from "@/lib/RiseDashboardContext";
 import { cn } from "@/lib/utils";
@@ -94,7 +94,7 @@ export type MarketSparklineProps = {
   candleLimit?: number;
 };
 
-export function MarketSparkline({
+function MarketSparklineImpl({
   address,
   changePct = null,
   width = 96,
@@ -121,7 +121,10 @@ export function MarketSparkline({
           io.disconnect();
         }
       },
-      { rootMargin: "240px 0px", threshold: 0.01 },
+      // Wide rootMargin so above-the-fold sparklines on a 100-row screener resolve
+      // immediately; the OHLC concurrency queue (riseDashboardApi.ts) prevents
+      // this from translating into a 100-request burst.
+      { rootMargin: "600px 0px", threshold: 0.01 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -218,3 +221,22 @@ export function MarketSparkline({
     </div>
   );
 }
+
+/**
+ * Memoized so a screener refresh that swaps the row reference does not force
+ * the SVG path + IntersectionObserver setup to rebuild for every visible row.
+ * `address` and `changePct` are the only props that meaningfully change at
+ * the row level; the others are stable across the screener.
+ */
+export const MarketSparkline = memo(MarketSparklineImpl, (prev, next) => {
+  return (
+    prev.address === next.address &&
+    prev.changePct === next.changePct &&
+    prev.width === next.width &&
+    prev.height === next.height &&
+    prev.showVerdict === next.showVerdict &&
+    prev.timeframe === next.timeframe &&
+    prev.candleLimit === next.candleLimit &&
+    prev.className === next.className
+  );
+});

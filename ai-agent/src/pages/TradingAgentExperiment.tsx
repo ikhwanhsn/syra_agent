@@ -257,6 +257,33 @@ function leaderboardTierFromDecided(decided: number): 0 | 1 | 2 {
   return 0;
 }
 
+/**
+ * Wilson score lower bound for a binomial proportion (95% confidence by default).
+ * Penalizes small sample sizes — an agent with 50W/60 ranks above 4W/4
+ * even though raw win rate favors the latter.
+ *
+ * Returns 0 when there are no resolved trades.
+ */
+function wilsonLowerBound(wins: number, total: number, z = 1.96): number {
+  if (total <= 0) return 0;
+  const phat = wins / total;
+  const z2 = z * z;
+  const denom = 1 + z2 / total;
+  const center = phat + z2 / (2 * total);
+  const margin = z * Math.sqrt((phat * (1 - phat) + z2 / (4 * total)) / total);
+  return (center - margin) / denom;
+}
+
+/**
+ * Composite ranking score (higher = better). Combines win rate with
+ * sample-size confidence so "more trades + higher win rate" wins.
+ * Untested agents return -1 so they always sort to the bottom on desc.
+ */
+function leaderboardScore(row: Pick<LeaderboardViewRow, "wins" | "decided">): number {
+  if (row.decided === 0) return -1;
+  return wilsonLowerBound(row.wins, row.decided);
+}
+
 type SortOrder = "asc" | "desc";
 
 type LabSortKey = "id" | "suite" | "name" | "cex" | "pair" | "bar" | "wins" | "losses" | "winRate" | "open";
@@ -365,11 +392,14 @@ function sortLeaderboardRows(
     let cmp = 0;
     switch (key) {
       case "rank":
-        if (scope === "global") {
-          cmp = a.ledgerRank - b.ledgerRank;
-          if (cmp === 0) cmp = Number(a.idLabel) - Number(b.idLabel);
-        } else {
-          cmp = a.idLabel.localeCompare(b.idLabel);
+        cmp = leaderboardScore(a) - leaderboardScore(b);
+        if (cmp === 0) {
+          if (scope === "global") {
+            cmp = a.ledgerRank - b.ledgerRank;
+            if (cmp === 0) cmp = Number(a.idLabel) - Number(b.idLabel);
+          } else {
+            cmp = a.idLabel.localeCompare(b.idLabel);
+          }
         }
         break;
       case "ledger":
@@ -680,7 +710,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
 
   const [labSortKey, setLabSortKey] = useState<LabSortKey>("winRate");
   const [labSortOrder, setLabSortOrder] = useState<SortOrder>("desc");
-  const [lbSortKey, setLbSortKey] = useState<LeaderboardSortKey>("winRate");
+  const [lbSortKey, setLbSortKey] = useState<LeaderboardSortKey>("rank");
   const [lbSortOrder, setLbSortOrder] = useState<SortOrder>("desc");
   const [myWinSortKey, setMyWinSortKey] = useState<MyAgentsWinSortKey>("winRate");
   const [myWinSortOrder, setMyWinSortOrder] = useState<SortOrder>("desc");

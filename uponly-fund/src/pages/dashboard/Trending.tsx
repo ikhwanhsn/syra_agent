@@ -1,9 +1,25 @@
-import { RiseBubbleMap } from "@/components/rise/BubbleMap";
+import { lazy, Suspense } from "react";
 import { RiseTrendingMarkets } from "@/components/rise/RiseTrendingMarkets";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 import { useNavigateToToken } from "@/lib/useNavigateToToken";
+
+/** Bubble map is heavy (canvas + simulation hook + image loader) — defer so the
+ *  trending table paints first and the user sees data immediately. */
+const RiseBubbleMap = lazy(() =>
+  import("@/components/rise/BubbleMap").then((mod) => ({ default: mod.RiseBubbleMap })),
+);
+
+function BubbleMapFallback() {
+  return (
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-12 w-full max-w-md rounded-xl" />
+      <Skeleton className="aspect-[4/5] w-full rounded-2xl sm:aspect-video" />
+    </div>
+  );
+}
 
 export default function TrendingPage() {
   const goToToken = useNavigateToToken();
@@ -23,7 +39,9 @@ export default function TrendingPage() {
           description={copy.pages.overviewDescription}
         />
         <RiseTrendingMarkets onSelect={goToToken} />
-        <RiseBubbleMap onSelect={goToToken} />
+        <Suspense fallback={<BubbleMapFallback />}>
+          <RiseBubbleMap onSelect={goToToken} />
+        </Suspense>
       </div>
     </div>
   );

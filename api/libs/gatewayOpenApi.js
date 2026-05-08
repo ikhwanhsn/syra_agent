@@ -48,6 +48,129 @@ const OK_JSON = {
   content: { 'application/json': { schema: LOOSE_OBJECT } },
 };
 
+/**
+ * Rate-limit envelope. Every non-x402 / preview / agent route in this gateway shares the same
+ * dual-window throttle (see {@link RATE_LIMIT_INFO} and api/utils/rateLimit.js).
+ * Mirrored verbatim from the runtime rate-limit middleware response.
+ */
+const RATE_LIMIT_429_RESPONSE = {
+  description:
+    'Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.',
+  headers: {
+    'Retry-After': {
+      description: 'Seconds the client must wait before retrying.',
+      schema: { type: 'integer', minimum: 1 },
+    },
+  },
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        required: ['success', 'message'],
+        properties: {
+          success: { type: 'boolean', const: false },
+          message: { type: 'string', example: 'Too many requests. Please slow down.' },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+};
+
+/**
+ * Machine-readable description of the optional `x-payment-info` per-operation OpenAPI extension.
+ *
+ * Some x402 ecosystems (notably MPP / AgentCash registries) expect a per-operation extension
+ * named `x-payment-info` to describe price + protocol metadata. The Syra **gateway** OpenAPI
+ * (this document) deliberately does NOT emit it — gateway integrators get the full, canonical
+ * payment shape from the **402 response body's `accepts` array** at runtime (that's the real
+ * x402 V1 wire spec, not an OpenAPI annotation). The Syra **MPP discovery** doc at
+ * `/mpp-openapi.json` DOES emit it because the MPP registry validator requires it.
+ *
+ * Exposed at the OpenAPI root as `x-payment-info-spec` so SDK generators and registries can
+ * read the explanation programmatically instead of scraping `info.description`.
+ */
+const X_PAYMENT_INFO_SPEC = {
+  emittedHere: false,
+  reason:
+    "Strict-schema friendly. Canonical payment metadata for paid (x402) routes is returned at runtime in the 402 response body's `accepts` array (V1 wire format: scheme, network, asset, maxAmountRequired in micro-USDC, payTo, resource, maxTimeoutSeconds, outputSchema). Pay one of those offers and retry with `X-PAYMENT`. See: https://docs.syraa.fun/docs/api/x402-api-standard",
+  alsoEmittedAt: {
+    document: 'https://api.syraa.fun/mpp-openapi.json',
+    description:
+      'MPP / AgentCash discovery document. Each paid operation includes an `x-payment-info` extension with the shape below. Settlement is still x402 V1 (HTTP 402 + `accepts`); `x-payment-info` is registry metadata only.',
+  },
+  shape: {
+    type: 'object',
+    required: ['protocols', 'pricingMode', 'price'],
+    properties: {
+      protocols: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Supported payment protocols. Syra emits `["mpp"]` in the MPP doc.',
+        example: ['mpp'],
+      },
+      pricingMode: {
+        type: 'string',
+        description: 'Always `"fixed"` for Syra (per-call USD price, no auction or tiering).',
+        enum: ['fixed'],
+      },
+      price: {
+        type: 'string',
+        description:
+          'USD price as a decimal string (e.g. "0.01"). The runtime 402 response converts this to USDC micro-units (USDC has 6 decimals) and exposes it as `accepts[i].maxAmountRequired`.',
+        example: '0.01',
+      },
+    },
+    additionalProperties: true,
+  },
+  example: {
+    'x-payment-info': {
+      protocols: ['mpp'],
+      pricingMode: 'fixed',
+      price: '0.01',
+    },
+  },
+};
+
+/**
+ * Machine-readable rate-limit metadata exposed at the OpenAPI root as `x-ratelimit`.
+ * Mirrors api/utils/rateLimit.js (default export) with the burst/sustained windows configured
+ * in api/index.js, and the skip allow-list also defined there.
+ */
+const RATE_LIMIT_INFO = {
+  scope: 'per-ip',
+  windows: [
+    {
+      type: 'burst',
+      maxRequests: 25,
+      windowSeconds: 10,
+      description: 'Mitigates short bursts and DDoS attempts.',
+    },
+    {
+      type: 'sustained',
+      maxRequests: 100,
+      windowSeconds: 60,
+      description: 'Mitigates sustained spam.',
+    },
+  ],
+  status: 429,
+  retryAfterHeader: 'Retry-After',
+  responseBody: { success: false, message: 'Too many requests. Please slow down.' },
+  skip: {
+    description:
+      'Routes excluded from this throttle. x402 paid routes (`/news`, `/signal`, `/sentiment`, `/event`, `/health`, `/brain`, `/x*`, `/8004*`, etc.) are gated by HTTP 402 instead. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.',
+    paths: [
+      'all x402 routes (see GET /.well-known/x402)',
+      '/internal/tester-agent*',
+      '/internal/agent-team/run',
+      '/internal/x402-x-trends/run',
+      '/internal/growth-*',
+      '/uponly-rise-market*',
+      '/uponly-rise-portfolio*',
+    ],
+  },
+};
+
 const SIGNAL_QUERY = [
   {
     name: 'token',
@@ -135,6 +258,10 @@ function responsesFor(x402) {
       description: 'Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body.',
     };
   }
+  // Every operation in this gateway shares the same rate-limit envelope (x402 routes are skipped
+  // at runtime — see RATE_LIMIT_INFO.skip — but advertising 429 here is harmless and lets clients
+  // generate uniform error handling).
+  r['429'] = RATE_LIMIT_429_RESPONSE;
   return r;
 }
 
@@ -589,11 +716,14 @@ export function buildGatewayOpenApi() {
       version: '1.0.0',
       description: [
         'Syra gateway: preview and dashboard routes may require `X-API-Key` / Bearer when the server sets `API_KEY`.',
-        '**x402** routes return **HTTP 402** until paid (Solana/Base USDC); no `x-payment-info` in this spec — see https://docs.syraa.fun.',
-        'Paid catalog with full discovery: `GET /mpp-openapi.json`.',
+        '**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body\'s `accepts` array — that is the canonical x402 V1 wire spec; pay one offer and retry with `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.',
+        'Some x402 ecosystems (MPP / AgentCash registries) expect a per-operation OpenAPI extension named `x-payment-info` carrying registry metadata (protocols, pricingMode, price). This **gateway** spec deliberately omits it for strict-schema friendliness; the **MPP discovery** document at `GET /mpp-openapi.json` emits it on every paid operation. The exact shape Syra uses is described in the `x-payment-info-spec` extension at the root of this document.',
+        '**Rate limits** (per IP, applied to every non-x402 / non-cron route): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes are gated by HTTP 402 instead and bypass this throttle. See the `x-ratelimit` extension below for the machine-readable spec.',
       ].join('\n\n'),
     },
     servers: [{ url: serverUrl }],
+    'x-payment-info-spec': X_PAYMENT_INFO_SPEC,
+    'x-ratelimit': RATE_LIMIT_INFO,
     paths,
     tags: [
       { name: 'Signal', description: 'GET/POST /api/signal — no x402' },

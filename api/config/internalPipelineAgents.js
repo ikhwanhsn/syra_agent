@@ -25,14 +25,27 @@ export function resolveInternalPipelineModel(modelFromCaller) {
   return OPENROUTER_DEFAULT_MODEL;
 }
 
-/** Seed origins for Cloudflare crawl + api.syraa.fun JSON snapshots. */
+/**
+ * User-facing Syra surfaces that are safe to deep-crawl with Cloudflare Browser Rendering.
+ * These render HTML for unauthenticated browsers, so the crawler gets real product content.
+ *
+ * NOTE: api.syraa.fun is intentionally NOT here — it's an API surface where most internal
+ * paths require API key / x402 auth and return 401 to anonymous crawlers (expected behavior).
+ * Deep-crawling it caused the internal research agent to hallucinate "401 across all surfaces"
+ * recommendations. The API surface is described by AGENT_TEAM_API_DISCOVERY_HOST below.
+ */
 export const AGENT_TEAM_CRAWL_BASE_URLS = Object.freeze([
   "https://syraa.fun",
   "https://docs.syraa.fun",
   "https://agent.syraa.fun",
-  "https://api.syraa.fun",
   "https://playground.syraa.fun",
 ]);
+
+/**
+ * The API host. The crawler does NOT deep-crawl it; instead it fetches a fixed list of
+ * public discovery JSON endpoints (see agentTeamCrawl.js#API_DISCOVERY_PATHS).
+ */
+export const AGENT_TEAM_API_DISCOVERY_HOST = "https://api.syraa.fun";
 
 export const AGENT_TEAM_CRAWL_DEPTH = 2;
 export const AGENT_TEAM_CRAWL_PER_SITE_LIMIT = 30;

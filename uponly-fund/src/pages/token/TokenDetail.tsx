@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,16 @@ import { TokenEcosystemRank } from "@/components/token/TokenEcosystemRank";
 import { TokenHeroHeader } from "@/components/token/TokenHeroHeader";
 import { TokenKpiGrid } from "@/components/token/TokenKpiGrid";
 import { TokenLiquidityPanel } from "@/components/token/TokenLiquidityPanel";
-import { TokenPriceChart } from "@/components/token/TokenPriceChart";
 import { TokenQuotePanel } from "@/components/token/TokenQuotePanel";
 import { TokenScoreStrip } from "@/components/token/TokenScoreStrip";
 import { TokenSimilarMarkets } from "@/components/token/TokenSimilarMarkets";
 import { TokenTradesPanel } from "@/components/token/TokenTradesPanel";
 import { EmptyState, GlassCard } from "@/components/rise/RiseShared";
+
+/** Recharts is ~120 KB gz; lazy-load so the rest of the token page paints immediately. */
+const TokenPriceChart = lazy(() =>
+  import("@/components/token/TokenPriceChart").then((mod) => ({ default: mod.TokenPriceChart })),
+);
 import { useResolveRiseMarket } from "@/hooks/useResolveRiseMarket";
 import { useRiseDashboard, useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -95,7 +100,15 @@ export default function TokenDetailPage() {
             <TokenHeroHeader market={market} />
             <TokenScoreStrip market={market} />
             <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
-              <TokenPriceChart market={market} className="lg:col-span-2" />
+              <Suspense
+                fallback={
+                  <div className="lg:col-span-2">
+                    <Skeleton className="h-[28rem] w-full rounded-2xl" />
+                  </div>
+                }
+              >
+                <TokenPriceChart market={market} className="lg:col-span-2" />
+              </Suspense>
               <TokenQuotePanel market={market} />
             </div>
             <TokenKpiGrid market={market} />

@@ -311,6 +311,14 @@ export type DashboardDictionary = {
     dialogKpiVol24h: string;
     dialogKpiHolders: string;
     dialogKpiAge: string;
+    share: string;
+    shareNative: string;
+    shareDownloadImage: string;
+    shareOnX: string;
+    shareOnTelegram: string;
+    shareCopiedImage: string;
+    shareDownloadFailed: string;
+    shareNativeFailed: string;
     loadError: string;
     retry: string;
   };
@@ -630,6 +638,14 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       dialogKpiVol24h: "24h volume",
       dialogKpiHolders: "Holders",
       dialogKpiAge: "Age",
+      share: "Share map",
+      shareNative: "Share…",
+      shareDownloadImage: "Download image",
+      shareOnX: "Share on X",
+      shareOnTelegram: "Share on Telegram",
+      shareCopiedImage: "Map image ready to share",
+      shareDownloadFailed: "Could not export map image. Try again.",
+      shareNativeFailed: "Native share failed. Try Download image.",
       loadError: "Could not load markets for the bubble map.",
       retry: "Retry",
     },
@@ -945,6 +961,14 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       dialogKpiVol24h: "24h 成交量",
       dialogKpiHolders: "持有人",
       dialogKpiAge: "时长",
+      share: "分享地图",
+      shareNative: "分享…",
+      shareDownloadImage: "下载图片",
+      shareOnX: "分享到 X",
+      shareOnTelegram: "分享到 Telegram",
+      shareCopiedImage: "地图图片已可分享",
+      shareDownloadFailed: "导出地图图片失败，请重试。",
+      shareNativeFailed: "系统分享失败，请改用下载图片。",
       loadError: "无法加载气泡图所需的市场数据。",
       retry: "重试",
     },

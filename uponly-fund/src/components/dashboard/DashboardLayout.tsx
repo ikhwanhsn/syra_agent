@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/resizable";
 import { SidebarNavLink } from "./SidebarPrimitives";
 import { SidebarOutboundDock } from "./SidebarOutboundDock";
+import { usePersistentState } from "@/lib/usePersistentState";
 import { WalletProvider } from "@/lib/WalletContext";
 import { ConnectWalletButton } from "./ConnectWalletButton";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -171,7 +172,11 @@ export default function DashboardLayout() {
   const { resolvedTheme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = usePersistentState<boolean>(
+    "sidebar-collapsed",
+    false,
+    (raw): raw is boolean => typeof raw === "boolean",
+  );
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
   const dictionary = useMemo(() => DASHBOARD_COPY[language], [language]);
   const sidebarItems = useMemo(
@@ -200,6 +205,21 @@ export default function DashboardLayout() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
+
+  /** Restore persisted sidebar collapsed state on mount (panel handle is now ready). */
+  const sidebarRestoredRef = useRef(false);
+  useEffect(() => {
+    if (sidebarRestoredRef.current) return;
+    const handle = sidebarPanelRef.current;
+    if (!handle) return;
+    sidebarRestoredRef.current = true;
+    try {
+      if (sidebarCollapsed && !handle.isCollapsed()) handle.collapse();
+      else if (!sidebarCollapsed && handle.isCollapsed()) handle.expand();
+    } catch {
+      /* handle may not be wired during SSR/HMR */
+    }
+  }, [sidebarCollapsed]);
 
   return (
     <WalletProvider>

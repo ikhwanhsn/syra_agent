@@ -22,4 +22,35 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        /**
+         * Split the heaviest vendor sets into their own chunks so the dashboard
+         * shell stays tiny and individual chunks are cached independently. The
+         * largest crypto-dashboard offenders are recharts (~120 KB gz) and
+         * framer-motion (~55 KB gz); both deserve dedicated chunks because they
+         * are only used on a subset of routes.
+         */
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          if (id.includes("framer-motion")) return "motion";
+          if (id.includes("@radix-ui")) return "radix";
+          if (
+            id.includes("react-dom") ||
+            id.includes("react-router") ||
+            id.includes("/react/") ||
+            id.includes("scheduler")
+          ) {
+            return "react-vendor";
+          }
+          if (id.includes("@tanstack")) return "tanstack";
+          return undefined;
+        },
+      },
+    },
+    /** Slightly higher chunk-size warning so we only flag truly oversized chunks. */
+    chunkSizeWarningLimit: 700,
+  },
 }));

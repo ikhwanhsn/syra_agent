@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
+import { useRiseMarketsAll, useRiseMarketsTop, useRiseOhlcBatch } from "@/lib/RiseDashboardContext";
 import { riseTrendingCompositeScore } from "@/lib/riseOverviewTrending";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
@@ -48,7 +48,13 @@ import {
 import { MarketSparkline } from "./MarketSparkline";
 import { useLanguage } from "@/lib/LanguageContext";
 
-export const TRENDING_PAGE_SIZE = 100;
+/**
+ * Page size kept lean (25) so the desktop table can render full DOM rows
+ * without paint stalls, while still feeling dense. With 100-row pages the
+ * mobile card list also becomes a 100-DOM-card scroll, which is the worst
+ * mobile UX. 25 + sub-second pagination beats 100 + jank.
+ */
+export const TRENDING_PAGE_SIZE = 25;
 
 /** When $UPONLY is on this page, show it first and style it in the table. */
 function pinUponlyFirst(rows: RiseMarketRow[]): RiseMarketRow[] {
@@ -194,8 +200,32 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
   const [searchParams] = useSearchParams();
   const pageFromUrl = parsePage(searchParams.get("page"));
 
+  /**
+   * Two queries layered: `top` returns the first 100 markets in a single roundtrip
+   * (snappy first paint), `all` walks the full universe so search/filter/sort
+   * cover everything. We render whichever is ready first.
+   */
+  const topMarketsQuery = useRiseMarketsTop(100);
   const allMarketsQuery = useRiseMarketsAll(100);
-  const sourceRows = allMarketsQuery.data ?? [];
+  const sourceRows = allMarketsQuery.data ?? topMarketsQuery.data ?? [];
+  /**
+   * Keep a stable $UPONLY row across query-source transitions (`top` -> `all`).
+   * We occasionally observe an interval where `all` does not include UPONLY on
+   * the first response while the table has already switched sources, which
+   * makes the official token appear to "disappear". Preserve last seen row and
+   * inject when missing.
+   */
+  const uponlyFallbackRef = useRef<RiseMarketRow | null>(null);
+  useEffect(() => {
+    const found = sourceRows.find((r) => r.mint === RISE_UPONLY_MINT) ?? null;
+    if (found) uponlyFallbackRef.current = found;
+  }, [sourceRows]);
+  const sourceRowsWithUponly = useMemo(() => {
+    if (sourceRows.some((r) => r.mint === RISE_UPONLY_MINT)) return sourceRows;
+    const fallback = uponlyFallbackRef.current;
+    if (!fallback) return sourceRows;
+    return [fallback, ...sourceRows];
+  }, [sourceRows]);
 
   const [search, setSearch] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -219,12 +249,21 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
   }, [filterSig, navigate, pageFromUrl]);
 
   const filtered = useMemo(
-    () => applyOverviewFilters(sourceRows, deferredSearch, verifiedOnly, minMarketCap),
-    [sourceRows, deferredSearch, verifiedOnly, minMarketCap],
+    () => applyOverviewFilters(sourceRowsWithUponly, deferredSearch, verifiedOnly, minMarketCap),
+    [sourceRowsWithUponly, deferredSearch, verifiedOnly, minMarketCap],
   );
   const sorted = useMemo(() => sortOverviewRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+  const sortedPinned = useMemo(() => {
+    // Product expectation: official token remains visible in overview default view.
+    const inDefaultView = deferredSearch.trim().length === 0 && !verifiedOnly && minMarketCap == null;
+    if (!inDefaultView) return sorted;
+    const idx = sorted.findIndex((r) => r.mint === RISE_UPONLY_MINT);
+    if (idx <= 0) return sorted;
+    const row = sorted[idx];
+    return [row, ...sorted.slice(0, idx), ...sorted.slice(idx + 1)];
+  }, [sorted, deferredSearch, verifiedOnly, minMarketCap]);
 
-  const totalRows = sorted.length;
+  const totalRows = sortedPinned.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / TRENDING_PAGE_SIZE));
 
   useEffect(() => {
@@ -238,13 +277,22 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
 
   const markets = useMemo(() => {
     const start = (pageFromUrl - 1) * TRENDING_PAGE_SIZE;
-    const slice = sorted.slice(start, start + TRENDING_PAGE_SIZE);
+    const slice = sortedPinned.slice(start, start + TRENDING_PAGE_SIZE);
     return pinUponlyFirst(slice);
-  }, [sorted, pageFromUrl]);
+  }, [sortedPinned, pageFromUrl]);
 
-  const isPending = allMarketsQuery.isPending && sourceRows.length === 0;
-  const isFetching = allMarketsQuery.isFetching;
-  const isError = allMarketsQuery.isError && sourceRows.length === 0;
+  const sparklineMints = useMemo(
+    () => markets.map((m) => m.marketAddress || m.mint).filter((a): a is string => !!a && a.length >= 32),
+    [markets],
+  );
+  /** Prime the OHLC cache for the visible page; sparkline rows then read from cache. */
+  useRiseOhlcBatch(sparklineMints);
+
+  const isPending =
+    allMarketsQuery.isPending && topMarketsQuery.isPending && sourceRows.length === 0;
+  const isFetching = allMarketsQuery.isFetching || topMarketsQuery.isFetching;
+  const isError =
+    allMarketsQuery.isError && topMarketsQuery.isError && sourceRows.length === 0;
 
   const pageItems = useMemo(() => buildPageItems(pageFromUrl, totalPages), [pageFromUrl, totalPages]);
   const canGoNext = pageFromUrl < totalPages;

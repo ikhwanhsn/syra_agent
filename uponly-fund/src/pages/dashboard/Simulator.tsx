@@ -1,12 +1,23 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
-import { BorrowSimulator } from "@/components/rise/BorrowSimulator";
 import { QuoteCalculator } from "@/components/rise/QuoteCalculator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DcaSimulator } from "@/pages/dashboard/DCA";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
+
+/** Both simulators pull recharts via their child price/curve graphs — defer to keep the simulator route bundle lean. */
+const BorrowSimulator = lazy(() =>
+  import("@/components/rise/BorrowSimulator").then((mod) => ({ default: mod.BorrowSimulator })),
+);
+const DcaSimulator = lazy(() =>
+  import("@/pages/dashboard/DCA").then((mod) => ({ default: mod.DcaSimulator })),
+);
+
+function SimulatorTabFallback() {
+  return <Skeleton className="h-[28rem] w-full rounded-2xl" />;
+}
 
 const TAB_VALUES = ["quote", "borrow", "dca"] as const;
 type SimulatorTab = (typeof TAB_VALUES)[number];
@@ -60,10 +71,14 @@ export default function SimulatorPage() {
             <QuoteCalculator />
           </TabsContent>
           <TabsContent value="borrow" className="mt-4">
-            <BorrowSimulator />
+            <Suspense fallback={<SimulatorTabFallback />}>
+              <BorrowSimulator />
+            </Suspense>
           </TabsContent>
           <TabsContent value="dca" className="mt-4">
-            <DcaSimulator />
+            <Suspense fallback={<SimulatorTabFallback />}>
+              <DcaSimulator />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

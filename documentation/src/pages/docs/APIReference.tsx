@@ -116,17 +116,30 @@ export default function APIReference() {
       <section id="authentication" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Authentication (x402)</h2>
         <p className="text-muted-foreground mb-4">
-          <strong>Paid routes</strong> use the <strong>x402</strong> payment protocol: first request without payment returns <strong>402</strong> with instructions; retry with the payment proof (e.g. PAYMENT-SIGNATURE or X-Payment). <strong>Preview and dashboard</strong> routes (<code className="text-sm font-mono bg-muted px-1 rounded">/dashboard-summary</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/preview/*</code>, etc.) do not use x402; the gateway may inject an API key for trusted browser origins — never embed keys in client bundles.
+          <strong>Paid routes</strong> use the <strong>x402</strong> payment protocol (V1, x402scan-compatible). The first request without an{" "}
+          <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT</code> header returns{" "}
+          <strong>HTTP 402</strong> with an <code className="text-sm font-mono bg-muted px-1 rounded">accepts</code> array describing each supported network (Solana / Base) and the USDC price in micro-units. Replay the request with{" "}
+          <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT</code> set to a base64 signed payload from any x402 client to receive 200 plus an{" "}
+          <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT-RESPONSE</code> header. See{" "}
+          <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
+            x402 Payment Flow
+          </Link>{" "}
+          for the full wire format, network/asset reference, and signing examples.
+        </p>
+        <p className="text-muted-foreground mb-4">
+          <strong>Preview and dashboard</strong> routes (<code className="text-sm font-mono bg-muted px-1 rounded">/dashboard-summary</code>,{" "}
+          <code className="text-sm font-mono bg-muted px-1 rounded">/preview/*</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/health</code>,{" "}
+          <code className="text-sm font-mono bg-muted px-1 rounded">/.well-known/x402</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/openapi.json</code>) do not use x402 and are free. The gateway injects an internal API key for trusted browser origins — never embed keys in client bundles.
         </p>
         <CodeBlock
           plain
-          code={`# First request returns 402 with payment instructions
-curl "${BASE_URL}/news?ticker=BTC"
+          code={`# 1. First request returns 402 with the x402 \`accepts\` offer list
+curl -i "${BASE_URL}/news?ticker=BTC"
 
-# After payment, retry with payment proof in headers
-curl "${BASE_URL}/news?ticker=BTC" \\
-  -H "PAYMENT-SIGNATURE: ..." \\
-  -H "PAYMENT-TOKEN: ..."`}
+# 2. Sign one of the offers with an x402 client (Solana or Base USDC) and retry
+curl -i "${BASE_URL}/news?ticker=BTC" \\
+  -H "X-PAYMENT: <base64url-encoded signed payload>"
+# Response: 200 OK + header  X-PAYMENT-RESPONSE: <base64 settlement receipt>`}
           language="bash"
         />
       </section>
@@ -195,24 +208,62 @@ curl "${BASE_URL}/news?ticker=BTC" \\
       <section id="payment-flow" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Payment Flow</h2>
         <ol className="list-decimal pl-6 space-y-2 text-muted-foreground mb-4">
-          <li>Initial request returns <strong>402 Payment Required</strong> with payment instructions.</li>
-          <li>Complete payment (process payment header, submit via specified method, receive payment proof/token).</li>
-          <li>Retry the same request with payment proof in headers to receive the data.</li>
+          <li>
+            Make the request without payment. The API responds <strong>402</strong> with{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">{`{ x402Version: 1, error, accepts: [...] }`}</code>. Each{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">accepts[i]</code> describes one offer:{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">scheme: "exact"</code>,{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">network</code> ("solana" or "base"),{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">asset</code> (USDC mint/contract),{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">maxAmountRequired</code> (price in micro-USDC),{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">payTo</code>,{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">resource</code>, and{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">maxTimeoutSeconds</code>.
+          </li>
+          <li>
+            Pick one offer and use an x402 client (e.g. <code className="text-sm font-mono bg-muted px-1 rounded">x402-solana</code> or{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">@x402/core</code>) to build, sign, and base64-encode a payment payload that satisfies it.
+          </li>
+          <li>
+            Replay the original request with{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT: &lt;encoded payload&gt;</code>. The API verifies and settles via the PayAI facilitator, returns 200 with the JSON body, and includes{" "}
+            <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT-RESPONSE: &lt;base64 receipt&gt;</code>.
+          </li>
         </ol>
-        <p className="text-sm font-medium text-foreground mb-2">Example 402 response</p>
+        <p className="text-sm font-medium text-foreground mb-2">Example 402 response (V1, x402scan-compatible)</p>
         <CodeBlock
           plain
           code={`{
-  "error": "Payment Required",
-  "price": 0.01,
-  "currency": "USD",
-  "paymentInstructions": {
-    "method": "x402",
-    "details": "..."
-  }
+  "x402Version": 1,
+  "error": "X-PAYMENT header is required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "solana",
+      "maxAmountRequired": "10000",
+      "resource": "${BASE_URL}/news?ticker=BTC",
+      "description": "News API",
+      "mimeType": "application/json",
+      "payTo": "<Syra treasury Solana address>",
+      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "maxTimeoutSeconds": 60,
+      "outputSchema": {
+        "input":  { "type": "http", "method": "GET", "queryParams": { "ticker": { "type": "string", "required": false } } },
+        "output": { "/* response shape per endpoint */": null }
+      },
+      "extra": { "feePayer": "<fee payer address>" }
+    }
+  ]
 }`}
           language="json"
         />
+        <p className="text-sm text-muted-foreground mt-3">
+          Need the wire-format walkthrough, network/asset reference, signing examples, and idempotency rules?{" "}
+          <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
+            Open the x402 Payment Flow doc
+          </Link>
+          .
+        </p>
       </section>
 
       <section id="errors" className="mb-12 scroll-mt-24">

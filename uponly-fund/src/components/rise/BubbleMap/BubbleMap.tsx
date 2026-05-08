@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 import { useLanguage } from "@/lib/LanguageContext";
-import { useRiseMarketsTop } from "@/lib/RiseDashboardContext";
+import { useRiseMarketsAll, useRiseMarketsTop } from "@/lib/RiseDashboardContext";
+import { usePersistentState } from "@/lib/usePersistentState";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { EmptyState, GlassCard, RISE_UPONLY_MINT, SectionHeader } from "@/components/rise/RiseShared";
 import { cn } from "@/lib/utils";
@@ -17,6 +20,12 @@ function pinUponlyFirst(rows: RiseMarketRow[]): RiseMarketRow[] {
   if (idx <= 0) return rows;
   const row = rows[idx];
   return [row, ...rows.slice(0, idx), ...rows.slice(idx + 1)];
+}
+
+function metricValue(row: RiseMarketRow, metric: BubbleSizeMetric): number {
+  if (metric === "marketCapUsd") return row.marketCapUsd ?? 0;
+  if (metric === "volume24hUsd") return row.volume24hUsd ?? 0;
+  return row.holders ?? 0;
 }
 
 function toBubbleDatum(r: RiseMarketRow): BubbleDatum {
@@ -50,11 +59,28 @@ export function RiseBubbleMap({ onSelect }: RiseBubbleMapProps) {
   const copy = DASHBOARD_COPY[language];
   const bm = copy.bubbleMap;
   const reduceMotion = useReducedMotion() ?? false;
-  const marketsQuery = useRiseMarketsTop(BUBBLE_MAP_MAX, { refetchInterval: 60_000 });
+  const topMarketsQuery = useRiseMarketsTop(BUBBLE_MAP_MAX, { refetchInterval: 60_000 });
+  const allMarketsQuery = useRiseMarketsAll(BUBBLE_MAP_MAX, { refetchInterval: 60_000 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const [dim, setDim] = useState({ w: 0, h: 0 });
-  const [metric, setMetric] = useState<BubbleSizeMetric>("marketCapUsd");
+  const [metric, setMetric] = usePersistentState<BubbleSizeMetric>(
+    "bubble-map-metric",
+    "marketCapUsd",
+    (raw): raw is BubbleSizeMetric =>
+      raw === "marketCapUsd" || raw === "volume24hUsd" || raw === "holders",
+  );
   const [selectedMint, setSelectedMint] = useState<string | null>(null);
+  const exportSnapshotRef = useRef<(() => Promise<Blob>) | null>(null);
+
+  const shareUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/`;
+  }, []);
+  const shareText = useMemo(() => {
+    return language === "zh"
+      ? "RISE 实时气泡图：查看市场热度、持有人与24h波动。"
+      : "Live RISE bubble map: market heat, holders, and 24h movement.";
+  }, [language]);
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
@@ -63,40 +89,51 @@ export function RiseBubbleMap({ onSelect }: RiseBubbleMapProps) {
       const r = el.getBoundingClientRect();
       const w = Math.floor(r.width);
       const h = Math.floor(r.height);
-      setDim({
-        w: w > 0 ? w : 0,
-        h: h > 0 ? h : 0,
+      setDim((prev) => {
+        const nw = w > 0 ? w : 0;
+        const nh = h > 0 ? h : 0;
+        if (prev.w === nw && prev.h === nh) return prev;
+        return { w: nw, h: nh };
       });
     };
     measure();
-    let raf = 0;
+    let timer = 0;
     const ro = new ResizeObserver(() => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        raf = 0;
+      if (timer) window.clearTimeout(timer);
+      // 100ms debounce so dragging the resizable sidebar handle does not thrash dim->resync->repaint.
+      timer = window.setTimeout(() => {
+        timer = 0;
         measure();
-      });
+      }, 100);
     });
     ro.observe(el);
     return () => {
       ro.disconnect();
-      if (raf) cancelAnimationFrame(raf);
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
 
+  const sourceRows = allMarketsQuery.data ?? topMarketsQuery.data ?? [];
   const rows = useMemo(() => {
-    const raw = marketsQuery.data ?? [];
-    return pinUponlyFirst(raw).slice(0, BUBBLE_MAP_MAX);
-  }, [marketsQuery.data]);
+    const raw = sourceRows;
+    // Each tab must show top markets for that metric (not a fixed token set).
+    const sorted = [...raw].sort((a, b) => metricValue(b, metric) - metricValue(a, metric));
+    return sorted.slice(0, BUBBLE_MAP_MAX);
+  }, [sourceRows, metric]);
 
-  const data = useMemo(() => rows.map(toBubbleDatum), [rows]);
+  /** Stabilize datum array reference between refetches whose rows are byte-identical (no churn into useBubbleSimulation). */
+  const dataSig = useMemo(
+    () => rows.map((r) => `${r.mint}:${r.priceChange24hPct ?? ""}:${r.marketCapUsd ?? ""}:${r.volume24hUsd ?? ""}:${r.holders ?? ""}`).join("|"),
+    [rows],
+  );
+  const data = useMemo(() => rows.map(toBubbleDatum), [dataSig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedMarket = useMemo(
     () => rows.find((r) => r.mint === selectedMint) ?? null,
     [rows, selectedMint],
   );
 
-  const { nodesRef, tick, beginDrag, drag, endDrag, hitTest } = useBubbleSimulation({
+  const { nodesRef, boundsRef, tick, beginDrag, drag, endDrag, hitTest } = useBubbleSimulation({
     data,
     metric,
     width: dim.w,
@@ -134,8 +171,70 @@ export function RiseBubbleMap({ onSelect }: RiseBubbleMapProps) {
     }
   }, [selectedMint, rows]);
 
-  const isError = marketsQuery.isError && rows.length === 0;
-  const isPending = marketsQuery.isPending && rows.length === 0;
+  const isError = allMarketsQuery.isError && topMarketsQuery.isError && rows.length === 0;
+  const isPending = allMarketsQuery.isPending && topMarketsQuery.isPending && rows.length === 0;
+  const isFetching = allMarketsQuery.isFetching || topMarketsQuery.isFetching;
+
+  const exportCanvasBlob = async (): Promise<Blob> => {
+    const exporter = exportSnapshotRef.current;
+    if (exporter) {
+      return await exporter();
+    }
+    const root = wrapRef.current;
+    if (!root) throw new Error("canvas root missing");
+    const canvas = root.querySelector("canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) throw new Error("canvas not found");
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("blob empty"));
+          return;
+        }
+        resolve(blob);
+      }, "image/png", 1);
+    });
+  };
+
+  const handleDownloadMap = async () => {
+    try {
+      const blob = await exportCanvasBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.download = `rise-bubble-map-${Date.now()}.png`;
+      a.href = url;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(bm.shareCopiedImage);
+    } catch {
+      toast.error(bm.shareDownloadFailed);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
+    try {
+      const blob = await exportCanvasBlob();
+      const file = new File([blob], `rise-bubble-map-${Date.now()}.png`, { type: "image/png" });
+      const payload: ShareData = { title: bm.title, text: shareText, url: shareUrl };
+      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        payload.files = [file];
+      }
+      await navigator.share(payload);
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      toast.error(bm.shareNativeFailed);
+    }
+  };
+
+  const handleShareOnX = () => {
+    const q = new URLSearchParams({ text: `${shareText} ${shareUrl}`.trim() });
+    window.open(`https://twitter.com/intent/tweet?${q.toString()}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handleShareOnTelegram = () => {
+    const q = new URLSearchParams({ url: shareUrl, text: shareText });
+    window.open(`https://t.me/share/url?${q.toString()}`, "_blank", "noopener,noreferrer");
+  };
 
   if (isError) {
     return (
@@ -143,9 +242,18 @@ export function RiseBubbleMap({ onSelect }: RiseBubbleMapProps) {
         <SectionHeader title={bm.title} description={bm.loadError} />
         <EmptyState
           title={bm.loadError}
-          description={(marketsQuery.error as Error)?.message}
+          description={
+            (allMarketsQuery.error as Error)?.message ?? (topMarketsQuery.error as Error)?.message
+          }
           action={
-            <Button type="button" size="sm" variant="secondary" onClick={() => marketsQuery.refetch()}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                void Promise.all([allMarketsQuery.refetch(), topMarketsQuery.refetch()]);
+              }}
+            >
               {bm.retry}
             </Button>
           }
@@ -193,78 +301,97 @@ export function RiseBubbleMap({ onSelect }: RiseBubbleMapProps) {
                     </Button>
                   ))}
                 </div>
+                <div className="flex flex-wrap justify-end gap-1">
+                  {typeof navigator !== "undefined" && typeof navigator.share === "function" ? (
+                    <Button type="button" size="sm" variant="secondary" className="h-8 rounded-lg px-2.5 text-[11px]" onClick={() => void handleNativeShare()}>
+                      <Share2 className="mr-1 h-3.5 w-3.5" />
+                      {bm.shareNative}
+                    </Button>
+                  ) : null}
+                  <Button type="button" size="sm" variant="secondary" className="h-8 rounded-lg px-2.5 text-[11px]" onClick={() => void handleDownloadMap()}>
+                    <Download className="mr-1 h-3.5 w-3.5" />
+                    {bm.shareDownloadImage}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" className="h-8 rounded-lg px-2.5 text-[11px]" onClick={handleShareOnX}>
+                    {bm.shareOnX}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" className="h-8 rounded-lg px-2.5 text-[11px]" onClick={handleShareOnTelegram}>
+                    {bm.shareOnTelegram}
+                  </Button>
+                </div>
                 <p className="text-[0.65rem] text-muted-foreground/90">{bm.dragHint}</p>
               </div>
             </div>
           </div>
 
           <div className="p-3 sm:p-5">
-            {isPending ? (
+            <div
+              ref={wrapRef}
+              className="relative aspect-[4/5] w-full min-h-[200px] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-background/20 sm:aspect-video sm:min-h-[240px]"
+            >
               <div
-                className="flex min-h-[240px] w-full animate-pulse items-center justify-center rounded-xl border border-border/40 bg-muted/20 sm:min-h-[320px]"
-                aria-busy
-                aria-label={bm.refreshing}
-              />
-            ) : (
-              <div
-                ref={wrapRef}
-                className="relative aspect-[4/5] w-full min-h-[200px] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-background/20 sm:aspect-video sm:min-h-[240px]"
+                className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-[2px] overflow-hidden bg-muted/35"
+                role="status"
+                aria-live="polite"
+                aria-label={isFetching ? bm.refreshing : bm.liveStripLabel}
               >
-                <div
-                  className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-[2px] overflow-hidden bg-muted/35"
-                  role="status"
-                  aria-live="polite"
-                  aria-label={marketsQuery.isFetching ? bm.refreshing : bm.liveStripLabel}
-                >
-                  {reduceMotion ? (
-                    <div
-                      className={cn(
-                        "h-full w-full bg-foreground/15",
-                        marketsQuery.isFetching && "animate-pulse bg-foreground/25",
-                      )}
-                    />
-                  ) : (
-                    <motion.div
-                      className="absolute top-0 h-full w-[32%] min-w-[56px] max-w-[140px] rounded-full bg-gradient-to-r from-transparent via-foreground/35 to-transparent"
-                      initial={false}
-                      animate={{ left: ["-32%", "105%"] }}
-                      transition={{
-                        duration: marketsQuery.isFetching ? 0.85 : 2.6,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    />
-                  )}
-                </div>
-                {dim.w >= 32 && dim.h >= 32 ? (
-                  <BubbleCanvas
-                    width={dim.w}
-                    height={dim.h}
-                    nodesRef={nodesRef}
-                    tick={tick}
-                    reduceMotion={reduceMotion}
-                    beginDrag={beginDrag}
-                    drag={drag}
-                    endDrag={endDrag}
-                    hitTest={hitTest}
-                    onBubbleClick={(mint) => setSelectedMint(mint)}
-                    a11yRows={a11yRows}
-                    a11yListAriaLabel={bm.a11yListLabel}
-                    a11yPickLabel={(symbol, name) => `${symbol} — ${name}`}
-                    onA11yPick={(mint) => setSelectedMint(mint)}
-                    preloadMintsKey={preloadMintsKey}
-                    fitKey={bubbleMapFitKey}
-                    zoomInAria={bm.zoomInAria}
-                    zoomOutAria={bm.zoomOutAria}
+                {reduceMotion ? (
+                  <div
+                    className={cn(
+                      "h-full w-full bg-foreground/15",
+                      isFetching && "animate-pulse bg-foreground/25",
+                    )}
                   />
                 ) : (
-                  <div className="min-h-[200px] w-full sm:min-h-[240px]" aria-hidden />
+                  <motion.div
+                    className="absolute top-0 h-full w-[32%] min-w-[56px] max-w-[140px] rounded-full bg-gradient-to-r from-transparent via-foreground/35 to-transparent"
+                    initial={false}
+                    animate={{ left: ["-32%", "105%"] }}
+                    transition={{
+                      duration: isFetching ? 0.85 : 2.6,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                  />
                 )}
               </div>
-            )}
-            {!isPending ? (
-              <p className="mt-2 text-center text-[0.65rem] text-muted-foreground/90 sm:mt-3">{bm.zoomHint}</p>
-            ) : null}
+              {dim.w >= 32 && dim.h >= 32 ? (
+                <BubbleCanvas
+                  width={dim.w}
+                  height={dim.h}
+                  nodesRef={nodesRef}
+                  boundsRef={boundsRef}
+                  tick={tick}
+                  reduceMotion={reduceMotion}
+                  beginDrag={beginDrag}
+                  drag={drag}
+                  endDrag={endDrag}
+                  hitTest={hitTest}
+                  onBubbleClick={(mint) => setSelectedMint(mint)}
+                  a11yRows={a11yRows}
+                  a11yListAriaLabel={bm.a11yListLabel}
+                  a11yPickLabel={(symbol, name) => `${symbol} — ${name}`}
+                  onA11yPick={(mint) => setSelectedMint(mint)}
+                  preloadMintsKey={preloadMintsKey}
+                  fitKey={bubbleMapFitKey}
+                  zoomInAria={bm.zoomInAria}
+                  zoomOutAria={bm.zoomOutAria}
+                  onExportSnapshotReady={(exporter) => {
+                    exportSnapshotRef.current = exporter;
+                  }}
+                />
+              ) : (
+                <div className="min-h-[200px] w-full sm:min-h-[240px]" aria-hidden />
+              )}
+              {isPending ? (
+                <div
+                  className="absolute inset-0 z-[4] flex animate-pulse items-center justify-center bg-muted/20"
+                  aria-busy
+                  aria-label={bm.refreshing}
+                />
+              ) : null}
+            </div>
+            <p className="mt-2 text-center text-[0.65rem] text-muted-foreground/90 sm:mt-3">{bm.zoomHint}</p>
           </div>
         </GlassCard>
       </motion.div>

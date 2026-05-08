@@ -48,3 +48,11 @@ export type DragEndResult = {
   click: boolean;
   mint: string | null;
 };
+
+/** Axis-aligned world-space bounding box for the live bubble graph. */
+export type WorldBBox = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};

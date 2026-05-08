@@ -17,6 +17,7 @@ import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
 import { createAgentPumpfunCoinRouter } from "./routes/agent/pumpfunCoin.js";
+import { createPumpfunAlphaTrendRouter } from "./routes/agent/pumpfunAlphaTrend.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
@@ -615,7 +616,15 @@ app.use(
 app.use(injectTrustedOriginApiKey);
 
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
-// Skip auth for x402 routes and public paths. /8004 is protected by API key (same as other non-x402 APIs).
+// Skip auth for:
+//   - x402 routes (paid, gated by 402 instead)
+//   - the preview/landing tier (see isPreviewRoute): /preview/*, /dashboard-summary, /binance-ticker,
+//     /streamflow-locks, /staking, /uponly-rise-market*, /uponly-rise-portfolio*. These are
+//     advertised as "no x402" / free in the OpenAPI gateway and must be reachable by anonymous
+//     clients (curl, MCP tools, third-party agents, x402scan crawlers), not just trusted Syra origins.
+//   - landing/static surface (/, /favicon.ico, /og*, /info*) and the playground / prediction game
+//     surfaces that have their own session model.
+// /8004 stays API-key protected (same as other non-x402 APIs).
 app.use(
   requireApiKey((req) => {
     const p = req.path || "";
@@ -662,16 +671,13 @@ app.use(
     }
     return (
       isX402Route(p) ||
+      isPreviewRoute(p) ||
       p === "/" ||
       p === "/favicon.ico" ||
       p.startsWith("/og") ||
       p.startsWith("/info") ||
       p.startsWith("/playground") ||
-      p.startsWith("/prediction-game") ||
-      p.startsWith("/streamflow-locks") ||
-      p.startsWith("/staking") ||
-      p.startsWith("/uponly-rise-market") ||
-      p.startsWith("/uponly-rise-portfolio")
+      p.startsWith("/prediction-game")
     );
   }),
 );
@@ -967,6 +973,7 @@ app.use("/openrouter", await createOpenRouterChatRouter());
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/chart", createAgentChartRouter());
 app.use("/agent/pumpfun", createAgentPumpfunCoinRouter());
+app.use("/agent/pumpfun-alpha", createPumpfunAlphaTrendRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
@@ -1071,14 +1078,17 @@ Visit https://docs.syraa.fun for full documentation.
 - **Base Mainnet (EVM)**: \`eip155:8453\` - USDC payments
 - **Solana Mainnet (SVM)**: \`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp\` - USDC payments
 
-## Rate Limits
+## Rate Limits (per IP)
 
-- 1000 requests/hour per IP
-- Rate limits apply across all endpoints
+- **Burst**: 25 requests / 10 seconds
+- **Sustained**: 100 requests / 60 seconds
+- Exceeding either limit returns HTTP 429 with a \`Retry-After\` header (seconds) and JSON body \`{ "success": false, "message": "Too many requests. Please slow down." }\`.
+- x402 paid routes (the resources listed above) are gated by HTTP 402 instead and bypass this throttle.
+- Machine-readable spec: \`x-ratelimit\` extension at the root of GET /openapi.json.
 
 ## Authentication
 
-No API key required. All endpoints use x402 protocol (HTTP 402) for payment.
+No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). The free preview tier (\`/preview/*\`, \`/dashboard-summary\`, \`/binance-ticker\`, \`/health\`) is also publicly accessible.
 
 ## Support
 

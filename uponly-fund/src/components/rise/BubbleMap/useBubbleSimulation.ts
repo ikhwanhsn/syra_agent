@@ -2,12 +2,19 @@ import { useCallback, useEffect, useRef } from "react";
 import { RISE_UPONLY_MINT } from "@/components/rise/RiseShared";
 import {
   bubbleRadiusFillScale,
+  computeBubbleWorldBounds,
   computeRadius,
   layoutTargetsSeeded,
   metricRange,
   sizeValueForMetric,
 } from "./bubbleMapMath";
-import type { BubbleDatum, BubbleSimNode, BubbleSizeMetric, DragEndResult } from "./bubbleMapTypes";
+import type {
+  BubbleDatum,
+  BubbleSimNode,
+  BubbleSizeMetric,
+  DragEndResult,
+  WorldBBox,
+} from "./bubbleMapTypes";
 
 const FRICTION = 0.988;
 const WALL_RESTITUTION = 0.82;
@@ -21,6 +28,8 @@ const MAX_R = 60;
 const AREA_BUDGET = Math.PI * MAX_R * MAX_R;
 /** Spatial grid cell — larger than max bubble diameter for fewer cells. */
 const CELL = 108;
+/** Pad applied to bubble world bounds (matches BubbleCanvas FIT_PADDING). */
+const BOUNDS_PADDING = 32;
 
 type DragState = {
   mint: string;
@@ -52,86 +61,127 @@ function sortDrawOrder(nodes: BubbleSimNode[]): void {
   nodes.sort((a, b) => a.r - b.r);
 }
 
-function cellKey(ix: number, iy: number): string {
-  return `${ix},${iy}`;
+/**
+ * Pooled spatial grid: `Map<cellHash, number[]>` reused across ticks. The
+ * bucket arrays are recycled (truncated to length 0) so we avoid GC churn on
+ * every frame for the broad-phase. `seenPairs` is a packed `Uint8Array` of
+ * size `N*N` for O(1) dedup of pairs that share multiple cells.
+ */
+type CollisionScratch = {
+  grid: Map<number, number[]>;
+  bucketPool: number[][];
+  seenPairs: Uint8Array | null;
+  seenPairsN: number;
+};
+
+function cellHash(ix: number, iy: number): number {
+  /** 32-bit packing — supports |ix|,|iy| up to 16k cells which is far beyond any sane canvas. */
+  return ((ix & 0xffff) << 16) | (iy & 0xffff);
 }
 
-function resolvePairCollisions(
-  nodes: BubbleSimNode[],
-  indices: readonly number[],
+function ensureSeenPairs(scratch: CollisionScratch, n: number): Uint8Array {
+  if (!scratch.seenPairs || scratch.seenPairsN < n) {
+    scratch.seenPairs = new Uint8Array(n * n);
+    scratch.seenPairsN = n;
+  } else {
+    scratch.seenPairs.fill(0);
+  }
+  return scratch.seenPairs;
+}
+
+function clearGrid(scratch: CollisionScratch): void {
+  for (const arr of scratch.grid.values()) {
+    if (arr.length > 0) {
+      scratch.bucketPool.push(arr);
+      arr.length = 0;
+    }
+  }
+  scratch.grid.clear();
+}
+
+function takeBucket(scratch: CollisionScratch): number[] {
+  return scratch.bucketPool.pop() ?? [];
+}
+
+function applyPairCollision(
+  nodeA: BubbleSimNode,
+  nodeB: BubbleSimNode,
   dragMint: string | null,
 ): void {
-  for (let a = 0; a < indices.length; a += 1) {
-    for (let b = a + 1; b < indices.length; b += 1) {
-      const ia = indices[a];
-      const ib = indices[b];
-      if (ia === ib) continue;
-      const nodeA = nodes[ia];
-      const nodeB = nodes[ib];
-      if (!nodeA || !nodeB || nodeA.removing || nodeB.removing) continue;
+  const dx = nodeB.x - nodeA.x;
+  const dy = nodeB.y - nodeA.y;
+  const dLen = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+  const minDist = nodeA.r + nodeB.r;
+  const overlap = minDist - dLen;
+  if (overlap <= 0) return;
 
-      const dx = nodeB.x - nodeA.x;
-      const dy = nodeB.y - nodeA.y;
-      const dLen = Math.sqrt(dx * dx + dy * dy) || 1e-6;
-      const minDist = nodeA.r + nodeB.r;
-      const overlap = minDist - dLen;
-      if (overlap <= 0) continue;
+  const nx = dx / dLen;
+  const ny = dy / dLen;
+  const push = overlap * COLLISION_PUSH;
 
-      const nx = dx / dLen;
-      const ny = dy / dLen;
-      const push = overlap * COLLISION_PUSH;
+  const aDrag = nodeA.mint === dragMint;
+  const bDrag = nodeB.mint === dragMint;
 
-      const aDrag = nodeA.mint === dragMint;
-      const bDrag = nodeB.mint === dragMint;
+  if (aDrag && !bDrag) {
+    nodeB.x += nx * push * 2;
+    nodeB.y += ny * push * 2;
+    nodeB.vx += nx * push * COLLISION_IMPULSE;
+    nodeB.vy += ny * push * COLLISION_IMPULSE;
+    return;
+  }
+  if (bDrag && !aDrag) {
+    nodeA.x -= nx * push * 2;
+    nodeA.y -= ny * push * 2;
+    nodeA.vx -= nx * push * COLLISION_IMPULSE;
+    nodeA.vy -= ny * push * COLLISION_IMPULSE;
+    return;
+  }
 
-      if (aDrag && !bDrag) {
-        nodeB.x += nx * push * 2;
-        nodeB.y += ny * push * 2;
-        nodeB.vx += nx * push * COLLISION_IMPULSE;
-        nodeB.vy += ny * push * COLLISION_IMPULSE;
-      } else if (bDrag && !aDrag) {
-        nodeA.x -= nx * push * 2;
-        nodeA.y -= ny * push * 2;
-        nodeA.vx -= nx * push * COLLISION_IMPULSE;
-        nodeA.vy -= ny * push * COLLISION_IMPULSE;
-      } else {
-        nodeA.x -= nx * push;
-        nodeA.y -= ny * push;
-        nodeB.x += nx * push;
-        nodeB.y += ny * push;
+  nodeA.x -= nx * push;
+  nodeA.y -= ny * push;
+  nodeB.x += nx * push;
+  nodeB.y += ny * push;
 
-        const rvx = nodeB.vx - nodeA.vx;
-        const rvy = nodeB.vy - nodeA.vy;
-        const rel = rvx * nx + rvy * ny;
-        if (rel < 0) {
-          const imp = -rel * COLLISION_IMPULSE;
-          nodeA.vx -= imp * nx;
-          nodeA.vy -= imp * ny;
-          nodeB.vx += imp * nx;
-          nodeB.vy += imp * ny;
-        }
-      }
-    }
+  const rvx = nodeB.vx - nodeA.vx;
+  const rvy = nodeB.vy - nodeA.vy;
+  const rel = rvx * nx + rvy * ny;
+  if (rel < 0) {
+    const imp = -rel * COLLISION_IMPULSE;
+    nodeA.vx -= imp * nx;
+    nodeA.vy -= imp * ny;
+    nodeB.vx += imp * nx;
+    nodeB.vy += imp * ny;
   }
 }
 
-/** Broad-phase grid: only pairs that share a cell are narrow-phase checked. */
-function resolveCollisionsSpatial(nodes: BubbleSimNode[], dragMint: string | null): void {
-  const grid = new Map<string, number[]>();
-  for (let idx = 0; idx < nodes.length; idx += 1) {
-    const n = nodes[idx];
-    if (n.removing) continue;
-    const pad = n.r;
-    const ix0 = Math.floor((n.x - pad) / CELL);
-    const ix1 = Math.floor((n.x + pad) / CELL);
-    const iy0 = Math.floor((n.y - pad) / CELL);
-    const iy1 = Math.floor((n.y + pad) / CELL);
+/** Broad-phase grid (pooled buffers): only pairs that share a cell are narrow-phase checked. */
+function resolveCollisionsSpatial(
+  scratch: CollisionScratch,
+  nodes: BubbleSimNode[],
+  dragMint: string | null,
+): void {
+  const n = nodes.length;
+  if (n < 2) {
+    clearGrid(scratch);
+    return;
+  }
+
+  clearGrid(scratch);
+  const { grid } = scratch;
+  for (let idx = 0; idx < n; idx += 1) {
+    const node = nodes[idx];
+    if (node.removing) continue;
+    const pad = node.r;
+    const ix0 = Math.floor((node.x - pad) / CELL);
+    const ix1 = Math.floor((node.x + pad) / CELL);
+    const iy0 = Math.floor((node.y - pad) / CELL);
+    const iy1 = Math.floor((node.y + pad) / CELL);
     for (let ix = ix0; ix <= ix1; ix += 1) {
       for (let iy = iy0; iy <= iy1; iy += 1) {
-        const k = cellKey(ix, iy);
+        const k = cellHash(ix, iy);
         let bucket = grid.get(k);
         if (!bucket) {
-          bucket = [];
+          bucket = takeBucket(scratch);
           grid.set(k, bucket);
         }
         bucket.push(idx);
@@ -139,22 +189,42 @@ function resolveCollisionsSpatial(nodes: BubbleSimNode[], dragMint: string | nul
     }
   }
 
-  const seen = new Set<string>();
+  const seen = ensureSeenPairs(scratch, n);
   for (const bucket of grid.values()) {
-    if (bucket.length < 2) continue;
-    const uniq = [...new Set(bucket)];
-    if (uniq.length < 2) continue;
-    for (let a = 0; a < uniq.length; a += 1) {
-      for (let b = a + 1; b < uniq.length; b += 1) {
-        const i = uniq[a];
-        const j = uniq[b];
-        const pairKey = i < j ? `${i},${j}` : `${j},${i}`;
-        if (seen.has(pairKey)) continue;
-        seen.add(pairKey);
-        resolvePairCollisions(nodes, [i, j], dragMint);
+    const len = bucket.length;
+    if (len < 2) continue;
+    for (let a = 0; a < len; a += 1) {
+      const i = bucket[a];
+      for (let b = a + 1; b < len; b += 1) {
+        const j = bucket[b];
+        if (i === j) continue;
+        const lo = i < j ? i : j;
+        const hi = i < j ? j : i;
+        const flag = lo * n + hi;
+        if (seen[flag]) continue;
+        seen[flag] = 1;
+        const nodeA = nodes[lo];
+        const nodeB = nodes[hi];
+        if (!nodeA || !nodeB || nodeA.removing || nodeB.removing) continue;
+        applyPairCollision(nodeA, nodeB, dragMint);
       }
     }
   }
+}
+
+function fingerprintInputs(
+  data: readonly BubbleDatum[],
+  metric: BubbleSizeMetric,
+  width: number,
+  height: number,
+  reduceMotion: boolean,
+): string {
+  let out = "";
+  for (let i = 0; i < data.length; i += 1) {
+    const d = data[i];
+    out += `${d.mint}:${d.priceChange24hPct ?? "x"}|`;
+  }
+  return `${out}|${metric}|${width}x${height}|${reduceMotion ? 1 : 0}`;
 }
 
 export function useBubbleSimulation(args: {
@@ -167,10 +237,28 @@ export function useBubbleSimulation(args: {
   const { data, metric, width, height, reduceMotion } = args;
   const nodesRef = useRef<BubbleSimNode[]>([]);
   const dragRef = useRef<DragState | null>(null);
+  const boundsRef = useRef<WorldBBox | null>(null);
+  const scratchRef = useRef<CollisionScratch>({
+    grid: new Map(),
+    bucketPool: [],
+    seenPairs: null,
+    seenPairsN: 0,
+  });
+  const lastResyncSigRef = useRef<string>("");
+
+  const refreshBounds = useCallback(() => {
+    boundsRef.current = computeBubbleWorldBounds(nodesRef.current, BOUNDS_PADDING);
+  }, []);
 
   /** Resync graph when data / metric / dimensions / motion mode change. */
   useEffect(() => {
     if (width < 32 || height < 32) return;
+
+    const sig = fingerprintInputs(data, metric, width, height, reduceMotion);
+    if (lastResyncSigRef.current === sig && nodesRef.current.length > 0) {
+      return;
+    }
+    lastResyncSigRef.current = sig;
 
     const { min, max } = metricRange(data, metric);
     const prev = new Map(nodesRef.current.map((n) => [n.mint, n]));
@@ -214,6 +302,8 @@ export function useBubbleSimulation(args: {
         };
       });
       nodesRef.current = next;
+      sortDrawOrder(nodesRef.current);
+      refreshBounds();
       return;
     }
 
@@ -260,19 +350,22 @@ export function useBubbleSimulation(args: {
 
     nodesRef.current = next;
     sortDrawOrder(nodesRef.current);
-  }, [data, metric, width, height, reduceMotion]);
+    refreshBounds();
+  }, [data, metric, width, height, reduceMotion, refreshBounds]);
 
-  const hitTest = useCallback(
-    (px: number, py: number): string | null => {
-      const nodes = [...nodesRef.current].sort((a, b) => b.r - a.r);
-      for (const n of nodes) {
-        if (n.alpha < 0.15) continue;
-        if (dist(px, py, n.x, n.y) <= n.r) return n.mint;
-      }
-      return null;
-    },
-    [],
-  );
+  /** hitTest iterates `nodesRef.current` in REVERSE: tick keeps the array sorted asc by `r`,
+   *  so reverse-iteration walks largest-first without per-event allocation. */
+  const hitTest = useCallback((px: number, py: number): string | null => {
+    const nodes = nodesRef.current;
+    for (let i = nodes.length - 1; i >= 0; i -= 1) {
+      const n = nodes[i];
+      if (n.alpha < 0.15) continue;
+      const dx = px - n.x;
+      const dy = py - n.y;
+      if (dx * dx + dy * dy <= n.r * n.r) return n.mint;
+    }
+    return null;
+  }, []);
 
   const beginDrag = useCallback(
     (px: number, py: number): boolean => {
@@ -319,8 +412,8 @@ export function useBubbleSimulation(args: {
   }, []);
 
   const tick = useCallback(
-    (dtMs: number) => {
-      if (reduceMotion) return;
+    (dtMs: number): number => {
+      if (reduceMotion) return 0;
       const dt = Math.min(32, Math.max(8, dtMs)) / 1000;
       const nodes = nodesRef.current;
       const dragMint = dragRef.current?.mint ?? null;
@@ -328,6 +421,7 @@ export function useBubbleSimulation(args: {
       const w = width;
       const h = height;
 
+      let maxKE = 0;
       for (const n of nodes) {
         if (n.removing) {
           n.alpha = Math.max(0, n.alpha - ALPHA_OUT * (dt * 60));
@@ -336,7 +430,10 @@ export function useBubbleSimulation(args: {
         n.alpha = Math.min(1, n.alpha + ALPHA_IN * (dt * 60));
         n.r += (n.targetR - n.r) * RADIUS_LERP * (dt * 60);
 
-        if (n.mint === dragMint) continue;
+        if (n.mint === dragMint) {
+          maxKE = Math.max(maxKE, 1);
+          continue;
+        }
 
         n.x += n.vx * dt;
         n.y += n.vy * dt;
@@ -359,15 +456,31 @@ export function useBubbleSimulation(args: {
           n.y = h - rr;
           n.vy *= -WALL_RESTITUTION;
         }
+
+        const ke = n.vx * n.vx + n.vy * n.vy;
+        if (ke > maxKE) maxKE = ke;
       }
 
-      resolveCollisionsSpatial(nodes, dragMint);
+      resolveCollisionsSpatial(scratchRef.current, nodes, dragMint);
 
-      nodesRef.current = nodes.filter((n) => !(n.removing && n.alpha <= 0.01));
+      // Filter only when we actually have anything to drop, to avoid array reallocation.
+      let needsFilter = false;
+      for (const n of nodes) {
+        if (n.removing && n.alpha <= 0.01) {
+          needsFilter = true;
+          break;
+        }
+      }
+      if (needsFilter) {
+        nodesRef.current = nodes.filter((n) => !(n.removing && n.alpha <= 0.01));
+      }
       sortDrawOrder(nodesRef.current);
+      refreshBounds();
+
+      return maxKE;
     },
-    [width, height, reduceMotion],
+    [width, height, reduceMotion, refreshBounds],
   );
 
-  return { nodesRef, tick, hitTest, beginDrag, drag, endDrag };
+  return { nodesRef, boundsRef, tick, hitTest, beginDrag, drag, endDrag };
 }

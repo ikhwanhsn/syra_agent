@@ -248,3 +248,30 @@ export function useRiseTransactionsBatch(addresses: string[], limit = DEFAULT_PA
     })),
   });
 }
+
+/**
+ * Bulk-prefetch OHLC for a list of mints (e.g. visible screener rows).
+ *
+ * Each mint reuses the same `["rise-ohlc", mint, timeframe, limit]` cache key
+ * as `useRiseOhlc`, so per-row `MarketSparkline` components automatically
+ * read from cache when their IntersectionObserver fires. The underlying
+ * `getRiseMarketOhlc` enforces a 4-wide concurrency limit, so even 100 mints
+ * resolve smoothly without blasting the upstream proxy.
+ */
+export function useRiseOhlcBatch(
+  addresses: readonly string[],
+  timeframe: RiseTimeframe = "1h",
+  limit = 24,
+) {
+  return useQueries({
+    queries: addresses.map((address) => ({
+      queryKey: ["rise-ohlc", address, timeframe, limit],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        getRiseMarketOhlc(address, timeframe, limit, signal),
+      enabled: typeof address === "string" && address.length >= 32,
+      staleTime: OHLC_REFETCH_MS,
+      refetchInterval: OHLC_REFETCH_MS,
+      retry: 1,
+    })),
+  });
+}

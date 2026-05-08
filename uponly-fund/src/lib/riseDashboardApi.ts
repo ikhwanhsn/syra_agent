@@ -205,6 +205,64 @@ export async function getRiseMarketsAll(
 
 /* --- Per-market --- */
 
+/**
+ * OHLC fan-out limiter.
+ *
+ * Rationale: a screener with 100 visible rows can otherwise dispatch 100
+ * concurrent sparkline requests within one render frame, saturating the
+ * upstream RISE proxy and pegging the main thread on response parse. We
+ * funnel every OHLC fetch through a 4-wide concurrency queue. TanStack
+ * Query's per-key deduplication still reuses inflight responses, so the
+ * effective rate is min(unique mints, 4) parallel requests — first-paint
+ * sparklines still feel instant, the remaining rows stream in smoothly.
+ */
+const OHLC_CONCURRENCY = 4;
+let ohlcInFlight = 0;
+type QueuedOhlcTask = { run: () => Promise<void>; signal?: AbortSignal };
+const ohlcQueue: QueuedOhlcTask[] = [];
+
+function pumpOhlcQueue(): void {
+  while (ohlcInFlight < OHLC_CONCURRENCY && ohlcQueue.length > 0) {
+    const task = ohlcQueue.shift();
+    if (!task) continue;
+    if (task.signal?.aborted) continue;
+    ohlcInFlight += 1;
+    void task.run().finally(() => {
+      ohlcInFlight -= 1;
+      pumpOhlcQueue();
+    });
+  }
+}
+
+function enqueueOhlc<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      signal?.removeEventListener("abort", onAbort);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const task: QueuedOhlcTask = {
+      signal,
+      run: async () => {
+        if (signal?.aborted) {
+          onAbort();
+          return;
+        }
+        signal?.addEventListener("abort", onAbort, { once: true });
+        try {
+          const result = await fn();
+          signal?.removeEventListener("abort", onAbort);
+          resolve(result);
+        } catch (e) {
+          signal?.removeEventListener("abort", onAbort);
+          reject(e as Error);
+        }
+      },
+    };
+    ohlcQueue.push(task);
+    pumpOhlcQueue();
+  });
+}
+
 export function getRiseMarketOhlc(
   address: string,
   timeframe: RiseTimeframe,
@@ -212,9 +270,13 @@ export function getRiseMarketOhlc(
   signal?: AbortSignal,
 ): Promise<RiseOhlcResponse> {
   const q = buildQuery({ limit });
-  return riseFetch<RiseOhlcResponse>(
-    `/uponly-rise-market/${encodeURIComponent(address)}/ohlc/${encodeURIComponent(timeframe)}${q}`,
-    { signal },
+  return enqueueOhlc(
+    () =>
+      riseFetch<RiseOhlcResponse>(
+        `/uponly-rise-market/${encodeURIComponent(address)}/ohlc/${encodeURIComponent(timeframe)}${q}`,
+        { signal },
+      ),
+    signal,
   );
 }
 

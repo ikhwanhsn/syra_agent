@@ -41,34 +41,82 @@ const NANSEN_BASE = "https://api.nansen.ai";
 const PURCH_VAULT_BASE = "https://api.purch.xyz";
 const SUPPORT = "https://t.me/ikhwanhsn";
 
-const standard402 = (price: number) => `{
-  "error": "Payment Required",
-  "price": ${price},
-  "currency": "USD",
-  "paymentInstructions": {
-    "method": "x402",
-    "details": "..."
-  }
+/** USDC mint on Solana mainnet (used in x402 `accepts[].asset` for the Solana network). */
+const USDC_SOLANA_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+/** USDC contract on Base mainnet (used in x402 `accepts[].asset` for the Base / EVM network). */
+const USDC_BASE_MAINNET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
+/**
+ * Real-shape 402 response returned by the API for any paid route.
+ * Mirrors `api/utils/x402Payment.js` (V1 / x402scan compatible). `microUnits` is the price
+ * expressed in USDC base units (USDC has 6 decimals → 0.01 USD = 10000 micro).
+ */
+const standard402 = (priceUsd: number): string => {
+  const microUnits = Math.max(0, Math.floor(priceUsd * 1_000_000)).toString();
+  return `{
+  "x402Version": 1,
+  "error": "X-PAYMENT header is required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "solana",
+      "maxAmountRequired": "${microUnits}",
+      "resource": "${BASE_URL}/<endpoint>",
+      "description": "<endpoint description>",
+      "mimeType": "application/json",
+      "payTo": "<Syra treasury Solana address>",
+      "asset": "${USDC_SOLANA_MAINNET}",
+      "maxTimeoutSeconds": 60,
+      "outputSchema": {
+        "input":  { "type": "http", "method": "GET" },
+        "output": { "/* response shape per endpoint */": null }
+      },
+      "extra": { "feePayer": "<fee payer address>" }
+    }
+  ]
 }`;
+};
 
 const standardResponseCodes = [
   { code: "200", description: "Success — data returned" },
-  { code: "402", description: "Payment Required — complete payment first" },
+  {
+    code: "402",
+    description:
+      "Payment Required — body contains an x402 `accepts` array; pay one of the offers and retry with `X-PAYMENT`",
+  },
   { code: "5xx", description: "Server error — retry later" },
 ];
+
+const STANDARD_AUTH_NOTE =
+  "Paid routes use the x402 payment protocol. The first request without an `X-PAYMENT` header returns HTTP 402 with an `accepts` array describing each supported network/asset/price. Encode and sign a payment for one of the offers using an x402 client, set it as the `X-PAYMENT` header, and retry the same request to receive the data and an `X-PAYMENT-RESPONSE` header. See the x402 Payment Flow doc for the wire format.";
+
+/**
+ * Standard 3-step x402 payment flow text. The wording is identical for every paid endpoint;
+ * only the example 402 body changes (because the price differs per route). Use {@link paymentFlowFor}
+ * to build a per-route flow with the right example.
+ */
+const STANDARD_PAYMENT_FLOW_STEPS = {
+  step1:
+    "Make the request without payment. The API responds 402 with `{ x402Version: 1, error, accepts: [...] }`. Each `accepts[i]` describes one offer: `scheme: \"exact\"`, `network` (\"solana\" or \"base\"), `asset` (USDC mint/contract), `maxAmountRequired` (price in micro-units, USDC has 6 decimals), `payTo`, `resource`, `maxTimeoutSeconds`, and an `outputSchema`.",
+  step2:
+    "Pick one offer and have an x402 client (e.g. `x402-solana` / `@x402/core`) build, sign, and base64-encode a payment payload that satisfies it. The signed payload is the value of the `X-PAYMENT` header.",
+  step3:
+    "Replay the original request with `X-PAYMENT: <encoded payload>`. On success the API verifies and settles the payment via the configured facilitator (PayAI), returns 200 with the JSON body, and includes an `X-PAYMENT-RESPONSE: <base64 JSON>` header confirming settlement.",
+} as const;
+
+/** Per-endpoint x402 flow builder — same canonical text, route-specific 402 body. */
+function paymentFlowFor(priceUsd: number): ApiDoc["paymentFlow"] {
+  return { ...STANDARD_PAYMENT_FLOW_STEPS, response402: standard402(priceUsd) };
+}
+
+const STANDARD_PAYMENT_FLOW = paymentFlowFor(0.01);
 
 function doc(partial: Partial<ApiDoc> & Pick<ApiDoc, "title" | "overview" | "endpoints">): ApiDoc {
   return {
     baseUrl: BASE_URL,
     price: "$0.01 USD per request",
-    authNote:
-      "This API uses the x402 payment protocol. On first request without payment, you'll receive a 402 Payment Required response with payment instructions.",
-    paymentFlow: {
-      step1: "Initial request returns 402 with payment instructions.",
-      step2: "Complete payment (process payment header, submit via specified method, receive payment proof/token).",
-      step3: "Retry request with payment proof in headers to receive the data.",
-      response402: standard402(0.01),
-    },
+    authNote: STANDARD_AUTH_NOTE,
+    paymentFlow: STANDARD_PAYMENT_FLOW,
     responseCodes: standardResponseCodes,
     supportLink: SUPPORT,
     ...partial,
@@ -77,37 +125,122 @@ function doc(partial: Partial<ApiDoc> & Pick<ApiDoc, "title" | "overview" | "end
 
 export const apiDocs: Record<string, ApiDoc> = {
   "x402-api-standard": doc({
-    title: "x402 API Documentation Standard",
+    title: "x402 Payment Flow",
     overview:
-      "This document defines the standard structure and conventions for all Syra x402 API documentation. Every paid API uses unversioned paths and requires payment via the x402 protocol before returning data. The live HTTP discovery list is `GET " + BASE_URL + "/.well-known/x402` (canonical x402 resource URLs). Many partner and automation tools are **not** in that list—they run through the agent: `GET " + BASE_URL + "/agent/tools` and `POST " + BASE_URL + "/agent/tools/call` (tool ids, agent wallet or treasury billing).",
+      "Every paid endpoint on " +
+      BASE_URL +
+      " speaks the x402 micropayment protocol (V1, x402scan-compatible). This page is the authoritative reference for the wire format: how 402 responses are shaped, how to encode the `X-PAYMENT` request header, what to expect in `X-PAYMENT-RESPONSE`, and which networks and assets are accepted. Per-endpoint pages reuse this same flow with their own price and parameters. Public discovery: `GET " +
+      BASE_URL +
+      "/.well-known/x402` (canonical resources) and `GET " +
+      BASE_URL +
+      "/openapi.json` (full gateway catalog).",
+    price: "Free to read; per-endpoint prices are listed on each route's page",
     endpoints: [
       {
         method: "GET",
-        path: "/health",
-        description: "Health check example. All x402 endpoints follow the same payment flow.",
-        requestExample: `curl ${BASE_URL}/health`,
+        path: "/.well-known/x402",
+        description:
+          "x402 discovery document — lists every paid resource on the API plus ownership proofs and supported networks. Always free, never requires payment.",
+        requestExample: `curl ${BASE_URL}/.well-known/x402`,
         responseExample: `{
-  "ok": true,
-  "status": "healthy",
-  "service": "syra-api",
-  "message": "API is operational and accepting requests.",
-  "timestamp": "2026-04-23T12:00:00.000Z"
+  "version": 1,
+  "resources": [
+    "${BASE_URL}/news",
+    "${BASE_URL}/signal",
+    "${BASE_URL}/sentiment",
+    "${BASE_URL}/health"
+  ],
+  "ownershipProofs": ["<EVM proof>", "<SVM proof>"],
+  "instructions": "# SYRA API Documentation\\n\\nVisit https://docs.syraa.fun for full documentation.\\n\\n## Supported Payment Networks\\n- Base Mainnet (EVM): eip155:8453 - USDC payments\\n- Solana Mainnet (SVM): solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp - USDC payments\\n\\n## Authentication\\nNo API key required. All endpoints use x402 protocol (HTTP 402) for payment."
+}`,
+      },
+      {
+        method: "GET",
+        path: "/openapi.json",
+        description:
+          "Full OpenAPI 3.1 catalog of every paid route and its parameters. Always free; use it to build clients or wire the API into MCP / agent tools.",
+        requestExample: `curl ${BASE_URL}/openapi.json`,
+        responseExample: `{ "openapi": "3.1.0", "info": { "title": "Syra API", "version": "1.0.0" }, "paths": { "/news": { "...": "..." } } }`,
+      },
+      {
+        method: "GET",
+        path: "/<paid-endpoint>",
+        description:
+          "Step 1 — first request without `X-PAYMENT`. The API responds 402 with the full set of payment offers in the `accepts` array.",
+        requestExample: `curl -i ${BASE_URL}/news?ticker=BTC`,
+        responseExample: standard402(0.01),
+      },
+      {
+        method: "GET",
+        path: "/<paid-endpoint>",
+        description:
+          "Step 2 — replay the same request with `X-PAYMENT: <base64 signed payload>` produced by an x402 client for one of the offered networks. On success the API returns 200 plus an `X-PAYMENT-RESPONSE` header confirming on-chain settlement via the PayAI facilitator.",
+        requestExample: `curl -i "${BASE_URL}/news?ticker=BTC" \\
+  -H "X-PAYMENT: $(node ./scripts/sign-x402.js --network solana --resource '${BASE_URL}/news?ticker=BTC' --amount 10000)"`,
+        responseExample: `HTTP/1.1 200 OK
+Content-Type: application/json
+X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
+
+{
+  "news": [
+    {
+      "title": "Bitcoin Reaches New Milestone",
+      "source": "CryptoNews",
+      "url": "https://example.com/article",
+      "date": "2026-05-08T10:30:00Z"
+    }
+  ]
 }`,
       },
     ],
     extraSections: [
       {
-        title: "URL Conventions",
-        content: "Use full URL in examples: " + BASE_URL + "/{resource} (e.g. " + BASE_URL + "/news, " + BASE_URL + "/signal?token=btc).",
+        title: "Supported networks and assets",
+        content:
+          "Two networks are accepted on every paid route. Solana mainnet — `network: \"solana\"`, `asset: " +
+          USDC_SOLANA_MAINNET +
+          "` (USDC SPL mint, 6 decimals). Base mainnet — `network: \"base\"`, `asset: " +
+          USDC_BASE_MAINNET +
+          "` (USDC ERC-20, 6 decimals). Pick whichever offer matches your wallet — the API verifies and settles via the PayAI facilitator (`FACILITATOR_URL_PAYAI`).",
+      },
+      {
+        title: "How `maxAmountRequired` is computed",
+        content:
+          "All prices are quoted in USDC base units (micro-USDC). USDC uses 6 decimals, so $0.01 USD = `\"10000\"`, $0.0001 USD = `\"100\"`, $1.00 USD = `\"1000000\"`. Always compare amounts as strings — never as JS numbers — to avoid float rounding for sub-cent prices.",
+      },
+      {
+        title: "Building the `X-PAYMENT` header",
+        content:
+          "Use any x402-compatible client: `x402-solana/server` (used internally by this API), `@x402/core/http` for header helpers, or any client that follows the V1 spec at https://x402.org. The header value is a base64url-encoded JSON payload signed by the payer's wallet and matching one of the offers in `accepts`. The agent app and MCP server in this monorepo both ship with working signing logic — see `ai-agent/src/lib/x402Client.ts` and `mcp-server/src/index.ts`.",
+      },
+      {
+        title: "Idempotency and retries",
+        content:
+          "An accepted `X-PAYMENT` payload is single-use and bound to the original `resource` URL plus `maxTimeoutSeconds` (default 60s). If you retry the request before settlement completes you may get a duplicate-spend error from the facilitator — wait for the `X-PAYMENT-RESPONSE` header before resending. Network 5xx errors are safe to retry with the same `X-PAYMENT` only within the timeout window.",
       },
       {
         title: "Direct x402 vs agent tools",
         content:
-          "Per-page docs below may still show example `curl` paths for EXA, crawl, browser-use, or partner APIs. If a route is not listed in `GET /.well-known/x402`, use the Syra Agent (chat) or `POST " +
+          "The `/.well-known/x402` document only lists *direct* HTTP routes (e.g. `/news`, `/signal`, `/sentiment`). Many partner and automation tools — EXA Search, Firecrawl, Browser Use, Jupiter, Nansen, Bankr, Giza, Neynar, SIWA — are exposed only through the Syra Agent and billed against the agent treasury. List them with `GET " +
           BASE_URL +
-          "/agent/tools/call` with the tool id from `GET " +
+          "/agent/tools` and call them with `POST " +
           BASE_URL +
-          "/agent/tools`—that is the supported path after server-side agent migration.",
+          "/agent/tools/call` (tool id + args). Use direct x402 for thin integrations, the agent tools surface for richer flows.",
+      },
+      {
+        title: "Free routes that look paid",
+        content:
+          "Discovery (`/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`, `/uponly-rise-market*`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun, agent.syraa.fun, dashboard.syraa.fun and playground.syraa.fun — never embed an API key in client bundles.",
+      },
+      {
+        title: "Rate limits",
+        content:
+          "Every non-x402 route (preview tier, dashboard helpers, agent, analytics, public signal proxy, X / X-analyzer batch, etc.) is throttled per client IP with a dual window: **burst 25 req / 10s** plus **sustained 100 req / 60s**. Exceeding either limit returns HTTP 429 with a `Retry-After: <seconds>` header and body `{ success: false, message: \"Too many requests. Please slow down.\" }`. **x402 paid routes are gated by HTTP 402 instead and bypass this throttle** — pay the offer in `accepts` and you can call as fast as the facilitator settles. The OpenAPI spec exposes the same numbers under the root `x-ratelimit` extension for machine clients (SDK generators, API explorers).",
+      },
+      {
+        title: "What is `x-payment-info`?",
+        content:
+          "`x-payment-info` is an **optional** per-operation OpenAPI extension some x402 ecosystems (MPP / AgentCash registries) use to attach payment metadata directly to each path in their discovery document. The Syra **gateway** OpenAPI at `GET /openapi.json` deliberately does NOT emit it — the canonical, machine-verified payment offer is returned at runtime in the **402 response body's `accepts` array** (the actual x402 V1 wire spec). The Syra **MPP discovery** document at `GET /mpp-openapi.json` DOES emit it because the MPP registry validator requires it. The shape Syra uses is `{ protocols: [\"mpp\"], pricingMode: \"fixed\", price: \"<USD as decimal string>\" }`. The `price` field is the same number that appears as `accepts[i].maxAmountRequired` at runtime, just expressed in USD instead of USDC micro-units. If you only need to integrate Syra (not multi-vendor x402 registries), ignore `x-payment-info` entirely and read the runtime 402 body — the gateway OpenAPI describes the full surface without it. The root `x-payment-info-spec` extension on `/openapi.json` carries the same explanation in machine-readable form.",
       },
     ],
   }),
@@ -146,12 +279,7 @@ export const apiDocs: Record<string, ApiDoc> = {
 }`,
       },
     ],
-    paymentFlow: {
-      step1: "Initial request returns 402 with payment instructions.",
-      step2: "Complete payment (process payment header, submit via specified method, receive payment proof/token).",
-      step3: "Retry request with payment proof in headers to receive the status.",
-      response402: standard402(0.0001),
-    },
+    paymentFlow: paymentFlowFor(0.0001),
     responseCodes: [
       { code: "200", description: "Success — server status returned" },
       { code: "402", description: "Payment Required — complete payment first" },
@@ -368,12 +496,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
 }`,
       },
     ],
-    paymentFlow: {
-      step1: "POST without payment returns 402 with payment instructions.",
-      step2: "Complete payment (x402), then retry with PAYMENT-SIGNATURE (or X-Payment) header.",
-      step3: "Retry POST with the same body and payment header to receive the answer.",
-      response402: standard402(0.05),
-    },
+    paymentFlow: paymentFlowFor(0.05),
     responseCodes: [
       { code: "200", description: "Success — response and optional toolUsages returned" },
       { code: "400", description: "Bad Request — question is required" },
@@ -505,12 +628,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
         responseExample: `{ "success": true, "output": "...", "id": "...", "status": "stopped" }`,
       },
     ],
-    paymentFlow: {
-      step1: "Initial request returns 402 with payment instructions.",
-      step2: "Complete x402 payment, then retry with PAYMENT-SIGNATURE or X-Payment header.",
-      step3: "Retry with the same payload and payment header to receive the result.",
-      response402: standard402(0.08),
-    },
+    paymentFlow: paymentFlowFor(0.08),
   }),
 
   arbitrage: doc({
@@ -559,12 +677,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
         responseExample: `{ "success": true, "data": { "aggregatedAt": "...", "cmcTop": {...}, "ranked": [...], "best": {...}, "runnerUp": [...] } }`,
       },
     ],
-    paymentFlow: {
-      step1: "Initial request returns 402 with payment instructions.",
-      step2: "Complete x402 payment, then retry with PAYMENT-SIGNATURE or X-Payment header.",
-      step3: "Retry with the same URL/body and payment header to receive the bundle.",
-      response402: standard402(0.04),
-    },
+    paymentFlow: paymentFlowFor(0.04),
     responseCodes: [
       { code: "200", description: "Success — bundle returned" },
       { code: "400", description: "Bad Request — invalid limit" },
@@ -1775,12 +1888,7 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
     overview:
       "Paid x402 endpoint: loads an X (Twitter) profile plus a sample of recent tweets, then returns a deterministic 0–100 project score, category breakdown (identity, reach, engagement, cadence, content diversity), numeric signals, optional red flags, and optional grounded LLM bullets when `includeAiSummary=true`. Default `username` is `syra_agent`. Discoverable via GET /.well-known/x402 and documented in GET /openapi.json (example response included).",
     price: "$0.02 USD per request (production); lower in non-production.",
-    paymentFlow: {
-      step1: "Initial request returns 402 with payment instructions.",
-      step2: "Complete payment (USDC via x402 per response body).",
-      step3: "Retry the same URL with payment proof headers to receive `{ success, data }`.",
-      response402: standard402(0.02),
-    },
+    paymentFlow: paymentFlowFor(0.02),
     responseCodes: [
       { code: "200", description: "Success — analysis JSON returned" },
       { code: "400", description: "Invalid username or parameters" },

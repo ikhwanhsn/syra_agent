@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { formatPctSigned } from "@/lib/marketDisplayFormat";
 import { formatPriceSmart } from "@/components/rise/RiseShared";
 import { hslFromTone, toneFromChange } from "./bubbleMapMath";
-import type { BubbleSimNode } from "./bubbleMapTypes";
+import type { BubbleSimNode, BubbleTone, WorldBBox } from "./bubbleMapTypes";
 import type { DragEndResult } from "./bubbleMapTypes";
 
 const imageCache = new Map<string, HTMLImageElement | "loading">();
+/** Export-only CORS-safe image cache. Null means not exportable under current CORS policy. */
+const exportImageCache = new Map<string, Promise<HTMLImageElement | null>>();
 /** Redraw callbacks waiting on the same URL while one `Image` is in flight. */
 const pendingRedraws = new Map<string, Set<() => void>>();
 const IMAGE_LOAD_TIMEOUT_MS = 14_000;
@@ -49,32 +52,31 @@ const BUTTON_ZOOM_STEP = 1.16;
 /** Lower bound when there are no nodes (avoids degenerate scale). */
 const ABS_MIN_SCALE = 0.12;
 
+/** Tween thresholds for idle frame-rate reduction. */
+const IDLE_KE_THRESHOLD = 4; // px^2/s^2 squared velocity per node
+const IDLE_FRAMES_TO_DROP = 30;
+const IDLE_FRAME_INTERVAL = 4; // every 4th RAF -> ~15fps repaint when idle
+
 type View2D = { scale: number; tx: number; ty: number };
 
-type WorldBBox = { minX: number; minY: number; maxX: number; maxY: number };
-
-function bubbleWorldBounds(nodes: readonly BubbleSimNode[], pad: number): WorldBBox | null {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const n of nodes) {
-    if (n.removing && n.alpha < 0.2) continue;
-    minX = Math.min(minX, n.x - n.r);
-    minY = Math.min(minY, n.y - n.r);
-    maxX = Math.max(maxX, n.x + n.r);
-    maxY = Math.max(maxY, n.y + n.r);
+/** Module-cached gradient color stops keyed by tone + intensity bucket — saves ~24k allocations/sec at 60fps × 100 bubbles. */
+type GradientColors = ReturnType<typeof hslFromTone>;
+const gradientColorCache = new Map<string, GradientColors>();
+function getCachedGradientColors(tone: BubbleTone, intensity: number): GradientColors {
+  const bucket = Math.min(7, Math.max(0, Math.round(intensity * 7)));
+  const key = `${tone}_${bucket}`;
+  let cached = gradientColorCache.get(key);
+  if (!cached) {
+    cached = hslFromTone(tone, bucket / 7);
+    gradientColorCache.set(key, cached);
   }
-  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
-  return {
-    minX: minX - pad,
-    minY: minY - pad,
-    maxX: maxX + pad,
-    maxY: maxY + pad,
-  };
+  return cached;
 }
 
-/** Max zoom-out = content must stay inside the canvas; pan is clamped to the same bounds. */
+/** Module-cached subColor strings used per-bubble (depends only on tone + cached muted hsl). */
+const SUB_COLOR_UP = "hsl(152 70% 42%)";
+const SUB_COLOR_DOWN = "hsl(0 75% 58%)";
+
 function clampViewToBubbleBounds(v: View2D, vw: number, vh: number, bb: WorldBBox | null): View2D {
   if (vw < 8 || vh < 8) return v;
   if (!bb) {
@@ -117,10 +119,8 @@ function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function fitViewToNodes(nodes: readonly BubbleSimNode[], vw: number, vh: number, pad: number): View2D {
-  if (nodes.length === 0 || vw < 8 || vh < 8) return { scale: 1, tx: 0, ty: 0 };
-  const bb = bubbleWorldBounds(nodes, pad);
-  if (!bb) return { scale: 1, tx: 0, ty: 0 };
+function fitViewToNodes(bb: WorldBBox | null, vw: number, vh: number): View2D {
+  if (!bb || vw < 8 || vh < 8) return { scale: 1, tx: 0, ty: 0 };
   const bw = Math.max(bb.maxX - bb.minX, 1e-6);
   const bh = Math.max(bb.maxY - bb.minY, 1e-6);
   const s = Math.min(MAX_ZOOM, Math.min(vw / bw, vh / bh));
@@ -138,7 +138,7 @@ function zoomAtScreen(
   ly: number,
   v: View2D,
   factor: number,
-  nodes: readonly BubbleSimNode[],
+  bb: WorldBBox | null,
   vw: number,
   vh: number,
 ): View2D {
@@ -146,7 +146,7 @@ function zoomAtScreen(
   const wy = (ly - v.ty) / v.scale;
   const ns = Math.min(MAX_ZOOM, Math.max(ABS_MIN_SCALE, v.scale * factor));
   const next = { scale: ns, tx: lx - wx * ns, ty: ly - wy * ns };
-  return clampViewToBubbleBounds(next, vw, vh, bubbleWorldBounds(nodes, FIT_PADDING));
+  return clampViewToBubbleBounds(next, vw, vh, bb);
 }
 
 /** Canvas cannot use CSS `var()` in color strings — resolve shadcn HSL channels from :root. */
@@ -159,7 +159,7 @@ function hslFromRootVar(varName: string, alpha?: number): string {
   return alpha !== undefined ? `hsl(${channels} / ${alpha})` : `hsl(${channels})`;
 }
 
-function readThemeSnapshot(): {
+type ThemeSnapshot = {
   card: string;
   background: string;
   foreground06: string;
@@ -167,7 +167,9 @@ function readThemeSnapshot(): {
   uof45: string;
   foreground95: string;
   muted: string;
-} {
+};
+
+function readThemeSnapshot(): ThemeSnapshot {
   return {
     card: hslFromRootVar("--card", 0.35),
     background: hslFromRootVar("--background", 0.92),
@@ -231,11 +233,50 @@ function loadTokenImage(url: string | null | undefined, onRedraw: () => void): v
   img.src = u;
 }
 
+async function loadExportSafeImage(url: string | null | undefined): Promise<HTMLImageElement | null> {
+  if (!url || typeof url !== "string" || !url.trim()) return null;
+  const u = url.trim();
+  const cached = exportImageCache.get(u);
+  if (cached) return await cached;
+  const task = (async (): Promise<HTMLImageElement | null> => {
+    try {
+      const res = await fetch(u, { mode: "cors" });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      if (!blob || blob.size <= 0) return null;
+      const objUrl = URL.createObjectURL(blob);
+      try {
+        const img = new Image();
+        const loaded = await new Promise<HTMLImageElement | null>((resolve) => {
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = objUrl;
+        });
+        if (!loaded) return null;
+        if (typeof loaded.decode === "function") {
+          try {
+            await loaded.decode();
+          } catch {
+            // Decoding failures still often render fine.
+          }
+        }
+        return loaded;
+      } finally {
+        URL.revokeObjectURL(objUrl);
+      }
+    } catch {
+      return null;
+    }
+  })();
+  exportImageCache.set(u, task);
+  return await task;
+}
+
 function paintBackgroundToCtx(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  theme: ReturnType<typeof readThemeSnapshot>,
+  theme: ThemeSnapshot,
 ): void {
   const g = ctx.createRadialGradient(w * 0.5, h * 0.15, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
   g.addColorStop(0, theme.card);
@@ -271,11 +312,13 @@ function drawBubble(
   n: BubbleSimNode,
   dragMint: string | null,
   hoverMint: string | null,
-  theme: ReturnType<typeof readThemeSnapshot>,
+  theme: ThemeSnapshot,
+  drawImages: boolean,
+  safeImageOverride?: HTMLImageElement | null,
 ): void {
   const tone = toneFromChange(n.datum.priceChange24hPct);
   const intensity = Math.min(1, n.r / 56);
-  const colors = hslFromTone(tone, intensity);
+  const colors = getCachedGradientColors(tone, intensity);
   const isHot = n.mint === hoverMint || n.mint === dragMint;
 
   ctx.save();
@@ -297,17 +340,22 @@ function drawBubble(
     ctx.stroke();
   }
 
-  const url = n.datum.imageUrl;
-  const u = url?.trim() ?? "";
-  const img = u ? imageCache.get(u) : undefined;
-  if (u && img instanceof HTMLImageElement && isCanvasImageReady(img, u)) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, n.r * 0.88, 0, Math.PI * 2);
-    ctx.clip();
-    const ir = n.r * 1.76;
-    ctx.drawImage(img, n.x - ir / 2, n.y - ir / 2, ir, ir);
-    ctx.restore();
+  if (drawImages) {
+    const url = n.datum.imageUrl;
+    const u = url?.trim() ?? "";
+    const img = safeImageOverride ?? (u ? imageCache.get(u) : undefined);
+    const imageReady =
+      img instanceof HTMLImageElement &&
+      (safeImageOverride ? img.naturalWidth > 0 && img.naturalHeight > 0 : isCanvasImageReady(img, u));
+    if (imageReady && img instanceof HTMLImageElement) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r * 0.88, 0, Math.PI * 2);
+      ctx.clip();
+      const ir = n.r * 1.76;
+      ctx.drawImage(img, n.x - ir / 2, n.y - ir / 2, ir, ir);
+      ctx.restore();
+    }
   }
 
   ctx.beginPath();
@@ -338,8 +386,7 @@ function drawBubble(
   const chg = formatPctSigned(n.datum.priceChange24hPct);
   const subPx = Math.max(8, fontPx * 0.72);
   ctx.font = `500 ${subPx}px ui-monospace, monospace`;
-  const subColor =
-    tone === "up" ? "hsl(152 70% 42%)" : tone === "down" ? "hsl(0 75% 58%)" : theme.muted;
+  const subColor = tone === "up" ? SUB_COLOR_UP : tone === "down" ? SUB_COLOR_DOWN : theme.muted;
   ctx.fillStyle = subColor;
   ctx.strokeStyle = "hsl(0 0% 0% / 0.4)";
   ctx.lineWidth = 2;
@@ -350,12 +397,28 @@ function drawBubble(
   ctx.restore();
 }
 
-function effectiveDpr(): number {
-  const raw = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-  if (typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches) {
-    return Math.min(1.5, raw);
+/** Cached devicePixelRatio with a one-time matchMedia listener for both DPR and viewport-class changes. */
+let cachedDpr: number | null = null;
+let dprListenerAttached = false;
+function getCachedDpr(): number {
+  if (cachedDpr !== null) return cachedDpr;
+  if (typeof window === "undefined") return 1;
+  const raw = window.devicePixelRatio || 1;
+  const isMobileViewport = window.matchMedia("(max-width: 640px)").matches;
+  cachedDpr = isMobileViewport ? Math.min(1.5, raw) : Math.min(2, raw);
+  if (!dprListenerAttached) {
+    const reset = () => {
+      cachedDpr = null;
+    };
+    window.addEventListener("resize", reset, { passive: true });
+    try {
+      window.matchMedia("(max-width: 640px)").addEventListener("change", reset);
+    } catch {
+      /* legacy Safari */
+    }
+    dprListenerAttached = true;
   }
-  return Math.min(2, raw);
+  return cachedDpr;
 }
 
 type PinchRef = {
@@ -371,7 +434,8 @@ export type BubbleCanvasProps = {
   width: number;
   height: number;
   nodesRef: React.MutableRefObject<BubbleSimNode[]>;
-  tick: (dtMs: number) => void;
+  boundsRef: React.MutableRefObject<WorldBBox | null>;
+  tick: (dtMs: number) => number;
   reduceMotion: boolean;
   beginDrag: (x: number, y: number) => boolean;
   drag: (x: number, y: number) => void;
@@ -387,12 +451,15 @@ export type BubbleCanvasProps = {
   fitKey: string;
   zoomInAria: string;
   zoomOutAria: string;
+  /** Registers a snapshot exporter from the current viewport. */
+  onExportSnapshotReady?: (exporter: (() => Promise<Blob>) | null) => void;
 };
 
 export function BubbleCanvas({
   width,
   height,
   nodesRef,
+  boundsRef,
   tick,
   reduceMotion,
   beginDrag,
@@ -408,8 +475,10 @@ export function BubbleCanvas({
   fitKey,
   zoomInAria,
   zoomOutAria,
+  onExportSnapshotReady,
 }: BubbleCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTRef = useRef<number>(0);
   const draggingRef = useRef(false);
@@ -421,19 +490,28 @@ export function BubbleCanvas({
   const pointersRef = useRef(new Map<number, { lx: number; ly: number }>());
   const lastFitSigRef = useRef<string>("");
   const tooltipRafRef = useRef(0);
+  const themeRef = useRef<ThemeSnapshot | null>(null);
+  const visibleRef = useRef(true);
+  const idleFramesRef = useRef(0);
+  const idleSkipCounterRef = useRef(0);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null);
   const [interaction, setInteraction] = useState<"idle" | "pan" | "bubble" | "pinch">("idle");
   const prefersFinePointer =
     typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches;
+  const { resolvedTheme } = useTheme();
 
   const bgCacheRef = useRef<{ w: number; h: number; themeKey: string; canvas: HTMLCanvasElement } | null>(null);
   const drawRef = useRef<(() => void) | null>(null);
 
+  /** Theme snapshot is read once per theme change (otherwise getComputedStyle would force layout per frame). */
+  useEffect(() => {
+    themeRef.current = readThemeSnapshot();
+    bgCacheRef.current = null;
+    drawRef.current?.();
+  }, [resolvedTheme]);
+
   const getOrCreateBg = useCallback((w: number, h: number) => {
-    const themeKey =
-      typeof document !== "undefined" && document.documentElement.classList.contains("dark")
-        ? "dark"
-        : "light";
+    const themeKey = resolvedTheme === "light" ? "light" : "dark";
     let entry = bgCacheRef.current;
     if (entry && entry.w === w && entry.h === h && entry.themeKey === themeKey) return entry.canvas;
     const c = document.createElement("canvas");
@@ -441,13 +519,13 @@ export function BubbleCanvas({
     c.height = Math.max(1, Math.floor(h));
     const octx = c.getContext("2d");
     if (octx) {
-      const theme = readThemeSnapshot();
+      const theme = themeRef.current ?? readThemeSnapshot();
       paintBackgroundToCtx(octx, w, h, theme);
     }
     entry = { w, h, themeKey, canvas: c };
     bgCacheRef.current = entry;
     return c;
-  }, []);
+  }, [resolvedTheme]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -458,14 +536,9 @@ export function BubbleCanvas({
     const h = height;
     if (w < 8 || h < 8) return;
 
-    viewRef.current = clampViewToBubbleBounds(
-      viewRef.current,
-      w,
-      h,
-      bubbleWorldBounds(nodesRef.current, FIT_PADDING),
-    );
+    viewRef.current = clampViewToBubbleBounds(viewRef.current, w, h, boundsRef.current);
 
-    const dpr = effectiveDpr();
+    const dpr = getCachedDpr();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -478,16 +551,16 @@ export function BubbleCanvas({
     const bg = getOrCreateBg(w, h);
     ctx.drawImage(bg, 0, 0, w, h);
 
-    const theme = readThemeSnapshot();
+    const theme = themeRef.current ?? readThemeSnapshot();
     const nodes = nodesRef.current;
     const dragId = draggingRef.current ? dragMintRef.current : null;
     const hoverId = hoverMintRef.current;
-    const sorted = [...nodes].sort((a, b) => a.r - b.r);
-    for (const n of sorted) {
-      drawBubble(ctx, n, dragId, hoverId, theme);
+    /** `nodesRef.current` is kept ascending-by-r by `useBubbleSimulation.tick`, so iterate directly. */
+    for (let i = 0; i < nodes.length; i += 1) {
+      drawBubble(ctx, nodes[i], dragId, hoverId, theme, true);
     }
     ctx.restore();
-  }, [width, height, nodesRef, getOrCreateBg]);
+  }, [width, height, nodesRef, boundsRef, getOrCreateBg]);
 
   drawRef.current = draw;
 
@@ -503,7 +576,7 @@ export function BubbleCanvas({
       if (cancelled) return;
       const nodes = nodesRef.current;
       if (nodes.length === 0) return;
-      viewRef.current = fitViewToNodes(nodes, width, height, FIT_PADDING);
+      viewRef.current = fitViewToNodes(boundsRef.current, width, height);
       lastFitSigRef.current = sig;
     };
 
@@ -515,7 +588,7 @@ export function BubbleCanvas({
       cancelled = true;
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [fitKey, width, height, nodesRef]);
+  }, [fitKey, width, height, nodesRef, boundsRef]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -523,7 +596,7 @@ export function BubbleCanvas({
     const w = width;
     const h = height;
     if (w < 8 || h < 8) return;
-    const dpr = effectiveDpr();
+    const dpr = getCachedDpr();
     canvas.width = Math.max(1, Math.floor(w * dpr));
     canvas.height = Math.max(1, Math.floor(h * dpr));
     canvas.style.width = "100%";
@@ -542,6 +615,90 @@ export function BubbleCanvas({
   }, [nodesRef, draw, preloadMintsKey]);
 
   useEffect(() => {
+    if (!onExportSnapshotReady) return;
+    const exportSnapshot = async (): Promise<Blob> => {
+      // Fast path: if browser allows exporting the live canvas, keep exact fidelity
+      // (including all token icons as currently rendered).
+      const live = canvasRef.current;
+      if (live) {
+        try {
+          const directBlob = await new Promise<Blob>((resolve, reject) => {
+            live.toBlob((blob) => {
+              if (!blob) {
+                reject(new Error("live canvas blob empty"));
+                return;
+              }
+              resolve(blob);
+            }, "image/png", 1);
+          });
+          if (directBlob.size > 0) return directBlob;
+        } catch {
+          // Expected on tainted canvas; fall through to reconstructed export.
+        }
+      }
+
+      const w = Math.max(1, width);
+      const h = Math.max(1, height);
+      const dpr = getCachedDpr();
+      const out = document.createElement("canvas");
+      out.width = Math.max(1, Math.floor(w * dpr));
+      out.height = Math.max(1, Math.floor(h * dpr));
+      const ctx = out.getContext("2d");
+      if (!ctx) throw new Error("snapshot context unavailable");
+
+      const v = clampViewToBubbleBounds(viewRef.current, w, h, boundsRef.current);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const bg = getOrCreateBg(w, h);
+      ctx.drawImage(bg, 0, 0, w, h);
+      ctx.save();
+      ctx.translate(v.tx, v.ty);
+      ctx.scale(v.scale, v.scale);
+      const theme = themeRef.current ?? readThemeSnapshot();
+      const nodes = nodesRef.current;
+      const dragId = draggingRef.current ? dragMintRef.current : null;
+      const hoverId = hoverMintRef.current;
+      const exportSafeImages = await Promise.all(
+        nodes.map(async (node) => await loadExportSafeImage(node.datum.imageUrl)),
+      );
+      for (let i = 0; i < nodes.length; i += 1) {
+        drawBubble(ctx, nodes[i], dragId, hoverId, theme, true, exportSafeImages[i] ?? null);
+      }
+      ctx.restore();
+
+      return await new Promise<Blob>((resolve, reject) => {
+        out.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("snapshot blob empty"));
+            return;
+          }
+          resolve(blob);
+        }, "image/png", 1);
+      });
+    };
+    onExportSnapshotReady(exportSnapshot);
+    return () => onExportSnapshotReady(null);
+  }, [boundsRef, getOrCreateBg, height, nodesRef, onExportSnapshotReady, width]);
+
+  /** Pause the RAF loop entirely when the canvas is off-screen. */
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      visibleRef.current = true;
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          visibleRef.current = entry.isIntersecting;
+        }
+      },
+      { rootMargin: "120px 0px", threshold: 0.01 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const onWheel = (e: WheelEvent) => {
@@ -551,11 +708,12 @@ export function BubbleCanvas({
       const lx = ((e.clientX - rect.left) / rect.width) * width;
       const ly = ((e.clientY - rect.top) / rect.height) * height;
       const factor = Math.exp(-e.deltaY * WHEEL_SENS);
-      viewRef.current = zoomAtScreen(lx, ly, viewRef.current, factor, nodesRef.current, width, height);
+      viewRef.current = zoomAtScreen(lx, ly, viewRef.current, factor, boundsRef.current, width, height);
+      idleFramesRef.current = 0; // user interaction = wake from idle
     };
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", onWheel);
-  }, [width, height, nodesRef]);
+  }, [width, height, boundsRef]);
 
   useEffect(() => {
     return () => {
@@ -566,14 +724,39 @@ export function BubbleCanvas({
   useEffect(() => {
     lastTRef.current = performance.now();
     const loop = (t: number) => {
-      if (document.visibilityState === "hidden") {
+      if (document.visibilityState === "hidden" || !visibleRef.current) {
         lastTRef.current = t;
         rafRef.current = requestAnimationFrame(loop);
         return;
       }
       const dt = Math.min(48, t - lastTRef.current);
       lastTRef.current = t;
-      if (!reduceMotion) tick(dt);
+
+      let maxKE = 0;
+      if (!reduceMotion) {
+        maxKE = tick(dt);
+      }
+
+      // Idle short-circuit: if nothing's moving and no pointer interaction, repaint at ~15fps.
+      const hasInteraction =
+        draggingRef.current || panRef.current !== null || pinchRef.current !== null;
+      if (!hasInteraction && maxKE < IDLE_KE_THRESHOLD) {
+        idleFramesRef.current += 1;
+      } else {
+        idleFramesRef.current = 0;
+        idleSkipCounterRef.current = 0;
+      }
+
+      const isIdle = idleFramesRef.current > IDLE_FRAMES_TO_DROP;
+      if (isIdle) {
+        idleSkipCounterRef.current += 1;
+        if (idleSkipCounterRef.current < IDLE_FRAME_INTERVAL) {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        idleSkipCounterRef.current = 0;
+      }
+
       draw();
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -608,7 +791,7 @@ export function BubbleCanvas({
     if (!p) return;
     const ns = Math.min(MAX_ZOOM, Math.max(ABS_MIN_SCALE, p.scale0 * (d / p.dist0)));
     const next = { scale: ns, tx: mx - p.wx * ns, ty: my - p.wy * ns };
-    viewRef.current = clampViewToBubbleBounds(next, width, height, bubbleWorldBounds(nodesRef.current, FIT_PADDING));
+    viewRef.current = clampViewToBubbleBounds(next, width, height, boundsRef.current);
   };
 
   const scheduleTooltip = (clientX: number, clientY: number) => {
@@ -639,6 +822,7 @@ export function BubbleCanvas({
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const { x: lx, y: ly } = clientToLocal(e.clientX, e.clientY);
     pointersRef.current.set(e.pointerId, { lx, ly });
+    idleFramesRef.current = 0;
 
     if (pointersRef.current.size >= 2) {
       panRef.current = null;
@@ -683,6 +867,7 @@ export function BubbleCanvas({
     }
 
     if (pointersRef.current.size >= 2) {
+      idleFramesRef.current = 0;
       if (!pinchRef.current) {
         const pts = [...pointersRef.current.values()];
         const p0 = pts[0];
@@ -705,6 +890,7 @@ export function BubbleCanvas({
     }
 
     if (draggingRef.current) {
+      idleFramesRef.current = 0;
       const w = screenToWorld(lx, ly, viewRef.current);
       drag(w.x, w.y);
       setTooltip(null);
@@ -712,6 +898,7 @@ export function BubbleCanvas({
     }
 
     if (panRef.current) {
+      idleFramesRef.current = 0;
       const p = panRef.current;
       viewRef.current = clampViewToBubbleBounds(
         {
@@ -721,7 +908,7 @@ export function BubbleCanvas({
         },
         width,
         height,
-        bubbleWorldBounds(nodesRef.current, FIT_PADDING),
+        boundsRef.current,
       );
       hoverMintRef.current = null;
       setTooltip(null);
@@ -731,6 +918,7 @@ export function BubbleCanvas({
     const world = screenToWorld(lx, ly, viewRef.current);
     const id = hitTest(world.x, world.y);
     hoverMintRef.current = id;
+    if (id !== null) idleFramesRef.current = 0;
     if (!id) {
       if (tooltipRafRef.current) {
         cancelAnimationFrame(tooltipRafRef.current);
@@ -814,14 +1002,18 @@ export function BubbleCanvas({
       if (width < 8 || height < 8) return;
       const lx = width / 2;
       const ly = height / 2;
-      viewRef.current = zoomAtScreen(lx, ly, viewRef.current, factor, nodesRef.current, width, height);
+      viewRef.current = zoomAtScreen(lx, ly, viewRef.current, factor, boundsRef.current, width, height);
+      idleFramesRef.current = 0;
       draw();
     },
-    [width, height, nodesRef, draw],
+    [width, height, boundsRef, draw],
   );
 
+  // Suppress unused-import warning when this stays minimal: FIT_PADDING is exported for shared code.
+  void FIT_PADDING;
+
   return (
-    <div className="relative h-full min-h-0 w-full min-w-0">
+    <div ref={wrapperRef} className="relative h-full min-h-0 w-full min-w-0">
       <canvas
         ref={canvasRef}
         className={`block h-full min-h-[180px] w-full min-w-0 touch-none md:min-h-[220px] ${cursorClass}`}

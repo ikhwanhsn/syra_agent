@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
+import { useRiseMarketsAll, useRiseMarketsTop, useRiseOhlcBatch } from "@/lib/RiseDashboardContext";
 import { formatUsd } from "@/lib/marketDisplayFormat";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import {
@@ -82,6 +82,8 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
   const { language } = useLanguage();
   const copy = DASHBOARD_COPY[language];
   const marketsQuery = useRiseMarketsAll(150, { refetchInterval: TERMINAL_TABLE_REFETCH_MS });
+  /** Snappy first paint: 100-row top set lands in one round trip while `all` walks paginated pages. */
+  const topMarketsQuery = useRiseMarketsTop(100, { refetchInterval: TERMINAL_TABLE_REFETCH_MS });
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -93,7 +95,10 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
   const [page, setPage] = useState(1);
   const [shareTarget, setShareTarget] = useState<RankedMarket | null>(null);
 
-  const baseRows = useMemo(() => marketsQuery.data ?? [], [marketsQuery.data]);
+  const baseRows = useMemo(
+    () => marketsQuery.data ?? topMarketsQuery.data ?? [],
+    [marketsQuery.data, topMarketsQuery.data],
+  );
   const enriched = useMemo(() => baseRows.map((market) => enrichMarket(market)), [baseRows]);
 
   const alphaRankByMint = useMemo(() => {
@@ -137,6 +142,15 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
     const start = (safePage - 1) * PAGE_SIZE;
     return sorted.slice(start, start + PAGE_SIZE);
   }, [safePage, sorted]);
+
+  const sparklineMints = useMemo(
+    () =>
+      pageRows
+        .map((row) => row.market.marketAddress || row.market.mint)
+        .filter((a): a is string => !!a && a.length >= 32),
+    [pageRows],
+  );
+  useRiseOhlcBatch(sparklineMints);
 
   const setSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));

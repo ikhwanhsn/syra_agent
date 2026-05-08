@@ -4,7 +4,7 @@
  * Keeps the bigger composite components (RiseHero, MarketScreener, etc.)
  * narrow and readable — anything reused by 2+ rise components lives here.
  */
-import { type ReactNode, useMemo } from "react";
+import { memo, type ReactNode, useMemo } from "react";
 import { ArrowUpRight, BadgeCheck, ChartCandlestick, ImageOff, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatInt, formatPct, formatPctSigned, formatUsd } from "@/lib/marketDisplayFormat";
@@ -74,17 +74,14 @@ export function formatPriceSmart(n: number | null): string {
   return formatUsd(n);
 }
 
-export function TokenAvatar({
-  imageUrl,
-  symbol: _symbol,
-  size = "md",
-  className,
-}: {
+type TokenAvatarProps = {
   imageUrl: string | null | undefined;
   symbol: string | null | undefined;
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
-}) {
+};
+
+function TokenAvatarImpl({ imageUrl, size = "md", className }: TokenAvatarProps) {
   const dim =
     size === "xs"
       ? "h-6 w-6 text-[0.55rem]"
@@ -119,15 +116,20 @@ export function TokenAvatar({
   );
 }
 
-export function ChangePill({
-  pct,
-  className,
-  withSign = true,
-}: {
+/** Memoized so screener refetches do not re-mount every row's avatar `<img>`. */
+export const TokenAvatar = memo(TokenAvatarImpl);
+
+type ChangePillProps = {
   pct: number | null;
   className?: string;
   withSign?: boolean;
-}) {
+};
+
+function ChangePillImpl({
+  pct,
+  className,
+  withSign = true,
+}: ChangePillProps) {
   const tone = changeTone(pct);
   const text = pct === null ? "—" : withSign ? formatPctSigned(pct) : formatPct(pct);
   return (
@@ -144,6 +146,9 @@ export function ChangePill({
     </span>
   );
 }
+
+/** Memoized pill — pct + withSign + className fully describe its render. */
+export const ChangePill = memo(ChangePillImpl);
 
 export function VerifiedBadge({ verified, className }: { verified: boolean; className?: string }) {
   if (!verified) return null;

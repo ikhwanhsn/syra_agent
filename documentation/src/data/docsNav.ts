@@ -26,7 +26,7 @@ export const navigation: NavItem[] = [
         title: "Overview & Standards",
         defaultCollapsed: false,
         items: [
-          { title: "x402 API Standard", href: api("x402-api-standard") },
+          { title: "x402 Payment Flow", href: api("x402-api-standard") },
           { title: "API Health", href: api("health") },
           { title: "Syra Brain", href: api("brain") },
           { title: "Preview & Dashboard (no x402)", href: api("preview-dashboard") },

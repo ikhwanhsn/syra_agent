@@ -9,6 +9,7 @@ import {
   pollCrawlUntilComplete,
 } from "./cloudflareCrawl.js";
 import {
+  AGENT_TEAM_API_DISCOVERY_HOST,
   AGENT_TEAM_CRAWL_BASE_URLS,
   AGENT_TEAM_CRAWL_DEPTH,
   AGENT_TEAM_CRAWL_PER_SITE_LIMIT,
@@ -19,6 +20,72 @@ const DEFAULT_PAGE_MARKDOWN_MAX = 8192;
 
 /** Total snapshot string budget (sum of markdown lengths, characters). */
 const DEFAULT_SNAPSHOT_TOTAL_MAX = 200_000;
+
+/** Public API discovery endpoints. These are the only api.syraa.fun paths exposed to the crawler. */
+const API_DISCOVERY_PATHS = Object.freeze(["/openapi.json", "/.well-known/x402"]);
+
+/**
+ * Substrings that identify an auth-wall / "you need a key" response body — usually rendered
+ * when the headless crawler hits a protected endpoint. Matching records are dropped from the
+ * snapshot to prevent the LLM from hallucinating a "site-wide 401" recommendation.
+ */
+const AUTH_WALL_MARKERS = Object.freeze([
+  "missing api key or bearer token",
+  "invalid api key or bearer token",
+  "401 unauthorized",
+  "http 401",
+  "authentication required",
+  "vercel authentication",
+  "this deployment is protected",
+  "x-payment header",
+  '"x402version"',
+]);
+
+/**
+ * Static description of the API surface's auth model. Injected into the snapshot as a
+ * synthetic page so the LLM grounds its understanding of api.syraa.fun on facts instead of
+ * inferring from rendered error pages.
+ */
+const API_AUTH_CONTEXT_MARKDOWN = `# Syra API surface — auth model (crawler context)
+
+The API at https://api.syraa.fun is intentionally protected and is NOT deep-crawled by the
+internal research pipeline. Most endpoints sit behind one of two auth layers:
+
+- **API key / Bearer token** for non-x402 routes (Authorization, X-API-Key, or api-key header).
+  Frontends on syraa.fun, agent.syraa.fun, dashboard.syraa.fun and playground.syraa.fun call
+  these routes from trusted browser origins and the server injects the key automatically.
+  Anonymous tools (including web crawlers) correctly receive HTTP 401 — this is expected
+  security behavior, not an outage.
+- **x402 micropayments** for paid routes. Anonymous requests correctly receive HTTP 402 with
+  payment instructions — also expected behavior, not a bug.
+
+Public, unauthenticated discovery for integrators is available at:
+- /openapi.json
+- /.well-known/x402
+
+Do NOT report 401/402 responses on protected API endpoints as cross-cutting authentication
+bugs. They are working as designed.`;
+
+/** @returns {CrawlSnapshotItem} */
+function buildApiAuthContextItem() {
+  return {
+    url: `${AGENT_TEAM_API_DISCOVERY_HOST.replace(/\/+$/, "")}/_meta/auth-model`,
+    title: "API auth model (crawler context)",
+    markdown: API_AUTH_CONTEXT_MARKDOWN,
+  };
+}
+
+/**
+ * Detects rendered auth-wall / 401 / 402 content. Used to drop noise records before the LLM
+ * sees them so a single protected page can never cascade into a false "site-wide 401" finding.
+ * @param {string} markdown
+ * @returns {boolean}
+ */
+function looksLikeAuthWall(markdown) {
+  if (typeof markdown !== "string" || !markdown) return false;
+  const sample = markdown.slice(0, 2000).toLowerCase();
+  return AUTH_WALL_MARKERS.some((marker) => sample.includes(marker));
+}
 
 /**
  * @typedef {{ url: string; title: string; markdown: string }} CrawlSnapshotItem
@@ -40,31 +107,19 @@ export function getAgentTeamBaseUrls() {
 }
 
 /**
- * @param {string} baseUrl
- * @returns {boolean}
- */
-function isApiSyraHost(baseUrl) {
-  try {
-    const h = new URL(baseUrl).hostname.toLowerCase();
-    return h === "api.syraa.fun" || h.endsWith(".api.syraa.fun");
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Append API JSON endpoints as pseudo-pages when api.syraa.fun is in the crawl list.
+ * Fetch Syra API discovery JSON endpoints as pseudo-pages. Replaces deep-crawling api.syraa.fun
+ * (which would hit auth-protected endpoints and return 401/402 to the headless crawler).
+ *
  * @param {string} apiBase
  * @param {number} pageMax
  * @returns {Promise<CrawlSnapshotItem[]>}
  */
 async function fetchApiJsonSnapshots(apiBase, pageMax) {
   const root = apiBase.replace(/\/+$/, "");
-  const paths = ["/openapi.json", "/.well-known/x402"];
   /** @type {CrawlSnapshotItem[]} */
   const out = [];
 
-  for (const path of paths) {
+  for (const path of API_DISCOVERY_PATHS) {
     const url = `${root}${path}`;
     try {
       const signal =
@@ -212,11 +267,18 @@ export async function crawlSyraSurfaces(options = {}) {
         delayMs: 5000,
       });
       const records = Array.isArray(result.records) ? result.records : [];
+      let droppedAuthWall = 0;
       for (const rec of records) {
         const status = String(rec?.status || "");
         if (status !== "completed") continue;
         const md = typeof rec.markdown === "string" ? rec.markdown : "";
         if (!md.trim()) continue;
+        // Defensive: skip pages that look like auth walls / 401 / 402 renders so a single
+        // protected page can never poison the LLM into reporting a "site-wide 401" bug.
+        if (looksLikeAuthWall(md)) {
+          droppedAuthWall += 1;
+          continue;
+        }
         const url = typeof rec.url === "string" ? rec.url : rec?.metadata?.url || seed;
         const title =
           (rec.metadata && typeof rec.metadata.title === "string" && rec.metadata.title) ||
@@ -226,6 +288,11 @@ export async function crawlSyraSurfaces(options = {}) {
           title: String(title),
           markdown: truncateChars(md, pageMax),
         });
+      }
+      if (droppedAuthWall > 0) {
+        console.info(
+          `[agent-team-crawl] dropped ${droppedAuthWall} auth-wall pages from ${seed}`,
+        );
       }
       if (records.length === 0 && result.status && result.status !== "completed") {
         snapshot.push({
@@ -244,18 +311,12 @@ export async function crawlSyraSurfaces(options = {}) {
     }
   }
 
-  const apiBase = baseUrls.find((u) => {
-    try {
-      return isApiSyraHost(u.startsWith("http") ? u : `https://${u}`);
-    } catch {
-      return false;
-    }
-  });
-  if (apiBase) {
-    const root = apiBase.startsWith("http") ? apiBase : `https://${apiBase}`;
-    const extras = await fetchApiJsonSnapshots(root, pageMax);
-    snapshot.push(...extras);
-  }
+  // API surface: never deep-crawl (it's behind API key / x402 auth and would 401 to the
+  // headless crawler). Always inject the static auth-model context page plus the public
+  // discovery JSON snapshots.
+  snapshot.push(buildApiAuthContextItem());
+  const apiExtras = await fetchApiJsonSnapshots(AGENT_TEAM_API_DISCOVERY_HOST, pageMax);
+  snapshot.push(...apiExtras);
 
   const deduped = dedupeByUrl(snapshot);
   const trimmed = trimSnapshotTotal(deduped, totalMax);
@@ -263,6 +324,6 @@ export async function crawlSyraSurfaces(options = {}) {
   return {
     snapshot: trimmed,
     generatedAt: new Date().toISOString(),
-    baseUrls,
+    baseUrls: [...baseUrls, AGENT_TEAM_API_DISCOVERY_HOST],
   };
 }
