@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Layers3, ShieldCheck, Sparkles, Waves } from
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import {
@@ -17,10 +18,12 @@ import { MarketSparkline } from "@/components/rise/MarketSparkline";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
+import { buildPaginationItems } from "@/lib/pagination";
 
 type SortBy = "backing" | "delta";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 
 function rankAccent(rank: number): string {
   if (rank === 1) return "border-l-amber-400/90 shadow-[inset_4px_0_0_0_rgba(251,191,36,0.55)]";
@@ -83,6 +86,7 @@ export default function FloorScannerPage() {
   const isZh = language === "zh";
   const [sortBy, setSortBy] = useState<SortBy>("backing");
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
   const markets = useRiseMarketsAll();
 
   const rows = useMemo(() => {
@@ -100,15 +104,16 @@ export default function FloorScannerPage() {
       });
   }, [markets.data, sortBy]);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const pageItems = useMemo(() => buildPaginationItems(page, totalPages), [page, totalPages]);
 
   useEffect(() => {
     setPage((p) => Math.min(p, totalPages));
   }, [totalPages]);
 
   const pageRows = useMemo(
-    () => rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [rows, page],
+    () => rows.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [rows, page, rowsPerPage],
   );
 
   const stats = useMemo(() => {
@@ -210,7 +215,7 @@ export default function FloorScannerPage() {
 
           {markets.isPending ? (
             <div className="space-y-0 divide-y divide-border/35">
-              {Array.from({ length: PAGE_SIZE }).map((_, idx) => (
+              {Array.from({ length: rowsPerPage }).map((_, idx) => (
                 <div key={idx} className="flex items-center gap-4 px-4 py-3.5 sm:px-6">
                   <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
                   <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -274,7 +279,7 @@ export default function FloorScannerPage() {
                   </TableHeader>
                   <TableBody>
                     {pageRows.map(({ row, backing }, index) => {
-                      const rank = (page - 1) * PAGE_SIZE + index + 1;
+                      const rank = (page - 1) * rowsPerPage + index + 1;
                       return (
                         <TableRow
                           key={row.mint}
@@ -334,7 +339,7 @@ export default function FloorScannerPage() {
               {/* Mobile */}
               <div className="flex flex-col gap-3 p-4 md:hidden">
                 {pageRows.map(({ row, backing }, index) => {
-                  const rank = (page - 1) * PAGE_SIZE + index + 1;
+                  const rank = (page - 1) * rowsPerPage + index + 1;
                   return (
                     <div
                       key={row.mint}
@@ -404,10 +409,51 @@ export default function FloorScannerPage() {
                   </span>
                   <span className="text-muted-foreground/85">
                     {" "}
-                    · {isZh ? "行" : "Rows"} {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, rows.length)} {isZh ? "/" : "of"} {rows.length}
+                    · {isZh ? "行" : "Rows"} {(page - 1) * rowsPerPage + 1}-{Math.min(page * rowsPerPage, rows.length)} {isZh ? "/" : "of"} {rows.length}
                   </span>
                 </p>
-                <div className="flex items-center justify-end gap-1">
+                <div className="flex items-center justify-end gap-2">
+                  <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                    {pageItems.map((item, idx) =>
+                      item === "gap" ? (
+                        <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
+                          …
+                        </span>
+                      ) : (
+                        <Button
+                          type="button"
+                          key={item}
+                          variant={item === page ? "secondary" : "ghost"}
+                          size="sm"
+                          className={cn(
+                            "h-9 min-w-[2.25rem] shrink-0 rounded-lg px-2 text-xs tabular-nums",
+                            item === page && "pointer-events-none",
+                          )}
+                          onClick={() => setPage(item)}
+                        >
+                          {item}
+                        </Button>
+                      ),
+                    )}
+                  </div>
+                  <Select
+                    value={String(rowsPerPage)}
+                    onValueChange={(value) => {
+                      setRowsPerPage(Number(value));
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 w-[7rem] rounded-lg text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={String(size)}>
+                          {size} / page
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="ghost"
                     size="sm"

@@ -27,9 +27,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRiseMarkets, useRiseMarketsAll, useRiseOhlcBatch } from "@/lib/RiseDashboardContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { cn } from "@/lib/utils";
+import { buildPaginationItems } from "@/lib/pagination";
 import {
   ChangePill,
   EmptyState,
@@ -44,7 +46,8 @@ import {
 import { MarketSparkline } from "./MarketSparkline";
 import { useLanguage } from "@/lib/LanguageContext";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 
 type SortKey =
   | "marketCapUsd"
@@ -218,6 +221,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
   const [minHoldersInput, setMinHoldersInput] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("ageHours");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const deferredSearch = useDeferredValue(search);
   const minMarketCap = useMemo(() => {
@@ -280,11 +284,12 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
     };
   }, [globalRows]);
   const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage));
   const pagedRows = useMemo(
-    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [sorted, page],
+    () => sorted.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [sorted, page, rowsPerPage],
   );
+  const pageItems = useMemo(() => buildPaginationItems(page, totalPages), [page, totalPages]);
 
   const sparklineMints = useMemo(
     () => pagedRows.map((m) => m.marketAddress || m.mint).filter((a): a is string => !!a && a.length >= 32),
@@ -643,7 +648,7 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 </TableHeader>
                 <TableBody>
                   {isPending && pagedRows.length === 0
-                    ? Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    ? Array.from({ length: rowsPerPage }).map((_, i) => (
                         <TableRow key={`sk-${i}`} className="border-border/30">
                           <TableCell colSpan={13} className="px-4 py-3">
                             <Skeleton className="h-10 w-full rounded-lg" />
@@ -810,6 +815,30 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                 )}
               </div>
               <div className="flex flex-wrap items-center justify-end gap-1">
+                <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                  {pageItems.map((item, idx) =>
+                    item === "gap" ? (
+                      <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={item}
+                        type="button"
+                        variant={item === page ? "secondary" : "ghost"}
+                        size="sm"
+                        className={cn(
+                          "h-9 min-w-[2.25rem] shrink-0 rounded-lg px-2 text-xs tabular-nums",
+                          item === page && "pointer-events-none",
+                        )}
+                        disabled={isFetching}
+                        onClick={() => setPage(item)}
+                      >
+                        {item}
+                      </Button>
+                    ),
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -825,13 +854,31 @@ export function MarketScreener({ onSelect }: { onSelect: (m: RiseMarketRow) => v
                   disabled={
                     isGlobalSearchMode
                       ? page >= (totalPages ?? 1) || isFetching
-                      : (totalPages != null && page >= totalPages) || isFetching || sourceRows.length < PAGE_SIZE
+                      : (totalPages != null && page >= totalPages) || isFetching || sourceRows.length < rowsPerPage
                   }
                   onClick={() => setPage((p) => Math.min((totalPages ?? p + 1), p + 1))}
                   className="h-9 gap-1 rounded-lg px-3 text-xs"
                 >
                   {isZh ? "下一页" : "Next"} <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(value) => {
+                    setRowsPerPage(Number(value));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[7rem] rounded-lg text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {isError ? (
                   <Button size="sm" variant="secondary" onClick={() => refetch()} className="h-9 px-3 text-xs">
                     {isZh ? "重试" : "Retry"}

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRiseMarketsAll, useRiseMarketsTop, useRiseOhlcBatch } from "@/lib/RiseDashboardContext";
 import { formatUsd } from "@/lib/marketDisplayFormat";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
@@ -31,8 +32,10 @@ import type { NarrativeTag, RiskFlag, RankedMarket } from "./types";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 import { cn } from "@/lib/utils";
+import { buildPaginationItems } from "@/lib/pagination";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 /** Full-universe sync walks many upstream pages; wide interval avoids hammering the API. */
 const TERMINAL_TABLE_REFETCH_MS = 180_000;
 const RISK_OPTIONS: RiskFlag[] = ["LowLiquidity", "HighFee", "NewAge", "LowLocked", "Unverified", "DisableSell"];
@@ -93,6 +96,7 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
   const [sortKey, setSortKey] = useState<SortKey>("alpha");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
   const [shareTarget, setShareTarget] = useState<RankedMarket | null>(null);
 
   const baseRows = useMemo(
@@ -136,12 +140,13 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
     return next;
   }, [filtered, sortDir, sortKey]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage));
   const safePage = Math.min(page, totalPages);
+  const pageItems = useMemo(() => buildPaginationItems(safePage, totalPages), [safePage, totalPages]);
   const pageRows = useMemo(() => {
-    const start = (safePage - 1) * PAGE_SIZE;
-    return sorted.slice(start, start + PAGE_SIZE);
-  }, [safePage, sorted]);
+    const start = (safePage - 1) * rowsPerPage;
+    return sorted.slice(start, start + rowsPerPage);
+  }, [safePage, sorted, rowsPerPage]);
 
   const sparklineMints = useMemo(
     () =>
@@ -374,7 +379,7 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
                       className="cursor-pointer border-border/25 transition-colors duration-150 hover:bg-muted/[0.12]"
                       onClick={() => onSelect(row.market)}
                     >
-                      <TableCell className="px-2 py-2">{(safePage - 1) * PAGE_SIZE + idx + 1}</TableCell>
+                      <TableCell className="px-2 py-2">{(safePage - 1) * rowsPerPage + idx + 1}</TableCell>
                       <TableCell className="px-2 py-2">
                         <div className="flex min-w-0 items-center gap-1.5">
                           <TokenAvatar imageUrl={row.market.imageUrl} symbol={row.market.symbol} size="sm" />
@@ -486,7 +491,49 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
             <span className="font-medium text-foreground">{sorted.length}</span> {copy.terminal.markets}
           </p>
         )}
-        <div className="flex items-center gap-1 rounded-xl border border-border/35 bg-background/30 p-1 shadow-inner">
+        <div className="flex items-center gap-2">
+          <Select
+            value={String(rowsPerPage)}
+            onValueChange={(value) => {
+              setRowsPerPage(Number(value));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[7rem] rounded-lg text-[0.7rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size} / page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1 rounded-xl border border-border/35 bg-background/30 p-1 shadow-inner">
+          <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+            {pageItems.map((item, idx) =>
+              item === "gap" ? (
+                <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
+                  …
+                </span>
+              ) : (
+                <Button
+                  type="button"
+                  key={item}
+                  size="sm"
+                  variant={item === safePage ? "secondary" : "ghost"}
+                  className={cn(
+                    "h-8 min-w-[2.25rem] rounded-lg px-2 text-[0.7rem] tabular-nums",
+                    item === safePage && "pointer-events-none",
+                  )}
+                  onClick={() => setPage(item)}
+                >
+                  {item}
+                </Button>
+              ),
+            )}
+          </div>
           <Button
             size="sm"
             variant="ghost"
@@ -508,6 +555,7 @@ export function TerminalScreener({ onSelect }: TerminalScreenerProps) {
           >
             {copy.terminal.next}
           </Button>
+          </div>
         </div>
       </div>
 

@@ -48,13 +48,9 @@ import {
 import { MarketSparkline } from "./MarketSparkline";
 import { useLanguage } from "@/lib/LanguageContext";
 
-/**
- * Page size kept lean (25) so the desktop table can render full DOM rows
- * without paint stalls, while still feeling dense. With 100-row pages the
- * mobile card list also becomes a 100-DOM-card scroll, which is the worst
- * mobile UX. 25 + sub-second pagination beats 100 + jank.
- */
-export const TRENDING_PAGE_SIZE = 25;
+/** Default page size is 10 with user-selectable larger options. */
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 
 /** When $UPONLY is on this page, show it first and style it in the table. */
 function pinUponlyFirst(rows: RiseMarketRow[]): RiseMarketRow[] {
@@ -232,6 +228,7 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
   const [minMarketCapInput, setMinMarketCapInput] = useState("");
   const [sortKey, setSortKey] = useState<OverviewSortKey>("trending");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const deferredSearch = useDeferredValue(search);
   const minMarketCap = useMemo(() => {
@@ -264,7 +261,7 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
   }, [sorted, deferredSearch, verifiedOnly, minMarketCap]);
 
   const totalRows = sortedPinned.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / TRENDING_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
 
   useEffect(() => {
     if (pageFromUrl > totalPages) {
@@ -276,10 +273,10 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
   }, [navigate, pageFromUrl, searchParams, totalPages]);
 
   const markets = useMemo(() => {
-    const start = (pageFromUrl - 1) * TRENDING_PAGE_SIZE;
-    const slice = sortedPinned.slice(start, start + TRENDING_PAGE_SIZE);
+    const start = (pageFromUrl - 1) * rowsPerPage;
+    const slice = sortedPinned.slice(start, start + rowsPerPage);
     return pinUponlyFirst(slice);
-  }, [sortedPinned, pageFromUrl]);
+  }, [sortedPinned, pageFromUrl, rowsPerPage]);
 
   const sparklineMints = useMemo(
     () => markets.map((m) => m.marketAddress || m.mint).filter((a): a is string => !!a && a.length >= 32),
@@ -306,8 +303,8 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
     navigate({ pathname: "/", search: q ? `?${q}` : "" });
   };
 
-  const rangeStart = (pageFromUrl - 1) * TRENDING_PAGE_SIZE + (markets.length ? 1 : 0);
-  const rangeEnd = (pageFromUrl - 1) * TRENDING_PAGE_SIZE + markets.length;
+  const rangeStart = (pageFromUrl - 1) * rowsPerPage + (markets.length ? 1 : 0);
+  const rangeEnd = (pageFromUrl - 1) * rowsPerPage + markets.length;
 
   const onSort = (key: OverviewSortKey) => {
     if (key === sortKey) {
@@ -743,7 +740,7 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
                   ) : null}
                   <span className="text-muted-foreground/85">
                     {" "}
-                    · {TRENDING_PAGE_SIZE} {isZh ? "条/页" : "/ page"}
+                    · {rowsPerPage} {isZh ? "条/页" : "/ page"}
                     {sortKey === "trending"
                       ? isZh
                         ? " · 综合热门分"
@@ -779,7 +776,25 @@ export function RiseTrendingMarkets({ onSelect }: { onSelect: (m: RiseMarketRow)
                     ),
                   )}
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-1">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Select
+                    value={String(rowsPerPage)}
+                    onValueChange={(value) => {
+                      setRowsPerPage(Number(value));
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 w-[7rem] rounded-lg text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={String(size)}>
+                          {size} / page
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="outline"
                     size="sm"

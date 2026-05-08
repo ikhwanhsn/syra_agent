@@ -2,18 +2,20 @@
  * Wallet lookup — drop in any Solana wallet and see its RISE portfolio
  * (summary + positions). URL-syncs `?wallet=…` so the result is shareable.
  */
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Briefcase, ExternalLink, Loader2, Search, Sparkles, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRisePortfolioPositions, useRisePortfolioSummary } from "@/lib/RiseDashboardContext";
 import { buildRiseTradeUrl, buildSolscanAccountUrl } from "@/lib/riseDashboardApi";
 import type { RisePortfolioPosition } from "@/lib/riseDashboardTypes";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
+import { buildPaginationItems } from "@/lib/pagination";
 import {
   ChangePill,
   EmptyState,
@@ -28,6 +30,8 @@ import { useLanguage } from "@/lib/LanguageContext";
 
 const ADDR_MIN = 32;
 const ADDR_MAX = 50;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 
 function isValidAddress(addr: string): boolean {
   return addr.length >= ADDR_MIN && addr.length <= ADDR_MAX && /^[a-zA-Z0-9]+$/.test(addr);
@@ -88,14 +92,27 @@ export function WalletLookup() {
   const initial = walletFromUrl;
   const [input, setInput] = useState(initial);
   const [submitted, setSubmitted] = useState<string | null>(initial && isValidAddress(initial) ? initial : null);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
     setSubmitted(isValidAddress(walletFromUrl) ? walletFromUrl : null);
     setInput(walletFromUrl);
   }, [walletFromUrl]);
+  useEffect(() => {
+    setPage(1);
+  }, [submitted, rowsPerPage]);
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPositionPages));
+  }, [totalPositionPages]);
 
   const summary = useRisePortfolioSummary(submitted);
-  const positions = useRisePortfolioPositions(submitted, 1, 10);
+  const positions = useRisePortfolioPositions(submitted, page, rowsPerPage);
+  const totalPositionPages = useMemo(() => {
+    const total = positions.data?.total ?? 0;
+    return Math.max(1, Math.ceil(total / rowsPerPage));
+  }, [positions.data?.total, rowsPerPage]);
+  const pageItems = useMemo(() => buildPaginationItems(page, totalPositionPages), [page, totalPositionPages]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -396,6 +413,74 @@ export function WalletLookup() {
                     ))
                   )}
                 </ul>
+                {(positions.data?.total ?? 0) > 0 ? (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/35 pt-4">
+                    <span className="text-[0.7rem] text-muted-foreground sm:text-xs">
+                      {isZh ? "第" : "Page"} {page} {isZh ? "/" : "of"} {totalPositionPages}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                        {pageItems.map((item, idx) =>
+                          item === "gap" ? (
+                            <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
+                              …
+                            </span>
+                          ) : (
+                            <Button
+                              key={item}
+                              type="button"
+                              variant={item === page ? "secondary" : "ghost"}
+                              size="sm"
+                              className={cn(
+                                "h-8 min-w-[2.15rem] rounded-lg px-2 text-[0.7rem] tabular-nums",
+                                item === page && "pointer-events-none",
+                              )}
+                              onClick={() => setPage(item)}
+                            >
+                              {item}
+                            </Button>
+                          ),
+                        )}
+                      </div>
+                      <Select
+                        value={String(rowsPerPage)}
+                        onValueChange={(value) => {
+                          setRowsPerPage(Number(value));
+                          setPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-[7rem] rounded-lg text-[0.7rem]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAGE_SIZE_OPTIONS.map((size) => (
+                            <SelectItem key={size} value={String(size)}>
+                              {size} / page
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        {isZh ? "上一页" : "Prev"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={page >= totalPositionPages}
+                        onClick={() => setPage((p) => Math.min(totalPositionPages, p + 1))}
+                      >
+                        {isZh ? "下一页" : "Next"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <p className="border-t border-border/35 pt-5 text-[0.72rem] leading-relaxed text-muted-foreground sm:text-xs">

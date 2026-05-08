@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   EmptyState,
   GlassCard,
@@ -31,8 +32,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY, type DashboardDictionary } from "@/lib/dashboardI18n";
+import { buildPaginationItems } from "@/lib/pagination";
 
-const PAGE_SIZE = 15;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 
 type DerivedTrade = {
   raw: RiseTransactionRow;
@@ -105,9 +108,10 @@ export function TokenTradesPanel({
   const dict = DASHBOARD_COPY[language];
   const t = dict.tokenDetail;
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const address = market?.marketAddress || market?.mint || null;
-  const tx = useRiseTransactions(address, page, PAGE_SIZE);
+  const tx = useRiseTransactions(address, page, rowsPerPage);
   const decimals = market?.tokenDecimals ?? null;
 
   const rawRows = useMemo(() => tx.data?.transactions ?? [], [tx.data?.transactions]);
@@ -167,13 +171,17 @@ export function TokenTradesPanel({
     const d = tx.data;
     if (!d) return 1;
     if (d.totalPages != null && Number.isFinite(d.totalPages)) return Math.max(1, d.totalPages);
-    if (typeof d.total === "number" && d.total > 0) return Math.max(1, Math.ceil(d.total / PAGE_SIZE));
+    if (typeof d.total === "number" && d.total > 0) return Math.max(1, Math.ceil(d.total / rowsPerPage));
     return 1;
-  }, [tx.data]);
+  }, [tx.data, rowsPerPage]);
+  const pageItems = useMemo(() => buildPaginationItems(page, totalPages), [page, totalPages]);
 
   useEffect(() => {
     setPage(1);
   }, [address]);
+  useEffect(() => {
+    setPage(1);
+  }, [rowsPerPage]);
 
   if (!market) return null;
 
@@ -331,7 +339,48 @@ export function TokenTradesPanel({
               <p className="text-[0.65rem] text-muted-foreground">
                 {t.chartUpdated}: {tx.data?.updatedAt ? new Date(tx.data.updatedAt).toLocaleString() : "—"}
               </p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                  {pageItems.map((item, idx) =>
+                    item === "gap" ? (
+                      <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={item}
+                        type="button"
+                        variant={item === page ? "secondary" : "ghost"}
+                        size="sm"
+                        className={cn(
+                          "h-8 min-w-[2.15rem] rounded-lg px-2 text-[0.7rem] tabular-nums",
+                          item === page && "pointer-events-none",
+                        )}
+                        onClick={() => setPage(item)}
+                      >
+                        {item}
+                      </Button>
+                    ),
+                  )}
+                </div>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(value) => {
+                    setRowsPerPage(Number(value));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[7rem] rounded-lg text-[0.7rem]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   type="button"
                   variant="outline"

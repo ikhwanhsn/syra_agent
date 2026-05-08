@@ -1,7 +1,9 @@
 import { Bookmark, RefreshCw, Sparkles, Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWatchlist } from "@/lib/useWatchlist";
 import { useRiseMarketsAll } from "@/lib/RiseDashboardContext";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
@@ -19,6 +21,10 @@ import { MarketSparkline } from "@/components/rise/MarketSparkline";
 import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
+import { buildPaginationItems } from "@/lib/pagination";
+
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
 
 function StatMini({
   label,
@@ -52,6 +58,8 @@ export default function WatchlistPage() {
   const { language } = useLanguage();
   const isZh = language === "zh";
   const { items, remove, clear } = useWatchlist();
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
   const markets = useRiseMarketsAll();
   const byMint = new Map((markets.data ?? []).map((row) => [row.mint, row]));
   const rows = items.map((mint) => byMint.get(mint)).filter((row): row is RiseMarketRow => row != null);
@@ -59,6 +67,15 @@ export default function WatchlistPage() {
 
   const totalPinned = items.length;
   const resolved = rows.length;
+  const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const pageItems = useMemo(() => buildPaginationItems(page, totalPages), [page, totalPages]);
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return rows.slice(start, start + rowsPerPage);
+  }, [page, rows, rowsPerPage]);
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
 
   return (
     <div className="relative flex flex-col gap-8">
@@ -203,7 +220,7 @@ export default function WatchlistPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rows.map((row) => (
+                      {pagedRows.map((row) => (
                         <TableRow
                           key={row.mint}
                           className="group border-border/30 transition-colors hover:bg-muted/[0.35]"
@@ -264,7 +281,7 @@ export default function WatchlistPage() {
 
                 {/* Mobile */}
                 <ul className="flex flex-col gap-3 md:hidden">
-                  {rows.map((row) => (
+                  {pagedRows.map((row) => (
                     <li key={row.mint}>
                       <div className="overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-b from-card/50 to-card/[0.15] p-4 shadow-sm">
                         <div className="flex items-start gap-3">
@@ -340,7 +357,7 @@ export default function WatchlistPage() {
               <p className="inline-flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-foreground/40" aria-hidden />
                 <span>
-                  {isZh ? "显示" : "Showing"} <strong className="font-medium text-foreground">{formatInt(rows.length)}</strong> {isZh ? "条已解析" : "resolved"}
+                  {isZh ? "显示" : "Showing"} <strong className="font-medium text-foreground">{formatInt(pagedRows.length)}</strong> {isZh ? "条已解析" : "resolved"}
                   {items.length !== rows.length ? (
                     <span className="text-muted-foreground/85">
                       {" "}
@@ -349,14 +366,76 @@ export default function WatchlistPage() {
                   ) : null}
                 </span>
               </p>
-              {markets.isFetching ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                  {isZh ? "刷新中…" : "Refreshing..."}
-                </span>
-              ) : (
-                <span className="text-muted-foreground/85">{isZh ? "已是最新" : "Up to date"}</span>
-              )}
+              <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                  {pageItems.map((item, idx) =>
+                    item === "gap" ? (
+                      <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={item}
+                        type="button"
+                        variant={item === page ? "secondary" : "ghost"}
+                        size="sm"
+                        className={cn(
+                          "h-8 min-w-[2.15rem] rounded-lg px-2 text-[0.7rem] tabular-nums",
+                          item === page && "pointer-events-none",
+                        )}
+                        onClick={() => setPage(item)}
+                      >
+                        {item}
+                      </Button>
+                    ),
+                  )}
+                </div>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(value) => {
+                    setRowsPerPage(Number(value));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[7rem] rounded-lg text-[0.7rem]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </Button>
+                <span className="text-[0.7rem] text-muted-foreground">{page}/{totalPages}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </Button>
+                {markets.isFetching ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    {isZh ? "刷新中…" : "Refreshing..."}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground/85">{isZh ? "已是最新" : "Up to date"}</span>
+                )}
+              </div>
             </div>
           ) : null}
         </GlassCard>
