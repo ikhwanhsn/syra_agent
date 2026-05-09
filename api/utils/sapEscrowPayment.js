@@ -19,7 +19,7 @@ import { settlePaymentAndSetResponse } from "./x402PaymentV2.js";
 import { getEffectivePriceUsd } from "../config/x402Pricing.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
-import { buybackAndBurnSYRA } from "./buybackAndBurnSYRA.js";
+import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 
 const require = createRequire(import.meta.url);
@@ -277,7 +277,7 @@ export async function settleSapEscrowOrFacilitator(res, req, serviceData) {
     process.env.NODE_ENV === "production" &&
     !isTesterAgentInternalProbeRequest(req)
   ) {
-    runAfterResponse(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
+    runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
   }
   return { txSignature, serviceHash: serviceHashOut, callsSettled, slot };
 }

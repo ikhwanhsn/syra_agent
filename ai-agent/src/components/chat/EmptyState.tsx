@@ -57,7 +57,7 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
         How can I help you today?
       </h2>
       <p className="text-muted-foreground text-center max-w-md mb-3 px-2 text-sm sm:text-base">
-        Chat casually about crypto, web3, and blockchain—no wallet needed. Syra builds trading infrastructure powered by AI. Connect a wallet when you want to use tools and realtime data.
+        Chat casually about crypto, web3, and blockchain—no wallet needed. Syra is the smart intelligence agent for traders on Solana. Connect a wallet when you want to use tools and realtime data.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 text-sm">
         <a

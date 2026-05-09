@@ -34,9 +34,12 @@ const AUTH_WALL_MARKERS = Object.freeze([
   "invalid api key or bearer token",
   "401 unauthorized",
   "http 401",
+  "status code 401",
   "authentication required",
   "vercel authentication",
   "this deployment is protected",
+  "deployment is password protected",
+  "sign in to vercel",
   "x-payment header",
   '"x402version"',
 ]);
@@ -46,25 +49,25 @@ const AUTH_WALL_MARKERS = Object.freeze([
  * synthetic page so the LLM grounds its understanding of api.syraa.fun on facts instead of
  * inferring from rendered error pages.
  */
-const API_AUTH_CONTEXT_MARKDOWN = `# Syra API surface — auth model (crawler context)
+const API_AUTH_CONTEXT_MARKDOWN = `# Syra API host — auth model (INTERNAL CONTEXT — api.syraa.fun ONLY)
 
-The API at https://api.syraa.fun is intentionally protected and is NOT deep-crawled by the
-internal research pipeline. Most endpoints sit behind one of two auth layers:
+**Scope:** This section describes **only** the JSON/HTTP API at https://api.syraa.fun. It does **not**
+describe the marketing site (syraa.fun), docs (docs.syraa.fun), web agent (agent.syraa.fun), or
+playground (playground.syraa.fun). Those apps are static/SPA deployments that normal browsers reach
+without site-wide login; do **not** infer that they return API-style Unauthorized responses just
+because this paragraph discusses API security.
 
-- **API key / Bearer token** for non-x402 routes (Authorization, X-API-Key, or api-key header).
-  Frontends on syraa.fun, agent.syraa.fun, dashboard.syraa.fun and playground.syraa.fun call
-  these routes from trusted browser origins and the server injects the key automatically.
-  Anonymous tools (including web crawlers) correctly receive HTTP 401 — this is expected
-  security behavior, not an outage.
-- **x402 micropayments** for paid routes. Anonymous requests correctly receive HTTP 402 with
-  payment instructions — also expected behavior, not a bug.
+The API is intentionally protected and is NOT deep-crawled here. Most routes use either:
 
-Public, unauthenticated discovery for integrators is available at:
-- /openapi.json
-- /.well-known/x402
+- **API key / Bearer token** (non-paid routes): trusted browser apps receive keys via server-side
+  injection; anonymous programmatic clients get **Unauthorized** without a key — expected for the
+  API host only.
+- **x402 micropayments** (paid routes): unpaid requests get **Payment Required** with offer metadata
+  — expected for the API host only.
 
-Do NOT report 401/402 responses on protected API endpoints as cross-cutting authentication
-bugs. They are working as designed.`;
+Public discovery (no key) on the API host: GET /openapi.json and GET /.well-known/x402.
+
+Never label landing/docs/agent/playground as "returning 401" based solely on this API-auth summary.`;
 
 /** @returns {CrawlSnapshotItem} */
 function buildApiAuthContextItem() {
@@ -81,7 +84,7 @@ function buildApiAuthContextItem() {
  * @param {string} markdown
  * @returns {boolean}
  */
-function looksLikeAuthWall(markdown) {
+export function looksLikeAuthWall(markdown) {
   if (typeof markdown !== "string" || !markdown) return false;
   const sample = markdown.slice(0, 2000).toLowerCase();
   return AUTH_WALL_MARKERS.some((marker) => sample.includes(marker));

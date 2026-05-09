@@ -106,8 +106,8 @@ export const PartnersAndIntegrations = () => {
             transition={{ duration: 0.45, delay: 0.1 }}
             className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base"
           >
-            Syra integrates with leading protocols and data providers to deliver
-            institutional-grade intelligence and execution.
+            Syra plugs into the protocols and data sources your agent needs so
+            research, risk, and execution stay coherent on Solana.
           </motion.p>
         </div>
 

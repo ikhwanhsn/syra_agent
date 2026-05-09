@@ -8,7 +8,7 @@
  *   CMC_PAYER_PRIVATE_KEY — Base/EVM wallet (32-byte hex, optional 0x); when set and `includeBasePaidNewsE2E`, adds GET /news paid E2E on eip155 (Base USDC).
  *   TESTER_AGENT_CRON_SECRET — optional; if set, requests may use header `x-tester-agent-cron-secret`
  *     instead of API key (see requireApiKey skip in api/index.js). Same header is sent on paid probes
- *     so production can skip buyback-and-burn for those checks only.
+ *     so production can skip SYRA buyback for those checks only.
  *   TESTER_AGENT_SKIP_BUYBACK_SECRET — optional; if set without CRON_SECRET for probes, paid probes send
  *     this value as `x-tester-agent-cron-secret` to skip buyback. Otherwise CRON_SECRET is used.
  *

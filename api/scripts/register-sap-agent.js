@@ -35,7 +35,7 @@ const require = createRequire(import.meta.url);
 const { SapConnection } = require("@oobe-protocol-labs/synapse-sap-sdk");
 
 const DEFAULT_DESCRIPTION =
-  "AI trading intelligence for Solana: news, sentiment, signals, research, trending, x402 API. MCP and agents.";
+  "Smart intelligence for traders on Solana: news, sentiment, signals, research, trending, x402 API. MCP and agents.";
 
 function getSigner() {
   const raw = process.env.SOLANA_PRIVATE_KEY || process.env.PAYER_KEYPAIR;

@@ -61,7 +61,7 @@ const modules = [
     icon: Bot,
     title: "AI Execution Agent",
     description:
-      "Automated trade execution based on your custom strategies. Set it and forget it with our battle-tested execution engine.",
+      "Strategy-aware execution on Solana: route size, protect slippage, and keep humans in the loop until you are ready to automate.",
     features: [
       "Strategy Builder",
       "Multi-DEX Routing",
@@ -115,7 +115,7 @@ export const ProductModules = () => {
             transition={{ duration: 0.5 }}
             className="section-eyebrow-gradient inline-block text-sm font-medium mb-4 tracking-wider uppercase"
           >
-            Core Infrastructure
+            Agent capabilities
           </motion.span>
 
           <motion.h2
@@ -124,7 +124,7 @@ export const ProductModules = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6"
           >
-            Powerful <span className="neon-text">AI Modules</span>
+            Modular <span className="neon-text">intelligence stack</span>
           </motion.h2>
 
           <motion.p
@@ -133,8 +133,9 @@ export const ProductModules = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mx-auto max-w-3xl text-base text-muted-foreground sm:text-lg"
           >
-            Each module is designed to work independently or in concert, giving
-            you the flexibility to build custom trading strategies.
+            Mix sentiment, risk, whale flow, news, and execution surfaces the
+            way your desk runs—each module feeds the same agent so research and
+            trades stay aligned.
           </motion.p>
         </div>
 

@@ -22,7 +22,7 @@ const features = [
   {
     icon: Bot,
     title: "Syra Agent",
-    description: "Chat with the AI agent at agent.syraa.fun for market analysis, signals, and research-driven insights.",
+    description: "Chat with Syra at agent.syraa.fun—market analysis, signals, and research-driven insights for traders.",
     href: "/docs/agent/getting-started",
   },
   {
@@ -63,14 +63,14 @@ export default function DocsHome() {
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-              AI Trading Intelligence • Solana
+              Smart intelligence agent • Solana
             </span>
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 animate-fade-in">
             Research-driven{" "}
-            <span className="gradient-text-primary">AI Trading Intelligence</span>{" "}
-            for Solana
+            <span className="gradient-text-primary">smart intelligence</span>{" "}
+            for traders on Solana
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed animate-fade-in animation-delay-100">
@@ -125,7 +125,7 @@ export default function DocsHome() {
           <h2 className="text-2xl font-semibold">Where Syra Runs</h2>
         </div>
         <p className="text-muted-foreground mb-6">
-          Syra is an intelligence layer — not just a signal bot. Use the <strong className="text-foreground">Syra Agent</strong> at agent.syraa.fun, the x402 Agent, API workflows, and more.
+          Syra is a trader-grade intelligence stack—not just a signal bot. Use the <strong className="text-foreground">Syra Agent</strong> at agent.syraa.fun, the x402 Agent, API workflows, and more.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feature) => (
@@ -210,7 +210,7 @@ export default function DocsHome() {
       <footer className="pt-8 pb-8 sm:pb-0 border-t border-border text-sm text-muted-foreground safe-bottom">
         <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
           <div className="min-w-0 max-w-3xl text-balance">
-            Syra — AI Trading Intelligence for Solana. Built for clarity and structured reasoning.
+            Syra — smart intelligence agent for traders on Solana. Built for clarity and structured reasoning.
           </div>
           <div className="flex flex-wrap gap-4">
             <a href="https://agent.syraa.fun" className="hover:text-primary transition-colors">

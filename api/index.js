@@ -827,7 +827,7 @@ app.get("/", (req, res) => {
 │                       CORE CAPABILITIES                                      │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  🤖 24/7 Automated Trading       → AI agent never sleeps, always alert      │
+│  🤖 24/7 Agent Coverage          → Trading agent never sleeps, always alert │
 │  ⚡ Real-Time Market Analysis    → Sub-second reaction to market movements  │
 │  🔐 X402 Payment Protocol        → Web3-native instant micropayments        │
 │  📱 Telegram Bot Integration     → Control your strategy from anywhere      │
@@ -843,9 +843,9 @@ app.get("/", (req, res) => {
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║         "The Market Never Sleeps. Neither Does Your AI Trading Agent."       ║
+║      "The Market Never Sleeps. Neither Does Your Smart Intelligence Agent."  ║
 ║                                                                              ║
-║              © 2025 SYRA AI Labs. All Rights Reserved.                       ║
+║              © 2026 SYRA AI Labs. All Rights Reserved.                       ║
 ║         Documentation & API Access • https://docs.syraa.fun                  ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -864,21 +864,21 @@ app.get("/", (req, res) => {
 
       <!-- OG Metadata -->
       <meta property="og:title" content="Syra API Gateway" />
-      <meta property="og:description" content="The First x402-Native AI Agent Trading Assistant on Solana" />
+      <meta property="og:description" content="Smart intelligence agent for traders on Solana—x402 pay-per-call APIs, research, and tools." />
       <meta property="og:image" content="${ogImageUrl}" />
       <meta property="og:image:type" content="image/png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="628" />
-      <meta property="og:image:alt" content="Syra — AI Trading Intelligence" />
+      <meta property="og:image:alt" content="Syra — Smart Intelligence Agent for Traders" />
       <meta property="og:type" content="website" />
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:site" content="@syra_agent" />
       <meta name="twitter:creator" content="@syra_agent" />
       <meta name="twitter:title" content="Syra API Gateway" />
-      <meta name="twitter:description" content="The First x402-Native AI Agent Trading Assistant on Solana" />
+      <meta name="twitter:description" content="Smart intelligence agent for traders on Solana—x402 pay-per-call APIs, research, and tools." />
       <meta name="twitter:image" content="${ogImageUrl}" />
-      <meta name="twitter:image:alt" content="Syra — AI Trading Intelligence" />
+      <meta name="twitter:image:alt" content="Syra — Smart Intelligence Agent for Traders" />
 
       <!-- Favicon -->
       <link rel="icon" href="/favicon.ico" />

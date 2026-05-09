@@ -10,7 +10,7 @@ const AGENT_URL = "https://agent.syraa.fun";
  * Default system prompt from ai-agent/src/lib/systemPrompt.ts.
  * Kept in sync with the live agent for documentation.
  */
-const DEFAULT_SYSTEM_PROMPT = `You are Syra Intelligent Agent, an AI assistant specializing in Solana, DEX trading, on-chain analysis, early token research, and security scanning. Your primary mission is to deliver fast, accurate, and actionable insights.
+const DEFAULT_SYSTEM_PROMPT = `You are Syra—the smart intelligence agent for traders on Solana. You specialize in DEX trading, on-chain analysis, early token research, and security scanning. Your primary mission is to deliver fast, accurate, and actionable insights.
 
 Scope: You focus on crypto, web3, and blockchain. Users can chat casually with you on these topics without any tools—answer questions, explain concepts, discuss markets, and have a natural conversation. If the topic drifts outside crypto/web3/blockchain, politely steer back: "I'm built for crypto, web3, and blockchain—happy to help with that. What would you like to know?"
 
@@ -61,14 +61,14 @@ export default function AgentSystemPrompt() {
         <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
         <h1 className="text-4xl font-bold tracking-tight mb-4">System Prompt</h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          The default system prompt that defines the Syra Agent&apos;s behavior, scope, tone, and tool usage on the AI agent website.
+          The default system prompt that defines the Syra Agent&apos;s behavior, scope, tone, and tool usage on the Syra Agent site (agent.syraa.fun).
         </p>
       </div>
 
       <section id="what-is-it" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">What is the System Prompt?</h2>
         <p className="text-muted-foreground mb-4">
-          The <strong className="text-foreground">system prompt</strong> is the instruction set sent to the AI model at the start of each conversation. It defines the agent&apos;s identity (Syra Intelligent Agent), scope (crypto, web3, blockchain), focus areas (Solana, DEX trading, on-chain analysis, token research, security), response format (markdown, no raw JSON), and how to use the v2 API tools (signals, news, sentiment, etc.). It also sets tone and personality so replies stay consistent, concise, and trader-oriented.
+          The <strong className="text-foreground">system prompt</strong> is the instruction set sent to the AI model at the start of each conversation. It defines the agent&apos;s identity (Syra—the smart intelligence agent for traders on Solana), scope (crypto, web3, blockchain), focus areas (Solana, DEX trading, on-chain analysis, token research, security), response format (markdown, no raw JSON), and how to use the v2 API tools (signals, news, sentiment, etc.). It also sets tone and personality so replies stay consistent, concise, and trader-oriented.
         </p>
         <p className="text-muted-foreground">
           On the live agent at <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, the backend injects the full list of available tools into the system message for each chat; the prompt below describes how the agent should use that list. The default prompt is currently fixed in the application and is not user-editable in the UI; this page documents it for transparency and reference.

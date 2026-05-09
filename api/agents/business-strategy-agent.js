@@ -48,7 +48,7 @@ import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.j
 
 const HORIZONS = new Set(["1w", "1m", "1q"]);
 
-const SYSTEM_PROMPT = `You are a senior GTM and business strategist for Syra (AI trading intelligence / x402 pay-per-call API on Solana).
+const SYSTEM_PROMPT = `You are a senior GTM and business strategist for Syra (smart intelligence agent for traders / x402 pay-per-call API on Solana).
 
 You receive:
 1) Crawled public website/API content (ground truth for positioning and offerings as shown to users).

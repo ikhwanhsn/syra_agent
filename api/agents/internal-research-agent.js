@@ -4,6 +4,7 @@
  */
 
 import { callOpenRouter } from "../libs/openrouter.js";
+import { looksLikeAuthWall } from "../libs/agentTeamCrawl.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
 import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
 
@@ -56,6 +57,148 @@ const CATEGORIES = new Set(["feature", "fix", "integration", "ux", "devx"]);
 
 const LEVELS = new Set(["high", "medium", "low"]);
 
+/** Surfaces that correspond to public HTML apps (not api.syraa.fun JSON routes). */
+const USER_WEB_SURFACES = new Set(["landing", "docs", "agent", "playground"]);
+
+/** When the LLM drops below min recommendations after stripping auth hallucinations. */
+const SANITIZER_PAD_RECOMMENDATIONS = Object.freeze([
+  {
+    title: "Treat crawler-only auth walls separately from real browsers",
+    why: "Agent-team crawls use Cloudflare Browser Rendering from datacenter IPs. Vercel Deployment Protection (or similar) may challenge crawlers while normal visitors still receive 200. Repeated false 401 reports usually mean allowlist the crawl origin or confirm production protection settings — not that SPA hosts are broken.",
+    surface: "cross-cutting",
+    category: "devx",
+    impact: "medium",
+    effort: "low",
+  },
+  {
+    title: "Clarify API auth vs browsable web apps on the landing page",
+    why: "State explicitly that api.syraa.fun routes may require keys or x402 while syraa.fun, docs.syraa.fun, agent.syraa.fun, and playground.syraa.fun are ordinary sites integrators can open without API credentials.",
+    surface: "landing",
+    category: "ux",
+    impact: "low",
+    effort: "low",
+  },
+]);
+
+/**
+ * @param {string} urlStr
+ * @returns {string}
+ */
+function crawlHostname(urlStr) {
+  try {
+    return new URL(urlStr).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * True if some crawled page for this surface looks like an auth / deployment wall.
+ * @param {CrawlSnapshotItem[]} snapshot
+ * @param {ResearchSurface} surface
+ * @returns {boolean}
+ */
+function snapshotHasAuthWallEvidenceForSurface(snapshot, surface) {
+  for (const p of snapshot) {
+    const md = typeof p.markdown === "string" ? p.markdown : "";
+    if (!looksLikeAuthWall(md)) continue;
+    const host = crawlHostname(String(p.url || ""));
+    if (surface === "landing" && (host === "syraa.fun" || host === "www.syraa.fun")) return true;
+    if (surface === "docs" && host === "docs.syraa.fun") return true;
+    if (surface === "agent" && host === "agent.syraa.fun") return true;
+    if (surface === "playground" && host === "playground.syraa.fun") return true;
+  }
+  return false;
+}
+
+/**
+ * @param {CrawlSnapshotItem[]} snapshot
+ * @returns {boolean}
+ */
+function anyUserFacingHostShowsAuthWall(snapshot) {
+  for (const s of USER_WEB_SURFACES) {
+    if (snapshotHasAuthWallEvidenceForSurface(snapshot, /** @type {ResearchSurface} */ (s))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * LLM often conflates api.syraa.fun Unauthorized responses with SPA hosts.
+ * @param {InternalRecommendation} rec
+ * @returns {boolean}
+ */
+function recommendationClaimsUserSiteAuthFailure(rec) {
+  if (!USER_WEB_SURFACES.has(rec.surface)) return false;
+  const text = `${rec.title}\n${rec.why}`.toLowerCase();
+  const citesAuthFailure =
+    /\b401\b/.test(text) ||
+    /\b402\b/.test(text) ||
+    /authentication error|unauthorized error|payment required/i.test(text);
+  if (!citesAuthFailure) return false;
+  return /preventing users|blocking users|hindering users|not accessible|inaccessible|returned (a )?401|returns 401|respond(ed|ing)? with (a )?401|401 errors|main entry point|experimenting with the api/i.test(
+    text,
+  );
+}
+
+/**
+ * Strip recommendations / risks that claim user-facing sites return 401 without crawl proof.
+ * @param {CrawlSnapshotItem[]} snapshot
+ * @param {InternalResearchOutput} output
+ * @returns {InternalResearchOutput}
+ */
+function sanitizeAuthSurfaceHallucinations(snapshot, output) {
+  let recommendations = output.recommendations.filter((rec) => {
+    if (!recommendationClaimsUserSiteAuthFailure(rec)) return true;
+    return snapshotHasAuthWallEvidenceForSurface(snapshot, rec.surface);
+  });
+
+  let risks = output.risks.filter((line) => {
+    const t = line.toLowerCase();
+    const systemic401 =
+      /\b401\b/.test(t) &&
+      /all (four|4)|user-facing surfaces|systemic|landing.*docs|every.*surface|all returning|primary user-facing/i.test(
+        t,
+      );
+    if (!systemic401) return true;
+    return anyUserFacingHostShowsAuthWall(snapshot);
+  });
+
+  const dropped = output.recommendations.length - recommendations.length;
+  if (dropped > 0) {
+    risks.unshift(
+      `Automated filter: removed ${dropped} recommendation(s) that claimed HTTP 401/402 on user-facing web hosts without matching auth-wall crawl evidence (usually conflated with api.syraa.fun).`,
+    );
+  }
+
+  let padIdx = 0;
+  while (recommendations.length < 3 && padIdx < SANITIZER_PAD_RECOMMENDATIONS.length) {
+    recommendations.push({ ...SANITIZER_PAD_RECOMMENDATIONS[padIdx] });
+    padIdx += 1;
+  }
+  while (recommendations.length < 3) {
+    recommendations.push({
+      title: "Review crawl coverage when auth-wall pages were dropped",
+      why: "Matching deployment-protection markdown is removed before the LLM runs. Few snapshot URLs for a host means conclusions about that host may be unreliable until crawl bypass or limits are adjusted.",
+      surface: "cross-cutting",
+      category: "devx",
+      impact: "low",
+      effort: "low",
+    });
+  }
+
+  if (recommendations.length > 12) {
+    recommendations = recommendations.slice(0, 12);
+  }
+
+  return {
+    ...output,
+    recommendations,
+    risks,
+  };
+}
+
 const SYSTEM_PROMPT = `You are Syra's internal product researcher. You receive crawled markdown/text from Syra's public web surfaces (landing, docs, agent app, playground) plus a static description of the API auth model and public API discovery JSON (OpenAPI + x402).
 
 Rules:
@@ -77,10 +220,10 @@ Rules:
 - Write in English. Be specific and actionable for an engineering + product team.
 
 Auth model — IMPORTANT (do not generate false-positive auth bug reports):
-- The api.syraa.fun surface is intentionally protected. Non-x402 routes require API key / Bearer token; paid routes require x402 payment. Anonymous tools (including web crawlers) correctly receive HTTP 401 or 402 on protected endpoints. This is expected, working-as-designed behavior, NOT a cross-cutting bug.
-- If you see "401", "Missing API key", "Invalid API key", "Authentication required", "402 Payment Required", "X-Payment header", or similar phrases anywhere in the snapshot, do NOT emit a recommendation claiming that landing / docs / agent app / API / playground are "all returning 401" or that authentication is broken. The crawler may have hit a single protected endpoint and that is normal.
-- Only flag an auth issue if the crawled content for a USER-FACING surface (landing, docs, agent app, playground) clearly renders an unintended auth wall to a normal browser visitor — e.g. the home page itself shows "401 Unauthorized" with no product content. A single protected API endpoint returning 401 is not enough evidence.
-- Frontend bundles must never embed API keys; this is enforced server-side via trusted-origin key injection. Do not recommend "expose the API key in the frontend" as a fix.`;
+- The synthetic page whose URL ends with \`/_meta/auth-model\` describes **only** https://api.syraa.fun. It is not evidence about syraa.fun, docs.syraa.fun, agent.syraa.fun, or playground.syraa.fun. Never claim those web apps "return 401" because that page mentions Unauthorized/Payment Required for the API.
+- The api.syraa.fun JSON API is intentionally protected (keys / x402). Anonymous calls to protected routes there are expected to fail auth — that does **not** mean the marketing or docs sites are down.
+- Only recommend a **fix** for user-facing web surfaces if the crawled **page URL** for that host (see snapshot \`url\` fields) contains visible auth-wall content (deployment protection, site-wide login with no product shell), not merely API error jargon copied from docs.
+- Frontend bundles must never embed API keys; trusted-origin injection applies. Do not recommend exposing API keys in client bundles.`;
 
 /**
  * @param {string} text
@@ -245,7 +388,10 @@ export async function runInternalResearchAgent({ snapshot, model }) {
   let parsed;
   try {
     parsed = parseJsonObjectFromLlm(first.response);
-    return coerceInternalResearchOutput(parsed);
+    return sanitizeAuthSurfaceHallucinations(
+      snapshot,
+      coerceInternalResearchOutput(parsed),
+    );
   } catch (firstErr) {
     const retryMessages = [
       ...apiMessages,
@@ -264,7 +410,10 @@ export async function runInternalResearchAgent({ snapshot, model }) {
 
     try {
       parsed = parseJsonObjectFromLlm(second.response);
-      return coerceInternalResearchOutput(parsed);
+      return sanitizeAuthSurfaceHallucinations(
+        snapshot,
+        coerceInternalResearchOutput(parsed),
+      );
     } catch {
       const hint = firstErr instanceof Error ? firstErr.message : String(firstErr);
       throw new Error(

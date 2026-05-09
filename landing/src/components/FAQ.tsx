@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "What is Syra and how does it work?",
     answer:
-      "Syra is an AI trading intelligence layer for Solana: real-time sentiment, risk scoring, smart-money and whale flow, and on-chain news signals, exposed through the web agent and pay-per-call HTTP APIs (HTTP 402 with x402 and MPP). It aggregates and models market context so traders and builders get structured research and automation-ready data—optional execution-style tooling sits alongside that intelligence stack.",
+      "Syra is the smart intelligence agent for traders on Solana. It combines real-time sentiment, risk scoring, smart-money and whale flow, and on-chain news signals—surfaced in the web agent and as pay-per-call HTTP APIs (HTTP 402 with x402 and MPP). You fund your wallet and approve actions; the agent researches, calls paid tools when useful, and can support execution workflows alongside non-custodial guardrails.",
   },
   {
     question: "Is Syra custodial? Do you hold my funds?",
@@ -27,12 +27,17 @@ const faqs = [
   {
     question: "What is the $SYRA token used for?",
     answer:
-      "$SYRA is the utility and governance token: holders vote on protocol direction, feature prioritization, and treasury use. Staking unlocks premium modules, higher API limits, and exclusive signals. Stakers receive 10% of protocol revenue (distributed weekly in SOL/USDC). A portion of x402-driven fees funds buyback and burn of $SYRA.",
+      "$SYRA is the utility and governance token: holders vote on protocol direction, feature prioritization, and treasury use. Staking unlocks premium modules, higher API limits, and exclusive signals. Stakers receive 10% of protocol revenue (distributed weekly in SOL/USDC). A portion of x402-driven fees funds programmatic buybacks of $SYRA, held for future community airdrops.",
+  },
+  {
+    question: "How is Syra related to pay.sh, x402, and agent payments?",
+    answer:
+      "Ecosystem initiatives like pay.sh highlight how agents can discover services and pay on-chain. Syra leans into the same pattern: HTTP 402 plus x402 / MPP so an agent (or your scripts) can pay per successful API call on Solana instead of juggling subscriptions—useful when the agent needs external data or compute mid-workflow.",
   },
   {
     question: "How do I get started with Syra?",
     answer:
-      "Open agent.syraa.fun and connect a wallet to use the AI agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
+      "Open agent.syraa.fun and connect a wallet to run the agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
   },
   {
     question: "Is there an API for developers?",

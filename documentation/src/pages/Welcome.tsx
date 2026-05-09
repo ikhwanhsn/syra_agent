@@ -19,7 +19,7 @@ export default function Welcome() {
         <div className="text-sm text-primary font-medium mb-2">Welcome</div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">👋 Welcome</h1>
         <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-          Welcome to <strong className="text-foreground">Syra</strong> — an intelligent, research-driven AI Trading Intelligence Agent for the Solana ecosystem.
+          Welcome to <strong className="text-foreground">Syra</strong> — the smart intelligence agent for traders on Solana.
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export default function Welcome() {
           </table>
         </div>
         <p className="text-muted-foreground mt-4">
-          Syra is designed as <strong className="text-foreground">an intelligence layer — not just a signal bot</strong>.
+          Syra is designed as <strong className="text-foreground">a trader-grade intelligence stack—not just a signal bot</strong>.
         </p>
       </section>
 

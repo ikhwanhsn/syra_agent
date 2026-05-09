@@ -122,8 +122,9 @@ export default function Brand() {
               <span className="text-foreground"> identity</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground text-balance">
-              Visual and verbal identity for Syra — AI-powered trading infrastructure on Solana. Use
-              this system so every touchpoint feels precise, neutral, and built for builders.
+              Visual and verbal identity for Syra — the smart intelligence agent for traders on
+              Solana. Use this system so every touchpoint feels precise, neutral, and built for desks
+              that ship.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="rounded-full border border-border bg-card/50 px-4 py-1.5 font-mono text-xs">
@@ -347,12 +348,12 @@ export default function Brand() {
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
                   <span className="font-mono text-xs text-muted-foreground">H1 / 48</span>
                   <p className="text-4xl font-bold tracking-tight sm:text-5xl">
-                    Trade with intelligence
+                    Smart intelligence for traders
                   </p>
                 </div>
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
                   <span className="font-mono text-xs text-muted-foreground">H2 / 30</span>
-                  <p className="text-2xl font-bold sm:text-3xl">API &amp; agent infrastructure</p>
+                  <p className="text-2xl font-bold sm:text-3xl">Agent stack on Solana</p>
                 </div>
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
                   <span className="font-mono text-xs text-muted-foreground">H3 / 20</span>
@@ -361,8 +362,8 @@ export default function Brand() {
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
                   <span className="font-mono text-xs text-muted-foreground">Body / 16</span>
                   <p className="text-base text-muted-foreground">
-                    Syra combines real-time market data, agent tooling, and pay-per-use APIs so teams
-                    ship faster without sacrificing clarity.
+                    Syra combines live Solana market data, trader-grade agent tooling, and pay-per-use
+                    APIs so desks ship faster without sacrificing clarity.
                   </p>
                 </div>
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
@@ -428,7 +429,7 @@ export default function Brand() {
 
               <DoDont
                 dos={[
-                  "AI-powered trading infrastructure for the next generation of traders.",
+                  "Smart intelligence agent for traders — Solana-native, x402-ready.",
                   "Built for Solana with programmable payments — use what you need.",
                   "Your agent returned ranked signals in under three seconds.",
                 ]}
@@ -608,7 +609,7 @@ export default function Brand() {
                         Tagline
                       </dt>
                       <dd className="mt-1 text-foreground">
-                        AI-powered trading infrastructure for the next generation of traders.
+                        Smart intelligence agent for traders.
                       </dd>
                     </div>
                   </dl>

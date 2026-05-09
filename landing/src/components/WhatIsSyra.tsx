@@ -6,38 +6,39 @@ import { Brain, Shield, Zap, Globe, Lock, BarChart3 } from "lucide-react";
 const features = [
   {
     icon: Brain,
-    title: "AI-Powered Intelligence",
+    title: "Agent-Grade Intelligence",
     description:
-      "Advanced machine learning models analyze market patterns in real-time",
+      "Models and workflows tuned for trading decisions—not generic chat",
   },
   {
     icon: Shield,
-    title: "Institutional Security",
+    title: "Security for Agent Capital",
     description:
-      "Enterprise-grade encryption and multi-sig protection for your assets",
+      "Hardened flows for agents that route funds: explicit approvals and auditable actions",
   },
   {
     icon: Zap,
-    title: "Fast Execution",
+    title: "Fast on Solana",
     description:
-      "Efficient trade execution on Solana with pay-per-request x402 API access",
+      "Low-latency reads and execution paths on Solana DEXs, with x402 when you need paid tools",
   },
   {
     icon: Globe,
-    title: "Solana-Native",
+    title: "Agentic Payments",
     description:
-      "Built for Solana with x402 programmable payments — pay only for what you use",
+      "HTTP 402 + x402 / MPP so agents discover APIs, pay per call, and stay composable",
   },
   {
     icon: Lock,
     title: "Non-Custodial",
     description:
-      "You maintain full control of your keys and assets at all times",
+      "You keep the keys; Syra never custodies your wallet or moves funds without your sign-off",
   },
   {
     icon: BarChart3,
-    title: "Real-time Analytics",
-    description: "Comprehensive dashboards with actionable insights and alerts",
+    title: "Live market surface",
+    description:
+      "Dashboards and signals built for operators who ship size, not slides",
   },
 ];
 
@@ -67,7 +68,7 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6"
           >
-            The Future of <span className="neon-text">Automated Trading</span>
+            Your <span className="neon-text">trading agent</span> on Solana
           </motion.h2>
 
           <motion.p
@@ -76,10 +77,10 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-3xl mx-auto"
           >
-            Syra provides the infrastructure layer for next-generation trading.
-            We combine cutting-edge AI with institutional-grade security to
-            deliver real-time market intelligence and automated execution
-            strategies.
+            Syra is the smart intelligence agent for traders: it reasons over
+            live Solana markets, pulls in paid data and tools when needed, and
+            keeps you in the loop with clear, actionable output—so you can fund
+            your stack once and iterate on strategy instead of glue code.
           </motion.p>
         </div>
 

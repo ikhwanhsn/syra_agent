@@ -75,7 +75,7 @@ const roadmapByQuarter: {
       "Exit Timing Signals API",
       "Liquidation Prediction API",
       "$SYRA staking for API discounts (10K tokens = 25% off)",
-      "Token buyback & burn program (50% of USDC revenue)",
+      "x402-linked $SYRA buyback program (tokens held for community airdrops)",
     ],
   },
   {
@@ -170,7 +170,7 @@ const roadmapByQuarter: {
        <section>
          <h2 className="text-2xl font-semibold mb-2">Roadmap</h2>
          <p className="text-muted-foreground mb-6">
-           2025–2027 Syra Roadmap — Building AI Trading Intelligence Infrastructure with x402 payments.
+           2025–2027 Syra Roadmap — shipping the smart intelligence agent for traders with x402 payments.
          </p>
          <div className="space-y-8">
            {roadmapByQuarter.map((q) => (

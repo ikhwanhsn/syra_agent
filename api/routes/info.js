@@ -149,8 +149,11 @@ export async function createInfoRouter() {
       linktree: "https://linktr.ee/syra_ai",
       agent:
         "https://www.x402scan.com/composer/agent/c543b43e-6f49-492d-9f8a-6b0cc273fb06/chat",
+      token_solscan:
+        "https://solscan.io/token/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+      // Legacy key: same token page. x402 buybacks are retained for airdrops, not burned by Syra.
       live_burn:
-        "https://solscan.io/token/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump?activity_type=ACTIVITY_SPL_BURN&exclude_amount_zero=true&remove_spam=false&page_size=10",
+        "https://solscan.io/token/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
       dex: {
         pumpfun:
           "https://pump.fun/8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",

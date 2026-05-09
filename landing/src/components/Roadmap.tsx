@@ -121,7 +121,7 @@ const roadmapData = [
           "Market Regime Detection & Correlation Matrix APIs",
           "Exit Timing & Liquidation Prediction APIs",
           "$SYRA staking for API discounts",
-          "Token buyback & burn program launch",
+          "x402-linked $SYRA buyback for community airdrops",
         ],
         status: "completed",
       },
@@ -203,7 +203,7 @@ export const Roadmap = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl"
           >
-            Building the <span className="neon-text">Future</span>
+            Shipping the <span className="neon-text">trading agent</span>
           </motion.h2>
         </div>
 

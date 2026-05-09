@@ -162,7 +162,7 @@ export const LiveDashboard = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl"
           >
-            Real-time <span className="neon-text">Market Intelligence</span>
+            What the <span className="neon-text">agent sees</span> right now
           </motion.h2>
         </div>
 

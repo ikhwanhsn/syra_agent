@@ -42,7 +42,7 @@ export function buildMppDiscoveryOpenApi() {
       title: 'Syra API',
       version: '1.0.0',
       description:
-        'Syra is the intelligence layer for autonomous trading agents—real-time market data, on-chain signals, news, sentiment, and research',
+        'Syra is the smart intelligence agent for traders on Solana—real-time market data, on-chain signals, news, sentiment, and research',
       // Required by MPP / AgentCash discovery — without this, registries may return not_found / no resources
       guidance:
         'Call an operation without payment → HTTP 402. Pay with x402 (Solana or Base USDC), retry with payment proof. Docs: https://docs.syraa.fun',

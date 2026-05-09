@@ -13,7 +13,7 @@ import { TESTER_AGENT_CONFIG } from "./testerAgentConfig.js";
 /** @typedef {{ id: string; name: string; run: (baseUrl: string, signal?: AbortSignal) => Promise<Record<string, unknown>> }} TesterDefinition */
 
 /**
- * Headers so paid probes skip buyback-and-burn in production (`testerAgentProbe.js`).
+ * Headers so paid probes skip SYRA buyback in production (`testerAgentProbe.js`).
  * @returns {Record<string, string>}
  */
 export function testerAgentInternalHeaders() {

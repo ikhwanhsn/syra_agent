@@ -7,9 +7,9 @@
 // const utilities = [
 //   {
 //     icon: Flame,
-//     title: "Buyback & Burn",
+//     title: "Buyback & Airdrops",
 //     description:
-//       "A portion of all x402 transaction fees are used to buy back and burn $SYRA, creating deflationary pressure.",
+//       "A portion of x402 revenue buys $SYRA for treasury-held community airdrops.",
 //     highlight: "80% of all fees + 50% revenue",
 //   },
 //   {
@@ -172,7 +172,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useMemo, useRef, useState } from "react";
-import { Flame, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
+import { Gift, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
 import syraLogo from "/images/logo.jpg";
 import { cn } from "@/lib/utils";
 import {
@@ -231,10 +231,10 @@ const SYRA_BUY_VENUES: readonly {
 
 const utilities = [
   {
-    icon: Flame,
-    title: "Buyback & Burn",
+    icon: Gift,
+    title: "Buyback & Airdrops",
     description:
-      "A portion of all x402 transaction fees are used to buy back and burn $SYRA, creating deflationary pressure.",
+      "A portion of every x402 payment is used to buy $SYRA on-market and hold it in treasury for future community airdrops—rewarding users as usage grows.",
     highlight: "",
     solscanUrl: SOLSCAN_TOKEN_URL,
   },
@@ -343,9 +343,9 @@ export const TokenSection = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="max-w-3xl mx-auto text-lg text-muted-foreground"
           >
-            $SYRA is the utility and governance token powering the entire Syra
-            ecosystem. Hold, stake, and participate in the future of AI-powered
-            trading.
+            $SYRA aligns incentives for the agent economy around Syra—govern
+            the roadmap, unlock premium agent modules and API tiers, and share
+            in protocol revenue as usage scales.
           </motion.p>
 
           {/* Token Details Card */}
@@ -550,10 +550,10 @@ export const TokenSection = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={cn("mt-3 inline-flex items-center gap-1.5 text-xs font-medium hover:underline", accentText)}
-                        title="View burns on Solscan"
+                        title="View $SYRA on Solscan"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        View burns on Solscan
+                        View $SYRA on Solscan
                       </a>
                     )}
                   </div>
@@ -576,7 +576,7 @@ export const TokenSection = () => {
               { label: "Total Supply", value: "1B", valueClass: "gold-text" },
               { label: "Circulating", value: "995M", valueClass: "text-primary" },
               { label: "Staked", value: "(soon)", valueClass: "text-muted-foreground" },
-              { label: "Burned", value: "5M+", valueClass: "text-success" },
+              { label: "Buybacks → airdrops", value: "Active", valueClass: "text-success" },
             ].map((stat) => (
               <div key={stat.label}>
                 <div className={cn("mb-1 text-3xl font-bold", stat.valueClass)}>

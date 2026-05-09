@@ -490,7 +490,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         {
           name: "Syra",
           description:
-            "AI Trading Intelligence Agent for Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API.",
+            "Smart intelligence agent for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API.",
           image: "https://syraa.fun/images/logo.jpg",
           services: [{ type: "MCP", value: "https://api.syraa.fun" }],
           skills: [
@@ -965,7 +965,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
           key: "buybackBps",
           value: "5000",
           enabled: false,
-          description: "If tokenizedAgent: bps to buyback & burn (5000 = 50%)",
+          description: "If tokenizedAgent: bps to buyback (venue-specific; often treasury/LP routing)",
         },
         {
           key: "mayhemMode",
@@ -3041,7 +3041,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
           key: "buybackBps",
           value: "5000",
           enabled: false,
-          description: "If tokenized agent",
+          description: "If tokenizedAgent: bps to buyback (venue-specific)",
         },
       ],
       "/pumpfun/agents/collect-fees": [

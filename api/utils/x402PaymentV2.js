@@ -25,7 +25,7 @@ import {
 } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../config/x402Pricing.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
-import { buybackAndBurnSYRA } from "./buybackAndBurnSYRA.js";
+import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import dotenv from "dotenv";
 
@@ -600,7 +600,7 @@ export async function settlePaymentAndSetResponse(res, req) {
     process.env.NODE_ENV === "production" &&
     !isTesterAgentInternalProbeRequest(req)
   ) {
-    runAfterResponse(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
+    runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
   }
   return settle;
 }
@@ -628,7 +628,7 @@ export function runAfterResponse(fn) {
 }
 
 /**
- * Run buyback-and-burn after a paid request when the route uses settlePaymentWithFallback
+ * Run SYRA buyback after a paid request when the route uses settlePaymentWithFallback
  * instead of settlePaymentAndSetResponse. Call this after settling and setting Payment-Response.
  * @param {import('express').Request} req - Must have req.x402Payment.priceUsd (set by requirePayment)
  */
@@ -637,7 +637,7 @@ export function runBuybackForRequest(req) {
   if (isTesterAgentInternalProbeRequest(req)) return;
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0) {
-    runAfterResponse(() => buybackAndBurnSYRA(priceUsd).catch(() => {}));
+    runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
   }
 }
 

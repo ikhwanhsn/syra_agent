@@ -60,11 +60,12 @@ export const Footer = () => {
 
           <div className="relative z-10">
             <h2 className="mb-4 text-2xl font-bold sm:text-3xl md:text-4xl">
-              Ready to Trade <span className="neon-text">Smarter?</span>
+              Fund your stack. <span className="neon-text">Run the agent.</span>
             </h2>
             <p className="max-w-2xl mx-auto mb-8 text-muted-foreground">
-              Join thousands of traders using Syra to gain an edge in the
-              markets. Start today.
+              Give Syra a mandate—research, risk, flow, execution—and let it
+              work with pay-per-call tools on Solana while you keep custody of
+              the keys.
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <a href={LINK_AGENT} target="_blank" className="btn-primary">
@@ -89,8 +90,8 @@ export const Footer = () => {
           <div className="col-span-2 md:col-span-1">
             <SyraLogo className="mb-4" />
             <p className="mb-4 text-sm text-muted-foreground">
-              AI-powered trading infrastructure for the next generation of
-              traders.
+              Smart intelligence agent for traders—Solana-native, x402-ready,
+              built for desks that ship real size.
             </p>
             <div className="flex gap-3">
               {socials.map((social) => (
@@ -138,7 +139,7 @@ export const Footer = () => {
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 pt-8 border-t border-border md:flex-row">
           <p className="text-sm text-muted-foreground">
-            © 2025 Syra AI Labs. All rights reserved.
+            © 2026 Syra AI Labs. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
             Autonomous Intelligence Since 2024

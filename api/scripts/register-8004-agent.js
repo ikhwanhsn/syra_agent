@@ -62,7 +62,7 @@ async function main() {
   const metadata = buildRegistrationFileJson({
     name: "Syra",
     description:
-      "AI Trading Intelligence Agent for Solana. Real-time signals, crypto news, sentiment, deep research, token reports, memecoin screens, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
+      "Smart intelligence agent for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, memecoin screens, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
     image: imageUri,
     services: [
       { type: ServiceType.MCP, value: "https://api.syraa.fun" },

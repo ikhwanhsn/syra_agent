@@ -35,7 +35,8 @@ export function resolveInternalPipelineModel(modelFromCaller) {
  * recommendations. The API surface is described by AGENT_TEAM_API_DISCOVERY_HOST below.
  */
 export const AGENT_TEAM_CRAWL_BASE_URLS = Object.freeze([
-  "https://syraa.fun",
+  // Canonical host avoids apex→www redirect noise for Browser Rendering crawls
+  "https://www.syraa.fun",
   "https://docs.syraa.fun",
   "https://agent.syraa.fun",
   "https://playground.syraa.fun",

@@ -92,7 +92,7 @@ async function main() {
     name: "Syra Agents",
     symbol: "SYRA",
     description:
-      "AI Trading Intelligence Agents for Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
+      "Smart intelligence agents for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
     ...(imageUri && { image: imageUri }),
     ...(bannerUri && { banner_image: bannerUri }),
     external_url: externalUrl,

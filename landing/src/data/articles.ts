@@ -32,9 +32,9 @@ export const articles: ArticleItem[] = [
   {
     id: "syra-x",
     title:
-      "Syra Explained: The AI Trading Intelligence Layer Powering the Agent Economy on Solana",
+      "Syra Explained: The Smart Intelligence Agent for Traders on Solana",
     description:
-      "How Syra delivers real-time market intelligence, sentiment analysis, and automated execution for the agent economy on Solana.",
+      "How Syra delivers real-time market intelligence, sentiment analysis, and execution-ready workflows for the agent economy on Solana.",
     href: "https://x.com/syra_agent/status/2021064952765874204",
     external: true,
     comingSoon: false,
@@ -45,7 +45,7 @@ export const articles: ArticleItem[] = [
     id: "article-2",
     title: "More from Syra on X",
     description:
-      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building agent-native trading infrastructure.",
+      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building the smart intelligence agent for traders.",
     href: "#",
     external: false,
     comingSoon: true,

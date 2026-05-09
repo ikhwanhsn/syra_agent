@@ -4,7 +4,7 @@
 
 # **Syra API**
 
-### Backend services and intelligence layer for the Syra ecosystem
+### Backend services for the Syra smart intelligence agent (traders on Solana)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)

@@ -12,15 +12,17 @@ const inter = Inter({
 const ogImage = "https://www.syraa.fun/images/og-banner.png";
 
 export const metadata: Metadata = {
-  title: "Staking dApp | SPL Token Staking",
-  description: "Stake your SPL tokens and earn rewards.",
+  title: "Syra Staking | $SYRA",
+  description:
+    "Stake $SYRA for the Syra smart intelligence agent for traders—governance, tiers, and protocol rewards on Solana.",
   icons: {
     icon: "/favicon.svg",
     apple: "/logo.jpg",
   },
   openGraph: {
-    title: "Staking dApp | SPL Token Staking",
-    description: "Stake your SPL tokens and earn rewards.",
+    title: "Syra Staking | $SYRA",
+    description:
+      "Stake $SYRA for the Syra smart intelligence agent for traders—governance, tiers, and protocol rewards on Solana.",
     type: "website",
     images: [
       {
@@ -28,7 +30,7 @@ export const metadata: Metadata = {
         type: "image/png",
         width: 1200,
         height: 628,
-        alt: "Syra — AI Trading Intelligence",
+        alt: "Syra — Smart Intelligence Agent for Traders",
       },
     ],
   },
@@ -36,8 +38,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@syra_agent",
     creator: "@syra_agent",
-    title: "Staking dApp | SPL Token Staking",
-    description: "Stake your SPL tokens and earn rewards.",
+    title: "Syra Staking | $SYRA",
+    description:
+      "Stake $SYRA for the Syra smart intelligence agent for traders—governance, tiers, and protocol rewards on Solana.",
     images: [ogImage],
   },
 };

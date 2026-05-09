@@ -4,7 +4,7 @@
 
 # **Syra**
 
-### The Intelligence Layer for Autonomous Trading Agents
+### Smart Intelligence Agent for Traders
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -18,7 +18,7 @@
 
 ## What Is Syra?
 
-**Syra** is an intelligent, research-driven **AI Trading Intelligence Agent** for the Solana ecosystem. It helps traders, analysts, and builders make smarter, data-based decisions by combining:
+**Syra** is the **smart intelligence agent for traders** on Solana. It helps traders, analysts, and builders make smarter, data-based decisions by combining:
 
 - **Real-time market data** — Live technical and contextual indicators
 - **On-chain activity signals** — Holder flows, smart money, DEX activity
@@ -27,7 +27,7 @@
 
 Syra is used across **Telegram**, **API workflows**, and autonomous agents—including the **x402 Agent** on x402scan.
 
-Syra is designed as **an intelligence layer**, not just a signal bot: it enhances understanding with structured research, risk-aware perspectives, and learning-oriented explanations.
+Syra is designed as a **trader-grade intelligence stack**, not just a signal bot: it enhances understanding with structured research, risk-aware perspectives, and learning-oriented explanations.
 
 ---
 

@@ -52,7 +52,7 @@ export const HeroSection = () => {
             >
               <span className="h-2 w-2 shrink-0 rounded-full bg-success/90 shadow-[0_0_8px_hsl(var(--success)/0.45)] animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                Powered by{" "}
+                Solana-native agent ·{" "}
                 <span className="font-medium text-foreground/90">x402</span>
                 {" & "}
                 <span className="font-medium text-foreground/90">MPP</span>
@@ -65,11 +65,11 @@ export const HeroSection = () => {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl"
             >
-              <span className="text-foreground">AI Trading</span>
+              <span className="text-foreground">Smart Intelligence</span>
               <br />
-              <span className="neon-text">Infrastructure Layer</span>
+              <span className="neon-text">Agent for Traders</span>
               <br />
-              <span className="text-foreground">for Smart Money</span>
+              <span className="text-foreground">on Solana</span>
             </motion.h1>
 
             <motion.p
@@ -78,9 +78,10 @@ export const HeroSection = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mx-auto mb-8 w-full max-w-xl text-base text-muted-foreground sm:text-lg lg:mx-0"
             >
-              Institutional-grade intelligence, automated execution, and
-              real-time decisions. Track smart money, analyze sentiment, and
-              execute with precision.
+              One agent stack for research, risk, smart-money flow, and
+              execution-ready workflows—wired to pay-per-call tools via x402 so
+              your agent only spends when it acts. You fund and approve; Syra
+              does the heavy lifting on-chain.
             </motion.p>
 
             <motion.form

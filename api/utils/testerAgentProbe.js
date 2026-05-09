@@ -1,6 +1,6 @@
 /**
  * Recognize Syra internal tester-agent HTTP probes (cron / paid E2E).
- * Used to skip buyback-and-burn on settled revenue from health checks.
+ * Used to skip SYRA buyback on settled revenue from health checks.
  */
 
 /**

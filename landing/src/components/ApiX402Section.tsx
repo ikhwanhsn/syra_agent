@@ -192,7 +192,7 @@ export const ApiX402Section = () => {
               transition={{ duration: 0.4, delay: 0.05 }}
               className="mb-4 text-balance text-2xl font-bold leading-tight tracking-tight break-words sm:mb-6 sm:text-3xl lg:text-4xl xl:text-[2.5rem]"
             >
-              Request. Pay. Get data.
+              Agents pay per call. You stay in control.
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -200,7 +200,10 @@ export const ApiX402Section = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="mx-auto mb-5 max-w-lg text-pretty text-sm leading-relaxed break-words text-muted-foreground sm:mb-6 sm:text-base md:mx-0 lg:text-lg"
             >
-              Syra APIs use HTTP 402 Payment Required with x402 and MPP (Machine Payments Protocol) discovery: call an endpoint, pay on Solana when prompted, then receive the response. No subscriptions—pay only for what you use.
+              Syra APIs use HTTP 402 with x402 and MPP (Machine Payments Protocol):
+              discover a route, settle on Solana when prompted, then read the
+              response—aligned with agent-native payment rails like pay.sh. No
+              subscriptions: fund liquidity for the calls you actually need.
             </motion.p>
 
             {/* API categories */}

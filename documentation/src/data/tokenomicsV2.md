@@ -1,6 +1,6 @@
 # ✨ Tokenomics
 
-The Syra token ($SYRA) powers the first x402-native AI Trading Intelligence Infrastructure. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and deflationary mechanics.
+The Syra token ($SYRA) powers the first x402-native **smart intelligence agent for traders** on Solana. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and routing x402 revenue into **SYRA buybacks reserved for community airdrops**.
 
 ## Token Overview
 
@@ -39,7 +39,7 @@ Our distribution prioritizes community ownership and long-term sustainability.
 
 ## Token Utility (x402-Optimized)
 
-$SYRA is the native payment token for accessing trading intelligence APIs via x402 protocol.
+$SYRA is the native payment token for accessing Syra’s trader-facing APIs via the x402 protocol.
 
 ### 1. **x402 API Access**
 
@@ -73,40 +73,31 @@ Lock $SYRA tokens to unlock tiered discounts on all x402 API calls:
 
 - Vote on new intelligence API features
 - Approve data partnership investments (e.g., Bloomberg Terminal)
-- Decide token burn rates and economic parameters
+- Decide airdrop rules, treasury allocation, and economic parameters
 - Community-driven roadmap prioritization
 
 **Voting Power:** 1 staked token = 1 vote
 
-## Deflationary Mechanics
+## x402 Buyback & Community Airdrops
 
-$SYRA has aggressive deflationary mechanisms to create scarcity as usage grows.
+Paid x402 API traffic settles in USDC (and stablecoins). **In production, a fixed share of each settled payment is swapped into $SYRA** (via Jupiter) and **held in the Syra treasury wallet for future user airdrops**—tokens are **not** burned as part of this program.
 
-### Burn Mechanisms
+| Mechanism              | Allocation / behavior                         | Frequency        |
+| ---------------------- | ----------------------------------------------- | ---------------- |
+| **USDC x402 payments** | ~80% of each settled fee → SYRA buyback (Jupiter), kept for airdrops | Each settled paid call (production) |
+| **Other burns / sinks** | e.g. optional governance fees, unclaimed staking (roadmap) | If / when enabled |
 
-| Source                        | Burn Rate                        | Frequency        |
-| ----------------------------- | -------------------------------- | ---------------- |
-| **USDC x402 Fee**             | 80% of x402 fee → buy & burn     | Each transaction |
-| **USDC Revenue Buyback**      | 50% of x402 revenue → buy & burn | Monthly          |
-| **Staking Rewards Unclaimed** | Unclaimed rewards burned         | Quarterly        |
-| **Governance Proposals**      | 1,000 $SYRA proposal fee burned  | Per proposal     |
+**Illustrative buyback volume (directional):**
 
-**Example Burn Calculation (Q4 2026):**
+- Monthly x402 volume: $1,000,000 (USDC/stablecoins)
+- If ~80% of fees route to buyback: ~$800,000/month equivalent directed into SYRA purchases **accumulating for airdrops**, not removed from circulation by this program.
 
-- Monthly x402 volume: $1,000,000 (all in USDC/stablecoins)
-- 80% x402 volume buyback & burn: $800,000 worth of $SYRA purchased & burned
-- 50% x402 revenue buyback & burn: $100,000 worth of $SYRA purchased & burned
-- Governance fees: ~$10,000 worth of $SYRA burned
-- **Total monthly burn: ~$910,000 worth of $SYRA**
+Schedules and payout rules for airdrops are communicated separately (governance / announcements).
 
-At this rate, **30-50% of total supply could burn over 3 years.**
+### Supply & circulation
 
-### Supply Dynamics
-
-**Current Supply:** 1,000,000,000 tokens
-**Target Supply (2027):** 500,000,000-700,000,000 tokens
-
-As supply decreases and demand increases (more agents using APIs), price pressure increases.
+**Total supply:** 1,000,000,000 tokens (fixed at mint).  
+Historic burns (e.g. post-launch treasury burns) remain visible on-chain; **ongoing x402 buybacks prioritize distributing value back to users via airdrops** rather than shrinking supply through this mechanism.
 
 ## Revenue Model
 
@@ -121,15 +112,17 @@ Platform sustainability through multiple x402 revenue streams:
 
 ### Revenue Allocation
 
-- **50%** → $SYRA buyback & burn
-- **30%** → Operations & development
-- **10%** → Staker revenue sharing
-- **10%** → Ecosystem grants & partnerships
+High-level intent (subject to governance and runway):
+
+- **Significant share** → $SYRA buyback reserved for **community airdrops** (tied to x402 usage)
+- **Operations & development** → engineering, infra, partnerships
+- **Staker revenue sharing** → rewards for long-term lockers
+- **Ecosystem grants & partnerships** → integrations and builders
 
 > **💡 Target Metrics (End of 2026)**  
 > - **1,000+ agents** using APIs  
 > - **$2M/month** x402 transaction volume  
-> - **$1M/month** in $SYRA burns  
+> - **Growing SYRA buyback pool** funded by fees, distributed via airdrops  
 > - **80% gross margins** (API business)
 
 ## Long-Term Value Accrual
@@ -138,7 +131,7 @@ $SYRA captures value as the AI agent economy grows:
 
 ### Network Effects
 
-1. **More agents** → More API calls → More burns → Lower supply
+1. **More agents** → More API calls → Larger buyback pool → More capacity for community airdrops
 2. **Better data** → Better models → More agents (flywheel)
 3. **Higher staking** → Less circulating supply → Price pressure
 
@@ -146,7 +139,7 @@ $SYRA captures value as the AI agent economy grows:
 
 - Proprietary training data from 1,000+ agents
 - Cross-agent learning creates better intelligence over time
-- First-mover advantage in x402 trading intelligence
+- First-mover advantage in x402-native agentic trading on Solana
 - High switching costs once agents integrate our APIs
 
 ### Exit Scenarios (2027+)
@@ -155,7 +148,7 @@ $SYRA captures value as the AI agent economy grows:
 - **Strategic merge** with major AI agent framework
 - **Independent unicorn** with $50M+ annual revenue
 
-In any scenario, $SYRA holders benefit from buybacks, revenue sharing, or acquisition premium.
+In any scenario, $SYRA holders and active users can benefit from buybacks routed to airdrops, revenue sharing, or acquisition premium.
 
 ---
 
@@ -169,7 +162,7 @@ In any scenario, $SYRA holders benefit from buybacks, revenue sharing, or acquis
 | **CAC**           | $500-2,000 per user         | $0 (agents discover via x402scan)      |
 | **Margins**       | 40-60%                      | 80-90%                                 |
 | **Scalability**   | Linear (need support team)  | Exponential (APIs scale infinitely)    |
-| **Token Utility** | Discounts & governance      | Staking discounts + burns from revenue |
+| **Token Utility** | Discounts & governance      | Staking discounts + x402 buybacks for airdrops |
 | **Moat**          | Brand & features            | Proprietary data network               |
 | **Exit Multiple** | 3-5x revenue                | 10-20x revenue                         |
 

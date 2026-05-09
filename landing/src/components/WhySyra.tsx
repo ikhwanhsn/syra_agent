@@ -16,27 +16,27 @@ import {
 const valueProps = [
   {
     icon: Shield,
-    title: "Bank-Grade Security",
+    title: "Security-first agents",
     description:
-      "Multi-layer encryption, cold storage integration, and audited smart contracts",
+      "Designed for wallets that pay and trade: clear signing boundaries, encryption in transit, and conservative defaults when capital moves",
   },
   {
     icon: Target,
-    title: "High Accuracy",
+    title: "Decision-grade signals",
     description:
-      "Our AI models deliver strong accuracy in sentiment prediction and market analysis",
+      "Sentiment, flow, and risk models aimed at the next trade—not generic summaries",
   },
   {
     icon: Zap,
-    title: "Fast Execution",
+    title: "Solana-speed execution",
     description:
-      "Efficient execution on Solana DEXs with slippage protection via x402",
+      "Routing and protection tuned for Solana DEXs, with x402 when your agent buys external compute or data",
   },
   {
     icon: Eye,
     title: "Full Transparency",
     description:
-      "Open-source algorithms and verifiable on-chain execution logs",
+      "Traceable tool use and on-chain actions so you can audit what the agent did and why",
   },
   {
     icon: Lock,
@@ -133,7 +133,7 @@ export const WhySyra = () => {
             transition={{ duration: 0.5 }}
             className="section-eyebrow-gradient mb-4 inline-block text-sm font-medium tracking-wider uppercase"
           >
-            Why Choose Syra
+            Why this agent
           </motion.span>
 
           <motion.h2
@@ -142,7 +142,7 @@ export const WhySyra = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl"
           >
-            Built for <span className="neon-text">Serious Traders</span>
+            Built for <span className="neon-text">capital at risk</span>
           </motion.h2>
         </div>
 

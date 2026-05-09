@@ -2,7 +2,7 @@
 
 **Live product:** The gateway at [api.syraa.fun](https://api.syraa.fun) and the [API Reference](https://docs.syraa.fun/docs/api-reference) describe the current x402 surface (`GET /.well-known/x402`, OpenAPI catalogs). The quarters below are **directional** plans.
 
-Our 2025–2027 Syra Roadmap — building AI trading intelligence infrastructure with x402 payments:
+Our 2025–2027 Syra Roadmap — shipping the smart intelligence agent for traders with x402 payments:
 
 ## Q4 2025
 
@@ -20,7 +20,7 @@ Our 2025–2027 Syra Roadmap — building AI trading intelligence infrastructure
 - Exit Timing Signals API
 - Liquidation Prediction API
 - $SYRA staking for API discounts (10K tokens = 25% off)
-- Token buyback & burn program (50% of USDC revenue)
+- x402 revenue → $SYRA buyback held for community airdrops
 
 ## Q2 2026
 
@@ -51,6 +51,6 @@ Our 2025–2027 Syra Roadmap — building AI trading intelligence infrastructure
 ---
 
 > **ℹ️ Token Utility**  
-> Pay for APIs with USDC via x402. 50% of USDC revenue used for buyback & burn.  
+> Pay for APIs with USDC via x402. A share of fees buys $SYRA for treasury-held community airdrops.  
 >  
 > This roadmap is subject to change based on market conditions, x402 ecosystem evolution, and community feedback. Stay tuned for updates!
