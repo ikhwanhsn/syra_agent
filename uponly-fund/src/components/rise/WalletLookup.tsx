@@ -102,9 +102,6 @@ export function WalletLookup() {
   useEffect(() => {
     setPage(1);
   }, [submitted, rowsPerPage]);
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPositionPages));
-  }, [totalPositionPages]);
 
   const summary = useRisePortfolioSummary(submitted);
   const positions = useRisePortfolioPositions(submitted, page, rowsPerPage);
@@ -112,6 +109,11 @@ export function WalletLookup() {
     const total = positions.data?.total ?? 0;
     return Math.max(1, Math.ceil(total / rowsPerPage));
   }, [positions.data?.total, rowsPerPage]);
+
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPositionPages));
+  }, [totalPositionPages]);
+
   const pageItems = useMemo(() => buildPaginationItems(page, totalPositionPages), [page, totalPositionPages]);
 
   const onSubmit = (e: FormEvent) => {

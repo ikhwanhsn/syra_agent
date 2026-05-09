@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { Activity } from "lucide-react";
 import { FUND_STATS } from "@/data/fundStats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRiseDashboard, useRiseMarketsAll } from "@/lib/RiseDashboardContext";
-import { formatInt, formatUsd } from "@/lib/marketDisplayFormat";
+import { formatInt, formatUsd, formatPctSigned } from "@/lib/marketDisplayFormat";
 import { computeAlphaScore } from "./IntelligenceEngine";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
+import { cn } from "@/lib/utils";
 
 function asOfLabel(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -19,35 +21,121 @@ function asOfLabel(iso: string | null | undefined): string {
   }).format(date);
 }
 
+function GrowthVsYesterday({
+  pct,
+  vsLabel,
+  noBaselineHint,
+}: {
+  pct: number | null;
+  vsLabel: string;
+  noBaselineHint: string;
+}) {
+  if (pct === null) {
+    return (
+      <p className="mt-1.5 text-[0.65rem] tabular-nums text-muted-foreground/85" title={noBaselineHint}>
+        <span aria-hidden>—</span>
+        <span className="sr-only">{noBaselineHint}</span>
+      </p>
+    );
+  }
+  const up = pct > 0;
+  const down = pct < 0;
+  const flat = pct === 0;
+  return (
+    <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+      <span
+        className={cn(
+          "text-[0.7rem] font-semibold tabular-nums tracking-tight",
+          flat && "text-muted-foreground",
+          up && "text-success",
+          down && "text-destructive",
+        )}
+      >
+        {formatPctSigned(pct)}
+      </span>
+      <span className="text-[0.58rem] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">{vsLabel}</span>
+    </p>
+  );
+}
+
 export function TerminalKpiStrip() {
   const { aggregate } = useRiseDashboard();
   const allMarkets = useRiseMarketsAll(150);
   const { language } = useLanguage();
   const copy = DASHBOARD_COPY[language];
   const rows = allMarkets.data ?? [];
-  const alphaPicks = rows.filter((row) => computeAlphaScore(row).score >= 70).length;
   const marketsListPending = allMarkets.isPending && !allMarkets.data;
 
-  const items = [
-    { label: copy.terminal.markets, value: formatInt(aggregate.data?.ecosystem.marketCount ?? rows.length ?? 0) },
-    { label: copy.terminal.vol24h, value: formatUsd(aggregate.data?.ecosystem.totalVolume24hUsd ?? null, { compact: true }) },
-    { label: copy.terminal.mcap, value: formatUsd(aggregate.data?.ecosystem.totalMarketCapUsd ?? null, { compact: true }) },
+  const trend = aggregate.data?.terminalKpiTrend ?? null;
+  const growth = trend?.growthPctVsYesterday;
+
+  const clientAlphaPicks = useMemo(
+    () => rows.filter((row) => computeAlphaScore(row).score >= 70).length,
+    [rows],
+  );
+
+  const alphaFromServer = trend?.today?.alphaPicks;
+  const alphaPicks = typeof alphaFromServer === "number" ? alphaFromServer : clientAlphaPicks;
+
+  const marketCount = aggregate.data?.ecosystem.marketCount ?? rows.length ?? 0;
+  const volume24hUsd = aggregate.data?.ecosystem.totalVolume24hUsd ?? null;
+  const marketCapUsd = aggregate.data?.ecosystem.totalMarketCapUsd ?? null;
+
+  const alphaValuePending =
+    typeof alphaFromServer !== "number" && marketsListPending;
+
+  const items: Array<{
+    label: string;
+    value: string | null;
+    growthPct: number | null;
+    showGrowth: boolean;
+  }> = [
+    {
+      label: copy.terminal.markets,
+      value: formatInt(marketCount),
+      growthPct: growth?.marketCount ?? null,
+      showGrowth: true,
+    },
+    {
+      label: copy.terminal.vol24h,
+      value: formatUsd(volume24hUsd, { compact: true }),
+      growthPct: growth?.volume24hUsd ?? null,
+      showGrowth: true,
+    },
+    {
+      label: copy.terminal.mcap,
+      value: formatUsd(marketCapUsd, { compact: true }),
+      growthPct: growth?.marketCapUsd ?? null,
+      showGrowth: true,
+    },
     {
       label: copy.terminal.alphaPicks,
-      value: marketsListPending ? null : formatInt(alphaPicks),
+      value: alphaValuePending ? null : formatInt(alphaPicks),
+      growthPct: growth?.alphaPicks ?? null,
+      showGrowth: true,
     },
-    { label: copy.terminal.agentsOnline, value: formatInt(FUND_STATS.agentsOnline) },
-    { label: copy.terminal.feed, value: aggregate.data?.degraded ? copy.terminal.feedPartial : copy.terminal.feedHealthy },
+    {
+      label: copy.terminal.agentsOnline,
+      value: formatInt(FUND_STATS.agentsOnline),
+      growthPct: null,
+      showGrowth: false,
+    },
+    {
+      label: copy.terminal.feed,
+      value: aggregate.data?.degraded ? copy.terminal.feedPartial : copy.terminal.feedHealthy,
+      growthPct: null,
+      showGrowth: false,
+    },
   ];
+
+  const showBaselineHint = Boolean(aggregate.data && trend?.yesterday == null && trend != null);
+  const showTrendUnavailable = Boolean(aggregate.data && trend == null);
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/90 via-card/50 to-muted/10 p-4 shadow-[0_20px_48px_-28px_hsl(0_0%_0%/0.45),inset_0_1px_0_hsl(0_0%_100%/0.06)] backdrop-blur-xl sm:p-5 dark:shadow-[0_24px_56px_-28px_hsl(0_0%_0%/0.65),inset_0_1px_0_hsl(0_0%_100%/0.04)]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/30 pb-3">
         <p className="inline-flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          <span
-            className="relative flex h-2 w-2"
-            aria-hidden
-          >
+          <span className="relative flex h-2 w-2" aria-hidden>
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/40 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-success shadow-[0_0_10px_hsl(var(--success)/0.55)]" />
           </span>
@@ -74,9 +162,26 @@ export function TerminalKpiStrip() {
                 item.value
               )}
             </p>
+            {item.showGrowth ? (
+              <GrowthVsYesterday
+                pct={item.growthPct}
+                vsLabel={copy.terminal.vsYesterday}
+                noBaselineHint={copy.terminal.deltaNoBaseline}
+              />
+            ) : null}
           </div>
         ))}
       </div>
+      {showTrendUnavailable ? (
+        <p className="mt-3 border-t border-border/25 pt-3 text-[0.65rem] leading-relaxed text-muted-foreground">
+          {copy.terminal.terminalTrendUnavailable}
+        </p>
+      ) : null}
+      {showBaselineHint ? (
+        <p className="mt-3 border-t border-border/25 pt-3 text-[0.65rem] leading-relaxed text-muted-foreground">
+          {copy.terminal.deltaNoBaseline}
+        </p>
+      ) : null}
     </section>
   );
 }

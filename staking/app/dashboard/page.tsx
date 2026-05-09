@@ -51,16 +51,16 @@ export default function StakersDashboardPage() {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground"
+      className="min-h-[100dvh] min-w-0 overflow-x-clip bg-background text-foreground"
       data-theme={theme}
     >
       <StakingPageHeader />
-      <main className="mx-auto max-w-6xl space-y-8 px-4 py-10 pb-16">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+      <main className="mx-auto min-w-0 max-w-6xl space-y-6 px-3 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:space-y-8 sm:px-6 sm:py-10 sm:pb-16">
+        <header className="min-w-0 space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
             Stakers
           </h1>
-          <p className="max-w-2xl text-muted-foreground leading-relaxed">
+          <p className="max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
             Wallets with an active Streamflow lock for {symbol}. Operator only — connect the
             approved wallet.
           </p>
@@ -76,19 +76,19 @@ export default function StakersDashboardPage() {
             role="alert"
           >
             Access denied. This page is restricted to{" "}
-            <span className="font-mono text-xs">{ADMIN_DASHBOARD_WALLET}</span>.
+            <span className="break-all font-mono text-xs">{ADMIN_DASHBOARD_WALLET}</span>.
           </div>
         ) : (
           <>
             {loadError ? (
-              <p className="rounded-xl border border-warning/25 bg-warning/10 px-4 py-3 text-sm text-foreground">
+              <p className="break-words rounded-xl border border-warning/25 bg-warning/10 px-4 py-3 text-sm text-foreground">
                 {loadError}
               </p>
             ) : null}
 
             {operator ? (
               <>
-                <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                   <StatsCard
                     title="Wallets staking"
                     value={String(operator.uniqueWallets)}
@@ -106,7 +106,7 @@ export default function StakersDashboardPage() {
                   />
                 </section>
 
-                <section className="rounded-2xl border border-border/60 bg-card/25 p-6 shadow-sm">
+                <section className="rounded-xl border border-border/60 bg-card/25 p-4 shadow-sm sm:rounded-2xl sm:p-6">
                   <h2 className="mb-4 text-base font-semibold tracking-tight">
                     User list
                     <span className="ml-2 font-normal text-muted-foreground">
@@ -118,55 +118,98 @@ export default function StakersDashboardPage() {
                       No open locks in the registry for this mint yet.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto rounded-xl border border-border">
-                      <table className="w-full min-w-[720px] text-left text-sm">
-                        <thead className="border-b border-border bg-muted/40">
-                          <tr>
-                            <th className="px-4 py-3 font-medium">Wallet</th>
-                            <th className="px-4 py-3 font-medium">Open locks</th>
-                            <th className="px-4 py-3 font-medium">Total locked (raw)</th>
-                            <th className="px-4 py-3 font-medium">Explorer</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {operator.stakers.map((row) => (
-                            <tr
-                              key={row.wallet}
-                              className="border-b border-border/70 last:border-0"
+                    <>
+                      <ul className="min-w-0 space-y-3 md:hidden">
+                        {operator.stakers.map((row) => (
+                          <li
+                            key={row.wallet}
+                            className="rounded-xl border border-border/70 bg-background/60 p-4"
+                          >
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Wallet
+                            </p>
+                            <p className="mt-1 break-all font-mono text-xs leading-relaxed text-foreground">
+                              {row.wallet}
+                            </p>
+                            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <dt className="text-xs text-muted-foreground">
+                                  Open locks
+                                </dt>
+                                <dd className="font-semibold tabular-nums text-foreground">
+                                  {row.openLockCount}
+                                </dd>
+                              </div>
+                              <div className="min-w-0">
+                                <dt className="text-xs text-muted-foreground">
+                                  Total locked (raw)
+                                </dt>
+                                <dd className="break-all font-mono text-xs font-medium text-foreground">
+                                  {row.totalAmountRaw}
+                                </dd>
+                              </div>
+                            </dl>
+                            <a
+                              href={walletExplorerUrl(row.wallet, isDevnet)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-semibold text-secondary-foreground transition hover:bg-secondary/80"
                             >
-                              <td className="max-w-[280px] px-4 py-3">
-                                <span className="break-all font-mono text-xs leading-relaxed">
-                                  {row.wallet}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 tabular-nums">
-                                {row.openLockCount}
-                              </td>
-                              <td className="px-4 py-3 font-mono text-xs tabular-nums">
-                                {row.totalAmountRaw}
-                              </td>
-                              <td className="px-4 py-3">
-                                <a
-                                  href={walletExplorerUrl(row.wallet, isDevnet)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary underline underline-offset-2"
-                                >
-                                  View
-                                </a>
-                              </td>
+                              View on Explorer
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="hidden min-w-0 overflow-x-auto rounded-xl border border-border md:block">
+                        <table className="w-full min-w-[640px] text-left text-sm lg:min-w-[720px]">
+                          <thead className="border-b border-border bg-muted/40">
+                            <tr>
+                              <th className="px-4 py-3 font-medium">Wallet</th>
+                              <th className="px-4 py-3 font-medium">Open locks</th>
+                              <th className="px-4 py-3 font-medium">Total locked (raw)</th>
+                              <th className="px-4 py-3 font-medium">Explorer</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {operator.stakers.map((row) => (
+                              <tr
+                                key={row.wallet}
+                                className="border-b border-border/70 last:border-0"
+                              >
+                                <td className="max-w-[min(280px,40vw)] px-4 py-3">
+                                  <span className="break-all font-mono text-xs leading-relaxed">
+                                    {row.wallet}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 tabular-nums">
+                                  {row.openLockCount}
+                                </td>
+                                <td className="px-4 py-3 font-mono text-xs tabular-nums">
+                                  {row.totalAmountRaw}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <a
+                                    href={walletExplorerUrl(row.wallet, isDevnet)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary underline underline-offset-2"
+                                  >
+                                    View
+                                  </a>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </section>
 
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90"
+                  className="min-h-[48px] w-full touch-manipulation rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 sm:w-auto sm:py-2.5"
                 >
                   Refresh
                 </button>

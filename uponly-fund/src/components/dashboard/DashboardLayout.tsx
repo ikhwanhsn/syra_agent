@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
@@ -35,6 +35,7 @@ import { UP_ONLY_FUND } from "@/data/upOnlyFund";
 import { FUND_STATS } from "@/data/fundStats";
 import { buildRiseTradeUrl } from "@/lib/riseDashboardApi";
 import { RISE_UPONLY_MINT } from "@/components/rise/RiseShared";
+import { DashboardOutletSkeleton } from "@/components/dashboard/DashboardOutletSkeleton";
 
 function SidebarContent({
   dictionary,
@@ -342,7 +343,9 @@ export default function DashboardLayout() {
                     </header>
                     <div className="min-h-0 flex-1 overflow-auto overflow-x-hidden">
                       <div className={cn(contentShell, "py-4 sm:py-5 lg:py-6")}>
-                        <Outlet />
+                        <Suspense fallback={<DashboardOutletSkeleton />}>
+                          <Outlet />
+                        </Suspense>
                       </div>
                     </div>
                   </div>
@@ -422,7 +425,9 @@ export default function DashboardLayout() {
                     "py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]",
                   )}
                 >
-                  <Outlet />
+                  <Suspense fallback={<DashboardOutletSkeleton />}>
+                    <Outlet />
+                  </Suspense>
                 </div>
               </div>
             </div>

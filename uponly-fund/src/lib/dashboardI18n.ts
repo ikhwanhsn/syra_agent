@@ -92,6 +92,12 @@ export type DashboardDictionary = {
     feedPartial: string;
     liveRiseTerminal: string;
     asOf: string;
+    /** Shown next to day-over-day % on KPI strip */
+    vsYesterday: string;
+    /** When API has no prior UTC-day snapshot yet (first day or cold DB) */
+    deltaNoBaseline: string;
+    /** Aggregate omitted terminalKpiTrend (e.g. MongoDB unavailable) */
+    terminalTrendUnavailable: string;
     alphaLeaderboard: string;
     topTen: string;
     riskWatchlist: string;
@@ -199,6 +205,18 @@ export type DashboardDictionary = {
     sectionEcosystem: string;
     sectionAbout: string;
     sectionSimilar: string;
+    sectionHolder: string;
+    holderTitle: string;
+    holderDescription: string;
+    holderCirculatingSupply: string;
+    holderYourBalance: string;
+    holderShareOfSupply: string;
+    holderUsdValue: string;
+    holderConnectToSee: string;
+    holderConnectPrompt: string;
+    holderFootnote: string;
+    holderErrorPortfolio: string;
+    holderErrorSupply: string;
     kpiPrice: string;
     kpiFloor: string;
     kpiFloorDelta: string;
@@ -412,6 +430,9 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       feedPartial: "Partial",
       liveRiseTerminal: "Live · Rise terminal",
       asOf: "As of",
+      vsYesterday: "vs prior day",
+      deltaNoBaseline:
+        "Day-over-day % appears after this device records yesterday's snapshot (terminal visits on consecutive days).",
       alphaLeaderboard: "Alpha leaderboard",
       topTen: "Top 10",
       riskWatchlist: "Risk watchlist",
@@ -527,6 +548,19 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       sectionEcosystem: "Ecosystem rank",
       sectionAbout: "On-chain metadata",
       sectionSimilar: "Similar markets",
+      sectionHolder: "Your holdings",
+      holderTitle: "Holder snapshot",
+      holderDescription: "Circulating supply from the live curve quote; your wallet balance from read-only RISE portfolio APIs.",
+      holderCirculatingSupply: "Circulating supply",
+      holderYourBalance: "Your balance",
+      holderShareOfSupply: "Your share of supply",
+      holderUsdValue: "Wallet value (USD)",
+      holderConnectToSee: "Connect wallet",
+      holderConnectPrompt: "Connect your Phantom wallet to see how many tokens you hold and what share of circulating supply that represents.",
+      holderFootnote:
+        "Balances and supply figures come from RISE indexers and quote simulations—they can lag on-chain state. Verify large positions on Solscan.",
+      holderErrorPortfolio: "Could not load portfolio balance.",
+      holderErrorSupply: "Could not load supply from quote.",
       kpiPrice: "Spot price",
       kpiFloor: "Floor price",
       kpiFloorDelta: "Floor delta",
@@ -736,6 +770,11 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       feedPartial: "部分",
       liveRiseTerminal: "实时 · Rise 终端",
       asOf: "更新时间",
+      vsYesterday: "较前 UTC 日",
+      deltaNoBaseline:
+        "跨日涨跌幅将当前数据与 API 存储的上一 UTC 日历日快照对比（需至少两个 UTC 日有成功的聚合请求）。",
+      terminalTrendUnavailable:
+        "趋势块暂不可用（数据库不可达）。上方 KPI 仍为 RISE 实时数据。",
       alphaLeaderboard: "Alpha 排行",
       topTen: "前 10",
       riskWatchlist: "风险观察",
@@ -850,6 +889,19 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       sectionEcosystem: "生态排位",
       sectionAbout: "链上元数据",
       sectionSimilar: "相似市场",
+      sectionHolder: "持仓",
+      holderTitle: "持有人快照",
+      holderDescription: "流通量来自实时曲线报价；钱包余额来自只读 RISE 资产接口。",
+      holderCirculatingSupply: "流通供应量",
+      holderYourBalance: "你的持仓",
+      holderShareOfSupply: "占流通供应比例",
+      holderUsdValue: "持仓估值（USD）",
+      holderConnectToSee: "连接钱包",
+      holderConnectPrompt: "连接 Phantom 钱包后可查看持仓数量及占流通供应的比例。",
+      holderFootnote:
+        "余额与供应量来自 RISE 索引与报价模拟，可能与链上略有延迟；大额请以 Solscan 核对。",
+      holderErrorPortfolio: "无法加载资产余额。",
+      holderErrorSupply: "无法从报价读取供应量。",
       kpiPrice: "现价",
       kpiFloor: "底线价",
       kpiFloorDelta: "底线变化",

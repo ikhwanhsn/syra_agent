@@ -13,12 +13,7 @@ const RiseBubbleMap = lazy(() =>
 );
 
 function BubbleMapFallback() {
-  return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-12 w-full max-w-md rounded-xl" />
-      <Skeleton className="aspect-[4/5] w-full rounded-2xl sm:aspect-video" />
-    </div>
-  );
+  return <Skeleton className="aspect-[4/5] w-full rounded-2xl sm:aspect-video" aria-hidden />;
 }
 
 export default function TrendingPage() {

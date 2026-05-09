@@ -186,6 +186,8 @@ const CORS_OPTIONS_X402 = {
     "x-payment-escrow-vault",
     "X-Payer-Address",
     "x-payer-address",
+    "X-Admin-Wallet",
+    "x-admin-wallet",
   ],
 };
 const CORS_OPTIONS_REGULAR = {
@@ -234,6 +236,8 @@ const CORS_OPTIONS_REGULAR = {
     "x-payment-escrow-vault",
     "X-Payer-Address",
     "x-payer-address",
+    "X-Admin-Wallet",
+    "x-admin-wallet",
   ],
 };
 

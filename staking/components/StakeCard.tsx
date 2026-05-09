@@ -99,7 +99,7 @@ export function StakeCard({
   };
 
   return (
-    <div className="card-surface p-6">
+    <div className="card-surface min-w-0 p-4 sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h3 className="text-lg font-semibold text-foreground">
           {isStake ? "Stake" : "Unstake"} {tokenSymbol}
@@ -118,7 +118,7 @@ export function StakeCard({
           <label className="mb-2 block text-sm font-medium text-muted-foreground">
             {isStake ? "Lock period" : "Unstake from"}
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {periodOptions.map((opt) => (
               <button
                 key={opt.value}

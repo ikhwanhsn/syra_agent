@@ -68,24 +68,26 @@ export default function StakingDetailsPage() {
   } = useStaking();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] min-w-0 overflow-x-clip bg-background">
       <header className="navbar border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+        <div className="mx-auto flex min-h-[3.5rem] min-w-0 max-w-6xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-4 sm:py-0">
           <Link
             href="/"
-            className="flex items-center gap-3 text-foreground no-underline hover:no-underline hover:text-foreground"
+            className="flex min-w-0 max-w-[calc(100%-8rem)] items-center gap-2 text-foreground no-underline hover:no-underline hover:text-foreground sm:max-w-none sm:gap-3"
           >
             <NavbarLogo />
-            <span className="text-xl font-semibold">Syra Staking</span>
+            <span className="truncate text-base font-semibold sm:text-xl">
+              Syra Staking
+            </span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
             <WalletButton />
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto min-w-0 max-w-6xl px-3 py-8 sm:px-6 sm:py-10">
         <div className="mb-6 flex items-center gap-4">
           <Link
             href="/"
@@ -116,11 +118,11 @@ export default function StakingDetailsPage() {
           </div>
         ) : (
           <div className="space-y-8">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-foreground sm:text-2xl">
                 Staking details
               </h1>
-              <p className="mt-1 text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                 Your staking positions and lock information per period.
               </p>
             </div>

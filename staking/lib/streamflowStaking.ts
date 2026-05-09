@@ -9,13 +9,11 @@ import {
   StreamDirection,
   StreamType,
   type ICreateLinearStreamData,
-  type IWithdrawData,
   type Stream,
 } from "@streamflow/stream";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 
 type StreamflowCreateExt = Parameters<SolanaStreamClient["create"]>[1];
-type StreamflowWithdrawExt = Parameters<SolanaStreamClient["withdraw"]>[1];
 
 export function createStreamflowClient(connection: Connection): SolanaStreamClient {
   const cluster = STREAMFLOW_CONFIG.isDevnet ? ICluster.Devnet : ICluster.Mainnet;
@@ -180,26 +178,52 @@ export async function fetchUserTokenLocks(
   }
 }
 
-export async function withdrawFromLock(
+/**
+ * Same as fetchUserTokenLocks but includes closed streams (for history / merged state).
+ */
+export async function fetchUserTokenLocksAll(
   connection: Connection,
-  walletAdapter: SignerWalletAdapter,
-  streamId: string,
-  amountRaw?: bigint
-): Promise<string> {
-  const invoker = walletAdapter.publicKey;
-  if (!invoker) throw new Error("Wallet not connected");
-
+  wallet: PublicKey
+): Promise<UserLockRow[]> {
+  const decimals = STREAMFLOW_CONFIG.tokenDecimals;
+  const mintStr = STREAMFLOW_CONFIG.tokenMint.toBase58();
+  const walletStr = wallet.toBase58();
   const client = createStreamflowClient(connection);
-  const data: IWithdrawData = {
-    id: streamId,
-    amount: amountRaw !== undefined ? new BN(amountRaw.toString()) : undefined,
-  };
 
-  const { txId } = await client.withdraw(data, {
-    invoker: walletAdapter as unknown as StreamflowWithdrawExt["invoker"],
-  });
+  try {
+    const allStreams = await client.get({
+      address: walletStr,
+      type: StreamType.All,
+      direction: StreamDirection.All,
+    });
 
-  return txId;
+    const rows: UserLockRow[] = [];
+    for (const [id, stream] of allStreams) {
+      if (stream.mint !== mintStr) continue;
+      rows.push(mapContractToRow(id, stream, decimals));
+    }
+
+    return rows.sort((a, b) => a.unlocksAtUnix - b.unlocksAtUnix);
+  } catch (err) {
+    console.warn("[Streamflow] client.get() (all) failed, trying searchStreams:", err);
+  }
+
+  try {
+    const results = await client.searchStreams({
+      mint: mintStr,
+      recipient: walletStr,
+    });
+
+    const rows: UserLockRow[] = [];
+    for (const { publicKey, account: stream } of results) {
+      rows.push(mapContractToRow(publicKey.toBase58(), stream, decimals));
+    }
+
+    return rows.sort((a, b) => a.unlocksAtUnix - b.unlocksAtUnix);
+  } catch (err) {
+    console.warn("[Streamflow] searchStreams (all) fallback also failed:", err);
+    return [];
+  }
 }
 
 export { getNumberFromBN };

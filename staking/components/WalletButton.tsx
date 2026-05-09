@@ -93,7 +93,7 @@ export function WalletButton() {
 
         {open && (
           <div
-            className="wallet-dropdown absolute right-0 top-full z-50 mt-1.5 w-56 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-card shadow-xl"
+            className="wallet-dropdown absolute right-0 top-full z-50 mt-1.5 w-[min(14rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-card shadow-xl"
             role="menu"
           >
             {IS_DEVNET && (

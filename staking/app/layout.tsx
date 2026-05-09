@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./Providers";
@@ -10,6 +10,13 @@ const inter = Inter({
 });
 
 const ogImage = "https://www.syraa.fun/images/og-banner.png";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "Syra Staking | $SYRA",
@@ -57,7 +64,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} min-h-[100dvh] min-w-0 font-sans antialiased`}
+      >
         <Providers>
           {children}
           <ToasterThemed />

@@ -54,12 +54,35 @@ export type RiseEcosystemTotals = {
   medianCreatorFeePct: number | null;
 };
 
+/** Terminal KPI strip snapshot + DoD growth (see GET /uponly-rise-markets/aggregate). */
+export type RiseTerminalKpiSnapshot = {
+  marketCount: number;
+  volume24hUsd: number;
+  marketCapUsd: number;
+  alphaPicks: number;
+};
+
+export type RiseTerminalKpiTrend = {
+  dayUtc: string;
+  baselineDayUtc: string | null;
+  today: RiseTerminalKpiSnapshot;
+  yesterday: RiseTerminalKpiSnapshot | null;
+  growthPctVsYesterday: {
+    marketCount: number | null;
+    volume24hUsd: number | null;
+    marketCapUsd: number | null;
+    alphaPicks: number | null;
+  };
+};
+
 export type RiseAggregateResponse = {
   success: true;
   updatedAt: string;
   degraded: boolean;
   uponly: RiseMarketRow | null;
   ecosystem: RiseEcosystemTotals;
+  /** Persisted in MongoDB; null if DB unavailable or trend build failed; may be absent on older API caches. */
+  terminalKpiTrend?: RiseTerminalKpiTrend | null;
   topVolume24h: RiseMarketRow[];
   topGainers24h: RiseMarketRow[];
   topLosers24h: RiseMarketRow[];

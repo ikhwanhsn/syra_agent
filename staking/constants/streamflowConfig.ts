@@ -19,15 +19,7 @@ export const STREAMFLOW_CONFIG = {
   tokenSymbol: CONFIG.stakingTokenSymbol,
   tokenDecimals: CONFIG.stakingDecimals,
 
-  /**
-   * Preset lock durations (seconds). Shown in the Streamflow UI.
-   * 30d, 90d, 365d
-   */
-  lockPresets: [
-    { label: "30 days", seconds: 30 * 24 * 60 * 60 },
-    { label: "90 days", seconds: 90 * 24 * 60 * 60 },
-    { label: "1 year", seconds: 365 * 24 * 60 * 60 },
-  ] as const,
+  /** Fixed lock: wall-clock seconds from creation until full unlock (365 days). */
+  lockDurationSeconds: 365 * 24 * 60 * 60,
+  lockDurationLabel: "1 year",
 } as const;
-
-export type StreamflowLockPreset = (typeof STREAMFLOW_CONFIG.lockPresets)[number];

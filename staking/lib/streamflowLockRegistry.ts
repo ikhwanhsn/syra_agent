@@ -42,17 +42,19 @@ async function parseJsonSafe(res: Response): Promise<unknown> {
 
 export async function fetchLocksFromRegistry(
   wallet: PublicKey,
-  mint: PublicKey
+  mint: PublicKey,
+  options?: { includeClosed?: boolean }
 ): Promise<StreamflowLockRegistryItem[]> {
   const baseUrl = getApiBaseUrl();
   const walletStr = wallet.toBase58();
   const mintStr = mint.toBase58();
   const network: "mainnet" | "devnet" = STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet";
+  const includeClosed = options?.includeClosed === true;
   const qs = new URLSearchParams({
     wallet: walletStr,
     mint: mintStr,
     network,
-    includeClosed: "false",
+    includeClosed: includeClosed ? "true" : "false",
     limit: "500",
   });
 

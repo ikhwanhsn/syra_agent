@@ -8,8 +8,7 @@ import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { formatUnits, parseUnits } from "@/lib/format";
 import {
   createTokenLockStake,
-  fetchUserTokenLocks,
-  withdrawFromLock,
+  fetchUserTokenLocksAll,
   type UserLockRow,
 } from "@/lib/streamflowStaking";
 import {
@@ -21,6 +20,21 @@ import {
 
 function toRegistryNetwork(): "mainnet" | "devnet" {
   return STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet";
+}
+
+function mergeRegistryAndChain(
+  registry: UserLockRow[],
+  chain: UserLockRow[]
+): UserLockRow[] {
+  const byId = new Map<string, UserLockRow>();
+  for (const r of registry) {
+    byId.set(r.id, r);
+  }
+  for (const r of chain) {
+    const prev = byId.get(r.id);
+    byId.set(r.id, prev ? { ...prev, ...r, closed: r.closed } : r);
+  }
+  return [...byId.values()];
 }
 
 function mapRegistryItemToRow(item: StreamflowLockRegistryItem): UserLockRow {
@@ -41,12 +55,14 @@ function mapRegistryItemToRow(item: StreamflowLockRegistryItem): UserLockRow {
 }
 
 export interface StreamflowStakingState {
+  /** Open Streamflow locks for this wallet + mint. */
   locks: UserLockRow[];
+  /** Completed / closed locks (staking history). */
+  historyLocks: UserLockRow[];
   walletBalanceRaw: bigint;
   walletBalanceFormatted: string;
   refetch: () => Promise<void>;
   lockTokens: (amount: string, lockDurationSeconds: number) => Promise<string>;
-  withdrawUnlocked: (streamId: string) => Promise<string>;
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
@@ -56,6 +72,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
   const { connection } = useConnection();
   const { publicKey, wallet, connected } = useWallet();
   const [locks, setLocks] = useState<UserLockRow[]>([]);
+  const [historyLocks, setHistoryLocks] = useState<UserLockRow[]>([]);
   const [walletBalanceRaw, setWalletBalanceRaw] = useState<bigint>(BigInt(0));
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -87,24 +104,44 @@ export function useStreamflowStaking(): StreamflowStakingState {
   const fetchLocks = useCallback(async () => {
     if (!publicKey) {
       setLocks([]);
+      setHistoryLocks([]);
       return;
     }
 
+    let registryRows: UserLockRow[] = [];
     try {
-      const registryItems = await fetchLocksFromRegistry(publicKey, mint);
-      if (registryItems.length > 0) {
-        setLocks(registryItems.map(mapRegistryItemToRow));
-        return;
-      }
+      const registryItems = await fetchLocksFromRegistry(publicKey, mint, {
+        includeClosed: true,
+      });
+      registryRows = registryItems.map(mapRegistryItemToRow);
     } catch {
-      // fallback to chain
+      registryRows = [];
     }
 
+    let chainRows: UserLockRow[] = [];
     try {
-      const lockRows = await fetchUserTokenLocks(connection, publicKey);
-      setLocks(lockRows);
+      chainRows = await fetchUserTokenLocksAll(connection, publicKey);
+    } catch {
+      chainRows = [];
+    }
+
+    const merged = mergeRegistryAndChain(registryRows, chainRows);
+    const nowUnix = Math.floor(Date.now() / 1000);
+    /** Open only while lock is still active (unlock time not reached); Streamflow may lag updating `closed`. */
+    const open = merged
+      .filter((r) => !r.closed && r.unlocksAtUnix > nowUnix)
+      .sort((a, b) => a.unlocksAtUnix - b.unlocksAtUnix);
+    /** History: explicitly closed, or unlock date has passed (e.g. yesterday). */
+    const closed = merged
+      .filter((r) => r.closed || r.unlocksAtUnix <= nowUnix)
+      .sort((a, b) => b.unlocksAtUnix - a.unlocksAtUnix);
+
+    setLocks(open);
+    setHistoryLocks(closed);
+
+    if (chainRows.length > 0) {
       const network = toRegistryNetwork();
-      const items: StreamflowLockRegistryItem[] = lockRows.map((row) => ({
+      const items: StreamflowLockRegistryItem[] = chainRows.map((row) => ({
         streamId: row.id,
         txId: row.id,
         wallet: publicKey.toBase58(),
@@ -127,8 +164,6 @@ export function useStreamflowStaking(): StreamflowStakingState {
         metadata: null,
       }));
       await bulkUpsertLocksToRegistry(items).catch(() => undefined);
-    } catch {
-      setLocks([]);
     }
   }, [connection, publicKey, mint, decimals]);
 
@@ -136,6 +171,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
     if (!publicKey) {
       setWalletBalanceRaw(BigInt(0));
       setLocks([]);
+      setHistoryLocks([]);
       setLoading(false);
       setError(null);
       return;
@@ -230,37 +266,13 @@ export function useStreamflowStaking(): StreamflowStakingState {
     [connected, wallet?.adapter, decimals, walletBalanceRaw, connection, refetchAll, publicKey, mint]
   );
 
-  const withdrawUnlocked = useCallback(
-    async (streamId: string): Promise<string> => {
-      if (!connected || !wallet?.adapter) {
-        throw new Error("Connect your wallet first");
-      }
-      const adapter = wallet.adapter as SignerWalletAdapter;
-      setActionLoading(true);
-      setError(null);
-      try {
-        const txId = await withdrawFromLock(connection, adapter, streamId);
-        await new Promise((r) => setTimeout(r, 2000));
-        await refetchAll();
-        return txId;
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Withdraw failed";
-        setError(msg);
-        throw e instanceof Error ? e : new Error(msg);
-      } finally {
-        setActionLoading(false);
-      }
-    },
-    [connected, wallet?.adapter, connection, refetchAll]
-  );
-
   return {
     locks,
+    historyLocks,
     walletBalanceRaw,
     walletBalanceFormatted,
     refetch: refetchAll,
     lockTokens,
-    withdrawUnlocked,
     loading,
     actionLoading,
     error,

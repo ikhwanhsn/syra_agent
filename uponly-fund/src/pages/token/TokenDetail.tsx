@@ -7,6 +7,7 @@ import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader"
 import { TokenAboutPanel } from "@/components/token/TokenAboutPanel";
 import { TokenEcosystemRank } from "@/components/token/TokenEcosystemRank";
 import { TokenHeroHeader } from "@/components/token/TokenHeroHeader";
+import { TokenHolderPanel } from "@/components/token/TokenHolderPanel";
 import { TokenKpiGrid } from "@/components/token/TokenKpiGrid";
 import { TokenLiquidityPanel } from "@/components/token/TokenLiquidityPanel";
 import { TokenQuotePanel } from "@/components/token/TokenQuotePanel";
@@ -112,6 +113,7 @@ export default function TokenDetailPage() {
               <TokenQuotePanel market={market} />
             </div>
             <TokenKpiGrid market={market} />
+            <TokenHolderPanel market={market} />
             <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
               <TokenLiquidityPanel market={market} aggregate={aggregate.data} />
               <TokenEcosystemRank market={market} all={universe} />

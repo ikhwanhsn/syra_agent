@@ -11,7 +11,7 @@
  *      POST  /:address/borrow-quote             → borrow capacity quote (read-only)
  *  - createUponlyRiseMarketsRouter()      mounted at /uponly-rise-markets
  *      GET   /                                  → paginated markets list (normalized rows)
- *      GET   /aggregate                         → ecosystem digest + UPONLY spotlight
+ *      GET   /aggregate                         → ecosystem digest + UPONLY spotlight + terminalKpiTrend (Mongo daily KPI DoD)
  *  - createUponlyRisePortfolioRouter()    mounted at /uponly-rise-portfolio
  *      GET   /:wallet/summary                   → portfolio summary
  *      GET   /:wallet/positions                 → portfolio positions
@@ -30,6 +30,8 @@ import {
   riseGetPortfolioSummary,
   riseGetPortfolioPositions,
 } from "../libs/riseClient.js";
+import { countTerminalAlphaPicks } from "../libs/terminalKpiAlphaScore.js";
+import { persistAndBuildTerminalKpiTrend } from "../libs/uponlyTerminalKpiTrend.js";
 
 const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const RISE_UPONLY_MINT = "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise";
@@ -874,6 +876,22 @@ async function aggregateHandler(req, res) {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, TOP_N);
 
+  const alphaPicks = countTerminalAlphaPicks(allRows);
+  const terminalSnapshot = {
+    marketCount: ecosystem.marketCount,
+    volume24hUsd: ecosystem.totalVolume24hUsd,
+    marketCapUsd: ecosystem.totalMarketCapUsd,
+    alphaPicks,
+  };
+  let terminalKpiTrend = null;
+  try {
+    terminalKpiTrend = await persistAndBuildTerminalKpiTrend(terminalSnapshot, {
+      sampledCount: allRows.length,
+    });
+  } catch (e) {
+    console.warn("[uponly-terminal-kpi] trend failed:", e?.message || e);
+  }
+
   res.setHeader("Cache-Control", CACHE_AGGREGATE);
   return res.json({
     success: true,
@@ -881,6 +899,7 @@ async function aggregateHandler(req, res) {
     degraded,
     uponly,
     ecosystem,
+    terminalKpiTrend,
     topVolume24h: sortBy("volume24hUsd", true),
     topGainers24h: sortBy("priceChange24hPct", true),
     topLosers24h: sortBy("priceChange24hPct", false),
