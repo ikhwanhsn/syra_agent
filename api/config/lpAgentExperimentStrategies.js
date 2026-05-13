@@ -16,10 +16,21 @@ export const LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS = Object.freeze({
 });
 
 export const LP_AGENT_EXPERIMENT_DEFAULTS = Object.freeze({
-  depositSol: 0.5,
-  maxRunAgeHours: 24,
+  /** @deprecated use maxPositionSol — kept for one-off scripts */
+  depositSol: 1,
+  maxRunAgeHours: 36,
   winThresholdPct: 1,
   minCandidateCount: 24,
+  /** Simulated bank (SOL) per agent at cohort start */
+  startingBankSol: 10,
+  /** Max notional SOL per LP position (simulation) */
+  maxPositionSol: 1,
+  /** Max concurrent positions per agent (10 × 1 SOL = full deployment) */
+  maxConcurrentPositions: 10,
+  /** Chain + priority fee model: bps of notional per open */
+  openFeeBps: 12,
+  /** Same model on close */
+  closeFeeBps: 12,
 });
 
 export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([

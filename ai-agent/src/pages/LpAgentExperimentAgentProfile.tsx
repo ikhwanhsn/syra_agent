@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, RefreshCw, Waves } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Loader2, RefreshCw, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -20,9 +20,12 @@ import {
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import {
   fetchLpCandidatePools,
+  fetchLpLabState,
   fetchLpRuns,
   fetchLpStats,
   fetchLpStrategies,
+  formatLpUsd,
+  lpRunNetPnlUsdFromSnapshot,
   type LpRunStatus,
 } from "@/lib/lpAgentExperimentApi";
 
@@ -59,9 +62,16 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
     queryKey: ["lp-agent", "strategies"],
     queryFn: fetchLpStrategies,
   });
+  const labStateQ = useQuery({
+    queryKey: ["lp-agent", "lab-state"],
+    queryFn: fetchLpLabState,
+    refetchInterval: 60_000,
+  });
+  const activeCohortId = labStateQ.data?.activeExperimentId ?? null;
   const statsQ = useQuery({
-    queryKey: ["lp-agent", "stats"],
+    queryKey: ["lp-agent", "stats", activeCohortId ?? "none"],
     queryFn: fetchLpStats,
+    enabled: labStateQ.isFetched,
     refetchInterval: 60_000,
   });
   const candidatesQ = useQuery({
@@ -70,17 +80,17 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
     refetchInterval: 60_000,
   });
   const runsQ = useQuery({
-    queryKey: ["lp-agent", "runs", "detail", agentId, runsPage],
+    queryKey: ["lp-agent", "runs", "detail", activeCohortId ?? "none", agentId, runsPage],
     queryFn: () =>
       fetchLpRuns({
         limit: RUNS_PAGE_SIZE,
         offset: (runsPage - 1) * RUNS_PAGE_SIZE,
         strategyId: agentId,
+        experimentId: activeCohortId ?? undefined,
       }),
-    enabled: agentIdValid,
+    enabled: agentIdValid && labStateQ.isFetched && Boolean(activeCohortId),
     refetchInterval: 45_000,
   });
-
   const strategy = useMemo(
     () => (strategiesQ.data || []).find((x) => x.id === agentId) || null,
     [strategiesQ.data, agentId],
@@ -97,10 +107,31 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
         .slice(0, 15),
     [candidatesQ.data, agentId],
   );
+  const agentLab = useMemo(
+    () => (labStateQ.data?.agents || []).find((a) => a.strategyId === agentId) ?? null,
+    [labStateQ.data?.agents, agentId],
+  );
   const runsTotalPages = Math.max(1, Math.ceil((runsQ.data?.total || 0) / RUNS_PAGE_SIZE));
   const safeRunsPage = Math.min(runsPage, runsTotalPages);
-  const loading = strategiesQ.isLoading || statsQ.isLoading || candidatesQ.isLoading || runsQ.isLoading;
-  const failed = strategiesQ.isError || statsQ.isError || candidatesQ.isError || runsQ.isError;
+  const loading =
+    strategiesQ.isLoading ||
+    statsQ.isLoading ||
+    candidatesQ.isLoading ||
+    runsQ.isLoading ||
+    labStateQ.isLoading;
+  const failed =
+    strategiesQ.isError ||
+    statsQ.isError ||
+    candidatesQ.isError ||
+    runsQ.isError ||
+    labStateQ.isError;
+
+  const simCfg = labStateQ.data?.simConfig;
+  const refSolUsd = labStateQ.data?.referenceSolPriceUsd;
+  const roundTripFeeExampleSol =
+    simCfg != null
+      ? (simCfg.maxPositionSol * (simCfg.openFeeBps + simCfg.closeFeeBps)) / 10_000
+      : null;
 
   useEffect(() => {
     if (runsPage > runsTotalPages) {
@@ -133,7 +164,8 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <AgentBackgroundLiveIndicator openPositions={stats?.openPositions || 0} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Detailed strategy profile, screening logic, candidates, and run-level outcomes.
+            Strategy profile, Meteora pool candidates, and simulated LP runs for this agent. Capital, fees, and cohort
+            context are paper-only until you wire real execution.
           </p>
         </div>
         <Button
@@ -145,6 +177,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             statsQ.refetch();
             candidatesQ.refetch();
             runsQ.refetch();
+            labStateQ.refetch();
           }}
         >
           <RefreshCw className="h-4 w-4" />
@@ -173,7 +206,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
 
       {strategy && stats ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Win rate</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
@@ -183,12 +216,21 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Record</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
-                {stats.wins}W / {stats.losses}L
+                {stats.wins}W / {stats.losses}L / {stats.expired}E
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Open</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{stats.openPositions}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Cash (sim)</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{(stats.cashSol ?? 0).toFixed(3)} SOL</p>
+              {refSolUsd != null && refSolUsd > 0 ? (
+                <p className="mt-0.5 text-sm font-medium tabular-nums text-muted-foreground">
+                  {formatLpUsd((stats.cashSol ?? 0) * refSolUsd)}
+                </p>
+              ) : null}
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Avg PnL</p>
@@ -197,10 +239,137 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Avg fees</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Net PnL Σ</p>
+              <p className={cn("mt-1 text-2xl font-semibold tabular-nums", pnlNumberClass(stats.sumNetPnlSol ?? 0))}>
+                {(stats.sumNetPnlSol ?? 0).toFixed(4)} SOL
+              </p>
+              {stats.sumNetPnlUsd != null && Number.isFinite(stats.sumNetPnlUsd) ? (
+                <p className={cn("mt-0.5 text-sm font-medium tabular-nums", pnlNumberClass(stats.sumNetPnlUsd))}>
+                  {formatLpUsd(stats.sumNetPnlUsd)}
+                </p>
+              ) : null}
+              <p className="mt-1 text-[10px] text-muted-foreground">USD at each run&apos;s open snapshot</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Tx fees Σ</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{(stats.sumChainFeesSol ?? 0).toFixed(4)} SOL</p>
+              {stats.sumChainFeesUsd != null && Number.isFinite(stats.sumChainFeesUsd) ? (
+                <p className="mt-0.5 text-sm font-medium tabular-nums text-muted-foreground">
+                  {formatLpUsd(stats.sumChainFeesUsd)}
+                </p>
+              ) : null}
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">LP fees (avg)</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{stats.avgFeesSol.toFixed(4)} SOL</p>
+              {refSolUsd != null && refSolUsd > 0 ? (
+                <p className="mt-0.5 text-sm font-medium tabular-nums text-muted-foreground">
+                  {formatLpUsd(stats.avgFeesSol * refSolUsd)}
+                </p>
+              ) : null}
             </div>
           </div>
+
+          {labStateQ.data?.activeExperimentId ? (
+            <section className="rounded-xl border border-border/70 bg-card/70 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold">Active cohort &amp; paper wallet</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/90">{labStateQ.data.title || "LP experiment"}</span>
+                    {" · "}
+                    <span className="font-mono text-foreground/80">{labStateQ.data.activeExperimentId}</span>
+                    {labStateQ.data.startedAt ? (
+                      <>
+                        {" · "}
+                        Started {new Date(labStateQ.data.startedAt).toLocaleString()}
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link to="/dashboard/lp-experiment" className="text-xs font-medium text-primary hover:underline">
+                    Live lab
+                  </Link>
+                </div>
+              </div>
+
+              {simCfg ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">Bank / slot rules</p>
+                    <p className="mt-1 text-sm font-medium tabular-nums">
+                      {simCfg.startingBankSol} SOL start · max {simCfg.maxConcurrentPositions} ×{" "}
+                      {simCfg.maxPositionSol} SOL
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">Modeled tx fees (bps / leg)</p>
+                    <p className="mt-1 text-sm font-medium tabular-nums">
+                      Open {simCfg.openFeeBps} · Close {simCfg.closeFeeBps}
+                      {roundTripFeeExampleSol != null ? (
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          ≈ {roundTripFeeExampleSol.toFixed(4)} SOL
+                          {refSolUsd != null && refSolUsd > 0
+                            ? ` · ${formatLpUsd(roundTripFeeExampleSol * refSolUsd)}`
+                            : ""}{" "}
+                          round-trip on a full {simCfg.maxPositionSol} SOL slot
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
+                  {agentLab ? (
+                    <>
+                      <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                        <p className="text-xs text-muted-foreground">Deployed / slots</p>
+                        <p className="mt-1 text-sm font-medium tabular-nums">
+                          {agentLab.deployedSol.toFixed(3)} SOL
+                          {refSolUsd != null && refSolUsd > 0 ? (
+                            <span className="block text-xs font-normal text-muted-foreground">
+                              {formatLpUsd(agentLab.deployedSol * refSolUsd)}
+                            </span>
+                          ) : null}
+                          {" · "}
+                          {agentLab.openPositions} / {simCfg.maxConcurrentPositions} open
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                        <p className="text-xs text-muted-foreground">Equity (free + deployed)</p>
+                        <p className="mt-1 text-sm font-medium tabular-nums">
+                          {agentLab.equitySol.toFixed(3)} SOL
+                          {refSolUsd != null && refSolUsd > 0 ? (
+                            <span className="block text-xs font-normal text-muted-foreground">
+                              {formatLpUsd(agentLab.equitySol * refSolUsd)}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Free cash {agentLab.cashSol.toFixed(3)} (matches &quot;Cash (sim)&quot; above)
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground sm:col-span-2">
+                      Ledger row for this agent is syncing…
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <div className="mt-4 flex gap-2 rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-2.5 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
+                <p className="leading-relaxed">
+                  <span className="font-medium text-foreground/90">PnL %</span> blends price drift and LP fee yield on
+                  the pool. <span className="font-medium text-foreground/90">Net PnL (SOL)</span> subtracts modeled
+                  open and close transaction costs from that leg; the USD line uses each position&apos;s SOL/USD at
+                  open. <span className="font-medium text-foreground/90">LP
+                  fees (SOL)</span> is the simulated protocol fee accrual only (not the same as chain fees). New opens
+                  are blocked until free cash covers the next slot plus its open fee, or until a slot frees when a
+                  position resolves.
+                </p>
+              </div>
+            </section>
+          ) : null}
 
           <section className="rounded-xl border border-border/70 bg-card/70 p-4">
             <h2 className="text-sm font-semibold">Strategy configuration</h2>
@@ -289,8 +458,12 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                   <TableRow>
                     <TableHead>Pool</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Size (SOL)</TableHead>
                     <TableHead className="text-right">PnL %</TableHead>
-                    <TableHead className="text-right">Fees (SOL)</TableHead>
+                    <TableHead className="text-right">Net PnL (SOL + USD)</TableHead>
+                    <TableHead className="text-right">LP fees (SOL)</TableHead>
+                    <TableHead className="text-right">Open fee</TableHead>
+                    <TableHead className="text-right">Close fee</TableHead>
                     <TableHead>Resolution</TableHead>
                     <TableHead>Created</TableHead>
                   </TableRow>
@@ -305,17 +478,40 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                       <TableCell>
                         <RunStatusBadge status={run.status} />
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">{(run.depositSol ?? 0).toFixed(3)}</TableCell>
                       <TableCell className={cn("text-right font-medium", pnlNumberClass(run.simPnlPct || 0))}>
                         {(run.simPnlPct || 0).toFixed(2)}%
                       </TableCell>
-                      <TableCell className="text-right">{(run.simFeesEarnedSol || 0).toFixed(4)}</TableCell>
+                      <TableCell className={cn("text-right font-medium tabular-nums", pnlNumberClass(run.simNetPnlSol || 0))}>
+                        <div>{(run.simNetPnlSol ?? 0).toFixed(4)}</div>
+                        {run.depositSol != null &&
+                        run.depositUsd != null &&
+                        Number(run.depositSol) > 0 &&
+                        Number.isFinite(Number(run.depositUsd)) ? (
+                          <div
+                            className={cn(
+                              "text-xs text-muted-foreground",
+                              pnlNumberClass(lpRunNetPnlUsdFromSnapshot(run)),
+                            )}
+                          >
+                            {formatLpUsd(lpRunNetPnlUsdFromSnapshot(run))}
+                          </div>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{(run.simFeesEarnedSol || 0).toFixed(4)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {(run.simOpenFeeSol ?? 0).toFixed(4)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {(run.simCloseFeeSol ?? 0).toFixed(4)}
+                      </TableCell>
                       <TableCell>{run.resolution || "—"}</TableCell>
                       <TableCell>{run.createdAt ? new Date(run.createdAt).toLocaleString() : "—"}</TableCell>
                     </TableRow>
                   ))}
                   {!loading && (runsQ.data?.runs || []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground">
                         No runs recorded for this strategy yet.
                       </TableCell>
                     </TableRow>

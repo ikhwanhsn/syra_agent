@@ -1121,7 +1121,9 @@ const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB (Mongoose) for prediction game
 connectMongoose()
-  .then(() => {})
+  .then(() =>
+    import("./libs/lpExperimentService.js").then((m) => m.ensureLpExperimentBootstrapped().catch(() => {})),
+  )
   .catch(() => {});
 
 // Eager-init x402 V2 Corbits bundle (default facilitator) so first paid request doesn't wait for /supported

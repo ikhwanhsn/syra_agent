@@ -17,6 +17,7 @@ import type {
   RisePortfolioSummaryResponse,
   RiseQuoteResponse,
   RiseTimeframe,
+  RiseTokenHoldersResponse,
   RiseTransactionsResponse,
 } from "./riseDashboardTypes";
 
@@ -289,6 +290,18 @@ export function getRiseMarketTransactions(
   const q = buildQuery({ page, limit });
   return riseFetch<RiseTransactionsResponse>(
     `/uponly-rise-market/${encodeURIComponent(address)}/transactions${q}`,
+    { signal },
+  );
+}
+
+export function getRiseTokenTopHolders(
+  address: string,
+  limit = 20,
+  signal?: AbortSignal,
+): Promise<RiseTokenHoldersResponse> {
+  const q = buildQuery({ limit });
+  return riseFetch<RiseTokenHoldersResponse>(
+    `/uponly-rise-market/${encodeURIComponent(address)}/holders${q}`,
     { signal },
   );
 }

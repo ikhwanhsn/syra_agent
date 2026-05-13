@@ -13,6 +13,7 @@ import { TokenLiquidityPanel } from "@/components/token/TokenLiquidityPanel";
 import { TokenQuotePanel } from "@/components/token/TokenQuotePanel";
 import { TokenScoreStrip } from "@/components/token/TokenScoreStrip";
 import { TokenSimilarMarkets } from "@/components/token/TokenSimilarMarkets";
+import { TokenTopHoldersTable } from "@/components/token/TokenTopHoldersTable";
 import { TokenTradesPanel } from "@/components/token/TokenTradesPanel";
 import { EmptyState, GlassCard } from "@/components/rise/RiseShared";
 
@@ -114,6 +115,7 @@ export default function TokenDetailPage() {
             </div>
             <TokenKpiGrid market={market} />
             <TokenHolderPanel market={market} />
+            <TokenTopHoldersTable market={market} />
             <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
               <TokenLiquidityPanel market={market} aggregate={aggregate.data} />
               <TokenEcosystemRank market={market} all={universe} />

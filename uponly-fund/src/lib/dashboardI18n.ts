@@ -206,6 +206,23 @@ export type DashboardDictionary = {
     sectionAbout: string;
     sectionSimilar: string;
     sectionHolder: string;
+    sectionTopHolders: string;
+    topHoldersTitle: string;
+    topHoldersDescription: string;
+    topHoldersMintSupply: string;
+    topHoldersTop10Conc: string;
+    topHoldersRiseHoldersHint: string;
+    topHoldersRank: string;
+    topHoldersWallet: string;
+    topHoldersBalance: string;
+    topHoldersShare: string;
+    topHoldersUnknownWallet: string;
+    topHoldersFootnote: string;
+    topHoldersError: string;
+    topHoldersEmpty: string;
+    topHoldersExplorer: string;
+    topHoldersTokenAccountHint: string;
+    topHoldersYou: string;
     holderTitle: string;
     holderDescription: string;
     holderCirculatingSupply: string;
@@ -549,6 +566,25 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       sectionAbout: "On-chain metadata",
       sectionSimilar: "Similar markets",
       sectionHolder: "Your holdings",
+      sectionTopHolders: "On-chain",
+      topHoldersTitle: "Largest wallets",
+      topHoldersDescription:
+        "Top SPL token accounts by balance. Useful for spotting concentration; not the same as RISE’s unique-holder count.",
+      topHoldersMintSupply: "Minted supply (on-chain)",
+      topHoldersTop10Conc: "Top 10 share of minted supply",
+      topHoldersRiseHoldersHint: "RISE-reported unique wallets (all accounts)",
+      topHoldersRank: "#",
+      topHoldersWallet: "Owner wallet",
+      topHoldersBalance: "Tokens",
+      topHoldersShare: "Of minted supply",
+      topHoldersUnknownWallet: "Unknown / program",
+      topHoldersFootnote:
+        "Data from Solana RPC (largest token accounts). Share % uses total minted supply. Bonding-curve or vault PDAs may appear as owners. DYOR — not financial advice.",
+      topHoldersError: "Could not load on-chain holder list.",
+      topHoldersEmpty: "No token accounts returned for this mint.",
+      topHoldersExplorer: "Solscan",
+      topHoldersTokenAccountHint: "View SPL token account on Solscan",
+      topHoldersYou: "You",
       holderTitle: "Holder snapshot",
       holderDescription: "Circulating supply from the live curve quote; your wallet balance from read-only RISE portfolio APIs.",
       holderCirculatingSupply: "Circulating supply",
@@ -890,6 +926,25 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       sectionAbout: "链上元数据",
       sectionSimilar: "相似市场",
       sectionHolder: "持仓",
+      sectionTopHolders: "链上",
+      topHoldersTitle: "大户钱包",
+      topHoldersDescription:
+        "按余额排序的主要 SPL 代币账户，便于观察集中度；与 RISE 统计的「唯一持有人」口径不同。",
+      topHoldersMintSupply: "链上已铸造供应量",
+      topHoldersTop10Conc: "前 10 名占已铸造比例",
+      topHoldersRiseHoldersHint: "RISE 报告的唯一钱包数（含所有账户）",
+      topHoldersRank: "#",
+      topHoldersWallet: "所有者钱包",
+      topHoldersBalance: "代币数量",
+      topHoldersShare: "占已铸造比例",
+      topHoldersUnknownWallet: "未知 / 程序账户",
+      topHoldersFootnote:
+        "数据来自 Solana RPC（最大代币账户列表）。占比按已铸造总供应量计算；曲线金库等 PDA 可能显示为持有人。DYOR，非投资建议。",
+      topHoldersError: "无法加载链上持有人列表。",
+      topHoldersEmpty: "该铸币未返回代币账户。",
+      topHoldersExplorer: "Solscan",
+      topHoldersTokenAccountHint: "在 Solscan 查看 SPL 代币账户",
+      topHoldersYou: "你",
       holderTitle: "持有人快照",
       holderDescription: "流通量来自实时曲线报价；钱包余额来自只读 RISE 资产接口。",
       holderCirculatingSupply: "流通供应量",

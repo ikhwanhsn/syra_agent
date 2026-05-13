@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 
 const lpExperimentRunSchema = new mongoose.Schema(
   {
+    /** Cohort id — only the active cohort receives new opens from the signal tick. */
+    experimentId: { type: String, default: null, index: true },
+
     strategyId: { type: Number, required: true, min: 0, max: 99, index: true },
     strategyName: { type: String, required: true },
     lpShape: { type: String, required: true, enum: ["spot", "bid_ask", "curve", "mixed"] },
@@ -40,9 +43,16 @@ const lpExperimentRunSchema = new mongoose.Schema(
     errorMessage: { type: String, default: null },
 
     simFeesEarnedSol: { type: Number, default: 0 },
+    /** Protocol / LP fee simulation (yield), not chain open/close costs. */
     simPriceDriftPct: { type: Number, default: 0 },
     simPnlPct: { type: Number, default: 0 },
     simPnlUsd: { type: Number, default: 0 },
+
+    /** Estimated Solana + Meteora-style tx costs on notionals (bps per side). */
+    simOpenFeeSol: { type: Number, default: 0 },
+    simCloseFeeSol: { type: Number, default: 0 },
+    /** Economic PnL on the position after open+close chain fees (SOL). */
+    simNetPnlSol: { type: Number, default: 0 },
 
     openedAt: { type: Date, required: true, default: Date.now, index: true },
     lastEvaluatedAt: { type: Date, default: null },
@@ -51,6 +61,7 @@ const lpExperimentRunSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+lpExperimentRunSchema.index({ experimentId: 1, strategyId: 1, status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ strategyId: 1, status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ strategyId: 1, poolAddress: 1, status: 1, createdAt: -1 });

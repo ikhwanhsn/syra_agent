@@ -153,6 +153,27 @@ export type RiseTransactionsResponse = {
   updatedAt: string;
 };
 
+/** Largest SPL token accounts for a mint (on-chain via Solana RPC). */
+export type RiseTopHolderRow = {
+  rank: number;
+  wallet: string | null;
+  tokenAccount: string;
+  balanceHuman: number | null;
+  sharePct: number | null;
+};
+
+export type RiseTokenHoldersResponse = {
+  success: true;
+  address: string;
+  mint: string;
+  decimals: number;
+  supplyHuman: number;
+  top10ConcentrationPct: number | null;
+  holders: RiseTopHolderRow[];
+  updatedAt: string;
+  sourceNote: string;
+};
+
 export type RiseQuote = {
   direction: string;
   amountIn: number | null;

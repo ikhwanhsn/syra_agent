@@ -32,9 +32,12 @@ import {
 } from "@/lib/layoutConstants";
 import {
   fetchLpCandidatePools,
+  fetchLpLabState,
   fetchLpRuns,
   fetchLpStats,
   fetchLpStrategies,
+  formatLpUsd,
+  lpRunNetPnlUsdFromSnapshot,
   type LpRunStatus,
 } from "@/lib/lpAgentExperimentApi";
 
@@ -42,9 +45,27 @@ const RUNS_PAGE_SIZE = 25;
 const CANDIDATES_PAGE_SIZE = 20;
 const RUN_STATUSES: LpRunStatus[] = ["open", "win", "loss", "expired", "skipped", "error"];
 type SortDirection = "asc" | "desc";
-type LeaderboardSortKey = "strategyName" | "lpShape" | "wins" | "losses" | "openPositions" | "winRatePct" | "avgPnlPct" | "avgFeesSol";
+type LeaderboardSortKey =
+  | "strategyName"
+  | "lpShape"
+  | "wins"
+  | "losses"
+  | "openPositions"
+  | "winRatePct"
+  | "avgPnlPct"
+  | "avgFeesSol"
+  | "cashSol"
+  | "sumNetPnlSol"
+  | "sumChainFeesSol";
 type CandidateSortKey = "strategyName" | "poolName" | "score" | "tvlUsd" | "volume24hUsd" | "feeTvlRatio";
-type RunSortKey = "strategyName" | "poolName" | "status" | "simPnlPct" | "simFeesEarnedSol" | "createdAt";
+type RunSortKey =
+  | "strategyName"
+  | "poolName"
+  | "status"
+  | "simPnlPct"
+  | "simFeesEarnedSol"
+  | "simNetPnlSol"
+  | "createdAt";
 
 function compareValues(a: unknown, b: unknown) {
   if (a == null && b == null) return 0;
@@ -158,9 +179,16 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     queryKey: ["lp-agent", "strategies"],
     queryFn: fetchLpStrategies,
   });
+  const labStateQ = useQuery({
+    queryKey: ["lp-agent", "lab-state"],
+    queryFn: fetchLpLabState,
+    refetchInterval: 60_000,
+  });
+  const activeCohortId = labStateQ.data?.activeExperimentId ?? null;
   const statsQ = useQuery({
-    queryKey: ["lp-agent", "stats"],
+    queryKey: ["lp-agent", "stats", activeCohortId ?? "none"],
     queryFn: fetchLpStats,
+    enabled: labStateQ.isFetched,
     refetchInterval: 60_000,
   });
   const candidatesQ = useQuery({
@@ -169,16 +197,20 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     refetchInterval: 60_000,
   });
   const runsQ = useQuery({
-    queryKey: ["lp-agent", "runs", runStatus, runSymbol, runPage],
+    queryKey: ["lp-agent", "runs", activeCohortId ?? "none", runStatus, runSymbol, runPage],
     queryFn: () =>
       fetchLpRuns({
         limit: RUNS_PAGE_SIZE,
         offset: (runPage - 1) * RUNS_PAGE_SIZE,
         status: runStatus === "all" ? undefined : runStatus,
         symbol: runSymbol.trim() || undefined,
+        experimentId: activeCohortId ?? undefined,
       }),
+    enabled: labStateQ.isFetched && Boolean(activeCohortId),
     refetchInterval: 45_000,
   });
+
+  const refSolUsd = labStateQ.data?.referenceSolPriceUsd;
 
   const openPositions = useMemo(
     () => (statsQ.data?.agents || []).reduce((sum, x) => sum + (x.openPositions || 0), 0),
@@ -232,8 +264,9 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     }
   }, [runPage, runTotalPages]);
 
-  const loading = strategiesQ.isLoading || statsQ.isLoading || candidatesQ.isLoading || runsQ.isLoading;
-  const failed = strategiesQ.isError || statsQ.isError || candidatesQ.isError || runsQ.isError;
+  const loading =
+    strategiesQ.isLoading || statsQ.isLoading || candidatesQ.isLoading || runsQ.isLoading || labStateQ.isLoading;
+  const failed = strategiesQ.isError || statsQ.isError || candidatesQ.isError || runsQ.isError || labStateQ.isError;
 
   return (
     <div
@@ -257,7 +290,8 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             <h1 className="text-xl font-semibold tracking-tight">LP agent experiment</h1>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Meridian-style DLMM strategy lab powered by real Meteora pool data.
+            Meridian-style DLMM strategy lab on real Meteora pools — each agent has a simulated 10&nbsp;SOL bank, up to ten
+            concurrent 1&nbsp;SOL slots, compounding cash on closes, with open/close fee estimates on every leg.
           </p>
         </div>
         <Button
@@ -269,6 +303,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             statsQ.refetch();
             candidatesQ.refetch();
             runsQ.refetch();
+            labStateQ.refetch();
           }}
         >
           <RefreshCw className="h-4 w-4" />
@@ -340,6 +375,25 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         </div>
       </div>
 
+      {labStateQ.data?.activeExperimentId ? (
+        <div className="rounded-xl border border-border/70 bg-card/60 px-4 py-3 text-sm">
+          <p className="font-medium text-foreground">{labStateQ.data.title || "Active cohort"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cohort <span className="font-mono text-foreground/90">{labStateQ.data.activeExperimentId}</span>
+            {" · "}
+            Bank {labStateQ.data.simConfig.startingBankSol} SOL / agent, max{" "}
+            {labStateQ.data.simConfig.maxConcurrentPositions} × {labStateQ.data.simConfig.maxPositionSol} SOL deployed,
+            fees modeled at {labStateQ.data.simConfig.openFeeBps} + {labStateQ.data.simConfig.closeFeeBps} bps per leg
+            (priority + program rent approximation — tune before live capital).
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Compounding: profits stay in <span className="text-foreground/90">cashSol</span> (leaderboard) until the next
+            full 1&nbsp;SOL slot opens; agents wait when all ten slots are live. Path to ~100&nbsp;SOL is not guaranteed —
+            it depends on realized pool drift + fee yield minus modeled chain costs.
+          </p>
+        </div>
+      ) : null}
+
       <Tabs defaultValue="leaderboard" className="w-full">
         <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-border/70 bg-muted/30 p-1">
           <TabsTrigger value="leaderboard" className="h-9 gap-1.5 rounded-lg text-xs sm:text-sm">
@@ -359,7 +413,10 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         <TabsContent value="leaderboard" className="mt-3">
           <div className="mb-2 flex items-center justify-between gap-2 px-1">
             <p className="text-sm font-medium">Strategy performance board</p>
-            <p className="text-xs text-muted-foreground">Ranked by win rate and wins</p>
+            <p className="text-xs text-muted-foreground">
+              Wins / losses / open are for the active cohort id in the banner above. Net PnL / tx fee USD lines use each
+              run’s SOL/USD snapshot at open; cash USD uses the lab reference SOL price.
+            </p>
           </div>
           <div className="overflow-hidden rounded-xl border border-border/70 bg-card/70 backdrop-blur-sm">
             <Table>
@@ -401,8 +458,50 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     </button>
                   </TableHead>
                   <TableHead className="text-right">
+                    <button
+                      type="button"
+                      className="ml-auto inline-flex items-center gap-1"
+                      onClick={() =>
+                        setLeaderboardSort((prev) => ({
+                          key: "cashSol",
+                          dir: prev.key === "cashSol" && prev.dir === "asc" ? "desc" : "asc",
+                        }))
+                      }
+                    >
+                      Cash (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <button
+                      type="button"
+                      className="ml-auto inline-flex items-center gap-1"
+                      onClick={() =>
+                        setLeaderboardSort((prev) => ({
+                          key: "sumNetPnlSol",
+                          dir: prev.key === "sumNetPnlSol" && prev.dir === "asc" ? "desc" : "asc",
+                        }))
+                      }
+                    >
+                      Net PnL Σ <ArrowUpDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <button
+                      type="button"
+                      className="ml-auto inline-flex items-center gap-1"
+                      onClick={() =>
+                        setLeaderboardSort((prev) => ({
+                          key: "sumChainFeesSol",
+                          dir: prev.key === "sumChainFeesSol" && prev.dir === "asc" ? "desc" : "asc",
+                        }))
+                      }
+                    >
+                      Tx fees Σ <ArrowUpDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-right">
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "avgFeesSol", dir: prev.key === "avgFeesSol" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Avg fees (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
+                      LP fees (avg) <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
                 </TableRow>
@@ -431,12 +530,32 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     <TableCell className={cn("text-right font-medium", pnlNumberClass(row.avgPnlPct))}>
                       {row.avgPnlPct.toFixed(2)}%
                     </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div>{(row.cashSol ?? 0).toFixed(3)}</div>
+                      {refSolUsd != null && refSolUsd > 0 ? (
+                        <div className="text-xs text-muted-foreground">{formatLpUsd((row.cashSol ?? 0) * refSolUsd)}</div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className={cn("text-right font-medium tabular-nums", pnlNumberClass(row.sumNetPnlSol ?? 0))}>
+                      <div>{(row.sumNetPnlSol ?? 0).toFixed(4)}</div>
+                      {row.sumNetPnlUsd != null && Number.isFinite(row.sumNetPnlUsd) ? (
+                        <div className={cn("text-xs text-muted-foreground", pnlNumberClass(row.sumNetPnlUsd))}>
+                          {formatLpUsd(row.sumNetPnlUsd)}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div>{(row.sumChainFeesSol ?? 0).toFixed(4)}</div>
+                      {row.sumChainFeesUsd != null && Number.isFinite(row.sumChainFeesUsd) ? (
+                        <div className="text-xs text-muted-foreground">{formatLpUsd(row.sumChainFeesUsd)}</div>
+                      ) : null}
+                    </TableCell>
                     <TableCell className="text-right">{row.avgFeesSol.toFixed(4)}</TableCell>
                   </TableRow>
                 ))}
                 {!loading && (statsQ.data?.agents || []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center text-muted-foreground">
                       No runs yet.
                     </TableCell>
                   </TableRow>
@@ -591,8 +710,17 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     </button>
                   </TableHead>
                   <TableHead className="text-right">
+                    <button
+                      type="button"
+                      className="ml-auto inline-flex items-center gap-1"
+                      onClick={() => setRunSort((prev) => ({ key: "simNetPnlSol", dir: prev.key === "simNetPnlSol" && prev.dir === "asc" ? "desc" : "asc" }))}
+                    >
+                      Net PnL (SOL + USD) <ArrowUpDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-right">
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "simFeesEarnedSol", dir: prev.key === "simFeesEarnedSol" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Fees (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
+                      LP fees (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
                   <TableHead>
@@ -625,13 +753,29 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     <TableCell className={cn("text-right font-medium", pnlNumberClass(run.simPnlPct || 0))}>
                       {(run.simPnlPct || 0).toFixed(2)}%
                     </TableCell>
-                    <TableCell className="text-right">{(run.simFeesEarnedSol || 0).toFixed(4)}</TableCell>
+                    <TableCell className={cn("text-right font-medium tabular-nums", pnlNumberClass(run.simNetPnlSol || 0))}>
+                      <div>{(run.simNetPnlSol ?? 0).toFixed(4)}</div>
+                      {run.depositSol != null &&
+                      run.depositUsd != null &&
+                      Number(run.depositSol) > 0 &&
+                      Number.isFinite(Number(run.depositUsd)) ? (
+                        <div
+                          className={cn(
+                            "text-xs text-muted-foreground",
+                            pnlNumberClass(lpRunNetPnlUsdFromSnapshot(run)),
+                          )}
+                        >
+                          {formatLpUsd(lpRunNetPnlUsdFromSnapshot(run))}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{(run.simFeesEarnedSol || 0).toFixed(4)}</TableCell>
                     <TableCell>{run.createdAt ? new Date(run.createdAt).toLocaleString() : "—"}</TableCell>
                   </TableRow>
                 ))}
                 {!loading && (runsQ.data?.runs || []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No runs found.
                     </TableCell>
                   </TableRow>

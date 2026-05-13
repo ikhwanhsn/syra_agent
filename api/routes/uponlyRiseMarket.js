@@ -7,6 +7,7 @@
  *      GET   /:address                          → market detail (legacy, normalized)
  *      GET   /:address/ohlc/:timeframe          → OHLC candles
  *      GET   /:address/transactions             → recent trades
+ *      GET   /:address/holders                  → largest SPL token accounts (on-chain via Solana RPC)
  *      POST  /:address/quote                    → buy/sell quote (no signing)
  *      POST  /:address/borrow-quote             → borrow capacity quote (read-only)
  *  - createUponlyRiseMarketsRouter()      mounted at /uponly-rise-markets
@@ -32,6 +33,7 @@ import {
 } from "../libs/riseClient.js";
 import { countTerminalAlphaPicks } from "../libs/terminalKpiAlphaScore.js";
 import { persistAndBuildTerminalKpiTrend } from "../libs/uponlyTerminalKpiTrend.js";
+import { fetchSplTokenTopHolders } from "../libs/solanaTokenLargestHolders.js";
 
 const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const RISE_UPONLY_MINT = "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise";
@@ -47,6 +49,7 @@ const CACHE_AGGREGATE = "public, max-age=30, s-maxage=60, stale-while-revalidate
 const CACHE_DETAIL = "public, max-age=30, s-maxage=60, stale-while-revalidate=120";
 const CACHE_OHLC = "public, max-age=20, s-maxage=45, stale-while-revalidate=120";
 const CACHE_TX = "public, max-age=15, s-maxage=30, stale-while-revalidate=60";
+const CACHE_HOLDERS = "public, max-age=45, s-maxage=90, stale-while-revalidate=240";
 const CACHE_QUOTE = "no-store";
 const CACHE_PORTFOLIO = "public, max-age=20, s-maxage=45, stale-while-revalidate=120";
 
@@ -598,6 +601,52 @@ async function ohlcHandler(req, res) {
   });
 }
 
+/**
+ * Resolve SPL mint for holder lookup: RISE market id / mint param → mint_token when available.
+ * @param {string} address
+ * @returns {Promise<string | null>}
+ */
+async function resolveMintForHolders(address) {
+  const result = await withTimeout(riseGetMarketByAddress(address), RISE_CALL_TIMEOUT_MS);
+  if (result.ok && result.data?.market) {
+    const mint = toStr(result.data.market.mint_token);
+    if (mint && isValidAddress(mint)) return mint;
+  }
+  if (isValidAddress(address)) return address;
+  return null;
+}
+
+/** GET /uponly-rise-market/:address/holders?limit — largest token accounts (owner wallet + share of mint supply) */
+async function tokenHoldersHandler(req, res) {
+  const address = (req.params.address || "").trim();
+  if (!isValidAddress(address)) return res.status(400).json({ success: false, error: "invalid address" });
+  const limit = clampInt(req.query.limit, 5, 50, 20);
+
+  const mint = await resolveMintForHolders(address);
+  if (!mint) return res.status(400).json({ success: false, error: "could not resolve token mint" });
+
+  try {
+    const payload = await fetchSplTokenTopHolders(mint, { limit });
+    res.setHeader("Cache-Control", CACHE_HOLDERS);
+    return res.json({
+      success: true,
+      address,
+      mint: payload.mint,
+      decimals: payload.decimals,
+      supplyHuman: payload.supplyHuman,
+      top10ConcentrationPct: payload.top10ConcentrationPct,
+      holders: payload.holders,
+      updatedAt: new Date().toISOString(),
+      sourceNote:
+        "Largest on-chain SPL token accounts for this mint; share % uses total minted supply (raw mint supply).",
+    });
+  } catch (e) {
+    const msg = e && typeof e.message === "string" ? e.message : "Solana RPC holders lookup failed";
+    const code = /Invalid public key|could not find mint/i.test(msg) ? 404 : 502;
+    return res.status(code).json({ success: false, error: msg });
+  }
+}
+
 /** GET /uponly-rise-market/:address/transactions?page&limit */
 async function transactionsHandler(req, res) {
   const address = (req.params.address || "").trim();
@@ -715,6 +764,7 @@ export function createUponlyRiseMarketRouter() {
   const router = express.Router();
   router.get("/:address/ohlc/:timeframe", ohlcHandler);
   router.get("/:address/transactions", transactionsHandler);
+  router.get("/:address/holders", tokenHoldersHandler);
   router.post("/:address/quote", quoteHandler);
   router.post("/:address/borrow-quote", borrowQuoteHandler);
   router.get("/:address", marketDetailHandler);

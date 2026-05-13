@@ -179,7 +179,7 @@ function DashboardSidebarContent({
           <SidebarSectionLabel>Sections</SidebarSectionLabel>
           <div className="space-y-1">
             {DASHBOARD_SECTIONS.map(({ path, label, icon: Icon }) => (
-              <SidebarNavLink key={path} to={`/dashboard/${path}`} icon={Icon}>
+              <SidebarNavLink key={path} to={`/dashboard/${path}`} icon={Icon} end={path === "lp-experiment" ? true : undefined}>
                 {label}
               </SidebarNavLink>
             ))}

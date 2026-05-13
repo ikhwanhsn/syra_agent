@@ -2,6 +2,36 @@ import { getApiBaseUrl } from "@/lib/chatApi";
 
 const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/lp-agent`;
 
+const usdCompact = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
+/** Format a USD amount for LP experiment UI (not for on-chain precision). */
+export function formatLpUsd(value: number | null | undefined): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return usdCompact.format(n);
+}
+
+/**
+ * Net PnL in USD from the snapshot at open: simNetPnlSol × (depositUsd / depositSol).
+ * Matches server-side cohort aggregates.
+ */
+export function lpRunNetPnlUsdFromSnapshot(run: {
+  simNetPnlSol?: number | null;
+  depositSol?: number | null;
+  depositUsd?: number | null;
+}): number {
+  const netSol = Number(run.simNetPnlSol);
+  const depSol = Number(run.depositSol);
+  const depUsd = Number(run.depositUsd);
+  if (!Number.isFinite(netSol) || !Number.isFinite(depSol) || depSol <= 0 || !Number.isFinite(depUsd)) return 0;
+  return netSol * (depUsd / depSol);
+}
+
 export type LpRunStatus = "open" | "win" | "loss" | "expired" | "skipped" | "error";
 
 export interface LpStrategy {
@@ -46,6 +76,42 @@ export interface LpAgentStats {
   openPositions: number;
   avgPnlPct: number;
   avgFeesSol: number;
+  /** Simulated free bank (SOL) after open fees; excludes principal in open slots. */
+  cashSol?: number;
+  sumNetPnlSol?: number;
+  avgNetPnlSol?: number;
+  /** Sum of (simNetPnlSol × depositUsd/depositSol) per run — USD notion at position open. */
+  sumNetPnlUsd?: number;
+  avgNetPnlUsd?: number;
+  sumChainFeesSol?: number;
+  sumChainFeesUsd?: number;
+}
+
+export interface LpExperimentSimConfig {
+  startingBankSol: number;
+  maxPositionSol: number;
+  maxConcurrentPositions: number;
+  openFeeBps: number;
+  closeFeeBps: number;
+}
+
+export interface LpExperimentLabAgentRow {
+  strategyId: number;
+  cashSol: number;
+  startingBankSol: number;
+  openPositions: number;
+  deployedSol: number;
+  equitySol: number;
+}
+
+export interface LpExperimentLabState {
+  activeExperimentId: string | null;
+  title: string;
+  startedAt: string | null;
+  /** CoinGecko (or cached) SOL/USD — for converting cash/equity to display USD only. */
+  referenceSolPriceUsd?: number;
+  simConfig: LpExperimentSimConfig;
+  agents: LpExperimentLabAgentRow[];
 }
 
 export interface LpRunRow {
@@ -61,6 +127,12 @@ export interface LpRunRow {
   resolution?: string | null;
   simPnlPct?: number | null;
   simFeesEarnedSol?: number | null;
+  simOpenFeeSol?: number | null;
+  simCloseFeeSol?: number | null;
+  simNetPnlSol?: number | null;
+  depositSol?: number | null;
+  depositUsd?: number | null;
+  experimentId?: string | null;
   createdAt?: string;
   resolvedAt?: string | null;
 }
@@ -96,17 +168,30 @@ export async function fetchLpCandidatePools(): Promise<LpCandidatePool[]> {
   return body.data.candidates;
 }
 
-export async function fetchLpStats(): Promise<{ agents: LpAgentStats[] }> {
+export async function fetchLpStats(): Promise<{ agents: LpAgentStats[]; experimentId: string | null }> {
   const res = await fetch(`${base()}/stats`, { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
-    data?: { agents?: LpAgentStats[] };
+    data?: { agents?: LpAgentStats[]; experimentId?: string | null };
     error?: string;
   }>(res);
   if (!ok || !body.success || !body.data?.agents) {
     throw new Error(body.error || "Failed to load LP stats");
   }
-  return { agents: body.data.agents };
+  return { agents: body.data.agents, experimentId: body.data.experimentId ?? null };
+}
+
+export async function fetchLpLabState(): Promise<LpExperimentLabState> {
+  const res = await fetch(`${base()}/state`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: LpExperimentLabState;
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data) {
+    throw new Error(body.error || "Failed to load LP experiment state");
+  }
+  return body.data;
 }
 
 export async function fetchLpRuns(options: {
@@ -115,6 +200,7 @@ export async function fetchLpRuns(options: {
   strategyId?: number;
   status?: string;
   symbol?: string;
+  experimentId?: string;
 } = {}): Promise<{ runs: LpRunRow[]; total: number }> {
   const q = new URLSearchParams({
     limit: String(options.limit ?? 25),
@@ -127,6 +213,8 @@ export async function fetchLpRuns(options: {
   if (status) q.set("status", status);
   const symbol = options.symbol?.trim();
   if (symbol) q.set("symbol", symbol);
+  const experimentId = options.experimentId?.trim();
+  if (experimentId) q.set("experimentId", experimentId);
 
   const res = await fetch(`${base()}/runs?${q}`, { credentials: "include" });
   const { ok, body } = await parseJson<{

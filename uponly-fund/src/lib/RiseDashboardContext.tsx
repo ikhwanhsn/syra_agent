@@ -14,6 +14,7 @@ import {
   getRiseAggregate,
   getRiseMarketOhlc,
   getRiseMarketTransactions,
+  getRiseTokenTopHolders,
   getRiseMarkets,
   getRiseMarketsAll,
   getRiseMarketsTop,
@@ -33,6 +34,7 @@ import type {
   RisePortfolioSummaryResponse,
   RiseQuoteResponse,
   RiseTimeframe,
+  RiseTokenHoldersResponse,
   RiseTransactionsResponse,
 } from "./riseDashboardTypes";
 
@@ -40,6 +42,7 @@ const AGGREGATE_REFETCH_MS = 60_000;
 const LIST_REFETCH_MS = 60_000;
 const OHLC_REFETCH_MS = 60_000;
 const TX_REFETCH_MS = 90_000;
+const HOLDERS_REFETCH_MS = 120_000;
 const PORTFOLIO_STALE_MS = 30_000;
 const DEFAULT_PAGE_LIMIT = 10;
 /**
@@ -125,6 +128,18 @@ export function useRiseTransactions(address: string | null | undefined, page = 1
     enabled,
     staleTime: TX_REFETCH_MS,
     refetchInterval: TX_REFETCH_MS,
+    retry: 1,
+  });
+}
+
+export function useRiseTokenTopHolders(address: string | null | undefined, limit = 20) {
+  const enabled = Boolean(address);
+  return useQuery<RiseTokenHoldersResponse, Error>({
+    queryKey: ["rise-token-holders", address ?? "", limit],
+    queryFn: ({ signal }) => getRiseTokenTopHolders(address as string, limit, signal),
+    enabled,
+    staleTime: HOLDERS_REFETCH_MS,
+    refetchInterval: HOLDERS_REFETCH_MS,
     retry: 1,
   });
 }

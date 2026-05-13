@@ -2,8 +2,10 @@ import express from "express";
 import { resolveLpExperimentStrategies } from "../libs/lpExperimentStrategyResolve.js";
 import {
   getLpCandidatePools,
+  getLpExperimentLabState,
   getLpExperimentStats,
   listLpExperimentRuns,
+  resetLpExperimentFromScratch,
   resolveOpenLpRuns,
   runLpExperimentSignalCycle,
 } from "../libs/lpExperimentService.js";
@@ -20,6 +22,21 @@ function requireCronSecret(req, res, next) {
     });
   }
   return next();
+}
+
+/** Reset: cron secret OR LP_AGENT_EXPERIMENT_FINALIZE_UI_TOKEN via x-lp-experiment-finalize-ui (same as prior finalize). */
+function requireResetAuth(req, res, next) {
+  const ui = (process.env.LP_AGENT_EXPERIMENT_FINALIZE_UI_TOKEN || "").trim();
+  const cron = (process.env.LP_AGENT_EXPERIMENT_CRON_SECRET || "").trim();
+  const uiHdr = (req.get("x-lp-experiment-finalize-ui") || "").trim();
+  const cronHdr = (req.get("x-lp-experiment-secret") || "").trim();
+  if (ui && uiHdr === ui) return next();
+  if (cron && cronHdr === cron) return next();
+  if (!ui && !cron) return next();
+  return res.status(403).json({
+    success: false,
+    error: "Missing or invalid reset credentials (x-lp-experiment-finalize-ui or x-lp-experiment-secret)",
+  });
 }
 
 export function createLpAgentExperimentRouter() {
@@ -61,6 +78,18 @@ export function createLpAgentExperimentRouter() {
     }
   });
 
+  router.get("/state", async (_req, res) => {
+    try {
+      const data = await getLpExperimentLabState();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
   router.get("/runs", async (req, res) => {
     try {
       const limit = req.query.limit != null ? Number(req.query.limit) : 50;
@@ -71,7 +100,11 @@ export function createLpAgentExperimentRouter() {
           : undefined;
       const status = typeof req.query.status === "string" ? req.query.status : undefined;
       const symbol = typeof req.query.symbol === "string" ? req.query.symbol : undefined;
-      const data = await listLpExperimentRuns({ limit, offset, strategyId, status, symbol });
+      const experimentId =
+        typeof req.query.experimentId === "string" && req.query.experimentId.trim() !== ""
+          ? req.query.experimentId.trim()
+          : undefined;
+      const data = await listLpExperimentRuns({ limit, offset, strategyId, status, symbol, experimentId });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -96,6 +129,25 @@ export function createLpAgentExperimentRouter() {
   router.post("/resolve-tick", requireCronSecret, async (_req, res) => {
     try {
       const data = await resolveOpenLpRuns();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  /**
+   * Delete all LP experiment runs, all agent ledger rows, all archive documents, and start a new cohort at zero.
+   * Body optional: { title?: string }
+   */
+  router.post("/reset-lab", requireResetAuth, async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const data = await resetLpExperimentFromScratch({
+        title: typeof body.title === "string" ? body.title : undefined,
+      });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({

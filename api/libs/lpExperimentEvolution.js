@@ -3,6 +3,7 @@
  * delete their runs, and spawn random new configs into the same strategyId slots via Mongo overrides.
  */
 import LpExperimentRun from "../models/LpExperimentRun.js";
+import LpExperimentState from "../models/LpExperimentState.js";
 import LpExperimentStrategyOverride from "../models/LpExperimentStrategyOverride.js";
 import { LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS } from "../config/lpAgentExperimentStrategies.js";
 import { resolveLpExperimentStrategies } from "./lpExperimentStrategyResolve.js";
@@ -139,6 +140,12 @@ export async function runLpExperimentEvolution(opts = {}) {
   const minDecided = opts.minDecided ?? envCfg.minDecided;
   const pinned = opts.pinned ?? envCfg.pinned;
 
+  const state = await LpExperimentState.findById("singleton").lean();
+  const experimentId = state?.activeExperimentId;
+  if (!experimentId) {
+    return { ok: false, culled: [], spawned: [], skipped: "LP experiment cohort not initialized" };
+  }
+
   const strategies = await resolveLpExperimentStrategies();
   /** @type {{ strategyId: number; wins: number; losses: number; expired: number; decided: number; winRate: number | null; openPositions: number }[]} */
   const rows = [];
@@ -147,6 +154,7 @@ export async function runLpExperimentEvolution(opts = {}) {
     if (pinned.has(s.id)) continue;
 
     const settled = await LpExperimentRun.find({
+      experimentId,
       strategyId: s.id,
       status: { $in: ["win", "loss", "expired"] },
     }).lean();
@@ -157,6 +165,7 @@ export async function runLpExperimentEvolution(opts = {}) {
     const winRate = decided > 0 ? wins / decided : null;
 
     const openPositions = await LpExperimentRun.countDocuments({
+      experimentId,
       strategyId: s.id,
       status: "open",
     });
@@ -193,7 +202,7 @@ export async function runLpExperimentEvolution(opts = {}) {
   const spawned = [];
 
   for (const v of victims) {
-    await LpExperimentRun.deleteMany({ strategyId: v.strategyId });
+    await LpExperimentRun.deleteMany({ experimentId, strategyId: v.strategyId });
     const strat = buildRandomLpStrategy(v.strategyId);
     await LpExperimentStrategyOverride.findOneAndUpdate(
       { strategyId: v.strategyId },

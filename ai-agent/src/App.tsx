@@ -65,6 +65,8 @@ const App = () => (
                     element={<TradingAgentExperimentAgentProfile embedded />}
                   />
                   <Route path="arbitrage-experiment" element={<ArbitrageExperiment embedded />} />
+                  <Route path="lp-experiment/history/:experimentId" element={<Navigate to="/dashboard/lp-experiment" replace />} />
+                  <Route path="lp-experiment/history" element={<Navigate to="/dashboard/lp-experiment" replace />} />
                   <Route path="lp-experiment" element={<LpAgentExperiment embedded />} />
                   <Route path="lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile embedded />} />
                   <Route path="alpha/x/:username" element={<AlphaAccountDetail />} />
