@@ -10,6 +10,10 @@
  *      GET   /:address/holders                  → largest SPL token accounts (on-chain via Solana RPC)
  *      POST  /:address/quote                    → buy/sell quote (no signing)
  *      POST  /:address/borrow-quote             → borrow capacity quote (read-only)
+ *      POST  /:address/buy                      → unsigned buy tx (base64)
+ *      POST  /:address/sell                     → unsigned sell tx (base64)
+ *      POST  /:address/deposit-and-borrow       → unsigned deposit+borrow tx (base64)
+ *      POST  /:address/repay-and-withdraw       → unsigned repay+withdraw tx (base64)
  *  - createUponlyRiseMarketsRouter()      mounted at /uponly-rise-markets
  *      GET   /                                  → paginated markets list (normalized rows)
  *      GET   /aggregate                         → ecosystem digest + UPONLY spotlight + terminalKpiTrend (Mongo daily KPI DoD)
@@ -18,7 +22,7 @@
  *      GET   /:wallet/positions                 → portfolio positions
  *
  * All responses are normalized for the landing UI and cached at the edge.
- * No /program/* (signing) routes are exposed here on purpose — they remain agent-only.
+ * Program routes return unsigned base64 transactions; the client signs and sends.
  */
 import express from "express";
 import {
@@ -28,6 +32,10 @@ import {
   riseGetMarketOhlc,
   risePostMarketQuote,
   risePostBorrowQuote,
+  risePostBuyToken,
+  risePostSellToken,
+  risePostDepositAndBorrow,
+  risePostRepayAndWithdraw,
   riseGetPortfolioSummary,
   riseGetPortfolioPositions,
 } from "../libs/riseClient.js";
@@ -51,6 +59,7 @@ const CACHE_OHLC = "public, max-age=20, s-maxage=45, stale-while-revalidate=120"
 const CACHE_TX = "public, max-age=15, s-maxage=30, stale-while-revalidate=60";
 const CACHE_HOLDERS = "public, max-age=45, s-maxage=90, stale-while-revalidate=240";
 const CACHE_QUOTE = "no-store";
+const CACHE_PROGRAM_TX = "no-store";
 const CACHE_PORTFOLIO = "public, max-age=20, s-maxage=45, stale-while-revalidate=120";
 
 function toNum(v) {
@@ -760,6 +769,153 @@ async function borrowQuoteHandler(req, res) {
   });
 }
 
+/** POST /uponly-rise-market/:address/buy   body { wallet, cashIn, minTokenOut } */
+async function buyTokenHandler(req, res) {
+  const address = (req.params.address || "").trim();
+  if (!isValidAddress(address)) return res.status(400).json({ success: false, error: "invalid address" });
+  const body = req.body || {};
+  const wallet = toStr(body.wallet);
+  const cashIn = toNum(body.cashIn);
+  const minTokenOut = toNum(body.minTokenOut);
+  if (!wallet || !isValidAddress(wallet)) return res.status(400).json({ success: false, error: "valid wallet required" });
+  if (cashIn == null || cashIn <= 0) return res.status(400).json({ success: false, error: "cashIn must be a positive number (raw units)" });
+  if (minTokenOut == null || minTokenOut < 0 || !Number.isFinite(minTokenOut)) {
+    return res.status(400).json({ success: false, error: "minTokenOut must be a non-negative number (raw units)" });
+  }
+
+  const result = await withTimeout(
+    risePostBuyToken({ wallet, market: address, cashIn, minTokenOut }),
+    RISE_CALL_TIMEOUT_MS,
+  );
+  if (!result.ok) {
+    const code = result.status && result.status < 500 ? result.status : 502;
+    return res.status(code).json({ success: false, error: result.error || "RISE buyToken request failed" });
+  }
+  const d = result.data || {};
+  if (!d.ok || typeof d.transaction !== "string") {
+    return res.status(502).json({ success: false, error: d.error || "Malformed buyToken response" });
+  }
+  res.setHeader("Cache-Control", CACHE_PROGRAM_TX);
+  return res.json({
+    success: true,
+    address,
+    transaction: d.transaction,
+    addresses: d.addresses && typeof d.addresses === "object" ? d.addresses : undefined,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** POST /uponly-rise-market/:address/sell   body { wallet, tokenIn, minCashOut } */
+async function sellTokenHandler(req, res) {
+  const address = (req.params.address || "").trim();
+  if (!isValidAddress(address)) return res.status(400).json({ success: false, error: "invalid address" });
+  const body = req.body || {};
+  const wallet = toStr(body.wallet);
+  const tokenIn = toNum(body.tokenIn);
+  const minCashOut = toNum(body.minCashOut);
+  if (!wallet || !isValidAddress(wallet)) return res.status(400).json({ success: false, error: "valid wallet required" });
+  if (tokenIn == null || tokenIn <= 0) return res.status(400).json({ success: false, error: "tokenIn must be a positive number (raw units)" });
+  if (minCashOut == null || minCashOut < 0 || !Number.isFinite(minCashOut)) {
+    return res.status(400).json({ success: false, error: "minCashOut must be a non-negative number (raw units)" });
+  }
+
+  const result = await withTimeout(
+    risePostSellToken({ wallet, market: address, tokenIn, minCashOut }),
+    RISE_CALL_TIMEOUT_MS,
+  );
+  if (!result.ok) {
+    const code = result.status && result.status < 500 ? result.status : 502;
+    return res.status(code).json({ success: false, error: result.error || "RISE sellToken request failed" });
+  }
+  const d = result.data || {};
+  if (!d.ok || typeof d.transaction !== "string") {
+    return res.status(502).json({ success: false, error: d.error || "Malformed sellToken response" });
+  }
+  res.setHeader("Cache-Control", CACHE_PROGRAM_TX);
+  return res.json({
+    success: true,
+    address,
+    transaction: d.transaction,
+    addresses: d.addresses && typeof d.addresses === "object" ? d.addresses : undefined,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** POST /uponly-rise-market/:address/deposit-and-borrow   body { wallet, borrowAmount } */
+async function depositAndBorrowHandler(req, res) {
+  const address = (req.params.address || "").trim();
+  if (!isValidAddress(address)) return res.status(400).json({ success: false, error: "invalid address" });
+  const body = req.body || {};
+  const wallet = toStr(body.wallet);
+  const borrowAmount = toNum(body.borrowAmount);
+  if (!wallet || !isValidAddress(wallet)) return res.status(400).json({ success: false, error: "valid wallet required" });
+  if (borrowAmount == null || borrowAmount <= 0) {
+    return res.status(400).json({ success: false, error: "borrowAmount must be a positive number (raw units)" });
+  }
+
+  const result = await withTimeout(
+    risePostDepositAndBorrow({ wallet, market: address, borrowAmount }),
+    RISE_CALL_TIMEOUT_MS,
+  );
+  if (!result.ok) {
+    const code = result.status && result.status < 500 ? result.status : 502;
+    return res.status(code).json({ success: false, error: result.error || "RISE deposit-and-borrow request failed" });
+  }
+  const d = result.data || {};
+  if (!d.ok || typeof d.transaction !== "string") {
+    return res.status(502).json({ success: false, error: d.error || "Malformed deposit-and-borrow response" });
+  }
+  res.setHeader("Cache-Control", CACHE_PROGRAM_TX);
+  return res.json({
+    success: true,
+    address,
+    transaction: d.transaction,
+    depositAmount: d.depositAmount,
+    borrowAmount: d.borrowAmount,
+    borrowAmountAfterFee: d.borrowAmountAfterFee,
+    includedDeposit: d.includedDeposit,
+    addresses: d.addresses && typeof d.addresses === "object" ? d.addresses : undefined,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** POST /uponly-rise-market/:address/repay-and-withdraw   body { wallet, withdrawAmount } */
+async function repayAndWithdrawHandler(req, res) {
+  const address = (req.params.address || "").trim();
+  if (!isValidAddress(address)) return res.status(400).json({ success: false, error: "invalid address" });
+  const body = req.body || {};
+  const wallet = toStr(body.wallet);
+  const withdrawAmount = toNum(body.withdrawAmount);
+  if (!wallet || !isValidAddress(wallet)) return res.status(400).json({ success: false, error: "valid wallet required" });
+  if (withdrawAmount == null || withdrawAmount <= 0) {
+    return res.status(400).json({ success: false, error: "withdrawAmount must be a positive number (raw units)" });
+  }
+
+  const result = await withTimeout(
+    risePostRepayAndWithdraw({ wallet, market: address, withdrawAmount }),
+    RISE_CALL_TIMEOUT_MS,
+  );
+  if (!result.ok) {
+    const code = result.status && result.status < 500 ? result.status : 502;
+    return res.status(code).json({ success: false, error: result.error || "RISE repay-and-withdraw request failed" });
+  }
+  const d = result.data || {};
+  if (!d.ok || typeof d.transaction !== "string") {
+    return res.status(502).json({ success: false, error: d.error || "Malformed repay-and-withdraw response" });
+  }
+  res.setHeader("Cache-Control", CACHE_PROGRAM_TX);
+  return res.json({
+    success: true,
+    address,
+    transaction: d.transaction,
+    repayAmount: d.repayAmount,
+    withdrawAmount: d.withdrawAmount,
+    includedRepay: d.includedRepay,
+    addresses: d.addresses && typeof d.addresses === "object" ? d.addresses : undefined,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export function createUponlyRiseMarketRouter() {
   const router = express.Router();
   router.get("/:address/ohlc/:timeframe", ohlcHandler);
@@ -767,6 +923,10 @@ export function createUponlyRiseMarketRouter() {
   router.get("/:address/holders", tokenHoldersHandler);
   router.post("/:address/quote", quoteHandler);
   router.post("/:address/borrow-quote", borrowQuoteHandler);
+  router.post("/:address/buy", buyTokenHandler);
+  router.post("/:address/sell", sellTokenHandler);
+  router.post("/:address/deposit-and-borrow", depositAndBorrowHandler);
+  router.post("/:address/repay-and-withdraw", repayAndWithdrawHandler);
   router.get("/:address", marketDetailHandler);
   return router;
 }

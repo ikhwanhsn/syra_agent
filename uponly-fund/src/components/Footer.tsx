@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BrandMark } from "./BrandMark";
-import { Mail } from "lucide-react";
+import { Mail, Send, Twitter } from "lucide-react";
 import {
   EMAIL_SUPPORT,
   LINK_AGENT,
@@ -81,22 +81,24 @@ export const Footer = () => {
               structurally separate from the liquid <span className="font-mono text-foreground/90">$UPONLY</span>{" "}
               tranche. Not an offer. Not financial advice.
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <a
                 href={LINK_X}
-                className="inline-flex text-sm font-medium text-foreground/90 underline-offset-2 hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-background/50 text-foreground transition hover:border-border hover:bg-muted/40"
+                aria-label="Up Only Fund on X"
               >
-                Updates on X
+                <Twitter className="h-5 w-5" />
               </a>
               <a
                 href={LINK_TELEGRAM}
-                className="inline-flex text-sm font-medium text-foreground/90 underline-offset-2 hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-background/50 text-foreground transition hover:border-border hover:bg-muted/40"
+                aria-label="Up Only Fund on Telegram"
               >
-                Telegram
+                <Send className="h-5 w-5" />
               </a>
             </div>
           </div>

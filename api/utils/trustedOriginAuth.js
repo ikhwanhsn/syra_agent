@@ -56,7 +56,9 @@ function isBrowserCallablePath(path) {
     path.startsWith("/x-analyzer") ||
     path.startsWith("/8004") ||
     path.startsWith("/uponly-rise-market") ||
-    path.startsWith("/uponly-rise-portfolio")
+    path.startsWith("/uponly-rise-markets") ||
+    path.startsWith("/uponly-rise-portfolio") ||
+    path.startsWith("/uponly-rise-create")
   );
 }
 

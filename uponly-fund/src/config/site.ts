@@ -2,6 +2,6 @@
 const raw =
   typeof import.meta.env.VITE_PUBLIC_SITE_ORIGIN === "string"
     ? import.meta.env.VITE_PUBLIC_SITE_ORIGIN.trim()
-    : "https://uponly.fund";
+    : "https://uponlyfund.com";
 
 export const SITE_ORIGIN = raw.replace(/\/$/, "");

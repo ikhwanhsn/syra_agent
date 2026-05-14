@@ -1,4 +1,5 @@
 const RISE_DEFAULT_BASE_URL = "https://public.rise.rich";
+const RISE_PROGRAM_DEFAULT_BASE_URL = "https://api.rise.rich";
 
 /** Rise vendor limit: max HTTP requests started per rolling second (single Node process). */
 const RISE_MAX_RPS = (() => {
@@ -56,6 +57,12 @@ function getRiseConfig() {
   };
 }
 
+function getRiseProgramApiBaseUrl() {
+  return String(process.env.RISE_PROGRAM_API_BASE_URL || RISE_PROGRAM_DEFAULT_BASE_URL)
+    .trim()
+    .replace(/\/+$/, "");
+}
+
 function buildQuery(params = {}) {
   const entries = Object.entries(params).filter(
     ([, value]) => value !== undefined && value !== null && String(value).trim() !== ""
@@ -64,6 +71,10 @@ function buildQuery(params = {}) {
   return `?${new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString()}`;
 }
 
+/**
+ * @param {string} path
+ * @param {{ method?: string, query?: Record<string, unknown>, body?: unknown, baseUrl?: string }} [options]
+ */
 async function riseRequest(path, options = {}) {
   const cfg = getRiseConfig();
   if (!cfg.configured) {
@@ -74,7 +85,8 @@ async function riseRequest(path, options = {}) {
 
   const method = options.method || "GET";
   const query = buildQuery(options.query);
-  const url = `${cfg.baseUrl}${path}${query}`;
+  const base = typeof options.baseUrl === "string" && options.baseUrl.trim() ? options.baseUrl.trim().replace(/\/+$/, "") : cfg.baseUrl;
+  const url = `${base}${path}${query}`;
   const headers = {
     "x-api-key": cfg.apiKey,
     ...(method !== "GET" ? { "Content-Type": "application/json" } : {}),
@@ -153,6 +165,15 @@ export function risePostDepositAndBorrow(body) {
 
 export function risePostRepayAndWithdraw(body) {
   return riseRequest("/program/repay-and-withdraw", { method: "POST", body });
+}
+
+/** Token creation lives on api.rise.rich (not public.rise.rich). */
+export function risePostCreateToken(body) {
+  return riseRequest("/program/create", {
+    method: "POST",
+    body,
+    baseUrl: getRiseProgramApiBaseUrl(),
+  });
 }
 
 export function riseGetMarketsStreamNewNote() {

@@ -232,14 +232,14 @@ export function TokenHeroHeader({
             {t.share}
           </Button>
           {market.twitterUrl ? (
-            <Button asChild size="sm" variant="ghost" className="h-9 border border-border/40">
+            <Button asChild size="sm" variant="ghost" className="h-9 border border-border/40 text-foreground">
               <a href={market.twitterUrl} target="_blank" rel="noopener noreferrer">
                 <Twitter className="h-3.5 w-3.5" />
               </a>
             </Button>
           ) : null}
           {market.telegramUrl ? (
-            <Button asChild size="sm" variant="ghost" className="h-9 border border-border/40">
+            <Button asChild size="sm" variant="ghost" className="h-9 border border-border/40 text-foreground">
               <a href={market.telegramUrl} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="h-3.5 w-3.5" />
               </a>

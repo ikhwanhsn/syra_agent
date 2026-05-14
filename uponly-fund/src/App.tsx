@@ -23,6 +23,7 @@ const MarketsPage = lazy(() => import("./pages/dashboard/Markets"));
 const WalletPage = lazy(() => import("./pages/dashboard/Wallet"));
 const SimulatorPage = lazy(() => import("./pages/dashboard/Simulator"));
 const InsightsPage = lazy(() => import("./pages/dashboard/Insights"));
+const CreateTokenPage = lazy(() => import("./pages/dashboard/CreateToken"));
 const TokenDetailPage = lazy(() => import("./pages/token/TokenDetail"));
 
 const queryClient = new QueryClient({
@@ -81,6 +82,7 @@ const App = () => (
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/simulator" element={<SimulatorPage />} />
                 <Route path="/insights" element={<InsightsPage />} />
+                <Route path="/create-token" element={<CreateTokenPage />} />
                 <Route path="/token/:address" element={<TokenDetailPage />} />
               </Route>
               <Route path="/dashboard" element={<Navigate to="/" replace />} />

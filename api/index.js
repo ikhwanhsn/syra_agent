@@ -42,6 +42,7 @@ import {
   createUponlyRiseMarketsRouter,
   createUponlyRisePortfolioRouter,
 } from "./routes/uponlyRiseMarket.js";
+import { createUponlyRiseCreateRouter } from "./routes/uponlyRiseCreate.js";
 import { createXApiRouter } from "./routes/partner/x-api/index.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 // x402 route imports (consolidated from v2 into routes)
@@ -301,6 +302,7 @@ function isPreviewRoute(p) {
   if (p.startsWith("/staking")) return true;
   if (p.startsWith("/uponly-rise-market")) return true;
   if (p.startsWith("/uponly-rise-portfolio")) return true;
+  if (p.startsWith("/uponly-rise-create")) return true;
   return false;
 }
 
@@ -609,7 +611,8 @@ app.use(
         p.startsWith("/internal/x402-x-trends/run") ||
         p.startsWith("/internal/growth-") ||
         p.startsWith("/uponly-rise-market") ||
-        p.startsWith("/uponly-rise-portfolio")
+        p.startsWith("/uponly-rise-portfolio") ||
+        p.startsWith("/uponly-rise-create")
       );
     },
   }),
@@ -623,7 +626,7 @@ app.use(injectTrustedOriginApiKey);
 // Skip auth for:
 //   - x402 routes (paid, gated by 402 instead)
 //   - the preview/landing tier (see isPreviewRoute): /preview/*, /dashboard-summary, /binance-ticker,
-//     /streamflow-locks, /staking, /uponly-rise-market*, /uponly-rise-portfolio*. These are
+//     /streamflow-locks, /staking, /uponly-rise-market*, /uponly-rise-portfolio*, /uponly-rise-create*. These are
 //     advertised as "no x402" / free in the OpenAPI gateway and must be reachable by anonymous
 //     clients (curl, MCP tools, third-party agents, x402scan crawlers), not just trusted Syra origins.
 //   - landing/static surface (/, /favicon.ico, /og*, /info*) and the playground / prediction game
@@ -924,6 +927,7 @@ app.use("/dashboard-summary", await createDashboardSummaryRouterRegular());
 app.use("/uponly-rise-market", createUponlyRiseMarketRouter());
 app.use("/uponly-rise-markets", createUponlyRiseMarketsRouter());
 app.use("/uponly-rise-portfolio", createUponlyRisePortfolioRouter());
+app.use("/uponly-rise-create", createUponlyRiseCreateRouter());
 app.use("/binance-ticker", await createBinanceTickerPriceRouter());
 // Legacy /v1 → 410
 app.use("/v1", (req, res) => {

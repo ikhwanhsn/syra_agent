@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { VersionedTransaction } from "@solana/web3.js";
 import { toast } from "@/components/ui/sonner";
 
 const AUTOCONNECT_KEY = "uof.wallet.autoconnect";
@@ -14,6 +15,8 @@ type PhantomProvider = {
   publicKey: PhantomPublicKey | null;
   connect(options?: ConnectOptions): Promise<{ publicKey: PhantomPublicKey }>;
   disconnect(): Promise<void>;
+  signTransaction?(transaction: VersionedTransaction): Promise<VersionedTransaction>;
+  signAllTransactions?(transactions: VersionedTransaction[]): Promise<VersionedTransaction[]>;
   on(event: "disconnect" | "accountChanged", handler: (next: PhantomPublicKey | null) => void): void;
   off(event: "disconnect" | "accountChanged", handler: (next: PhantomPublicKey | null) => void): void;
 };
@@ -24,6 +27,8 @@ type WalletContextValue = {
   publicKey: string | null;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  signTransaction: (tx: VersionedTransaction) => Promise<VersionedTransaction>;
+  signAllTransactions: (txs: VersionedTransaction[]) => Promise<VersionedTransaction[]>;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -131,6 +136,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signTransaction = useCallback(async (tx: VersionedTransaction) => {
+    const provider = getPhantomProvider();
+    if (!provider?.signTransaction) {
+      throw new Error("Phantom signTransaction is not available");
+    }
+    return provider.signTransaction(tx);
+  }, []);
+
+  const signAllTransactions = useCallback(async (txs: VersionedTransaction[]) => {
+    const provider = getPhantomProvider();
+    if (!provider?.signAllTransactions) {
+      throw new Error("Phantom signAllTransactions is not available");
+    }
+    return provider.signAllTransactions(txs);
+  }, []);
+
   const value = useMemo<WalletContextValue>(
     () => ({
       status,
@@ -138,8 +159,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       publicKey,
       connect,
       disconnect,
+      signTransaction,
+      signAllTransactions,
     }),
-    [connect, disconnect, publicKey, status],
+    [connect, disconnect, publicKey, signAllTransactions, signTransaction, status],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

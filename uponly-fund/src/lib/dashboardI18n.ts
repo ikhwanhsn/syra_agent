@@ -16,6 +16,7 @@ export type DashboardDictionary = {
     simulator: string;
     insights: string;
     wallet: string;
+    createToken: string;
   };
   /** Links pinned to the bottom of the dashboard sidebar */
   sidebarFooter: {
@@ -67,6 +68,9 @@ export type DashboardDictionary = {
     overviewTitle: string;
     overviewDescription: string;
     overviewPageTitle: string;
+    createTokenEyebrow: string;
+    createTokenTitle: string;
+    createTokenDescription: string;
   };
   tabs: {
     screener: string;
@@ -291,6 +295,39 @@ export type DashboardDictionary = {
     quoteAvgFill: string;
     quoteFee: string;
     quoteFooter: string;
+    tradePanelTitle: string;
+    tradeWalletRequired: string;
+    tradeHumanUnits: string;
+    tradeOn: string;
+    tradeOff: string;
+    tradeAmountBuyHuman: string;
+    tradeAmountBuyRaw: string;
+    tradeAmountSellHuman: string;
+    tradeAmountSellRaw: string;
+    tradeSlippage: string;
+    tradeExecuteBuy: string;
+    tradeExecuteSell: string;
+    tradeSuccessBuy: string;
+    tradeSuccessSell: string;
+    tradeViewSolscan: string;
+    tradeErrorGeneric: string;
+    tradeFooterRisk: string;
+    tradeSellDisabled: string;
+    borrowPanelEyebrow: string;
+    borrowPanelTitle: string;
+    borrowModeBorrow: string;
+    borrowModeRepay: string;
+    borrowMax: string;
+    borrowDebt: string;
+    borrowFee: string;
+    borrowAmountLabel: string;
+    repayWithdrawLabel: string;
+    borrowExecute: string;
+    repayExecute: string;
+    borrowSuccess: string;
+    repaySuccess: string;
+    borrowInvalidAmount: string;
+    borrowFooterRisk: string;
     liquidityLocked: string;
     liquidityFloorCover: string;
     liquidityFeeMedian: string;
@@ -319,6 +356,26 @@ export type DashboardDictionary = {
     tradeOnRise: string;
     solscan: string;
     discord: string;
+  };
+  createTokenPage: {
+    imageLabel: string;
+    nameLabel: string;
+    symbolLabel: string;
+    descriptionLabel: string;
+    twitterLabel: string;
+    telegramLabel: string;
+    backingLabel: string;
+    backingSol: string;
+    backingUsdc: string;
+    feeLabel: string;
+    submit: string;
+    successTitle: string;
+    successBody: string;
+    viewToken: string;
+    signaturesTitle: string;
+    reset: string;
+    uploading: string;
+    dropHint: string;
   };
   bubbleMap: {
     eyebrow: string;
@@ -375,6 +432,7 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       simulator: "Simulator",
       insights: "Insights",
       wallet: "Wallet",
+      createToken: "Create token",
     },
     sidebarFooter: {
       sectionLabel: "Connect",
@@ -422,6 +480,10 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       overviewDescription:
         "All RISE markets in one place — default composite trending rank (volume, holders, and move), 100 rows per page, with filters and column sort.",
       overviewPageTitle: "General overview",
+      createTokenEyebrow: "RISE LAUNCH",
+      createTokenTitle: "Create a Rise token",
+      createTokenDescription:
+        "Upload artwork + metadata via Syra (Pinata), then sign two Rise transactions with Phantom. Requires SOL for fees.",
     },
     tabs: {
       screener: "Screener",
@@ -654,6 +716,41 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       quoteAvgFill: "Avg fill",
       quoteFee: "Fee (USD)",
       quoteFooter: "Opens the quote simulator with this mint prefilled.",
+      tradePanelTitle: "Trade on-chain",
+      tradeWalletRequired: "Connect Phantom to sign and send a Rise program transaction via Syra proxy.",
+      tradeHumanUnits: "Human amounts",
+      tradeOn: "On",
+      tradeOff: "Raw",
+      tradeAmountBuyHuman: "Spend",
+      tradeAmountBuyRaw: "Cash in (raw lamports / base units)",
+      tradeAmountSellHuman: "Sell",
+      tradeAmountSellRaw: "Token in (raw base units)",
+      tradeSlippage: "Slippage tolerance",
+      tradeExecuteBuy: "Buy (sign in wallet)",
+      tradeExecuteSell: "Sell (sign in wallet)",
+      tradeSuccessBuy: "Buy submitted",
+      tradeSuccessSell: "Sell submitted",
+      tradeViewSolscan: "Solscan",
+      tradeErrorGeneric: "Transaction failed",
+      tradeFooterRisk:
+        "You sign an unsigned transaction from Rise. Review amounts in your wallet. Syra proxies the API key; execution is on Solana mainnet.",
+      tradeSellDisabled: "Selling is disabled for this market.",
+      borrowPanelEyebrow: "BORROW / REPAY",
+      borrowPanelTitle: "Floor-backed borrow",
+      borrowModeBorrow: "Borrow",
+      borrowModeRepay: "Repay & withdraw",
+      borrowMax: "Max borrow (USD est.)",
+      borrowDebt: "Debt (raw)",
+      borrowFee: "Borrow fee",
+      borrowAmountLabel: "Borrow (after fee)",
+      repayWithdrawLabel: "Withdraw collateral",
+      borrowExecute: "Deposit & borrow (sign)",
+      repayExecute: "Repay & withdraw (sign)",
+      borrowSuccess: "Borrow transaction submitted",
+      repaySuccess: "Repay transaction submitted",
+      borrowInvalidAmount: "Enter a positive amount.",
+      borrowFooterRisk:
+        "Borrowing uses Rise deposit-and-borrow / repay-and-withdraw. Not financial advice; verify health factor in wallet.",
       liquidityLocked: "Locked supply",
       liquidityFloorCover: "Floor / mcap coverage",
       liquidityFeeMedian: "Creator fee vs median",
@@ -682,6 +779,26 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       tradeOnRise: "Trade on RISE",
       solscan: "Solscan",
       discord: "Discord",
+    },
+    createTokenPage: {
+      imageLabel: "Logo image (PNG / JPG / GIF)",
+      nameLabel: "Token name",
+      symbolLabel: "Ticker",
+      descriptionLabel: "Description",
+      twitterLabel: "X (Twitter) URL",
+      telegramLabel: "Telegram URL",
+      backingLabel: "Backing collateral",
+      backingSol: "SOL",
+      backingUsdc: "USDC",
+      feeLabel: "Creator fee % (0–10)",
+      submit: "Create token (2 signatures)",
+      successTitle: "Token created",
+      successBody: "Both transactions confirmed. Indexers may take a minute to show the new market.",
+      viewToken: "Open token page",
+      signaturesTitle: "Signatures",
+      reset: "Create another",
+      uploading: "Uploading & requesting transactions…",
+      dropHint: "Drag & drop or click to pick an image (max 15 MB).",
     },
     bubbleMap: {
       eyebrow: "LIVE MARKET MAP",
@@ -735,6 +852,7 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       simulator: "模拟器",
       insights: "洞察",
       wallet: "钱包",
+      createToken: "创建代币",
     },
     sidebarFooter: {
       sectionLabel: "链接",
@@ -781,6 +899,9 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       overviewDescription:
         "汇集全部 RISE 市场 — 默认按综合热门分排序（成交量、持有人与波动），每页 100 条，支持筛选与列排序。",
       overviewPageTitle: "总览",
+      createTokenEyebrow: "RISE 发行",
+      createTokenTitle: "创建 Rise 代币",
+      createTokenDescription: "通过 Syra（Pinata）上传图片与元数据，再用 Phantom 依次签署两笔 Rise 交易。需预留 SOL 作为手续费。",
     },
     tabs: {
       screener: "筛选器",
@@ -1014,6 +1135,39 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       quoteAvgFill: "均价成交",
       quoteFee: "手续费（USD）",
       quoteFooter: "在报价模拟器中预填该 Mint。",
+      tradePanelTitle: "链上交易",
+      tradeWalletRequired: "连接 Phantom，通过 Syra 代理签名并发送 Rise 程序交易。",
+      tradeHumanUnits: "人类可读数量",
+      tradeOn: "开",
+      tradeOff: "原始单位",
+      tradeAmountBuyHuman: "支付",
+      tradeAmountBuyRaw: "输入抵押（原始最小单位）",
+      tradeAmountSellHuman: "卖出",
+      tradeAmountSellRaw: "代币输入（原始最小单位）",
+      tradeSlippage: "滑点",
+      tradeExecuteBuy: "买入（钱包签名）",
+      tradeExecuteSell: "卖出（钱包签名）",
+      tradeSuccessBuy: "买入已提交",
+      tradeSuccessSell: "卖出已提交",
+      tradeViewSolscan: "Solscan",
+      tradeErrorGeneric: "交易失败",
+      tradeFooterRisk: "你将签署 Rise 返回的未签名交易，请在钱包中核对金额。Syra 代理 API Key；执行在主网。",
+      tradeSellDisabled: "该市场已禁用卖出。",
+      borrowPanelEyebrow: "借入 / 偿还",
+      borrowPanelTitle: "底线抵押借贷",
+      borrowModeBorrow: "借入",
+      borrowModeRepay: "偿还并提取",
+      borrowMax: "最大可借（USD 估算）",
+      borrowDebt: "债务（原始）",
+      borrowFee: "借贷手续费",
+      borrowAmountLabel: "借入（费后）",
+      repayWithdrawLabel: "提取抵押",
+      borrowExecute: "存入并借入（签名）",
+      repayExecute: "偿还并提取（签名）",
+      borrowSuccess: "借贷交易已提交",
+      repaySuccess: "偿还交易已提交",
+      borrowInvalidAmount: "请输入正数金额。",
+      borrowFooterRisk: "使用 Rise 的存入+借入 / 偿还+提取。非投资建议；请在钱包中核对风险。",
       liquidityLocked: "锁仓",
       liquidityFloorCover: "底线 / 市值覆盖",
       liquidityFeeMedian: "创作者费率 vs 中位数",
@@ -1042,6 +1196,26 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       tradeOnRise: "在 RISE 交易",
       solscan: "Solscan",
       discord: "Discord",
+    },
+    createTokenPage: {
+      imageLabel: "Logo 图片（PNG / JPG / GIF）",
+      nameLabel: "代币名称",
+      symbolLabel: "简称",
+      descriptionLabel: "描述",
+      twitterLabel: "X（Twitter）链接",
+      telegramLabel: "Telegram 链接",
+      backingLabel: "抵押资产",
+      backingSol: "SOL",
+      backingUsdc: "USDC",
+      feeLabel: "创作者费率 %（0–10）",
+      submit: "创建代币（两次签名）",
+      successTitle: "代币已创建",
+      successBody: "两笔交易已确认。索引可能需要几分钟显示新市场。",
+      viewToken: "打开代币页",
+      signaturesTitle: "签名",
+      reset: "再创建一个",
+      uploading: "上传并请求交易中…",
+      dropHint: "拖拽或点击选择图片（最大 15 MB）。",
     },
     bubbleMap: {
       eyebrow: "实时市场图",
@@ -1087,6 +1261,7 @@ export function getPageTitle(pathname: string, dictionary: DashboardDictionary):
   if (pathname.startsWith("/token/")) return dictionary.tokenDetail.pageTitle;
   if (pathname === "/" || pathname === "") return t.overviewPageTitle;
   if (pathname === "/terminal") return t.riseTerminal;
+  if (pathname === "/create-token") return t.createTokenTitle;
   if (pathname.endsWith("/market")) return t.market;
   if (pathname.endsWith("/wallet")) return t.wallet;
   if (pathname.endsWith("/simulator")) return t.simulator;

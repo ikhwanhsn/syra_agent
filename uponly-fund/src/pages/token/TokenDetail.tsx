@@ -10,7 +10,8 @@ import { TokenHeroHeader } from "@/components/token/TokenHeroHeader";
 import { TokenHolderPanel } from "@/components/token/TokenHolderPanel";
 import { TokenKpiGrid } from "@/components/token/TokenKpiGrid";
 import { TokenLiquidityPanel } from "@/components/token/TokenLiquidityPanel";
-import { TokenQuotePanel } from "@/components/token/TokenQuotePanel";
+import { TokenBorrowPanel } from "@/components/token/TokenBorrowPanel";
+import { TokenTradePanel } from "@/components/token/TokenTradePanel";
 import { TokenScoreStrip } from "@/components/token/TokenScoreStrip";
 import { TokenSimilarMarkets } from "@/components/token/TokenSimilarMarkets";
 import { TokenTopHoldersTable } from "@/components/token/TokenTopHoldersTable";
@@ -111,7 +112,10 @@ export default function TokenDetailPage() {
               >
                 <TokenPriceChart market={market} className="lg:col-span-2" />
               </Suspense>
-              <TokenQuotePanel market={market} />
+              <div className="flex flex-col gap-4 lg:col-span-1">
+                <TokenTradePanel market={market} />
+                <TokenBorrowPanel market={market} />
+              </div>
             </div>
             <TokenKpiGrid market={market} />
             <TokenHolderPanel market={market} />
