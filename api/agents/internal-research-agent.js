@@ -6,7 +6,10 @@
 import { callOpenRouter } from "../libs/openrouter.js";
 import { looksLikeAuthWall } from "../libs/agentTeamCrawl.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
+import {
+  resolveInternalPipelineModel,
+  INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
+} from "../config/internalPipelineAgents.js";
 
 /**
  * @typedef {import("../libs/agentTeamCrawl.js").CrawlSnapshotItem} CrawlSnapshotItem
@@ -201,8 +204,13 @@ function sanitizeAuthSurfaceHallucinations(snapshot, output) {
 
 const SYSTEM_PROMPT = `You are Syra's internal product researcher. You receive crawled markdown/text from Syra's public web surfaces (landing, docs, agent app, playground) plus a static description of the API auth model and public API discovery JSON (OpenAPI + x402).
 
+Brand context (for tone and priorities only — never invent metrics or deals):
+- Syra: agentic trading / intelligence and paid APIs (e.g. x402) on Solana.
+- Up Only: companion community / distribution narrative; keep recommendations realistic and execution-focused for a team that may scale aggressively.
+
 Rules:
 - Base every recommendation ONLY on evidence present in the provided content. If something is unclear, say so in "why" rather than inventing metrics, user numbers, or roadmap claims.
+- Prefer fewer, higher-signal recommendations over vague platitudes. Each "why" should cite what you saw (page type, missing section, confusing copy) in one or two concrete phrases.
 - Output ONLY a single JSON object, no markdown fences, no commentary before or after.
 - Use this exact JSON shape and key order is not required:
 {
@@ -378,8 +386,8 @@ export async function runInternalResearchAgent({ snapshot, model }) {
 
   const llmOpts = {
     model: modelId,
-    max_tokens: 4096,
-    temperature: 0.35,
+    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.internalResearch,
+    temperature: 0.28,
   };
 
   const apiMessages = withLlmIdentitySystemNote(messages, modelId);

@@ -8,16 +8,17 @@ import { parseJsonObjectFromLlm } from "../libs/llmJsonObjectParse.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
 import {
   resolveInternalPipelineModel,
+  INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
   GROWTH_SYRA_SOCIAL_MAX_PER_QUERY,
   GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM,
-  GROWTH_SYRA_SOCIAL_SEARCH_QUERIES,
+  GROWTH_SYRA_SOCIAL_SEARCH_QUERY,
 } from "../config/internalPipelineAgents.js";
 
 const TWEET_FIELDS = "created_at,public_metrics,author_id,text";
 const EXPANSIONS = "author_id";
 const USER_FIELDS = "username,name,verified";
 
-const SYSTEM_PROMPT = `You are Syra's growth marketer analyst. Input is recent X posts about $SYRA, @syra_agent, syraa.fun, or "Syra agent".
+const SYSTEM_PROMPT = `You are Syra's growth marketer analyst. Input is recent X posts about $SYRA, @syra_agent, syraa.fun, or "Syra agent". Up Only–adjacent hype may appear — down-rank unverifiable claims; prioritize reproducible community and builder signals.
 
 Rules:
 - Ground bullets in tweet ids provided.
@@ -97,27 +98,25 @@ function validateOutput(obj) {
  * @param {{ model?: string | null }} params
  */
 export async function runGrowthSyraSocialAgent({ model }) {
-  const queries = [...GROWTH_SYRA_SOCIAL_SEARCH_QUERIES];
-  const maxPerQuery = Math.min(80, Math.max(10, GROWTH_SYRA_SOCIAL_MAX_PER_QUERY));
+  const q = GROWTH_SYRA_SOCIAL_SEARCH_QUERY;
+  const maxPerQuery = Math.min(100, Math.max(10, GROWTH_SYRA_SOCIAL_MAX_PER_QUERY));
   const maxForLlm = Math.min(90, Math.max(15, GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM));
 
   const merged = new Map();
-  for (const q of queries) {
-    const body = await searchRecentTweets(q, {
-      max_results: maxPerQuery,
-      tweetFields: TWEET_FIELDS,
-      expansions: EXPANSIONS,
-      userFields: USER_FIELDS,
-    });
-    if (body.errors?.length) {
-      throw new Error(`growth-syra-social: ${body.errors[0]?.message || "X error"} (${q.slice(0, 60)})`);
-    }
-    const usersById = usersByIdFromIncludes(body);
-    const list = Array.isArray(body.data) ? body.data : [];
-    for (const tw of list) {
-      const n = normalizeTweet(tw, usersById);
-      if (n && !merged.has(n.id)) merged.set(n.id, n);
-    }
+  const body = await searchRecentTweets(q, {
+    max_results: maxPerQuery,
+    tweetFields: TWEET_FIELDS,
+    expansions: EXPANSIONS,
+    userFields: USER_FIELDS,
+  });
+  if (body.errors?.length) {
+    throw new Error(`growth-syra-social: ${body.errors[0]?.message || "X error"} (${q.slice(0, 60)})`);
+  }
+  const usersById = usersByIdFromIncludes(body);
+  const list = Array.isArray(body.data) ? body.data : [];
+  for (const tw of list) {
+    const n = normalizeTweet(tw, usersById);
+    if (n && !merged.has(n.id)) merged.set(n.id, n);
   }
 
   if (merged.size === 0) {
@@ -149,7 +148,7 @@ export async function runGrowthSyraSocialAgent({ model }) {
     },
   ];
 
-  const llmOpts = { model: modelId, max_tokens: 3200, temperature: 0.32 };
+  const llmOpts = { model: modelId, max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.growthSyraSocial, temperature: 0.28 };
   const apiMessages = withLlmIdentitySystemNote(messages, modelId);
   const first = await callOpenRouter(apiMessages, llmOpts);
 
@@ -198,20 +197,4 @@ export async function runGrowthSyraSocialAgent({ model }) {
     generatedAt: new Date().toISOString(),
     tweetsSampled: merged.size,
   };
-}
-
-/**
- * @param {Awaited<ReturnType<typeof runGrowthSyraSocialAgent>>} out
- */
-export function formatGrowthSyraSocialTelegram(out) {
-  const lines = [
-    "Syra growth — social pulse",
-    `Generated: ${out.generatedAt} · ${out.tweetsSampled} posts · sentiment: ${out.sentiment}`,
-    "",
-    out.summary,
-    "",
-    "Actions:",
-    ...out.recommendedActions.slice(0, 6).map((a, i) => `${i + 1}. ${a}`),
-  ];
-  return lines.join("\n");
 }

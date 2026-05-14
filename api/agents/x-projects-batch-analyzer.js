@@ -1,6 +1,9 @@
 /**
  * Batch X Project Analyzer — same scoring as /x-analyzer, no x402.
  * Only dynamic input: **type** (registry in config). X handles are static per type.
+ *
+ * Env (optional): X_BATCH_ANALYZER_CACHE_MS (default 300000, max 1800000),
+ * X_BATCH_ANALYZER_CONCURRENCY (default 2, max 5) — lower concurrency eases X rate limits.
  */
 
 import express from 'express';
@@ -12,12 +15,26 @@ import {
 } from '../config/projectAnalyzerTypes.js';
 import { runXProjectAnalysis } from './x-project-analyzer.js';
 
-const CACHE_TTL_MS = 60 * 1000;
+function parseCacheMs() {
+  const raw = process.env.X_BATCH_ANALYZER_CACHE_MS;
+  const n = raw != null && raw !== '' ? Number.parseInt(String(raw).trim(), 10) : NaN;
+  if (Number.isFinite(n) && n >= 30_000) return Math.min(30 * 60_000, n);
+  return 5 * 60_000;
+}
+
+function parseConcurrency() {
+  const raw = process.env.X_BATCH_ANALYZER_CONCURRENCY;
+  const n = raw != null && raw !== '' ? Number.parseInt(String(raw).trim(), 10) : NaN;
+  if (Number.isFinite(n) && n >= 1) return Math.min(5, n);
+  return 2;
+}
+
+const CACHE_TTL_MS = parseCacheMs();
 /** @type {Map<string, { data: unknown; expires: number }>} */
 const cache = new Map();
 
-/** Concurrent X API fan-out to reduce rate-limit spikes. */
-const CONCURRENCY = 3;
+/** Concurrent X API fan-out to reduce rate-limit spikes (default 2). */
+const CONCURRENCY = parseConcurrency();
 
 const USERNAME_RE = /^[A-Za-z0-9_]{1,15}$/;
 
@@ -173,7 +190,7 @@ export function createXProjectsBatchAnalyzerRouter() {
       const cacheKey = `account:${typeParam}:${username.toLowerCase()}:${max_results}:${includeAiSummary}`;
       const hit = cacheGet(cacheKey);
       if (hit) {
-        res.setHeader('Cache-Control', 'public, max-age=60');
+        res.setHeader('Cache-Control', `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`);
         return res.json({ success: true, data: hit });
       }
 
@@ -208,7 +225,7 @@ export function createXProjectsBatchAnalyzerRouter() {
       };
 
       cacheSet(cacheKey, payload);
-      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.setHeader('Cache-Control', `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`);
       return res.json({ success: true, data: payload });
     } catch (err) {
       console.warn(
@@ -264,7 +281,7 @@ export function createXProjectsBatchAnalyzerRouter() {
       const cacheKey = `${typeParam}:${max_results}:${includeAiSummary}`;
       const hit = cacheGet(cacheKey);
       if (hit) {
-        res.setHeader('Cache-Control', 'public, max-age=60');
+        res.setHeader('Cache-Control', `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`);
         return res.json({ success: true, data: hit });
       }
 
@@ -276,7 +293,7 @@ export function createXProjectsBatchAnalyzerRouter() {
       });
 
       cacheSet(cacheKey, data);
-      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.setHeader('Cache-Control', `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`);
       return res.json({ success: true, data });
     } catch (err) {
       console.warn(

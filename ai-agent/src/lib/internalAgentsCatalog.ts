@@ -3,7 +3,8 @@ export type InternalAgentSlug =
   | "x402-pulse"
   | "growth-syra-market"
   | "growth-syra-social"
-  | "growth-sector-narrative";
+  | "growth-sector-narrative"
+  | "hr-coach";
 
 export const INTERNAL_AGENT_SLUGS: readonly InternalAgentSlug[] = [
   "agent-team",
@@ -11,6 +12,7 @@ export const INTERNAL_AGENT_SLUGS: readonly InternalAgentSlug[] = [
   "growth-syra-market",
   "growth-syra-social",
   "growth-sector-narrative",
+  "hr-coach",
 ] as const;
 
 export function isInternalAgentSlug(value: string): value is InternalAgentSlug {
@@ -25,27 +27,32 @@ export const INTERNAL_AGENTS: readonly {
   {
     slug: "agent-team",
     name: "Growth · Agent team",
-    subtitle: "Crawl Syra surfaces → internal research → business strategy → Telegram",
+    subtitle: "15-slot roster: crawl + research + strategy roles (6 short Telegram digests per run)",
   },
   {
     slug: "x402-pulse",
     name: "Growth · x402 pulse",
-    subtitle: "X recent search → OpenRouter digest → Telegram",
+    subtitle: "X recent search → digest (2 short Telegram messages: scout + ecosystem watch)",
   },
   {
     slug: "growth-syra-market",
     name: "Growth · SYRA market",
-    subtitle: "DexScreener + Jupiter quote + CoinGecko macro → liquidity & path to ~$1M-class FDV (informational)",
+    subtitle: "DexScreener + Jupiter + macro → two short digests (market pulse + liquidity desk)",
   },
   {
     slug: "growth-syra-social",
     name: "Growth · SYRA social",
-    subtitle: "X ($SYRA / syra_agent / syraa.fun) → community & distribution signals",
+    subtitle: "X ($SYRA / syra_agent / syraa.fun) → two short digests (social pulse + community liaison)",
   },
   {
     slug: "growth-sector-narrative",
     name: "Growth · SYRA sector",
-    subtitle: "X (AI agents / x402) + SOL·BTC·ETH spot → positioning ideas for Syra",
+    subtitle: "Sector X + spot macro → two short digests (sector narrative + macro signal)",
+  },
+  {
+    slug: "hr-coach",
+    name: "Growth · HR coach (slot 15/15)",
+    subtitle: "Reads latest saves from other pipelines → short skill-improvement note for the 15-slot internal team",
   },
 ] as const;
 

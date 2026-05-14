@@ -18,6 +18,7 @@ import {
   type GrowthSectorNarrativePayload,
   type GrowthSyraMarketPayload,
   type GrowthSyraSocialPayload,
+  type HrCoachPayload,
   type X402XTrendsLatestPayload,
 } from "@/lib/internalTeamAgentsApi";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
@@ -444,6 +445,24 @@ function GrowthSectorDetail({ data, savedAt }: { data: GrowthSectorNarrativePayl
   );
 }
 
+function HrCoachDetail({ data, savedAt }: { data: HrCoachPayload; savedAt?: string }) {
+  const lines = (data.coaching || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Model run: {data.generatedAt ? formatShortDate(data.generatedAt) : "—"}
+        {savedAt ? ` · Saved ${formatShortDate(savedAt)}` : ""}
+      </p>
+      <SectionCard title="HR coaching (plain text)">
+        {lines.length ? <BulletList items={lines} /> : <p className="text-muted-foreground">—</p>}
+      </SectionCard>
+    </div>
+  );
+}
+
 function renderPayload(slug: InternalAgentSlug, res: Awaited<ReturnType<typeof fetchInternalAgentLatest>>) {
   const savedAt = res.savedAt;
   const payload = res.data;
@@ -460,6 +479,8 @@ function renderPayload(slug: InternalAgentSlug, res: Awaited<ReturnType<typeof f
       return <GrowthSocialDetail data={payload as GrowthSyraSocialPayload} savedAt={savedAt} />;
     case "growth-sector-narrative":
       return <GrowthSectorDetail data={payload as GrowthSectorNarrativePayload} savedAt={savedAt} />;
+    case "hr-coach":
+      return <HrCoachDetail data={payload as HrCoachPayload} savedAt={savedAt} />;
     default: {
       const _never: never = slug;
       return _never;

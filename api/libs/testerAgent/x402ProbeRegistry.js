@@ -228,14 +228,11 @@ export function getX402SmokeProbes() {
       path: "/quicknode/rpc",
       body: { chain: "solana", method: "getHealth", params: [] },
     },
+    // GET only per X route — unpaid smoke is 402-only, but halving probes cuts noise if behavior changes.
     { id: "x_user_get", method: "GET", path: "/x/user", query: "username=syra" },
-    { id: "x_user_post", method: "POST", path: "/x/user", body: { username: "syra" } },
     { id: "x_search_recent_get", method: "GET", path: "/x/search/recent", query: "query=crypto" },
-    { id: "x_search_recent_post", method: "POST", path: "/x/search/recent", body: { query: "crypto" } },
     { id: "x_user_tweets_get", method: "GET", path: "/x/user/syra/tweets" },
-    { id: "x_user_tweets_post", method: "POST", path: "/x/user/syra/tweets", body: {} },
     { id: "x_feed_get", method: "GET", path: "/x/feed", query: "username=syra" },
-    { id: "x_feed_post", method: "POST", path: "/x/feed", body: { username: "syra" } },
     { id: "pumpfun_sol_price", method: "GET", path: "/pumpfun/sol-price" },
     {
       id: "pumpfun_coin",

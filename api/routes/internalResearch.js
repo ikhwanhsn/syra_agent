@@ -24,6 +24,10 @@ import {
   GROWTH_SYRA_SOCIAL_DB_ID,
   GROWTH_SECTOR_NARRATIVE_DB_ID,
 } from "../libs/growthInternalAgentsScheduler.js";
+import {
+  runInternalHrCoachPipeline,
+  INTERNAL_HR_COACH_DB_ID,
+} from "../libs/internalHrCoachScheduler.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -241,6 +245,36 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "Agent team pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/hr-coach/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: INTERNAL_HR_COACH_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/hr-coach/run", async (_req, res) => {
+    try {
+      const out = await runInternalHrCoachPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "HR coach pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

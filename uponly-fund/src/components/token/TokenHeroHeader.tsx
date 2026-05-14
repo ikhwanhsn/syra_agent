@@ -117,7 +117,7 @@ export function TokenHeroHeader({
     <GlassCard
       padded={false}
       className={cn(
-        "sticky top-0 z-20 border-border/50 shadow-[0_8px_40px_-20px_hsl(0_0%_0%/0.45)] backdrop-blur-xl",
+        "border-border/50 shadow-[0_8px_40px_-20px_hsl(0_0%_0%/0.45)] backdrop-blur-xl",
         className,
       )}
     >
@@ -160,8 +160,8 @@ export function TokenHeroHeader({
           </div>
 
           <div className="flex w-full shrink-0 flex-col gap-2 lg:w-[min(100%,20rem)]">
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              1h · 96
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t.sparklineMicroLabel}
             </p>
             <div className="h-24 w-full rounded-xl border border-border/35 bg-background/30">
               {spark.isPending ? (

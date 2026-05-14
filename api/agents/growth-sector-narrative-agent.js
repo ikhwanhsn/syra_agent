@@ -9,9 +9,10 @@ import { parseJsonObjectFromLlm } from "../libs/llmJsonObjectParse.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
 import {
   resolveInternalPipelineModel,
+  INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
   GROWTH_SECTOR_MAX_PER_QUERY,
   GROWTH_SECTOR_MAX_TWEETS_LLM,
-  GROWTH_SECTOR_NARRATIVE_SEARCH_QUERIES,
+  GROWTH_SECTOR_NARRATIVE_SEARCH_QUERY,
 } from "../config/internalPipelineAgents.js";
 
 const TWEET_FIELDS = "created_at,public_metrics,author_id,text";
@@ -21,7 +22,7 @@ const USER_FIELDS = "username,name,verified";
 const COINGECKO_SIMPLE =
   "https://api.coingecko.com/api/v3/simple/price?ids=solana,bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true";
 
-const SYSTEM_PROMPT = `You help Syra's founders prioritize narrative and partnerships on the path to meaningful adoption (e.g. ~$1M FDV class awareness — not a promise).
+const SYSTEM_PROMPT = `You help Syra's founders prioritize narrative and partnerships on the path to meaningful adoption (e.g. ~$1M FDV class awareness — not a promise). Frame opportunities so they also strengthen Up Only–aligned distribution where it is evidence-backed, not speculative.
 
 Input: recent sector tweets + spot USD + 24h % change for SOL/BTC/ETH.
 
@@ -109,27 +110,25 @@ function validateOutput(obj) {
  * @param {{ model?: string | null }} params
  */
 export async function runGrowthSectorNarrativeAgent({ model }) {
-  const queries = [...GROWTH_SECTOR_NARRATIVE_SEARCH_QUERIES];
-  const maxPerQuery = Math.min(80, Math.max(10, GROWTH_SECTOR_MAX_PER_QUERY));
+  const q = GROWTH_SECTOR_NARRATIVE_SEARCH_QUERY;
+  const maxPerQuery = Math.min(100, Math.max(10, GROWTH_SECTOR_MAX_PER_QUERY));
   const maxForLlm = Math.min(85, Math.max(15, GROWTH_SECTOR_MAX_TWEETS_LLM));
 
   const merged = new Map();
-  for (const q of queries) {
-    const body = await searchRecentTweets(q, {
-      max_results: maxPerQuery,
-      tweetFields: TWEET_FIELDS,
-      expansions: EXPANSIONS,
-      userFields: USER_FIELDS,
-    });
-    if (body.errors?.length) {
-      throw new Error(`growth-sector: ${body.errors[0]?.message || "X error"}`);
-    }
-    const usersById = usersByIdFromIncludes(body);
-    const list = Array.isArray(body.data) ? body.data : [];
-    for (const tw of list) {
-      const n = normalizeTweet(tw, usersById);
-      if (n && !merged.has(n.id)) merged.set(n.id, n);
-    }
+  const body = await searchRecentTweets(q, {
+    max_results: maxPerQuery,
+    tweetFields: TWEET_FIELDS,
+    expansions: EXPANSIONS,
+    userFields: USER_FIELDS,
+  });
+  if (body.errors?.length) {
+    throw new Error(`growth-sector: ${body.errors[0]?.message || "X error"}`);
+  }
+  const usersById = usersByIdFromIncludes(body);
+  const list = Array.isArray(body.data) ? body.data : [];
+  for (const tw of list) {
+    const n = normalizeTweet(tw, usersById);
+    if (n && !merged.has(n.id)) merged.set(n.id, n);
   }
 
   if (merged.size === 0) {
@@ -163,7 +162,11 @@ export async function runGrowthSectorNarrativeAgent({ model }) {
     },
   ];
 
-  const llmOpts = { model: modelId, max_tokens: 3400, temperature: 0.3 };
+  const llmOpts = {
+    model: modelId,
+    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.growthSectorNarrative,
+    temperature: 0.26,
+  };
   const apiMessages = withLlmIdentitySystemNote(messages, modelId);
   const first = await callOpenRouter(apiMessages, llmOpts);
 
@@ -214,20 +217,4 @@ export async function runGrowthSectorNarrativeAgent({ model }) {
     generatedAt: new Date().toISOString(),
     tweetsSampled: merged.size,
   };
-}
-
-/**
- * @param {Awaited<ReturnType<typeof runGrowthSectorNarrativeAgent>>} out
- */
-export function formatGrowthSectorNarrativeTelegram(out) {
-  const lines = [
-    "Syra growth — sector narrative",
-    `Generated: ${out.generatedAt} · ${out.tweetsSampled} posts`,
-    out.macroHeadline ? `\nMacro: ${out.macroHeadline}\n` : "\n",
-    out.summary,
-    "",
-    "Positioning ideas:",
-    ...out.positioningIdeasForSyra.slice(0, 8).map((a, i) => `${i + 1}. ${a}`),
-  ];
-  return lines.join("\n");
 }

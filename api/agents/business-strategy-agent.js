@@ -5,7 +5,10 @@
 
 import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
+import {
+  resolveInternalPipelineModel,
+  INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
+} from "../config/internalPipelineAgents.js";
 
 /**
  * @typedef {import("../libs/agentTeamCrawl.js").CrawlSnapshotItem} CrawlSnapshotItem
@@ -48,14 +51,15 @@ import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.j
 
 const HORIZONS = new Set(["1w", "1m", "1q"]);
 
-const SYSTEM_PROMPT = `You are a senior GTM and business strategist for Syra (smart intelligence agent for traders / x402 pay-per-call API on Solana).
+const SYSTEM_PROMPT = `You are a senior GTM and business strategist for Syra (agentic trading intelligence, x402 pay-per-call APIs on Solana) and the Up Only community brand (distribution and culture — treat as a real constraint on messaging, not as a license to invent numbers).
 
 You receive:
 1) Crawled public website/API content (ground truth for positioning and offerings as shown to users).
 2) Structured internal research JSON from a product researcher (feature gaps, UX, devx — treat as hypotheses, still ground claims in the crawl when possible).
 
 Rules:
-- Do not invent revenue numbers, user counts, or partnerships not evidenced in the inputs. If inferring, label clearly as hypothesis in rationale text.
+- Do not invent revenue numbers, user counts, TVL, "billions", or partnerships not evidenced in the inputs. If inferring, label clearly as hypothesis in rationale text.
+- Tie GTM and monetization ideas to observable product surfaces (docs clarity, onboarding, developer loops, x402 catalog depth). Avoid generic "scale to billions" slogans.
 - Output ONLY a single JSON object, no markdown fences, no commentary before or after.
 - Shape:
 {
@@ -232,8 +236,8 @@ export async function runBusinessStrategyAgent({ snapshot, internalResearch, mod
 
   const llmOpts = {
     model: modelId,
-    max_tokens: 4096,
-    temperature: 0.4,
+    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.businessStrategy,
+    temperature: 0.33,
   };
 
   const apiMessages = withLlmIdentitySystemNote(messages, modelId);

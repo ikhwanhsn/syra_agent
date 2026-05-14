@@ -1,5 +1,6 @@
 /**
- * Three growth-focused internal agents (SYRA market, SYRA social, sector narrative).
+ * Growth internal agents — SYRA market, SYRA social, sector narrative (slots 7–12 of the 15-slot team).
+ * Each pipeline sends two short Telegram digests (plain language).
  *
  * Schedule: daily at WIB anchor (see `./wibDailyWallClock.js`), staggered +0 / +60s / +120s. No run on boot.
  *
@@ -11,16 +12,21 @@ import { isDevTelegramConfigured, sendDevTelegram } from "./devTelegramNotifier.
 import { isXApiBearerConfigured } from "./xApiClient.js";
 import {
   runGrowthSyraMarketAgent,
-  formatGrowthSyraMarketTelegram,
 } from "../agents/growth-syra-market-agent.js";
 import {
   runGrowthSyraSocialAgent,
-  formatGrowthSyraSocialTelegram,
 } from "../agents/growth-syra-social-agent.js";
 import {
   runGrowthSectorNarrativeAgent,
-  formatGrowthSectorNarrativeTelegram,
 } from "../agents/growth-sector-narrative-agent.js";
+import {
+  formatMarketPulseTelegram,
+  formatLiquidityDeskTelegram,
+  formatSocialPulseTelegram,
+  formatCommunityLiaisonTelegram,
+  formatSectorNarrativeTelegram,
+  formatMacroSignalTelegram,
+} from "./internalTeamDailyDigests.js";
 import {
   getMsUntilNextWibWallClock,
   INTERNAL_AGENT_PIPELINES_WIB_HOUR,
@@ -50,10 +56,11 @@ export async function runGrowthSyraMarketPipeline() {
   const data = await runGrowthSyraMarketAgent({ model: null });
   await persistPayload(GROWTH_SYRA_MARKET_DB_ID, data);
   if (isDevTelegramConfigured()) {
-    const sent = await sendDevTelegram(formatGrowthSyraMarketTelegram(data), {
-      disableWebPagePreview: true,
-    });
-    if (!sent) console.warn("[growth-internal] Telegram send failed (syra market)");
+    const t1 = formatMarketPulseTelegram(data);
+    const t2 = formatLiquidityDeskTelegram(data);
+    const s1 = await sendDevTelegram(t1, { disableWebPagePreview: true });
+    const s2 = await sendDevTelegram(t2, { disableWebPagePreview: true });
+    if (!s1 || !s2) console.warn("[growth-internal] Telegram send failed (syra market)");
   }
   return { success: true, data };
 }
@@ -68,10 +75,13 @@ export async function runGrowthSyraSocialPipeline() {
   const data = await runGrowthSyraSocialAgent({ model: null });
   await persistPayload(GROWTH_SYRA_SOCIAL_DB_ID, data);
   if (isDevTelegramConfigured()) {
-    const sent = await sendDevTelegram(formatGrowthSyraSocialTelegram(data), {
+    const s1 = await sendDevTelegram(formatSocialPulseTelegram(data), {
       disableWebPagePreview: true,
     });
-    if (!sent) console.warn("[growth-internal] Telegram send failed (syra social)");
+    const s2 = await sendDevTelegram(formatCommunityLiaisonTelegram(data), {
+      disableWebPagePreview: true,
+    });
+    if (!s1 || !s2) console.warn("[growth-internal] Telegram send failed (syra social)");
   }
   return { success: true, data };
 }
@@ -86,10 +96,13 @@ export async function runGrowthSectorNarrativePipeline() {
   const data = await runGrowthSectorNarrativeAgent({ model: null });
   await persistPayload(GROWTH_SECTOR_NARRATIVE_DB_ID, data);
   if (isDevTelegramConfigured()) {
-    const sent = await sendDevTelegram(formatGrowthSectorNarrativeTelegram(data), {
+    const s1 = await sendDevTelegram(formatSectorNarrativeTelegram(data), {
       disableWebPagePreview: true,
     });
-    if (!sent) console.warn("[growth-internal] Telegram send failed (sector narrative)");
+    const s2 = await sendDevTelegram(formatMacroSignalTelegram(data), {
+      disableWebPagePreview: true,
+    });
+    if (!s1 || !s2) console.warn("[growth-internal] Telegram send failed (sector narrative)");
   }
   return { success: true, data };
 }

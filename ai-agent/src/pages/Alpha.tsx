@@ -36,7 +36,8 @@ import { fetchXProjectsAnalyze, type XProjectsBatchItem } from "@/lib/xProjectsA
 import { formatFollowers, gradeBadgeClass } from "@/lib/alphaIntelUi";
 import { fetchPumpfunAlphaTrend, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
 
-const STALE_MS = 55_000;
+/** Align with server X batch cache — avoids refetching N accounts every minute (X rate limits). */
+const STALE_MS = 180_000;
 
 function sortBatchItemsByScoreDesc(items: XProjectsBatchItem[]): XProjectsBatchItem[] {
   return [...items].sort((a, b) => {

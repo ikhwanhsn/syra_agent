@@ -332,11 +332,7 @@ export async function runAllExperimentSignalCycles() {
   /** @type {Record<string, number>} */
   const bySuite = {};
 
-  for (const suiteId of [
-    EXPERIMENT_SUITE_PRIMARY,
-    EXPERIMENT_SUITE_SECONDARY,
-    EXPERIMENT_SUITE_MULTI_RESOURCE,
-  ]) {
+  for (const suiteId of [EXPERIMENT_SUITE_PRIMARY, EXPERIMENT_SUITE_SECONDARY]) {
     const out = await runExperimentSignalCycle({ suite: suiteId });
     errors.push(...out.errors);
     created += out.created;

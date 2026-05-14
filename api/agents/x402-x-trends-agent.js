@@ -7,9 +7,10 @@ import { callOpenRouter } from "../libs/openrouter.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
 import {
   resolveInternalPipelineModel,
+  INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
   X402_X_TRENDS_MAX_PER_QUERY,
   X402_X_TRENDS_MAX_TWEETS_LLM,
-  X402_X_TRENDS_SEARCH_QUERIES,
+  X402_X_TRENDS_SEARCH_QUERY,
 } from "../config/internalPipelineAgents.js";
 
 const TWEET_FIELDS = "created_at,public_metrics,author_id,text";
@@ -17,6 +18,8 @@ const EXPANSIONS = "author_id";
 const USER_FIELDS = "username,name,verified";
 
 const SYSTEM_PROMPT = `You are a research analyst for Syra. You ONLY receive recent tweets about x402, HTTP 402 payments on the web, PayAI, Corbits, facilitators, Solana/Base x402, and closely related topics.
+
+Strategic lens: surface what matters for Syra's paid APIs and agent distribution, and for Up Only–adjacent crypto Twitter — still grounded only in the tweets provided.
 
 Rules:
 - Base every bullet ONLY on the tweet evidence provided. For each bullet, evidenceTweetIds MUST list one or more tweet "id" values from the input JSON (strings).
@@ -192,29 +195,27 @@ function normalizeTweet(tweet, usersById) {
  * @returns {Promise<X402XTrendsOutput>}
  */
 export async function runX402XTrendsAgent({ model }) {
-  const queries = [...X402_X_TRENDS_SEARCH_QUERIES];
-  const maxPerQuery = Math.min(80, Math.max(10, X402_X_TRENDS_MAX_PER_QUERY));
+  const q = X402_X_TRENDS_SEARCH_QUERY;
+  const maxPerQuery = Math.min(100, Math.max(10, X402_X_TRENDS_MAX_PER_QUERY));
   const maxForLlm = Math.min(100, Math.max(15, X402_X_TRENDS_MAX_TWEETS_LLM));
 
   const merged = new Map();
 
-  for (const q of queries) {
-    const body = await searchRecentTweets(q, {
-      max_results: maxPerQuery,
-      tweetFields: TWEET_FIELDS,
-      expansions: EXPANSIONS,
-      userFields: USER_FIELDS,
-    });
-    if (body.errors?.length) {
-      const msg = body.errors[0]?.message || "X search error";
-      throw new Error(`x402 X trends: ${msg} (query: ${q.slice(0, 80)})`);
-    }
-    const usersById = usersByIdFromIncludes(body);
-    const list = Array.isArray(body.data) ? body.data : [];
-    for (const tw of list) {
-      const n = normalizeTweet(tw, usersById);
-      if (n && !merged.has(n.id)) merged.set(n.id, n);
-    }
+  const body = await searchRecentTweets(q, {
+    max_results: maxPerQuery,
+    tweetFields: TWEET_FIELDS,
+    expansions: EXPANSIONS,
+    userFields: USER_FIELDS,
+  });
+  if (body.errors?.length) {
+    const msg = body.errors[0]?.message || "X search error";
+    throw new Error(`x402 X trends: ${msg} (query: ${q.slice(0, 80)})`);
+  }
+  const usersById = usersByIdFromIncludes(body);
+  const list = Array.isArray(body.data) ? body.data : [];
+  for (const tw of list) {
+    const n = normalizeTweet(tw, usersById);
+    if (n && !merged.has(n.id)) merged.set(n.id, n);
   }
 
   if (merged.size === 0) {
@@ -253,8 +254,8 @@ export async function runX402XTrendsAgent({ model }) {
 
   const llmOpts = {
     model: modelId,
-    max_tokens: 3500,
-    temperature: 0.3,
+    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.x402XTrends,
+    temperature: 0.26,
   };
 
   const apiMessages = withLlmIdentitySystemNote(messages, modelId);
@@ -290,38 +291,4 @@ export async function runX402XTrendsAgent({ model }) {
       );
     }
   }
-}
-
-/**
- * @param {X402XTrendsOutput} out
- * @returns {string}
- */
-export function formatX402XTrendsForTelegram(out) {
-  const bulletLines = out.bullets.slice(0, 8).map((b, i) => {
-    const ids = b.evidenceTweetIds.slice(0, 4).join(", ");
-    const det =
-      b.detail.length > 260 ? `${b.detail.slice(0, 260)}…` : b.detail;
-    return `${i + 1}. ${b.title}\n   ${det}\n   Tweets: ${ids || "—"}`;
-  });
-  const watch = out.watchlist.slice(0, 6).map((w) => `- ${w}`);
-  const noise = out.noiseOrCaveats.slice(0, 5).map((n) => `- ${n}`);
-  const parts = [
-    "Syra — x402 pulse (X)",
-    `Generated: ${out.generatedAt}`,
-    `Sampled ${out.tweetsSampled} unique posts (recent search, 7d window)`,
-    "",
-    "Summary:",
-    out.summary,
-    "",
-    "Trends:",
-    ...bulletLines,
-  ];
-  if (watch.length) {
-    parts.push("", "Watchlist:", ...watch);
-  }
-  if (noise.length) {
-    parts.push("", "Caveats:", ...noise);
-  }
-  parts.push("", "https://x.com/search?q=x402&f=live");
-  return parts.join("\n");
 }

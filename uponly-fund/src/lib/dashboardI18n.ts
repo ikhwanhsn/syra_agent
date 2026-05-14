@@ -267,6 +267,24 @@ export type DashboardDictionary = {
     chartSource: string;
     chartUpdated: string;
     chartAllTimeframe: string;
+    /** Main heading above the OHLC chart (user-facing; not a data “source” label). */
+    chartSectionTitle: string;
+    /** One-line page primer under breadcrumbs on token detail. */
+    pageLayoutIntro: string;
+    /** Subcopy under Intelligence section title. */
+    sectionScoreDescription: string;
+    /** Subcopy under market snapshot KPIs. */
+    sectionKpisDescription: string;
+    /** Eyebrow above sparkline in hero (e.g. recent price path). */
+    sparklineMicroLabel: string;
+    kpiGroupMarket: string;
+    kpiGroupLiquidity: string;
+    kpiGroupSupply: string;
+    kpiGroupLifecycle: string;
+    /** Short helper under the trade / borrow stack in the sticky column. */
+    tradeColumnIntro: string;
+    /** Main H2 for the intelligence strip (distinct from eyebrow). */
+    scoreSectionHeadline: string;
     tradesTitle: string;
     tradesPartial: string;
     tradesBuySell: string;
@@ -688,6 +706,20 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       chartSource: "Source",
       chartUpdated: "Updated",
       chartAllTimeframe: "ALL (1d)",
+      chartSectionTitle: "Historical prices",
+      pageLayoutIntro:
+        "Read top to bottom: identity and price, derived signals, depth metrics, then holders and flow. Data is streamed from RISE indexers—verify large positions on-chain.",
+      sectionScoreDescription:
+        "Heuristic scores and tags derived from this market’s live fields. They summarize momentum and structure—they are not buy or sell recommendations.",
+      sectionKpisDescription:
+        "Key ratios and reference prices in one grid. Floor metrics reflect the RISE bonding curve design for this listing.",
+      sparklineMicroLabel: "Recent path (1h · 96 bars)",
+      kpiGroupMarket: "Price & cap",
+      kpiGroupLiquidity: "Volume & turnover",
+      kpiGroupSupply: "Supply & holders",
+      kpiGroupLifecycle: "Listing lifecycle",
+      tradeColumnIntro: "Live curve quotes from RISE. Treat sizes and impact as estimates until you confirm the transaction in your wallet.",
+      scoreSectionHeadline: "Signal board",
       tradesTitle: "Tape",
       tradesPartial: "Some rows have partial metadata from upstream.",
       tradesBuySell: "Buy flow",
@@ -1107,6 +1139,20 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       chartSource: "来源",
       chartUpdated: "更新",
       chartAllTimeframe: "全部（1d）",
+      chartSectionTitle: "历史价格",
+      pageLayoutIntro:
+        "建议自上而下阅读：标的价格与信号、深度指标、再到持有人与成交。数据来自 RISE 索引，重要仓位请在链上核对。",
+      sectionScoreDescription:
+        "基于该市场实时字段的启发式评分与标签，概括动能与结构，不构成买卖建议。",
+      sectionKpisDescription:
+        "关键比率与参考价一览。底线类指标对应该资产在 RISE 曲线机制下的设计。",
+      sparklineMicroLabel: "近期走势（1h · 96 根）",
+      kpiGroupMarket: "价格与市值",
+      kpiGroupLiquidity: "成交量与换手",
+      kpiGroupSupply: "供应与持有人",
+      kpiGroupLifecycle: "上架生命周期",
+      tradeColumnIntro: "来自 RISE 的实时曲线报价。在钱包中确认交易前，请将数量与冲击视为估算值。",
+      scoreSectionHeadline: "信号面板",
       tradesTitle: "成交明细",
       tradesPartial: "部分成交字段上游不完整。",
       tradesBuySell: "买入占比",

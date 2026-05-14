@@ -273,7 +273,7 @@ export function createTradingExperimentRouter() {
   router.post("/evolution-tick", requireCronSecret, async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
-      const suite = typeof body.suite === "string" ? body.suite : undefined;
+      const suiteRaw = typeof body.suite === "string" ? body.suite.trim().toLowerCase() : "";
       const removeCount =
         body.removeCount != null && Number.isFinite(Number(body.removeCount))
           ? Number(body.removeCount)
@@ -290,11 +290,19 @@ export function createTradingExperimentRouter() {
             .filter((n) => Number.isInteger(n) && n >= 0 && n <= 99),
         );
       }
+      const common = { removeCount, minDecided, pinned };
+      if (suiteRaw === "all" || suiteRaw === "both") {
+        const [primary, secondary] = await Promise.all([
+          runTradingExperimentEvolution({ ...common, suite: "primary" }),
+          runTradingExperimentEvolution({ ...common, suite: "secondary" }),
+        ]);
+        res.json({ success: true, data: { primary, secondary } });
+        return;
+      }
+      const suite = typeof body.suite === "string" ? body.suite : undefined;
       const data = await runTradingExperimentEvolution({
         suite,
-        removeCount,
-        minDecided,
-        pinned,
+        ...common,
       });
       res.json({ success: true, data });
     } catch (e) {

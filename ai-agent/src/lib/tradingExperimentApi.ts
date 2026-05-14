@@ -9,7 +9,6 @@ export type TradingExperimentSuiteId = "primary" | "secondary" | "multi_resource
 export const TRADING_EXPERIMENT_LAB_SUITES: readonly TradingExperimentSuiteId[] = [
   "primary",
   "secondary",
-  "multi_resource",
 ];
 
 /** Unified lab label (suites still differ in API `?suite=` but UI presents one experiment). */
@@ -47,7 +46,8 @@ export function normalizeExperimentSuite(raw: string | null | undefined): Tradin
   const s = String(raw || "primary")
     .trim()
     .toLowerCase();
-  if (s === "secondary" || s === "multi_resource" || s === "primary") return s;
+  if (s === "secondary" || s === "primary") return s;
+  if (s === "multi_resource") return "primary";
   return "primary";
 }
 

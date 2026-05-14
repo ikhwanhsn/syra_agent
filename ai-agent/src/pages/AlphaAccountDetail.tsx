@@ -41,7 +41,8 @@ import {
   scoreRingStyle,
 } from "@/lib/alphaIntelUi";
 
-const STALE_MS = 55_000;
+/** Match server analyzer cache / X API TTL — detail view was refetching too often. */
+const STALE_MS = 180_000;
 const FEED_TYPE = "x402";
 
 function tweetEngagement(t: XRecentTweet): number {

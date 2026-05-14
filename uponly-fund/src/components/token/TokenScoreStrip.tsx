@@ -47,7 +47,11 @@ export function TokenScoreStrip({
 
   return (
     <section className={cn("flex flex-col gap-4", className)}>
-      <SectionHeader eyebrow={t.sectionScore} title={copy.terminal.alpha} description={t.pageDescription} />
+      <SectionHeader
+        eyebrow={t.sectionScore}
+        title={t.scoreSectionHeadline}
+        description={t.sectionScoreDescription}
+      />
       <div className="grid gap-4 md:grid-cols-3">
         <GlassCard>
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">

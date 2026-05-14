@@ -25,6 +25,7 @@ import {
   fetchGrowthSectorNarrativeLatest,
   fetchGrowthSyraMarketLatest,
   fetchGrowthSyraSocialLatest,
+  fetchHrCoachLatest,
   fetchX402XTrendsLatest,
 } from "@/lib/internalTeamAgentsApi";
 import type {
@@ -32,6 +33,7 @@ import type {
   GrowthSectorNarrativePayload,
   GrowthSyraMarketPayload,
   GrowthSyraSocialPayload,
+  HrCoachPayload,
   X402XTrendsLatestPayload,
 } from "@/lib/internalTeamAgentsApi";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
@@ -268,6 +270,17 @@ function maxIsoDate(isos: string[]): string | undefined {
   return best;
 }
 
+function hrCoachStats(payload: HrCoachPayload | null | undefined) {
+  if (!payload?.coaching) return [];
+  const n = payload.coaching
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean).length;
+  const stats: { label: string; value: string | number }[] = [];
+  if (n > 0) stats.push({ label: "Coaching lines", value: n });
+  return stats;
+}
+
 type FleetQueryRow = {
   isLoading: boolean;
   isError: boolean;
@@ -280,8 +293,9 @@ function aggregateFleetMetrics(
   growthMarketQ: FleetQueryRow,
   growthSocialQ: FleetQueryRow,
   growthSectorQ: FleetQueryRow,
+  hrCoachQ: FleetQueryRow,
 ) {
-  const qs = [agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ];
+  const qs = [agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ, hrCoachQ];
   const rowStatuses = qs.map((r) => queryRowStatus(r));
   const ok = rowStatuses.filter((s) => s === "ok").length;
   const err = rowStatuses.filter((s) => s === "error").length;
@@ -298,8 +312,16 @@ function aggregateFleetMetrics(
   const gm = growthMarketQ.data?.data as GrowthSyraMarketPayload | null | undefined;
   const gs = growthSocialQ.data?.data as GrowthSyraSocialPayload | null | undefined;
   const gsec = growthSectorQ.data?.data as GrowthSectorNarrativePayload | null | undefined;
+  const hr = hrCoachQ.data?.data as HrCoachPayload | null | undefined;
 
   const socialBulletsCount = Array.isArray(gs?.bullets) ? gs.bullets.length : 0;
+
+  const hrLines = hr?.coaching
+    ? hr.coaching
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean).length
+    : 0;
 
   const postsSampledTotal =
     (x4?.tweetsSampled ?? 0) + (gs?.tweetsSampled ?? 0) + (gsec?.tweetsSampled ?? 0);
@@ -314,7 +336,8 @@ function aggregateFleetMetrics(
     (gs?.recommendedActions?.length ?? 0) +
     socialBulletsCount +
     (gsec?.positioningIdeasForSyra?.length ?? 0) +
-    (gsec?.bullets?.length ?? 0);
+    (gsec?.bullets?.length ?? 0) +
+    hrLines;
 
   return {
     ok,
@@ -395,10 +418,16 @@ export default function InternalTeamAgentsMonitor() {
         enabled: allowed,
         staleTime: STALE_MS,
       },
+      {
+        queryKey: ["internal-team-agents", "hr-coach"],
+        queryFn: fetchHrCoachLatest,
+        enabled: allowed,
+        staleTime: STALE_MS,
+      },
     ],
   });
 
-  const [agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ] = q;
+  const [agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ, hrCoachQ] = q;
 
   if (!connected) {
     return (
@@ -452,7 +481,7 @@ export default function InternalTeamAgentsMonitor() {
 
   const anyFetching = q.some((r) => r.isFetching);
 
-  const fleet = aggregateFleetMetrics(agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ);
+  const fleet = aggregateFleetMetrics(agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ, hrCoachQ);
 
   return (
     <div className={DASHBOARD_CONTENT_SHELL}>
@@ -492,12 +521,13 @@ export default function InternalTeamAgentsMonitor() {
               ) : null}
             </div>
             <CardDescription>
-              Rolled up from all five pipelines (X + growth social/sector for posts sampled; agent team for pages).
+              Rolled up from all six scheduled pipelines (15-slot roster: multiple short Telegram digests per source;
+              HR runs after other saves).
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 pt-0 sm:pb-5">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              <FleetOverviewStat label="With data" value={`${fleet.ok}/5`} icon={Layers} />
+              <FleetOverviewStat label="With data" value={`${fleet.ok}/6`} icon={Layers} />
               <FleetOverviewStat
                 label="No run yet"
                 value={fleet.empty}
@@ -584,6 +614,15 @@ export default function InternalTeamAgentsMonitor() {
               stats={growthSectorStats(growthSectorQ.data?.data ?? undefined)}
               errorMessage={growthSectorQ.isError ? growthSectorQ.error?.message : undefined}
               detailSlug="growth-sector-narrative"
+            />
+            <AgentRow
+              name={requireInternalAgentMeta("hr-coach").name}
+              subtitle={requireInternalAgentMeta("hr-coach").subtitle}
+              status={queryRowStatus(hrCoachQ)}
+              lastRun={hrCoachQ.data?.savedAt}
+              stats={hrCoachStats(hrCoachQ.data?.data ?? undefined)}
+              errorMessage={hrCoachQ.isError ? hrCoachQ.error?.message : undefined}
+              detailSlug="hr-coach"
             />
           </CardContent>
         </Card>

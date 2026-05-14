@@ -1,12 +1,25 @@
 /**
  * Defaults for agent-team crawl, x402 X trends, and growth internal agents.
- * Edit constants here (no env).
+ * Most knobs are constants; OpenRouter model can be overridden with {@link INTERNAL_TEAM_OPENROUTER_MODEL_ENV}.
  */
 
 import { OPENROUTER_DEFAULT_MODEL } from "./openrouterModels.js";
 
-/** Pipeline-only OpenRouter slug; null falls through to {@link OPENROUTER_DEFAULT_MODEL}. */
+/** Env name: optional OpenRouter slug for all internal-team pipelines (15 agents). */
+export const INTERNAL_TEAM_OPENROUTER_MODEL_ENV = "INTERNAL_TEAM_OPENROUTER_MODEL";
+
+/** Pipeline-only OpenRouter slug; null falls through to env then {@link OPENROUTER_DEFAULT_MODEL}. */
 export const INTERNAL_PIPELINE_OPENROUTER_MODEL = null;
+
+/**
+ * Per-page markdown cap fed to internal-team LLMs (smaller ⇒ fewer input tokens / lower cost).
+ */
+export const AGENT_TEAM_LLM_PAGE_MARKDOWN_MAX = 6144;
+
+/**
+ * Total crawl snapshot character budget before internal research / strategy (smaller ⇒ cheaper).
+ */
+export const AGENT_TEAM_LLM_SNAPSHOT_TOTAL_MAX = 120_000;
 
 /**
  * @param {string | null | undefined} modelFromCaller
@@ -15,6 +28,13 @@ export const INTERNAL_PIPELINE_OPENROUTER_MODEL = null;
 export function resolveInternalPipelineModel(modelFromCaller) {
   if (typeof modelFromCaller === "string" && modelFromCaller.trim()) {
     return modelFromCaller.trim();
+  }
+  const fromEnv =
+    typeof process.env[INTERNAL_TEAM_OPENROUTER_MODEL_ENV] === "string"
+      ? process.env[INTERNAL_TEAM_OPENROUTER_MODEL_ENV].trim()
+      : "";
+  if (fromEnv) {
+    return fromEnv;
   }
   if (
     typeof INTERNAL_PIPELINE_OPENROUTER_MODEL === "string" &&
@@ -51,26 +71,59 @@ export const AGENT_TEAM_API_DISCOVERY_HOST = "https://api.syraa.fun";
 export const AGENT_TEAM_CRAWL_DEPTH = 2;
 export const AGENT_TEAM_CRAWL_PER_SITE_LIMIT = 30;
 
-export const X402_X_TRENDS_SEARCH_QUERIES = Object.freeze([
-  "x402 -is:retweet lang:en",
-  '("x402" OR payai OR corbits) (payment OR facilitator OR micropayment) -is:retweet lang:en',
-]);
+/** One recent-search call (OR of former dual queries) — fewer X API reads per run. */
+export const X402_X_TRENDS_SEARCH_QUERY = Object.freeze(
+  '(x402 -is:retweet lang:en) OR (("x402" OR payai OR corbits) (payment OR facilitator OR micropayment) -is:retweet lang:en)',
+);
 
-export const X402_X_TRENDS_MAX_PER_QUERY = 35;
-export const X402_X_TRENDS_MAX_TWEETS_LLM = 55;
+/** @deprecated Use {@link X402_X_TRENDS_SEARCH_QUERY}; kept for callers expecting an array. */
+export const X402_X_TRENDS_SEARCH_QUERIES = Object.freeze([X402_X_TRENDS_SEARCH_QUERY]);
 
-export const GROWTH_SYRA_SOCIAL_SEARCH_QUERIES = Object.freeze([
-  '"$SYRA" OR $SYRA solana -is:retweet lang:en',
-  "(syra_agent OR syraa.fun OR syra agent) -is:retweet lang:en",
-]);
+export const X402_X_TRENDS_MAX_PER_QUERY = 24;
+export const X402_X_TRENDS_MAX_TWEETS_LLM = 36;
 
-export const GROWTH_SYRA_SOCIAL_MAX_PER_QUERY = 32;
-export const GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM = 48;
+/** Single-query variant of former SYRA social pair. */
+export const GROWTH_SYRA_SOCIAL_SEARCH_QUERY = Object.freeze(
+  '(("$SYRA" OR $SYRA) solana -is:retweet lang:en) OR ((syra_agent OR syraa.fun OR "syra agent") -is:retweet lang:en)',
+);
 
+/** @deprecated Use {@link GROWTH_SYRA_SOCIAL_SEARCH_QUERY}. */
+export const GROWTH_SYRA_SOCIAL_SEARCH_QUERIES = Object.freeze([GROWTH_SYRA_SOCIAL_SEARCH_QUERY]);
+
+export const GROWTH_SYRA_SOCIAL_MAX_PER_QUERY = 22;
+export const GROWTH_SYRA_SOCIAL_MAX_TWEETS_LLM = 34;
+
+/** Single-query variant of former sector narrative pair. */
+export const GROWTH_SECTOR_NARRATIVE_SEARCH_QUERY = Object.freeze(
+  '(("ai trading agent" OR "crypto agent" OR "solana agent" OR "agentic crypto") -is:retweet lang:en) OR (("x402" OR "paid api" OR micropayment) (agent OR developer OR crypto) -is:retweet lang:en)',
+);
+
+/** @deprecated Use {@link GROWTH_SECTOR_NARRATIVE_SEARCH_QUERY}. */
 export const GROWTH_SECTOR_NARRATIVE_SEARCH_QUERIES = Object.freeze([
-  '("ai trading agent" OR "crypto agent" OR "solana agent" OR agentic crypto) -is:retweet lang:en',
-  '("x402" OR "paid api" OR micropayment) (agent OR developer OR crypto) -is:retweet lang:en',
+  GROWTH_SECTOR_NARRATIVE_SEARCH_QUERY,
 ]);
 
-export const GROWTH_SECTOR_MAX_PER_QUERY = 28;
-export const GROWTH_SECTOR_MAX_TWEETS_LLM = 44;
+export const GROWTH_SECTOR_MAX_PER_QUERY = 22;
+export const GROWTH_SECTOR_MAX_TWEETS_LLM = 32;
+
+/**
+ * OpenRouter completion caps for internal pipelines (lower bill, JSON still fits with retry).
+ * @type {Readonly<{
+ *   internalResearch: number;
+ *   businessStrategy: number;
+ *   growthSyraMarket: number;
+ *   growthSyraSocial: number;
+ *   growthSectorNarrative: number;
+ *   x402XTrends: number;
+ *   hrTeamCoach: number;
+ * }>}
+ */
+export const INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS = Object.freeze({
+  internalResearch: 1900,
+  businessStrategy: 1900,
+  growthSyraMarket: 1150,
+  growthSyraSocial: 1200,
+  growthSectorNarrative: 1200,
+  x402XTrends: 1250,
+  hrTeamCoach: 300,
+});

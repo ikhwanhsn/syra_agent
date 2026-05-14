@@ -1,10 +1,78 @@
 /**
  * X (Twitter) API v2 client for app-only (Bearer token) requests.
  * Uses env: X_BEARER_TOKEN. Optional: X_CONSUMER_KEY, X_SECRET_KEY for OAuth flows later.
+ *
+ * Response cache (reduces duplicate calls / rate-limit pressure):
+ * - X_API_RESPONSE_CACHE — set to "0" or "false" to disable (default: on)
+ * - X_API_USER_CACHE_MS — user-by-username TTL (default 300000 = 5m)
+ * - X_API_TWEETS_CACHE_MS — user timeline TTL (default 180000 = 3m)
+ * - X_API_SEARCH_CACHE_MS — recent search TTL (default 600000 = 10m)
+ * - X_API_CACHE_MAX_ENTRIES — max cached keys (default 400; FIFO eviction)
+ *
  * @see https://docs.x.com/x-api/introduction
  */
 
 const X_API_BASE = "https://api.x.com/2";
+
+function parsePositiveInt(raw, fallback) {
+  const n = Number.parseInt(String(raw ?? "").trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function isResponseCacheEnabled() {
+  const v = (process.env.X_API_RESPONSE_CACHE ?? "1").trim().toLowerCase();
+  return v !== "0" && v !== "false" && v !== "no" && v !== "off";
+}
+
+function cacheTtlForPath(path) {
+  const p = path.replace(/^\//, "");
+  if (p === "tweets/search/recent") {
+    return parsePositiveInt(process.env.X_API_SEARCH_CACHE_MS, 600_000);
+  }
+  if (/^users\/[^/]+\/tweets$/.test(p)) {
+    return parsePositiveInt(process.env.X_API_TWEETS_CACHE_MS, 180_000);
+  }
+  if (p.startsWith("users/by/username/")) {
+    return parsePositiveInt(process.env.X_API_USER_CACHE_MS, 300_000);
+  }
+  return parsePositiveInt(process.env.X_API_DEFAULT_CACHE_MS, 120_000);
+}
+
+const CACHE_MAX = Math.min(5000, parsePositiveInt(process.env.X_API_CACHE_MAX_ENTRIES, 400));
+
+/** @type {Map<string, { body: unknown; expires: number }>} */
+const responseCache = new Map();
+
+/**
+ * Stable cache key for a GET URL (sorted query keys).
+ * @param {URL} url
+ */
+function cacheKeyForUrl(url) {
+  const entries = [...url.searchParams.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const qs = new URLSearchParams(entries).toString();
+  return `${url.pathname}?${qs}`;
+}
+
+function responseCacheGet(key) {
+  const row = responseCache.get(key);
+  if (!row || Date.now() > row.expires) {
+    if (row) responseCache.delete(key);
+    return null;
+  }
+  return row.body;
+}
+
+function responseCacheSet(key, body, ttlMs) {
+  if (responseCache.size >= CACHE_MAX && !responseCache.has(key)) {
+    const drop = Math.max(1, Math.floor(CACHE_MAX * 0.15));
+    let i = 0;
+    for (const k of responseCache.keys()) {
+      responseCache.delete(k);
+      if (++i >= drop) break;
+    }
+  }
+  responseCache.set(key, { body, expires: Date.now() + ttlMs });
+}
 
 /**
  * @returns {string|null} Bearer token or null if not configured
@@ -31,6 +99,16 @@ export async function xApiGet(path, params = {}) {
     if (v != null && v !== "") url.searchParams.set(k, String(v));
   });
 
+  const cacheKey = cacheKeyForUrl(url);
+  const ttlMs = cacheTtlForPath(path);
+
+  if (isResponseCacheEnabled()) {
+    const hit = responseCacheGet(cacheKey);
+    if (hit != null) {
+      return /** @type {{ data?: unknown; errors?: Array<{ message: string }> }} */ (hit);
+    }
+  }
+
   const res = await fetch(url.toString(), {
     method: "GET",
     headers: {
@@ -45,6 +123,12 @@ export async function xApiGet(path, params = {}) {
     return {
       errors: body.errors || [{ message: body.detail || body.message || `HTTP ${res.status}` }],
     };
+  }
+
+  const errList = body.errors;
+  const hasErrors = Array.isArray(errList) && errList.length > 0;
+  if (isResponseCacheEnabled() && !hasErrors) {
+    responseCacheSet(cacheKey, body, ttlMs);
   }
 
   return body;

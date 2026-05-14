@@ -219,9 +219,6 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
             <TabsTrigger value="secondary" className="text-xs sm:text-sm">
               {suiteMeta.find((m) => m.id === "secondary")?.title ?? "Parallel"}
             </TabsTrigger>
-            <TabsTrigger value="multi_resource" className="text-xs sm:text-sm">
-              {suiteMeta.find((m) => m.id === "multi_resource")?.title ?? "BTC timeframes"}
-            </TabsTrigger>
           </TabsList>
         </Tabs>
 

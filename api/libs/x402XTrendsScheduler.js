@@ -1,5 +1,6 @@
 /**
- * x402 X trends — in-process loop: X recent search + OpenRouter digest → Syra dev Telegram.
+ * x402 X trends — slots 13–14 of the internal team (x402 scout + ecosystem watch).
+ * In-process loop: X recent search + OpenRouter digest → two short Telegram messages.
  *
  * Schedule: same WIB daily anchor as `./wibDailyWallClock.js` (no run on boot).
  *
@@ -9,8 +10,8 @@
 import DashboardResearch from "../models/DashboardResearch.js";
 import {
   runX402XTrendsAgent,
-  formatX402XTrendsForTelegram,
 } from "../agents/x402-x-trends-agent.js";
+import { formatX402ScoutTelegram, formatEcosystemWatchTelegram } from "./internalTeamDailyDigests.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "./devTelegramNotifier.js";
 import { isXApiBearerConfigured } from "./xApiClient.js";
 import {
@@ -34,10 +35,13 @@ export async function runX402XTrendsPipeline() {
   const data = await runX402XTrendsAgent({ model: null });
 
   if (isDevTelegramConfigured()) {
-    const sent = await sendDevTelegram(formatX402XTrendsForTelegram(data), {
+    const s1 = await sendDevTelegram(formatX402ScoutTelegram(data), {
       disableWebPagePreview: true,
     });
-    if (!sent) {
+    const s2 = await sendDevTelegram(formatEcosystemWatchTelegram(data), {
+      disableWebPagePreview: true,
+    });
+    if (!s1 || !s2) {
       console.warn("[x402-x-trends] Telegram send failed");
     }
   }

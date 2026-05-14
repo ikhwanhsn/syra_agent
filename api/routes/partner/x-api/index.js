@@ -1,6 +1,7 @@
 /**
  * X (Twitter) API proxy — x402 paid. GET and POST supported for each endpoint.
  * Uses X_BEARER_TOKEN from env. Price: X402_API_PRICE_X_USD.
+ * In-memory dedupe cache: X_API_PROXY_CACHE_MS (default 120000, max 1800000).
  * @see https://docs.x.com/x-api/introduction
  *
  * GET/POST /x/user           - User lookup by username (query or body: username)
@@ -20,7 +21,11 @@ import {
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
-const CACHE_TTL_MS = 60 * 1000; // 1 minute
+const CACHE_TTL_MS = Math.min(
+  30 * 60_000,
+  Math.max(30_000, Number.parseInt(process.env.X_API_PROXY_CACHE_MS ?? "120000", 10) || 120_000),
+);
+const CACHE_MAX_AGE_SEC = Math.max(30, Math.floor(CACHE_TTL_MS / 1000));
 const cache = new Map();
 
 function cacheGet(key) {
@@ -90,7 +95,7 @@ export async function createXApiRouter() {
       return;
     }
     await settlePaymentAndSetResponse(res, req);
-    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SEC}`);
     res.json(result);
   });
 
@@ -116,7 +121,7 @@ export async function createXApiRouter() {
       return;
     }
     await settlePaymentAndSetResponse(res, req);
-    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SEC}`);
     res.json(result);
   });
 
@@ -172,7 +177,7 @@ export async function createXApiRouter() {
       return;
     }
     await settlePaymentAndSetResponse(res, req);
-    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SEC}`);
     res.json(result);
   }
 
@@ -235,7 +240,7 @@ export async function createXApiRouter() {
       return;
     }
     await settlePaymentAndSetResponse(res, req);
-    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SEC}`);
     res.json(result);
   }
 
@@ -278,7 +283,7 @@ export async function createXApiRouter() {
     let cached = cacheGet(cacheKey);
     if (cached) {
       await settlePaymentAndSetResponse(res, req);
-      res.setHeader("Cache-Control", "public, max-age=60");
+      res.setHeader("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SEC}`);
       return res.json(cached);
     }
     const userRes = await getUserByUsername(username);
@@ -301,7 +306,7 @@ export async function createXApiRouter() {
     };
     cacheSet(cacheKey, payload);
     await settlePaymentAndSetResponse(res, req);
-    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SEC}`);
     res.json(payload);
   }
 

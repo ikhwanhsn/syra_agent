@@ -1288,22 +1288,24 @@ app.listen(PORT, () => {
       const evo = evolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
       const tick = () =>
-        runTradingExperimentEvolution()
-          .then((out) => {
-            if (!out.ok) {
-              console.warn(
+        Promise.all([
+          runTradingExperimentEvolution({ suite: "primary" }),
+          runTradingExperimentEvolution({ suite: "secondary" }),
+        ])
+          .then((outs) => {
+            for (const out of outs) {
+              if (!out.ok) {
+                console.warn("[Trading experiment evolution]", out.skipped || out);
+                continue;
+              }
+              console.info(
                 "[Trading experiment evolution]",
-                out.skipped || out,
+                out.suite,
+                "replaced",
+                out.spawned?.length ?? 0,
+                "agents",
               );
-              return;
             }
-            console.info(
-              "[Trading experiment evolution]",
-              out.suite,
-              "replaced",
-              out.spawned?.length ?? 0,
-              "agents",
-            );
           })
           .catch((err) =>
             console.warn(
@@ -1393,6 +1395,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[growth-internal] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/internalHrCoachScheduler.js")
+    .then(({ startInternalHrCoachScheduler }) => {
+      startInternalHrCoachScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[internal-hr-coach] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

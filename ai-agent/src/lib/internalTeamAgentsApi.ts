@@ -153,12 +153,28 @@ export async function fetchGrowthSectorNarrativeLatest(): Promise<GrowthSectorNa
   return fetchInternalJson<GrowthSectorNarrativeLatestResponse>("/internal/growth-sector-narrative/latest");
 }
 
+export interface HrCoachPayload {
+  coaching?: string;
+  generatedAt?: string;
+}
+
+export interface HrCoachLatestResponse {
+  success: boolean;
+  data: HrCoachPayload | null;
+  savedAt?: string;
+}
+
+export async function fetchHrCoachLatest(): Promise<HrCoachLatestResponse> {
+  return fetchInternalJson<HrCoachLatestResponse>("/internal/hr-coach/latest");
+}
+
 export type InternalAgentLatestResponse =
   | AgentTeamLatestResponse
   | X402XTrendsLatestResponse
   | GrowthSyraMarketLatestResponse
   | GrowthSyraSocialLatestResponse
-  | GrowthSectorNarrativeLatestResponse;
+  | GrowthSectorNarrativeLatestResponse
+  | HrCoachLatestResponse;
 
 export async function fetchInternalAgentLatest(slug: InternalAgentSlug): Promise<InternalAgentLatestResponse> {
   switch (slug) {
@@ -172,6 +188,8 @@ export async function fetchInternalAgentLatest(slug: InternalAgentSlug): Promise
       return fetchGrowthSyraSocialLatest();
     case "growth-sector-narrative":
       return fetchGrowthSectorNarrativeLatest();
+    case "hr-coach":
+      return fetchHrCoachLatest();
     default: {
       const _exhaustive: never = slug;
       return _exhaustive;

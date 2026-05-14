@@ -99,7 +99,7 @@ export function TokenPriceChart({
       <div className="border-b border-border/40 px-4 py-4 sm:px-6">
         <SectionHeader
           eyebrow={t.sectionPrice}
-          title={t.chartSource}
+          title={t.chartSectionTitle}
           description={
             tf === "all"
               ? t.chartAllTimeframe

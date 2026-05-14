@@ -13,13 +13,15 @@ import {
   AGENT_TEAM_CRAWL_BASE_URLS,
   AGENT_TEAM_CRAWL_DEPTH,
   AGENT_TEAM_CRAWL_PER_SITE_LIMIT,
+  AGENT_TEAM_LLM_PAGE_MARKDOWN_MAX,
+  AGENT_TEAM_LLM_SNAPSHOT_TOTAL_MAX,
 } from "../config/internalPipelineAgents.js";
 
-/** Per-page markdown cap before LLM (characters). */
-const DEFAULT_PAGE_MARKDOWN_MAX = 8192;
+/** Per-page markdown cap before LLM (characters) — default from internal pipeline config. */
+const DEFAULT_PAGE_MARKDOWN_MAX = AGENT_TEAM_LLM_PAGE_MARKDOWN_MAX;
 
 /** Total snapshot string budget (sum of markdown lengths, characters). */
-const DEFAULT_SNAPSHOT_TOTAL_MAX = 200_000;
+const DEFAULT_SNAPSHOT_TOTAL_MAX = AGENT_TEAM_LLM_SNAPSHOT_TOTAL_MAX;
 
 /** Public API discovery endpoints. These are the only api.syraa.fun paths exposed to the crawler. */
 const API_DISCOVERY_PATHS = Object.freeze(["/openapi.json", "/.well-known/x402"]);

@@ -6,7 +6,10 @@
 import { callOpenRouter } from "../libs/openrouter.js";
 import { parseJsonObjectFromLlm } from "../libs/llmJsonObjectParse.js";
 import { withLlmIdentitySystemNote } from "../routes/agent/chat.js";
-import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
+import {
+  resolveInternalPipelineModel,
+  INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
+} from "../config/internalPipelineAgents.js";
 import { SYRA_TOKEN_MINT } from "../libs/syraToken.js";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -17,7 +20,9 @@ const DEXSCREENER_TOKEN_PAIRS_V1 = "https://api.dexscreener.com/token-pairs/v1/s
 const COINGECKO_SIMPLE =
   "https://api.coingecko.com/api/v3/simple/price?ids=solana,bitcoin&vs_currencies=usd&include_24hr_change=true";
 
-const SYSTEM_PROMPT = `You are Syra's growth analyst. You receive ONLY structured JSON from DexScreener (Solana pairs for $SYRA), an optional Jupiter v6 quote (SOL→SYRA), and macro prices (SOL/BTC).
+const SYSTEM_PROMPT = `You are Syra's growth analyst (Syra token + product) with awareness of the Up Only community as a distribution tailwind — never fabricate volume, FDV, or holder counts.
+
+You receive ONLY structured JSON from DexScreener (Solana pairs for $SYRA), an optional Jupiter v6 quote (SOL→SYRA), and macro prices (SOL/BTC).
 
 Rules:
 - Ground every claim in the input numbers. If FDV/marketCap is missing, say "not reported" and infer cautiously from liquidity + volume — never invent a precise FDV.
@@ -191,8 +196,8 @@ export async function runGrowthSyraMarketAgent({ model }) {
 
   const llmOpts = {
     model: modelId,
-    max_tokens: 2800,
-    temperature: 0.28,
+    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.growthSyraMarket,
+    temperature: 0.24,
   };
 
   const apiMessages = withLlmIdentitySystemNote(messages, modelId);
@@ -239,25 +244,4 @@ export async function runGrowthSyraMarketAgent({ model }) {
       bestFdv: top[0]?.fdv ?? null,
     },
   };
-}
-
-/**
- * @param {Awaited<ReturnType<typeof runGrowthSyraMarketAgent>>} out
- */
-export function formatGrowthSyraMarketTelegram(out) {
-  const lines = [
-    "Syra growth — market & liquidity",
-    `Generated: ${out.generatedAt}`,
-    `Pairs (DexScreener): ${out.sourceStats.dexPairCount} · Liq ~$${out.sourceStats.bestLiquidityUsd ?? "—"} · Vol24h ~$${out.sourceStats.bestVolumeH24 ?? "—"}`,
-    "",
-    out.summary,
-    "",
-    `Liquidity: ${out.liquidityAssessment} · Volume: ${out.volumeAssessment}`,
-    "",
-    "Actions:",
-    ...out.growthActions.slice(0, 6).map((a, i) => `${i + 1}. ${a}`),
-    "",
-    `North star: ${out.oneLineNorthStar}`,
-  ];
-  return lines.join("\n");
 }

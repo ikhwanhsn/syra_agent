@@ -1,5 +1,7 @@
 /**
  * X Project Analyzer — x402 paid: profile + tweets → deterministic score + optional LLM summary.
+ *
+ * HTTP response cache: X_ANALYZER_HTTP_CACHE_MS (default 180000, max 1800000).
  */
 
 import express from "express";
@@ -21,7 +23,14 @@ const TWEET_FIELDS = "created_at,public_metrics,text";
 
 const USERNAME_RE = /^[A-Za-z0-9_]{1,15}$/;
 
-const CACHE_TTL_MS = 60 * 1000;
+function analyzerHttpCacheMs() {
+  const raw = process.env.X_ANALYZER_HTTP_CACHE_MS;
+  const n = raw != null && raw !== "" ? Number.parseInt(String(raw).trim(), 10) : NaN;
+  if (Number.isFinite(n) && n >= 30_000) return Math.min(30 * 60_000, n);
+  return 180_000;
+}
+
+const CACHE_TTL_MS = analyzerHttpCacheMs();
 const cache = new Map();
 
 const paymentBase = {
@@ -352,7 +361,10 @@ export async function createXProjectAnalyzerRouter() {
       const hit = cacheGet(cacheKey);
       if (hit) {
         await settlePaymentAndSetResponse(res, req);
-        res.setHeader("Cache-Control", "public, max-age=60");
+        res.setHeader(
+          "Cache-Control",
+          `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`,
+        );
         return res.json({ success: true, data: hit });
       }
 
@@ -381,7 +393,10 @@ export async function createXProjectAnalyzerRouter() {
 
       cacheSet(cacheKey, out.data);
       await settlePaymentAndSetResponse(res, req);
-      res.setHeader("Cache-Control", "public, max-age=60");
+      res.setHeader(
+        "Cache-Control",
+        `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`,
+      );
       return res.json({ success: true, data: out.data });
     } catch (err) {
       console.warn(

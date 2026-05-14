@@ -23,11 +23,15 @@ export function TokenKpiGrid({
 
   return (
     <section className={cn(className)}>
-      <SectionHeader eyebrow={t.sectionKpis} title={market.symbol ? `$${market.symbol}` : t.pageTitle} />
+      <SectionHeader
+        eyebrow={t.sectionKpis}
+        title={market.symbol ? `$${market.symbol}` : t.pageTitle}
+        description={t.sectionKpisDescription}
+      />
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard>
           <p className="mb-3 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Market
+            {t.kpiGroupMarket}
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <StatTile label={t.kpiPrice} value={formatPriceSmart(market.priceUsd)} />
@@ -43,7 +47,7 @@ export function TokenKpiGrid({
         </GlassCard>
         <GlassCard>
           <p className="mb-3 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Liquidity
+            {t.kpiGroupLiquidity}
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <StatTile label={t.kpiVol24h} value={formatUsd(market.volume24hUsd, { compact: false })} />
@@ -62,7 +66,7 @@ export function TokenKpiGrid({
         </GlassCard>
         <GlassCard>
           <p className="mb-3 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Supply & holders
+            {t.kpiGroupSupply}
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <StatTile label={t.kpiHolders} value={formatInt(market.holders)} />
@@ -78,7 +82,7 @@ export function TokenKpiGrid({
         </GlassCard>
         <GlassCard>
           <p className="mb-3 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Lifecycle
+            {t.kpiGroupLifecycle}
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <StatTile label={t.kpiAge} value={formatRelativeAge(market.ageHours)} />

@@ -1,5 +1,7 @@
 /**
- * Agent team scheduler → crawl → internal research → business strategy → Telegram → MongoDB.
+ * Agent team scheduler → crawl → internal research → business strategy → short Telegram digests → MongoDB.
+ * Fifteen-slot roster: slots 1–6 here (surface scout, research lead, risk officer, strategy lead, GTM, revenue);
+ * slots 7–14 live in growth + x402 schedulers; slot 15 (HR) runs in `internalHrCoachScheduler.js`.
  *
  * Schedule: once per calendar day at the WIB anchor in `./wibDailyWallClock.js` (default 06:00). No run on boot.
  *
@@ -17,6 +19,14 @@ import {
   INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
 } from "./wibDailyWallClock.js";
 import { resolveInternalPipelineModel } from "../config/internalPipelineAgents.js";
+import {
+  formatSurfaceScoutTelegram,
+  formatResearchLeadTelegram,
+  formatRiskOfficerTelegram,
+  formatStrategyLeadTelegram,
+  formatGtmSpecialistTelegram,
+  formatRevenueDesignerTelegram,
+} from "./internalTeamDailyDigests.js";
 
 /** Mongo document id for latest agent-team run. */
 export const AGENT_TEAM_DB_ID = "agent-team-latest";
@@ -33,67 +43,12 @@ export { getMsUntilNextWibWallClock };
  */
 
 /**
- * @param {InternalResearchOutput} internal
- * @returns {string}
+ * @param {string} text
+ * @returns {Promise<boolean>}
  */
-export function formatInternalForTelegram(internal) {
-  const recLines = internal.recommendations.slice(0, 5).map((r, i) => {
-    const why =
-      r.why.length > 220 ? `${r.why.slice(0, 220)}…` : r.why;
-    return `${i + 1}. [${r.surface} / ${r.category}] ${r.title}\n   ${why}`;
-  });
-  const riskLines = internal.risks.slice(0, 5).map((r) => `- ${r}`);
-  const parts = [
-    "Syra Agent Team — Internal Research",
-    `Generated: ${internal.generatedAt}`,
-    "",
-    "Summary:",
-    internal.summary,
-    "",
-    "Top 5 recommendations:",
-    ...recLines,
-  ];
-  if (riskLines.length) {
-    parts.push("", "Risks:", ...riskLines);
-  }
-  parts.push("", "Full report: https://syraa.fun/internal-dashboard");
-  return parts.join("\n");
-}
-
-/**
- * @param {BusinessStrategyOutput} business
- * @returns {string}
- */
-export function formatBusinessForTelegram(business) {
-  const gtm = business.gtmRecommendations.slice(0, 5).map((g, i) => {
-    const rat =
-      g.rationale.length > 200 ? `${g.rationale.slice(0, 200)}…` : g.rationale;
-    return `${i + 1}. [${g.horizon}] ${g.title} (${g.channel})\n   ${rat}`;
-  });
-  const mon = business.monetizationIdeas.slice(0, 4).map((m, i) => {
-    const rat =
-      m.rationale.length > 180 ? `${m.rationale.slice(0, 180)}…` : m.rationale;
-    return `${i + 1}. ${m.title}\n   ${rat}\n   Pricing hypothesis: ${m.pricingHypothesis}`;
-  });
-  const comp = business.competitiveRisks.slice(0, 5).map((c) => `- ${c}`);
-  const parts = [
-    "Syra Agent Team — Business Strategy",
-    `Generated: ${business.generatedAt}`,
-    "",
-    "Market position:",
-    business.marketPosition,
-    "",
-    "Top GTM moves:",
-    ...gtm,
-    "",
-    "Monetization ideas:",
-    ...mon,
-  ];
-  if (comp.length) {
-    parts.push("", "Competitive / market risks:", ...comp);
-  }
-  parts.push("", "Full report: https://syraa.fun/internal-dashboard");
-  return parts.join("\n");
+async function sendTeamDigest(text) {
+  if (!isDevTelegramConfigured()) return false;
+  return sendDevTelegram(text, { disableWebPagePreview: true });
 }
 
 /**
@@ -114,15 +69,26 @@ export async function runAgentTeamPipeline() {
   const crawlOut = await crawlSyraSurfaces({});
   const { snapshot, generatedAt, baseUrls } = crawlOut;
 
+  const scoutOk = await sendTeamDigest(
+    formatSurfaceScoutTelegram({
+      baseUrls,
+      pageCount: snapshot.length,
+      crawledAt: generatedAt,
+    }),
+  );
+  if (!scoutOk && isDevTelegramConfigured()) {
+    console.warn("[agent-team] Telegram send failed (surface scout)");
+  }
+
   const internal = await runInternalResearchAgent({ snapshot, model });
 
-  if (isDevTelegramConfigured()) {
-    const sent = await sendDevTelegram(formatInternalForTelegram(internal), {
-      disableWebPagePreview: true,
-    });
-    if (!sent) {
-      console.warn("[agent-team] Telegram send failed (internal research digest)");
-    }
+  const rOk = await sendTeamDigest(formatResearchLeadTelegram(internal));
+  if (!rOk && isDevTelegramConfigured()) {
+    console.warn("[agent-team] Telegram send failed (research lead)");
+  }
+  const riskOk = await sendTeamDigest(formatRiskOfficerTelegram(internal));
+  if (!riskOk && isDevTelegramConfigured()) {
+    console.warn("[agent-team] Telegram send failed (risk officer)");
   }
 
   const business = await runBusinessStrategyAgent({
@@ -131,13 +97,17 @@ export async function runAgentTeamPipeline() {
     model,
   });
 
-  if (isDevTelegramConfigured()) {
-    const sent = await sendDevTelegram(formatBusinessForTelegram(business), {
-      disableWebPagePreview: true,
-    });
-    if (!sent) {
-      console.warn("[agent-team] Telegram send failed (business strategy digest)");
-    }
+  const sOk = await sendTeamDigest(formatStrategyLeadTelegram(business));
+  if (!sOk && isDevTelegramConfigured()) {
+    console.warn("[agent-team] Telegram send failed (strategy lead)");
+  }
+  const gtmOk = await sendTeamDigest(formatGtmSpecialistTelegram(business));
+  if (!gtmOk && isDevTelegramConfigured()) {
+    console.warn("[agent-team] Telegram send failed (GTM specialist)");
+  }
+  const revOk = await sendTeamDigest(formatRevenueDesignerTelegram(business));
+  if (!revOk && isDevTelegramConfigured()) {
+    console.warn("[agent-team] Telegram send failed (revenue designer)");
   }
 
   const savedAt = new Date();

@@ -8,8 +8,10 @@ import TradingExperimentRun from "../models/TradingExperimentRun.js";
 import TradingExperimentLabAgentOverride from "../models/TradingExperimentLabAgentOverride.js";
 import {
   TRADING_EXPERIMENT_STRATEGIES,
+  TRADING_EXPERIMENT_STRATEGIES_SECONDARY,
   normalizeSuite,
   EXPERIMENT_SUITE_PRIMARY,
+  EXPERIMENT_SUITE_SECONDARY,
   EXPERIMENT_SUITE_USER_CUSTOM,
   EXPERIMENT_SUITE_MULTI_RESOURCE,
 } from "../config/tradingExperimentStrategies.js";
@@ -22,12 +24,17 @@ function collectTokenUniverse() {
   for (const s of TRADING_EXPERIMENT_STRATEGIES) {
     if (typeof s.token === "string" && s.token.trim()) set.add(s.token.trim().toLowerCase());
   }
+  for (const s of TRADING_EXPERIMENT_STRATEGIES_SECONDARY) {
+    if (typeof s.token === "string" && s.token.trim()) set.add(s.token.trim().toLowerCase());
+  }
   return [...set];
 }
 
 const TOKEN_SLUGS = collectTokenUniverse();
 const BARS = Object.freeze(["15m", "30m", "1h", "2h", "4h", "1d"]);
+const SCALP_BARS = Object.freeze(["1m", "3m", "5m", "15m"]);
 const GATE_LEVELS = Object.freeze([null, "LOW", "MEDIUM", "HIGH"]);
+const SCALP_GATE_LEVELS = Object.freeze([null, "LOW", "LOW", "MEDIUM"]);
 
 /** @template T @param {readonly T[]} arr @returns {T} */
 function pick(arr) {
@@ -78,6 +85,35 @@ function randomLimitForBar(bar) {
 }
 
 /**
+ * @param {string} bar
+ * @returns {number}
+ */
+function randomLimitForScalpBar(bar) {
+  const b = String(bar).toLowerCase();
+  const ranges = {
+    "1m": [300, 420],
+    "3m": [240, 360],
+    "5m": [220, 340],
+    "15m": [200, 300],
+  };
+  const [lo, hi] = ranges[b] || [220, 360];
+  const x = lo + Math.floor(Math.random() * (hi - lo + 1));
+  return Math.round(x / 10) * 10;
+}
+
+/**
+ * @param {string} bar
+ * @returns {number}
+ */
+function randomLookAheadBarsScalp(bar) {
+  const b = String(bar).toLowerCase();
+  const center =
+    b === "1m" ? 200 : b === "3m" ? 120 : b === "5m" ? 100 : b === "15m" ? 88 : 100;
+  const jitter = Math.floor(Math.random() * 41) - 20;
+  return Math.max(48, Math.min(320, center + jitter));
+}
+
+/**
  * @param {number} agentId
  * @returns {{
  *   name: string;
@@ -109,6 +145,38 @@ export function buildRandomLabStrategy(agentId) {
 }
 
 /**
+ * Random variant for scalper lane (secondary suite): short bars, faster horizons, lighter gates.
+ * @param {number} agentId
+ * @returns {{
+ *   name: string;
+ *   token: string;
+ *   bar: string;
+ *   limit: number;
+ *   lookAheadBars: number;
+ *   experimentGate: { minConfidence: string } | null;
+ *   indicatorFilter: Record<string, unknown> | null;
+ * }}
+ */
+export function buildRandomScalperStrategy(agentId) {
+  const token = pick(TOKEN_SLUGS.length ? TOKEN_SLUGS : ["bitcoin"]);
+  const bar = pick(SCALP_BARS);
+  const gate = pick(SCALP_GATE_LEVELS);
+  const limit = randomLimitForScalpBar(bar);
+  const lookAheadBars = randomLookAheadBarsScalp(bar);
+  const indicatorFilter = randomIndicatorFilter({ min: 0, max: 2 });
+  const name = `${String(token).toUpperCase()} ${bar} scalp-evo ${agentId}`;
+  return {
+    name,
+    token,
+    bar,
+    limit,
+    lookAheadBars,
+    experimentGate: gate ? { minConfidence: gate } : null,
+    indicatorFilter,
+  };
+}
+
+/**
  * @param {string} raw
  * @returns {Set<number>}
  */
@@ -123,10 +191,11 @@ export function parsePinnedAgentIds(raw) {
   return set;
 }
 
-/** In-process evolution: on by default; 24h tick while the API is running. */
+/** In-process evolution: on by default; 24h tick while the API is running (primary + secondary each). */
 export const TRADING_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   enabled: true,
   intervalMs: 86_400_000,
+  /** Default suite when calling evolution without args (cron still runs both ledgers). */
   suite: "primary",
   removeCount: 5,
   minDecided: 5,
@@ -246,7 +315,10 @@ export async function runTradingExperimentEvolution(opts = {}) {
 
   for (const v of victims) {
     await TradingExperimentRun.deleteMany({ agentId: v.agentId, ...suiteMatch });
-    const strat = buildRandomLabStrategy(v.agentId);
+    const strat =
+      suiteNorm === EXPERIMENT_SUITE_SECONDARY
+        ? buildRandomScalperStrategy(v.agentId)
+        : buildRandomLabStrategy(v.agentId);
     await TradingExperimentLabAgentOverride.findOneAndUpdate(
       { suite: suiteNorm, agentId: v.agentId },
       {
