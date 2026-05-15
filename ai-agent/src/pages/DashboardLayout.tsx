@@ -21,6 +21,8 @@ import {
   Send,
   UsersRound,
   Droplets,
+  Rocket,
+  Crosshair,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
@@ -41,6 +43,8 @@ const MARKETPLACE_SECTIONS = [
 
 const DASHBOARD_SECTIONS = [
   { path: "alpha", label: "Alpha", icon: Telescope },
+  { path: "pumpfun-experiment", label: "Pumpfun experiment", icon: Rocket },
+  { path: "rise-experiment", label: "Rise experiment", icon: Crosshair },
   { path: "trading-experiment", label: "Trading experiment", icon: FlaskConical },
   { path: "arbitrage-experiment", label: "Arbitrage experiment", icon: Scale },
   { path: "lp-experiment", label: "LP agent experiment", icon: Droplets },
@@ -91,6 +95,8 @@ function dashboardPageTitle(pathname: string): string {
   if (parts[1] === "overview") return "Overview";
   if (parts[1] === "alpha" && parts[2] === "x" && parts[3]) return "Alpha · Intel";
   if (parts[1] === "alpha") return "Alpha";
+  if (parts[1] === "pumpfun-experiment") return "Pumpfun experiment";
+  if (parts[1] === "rise-experiment") return "Rise experiment";
   if (parts[1] === "trading-experiment") return "Trading experiment";
   if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[1] === "lp-experiment") return "LP agent experiment";
@@ -179,7 +185,12 @@ function DashboardSidebarContent({
           <SidebarSectionLabel>Sections</SidebarSectionLabel>
           <div className="space-y-1">
             {DASHBOARD_SECTIONS.map(({ path, label, icon: Icon }) => (
-              <SidebarNavLink key={path} to={`/dashboard/${path}`} icon={Icon} end={path === "lp-experiment" ? true : undefined}>
+              <SidebarNavLink
+                key={path}
+                to={`/dashboard/${path}`}
+                icon={Icon}
+                end={path === "lp-experiment" || path === "pumpfun-experiment" || path === "rise-experiment" ? true : undefined}
+              >
                 {label}
               </SidebarNavLink>
             ))}

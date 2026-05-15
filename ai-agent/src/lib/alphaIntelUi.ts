@@ -65,3 +65,33 @@ export function gradeBadgeClassName(grade: string): string {
     gradeBadgeClass(grade),
   );
 }
+
+/** Maps raw upstream (e.g. X API) errors to product-safe copy — avoids billing IDs and vendor jargon in UI. */
+export function userReadableAlphaDataError(raw: string | undefined | null): string {
+  const s = (raw ?? "").trim();
+  if (!s) return "We couldn’t load this data. Try again in a moment.";
+
+  const lower = s.toLowerCase();
+  if (
+    lower.includes("spend cap") ||
+    lower.includes("billing cycle") ||
+    lower.includes("api requests will be blocked") ||
+    lower.includes("next cycle begins")
+  ) {
+    return "X profile data is temporarily unavailable while our data connection resets. Try again later.";
+  }
+  if (lower.includes("rate limit") || lower.includes("too many requests") || /\b429\b/.test(s)) {
+    return "X is limiting requests right now. Wait a bit and refresh.";
+  }
+  if (/\b401\b/.test(s) || lower.includes("unauthorized")) {
+    return "We couldn’t authorize the data request. Try again later.";
+  }
+  if (/\b403\b/.test(s) || lower.includes("forbidden")) {
+    return "Access to this profile data was denied. It may be private or restricted.";
+  }
+  if (/enrolled account\s*\[\d+\]/i.test(s) && lower.includes("developer console")) {
+    return "The social feed hit a temporary upstream limit. Try again later.";
+  }
+
+  return s;
+}

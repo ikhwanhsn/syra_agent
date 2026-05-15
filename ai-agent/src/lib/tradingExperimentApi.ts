@@ -109,6 +109,16 @@ export interface TradingExperimentAgentStats {
   winRate: number | null;
   winRatePct: number | null;
   openPositions: number;
+  /** Paper ledger: starting bank per agent (USD). */
+  startingBankUsd?: number;
+  /** Notional locked per open trade (USD). */
+  tradeNotionalUsd?: number;
+  /** Free cash not in open trades (USD). */
+  cashUsd?: number;
+  /** Capital currently in open positions: openPositions × tradeNotionalUsd. */
+  deployedUsd?: number;
+  /** cashUsd + deployedUsd (USD). */
+  equityUsd?: number;
   experimentGate?: { minConfidence: ExperimentConfidenceFloor } | null;
   indicatorFilter?: TradingExperimentIndicatorFilter | null;
   /** Multi-resource suite: CEX key. */
@@ -118,6 +128,11 @@ export interface TradingExperimentAgentStats {
    * Profile and runs APIs still use `?suite=` for this value.
    */
   experimentSuite?: TradingExperimentSuiteId;
+}
+
+export interface TradingExperimentSimConfig {
+  startingBankUsd: number;
+  tradeNotionalUsd: number;
 }
 
 export interface TradingExperimentRunRow {
@@ -141,6 +156,9 @@ export interface TradingExperimentRunRow {
   forwardBarsExamined?: number;
   createdAt?: string;
   resolvedAt?: string | null;
+  notionalUsd?: number | null;
+  simExitPrice?: number | null;
+  simPnlUsd?: number | null;
 }
 
 async function parseJson<T>(res: Response): Promise<{ ok: boolean; body: T }> {
@@ -167,6 +185,7 @@ export async function fetchTradingExperimentStats(
   strategies: TradingExperimentStrategy[];
   agents: TradingExperimentAgentStats[];
   suite: string;
+  simConfig?: TradingExperimentSimConfig;
 }> {
   const q = new URLSearchParams({ suite });
   const res = await fetch(`${base()}/stats?${q}`, { credentials: "include" });
@@ -176,6 +195,7 @@ export async function fetchTradingExperimentStats(
       strategies: TradingExperimentStrategy[];
       agents: TradingExperimentAgentStats[];
       suite: string;
+      simConfig?: TradingExperimentSimConfig;
     };
     error?: string;
   }>(res);

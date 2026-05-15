@@ -3,6 +3,11 @@
  * No x402 — intended for internal / lab use.
  */
 import TradingExperimentRun from "../models/TradingExperimentRun.js";
+import TradingExperimentAgentState from "../models/TradingExperimentAgentState.js";
+import {
+  TRADING_EXPERIMENT_STARTING_USD,
+  TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+} from "../config/tradingExperimentSim.js";
 import {
   EXPERIMENT_SUITE_PRIMARY,
   EXPERIMENT_SUITE_SECONDARY,
@@ -13,7 +18,6 @@ import { resolveStrategiesForSuite } from "./tradingExperimentStrategyResolve.js
 import UserCustomStrategy from "../models/UserCustomStrategy.js";
 import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSignalAnalysis.js";
 import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
-import { fetchExperimentValidation1mKlines } from "./cexExperimentKlines.js";
 import { extractSignalFields } from "./experimentSignalExtract.js";
 import { experimentBuyPassesAllGates } from "./experimentSignalGate.js";
 import { runUserCustomSignalCycle } from "./userCustomStrategyService.js";
@@ -66,6 +70,152 @@ const EXPERIMENT_RUN_STATUSES = new Set([
 ]);
 
 const MAX_RUN_FILTER_LEN = 64;
+
+/** Standard lab runs only (not wallet custom strategies). */
+const LAB_RUN_USER_STRATEGY_CLAUSE = {
+  $or: [{ userStrategyId: null }, { userStrategyId: { $exists: false } }],
+};
+
+/**
+ * @param {unknown} value
+ * @param {number} [fallback]
+ * @returns {number}
+ */
+function toNum(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/** @param {string} suiteNorm */
+function labAgentRunBase(suiteNorm, agentId) {
+  return { agentId, ...mongoMatchSuite(suiteNorm), ...LAB_RUN_USER_STRATEGY_CLAUSE };
+}
+
+/**
+ * @param {import("mongoose").LeanDocument<any>} run
+ * @returns {boolean}
+ */
+function isLabCapitalRun(run) {
+  return !run?.userStrategyId;
+}
+
+/**
+ * @param {import("mongoose").LeanDocument<any>} run
+ * @returns {number}
+ */
+function estimateHistoricalSettledPnlUsd(run) {
+  if (run.simPnlUsd != null && Number.isFinite(run.simPnlUsd)) return toNum(run.simPnlUsd);
+  const n = toNum(run.notionalUsd, TRADING_EXPERIMENT_TRADE_NOTIONAL_USD);
+  const entry = toNum(run.entry);
+  if (!(entry > 0)) return 0;
+  let exit = toNum(run.simExitPrice);
+  if (!(exit > 0)) {
+    if (run.status === "win") exit = toNum(run.firstTarget, entry);
+    else if (run.status === "loss") exit = toNum(run.stopLoss, entry);
+    else if (run.status === "expired") exit = toNum(run.priceAtSignal, entry);
+    else if (run.status === "error") exit = entry;
+    else return 0;
+  }
+  return n * (exit / entry - 1);
+}
+
+/**
+ * @param {string} suiteNorm
+ * @param {number} agentId
+ * @returns {Promise<number>}
+ */
+async function computeSyntheticCashUsd(suiteNorm, agentId) {
+  const base = labAgentRunBase(suiteNorm, agentId);
+  const settled = await TradingExperimentRun.find({
+    ...base,
+    status: { $in: ["win", "loss", "expired", "error"] },
+  }).lean();
+  let pnl = 0;
+  for (const r of settled) pnl += estimateHistoricalSettledPnlUsd(r);
+  const opens = await TradingExperimentRun.countDocuments({ ...base, status: "open" });
+  return (
+    TRADING_EXPERIMENT_STARTING_USD +
+    pnl -
+    TRADING_EXPERIMENT_TRADE_NOTIONAL_USD * opens
+  );
+}
+
+/**
+ * Ensures Mongo rows exist for every strategy agent in this suite; backfills cash from run history.
+ * @param {string} suiteNorm
+ */
+export async function ensureTradingExperimentLedgerBootstrapped(suiteNorm) {
+  const strategies = await resolveStrategiesForSuite(suiteNorm);
+  for (const s of strategies) {
+    const ex = await TradingExperimentAgentState.findOne({ suite: suiteNorm, agentId: s.id }).lean();
+    if (ex) continue;
+    const cash = await computeSyntheticCashUsd(suiteNorm, s.id);
+    await TradingExperimentAgentState.create({
+      suite: suiteNorm,
+      agentId: s.id,
+      cashUsd: Math.max(0, cash),
+      startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+    });
+  }
+}
+
+/**
+ * @param {import("mongoose").Types.ObjectId | string} runId
+ * @param {import("mongoose").LeanDocument<any>} runLean
+ * @param {Record<string, unknown>} setFields resolved fields (status, resolution, …)
+ * @param {number} simExitPrice
+ * @returns {Promise<boolean>} true if an open row was settled
+ */
+async function finalizeOpenLabRun(runId, runLean, setFields, simExitPrice) {
+  if (!isLabCapitalRun(runLean)) {
+    const u = await TradingExperimentRun.updateOne({ _id: runId, status: "open" }, { $set: setFields });
+    return u.modifiedCount > 0;
+  }
+  const suiteNorm = normalizeSuite(runLean.suite);
+  await ensureTradingExperimentLedgerBootstrapped(suiteNorm);
+  const notional = toNum(runLean.notionalUsd, TRADING_EXPERIMENT_TRADE_NOTIONAL_USD);
+  const entry = toNum(runLean.entry);
+  const exitP =
+    Number.isFinite(simExitPrice) && simExitPrice > 0 ? simExitPrice : toNum(runLean.priceAtSignal, entry);
+  const simPnlUsd = entry > 0 && exitP > 0 ? notional * (exitP / entry - 1) : 0;
+  const u = await TradingExperimentRun.updateOne(
+    { _id: runId, status: "open" },
+    {
+      $set: {
+        ...setFields,
+        simExitPrice: exitP,
+        simPnlUsd,
+        notionalUsd: notional,
+      },
+    },
+  );
+  if (u.modifiedCount === 0) return false;
+  await TradingExperimentAgentState.updateOne(
+    { suite: suiteNorm, agentId: runLean.agentId },
+    { $inc: { cashUsd: notional + simPnlUsd } },
+  );
+  return true;
+}
+
+/**
+ * Mark price near max-hold for expired paper P/L.
+ * @param {import("mongoose").LeanDocument<any>} run
+ * @param {{ bar?: string; lookAheadBars?: number }} stratCfg
+ */
+async function fetchExpireExitPrice(run, stratCfg) {
+  const maxHoldMs = maxHoldMsForStrategy(stratCfg);
+  const endMs = toNum(run.anchorCloseMs) + maxHoldMs;
+  try {
+    const kl = await fetchBinanceKlinesJson(run.symbol, { bar: "1m", endTime: endMs, limit: 5 });
+    if (Array.isArray(kl) && kl.length > 0) {
+      const close = parseFloat(String(kl[kl.length - 1][4]));
+      if (Number.isFinite(close) && close > 0) return close;
+    }
+  } catch {
+    // fall through
+  }
+  return toNum(run.priceAtSignal, toNum(run.entry));
+}
 
 /** @param {string} s */
 function escapeRegex(s) {
@@ -184,18 +334,6 @@ function evaluateLongForward(candles, stopLoss, firstTarget) {
 }
 
 /**
- * @param {number} agentId
- * @param {string} suiteNorm
- */
-async function countOpenForAgent(agentId, suiteNorm) {
-  return TradingExperimentRun.countDocuments({
-    agentId,
-    status: "open",
-    ...mongoMatchSuite(suiteNorm),
-  });
-}
-
-/**
  * Run all strategies for one suite once: create run rows only for spot-long (BUY with valid levels → open;
  * invalid BUY levels → skipped_invalid_levels). HOLD and non-BUY (e.g. SELL) are not persisted.
  * @param {{ suite?: string | null }} [opts]
@@ -203,17 +341,13 @@ async function countOpenForAgent(agentId, suiteNorm) {
  */
 export async function runExperimentSignalCycle(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite);
+  await ensureTradingExperimentLedgerBootstrapped(suiteNorm);
   const strategies = await resolveStrategiesForSuite(suiteNorm);
   const errors = [];
   let created = 0;
 
   for (const s of strategies) {
     try {
-      const hasOpen = (await countOpenForAgent(s.id, suiteNorm)) > 0;
-      if (hasOpen) {
-        continue;
-      }
-
       /** @type {string} */
       let symbol;
       /** @type {Record<string, unknown>} */
@@ -294,25 +428,47 @@ export async function runExperimentSignalCycle(opts = {}) {
         continue;
       }
 
-      await TradingExperimentRun.create({
-        suite: suiteNorm,
-        agentId: s.id,
-        agentName: s.name,
-        token: s.token,
-        bar: s.bar,
-        limit: s.limit,
-        symbol,
-        anchorCloseMs,
-        clearSignal: ex.clearSignal,
-        entry: ex.entry,
-        stopLoss: ex.stopLoss,
-        firstTarget: ex.firstTarget,
-        priceAtSignal: ex.priceAtSignal,
-        confidence: ex.confidence,
-        status: "open",
-        summary,
-      });
-      created += 1;
+      const reserved = await TradingExperimentAgentState.findOneAndUpdate(
+        {
+          suite: suiteNorm,
+          agentId: s.id,
+          cashUsd: { $gte: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD },
+        },
+        { $inc: { cashUsd: -TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
+        { new: true },
+      );
+      if (!reserved) {
+        continue;
+      }
+
+      try {
+        await TradingExperimentRun.create({
+          suite: suiteNorm,
+          agentId: s.id,
+          agentName: s.name,
+          token: s.token,
+          bar: s.bar,
+          limit: s.limit,
+          symbol,
+          anchorCloseMs,
+          clearSignal: ex.clearSignal,
+          entry: ex.entry,
+          stopLoss: ex.stopLoss,
+          firstTarget: ex.firstTarget,
+          priceAtSignal: ex.priceAtSignal,
+          confidence: ex.confidence,
+          status: "open",
+          summary,
+          notionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+        });
+        created += 1;
+      } catch (createErr) {
+        await TradingExperimentAgentState.updateOne(
+          { suite: suiteNorm, agentId: s.id },
+          { $inc: { cashUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
+        );
+        throw createErr;
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       errors.push(`[${suiteNorm}] agent ${s.id}: ${msg}`);
@@ -364,15 +520,17 @@ export async function resolveOpenExperimentRuns() {
       if (run.userStrategyId) {
         const us = await UserCustomStrategy.findById(run.userStrategyId).lean();
         if (!us) {
-          await TradingExperimentRun.updateOne(
-            { _id: run._id, status: "open" },
+          const ok = await finalizeOpenLabRun(
+            run._id,
+            run,
             {
               status: "error",
               errorMessage: "custom strategy removed",
               resolvedAt: new Date(),
             },
+            toNum(run.entry, toNum(run.priceAtSignal)),
           );
-          resolved += 1;
+          if (ok) resolved += 1;
           continue;
         }
         lookAhead = us.lookAheadBars ?? 48;
@@ -389,15 +547,17 @@ export async function resolveOpenExperimentRuns() {
       }
 
       if (run.anchorCloseMs == null || run.stopLoss == null || run.firstTarget == null) {
-        await TradingExperimentRun.updateOne(
-          { _id: run._id, status: "open" },
+        const ok = await finalizeOpenLabRun(
+          run._id,
+          run,
           {
             status: "error",
             errorMessage: "missing anchor or levels",
             resolvedAt: new Date(),
           },
+          toNum(run.entry, toNum(run.priceAtSignal)),
         );
-        resolved += 1;
+        if (ok) resolved += 1;
         continue;
       }
 
@@ -414,16 +574,28 @@ export async function resolveOpenExperimentRuns() {
         run.firstTarget,
       );
 
-      await TradingExperimentRun.updateOne(
-        { _id: run._id, status: "open" },
+      const finalStatus = outcome === "win" ? "win" : outcome === "loss" ? "loss" : "expired";
+      let simExit = toNum(run.entry);
+      if (finalStatus === "win") simExit = toNum(run.firstTarget, simExit);
+      else if (finalStatus === "loss") simExit = toNum(run.stopLoss, simExit);
+      else if (candles.length > 0) {
+        const last = candles[candles.length - 1];
+        const c = parseFloat(String(last[4]));
+        if (Number.isFinite(c) && c > 0) simExit = c;
+      }
+
+      const ok = await finalizeOpenLabRun(
+        run._id,
+        run,
         {
-          status: outcome === "win" ? "win" : outcome === "loss" ? "loss" : "expired",
+          status: finalStatus,
           resolution,
           forwardBarsExamined: bars,
           resolvedAt: new Date(),
         },
+        simExit,
       );
-      resolved += 1;
+      if (ok) resolved += 1;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       errors.push(`run ${run._id}: ${msg}`);
@@ -457,17 +629,17 @@ export async function resolveOpenExperimentRunsIncremental1m() {
       if (run.userStrategyId) {
         const us = await UserCustomStrategy.findById(run.userStrategyId).lean();
         if (!us) {
-          const u = await TradingExperimentRun.updateOne(
-            { _id: run._id, status: "open" },
+          const ok = await finalizeOpenLabRun(
+            run._id,
+            run,
             {
-              $set: {
-                status: "error",
-                errorMessage: "custom strategy removed",
-                resolvedAt: new Date(),
-              },
+              status: "error",
+              errorMessage: "custom strategy removed",
+              resolvedAt: new Date(),
             },
+            toNum(run.entry, toNum(run.priceAtSignal)),
           );
-          if (u.modifiedCount) resolved += 1;
+          if (ok) resolved += 1;
           continue;
         }
         stratCfg = { bar: us.bar, lookAheadBars: us.lookAheadBars };
@@ -482,17 +654,17 @@ export async function resolveOpenExperimentRunsIncremental1m() {
       const maxHoldMs = maxHoldMsForStrategy(stratCfg);
 
       if (run.anchorCloseMs == null || run.stopLoss == null || run.firstTarget == null) {
-        const u = await TradingExperimentRun.updateOne(
-          { _id: run._id, status: "open" },
+        const ok = await finalizeOpenLabRun(
+          run._id,
+          run,
           {
-            $set: {
-              status: "error",
-              errorMessage: "missing anchor or levels",
-              resolvedAt: new Date(),
-            },
+            status: "error",
+            errorMessage: "missing anchor or levels",
+            resolvedAt: new Date(),
           },
+          toNum(run.entry, toNum(run.priceAtSignal)),
         );
-        if (u.modifiedCount) resolved += 1;
+        if (ok) resolved += 1;
         continue;
       }
 
@@ -522,19 +694,20 @@ export async function resolveOpenExperimentRunsIncremental1m() {
         const lastClose = Number(candles[candles.length - 1][6]);
 
         if (r.hit === "win" || r.hit === "loss") {
-          const u = await TradingExperimentRun.updateOne(
-            { _id: run._id, status: "open" },
+          const exitPx = r.hit === "win" ? toNum(run.firstTarget) : toNum(run.stopLoss);
+          const ok = await finalizeOpenLabRun(
+            run._id,
+            run,
             {
-              $set: {
-                status: r.hit,
-                resolution: r.resolution,
-                forwardBarsExamined: prevExamined + r.bars,
-                lastProcessed1mCloseMs: lastClose,
-                resolvedAt: new Date(),
-              },
+              status: r.hit,
+              resolution: r.resolution,
+              forwardBarsExamined: prevExamined + r.bars,
+              lastProcessed1mCloseMs: lastClose,
+              resolvedAt: new Date(),
             },
+            exitPx,
           );
-          if (u.modifiedCount) resolved += 1;
+          if (ok) resolved += 1;
           continue;
         }
 
@@ -550,17 +723,18 @@ export async function resolveOpenExperimentRunsIncremental1m() {
       }
 
       if (Date.now() > run.anchorCloseMs + maxHoldMs) {
-        const u = await TradingExperimentRun.updateOne(
-          { _id: run._id, status: "open" },
+        const exitPx = await fetchExpireExitPrice(run, stratCfg);
+        const ok = await finalizeOpenLabRun(
+          run._id,
+          run,
           {
-            $set: {
-              status: "expired",
-              resolution: "max_hold_time_no_tp_sl",
-              resolvedAt: new Date(),
-            },
+            status: "expired",
+            resolution: "max_hold_time_no_tp_sl",
+            resolvedAt: new Date(),
           },
+          exitPx,
         );
-        if (u.modifiedCount) resolved += 1;
+        if (ok) resolved += 1;
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -596,8 +770,12 @@ export async function runFullExperimentCycle() {
  */
 export async function getExperimentStats(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite);
+  await ensureTradingExperimentLedgerBootstrapped(suiteNorm);
   const strategies = await resolveStrategiesForSuite(suiteNorm);
   const suiteQ = mongoMatchSuite(suiteNorm);
+  const states = await TradingExperimentAgentState.find({ suite: suiteNorm }).lean();
+  /** @type {Map<number, import("mongoose").LeanDocument<any>>} */
+  const stateByAgent = new Map(states.map((x) => [x.agentId, x]));
   const agents = [];
 
   for (const s of strategies) {
@@ -605,6 +783,7 @@ export async function getExperimentStats(opts = {}) {
       agentId: s.id,
       status: { $in: ["win", "loss"] },
       ...suiteQ,
+      ...LAB_RUN_USER_STRATEGY_CLAUSE,
     }).lean();
     const wins = settled.filter((r) => r.status === "win").length;
     const losses = settled.filter((r) => r.status === "loss").length;
@@ -615,7 +794,14 @@ export async function getExperimentStats(opts = {}) {
       agentId: s.id,
       status: "open",
       ...suiteQ,
+      ...LAB_RUN_USER_STRATEGY_CLAUSE,
     });
+
+    const st = stateByAgent.get(s.id);
+    const cashUsd =
+      Math.round((toNum(st?.cashUsd, TRADING_EXPERIMENT_STARTING_USD) + Number.EPSILON) * 100) / 100;
+    const deployedUsd = openCount * TRADING_EXPERIMENT_TRADE_NOTIONAL_USD;
+    const equityUsd = Math.round((cashUsd + deployedUsd + Number.EPSILON) * 100) / 100;
 
     agents.push({
       agentId: s.id,
@@ -633,10 +819,23 @@ export async function getExperimentStats(opts = {}) {
       winRate,
       winRatePct: winRate != null ? Math.round(winRate * 1000) / 10 : null,
       openPositions: openCount,
+      startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+      tradeNotionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+      cashUsd,
+      deployedUsd,
+      equityUsd,
     });
   }
 
-  return { strategies, agents, suite: suiteNorm };
+  return {
+    strategies,
+    agents,
+    suite: suiteNorm,
+    simConfig: {
+      startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+      tradeNotionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+    },
+  };
 }
 
 /**

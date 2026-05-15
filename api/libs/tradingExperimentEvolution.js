@@ -6,6 +6,8 @@
  */
 import TradingExperimentRun from "../models/TradingExperimentRun.js";
 import TradingExperimentLabAgentOverride from "../models/TradingExperimentLabAgentOverride.js";
+import TradingExperimentAgentState from "../models/TradingExperimentAgentState.js";
+import { TRADING_EXPERIMENT_STARTING_USD } from "../config/tradingExperimentSim.js";
 import {
   TRADING_EXPERIMENT_STRATEGIES,
   TRADING_EXPERIMENT_STRATEGIES_SECONDARY,
@@ -315,6 +317,16 @@ export async function runTradingExperimentEvolution(opts = {}) {
 
   for (const v of victims) {
     await TradingExperimentRun.deleteMany({ agentId: v.agentId, ...suiteMatch });
+    await TradingExperimentAgentState.findOneAndUpdate(
+      { suite: suiteNorm, agentId: v.agentId },
+      {
+        $set: {
+          cashUsd: TRADING_EXPERIMENT_STARTING_USD,
+          startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+        },
+      },
+      { upsert: true },
+    );
     const strat =
       suiteNorm === EXPERIMENT_SUITE_SECONDARY
         ? buildRandomScalperStrategy(v.agentId)

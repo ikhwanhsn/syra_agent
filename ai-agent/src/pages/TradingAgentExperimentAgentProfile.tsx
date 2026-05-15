@@ -58,6 +58,16 @@ function formatTime(iso: string | undefined) {
   }
 }
 
+function formatUsd(n: number | null | undefined) {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
 export default function TradingAgentExperimentAgentProfile({ embedded = false }: { embedded?: boolean }) {
   const { agentId: agentIdParam } = useParams<{ agentId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -253,7 +263,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Win rate</p>
                 <p className="text-2xl font-semibold tabular-nums mt-1">
@@ -271,12 +281,22 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Open</p>
                 <p className="text-2xl font-semibold tabular-nums mt-1">{agent.openPositions}</p>
-                <p className="text-xs text-muted-foreground mt-1">Positions awaiting TP/SL or expiry</p>
+                <p className="text-xs text-muted-foreground mt-1">Live $100 slots (max set by free cash)</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Forward window</p>
-                <p className="text-2xl font-semibold tabular-nums mt-1">{strategy.lookAheadBars}</p>
-                <p className="text-xs text-muted-foreground mt-1">Max bars checked after signal anchor</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Free cash</p>
+                <p className="text-2xl font-semibold tabular-nums mt-1">{formatUsd(agent.cashUsd)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Not reserved by open trades</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">In trade</p>
+                <p className="text-2xl font-semibold tabular-nums mt-1">{formatUsd(agent.deployedUsd)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Capital at risk in open positions</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Equity</p>
+                <p className="text-2xl font-semibold tabular-nums mt-1">{formatUsd(agent.equityUsd)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Free + in trade (compound simulation)</p>
               </div>
             </div>
 
@@ -359,13 +379,14 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                     <TableHead className="text-right">Entry</TableHead>
                     <TableHead className="text-right">SL</TableHead>
                     <TableHead className="text-right">TP1</TableHead>
+                    <TableHead className="text-right">P/L</TableHead>
                     <TableHead>Resolution</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {runs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                         No runs recorded for this agent in this suite yet.
                       </TableCell>
                     </TableRow>
@@ -412,6 +433,20 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-xs">
                           {r.firstTarget != null ? r.firstTarget.toFixed(4) : "—"}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right text-xs font-semibold tabular-nums",
+                            r.simPnlUsd == null || !Number.isFinite(r.simPnlUsd)
+                              ? "text-muted-foreground"
+                              : r.simPnlUsd > 0
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : r.simPnlUsd < 0
+                                  ? "text-rose-600 dark:text-rose-400"
+                                  : "text-muted-foreground",
+                          )}
+                        >
+                          {r.simPnlUsd != null && Number.isFinite(r.simPnlUsd) ? formatUsd(r.simPnlUsd) : "—"}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate font-mono text-xs text-foreground/80 dark:text-zinc-200">
                           {r.resolution ?? "—"}

@@ -39,6 +39,12 @@ const tradingExperimentRunSchema = new mongoose.Schema(
     /** Trimmed snapshot for UI */
     summary: { type: mongoose.Schema.Types.Mixed, default: null },
     errorMessage: { type: String, default: null },
+    /** Paper trade size (USD) reserved from agent cash while status is `open`. */
+    notionalUsd: { type: Number, default: null },
+    /** Exit price used for paper P/L (TP, SL, expire mark, or error flat). */
+    simExitPrice: { type: Number, default: null },
+    /** Paper P/L in USD on this leg: notional * (simExitPrice/entry - 1). */
+    simPnlUsd: { type: Number, default: null },
     /** When suite is `user_custom`: link to {@link UserCustomStrategy} and owner wallet (normalized). */
     userStrategyId: {
       type: mongoose.Schema.Types.ObjectId,

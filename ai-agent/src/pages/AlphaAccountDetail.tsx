@@ -39,6 +39,7 @@ import {
   formatSignalLabel,
   gradeBadgeClassName,
   scoreRingStyle,
+  userReadableAlphaDataError,
 } from "@/lib/alphaIntelUi";
 
 /** Match server analyzer cache / X API TTL — detail view was refetching too often. */
@@ -129,7 +130,7 @@ export default function AlphaAccountDetail() {
             <CardHeader>
               <CardTitle className="text-lg">Could not load profile intel</CardTitle>
               <CardDescription className="text-muted-foreground">
-                {(detailQ.error as Error)?.message ||
+                {userReadableAlphaDataError((detailQ.error as Error)?.message) ||
                   "Check your connection, API configuration, or whether this account is in the Alpha feed."}
               </CardDescription>
             </CardHeader>
