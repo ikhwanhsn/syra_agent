@@ -163,6 +163,7 @@ const RATE_LIMIT_INFO = {
       'all x402 routes (see GET /.well-known/x402)',
       '/internal/tester-agent*',
       '/internal/agent-team/run',
+      '/internal/uponly-fund-dev-team/run',
       '/internal/x402-x-trends/run',
       '/internal/growth-*',
       '/uponly-rise-market*',

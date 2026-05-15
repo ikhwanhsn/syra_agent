@@ -116,6 +116,8 @@ export const GROWTH_SECTOR_MAX_TWEETS_LLM = 32;
  *   growthSectorNarrative: number;
  *   x402XTrends: number;
  *   hrTeamCoach: number;
+ *   uponlyFundDevSpecialists: number;
+ *   uponlyFundHrCoach: number;
  * }>}
  */
 export const INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS = Object.freeze({
@@ -126,4 +128,6 @@ export const INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS = Object.freeze({
   growthSectorNarrative: 1200,
   x402XTrends: 1250,
   hrTeamCoach: 300,
+  uponlyFundDevSpecialists: 4200,
+  uponlyFundHrCoach: 360,
 });

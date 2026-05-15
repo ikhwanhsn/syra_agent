@@ -28,6 +28,10 @@ import {
   runInternalHrCoachPipeline,
   INTERNAL_HR_COACH_DB_ID,
 } from "../libs/internalHrCoachScheduler.js";
+import {
+  runUponlyFundDevAgentTeamPipeline,
+  UPONLY_FUND_DEV_TEAM_DB_ID,
+} from "../libs/uponlyFundDevAgentScheduler.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -275,6 +279,38 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "HR coach pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // GET /internal/uponly-fund-dev-team/latest — latest Up Only Fund dev internal run (API key; not on public fund site)
+  router.get("/uponly-fund-dev-team/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: UPONLY_FUND_DEV_TEAM_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // POST /internal/uponly-fund-dev-team/run — crawl + 13 dev specialists + HR → Telegram + Mongo (optional cron secret)
+  router.post("/uponly-fund-dev-team/run", async (_req, res) => {
+    try {
+      const out = await runUponlyFundDevAgentTeamPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Up Only Fund dev team pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

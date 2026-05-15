@@ -1,0 +1,41 @@
+# Daily Up Only Fund dev internal team (06:55 WIB) — engineering Telegram digests (not on public fund site).
+# Repository secrets (optional):
+#   SYRA_AGENT_TEAM_BASE_URL — same API origin as Syra agent team, e.g. https://api.syraa.fun
+#   UPONLY_FUND_DEV_TEAM_CRON_SECRET — must match UPONLY_FUND_DEV_TEAM_CRON_SECRET on the API host
+#
+# On the API: OPENROUTER_API_KEY, CLOUDFLARE_* for crawl, SYRA_DEV_BOT_TOKEN + SYRA_DEV_BOT_CHAT_ID for Telegram.
+name: Up Only Fund dev internal team (06:55 WIB)
+
+on:
+  schedule:
+    - cron: "55 23 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-uponly-dev-team:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/uponly-fund-dev-team/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_AGENT_TEAM_BASE_URL }}
+          UPONLY_FUND_DEV_TEAM_CRON_SECRET: ${{ secrets.UPONLY_FUND_DEV_TEAM_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${UPONLY_FUND_DEV_TEAM_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_AGENT_TEAM_BASE_URL and UPONLY_FUND_DEV_TEAM_CRON_SECRET in repo secrets to enable this job."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          echo "Running Up Only Fund dev team at ${ORIGIN}/internal/uponly-fund-dev-team/run"
+          HTTP_CODE=$(curl -sS -o /tmp/uponly-dev-team.json -w "%{http_code}" -X POST "${ORIGIN}/internal/uponly-fund-dev-team/run" \
+            -H "x-uponly-fund-dev-team-cron-secret: ${UPONLY_FUND_DEV_TEAM_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/uponly-dev-team.json
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Up Only Fund dev team returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/uponly-dev-team.json'); if(!r.success){console.error(r); process.exit(1)}"

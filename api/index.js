@@ -608,6 +608,7 @@ app.use(
         isX402Route(p) ||
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/agent-team/run") ||
+        p.startsWith("/internal/uponly-fund-dev-team/run") ||
         p.startsWith("/internal/x402-x-trends/run") ||
         p.startsWith("/internal/growth-") ||
         p.startsWith("/uponly-rise-market") ||
@@ -649,6 +650,16 @@ app.use(
       const secret = (process.env.AGENT_TEAM_CRON_SECRET || "").trim();
       if (secret) {
         const got = (req.get("x-agent-team-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/uponly-fund-dev-team/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.UPONLY_FUND_DEV_TEAM_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-uponly-fund-dev-team-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
@@ -1406,6 +1417,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[internal-hr-coach] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/uponlyFundDevAgentScheduler.js")
+    .then(({ startUponlyFundDevAgentScheduler }) => {
+      startUponlyFundDevAgentScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[uponly-fund-dev-team] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
