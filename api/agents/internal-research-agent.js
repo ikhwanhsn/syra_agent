@@ -128,50 +128,274 @@ function anyUserFacingHostShowsAuthWall(snapshot) {
 }
 
 /**
- * LLM often conflates api.syraa.fun Unauthorized responses with SPA hosts.
- * @param {InternalRecommendation} rec
- * @returns {boolean}
+ * Phrases that indicate an "auth/access" failure claim. Intentionally broad — we want
+ * to catch both numeric ("401", "402") and prose ("authentication error", "auth wall",
+ * "login wall", "deployment protection") variants because the LLM mixes them freely.
  */
-function recommendationClaimsUserSiteAuthFailure(rec) {
-  if (!USER_WEB_SURFACES.has(rec.surface)) return false;
-  const text = `${rec.title}\n${rec.why}`.toLowerCase();
-  const citesAuthFailure =
-    /\b401\b/.test(text) ||
-    /\b402\b/.test(text) ||
-    /authentication error|unauthorized error|payment required/i.test(text);
-  if (!citesAuthFailure) return false;
-  return /preventing users|blocking users|hindering users|not accessible|inaccessible|returned (a )?401|returns 401|respond(ed|ing)? with (a )?401|401 errors|main entry point|experimenting with the api/i.test(
-    text,
-  );
+const AUTH_FAILURE_PHRASES = [
+  /\b401\b/,
+  /\b402\b/,
+  /\bunauthorized\b/,
+  /\bpayment required\b/,
+  /authentication (?:error|required|failure|issue|problem|wall)/,
+  /\bauth (?:error|failure|issue|problem|wall)\b/,
+  /login wall|sign[- ]?in wall|deployment protection|vercel authentication/,
+  /inaccessible|not accessible|blocked from access|cannot (?:be )?access(?:ed)?/,
+];
+
+/**
+ * Phrases that name a user-facing web host (by surface name or by domain).
+ * Matching these strongly suggests the claim is *about* the SPA hosts.
+ */
+const USER_WEB_HOST_MENTIONS = [
+  /\bsyraa\.fun\b/,
+  /\bdocs\.syraa\.fun\b/,
+  /\bagent\.syraa\.fun\b/,
+  /\bplayground\.syraa\.fun\b/,
+  /\b(landing|docs|agent|playground)\b/,
+  /public[- ]?facing/,
+  /user[- ]?facing/,
+  /(public|web)[- ]?(web )?surfaces?/,
+  /web app(?:lication)?s?/,
+];
+
+/** @param {string} text @param {RegExp[]} patterns */
+function matchesAny(text, patterns) {
+  return patterns.some((rx) => rx.test(text));
+}
+
+/** @param {string} text */
+function textClaimsUserWebAuthFailure(text) {
+  const t = (text || "").toLowerCase();
+  if (!t) return false;
+  return matchesAny(t, AUTH_FAILURE_PHRASES) && matchesAny(t, USER_WEB_HOST_MENTIONS);
 }
 
 /**
- * Strip recommendations / risks that claim user-facing sites return 401 without crawl proof.
+ * LLM often conflates api.syraa.fun Unauthorized responses with SPA hosts. This now
+ * fires on TEXT, regardless of the `surface` enum the model picked — so a
+ * `surface: "cross-cutting"` recommendation whose body still names landing/docs/agent/
+ * playground as "401" or "inaccessible" is still caught.
+ * @param {InternalRecommendation} rec
+ */
+function recommendationClaimsUserSiteAuthFailure(rec) {
+  return textClaimsUserWebAuthFailure(`${rec.title}\n${rec.why}`);
+}
+
+/**
+ * @param {CrawlSnapshotItem[]} snapshot
+ * @param {InternalRecommendation} rec
+ */
+function recommendationBackedByCrawlEvidence(snapshot, rec) {
+  const candidates = USER_WEB_SURFACES.has(rec.surface)
+    ? [/** @type {ResearchSurface} */ (rec.surface)]
+    : Array.from(USER_WEB_SURFACES);
+  return candidates.some((s) =>
+    snapshotHasAuthWallEvidenceForSurface(snapshot, /** @type {ResearchSurface} */ (s)),
+  );
+}
+
+/** @param {string} text */
+function splitIntoSentences(text) {
+  return String(text || "")
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Strip from `summary` any sentence that hallucinates auth failure on user-facing hosts
+ * without crawl evidence. Returns the sanitized summary plus a count of removed sentences.
+ * @param {CrawlSnapshotItem[]} snapshot
+ * @param {string} summary
+ */
+function sanitizeSummary(snapshot, summary) {
+  const hasEvidence = anyUserFacingHostShowsAuthWall(snapshot);
+  if (hasEvidence) return { summary, dropped: 0 };
+
+  const sentences = splitIntoSentences(summary);
+  const kept = sentences.filter((s) => !textClaimsUserWebAuthFailure(s));
+  const dropped = sentences.length - kept.length;
+  if (dropped === 0) return { summary, dropped: 0 };
+
+  const cleaned = kept.join(" ").trim();
+  if (cleaned) return { summary: cleaned, dropped };
+  return {
+    summary:
+      "Public web surfaces (landing, docs, agent, playground) appear to load normally; the API host (api.syraa.fun) is intentionally key/x402-gated and is not a site-wide outage. Findings below are grounded in the crawl snapshot only.",
+    dropped,
+  };
+}
+
+/**
+ * Phrases that claim a user-facing host (or its documentation) is broken / unreachable.
+ * This is a DIFFERENT hallucination from auth-wall reports: the LLM jumps from "I don't
+ * see x402 docs in the snapshot" (which can happen if the crawl was thin or depth-limited)
+ * to "the docs site is down". We strip these whenever crawl evidence proves the host is live.
+ */
+const HOST_DOWN_PHRASES = [
+  /\b(docs?(?:umentation)?|site|website|landing|playground|agent app)\b[^\n.]{0,80}\b(is|are|appears? to be|seems? to be|currently)\b[^\n.]{0,80}\b(down|offline|unreachable|unavailable|broken|not loading|inaccessible|not accessible|cannot be reached|can(?:'| no)?t be reached|missing|returns 404|404[ed]?)\b/,
+  /\b(crucial|critical|essential|important)\s+(documentation|docs)[^\n.]{0,80}\b(unreachable|unavailable|missing|down|inaccessible|offline)\b/,
+  /\b(documentation|docs)\b[^\n.]{0,80}\b(is|are)\b[^\n.]{0,40}\b(down|unreachable|unavailable|inaccessible|offline|missing|broken)\b/,
+  /\bdocs site (is|appears?) (down|offline|broken|unreachable|unavailable)\b/,
+  /\b(no|missing)\s+(x402|api[- ]?key|payment)\s+(documentation|docs)\b/,
+  /\b(x402|api[- ]?key)\s+(documentation|docs)\b[^\n.]{0,80}\b(unreachable|unavailable|missing|broken|inaccessible)\b/,
+];
+
+/** @param {string} text */
+function textClaimsHostDown(text) {
+  const t = (text || "").toLowerCase();
+  if (!t) return false;
+  return HOST_DOWN_PHRASES.some((rx) => rx.test(t));
+}
+
+/**
+ * Count successful (non-error, non-empty) crawl pages per host. Used to decide whether a
+ * "host is down" claim has any supporting evidence at all.
+ *
+ * @param {CrawlSnapshotItem[]} snapshot
+ * @returns {Map<string, number>}
+ */
+function countLivePagesPerHost(snapshot) {
+  /** @type {Map<string, number>} */
+  const counts = new Map();
+  for (const p of snapshot) {
+    const host = crawlHostname(String(p?.url || ""));
+    if (!host) continue;
+    const title = String(p?.title || "").toLowerCase();
+    if (title === "crawl-error" || title === "fetch-error" || title === "crawl-status") {
+      continue;
+    }
+    const md = typeof p?.markdown === "string" ? p.markdown : "";
+    if (!md.trim()) continue;
+    counts.set(host, (counts.get(host) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Surfaces → user-facing hostnames that count as "live evidence". */
+const SURFACE_HOSTS = Object.freeze({
+  landing: ["syraa.fun", "www.syraa.fun"],
+  docs: ["docs.syraa.fun"],
+  agent: ["agent.syraa.fun"],
+  playground: ["playground.syraa.fun"],
+});
+
+/**
+ * @param {Map<string, number>} hostCounts
+ * @param {ResearchSurface} surface
+ * @returns {boolean}
+ */
+function surfaceHasLiveEvidence(hostCounts, surface) {
+  const hosts = /** @type {readonly string[]} */ (SURFACE_HOSTS[surface] ?? []);
+  return hosts.some((h) => (hostCounts.get(h) ?? 0) >= 1);
+}
+
+/**
+ * @param {Map<string, number>} hostCounts
+ * @returns {boolean}
+ */
+function anyUserFacingHostIsLive(hostCounts) {
+  for (const s of USER_WEB_SURFACES) {
+    if (surfaceHasLiveEvidence(hostCounts, /** @type {ResearchSurface} */ (s))) return true;
+  }
+  return false;
+}
+
+/**
+ * Decide whether a "host is down" claim is plausible: if any user-facing host with live
+ * crawl pages is named in the text, we drop the claim.
+ *
+ * @param {Map<string, number>} hostCounts
+ * @param {string} text
+ * @returns {boolean} true if claim should be DROPPED
+ */
+function hostDownClaimContradictedByEvidence(hostCounts, text) {
+  const t = text.toLowerCase();
+  const namesUserHost = matchesAny(t, USER_WEB_HOST_MENTIONS);
+  if (!namesUserHost) {
+    // Generic "the site is down" with no host: still drop if ANY user-facing host is live.
+    return anyUserFacingHostIsLive(hostCounts);
+  }
+  for (const [surface, hosts] of Object.entries(SURFACE_HOSTS)) {
+    const hostNamed = hosts.some((h) => t.includes(h)) || t.includes(surface);
+    if (hostNamed && surfaceHasLiveEvidence(hostCounts, /** @type {ResearchSurface} */ (surface))) {
+      return true;
+    }
+  }
+  return anyUserFacingHostIsLive(hostCounts);
+}
+
+/**
+ * Strip from `summary` any sentence that hallucinates "host down / docs unreachable" when
+ * the crawl snapshot proves the host is live.
+ *
+ * @param {Map<string, number>} hostCounts
+ * @param {string} summary
+ */
+function sanitizeSummaryForHostDown(hostCounts, summary) {
+  const sentences = splitIntoSentences(summary);
+  const kept = sentences.filter((s) => {
+    if (!textClaimsHostDown(s)) return true;
+    return !hostDownClaimContradictedByEvidence(hostCounts, s);
+  });
+  const dropped = sentences.length - kept.length;
+  if (dropped === 0) return { summary, dropped: 0 };
+  const cleaned = kept.join(" ").trim();
+  if (cleaned) return { summary: cleaned, dropped };
+  return {
+    summary:
+      "Public web surfaces (landing, docs, agent, playground) responded to the crawler this cycle; no host outage detected. Findings below are grounded in the crawl snapshot only.",
+    dropped,
+  };
+}
+
+/**
+ * Strip recommendations / risks / summary sentences that claim user-facing sites return
+ * 401 (or any auth wall) without crawl proof.
  * @param {CrawlSnapshotItem[]} snapshot
  * @param {InternalResearchOutput} output
  * @returns {InternalResearchOutput}
  */
 function sanitizeAuthSurfaceHallucinations(snapshot, output) {
+  const hostCounts = countLivePagesPerHost(snapshot);
+
   let recommendations = output.recommendations.filter((rec) => {
-    if (!recommendationClaimsUserSiteAuthFailure(rec)) return true;
-    return snapshotHasAuthWallEvidenceForSurface(snapshot, rec.surface);
+    const text = `${rec.title}\n${rec.why}`;
+    if (recommendationClaimsUserSiteAuthFailure(rec)) {
+      return recommendationBackedByCrawlEvidence(snapshot, rec);
+    }
+    if (textClaimsHostDown(text)) {
+      return !hostDownClaimContradictedByEvidence(hostCounts, text);
+    }
+    return true;
   });
+
+  const hasEvidence = anyUserFacingHostShowsAuthWall(snapshot);
 
   let risks = output.risks.filter((line) => {
-    const t = line.toLowerCase();
-    const systemic401 =
-      /\b401\b/.test(t) &&
-      /all (four|4)|user-facing surfaces|systemic|landing.*docs|every.*surface|all returning|primary user-facing/i.test(
-        t,
-      );
-    if (!systemic401) return true;
-    return anyUserFacingHostShowsAuthWall(snapshot);
+    if (textClaimsUserWebAuthFailure(line)) return hasEvidence;
+    if (textClaimsHostDown(line)) {
+      return !hostDownClaimContradictedByEvidence(hostCounts, line);
+    }
+    return true;
   });
 
-  const dropped = output.recommendations.length - recommendations.length;
-  if (dropped > 0) {
+  const droppedRecs = output.recommendations.length - recommendations.length;
+  const droppedRisks = output.risks.length - risks.length;
+
+  const { summary: authSummary, dropped: droppedSummaryAuth } = sanitizeSummary(
+    snapshot,
+    output.summary,
+  );
+  const { summary: cleanedSummary, dropped: droppedSummaryHost } =
+    sanitizeSummaryForHostDown(hostCounts, authSummary);
+  const droppedSummary = droppedSummaryAuth + droppedSummaryHost;
+
+  const totalDropped = droppedRecs + droppedRisks + droppedSummary;
+  if (totalDropped > 0) {
     risks.unshift(
-      `Automated filter: removed ${dropped} recommendation(s) that claimed HTTP 401/402 on user-facing web hosts without matching auth-wall crawl evidence (usually conflated with api.syraa.fun).`,
+      `Automated filter: removed ${droppedRecs} recommendation(s), ${droppedRisks} risk(s), and ${droppedSummary} summary sentence(s) that either (a) claimed HTTP 401/402 / auth walls on user-facing web hosts without matching crawl evidence (usually conflated with api.syraa.fun), or (b) claimed a user-facing host / docs site is down / unreachable while the crawl snapshot shows live pages from that host.`,
     );
   }
 
@@ -197,6 +421,7 @@ function sanitizeAuthSurfaceHallucinations(snapshot, output) {
 
   return {
     ...output,
+    summary: cleanedSummary,
     recommendations,
     risks,
   };
@@ -231,7 +456,22 @@ Auth model — IMPORTANT (do not generate false-positive auth bug reports):
 - The synthetic page whose URL ends with \`/_meta/auth-model\` describes **only** https://api.syraa.fun. It is not evidence about syraa.fun, docs.syraa.fun, agent.syraa.fun, or playground.syraa.fun. Never claim those web apps "return 401" because that page mentions Unauthorized/Payment Required for the API.
 - The api.syraa.fun JSON API is intentionally protected (keys / x402). Anonymous calls to protected routes there are expected to fail auth — that does **not** mean the marketing or docs sites are down.
 - Only recommend a **fix** for user-facing web surfaces if the crawled **page URL** for that host (see snapshot \`url\` fields) contains visible auth-wall content (deployment protection, site-wide login with no product shell), not merely API error jargon copied from docs.
-- Frontend bundles must never embed API keys; trusted-origin injection applies. Do not recommend exposing API keys in client bundles.`;
+- Frontend bundles must never embed API keys; trusted-origin injection applies. Do not recommend exposing API keys in client bundles.
+
+Docs availability — IMPORTANT (do not invent outage reports):
+- Treat a host as **live** if the snapshot contains at least one page from that host with non-empty markdown and a non-error title. \`docs.syraa.fun\` in particular is live and serves the x402 Payment Flow, API Reference, agent docs, and tokenomics pages.
+- The presence or absence of a *specific* docs page in this snapshot is **not** evidence the docs site is down. The crawl is depth-limited and may not reach every sub-page. If you cannot find a topic (e.g. "x402 payments" or "API key usage") in the snapshot, say "this snapshot did not include the x402 docs page; verify crawl depth/coverage" — never say "the docs site is down" or "documentation is unreachable".
+- Authoritative docs URLs for x402 and API auth (the LLM should assume these exist and are reachable unless an explicit auth-wall page proves otherwise): \`https://docs.syraa.fun/docs/api/x402-api-standard\` (x402 Payment Flow + headers), \`https://docs.syraa.fun/docs/api-reference\` (full API reference), \`https://docs.syraa.fun/docs/welcome\` (landing).
+- The phrases "docs site is down", "documentation is unreachable", "x402 documentation is unavailable", "no API-key docs", and equivalents are forbidden output unless a crawled page URL for \`docs.syraa.fun\` actually rendered an auth-wall / 404 / deployment-protection body.
+
+Forbidden output examples (these are FALSE-POSITIVE patterns — never produce them unless a crawled page URL for that exact host shows a real auth wall or hard error body):
+- "Public-facing web applications (landing, docs, agent, playground) are inaccessible due to authentication errors."
+- "Investigate 401 errors on public web surfaces."
+- "Crucial documentation for x402 payments and API key usage is unreachable because the docs site is down."
+- "docs.syraa.fun is offline / not loading / returns 404."
+- Any recommendation/risk that lumps all four user-facing hosts together as "401" / "unauthorized" / "inaccessible" / "blocked" / "auth wall" / "down" / "offline".
+- Any recommendation whose \`surface\` is "cross-cutting" but whose body still asserts user-facing hosts return 401/402 or are down.
+If the only auth-related evidence you have comes from the \`/_meta/auth-model\` synthetic page or the API discovery JSON, the correct conclusion is "API host (api.syraa.fun) is intentionally protected — no user-facing outage detected", not a 401 incident on the SPAs and not a docs outage.`;
 
 /**
  * @param {string} text

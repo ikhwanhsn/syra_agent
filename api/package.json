@@ -50,6 +50,7 @@
     "dotenv": "^17.2.3",
     "exa-js": "^2.3.0",
     "express": "^5.2.1",
+    "fast-xml-parser": "^4.5.6",
     "gmgn-cli": "1.2.7",
     "helmet": "^8.1.0",
     "mongodb": "^7.0.0",

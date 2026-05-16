@@ -41,6 +41,14 @@ const TRUSTED_ORIGINS = [
     .filter(Boolean),
 ];
 
+/**
+ * Paths a Syra-owned browser frontend may call. When the request comes from a trusted Syra
+ * origin (see TRUSTED_ORIGINS) AND no explicit Authorization / X-API-Key header is set, the
+ * middleware injects the server's API key so frontends don't have to embed it in client
+ * bundles. External origins are not granted the key — they must send their own valid key,
+ * which they don't have, so requireApiKey returns 401 for them. This is how non-x402 routes
+ * stay Syra-internal.
+ */
 function isBrowserCallablePath(path) {
   if (!path || path === "/") return false;
   return (
@@ -58,7 +66,12 @@ function isBrowserCallablePath(path) {
     path.startsWith("/uponly-rise-market") ||
     path.startsWith("/uponly-rise-markets") ||
     path.startsWith("/uponly-rise-portfolio") ||
-    path.startsWith("/uponly-rise-create")
+    path.startsWith("/uponly-rise-create") ||
+    path === "/api/playground-proxy" ||
+    path === "/api/signal" ||
+    path.startsWith("/api/signal/") ||
+    path.startsWith("/streamflow-locks") ||
+    path.startsWith("/staking")
   );
 }
 

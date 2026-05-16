@@ -42,6 +42,7 @@ import {
   PAGE_SAFE_AREA_BOTTOM_COMPACT,
 } from "@/lib/layoutConstants";
 import type { PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
+import { buildRiseTradeUrl, RISE_ALPHA_TOKEN_MINT } from "@/lib/riseToken";
 import {
   RISE_EXPERIMENT_BORROW_APR,
   RISE_EXPERIMENT_ENTRY_SOL,
@@ -96,8 +97,8 @@ const AGENT_META: Record<
   },
   riseAlpha: {
     title: "Rise Alpha sniper",
-    subtitle: "Only fires on mints tagged as Rise Alpha — watchlist names plus the tape leader for the window.",
-    badge: "Rise Alpha mints",
+    subtitle: "Only trades the RISE-listed $UPONLY mint — same token as the Up Only fund desk.",
+    badge: "$UPONLY on RISE",
   },
 };
 
@@ -248,8 +249,8 @@ export default function RiseExperiment() {
               </div>
               <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Rise experiment</h1>
               <p className="max-w-2xl text-pretty text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-                Two isolated snipers on the same Alpha graduate tape — one clips every fresh release, the other only
-                mints tagged as Rise Alpha. Each desk starts with {RISE_EXPERIMENT_START_SOL}&nbsp;SOL, deploys{" "}
+                Two isolated snipers — Universal clips every fresh Pumpfun graduate, while Rise Alpha only paper-trades
+                the RISE-listed $UPONLY token. Each desk starts with {RISE_EXPERIMENT_START_SOL}&nbsp;SOL, deploys{" "}
                 {RISE_EXPERIMENT_ENTRY_SOL}&nbsp;SOL per entry, and may draw up to {RISE_EXPERIMENT_MAX_BORROW_SOL}&nbsp;SOL
                 from a modeled Rise vault at {(RISE_EXPERIMENT_BORROW_APR * 100).toFixed(0)}% APR to stay in the game when
                 cash is tight. Interest accrues continuously and is auto-paid from exits before principal.
@@ -257,7 +258,7 @@ export default function RiseExperiment() {
               <div className="flex flex-wrap gap-2 pt-1">
                 <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
                   <Sparkles className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                  Alpha-linked tape
+                  Pumpfun + $UPONLY
                 </Badge>
                 <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
                   <Landmark className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
@@ -359,9 +360,13 @@ export default function RiseExperiment() {
             </Card>
             <Card className="border-border/55 bg-card/60">
               <CardContent className="space-y-1 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Tape health</p>
-                <p className="font-mono text-xl font-semibold tabular-nums">{intelQ.data.matchedCount} mints</p>
-                <p className="text-[11px] text-muted-foreground/80">Updated {formatTs(intelQ.data.nowMs)}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">$UPONLY MC</p>
+                <p className="font-mono text-xl font-semibold tabular-nums">
+                  {formatCompactUsd(intelQ.data.token.marketCapUsd)}
+                </p>
+                <p className="text-[11px] text-muted-foreground/80">
+                  Pumpfun tape: {intelQ.data.matchedCount} grads · {formatTs(intelQ.data.nowMs)}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -370,7 +375,7 @@ export default function RiseExperiment() {
         {intelQ.isError ? (
           <Card className="border-destructive/25 bg-destructive/[0.04]">
             <CardContent className="space-y-3 p-5">
-              <p className="text-sm font-medium">Unable to load Alpha feed</p>
+              <p className="text-sm font-medium">Unable to load experiment feeds</p>
               <p className="text-sm text-muted-foreground">{(intelQ.error as Error)?.message}</p>
               <Button type="button" variant="secondary" size="sm" className="rounded-xl" onClick={() => void intelQ.refetch()}>
                 Retry
@@ -458,7 +463,9 @@ export default function RiseExperiment() {
               <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
               Fresh mint discoveries
             </CardTitle>
-            <CardDescription>Chronological tape after bootstrap — both desks read the same discovery stream.</CardDescription>
+            <CardDescription>
+              Chronological Pumpfun graduates plus $UPONLY when it updates — Universal reads all; Rise Alpha only the RISE mint.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -486,11 +493,19 @@ export default function RiseExperiment() {
                       </TableCell>
                       <TableCell className="pr-4 text-right">
                         <a
-                          href={`https://pump.fun/coin/${encodeURIComponent(d.mint)}`}
+                          href={
+                            d.mint === RISE_ALPHA_TOKEN_MINT
+                              ? buildRiseTradeUrl(d.mint) ?? `https://rise.rich/trade/${encodeURIComponent(d.mint)}`
+                              : `https://pump.fun/coin/${encodeURIComponent(d.mint)}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/30 text-primary transition-colors hover:bg-background/60"
-                          aria-label={`Open ${d.symbol} on pump.fun`}
+                          aria-label={
+                            d.mint === RISE_ALPHA_TOKEN_MINT
+                              ? `Trade ${d.symbol} on RISE`
+                              : `Open ${d.symbol} on pump.fun`
+                          }
                         >
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </a>

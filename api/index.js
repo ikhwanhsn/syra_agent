@@ -277,44 +277,33 @@ function isX402Route(p) {
   return false;
 }
 
-/** Agent routes (ai-agent website) need permissive CORS so the frontend can call from any origin (e.g. localhost:5173). */
-function isAgentRoute(p) {
-  return p && (p === "/agent" || p.startsWith("/agent/"));
-}
+/**
+ * NOTE on the preview / dashboard / "no-x402" tier:
+ *   /preview/*, /dashboard-summary, /binance-ticker, /streamflow-locks, /staking,
+ *   /uponly-rise-market*, /uponly-rise-portfolio*, /uponly-rise-create*
+ *
+ * These used to be advertised as a free public preview. Per security policy they are now
+ * Syra-internal only — they reach this server but get gated by:
+ *   1) CORS allowlist (only Syra origins, see CORS_OPTIONS_REGULAR), and
+ *   2) requireApiKey() — Syra frontends get the key auto-injected by
+ *      injectTrustedOriginApiKey, external callers do not.
+ * No dedicated isPreviewRoute() helper is needed: the default (CORS_OPTIONS_REGULAR +
+ * requireApiKey enforced) is exactly the desired behavior for these paths.
+ */
 
-/** Playground proxy: allows api-playground (playground.syraa.fun) to call other x402 APIs without CORS issues. */
-function isPlaygroundProxyRoute(p) {
-  return p === "/api/playground-proxy";
-}
-
-/** Public non-x402 signal API — permissive CORS for proxies and third-party clients. */
-function isPublicSignalApiRoute(p) {
-  return p === "/api/signal" || p.startsWith("/api/signal/");
-}
-
-/** Preview/landing routes (no v1/regular): allow any origin for dev/staging landings. */
-function isPreviewRoute(p) {
-  if (!p) return false;
-  if (p.startsWith("/preview")) return true;
-  if (p.startsWith("/dashboard-summary")) return true;
-  if (p.startsWith("/binance-ticker")) return true;
-  if (p.startsWith("/streamflow-locks")) return true;
-  if (p.startsWith("/staking")) return true;
-  if (p.startsWith("/uponly-rise-market")) return true;
-  if (p.startsWith("/uponly-rise-portfolio")) return true;
-  if (p.startsWith("/uponly-rise-create")) return true;
-  return false;
-}
-
+// SECURITY: only x402 (paid + public discovery JSON like /.well-known/x402, /openapi.json,
+// /mpp-openapi.json, /health, /8004/*, etc. — see isX402Route) gets permissive `*` CORS so
+// external agents and pay-per-call clients can integrate.
+//
+// Every other route — /agent/*, /api/playground-proxy, /api/signal, /preview/*,
+// /dashboard-summary, /binance-ticker, /uponly-rise-*, /streamflow-locks, /staking, etc. —
+// falls through to CORS_OPTIONS_REGULAR which only allows Syra's own origins (syraa.fun,
+// agent.syraa.fun, playground.syraa.fun, dashboard.syraa.fun, predict.syraa.fun,
+// uponlyfund.com, configured dev origins). This prevents external websites from consuming
+// non-x402 Syra APIs while still letting Syra frontends call them transparently
+// (trusted-origin API-key injection covers auth for browser callers).
 app.use((req, res, next) => {
-  const options =
-    isX402Route(req.path) ||
-    isAgentRoute(req.path) ||
-    isPlaygroundProxyRoute(req.path) ||
-    isPublicSignalApiRoute(req.path) ||
-    isPreviewRoute(req.path)
-      ? CORS_OPTIONS_X402
-      : CORS_OPTIONS_REGULAR;
+  const options = isX402Route(req.path) ? CORS_OPTIONS_X402 : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);
 });
 
@@ -381,9 +370,18 @@ async function requireProxyPayment(req, res, options) {
   return allowed;
 }
 
-// Playground proxy must parse large bodies (payment headers can be 50kb+). Register before global json so this route gets 2mb limit.
+// Playground proxy must parse large bodies (payment headers can be 50kb+). Register before
+// global json so this route gets 2mb limit.
+//
+// SECURITY: this route is non-x402 and must be Syra-internal only. Because it is registered
+// before the global injectTrustedOriginApiKey / requireApiKey middlewares (the only routes in
+// that early window are the proxy handler and CORS), we run those auth checks inline here so
+// external callers (curl, server-side requests bypassing CORS) cannot consume it. CORS already
+// blocks cross-origin browsers; the inline auth blocks everything else.
 app.post(
   "/api/playground-proxy",
+  injectTrustedOriginApiKey,
+  requireApiKey(() => false),
   express.json({ limit: "2mb" }),
   async (req, res) => {
     const {
@@ -626,13 +624,15 @@ app.use(injectTrustedOriginApiKey);
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for:
 //   - x402 routes (paid, gated by 402 instead)
-//   - the preview/landing tier (see isPreviewRoute): /preview/*, /dashboard-summary, /binance-ticker,
-//     /streamflow-locks, /staking, /uponly-rise-market*, /uponly-rise-portfolio*, /uponly-rise-create*. These are
-//     advertised as "no x402" / free in the OpenAPI gateway and must be reachable by anonymous
-//     clients (curl, MCP tools, third-party agents, x402scan crawlers), not just trusted Syra origins.
 //   - landing/static surface (/, /favicon.ico, /og*, /info*) and the playground / prediction game
 //     surfaces that have their own session model.
-// /8004 stays API-key protected (same as other non-x402 APIs).
+// All other non-x402 routes — including the preview/dashboard tier
+// (/preview/*, /dashboard-summary, /binance-ticker, /streamflow-locks, /staking, /uponly-rise-*)
+// and /agent/* — require a valid API key. Syra's own browser frontends keep working transparently
+// because injectTrustedOriginApiKey above injects the server key when Origin/Referer is a trusted
+// Syra origin (see utils/trustedOriginAuth.js). External sites and scripts cannot reach these
+// routes without a valid key.
+// /8004 also stays API-key protected.
 app.use(
   requireApiKey((req) => {
     const p = req.path || "";
@@ -689,7 +689,6 @@ app.use(
     }
     return (
       isX402Route(p) ||
-      isPreviewRoute(p) ||
       p === "/" ||
       p === "/favicon.ico" ||
       p.startsWith("/og") ||
@@ -1417,6 +1416,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[internal-hr-coach] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/sentimentDailyPipeline.js")
+    .then(({ startSentimentDailyScheduler }) => {
+      startSentimentDailyScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[internal-news] sentiment scheduler load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

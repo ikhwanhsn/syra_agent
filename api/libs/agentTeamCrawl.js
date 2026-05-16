@@ -27,24 +27,52 @@ const DEFAULT_SNAPSHOT_TOTAL_MAX = AGENT_TEAM_LLM_SNAPSHOT_TOTAL_MAX;
 const API_DISCOVERY_PATHS = Object.freeze(["/openapi.json", "/.well-known/x402"]);
 
 /**
- * Substrings that identify an auth-wall / "you need a key" response body — usually rendered
- * when the headless crawler hits a protected endpoint. Matching records are dropped from the
- * snapshot to prevent the LLM from hallucinating a "site-wide 401" recommendation.
+ * Strict auth-wall markers: only appear on real login / deployment-protection pages.
+ * Any one match is enough to drop the page from the LLM snapshot.
  */
-const AUTH_WALL_MARKERS = Object.freeze([
+const STRICT_AUTH_WALL_MARKERS = Object.freeze([
+  "vercel authentication",
+  "this deployment is protected",
+  "deployment is password protected",
+  "sign in to vercel",
+  "sign in to continue",
+  "please log in to continue",
+  "you are not authorized to view this page",
+]);
+
+/**
+ * Soft auth-wall markers: text that COULD appear on a bare error page, but ALSO legitimately
+ * appears in product/docs pages that describe Syra's auth model (e.g. the x402 Payment Flow
+ * docs page legitimately quotes `X-PAYMENT` headers and `"x402Version"` JSON examples).
+ *
+ * Soft markers only trigger a drop when the page is short AND has no product chrome — i.e. it
+ * looks like a raw error body, not a real docs/marketing page.
+ */
+const SOFT_AUTH_WALL_MARKERS = Object.freeze([
   "missing api key or bearer token",
   "invalid api key or bearer token",
   "401 unauthorized",
   "http 401",
   "status code 401",
   "authentication required",
-  "vercel authentication",
-  "this deployment is protected",
-  "deployment is password protected",
-  "sign in to vercel",
-  "x-payment header",
-  '"x402version"',
 ]);
+
+/** Markers that prove a page is a real product/docs render, not a bare auth wall. */
+const PRODUCT_CHROME_MARKERS = Object.freeze([
+  "on this page",
+  "table of contents",
+  "## ",
+  "### ",
+  "syra docs",
+  "documentation",
+  "copyright",
+  "footer",
+  "navigation",
+  "menu",
+]);
+
+/** A real docs/marketing render is much longer than a bare auth wall body. */
+const AUTH_WALL_MAX_BODY_LENGTH = 2_500;
 
 /**
  * Static description of the API surface's auth model. Injected into the snapshot as a
@@ -83,13 +111,39 @@ function buildApiAuthContextItem() {
 /**
  * Detects rendered auth-wall / 401 / 402 content. Used to drop noise records before the LLM
  * sees them so a single protected page can never cascade into a false "site-wide 401" finding.
+ *
+ * IMPORTANT: This heuristic must NOT drop legitimate documentation pages that simply discuss
+ * Syra's auth model (e.g. the x402 Payment Flow docs page quotes `X-PAYMENT` headers and the
+ * `"x402Version": 1` JSON example). A previous version did, which caused the internal research
+ * agent to hallucinate "docs site is down / x402 documentation unreachable" findings.
+ *
+ * Rules:
+ * - STRICT markers match real login / deployment-protection pages → drop on any hit.
+ * - SOFT markers match text that may appear in docs → only drop when the body is short AND has
+ *   no product chrome (TOC, headings, copyright, etc.).
+ *
  * @param {string} markdown
  * @returns {boolean}
  */
 export function looksLikeAuthWall(markdown) {
   if (typeof markdown !== "string" || !markdown) return false;
-  const sample = markdown.slice(0, 2000).toLowerCase();
-  return AUTH_WALL_MARKERS.some((marker) => sample.includes(marker));
+  const sample = markdown.slice(0, 4_000).toLowerCase();
+
+  if (STRICT_AUTH_WALL_MARKERS.some((marker) => sample.includes(marker))) {
+    return true;
+  }
+
+  const hasSoftMarker = SOFT_AUTH_WALL_MARKERS.some((marker) => sample.includes(marker));
+  if (!hasSoftMarker) return false;
+
+  if (markdown.length > AUTH_WALL_MAX_BODY_LENGTH) return false;
+
+  const hasProductChrome = PRODUCT_CHROME_MARKERS.some((marker) =>
+    sample.includes(marker.toLowerCase()),
+  );
+  if (hasProductChrome) return false;
+
+  return true;
 }
 
 /**

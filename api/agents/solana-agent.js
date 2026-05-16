@@ -3,7 +3,13 @@ import { getX402Handler, requirePayment, settlePaymentAndRecord } from "../utils
 import { X402_API_PRICE_NANSEN_USD } from "../config/x402Pricing.js";
 import { tokenGodModePerpRequests } from "../request/nansen/token-god-mode-perp.js";
 import { getNansenPaymentFetch } from "../libs/sentinelPayer.js";
-import { fetchCryptoNewsApi } from "../libs/cryptonewsApi.js";
+import {
+  fetchNewsTickers,
+  fetchNewsTickersOnly,
+  fetchSentimentTicker,
+  fetchEventsTicker,
+  fetchTrendingHeadlinesTicker,
+} from "../libs/internalNewsAgent.js";
 
 async function fetchPerpData() {
   const nansenFetch = await getNansenPaymentFetch();
@@ -43,22 +49,28 @@ export async function createSolanaAgentRouter() {
     }),
     async (req, res) => {
       try {
-        const [solanaTickerNews, solanaTickerNewsAdvance, solanaSentimentAnalysis, solanaEvent, solanaTrendingHeadlines, perpData] =
-          await Promise.all([
-            fetchCryptoNewsApi("", { tickers: "SOL", items: 25 }),
-            fetchCryptoNewsApi("", { "tickers-only": "SOL", items: 25 }),
-            fetchCryptoNewsApi("/stat", { tickers: "SOL", date: "last7days" }),
-            fetchCryptoNewsApi("/events", { tickers: "SOL" }),
-            fetchCryptoNewsApi("/trending-headlines", { ticker: "SOL" }),
-            fetchPerpData(),
-          ]);
+        const [
+          solTickerNews,
+          solTickerNewsOnly,
+          solSentiment,
+          solEvents,
+          solTrending,
+          perpData,
+        ] = await Promise.all([
+          fetchNewsTickers("SOL", 25),
+          fetchNewsTickersOnly("SOL", 25),
+          fetchSentimentTicker("SOL", "last7days"),
+          fetchEventsTicker("SOL"),
+          fetchTrendingHeadlinesTicker("SOL"),
+          fetchPerpData(),
+        ]);
 
         const data = {
-          tickerNews: solanaTickerNews,
-          tickerNewsAdvance: solanaTickerNewsAdvance,
-          sentimentAnalysis: solanaSentimentAnalysis,
-          event: solanaEvent,
-          trendingHeadlines: solanaTrendingHeadlines,
+          tickerNews: { data: solTickerNews },
+          tickerNewsAdvance: { data: solTickerNewsOnly },
+          sentimentAnalysis: { data: solSentiment },
+          event: { data: solEvents },
+          trendingHeadlines: { data: solTrending },
           tokenGodModePerp: perpData,
         };
 
@@ -85,22 +97,28 @@ export async function createSolanaAgentRouter() {
     }),
     async (req, res) => {
       try {
-        const [solanaTickerNews, solanaTickerNewsAdvance, solanaSentimentAnalysis, solanaEvent, solanaTrendingHeadlines, perpData] =
-          await Promise.all([
-            fetchCryptoNewsApi("", { tickers: "SOL", items: 25 }),
-            fetchCryptoNewsApi("", { "tickers-only": "SOL", items: 25 }),
-            fetchCryptoNewsApi("/stat", { tickers: "SOL", date: "last7days" }),
-            fetchCryptoNewsApi("/events", { tickers: "SOL" }),
-            fetchCryptoNewsApi("/trending-headlines", { ticker: "SOL" }),
-            fetchPerpData(),
-          ]);
+        const [
+          solTickerNews,
+          solTickerNewsOnly,
+          solSentiment,
+          solEvents,
+          solTrending,
+          perpData,
+        ] = await Promise.all([
+          fetchNewsTickers("SOL", 25),
+          fetchNewsTickersOnly("SOL", 25),
+          fetchSentimentTicker("SOL", "last7days"),
+          fetchEventsTicker("SOL"),
+          fetchTrendingHeadlinesTicker("SOL"),
+          fetchPerpData(),
+        ]);
 
         const data = {
-          tickerNews: solanaTickerNews,
-          tickerNewsAdvance: solanaTickerNewsAdvance,
-          sentimentAnalysis: solanaSentimentAnalysis,
-          event: solanaEvent,
-          trendingHeadlines: solanaTrendingHeadlines,
+          tickerNews: { data: solTickerNews },
+          tickerNewsAdvance: { data: solTickerNewsOnly },
+          sentimentAnalysis: { data: solSentiment },
+          event: { data: solEvents },
+          trendingHeadlines: { data: solTrending },
           tokenGodModePerp: perpData,
         };
 

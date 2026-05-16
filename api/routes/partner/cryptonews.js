@@ -1,13 +1,12 @@
 /**
- * Single cryptonews (cryptonews-api.com) route file – news, sentiment, event, trending-headline, sundown-digest.
- * All x402 and preview cryptonews endpoints live here for easy maintenance.
+ * Crypto news routes – news, sentiment, event, trending-headline, sundown-digest.
+ * Powered by the internal news agent (RSS + OpenRouter LLM + Mongo sentiment).
  */
 import express from "express";
 import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../../config/x402Pricing.js";
 import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
 import {
-  getCryptonewsToken,
   fetchNewsCategoryGeneral,
   fetchNewsCategoryAllTickers,
   fetchNewsTickers,
@@ -20,7 +19,7 @@ import {
   fetchSundownDigest,
   fetchTrendingHeadlinesGeneral,
   fetchTrendingHeadlinesTicker,
-} from "../../libs/cryptonewsApi.js";
+} from "../../libs/internalNewsAgent.js";
 
 const {
   requirePayment,
@@ -32,32 +31,35 @@ const {
 
 const CACHE_TTL_MS = 90 * 1000;
 
-/** Smaller than upstream default (100) so /news returns faster; override with CRYPTONEWS_NEWS_ITEMS. */
+/** Smaller default so /news returns faster; override INTERNAL_NEWS_ITEMS or CRYPTONEWS_NEWS_ITEMS. */
 const NEWS_LIST_ITEMS = Math.min(
   100,
-  Math.max(15, Number.parseInt(process.env.CRYPTONEWS_NEWS_ITEMS || "36", 10))
+  Math.max(
+    15,
+    Number.parseInt(
+      process.env.INTERNAL_NEWS_ITEMS || process.env.CRYPTONEWS_NEWS_ITEMS || "36",
+      10,
+    ),
+  ),
 );
-/** Cap merged articles before JSON to cut serialize/transfer time (override CRYPTONEWS_NEWS_MAX_RESPONSE). */
+/** Cap merged articles before JSON; override INTERNAL_NEWS_MAX_RESPONSE or CRYPTONEWS_NEWS_MAX_RESPONSE. */
 const MAX_NEWS_RESPONSE = Math.min(
   200,
-  Math.max(20, Number.parseInt(process.env.CRYPTONEWS_NEWS_MAX_RESPONSE || "72", 10))
+  Math.max(
+    20,
+    Number.parseInt(
+      process.env.INTERNAL_NEWS_MAX_RESPONSE || process.env.CRYPTONEWS_NEWS_MAX_RESPONSE || "72",
+      10,
+    ),
+  ),
 );
-/**
- * When true, `general` uses one Cryptonews section only (faster than general+alltickers).
- * Set CRYPTONEWS_GENERAL_USE_SINGLE_SECTION=true for lowest latency.
- */
+/** When true, general news uses one feed only (faster). INTERNAL_NEWS_GENERAL_SINGLE_SECTION or CRYPTONEWS_GENERAL_USE_SINGLE_SECTION. */
 const GENERAL_NEWS_SINGLE_SECTION =
-  String(process.env.CRYPTONEWS_GENERAL_USE_SINGLE_SECTION || "").toLowerCase() === "true";
-
-/** Return 503 if CRYPTO_NEWS_API_TOKEN is not set in production. In development, allow through so handler can return a stub. */
-function ensureCryptonewsToken(res) {
-  if (getCryptonewsToken()) return true;
-  if (process.env.NODE_ENV !== "production") return true;
-  res.status(503).json({
-    error: "News service is temporarily unavailable. The operator must set CRYPTO_NEWS_API_TOKEN in the API .env.",
-  });
-  return false;
-}
+  String(
+    process.env.INTERNAL_NEWS_GENERAL_SINGLE_SECTION ||
+      process.env.CRYPTONEWS_GENERAL_USE_SINGLE_SECTION ||
+      "",
+  ).toLowerCase() === "true";
 
 function cacheKey(ticker) {
   return String(ticker || "general").trim().toLowerCase() || "general";
@@ -239,7 +241,7 @@ async function resolveTicker(ticker, fromQuery) {
 }
 
 /**
- * Single x402 router for all cryptonews endpoints: /news, /sentiment, /event, /trending-headline, /sundown-digest.
+ * Single x402 router for news endpoints: /news, /sentiment, /event, /trending-headline, /sundown-digest.
  * Mount at "/" so these paths remain /news, /sentiment, etc.
  */
 export async function createCryptonewsRouter() {
@@ -277,25 +279,8 @@ export async function createCryptonewsRouter() {
       outputSchema: { news: { type: "array", description: "News articles" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
-      // Development without CRYPTO_NEWS_API_TOKEN: return stub so localhost agent flow works
-      if (process.env.NODE_ENV !== "production" && !getCryptonewsToken()) {
-        await settlePaymentAndSetResponse(res, req);
-        return res.json({
-          news: [
-            {
-              title: "Local dev: set CRYPTO_NEWS_API_TOKEN for real news",
-              description: "Add CRYPTO_NEWS_API_TOKEN to api/.env (from cryptonews-api.com) to fetch live crypto news. Production uses this token.",
-              url: "",
-              source: "syra-dev",
-              tickers: [ticker].filter(Boolean),
-              published_at: new Date().toISOString(),
-            },
-          ],
-        });
-      }
       try {
         const news = await getNewsForRequest(ticker);
         if (!news) return res.status(404).json({ error: "News not found" });
@@ -304,13 +289,13 @@ export async function createCryptonewsRouter() {
           await settlePaymentAndSetResponse(res, req);
         } catch (settleErr) {
           const sm = settleErr?.message || String(settleErr);
-          console.warn("[cryptonews] /news settlement error:", sm);
+          console.warn("[internal-news] /news settlement error:", sm);
           throw settleErr;
         }
         res.json({ news });
       } catch (err) {
         const msg = err?.message || String(err);
-        console.warn("[cryptonews] /news error:", msg);
+        console.warn("[internal-news] /news error:", msg);
         return res.status(503).json({
           error: "News service is temporarily unavailable. Please try again later.",
         });
@@ -332,24 +317,8 @@ export async function createCryptonewsRouter() {
       outputSchema: { news: { type: "array", description: "News articles" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
-      if (process.env.NODE_ENV !== "production" && !getCryptonewsToken()) {
-        await settlePaymentAndSetResponse(res, req);
-        return res.json({
-          news: [
-            {
-              title: "Local dev: set CRYPTO_NEWS_API_TOKEN for real news",
-              description: "Add CRYPTO_NEWS_API_TOKEN to api/.env to fetch live crypto news.",
-              url: "",
-              source: "syra-dev",
-              tickers: [ticker].filter(Boolean),
-              published_at: new Date().toISOString(),
-            },
-          ],
-        });
-      }
       try {
         const news = await getNewsForRequest(ticker);
         if (!news) return res.status(404).json({ error: "News not found" });
@@ -358,13 +327,13 @@ export async function createCryptonewsRouter() {
           await settlePaymentAndSetResponse(res, req);
         } catch (settleErr) {
           const sm = settleErr?.message || String(settleErr);
-          console.warn("[cryptonews] /news settlement error:", sm);
+          console.warn("[internal-news] /news settlement error:", sm);
           throw settleErr;
         }
         res.json({ news });
       } catch (err) {
         const msg = err?.message || String(err);
-        console.warn("[cryptonews] /news error:", msg);
+        console.warn("[internal-news] /news error:", msg);
         return res.status(503).json({
           error: "News service is temporarily unavailable. Please try again later.",
         });
@@ -396,7 +365,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { sentimentAnalysis: { type: "array", description: "Daily sentiment scores" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
       try {
@@ -410,7 +378,7 @@ export async function createCryptonewsRouter() {
         setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
         runBuybackForRequest(req);
       } catch (err) {
-        console.warn("[cryptonews] /sentiment error:", err?.message || err);
+        console.warn("[internal-news] /sentiment error:", err?.message || err);
         return res.status(503).json({ error: "Sentiment service is temporarily unavailable. Please try again later." });
       }
     }
@@ -429,7 +397,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { sentimentAnalysis: { type: "array", description: "Daily sentiment scores" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
       try {
@@ -443,7 +410,7 @@ export async function createCryptonewsRouter() {
         setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
         runBuybackForRequest(req);
       } catch (err) {
-        console.warn("[cryptonews] /sentiment error:", err?.message || err);
+        console.warn("[internal-news] /sentiment error:", err?.message || err);
         return res.status(503).json({ error: "Sentiment service is temporarily unavailable. Please try again later." });
       }
     }
@@ -473,7 +440,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { event: { type: "array", description: "Crypto events" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
       try {
@@ -483,12 +449,12 @@ export async function createCryptonewsRouter() {
         try {
           await settlePaymentAndSetResponse(res, req);
         } catch (settleErr) {
-          console.warn("[cryptonews] /event settlement error:", settleErr?.message || settleErr);
+          console.warn("[internal-news] /event settlement error:", settleErr?.message || settleErr);
           throw settleErr;
         }
         res.json({ event });
       } catch (err) {
-        console.warn("[cryptonews] /event error:", err?.message || err);
+        console.warn("[internal-news] /event error:", err?.message || err);
         return res.status(503).json({ error: "Event service is temporarily unavailable. Please try again later." });
       }
     }
@@ -507,7 +473,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { event: { type: "array", description: "Crypto events" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
       try {
@@ -517,12 +482,12 @@ export async function createCryptonewsRouter() {
         try {
           await settlePaymentAndSetResponse(res, req);
         } catch (settleErr) {
-          console.warn("[cryptonews] /event settlement error:", settleErr?.message || settleErr);
+          console.warn("[internal-news] /event settlement error:", settleErr?.message || settleErr);
           throw settleErr;
         }
         res.json({ event });
       } catch (err) {
-        console.warn("[cryptonews] /event error:", err?.message || err);
+        console.warn("[internal-news] /event error:", err?.message || err);
         return res.status(503).json({ error: "Event service is temporarily unavailable. Please try again later." });
       }
     }
@@ -552,7 +517,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { trendingHeadline: { type: "array", description: "Trending headlines" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.query.ticker || "general";
       ticker = await resolveTicker(ticker);
       try {
@@ -566,7 +530,7 @@ export async function createCryptonewsRouter() {
         setPaymentResponseAndSendTrending(res, trendingHeadline, settle);
         runBuybackForRequest(req);
       } catch (err) {
-        console.warn("[cryptonews] /trending-headline upstream error:", err?.message || err);
+        console.warn("[internal-news] /trending-headline upstream error:", err?.message || err);
         return res.status(503).json({ error: "Trending headlines are temporarily unavailable. Please try again later." });
       }
     }
@@ -585,7 +549,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { trendingHeadline: { type: "array", description: "Trending headlines" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       let ticker = req.body.ticker || "general";
       ticker = await resolveTicker(ticker);
       try {
@@ -599,7 +562,7 @@ export async function createCryptonewsRouter() {
         setPaymentResponseAndSendTrending(res, trendingHeadline, settle);
         runBuybackForRequest(req);
       } catch (err) {
-        console.warn("[cryptonews] /trending-headline upstream error:", err?.message || err);
+        console.warn("[internal-news] /trending-headline upstream error:", err?.message || err);
         return res.status(503).json({ error: "Trending headlines are temporarily unavailable. Please try again later." });
       }
     }
@@ -624,7 +587,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { sundownDigest: { type: "array", description: "Daily digest items" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       try {
         const { payload, accepted } = req.x402Payment;
         const [sundownDigest, settle] = await Promise.all([
@@ -636,7 +598,7 @@ export async function createCryptonewsRouter() {
         setPaymentResponseAndSendSundown(res, sundownDigest, settle);
         runBuybackForRequest(req);
       } catch (err) {
-        console.warn("[cryptonews] /sundown-digest upstream error:", err?.message || err);
+        console.warn("[internal-news] /sundown-digest upstream error:", err?.message || err);
         return res.status(503).json({ error: "Sundown digest is temporarily unavailable. Please try again later." });
       }
     }
@@ -651,7 +613,6 @@ export async function createCryptonewsRouter() {
       outputSchema: { sundownDigest: { type: "array", description: "Daily digest items" } },
     }),
     async (req, res) => {
-      if (!ensureCryptonewsToken(res)) return;
       try {
         const { payload, accepted } = req.x402Payment;
         const [sundownDigest, settle] = await Promise.all([
@@ -663,7 +624,7 @@ export async function createCryptonewsRouter() {
         setPaymentResponseAndSendSundown(res, sundownDigest, settle);
         runBuybackForRequest(req);
       } catch (err) {
-        console.warn("[cryptonews] /sundown-digest upstream error:", err?.message || err);
+        console.warn("[internal-news] /sundown-digest upstream error:", err?.message || err);
         return res.status(503).json({ error: "Sundown digest is temporarily unavailable. Please try again later." });
       }
     }
