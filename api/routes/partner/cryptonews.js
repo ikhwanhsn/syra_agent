@@ -20,6 +20,12 @@ import {
   fetchTrendingHeadlinesGeneral,
   fetchTrendingHeadlinesTicker,
 } from "../../libs/internalNewsAgent.js";
+import { getArticlesWithinHours } from "../../libs/newsAggregator.js";
+import { INTERNAL_NEWS_SENTIMENT_BATCH_SIZE } from "../../config/internalNewsConfig.js";
+import {
+  classifyArticleSentiments,
+  aggregateSentimentStats,
+} from "../../agents/news-intelligence-agent.js";
 
 const {
   requirePayment,
@@ -637,22 +643,56 @@ export async function createCryptonewsRouter() {
 export async function createNewsRouterRegular() {
   const router = express.Router();
   router.get("/", async (req, res) => {
-    const ticker = req.query.ticker || "general";
-    let result;
-    if (ticker !== "general") {
-      const tickerNews = await fetchNewsTickers(ticker);
-      const tickerNewsAdvance = await fetchNewsTickersOnly(ticker);
-      result = tickerNews.concat(tickerNewsAdvance);
-    } else {
-      const generalNews = await fetchNewsCategoryGeneral();
-      const allTickerNews = await fetchNewsCategoryAllTickers();
-      result = generalNews.concat(allTickerNews);
+    try {
+      let ticker = req.query.ticker || "general";
+      ticker = await resolveTicker(ticker);
+      const news = await getNewsForRequest(ticker);
+      if (!news) return res.status(404).json({ error: "News not found" });
+      if (news.length === 0) {
+        return res.status(503).json({
+          error: "Syra news agent has no headlines yet. Try again shortly.",
+        });
+      }
+      res.json({ news, source: "internal" });
+    } catch (err) {
+      const msg = err?.message || String(err);
+      console.warn("[internal-news] /preview/news error:", msg);
+      return res.status(503).json({
+        error: "News service is temporarily unavailable. Please try again later.",
+      });
     }
-    if (!result) return res.status(404).json({ error: "News not found" });
-    if (result?.length > 0) res.json({ news: result });
-    else res.status(500).json({ error: "Failed to fetch news" });
   });
   return router;
+}
+
+/** @type {Map<string, { expires: number; data: Array<{ date: string; general?: object; ticker?: object }> }>} */
+const previewSentimentLiveCache = new Map();
+
+/**
+ * When Mongo series is empty, classify recent RSS articles once (cached) for landing preview.
+ * @param {string} ticker
+ * @returns {Promise<Array<{ date: string; general?: object; ticker?: object }>>}
+ */
+async function computeLivePreviewSentiment(ticker) {
+  const key = cacheKey(ticker);
+  const hit = previewSentimentLiveCache.get(key);
+  if (hit && Date.now() < hit.expires) return hit.data;
+
+  const articles = await getArticlesWithinHours(24);
+  const batch = articles.slice(0, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE);
+  if (batch.length === 0) return [];
+
+  const classifications = await classifyArticleSentiments(batch);
+  const stats = aggregateSentimentStats(classifications);
+  const date = new Date().toISOString().slice(0, 10);
+  const row =
+    ticker !== "general"
+      ? { date, ticker: stats }
+      : { date, general: stats };
+
+  const data = [row];
+  previewSentimentLiveCache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
+  return data;
 }
 
 /** Preview (no x402) sentiment router for /preview/sentiment */
@@ -690,31 +730,48 @@ export async function createSentimentRouterRegular() {
   }
 
   router.get("/", async (req, res) => {
-    const ticker = req.query.ticker || "general";
-    let result;
-    if (ticker !== "general") {
-      const tickerSentimentAnalysis = await fetchSentimentTicker(ticker);
-      result = Object.keys(tickerSentimentAnalysis).map((date) => ({
-        date,
-        ticker: tickerSentimentAnalysis[date],
-      }));
-    } else {
-      const generalSentimentAnalysis = await fetchSentimentGeneral();
-      const allTickerSentimentAnalysis = await fetchSentimentAllTickers();
-      result = Object.keys(generalSentimentAnalysis).map((date) => ({
-        date,
-        general: generalSentimentAnalysis[date],
-        allTicker: allTickerSentimentAnalysis[date],
-      }));
-    }
-    if (!result) return res.status(404).json({ error: "Sentiment analysis not found" });
-    if (result?.length > 0) {
+    try {
+      let ticker = req.query.ticker || "general";
+      ticker = await resolveTicker(ticker);
+      let result;
+      let source = "series";
+
+      if (ticker !== "general") {
+        const tickerSentimentAnalysis = await fetchSentimentTicker(ticker);
+        result = Object.keys(tickerSentimentAnalysis).map((date) => ({
+          date,
+          ticker: tickerSentimentAnalysis[date],
+        }));
+      } else {
+        const generalSentimentAnalysis = await fetchSentimentGeneral();
+        const allTickerSentimentAnalysis = await fetchSentimentAllTickers();
+        const dates = new Set([
+          ...Object.keys(generalSentimentAnalysis),
+          ...Object.keys(allTickerSentimentAnalysis),
+        ]);
+        result = [...dates].sort().map((date) => ({
+          date,
+          general: generalSentimentAnalysis[date],
+          allTicker: allTickerSentimentAnalysis[date],
+        }));
+      }
+
+      if (!result?.length) {
+        result = await computeLivePreviewSentiment(ticker);
+        source = result.length > 0 ? "live" : "empty";
+      }
+
       res.json({
         sentiment: { data: buildSentimentData(result), total: buildSentimentTotal(result) },
         sentimentAnalysis: result,
+        source,
       });
-    } else {
-      res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+    } catch (err) {
+      const msg = err?.message || String(err);
+      console.warn("[internal-news] /preview/sentiment error:", msg);
+      return res.status(503).json({
+        error: "Sentiment service is temporarily unavailable. Please try again later.",
+      });
     }
   });
   return router;

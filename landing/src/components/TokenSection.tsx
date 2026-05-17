@@ -172,9 +172,16 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Gift, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
 import syraLogo from "/images/logo.jpg";
 import { cn } from "@/lib/utils";
+import { API_BASE, LINK_STAKING } from "../../config/global";
+import {
+  fetchStakingProtocolSummary,
+  formatStakingStatsDisplay,
+} from "@/lib/stakingStats";
+import { SYRA_TOKENOMICS_DISPLAY } from "@/lib/syraTokenomics";
 import {
   Dialog,
   DialogContent,
@@ -187,6 +194,11 @@ import {
 const WSOL_MINT = "So11111111111111111111111111111111111111112";
 
 const SYRA_TOKEN_MINT = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
+
+const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(
+  /\/?$/,
+  "/",
+);
 
 const SOLSCAN_TOKEN_URL = `https://solscan.io/token/${SYRA_TOKEN_MINT}?activity_type=ACTIVITY_SPL_BURN&exclude_amount_zero=true&remove_spam=false&page_size=10`;
 
@@ -250,7 +262,8 @@ const utilities = [
     title: "Premium Access",
     description:
       "Stake $SYRA to unlock premium modules, higher API limits, and exclusive alpha signals.",
-    highlight: "Tier-based access",
+    highlight: "Live on Syra Staking",
+    href: LINK_STAKING,
   },
   {
     icon: TrendingUp,
@@ -267,6 +280,65 @@ export const TokenSection = () => {
   const [copied, setCopied] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
   const reduceMotion = useReducedMotion();
+
+  const { data: stakingSummary, isPending: isPendingStaking } = useQuery({
+    queryKey: ["syra-staking-summary"],
+    queryFn: ({ signal }) =>
+      fetchStakingProtocolSummary(SYRA_API_BASE, { signal, network: "mainnet" }),
+    refetchInterval: 120_000,
+    staleTime: 60_000,
+    retry: 2,
+  });
+
+  const stakingDisplay = useMemo(
+    () => formatStakingStatsDisplay(stakingSummary),
+    [stakingSummary],
+  );
+
+  const tokenomicsStats = useMemo(
+    () => [
+      {
+        label: "Total Supply",
+        value: SYRA_TOKENOMICS_DISPLAY.totalSupply,
+        valueClass: "gold-text" as const,
+      },
+      {
+        label: "Circulating",
+        value: SYRA_TOKENOMICS_DISPLAY.circulating,
+        valueClass: "text-primary" as const,
+      },
+      {
+        label: "Burned",
+        value: SYRA_TOKENOMICS_DISPLAY.burned,
+        valueClass: "text-orange-400" as const,
+        subLabel: "Total supply − circulating",
+        href: SOLSCAN_TOKEN_URL,
+      },
+      {
+        label: "Staked",
+        value: isPendingStaking
+          ? "…"
+          : stakingDisplay
+            ? stakingDisplay.totalLockedCompact
+            : "—",
+        valueClass: stakingDisplay ? ("text-primary" as const) : ("text-muted-foreground" as const),
+        subLabel: stakingDisplay
+          ? `${stakingDisplay.stakerCount.toLocaleString()} active staker${
+              stakingDisplay.stakerCount === 1 ? "" : "s"
+            }`
+          : isPendingStaking
+            ? "Loading on-chain locks…"
+            : undefined,
+        href: LINK_STAKING,
+      },
+      {
+        label: "Buybacks → airdrops",
+        value: "Active",
+        valueClass: "text-success" as const,
+      },
+    ],
+    [isPendingStaking, stakingDisplay],
+  );
 
   const buyModalMotion = useMemo(() => {
     const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -540,9 +612,24 @@ export const TokenSection = () => {
                       {util.description}
                     </p>
                     {util.highlight && (
-                      <span className={cn("text-xs font-medium", accentText)}>
-                        {util.highlight}
-                      </span>
+                      "href" in util && util.href ? (
+                        <a
+                          href={util.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            "inline-flex items-center gap-1 text-xs font-medium hover:underline",
+                            accentText,
+                          )}
+                        >
+                          {util.highlight}
+                          <ExternalLink className="h-3 w-3" aria-hidden />
+                        </a>
+                      ) : (
+                        <span className={cn("text-xs font-medium", accentText)}>
+                          {util.highlight}
+                        </span>
+                      )
                     )}
                     {"solscanUrl" in util && util.solscanUrl && (
                       <a
@@ -571,22 +658,45 @@ export const TokenSection = () => {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="glass-card mt-16 rounded-2xl border border-neon-gold/15 p-4 sm:p-6 md:p-8"
         >
-          <div className="grid gap-8 text-center md:grid-cols-4">
-            {[
-              { label: "Total Supply", value: "1B", valueClass: "gold-text" },
-              { label: "Circulating", value: "995M", valueClass: "text-primary" },
-              { label: "Staked", value: "(soon)", valueClass: "text-muted-foreground" },
-              { label: "Buybacks → airdrops", value: "Active", valueClass: "text-success" },
-            ].map((stat) => (
-              <div key={stat.label}>
+          <div className="grid grid-cols-2 gap-6 text-center sm:grid-cols-3 lg:grid-cols-5 lg:gap-8">
+            {tokenomicsStats.map((stat) => {
+              const linkTitle =
+                stat.label === "Burned"
+                  ? "View $SYRA burns on Solscan"
+                  : stat.label === "Staked"
+                    ? "View Syra Staking"
+                    : undefined;
+
+              const valueNode = (
                 <div className={cn("mb-1 text-3xl font-bold", stat.valueClass)}>
                   {stat.value}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {stat.label}
+              );
+
+              return (
+                <div key={stat.label}>
+                  {"href" in stat && stat.href ? (
+                    <a
+                      href={stat.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group block rounded-lg transition-colors hover:bg-muted/30"
+                      title={linkTitle}
+                    >
+                      {valueNode}
+                    </a>
+                  ) : (
+                    valueNode
+                  )}
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  {"subLabel" in stat && stat.subLabel ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground/80">
+                      {stat.subLabel}
+                    </p>
+                  ) : null}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>

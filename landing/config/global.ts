@@ -24,6 +24,11 @@ const EMAIL_SUPPORT = "support@syraa.fun";
 /** Base URL of the Up Only Fund app. */
 const LINK_UPONLY_APP = "https://uponlyfund.com" as const;
 
+/** Syra Streamflow staking app (override with VITE_STAKING_URL in env). */
+const LINK_STAKING =
+  (import.meta.env.VITE_STAKING_URL as string | undefined)?.trim() ||
+  "https://stake.syraa.fun";
+
 /** Headers for Syra API. Do not embed API keys in client code; the API injects auth for trusted origins (syraa.fun). */
 function getApiHeaders(): Record<string, string> {
   return {};
@@ -40,4 +45,5 @@ export {
   LINK_TELEGRAM,
   LINK_X,
   LINK_UPONLY_APP,
+  LINK_STAKING,
 };

@@ -131,7 +131,7 @@ const roadmapData = [
         items: [
           "Custom Model Training & Backtesting APIs",
           "Agent Reputation Scoring system",
-          "Multi-chain expansion (Base, Arbitrum, Polygon)",
+          "Multi-chain expansion (Base)",
           "Cross-agent learning network",
         ],
         status: "current",

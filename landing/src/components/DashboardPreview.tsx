@@ -19,24 +19,19 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API_BASE, getApiHeaders } from "../../config/global";
+import {
+  daySentimentScore,
+  fetchPreviewNews,
+  fetchPreviewSentiment,
+  resolveNewsArticleUrl,
+  toChartScore,
+  type SyraNewsArticle,
+} from "@/lib/syraPreviewApi";
 
 // API base for dashboard preview: env VITE_SYRA_API_URL or fallback to API_BASE (ensure trailing slash)
 const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(/\/?$/, "/");
-
-/** Cryptonews-style items may use news_url, url, or link */
-function resolveNewsArticleUrl(entry: unknown): string {
-  if (!entry || typeof entry !== "object") return "";
-  const o = entry as Record<string, unknown>;
-  for (const key of ["news_url", "url", "link"] as const) {
-    const v = o[key];
-    if (typeof v !== "string") continue;
-    const t = v.trim();
-    if (t.startsWith("http://") || t.startsWith("https://")) return t;
-  }
-  return "";
-}
 
 export const DashboardPreview = () => {
   const [counter, setCounter] = useState(0);
@@ -70,76 +65,60 @@ export const DashboardPreview = () => {
       ).then((res) => res.json()),
   });
 
+  const apiHeaders = getApiHeaders();
+
   const {
     isPending: isPendingNews,
     error: errorNews,
-    data: dataNews,
+    data: newsItems = [],
   } = useQuery({
-    queryKey: ["news"],
-    queryFn: () =>
-      fetch(`${SYRA_API_BASE}preview/news`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      }).then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      }),
+    queryKey: ["syra-preview-news"],
+    queryFn: ({ signal }) => fetchPreviewNews(SYRA_API_BASE, apiHeaders, signal),
+    refetchInterval: 90_000,
+    retry: 2,
   });
 
   const {
     isPending: isPendingSentiment,
     error: errorSentiment,
-    data: dataSentiment,
+    data: sentimentPayload,
   } = useQuery({
-    queryKey: ["sentiment"],
-    queryFn: () =>
-      fetch(`${SYRA_API_BASE}preview/sentiment`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      }).then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      }),
+    queryKey: ["syra-preview-sentiment"],
+    queryFn: ({ signal }) => fetchPreviewSentiment(SYRA_API_BASE, apiHeaders, signal),
+    refetchInterval: 120_000,
+    retry: 2,
   });
-  const sentimentArray = Object.values(
-    dataSentiment?.sentiment?.data || {},
-  ).map((item: any) => item.sentiment_score);
-  // Normalize score to 0–100 for display when API uses 0–1; support -1–1 as -100–100 so negative doesn't break the chart
-  const toChartScore = (raw: number | undefined): number => {
-    if (raw == null || Number.isNaN(Number(raw))) return 0;
-    const v = Number(raw);
-    if (v <= 1 && v >= -1) return v * 100; // -1..1 → -100..100
-    if (v <= 100 && v >= 0) return v; // already 0–100
-    return Math.max(-100, Math.min(100, v));
-  };
-  const chartData = sentimentArray
-    .map((value, i) => ({
-      index: i,
-      score: toChartScore(value),
-      positive:
-        dataSentiment?.sentiment?.data?.[
-          Object.keys(dataSentiment.sentiment.data)[i]
-        ]?.Positive || 0,
-      negative:
-        dataSentiment?.sentiment?.data?.[
-          Object.keys(dataSentiment.sentiment.data)[i]
-        ]?.Negative || 0,
-      neutral:
-        dataSentiment?.sentiment?.data?.[
-          Object.keys(dataSentiment.sentiment.data)[i]
-        ]?.Neutral || 0,
-    }))
-    .reverse();
+
+  const sentimentData = sentimentPayload?.data ?? {};
+  const sentimentTotal = sentimentPayload?.total;
+  const sentimentDates = useMemo(
+    () => Object.keys(sentimentData).sort(),
+    [sentimentData],
+  );
+
+  const chartData = useMemo(() => {
+    return sentimentDates
+      .map((dateKey, i) => {
+        const day = sentimentData[dateKey];
+        return {
+          index: i,
+          dateKey,
+          score: toChartScore(daySentimentScore(day)),
+          positive: day?.Positive ?? 0,
+          negative: day?.Negative ?? 0,
+          neutral: day?.Neutral ?? 0,
+        };
+      })
+      .reverse();
+  }, [sentimentData, sentimentDates]);
 
   // Scale for negative count (so red line shows actual Negative count trend, not flat when score > 0)
   const maxNegative = Math.max(1, ...chartData.map((d) => d.negative));
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { dateKey?: string; score?: number; positive?: number; negative?: number; neutral?: number } }> }) => {
     if (active && payload && payload.length) {
-      const dataKey = Object.keys(dataSentiment?.sentiment?.data || {})[
-        payload[0].payload.index
-      ];
+      const dataKey = payload[0].payload.dateKey;
       const date = dataKey
         ? new Date(dataKey).toLocaleDateString("id-ID", {
             day: "numeric",
@@ -204,17 +183,22 @@ export const DashboardPreview = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCounter((prev) => {
-        // If the next value would be 101, reset to 0
-        if (prev >= 99) {
-          return 0;
-        }
-        return prev + 1;
-      });
-    }, 5000); // Updated to 3 seconds as per your comment
+      setCounter((prev) => prev + 1);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
+
+  const activeNewsIndex =
+    newsItems.length > 0 ? counter % newsItems.length : 0;
+  const activeNews: SyraNewsArticle | undefined = newsItems[activeNewsIndex];
+  const activeNewsTitle =
+    typeof activeNews?.title === "string" ? activeNews.title : "";
+  const activeNewsUrl = resolveNewsArticleUrl(activeNews);
+  const activeNewsSource =
+    typeof activeNews?.source_name === "string"
+      ? activeNews.source_name
+      : "";
 
   return (
     <div className="relative w-full">
@@ -298,46 +282,53 @@ export const DashboardPreview = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium">AI Sentiment Score</span>
-            <span className="text-xs text-primary">Live</span>
+            <span className="text-xs text-primary">
+              {isPendingSentiment ? "Loading" : errorSentiment ? "Unavailable" : "Live"}
+            </span>
           </div>
 
-          {/* Total Sentiment Stats - Add this section */}
-          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <motion.div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="p-2 border rounded-lg border-border bg-foreground/[0.04]">
               <div className="text-[10px] text-muted-foreground mb-0.5">
                 Positive
               </div>
               <div className="text-sm font-bold text-foreground">
-                {dataSentiment?.sentiment?.total?.[
-                  "Total Positive"
-                ]?.toLocaleString() || "---"}
+                {isPendingSentiment
+                  ? "…"
+                  : sentimentTotal?.["Total Positive"]?.toLocaleString() ?? "0"}
               </div>
             </div>
             <div className="p-2 border rounded-lg border-border bg-muted/60">
               <div className="text-[10px] text-muted-foreground mb-0.5">Negative</div>
               <div className="text-sm font-bold text-foreground/90">
-                {dataSentiment?.sentiment?.total?.[
-                  "Total Negative"
-                ]?.toLocaleString() || "---"}
+                {isPendingSentiment
+                  ? "…"
+                  : sentimentTotal?.["Total Negative"]?.toLocaleString() ?? "0"}
               </div>
             </div>
             <div className="p-2 border rounded-lg border-border bg-muted/40">
               <div className="text-[10px] text-muted-foreground mb-0.5">Neutral</div>
               <div className="text-sm font-bold text-foreground/80">
-                {dataSentiment?.sentiment?.total?.[
-                  "Total Neutral"
-                ]?.toLocaleString() || "---"}
+                {isPendingSentiment
+                  ? "…"
+                  : sentimentTotal?.["Total Neutral"]?.toLocaleString() ?? "0"}
               </div>
             </div>
             <div className="p-2 border rounded-lg border-border bg-accent/30">
               <div className="text-[10px] text-muted-foreground mb-0.5">Score</div>
               <div className="text-sm font-bold text-primary">
-                {dataSentiment?.sentiment?.total?.["Sentiment Score"]
-                  ? `${(dataSentiment.sentiment.total["Sentiment Score"] * 100).toFixed(1)}%`
-                  : "---"}
+                {isPendingSentiment
+                  ? "…"
+                  : `${toChartScore(sentimentTotal?.["Sentiment Score"]).toFixed(1)}%`}
               </div>
             </div>
-          </div>
+          </motion.div>
+
+          {errorSentiment && (
+            <p className="mb-3 text-[10px] text-muted-foreground">
+              Sentiment from Syra news agent is warming up. Headlines still refresh below.
+            </p>
+          )}
 
           {/* Chart: one blue line for score (-100..100); fill only above zero so negative isn’t weird. */}
           <ResponsiveContainer width="100%" height={128}>
@@ -393,18 +384,19 @@ export const DashboardPreview = () => {
         {/* Activity Feed */}
         <div className="space-y-2">
           {(() => {
-            const newsSlide = Array.isArray(dataNews?.news)
-              ? dataNews.news[counter]
-              : undefined;
-            const newsTitle =
-              typeof newsSlide?.title === "string" ? newsSlide.title : "";
-            const newsUrl = resolveNewsArticleUrl(newsSlide);
+            const newsLabel = activeNewsSource
+              ? `${activeNewsSource}: ${activeNewsTitle}`
+              : activeNewsTitle;
 
             return [
               {
                 icon: Zap,
-                text: newsTitle,
-                newsUrl,
+                text: isPendingNews
+                  ? "Loading headlines from Syra news agent…"
+                  : errorNews
+                    ? "Headlines temporarily unavailable"
+                    : newsLabel,
+                newsUrl: activeNewsUrl,
                 color: "text-neon-gold",
                 isNews: true,
               },
@@ -445,7 +437,7 @@ export const DashboardPreview = () => {
                   <AnimatePresence mode="wait">
                     {item.newsUrl ? (
                       <motion.a
-                        key={counter}
+                        key={activeNewsIndex}
                         href={item.newsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -459,7 +451,7 @@ export const DashboardPreview = () => {
                       </motion.a>
                     ) : (
                       <motion.span
-                        key={counter}
+                        key={activeNewsIndex}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
