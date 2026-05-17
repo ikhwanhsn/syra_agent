@@ -1,24 +1,85 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPumpfunAlphaTrend, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
+import { fetchPumpfunExperimentLedger, savePumpfunExperimentLedger } from "@/lib/pumpfunExperimentApi";
 import {
+  clearLegacyPumpfunExperimentLocalStorage,
   createInitialPersisted,
-  loadPumpfunExperiment,
   processPumpfunExperimentTick,
-  savePumpfunExperiment,
+  readLegacyPumpfunExperimentFromLocalStorage,
   type PumpfunExperimentPersisted,
 } from "@/lib/pumpfunExperimentModel";
 
 const STALE_MS = 120_000;
+const SAVE_DEBOUNCE_MS = 450;
 
 export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
   const [persisted, setPersisted] = useState<PumpfunExperimentPersisted>(() => createInitialPersisted());
   const hydrated = useRef(false);
+  const skipNextSave = useRef(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSave = useRef<PumpfunExperimentPersisted | null>(null);
+
+  const scheduleSave = useCallback((state: PumpfunExperimentPersisted) => {
+    if (!hydrated.current) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    pendingSave.current = state;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const payload = pendingSave.current;
+      pendingSave.current = null;
+      if (payload) {
+        void savePumpfunExperimentLedger(payload).catch(() => {
+          /* best-effort; next tick retries */
+        });
+      }
+    }, SAVE_DEBOUNCE_MS);
+  }, []);
 
   useEffect(() => {
-    if (hydrated.current) return;
-    hydrated.current = true;
-    setPersisted(loadPumpfunExperiment());
+    let cancelled = false;
+
+    (async () => {
+      try {
+        let ledger = await fetchPumpfunExperimentLedger();
+        const legacy = readLegacyPumpfunExperimentFromLocalStorage();
+        if (legacy) {
+          const hasActivity =
+            legacy.feedBootstrapped ||
+            legacy.seenMints.length > 0 ||
+            Object.values(legacy.cells).some(
+              (c) => c.open.length > 0 || c.closed.length > 0 || c.balanceSol !== 10,
+            );
+          if (hasActivity) {
+            ledger = await savePumpfunExperimentLedger(legacy);
+          }
+          clearLegacyPumpfunExperimentLocalStorage();
+        }
+        if (!cancelled) {
+          skipNextSave.current = true;
+          setPersisted(ledger);
+        }
+      } catch {
+        const legacy = readLegacyPumpfunExperimentFromLocalStorage();
+        if (!cancelled && legacy) {
+          skipNextSave.current = true;
+          setPersisted(legacy);
+          void savePumpfunExperimentLedger(legacy)
+            .then(() => clearLegacyPumpfunExperimentLocalStorage())
+            .catch(() => {});
+        }
+      } finally {
+        if (!cancelled) hydrated.current = true;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
   }, []);
 
   const trendQ = useQuery({
@@ -31,7 +92,7 @@ export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
 
   useEffect(() => {
     const d = trendQ.data;
-    if (!d) return;
+    if (!d || !hydrated.current) return;
     const sig = `${d.nowMs}|${d.tokens.map((t) => `${t.mint}:${t.marketCapUsd ?? ""}`).join(";")}`;
     if (sig === lastSigRef.current) return;
     lastSigRef.current = sig;
@@ -44,31 +105,10 @@ export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
         nowMs: d.nowMs,
         watchlistMints: watch,
       });
-      savePumpfunExperiment(next);
+      scheduleSave(next);
       return next;
     });
-  }, [trendQ.data]);
+  }, [trendQ.data, scheduleSave]);
 
-  const resetAll = useCallback(() => {
-    const fresh = createInitialPersisted();
-    const d = trendQ.data;
-    let next = fresh;
-    if (d) {
-      const watch = new Set(d.analysis.watchlist.map((w) => w.mint));
-      const sig = `${d.nowMs}|${d.tokens.map((t) => `${t.mint}:${t.marketCapUsd ?? ""}`).join(";")}`;
-      lastSigRef.current = sig;
-      next = processPumpfunExperimentTick({
-        persisted: fresh,
-        tokens: d.tokens,
-        nowMs: d.nowMs,
-        watchlistMints: watch,
-      });
-    } else {
-      lastSigRef.current = "";
-    }
-    savePumpfunExperiment(next);
-    setPersisted(next);
-  }, [trendQ.data]);
-
-  return { persisted, trendQ, resetAll };
+  return { persisted, trendQ };
 }

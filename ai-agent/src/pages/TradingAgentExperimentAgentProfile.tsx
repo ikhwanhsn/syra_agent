@@ -296,7 +296,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Equity</p>
                 <p className="text-2xl font-semibold tabular-nums mt-1">{formatUsd(agent.equityUsd)}</p>
-                <p className="text-xs text-muted-foreground mt-1">Free + in trade (compound simulation)</p>
+                <p className="text-xs text-muted-foreground mt-1">Free cash + capital in open trades</p>
               </div>
             </div>
 

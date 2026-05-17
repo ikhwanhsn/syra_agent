@@ -164,8 +164,8 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <AgentBackgroundLiveIndicator openPositions={stats?.openPositions || 0} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Strategy profile, Meteora pool candidates, and simulated LP runs for this agent. Capital, fees, and cohort
-            context are paper-only until you wire real execution.
+            Strategy profile, Meteora pool candidates, and live LP runs for this agent. Capital, fees, and cohort context
+            track the active experiment ledger.
           </p>
         </div>
         <Button
@@ -224,7 +224,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
               <p className="mt-1 text-2xl font-semibold tabular-nums">{stats.openPositions}</p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Cash (sim)</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Cash</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{(stats.cashSol ?? 0).toFixed(3)} SOL</p>
               {refSolUsd != null && refSolUsd > 0 ? (
                 <p className="mt-0.5 text-sm font-medium tabular-nums text-muted-foreground">
@@ -274,7 +274,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <section className="rounded-xl border border-border/70 bg-card/70 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-sm font-semibold">Active cohort &amp; paper wallet</h2>
+                  <h2 className="text-sm font-semibold">Active cohort &amp; wallet</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground/90">{labStateQ.data.title || "LP experiment"}</span>
                     {" · "}
@@ -289,7 +289,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
                   <Link to="/dashboard/lp-experiment" className="text-xs font-medium text-primary hover:underline">
-                    Live lab
+                    Open desk
                   </Link>
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                     </p>
                   </div>
                   <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground">Modeled tx fees (bps / leg)</p>
+                    <p className="text-xs text-muted-foreground">Tx fees (bps / leg)</p>
                     <p className="mt-1 text-sm font-medium tabular-nums">
                       Open {simCfg.openFeeBps} · Close {simCfg.closeFeeBps}
                       {roundTripFeeExampleSol != null ? (
@@ -344,7 +344,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                           ) : null}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Free cash {agentLab.cashSol.toFixed(3)} (matches &quot;Cash (sim)&quot; above)
+                          Free cash {agentLab.cashSol.toFixed(3)} (matches Cash above)
                         </p>
                       </div>
                     </>
@@ -360,10 +360,10 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
                 <p className="leading-relaxed">
                   <span className="font-medium text-foreground/90">PnL %</span> blends price drift and LP fee yield on
-                  the pool. <span className="font-medium text-foreground/90">Net PnL (SOL)</span> subtracts modeled
-                  open and close transaction costs from that leg; the USD line uses each position&apos;s SOL/USD at
-                  open. <span className="font-medium text-foreground/90">LP
-                  fees (SOL)</span> is the simulated protocol fee accrual only (not the same as chain fees). New opens
+                  the pool. <span className="font-medium text-foreground/90">Net PnL (SOL)</span> subtracts open and close
+                  transaction costs from that leg; the USD line uses each position&apos;s SOL/USD at open.{" "}
+                  <span className="font-medium text-foreground/90">LP fees (SOL)</span> is protocol fee accrual (not chain
+                  fees). New opens
                   are blocked until free cash covers the next slot plus its open fee, or until a slot frees when a
                   position resolves.
                 </p>

@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./Providers";
 import { ToasterThemed } from "@/components/ToasterThemed";
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-space",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const ogImage = "https://www.syraa.fun/images/og-banner.png";
@@ -65,7 +66,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} min-h-[100dvh] min-w-0 font-sans antialiased`}
+        className={`${spaceGrotesk.variable} min-h-[100dvh] min-w-0 font-sans antialiased`}
       >
         <Providers>
           {children}

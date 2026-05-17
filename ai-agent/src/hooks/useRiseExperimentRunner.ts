@@ -1,113 +1,149 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchPumpfunAlphaTrend, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
-import { fetchRiseAlphaIntel, riseTokenToExperimentTape } from "@/lib/riseAlphaIntelApi";
-import { RISE_ALPHA_TOKEN_MINT } from "@/lib/riseToken";
+import { fetchRiseAlphaMarketsBundle } from "@/lib/riseMarketsApi";
+import type { RiseMarketRow } from "@/lib/riseMarketsTypes";
 import {
+  buildRiseExperimentIntel,
+  riseMarketsToExperimentTape,
+  type RiseAlphaIntelResponse,
+} from "@/lib/riseAlphaIntelApi";
+import { fetchRiseExperimentLedger, saveRiseExperimentLedger } from "@/lib/riseExperimentApi";
+import {
+  clearLegacyRiseExperimentLocalStorage,
   createInitialRiseExperiment,
-  loadRiseExperiment,
   processRiseExperimentTick,
-  saveRiseExperiment,
+  readLegacyRiseExperimentFromLocalStorage,
   type RiseExperimentPersisted,
 } from "@/lib/riseExperimentModel";
 
 const STALE_MS = 120_000;
+const SAVE_DEBOUNCE_MS = 450;
 
-export function useRiseExperimentRunner(period: PumpfunAlphaPeriod) {
+export function useRiseExperimentRunner() {
   const [persisted, setPersisted] = useState<RiseExperimentPersisted>(() => createInitialRiseExperiment());
+  const [ledgerReady, setLedgerReady] = useState(false);
   const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (hydrated.current) return;
-    hydrated.current = true;
-    setPersisted(loadRiseExperiment());
-  }, []);
-
-  const pumpfunQ = useQuery({
-    queryKey: ["alpha", "pumpfun-trend", period, "rise-experiment"],
-    queryFn: () => fetchPumpfunAlphaTrend(period),
-    staleTime: STALE_MS,
-  });
-
-  const riseIntelQ = useQuery({
-    queryKey: ["alpha", "rise-intel", "experiment"],
-    queryFn: () => fetchRiseAlphaIntel(),
-    staleTime: STALE_MS,
-  });
+  const skipNextSave = useRef(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSave = useRef<RiseExperimentPersisted | null>(null);
 
   const lastSigRef = useRef<string>("");
 
-  useEffect(() => {
-    const pumpfun = pumpfunQ.data;
-    const rise = riseIntelQ.data;
-    if (!pumpfun || !rise) return;
-
-    const riseTape = riseTokenToExperimentTape(rise.token, rise.nowMs);
-    const tokens = pumpfun.tokens.some((t) => t.mint === RISE_ALPHA_TOKEN_MINT)
-      ? pumpfun.tokens
-      : [riseTape, ...pumpfun.tokens];
-
-    const sig = `${rise.nowMs}|${pumpfun.nowMs}|${tokens.map((t) => `${t.mint}:${t.marketCapUsd ?? ""}`).join(";")}`;
-    if (sig === lastSigRef.current) return;
-    lastSigRef.current = sig;
-
-    const targets = new Set<string>(rise.riseAlphaMintTargets);
-    setPersisted((prev) => {
-      const next = processRiseExperimentTick({
-        persisted: prev,
-        tokens,
-        nowMs: Math.max(rise.nowMs, pumpfun.nowMs),
-        riseAlphaMintTargets: targets,
-      });
-      saveRiseExperiment(next);
-      return next;
-    });
-  }, [pumpfunQ.data, riseIntelQ.data]);
-
-  const resetAll = useCallback(() => {
-    const fresh = createInitialRiseExperiment();
-    const pumpfun = pumpfunQ.data;
-    const rise = riseIntelQ.data;
-    let next = fresh;
-
-    if (pumpfun && rise) {
-      const riseTape = riseTokenToExperimentTape(rise.token, rise.nowMs);
-      const tokens = pumpfun.tokens.some((t) => t.mint === RISE_ALPHA_TOKEN_MINT)
-        ? pumpfun.tokens
-        : [riseTape, ...pumpfun.tokens];
-      const sig = `${rise.nowMs}|${pumpfun.nowMs}|${tokens.map((t) => `${t.mint}:${t.marketCapUsd ?? ""}`).join(";")}`;
-      lastSigRef.current = sig;
-      next = processRiseExperimentTick({
-        persisted: fresh,
-        tokens,
-        nowMs: Math.max(rise.nowMs, pumpfun.nowMs),
-        riseAlphaMintTargets: new Set(rise.riseAlphaMintTargets),
-      });
-    } else {
-      lastSigRef.current = "";
+  const scheduleSave = useCallback((state: RiseExperimentPersisted) => {
+    if (!hydrated.current) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
     }
+    pendingSave.current = state;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const payload = pendingSave.current;
+      pendingSave.current = null;
+      if (payload) {
+        void saveRiseExperimentLedger(payload).catch(() => {
+          /* best-effort; next tick retries */
+        });
+      }
+    }, SAVE_DEBOUNCE_MS);
+  }, []);
 
-    saveRiseExperiment(next);
-    setPersisted(next);
-  }, [pumpfunQ.data, riseIntelQ.data]);
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        let ledger = await fetchRiseExperimentLedger();
+        const legacy = readLegacyRiseExperimentFromLocalStorage();
+        if (legacy) {
+          const hasActivity =
+            legacy.feedBootstrapped ||
+            legacy.seenMints.length > 0 ||
+            legacy.agents.universal.open.length > 0 ||
+            legacy.agents.riseAlpha.open.length > 0 ||
+            legacy.agents.universal.closed.length > 0 ||
+            legacy.agents.riseAlpha.closed.length > 0;
+          if (hasActivity) {
+            ledger = await saveRiseExperimentLedger(legacy);
+          }
+          clearLegacyRiseExperimentLocalStorage();
+        }
+        if (!cancelled) {
+          skipNextSave.current = true;
+          lastSigRef.current = "";
+          setPersisted(ledger);
+        }
+      } catch {
+        const legacy = readLegacyRiseExperimentFromLocalStorage();
+        if (!cancelled && legacy) {
+          skipNextSave.current = true;
+          lastSigRef.current = "";
+          setPersisted(legacy);
+          void saveRiseExperimentLedger(legacy)
+            .then(() => clearLegacyRiseExperimentLocalStorage())
+            .catch(() => {});
+        }
+      } finally {
+        if (!cancelled) {
+          hydrated.current = true;
+          setLedgerReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
+  const marketsQ = useQuery({
+    queryKey: ["alpha", "rise-markets", "experiment"],
+    queryFn: () => fetchRiseAlphaMarketsBundle(),
+    staleTime: STALE_MS,
+  });
+
+  const applyTick = useCallback(
+    (intel: RiseAlphaIntelResponse, markets: RiseMarketRow[]) => {
+      const tokens = riseMarketsToExperimentTape(markets, intel.nowMs);
+      const sig = `${intel.nowMs}|${tokens.map((t) => `${t.mint}:${t.marketCapUsd ?? ""}`).join(";")}`;
+      if (sig === lastSigRef.current) return;
+      lastSigRef.current = sig;
+
+      const targets = new Set<string>(intel.riseAlphaMintTargets);
+      setPersisted((prev) => {
+        const next = processRiseExperimentTick({
+          persisted: prev,
+          tokens,
+          nowMs: intel.nowMs,
+          riseAlphaMintTargets: targets,
+        });
+        scheduleSave(next);
+        return next;
+      });
+    },
+    [scheduleSave],
+  );
+
+  useEffect(() => {
+    if (!ledgerReady || !marketsQ.data) return;
+    const intel = buildRiseExperimentIntel(marketsQ.data);
+    applyTick(intel, marketsQ.data.markets);
+  }, [ledgerReady, marketsQ.data, applyTick]);
 
   const intelQ = {
-    isLoading: pumpfunQ.isLoading || riseIntelQ.isLoading,
-    isFetching: pumpfunQ.isFetching || riseIntelQ.isFetching,
-    isError: pumpfunQ.isError || riseIntelQ.isError,
-    error: pumpfunQ.error ?? riseIntelQ.error,
-    data:
-      pumpfunQ.data && riseIntelQ.data
-        ? {
-            ...riseIntelQ.data,
-            matchedCount: pumpfunQ.data.matchedCount,
-            pumpfunMatchedCount: pumpfunQ.data.matchedCount,
-          }
-        : undefined,
+    isLoading: marketsQ.isLoading,
+    isFetching: marketsQ.isFetching,
+    isError: marketsQ.isError,
+    error: marketsQ.error,
+    data: marketsQ.data ? buildRiseExperimentIntel(marketsQ.data) : undefined,
     refetch: async () => {
-      await Promise.all([pumpfunQ.refetch(), riseIntelQ.refetch()]);
+      lastSigRef.current = "";
+      await marketsQ.refetch();
     },
   };
 
-  return { persisted, intelQ, resetAll };
+  const markets: RiseMarketRow[] = marketsQ.data?.markets ?? [];
+
+  return { persisted, intelQ, markets, ledgerReady };
 }

@@ -19,6 +19,25 @@ export function formatUnits(
 /**
  * Parse human-readable amount to raw token amount (smallest units).
  */
+/** Compact display for large token amounts (e.g. 1.2M, 450K). */
+export function formatCompactAmount(value: string | number): string {
+  const num = typeof value === "number" ? value : Number.parseFloat(value);
+  if (!Number.isFinite(num) || num <= 0) return "0";
+  if (num >= 1_000_000_000) {
+    const n = num / 1_000_000_000;
+    return `${n >= 10 ? n.toFixed(0) : n.toFixed(1)}B`;
+  }
+  if (num >= 1_000_000) {
+    const n = num / 1_000_000;
+    return `${n >= 10 ? n.toFixed(0) : n.toFixed(1)}M`;
+  }
+  if (num >= 1_000) {
+    const n = num / 1_000;
+    return `${n >= 10 ? n.toFixed(0) : n.toFixed(1)}K`;
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
 export function parseUnits(value: string, decimals: number): bigint {
   const [whole = "0", fraction = ""] = value.split(".");
   const paddedFraction = fraction.padEnd(decimals, "0").slice(0, decimals);

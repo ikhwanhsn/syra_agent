@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import type { LucideIcon } from "lucide-react";
 import {
   FlaskConical,
   Scale,
   Telescope,
   Moon,
   Sun,
-  PanelLeftClose,
   PanelLeft,
   Menu,
   Twitter,
@@ -25,13 +23,22 @@ import {
   Crosshair,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { WalletNav } from "@/components/chat/WalletNav";
 import { AppTopNavLinks } from "@/components/chat/AppTopNavLinks";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
-import { SidebarNavLink, SidebarSectionLabel } from "@/components/dashboard/SidebarPrimitives";
+import {
+  SidebarBrandHeader,
+  SidebarConnectFooter,
+  SidebarExperimentsNav,
+  SidebarIconRail,
+  SidebarNavLink,
+  SidebarNavShell,
+  SidebarSectionLabel,
+  type SidebarConnectLink,
+  type SidebarExperimentItem,
+} from "@/components/dashboard/SidebarPrimitives";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
@@ -41,14 +48,52 @@ const MARKETPLACE_SECTIONS = [
   { path: "agents", label: "Agents", icon: Bot },
 ] as const;
 
-const DASHBOARD_SECTIONS = [
-  { path: "alpha", label: "Alpha", icon: Telescope },
-  { path: "pumpfun-experiment", label: "Pumpfun experiment", icon: Rocket },
-  { path: "rise-experiment", label: "Rise experiment", icon: Crosshair },
-  { path: "trading-experiment", label: "Trading experiment", icon: FlaskConical },
-  { path: "arbitrage-experiment", label: "Arbitrage experiment", icon: Scale },
-  { path: "lp-experiment", label: "LP agent experiment", icon: Droplets },
-] as const;
+const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
+  {
+    id: "trading",
+    label: "Trading agents",
+    description: "Multi-agent spot trading",
+    icon: FlaskConical,
+    to: "/dashboard/trading-experiment",
+    isActive: (pathname) => pathname.startsWith("/dashboard/trading-experiment"),
+  },
+  {
+    id: "arbitrage",
+    label: "Arbitrage",
+    description: "Cross-venue spread scanner",
+    icon: Scale,
+    to: "/dashboard/arbitrage-experiment",
+    isActive: (pathname) => pathname.startsWith("/dashboard/arbitrage-experiment"),
+  },
+  {
+    id: "lp",
+    label: "LP agents",
+    description: "Meteora DLMM agents",
+    icon: Droplets,
+    to: "/dashboard/lp-experiment",
+    isActive: (pathname) => pathname.startsWith("/dashboard/lp-experiment"),
+  },
+  {
+    id: "pumpfun",
+    label: "Pumpfun",
+    description: "225-cell graduate sniper",
+    icon: Rocket,
+    to: "/dashboard/pumpfun-experiment",
+    isActive: (pathname) => pathname.startsWith("/dashboard/pumpfun-experiment"),
+  },
+  {
+    id: "rise",
+    label: "Rise",
+    description: "Vault borrow + dual sniper",
+    icon: Crosshair,
+    to: "/dashboard/rise-experiment",
+    isActive: (pathname) => pathname.startsWith("/dashboard/rise-experiment"),
+  },
+];
+
+function isAlphaIntelActive(pathname: string, _search: string): boolean {
+  return pathname.startsWith("/dashboard/alpha");
+}
 
 const MARKETPLACE_PAGE_TITLES: Record<string, string> = {
   prompts: "Prompts",
@@ -59,16 +104,7 @@ const MARKETPLACE_PAGE_TITLES: Record<string, string> = {
 const SYRA_TELEGRAM = "https://t.me/syra_ai";
 const SYRA_SUPPORT_EMAIL = "support@syraa.fun";
 
-type DashboardConnectLink = {
-  href: string;
-  icon: LucideIcon;
-  ariaLabel: string;
-  title?: string;
-  /** false for mailto */
-  openInNewTab?: boolean;
-};
-
-const CONNECT_LINKS: DashboardConnectLink[] = [
+const CONNECT_LINKS: SidebarConnectLink[] = [
   { href: "https://x.com/syra_agent", icon: Twitter, ariaLabel: "Official X", title: "Official X" },
   { href: SYRA_TELEGRAM, icon: Send, ariaLabel: "Telegram community", title: "Telegram community" },
   { href: "https://docs.syraa.fun", icon: BookOpen, ariaLabel: "Docs", title: "Documentation" },
@@ -82,7 +118,7 @@ const CONNECT_LINKS: DashboardConnectLink[] = [
   { href: "https://syraa.fun", icon: ExternalLink, ariaLabel: "Website", title: "Website" },
 ];
 
-function dashboardPageTitle(pathname: string): string {
+function dashboardPageTitle(pathname: string, search: string): string {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] !== "dashboard") return "Overview";
   if (parts[1] === "marketplace") {
@@ -134,38 +170,19 @@ function DashboardSidebarContent({
   const showInternalTeamMonitor = isInternalTeamMonitorWallet(address);
 
   return (
-    <>
-      {showHeader && (
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border/90 shrink-0 bg-gradient-to-b from-sidebar via-sidebar to-sidebar/98">
-          <Link
-            to="/dashboard/overview"
-            className="group/brand flex min-w-0 flex-1 items-center gap-3 no-underline text-inherit rounded-xl p-1 -m-1 transition-colors hover:bg-muted/25"
-          >
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/70 bg-gradient-to-br from-card to-muted/30 shadow-sm ring-1 ring-white/[0.04] transition-all duration-200 group-hover/brand:border-accent/35 group-hover/brand:shadow-md">
-              <img src="/logo.jpg" alt="Syra" className="h-full w-full object-cover" draggable={false} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-[15px] font-semibold tracking-tight text-foreground">Dashboard</h1>
-              <p className="mt-1 truncate text-[11px] font-medium text-muted-foreground/85">{currentSection}</p>
-            </div>
-          </Link>
-          {onCloseDrawer && <DrawerDismissButton label="Close menu" onClick={onCloseDrawer} />}
-          {onCollapse && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              onClick={onCollapse}
-              title="Hide sidebar"
-              aria-label="Hide sidebar"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      )}
-      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 scrollbar-thin" onClick={onNavigate}>
-        <div className="space-y-0.5 px-1 py-3 sm:px-1.5 sm:py-4">
+    <SidebarNavShell>
+      {showHeader ? (
+        <SidebarBrandHeader
+          currentSection={currentSection}
+          onCollapse={onCollapse}
+          onCloseDrawer={onCloseDrawer}
+        />
+      ) : null}
+      <nav
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 scrollbar-thin"
+        onClick={onNavigate}
+      >
+        <div className="space-y-0.5 px-1 pb-3 pt-2 sm:px-1.5">
           <SidebarSectionLabel>Workspace</SidebarSectionLabel>
           <div className="space-y-1">
             <SidebarNavLink to="/dashboard/overview" icon={LayoutDashboard} end>
@@ -182,18 +199,16 @@ function DashboardSidebarContent({
             ))}
           </div>
 
-          <SidebarSectionLabel>Sections</SidebarSectionLabel>
+          <SidebarSectionLabel>Intelligence</SidebarSectionLabel>
           <div className="space-y-1">
-            {DASHBOARD_SECTIONS.map(({ path, label, icon: Icon }) => (
-              <SidebarNavLink
-                key={path}
-                to={`/dashboard/${path}`}
-                icon={Icon}
-                end={path === "lp-experiment" || path === "pumpfun-experiment" || path === "rise-experiment" ? true : undefined}
-              >
-                {label}
-              </SidebarNavLink>
-            ))}
+            <SidebarNavLink to="/dashboard/alpha" icon={Telescope} end matchActive={isAlphaIntelActive}>
+              Alpha
+            </SidebarNavLink>
+          </div>
+
+          <SidebarSectionLabel>Experiment</SidebarSectionLabel>
+          <div className="space-y-1">
+            <SidebarExperimentsNav items={EXPERIMENT_NAV_ITEMS} />
             {showInternalTeamMonitor ? (
               <SidebarNavLink to="/dashboard/internal-team-agents" icon={UsersRound}>
                 Internal agents
@@ -202,35 +217,15 @@ function DashboardSidebarContent({
           </div>
         </div>
       </nav>
-      <div className="shrink-0 border-t border-sidebar-border/90 bg-muted/[0.12] px-3 py-4 sm:px-4">
-        <p className="px-1 pb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
-          Connect
-        </p>
-        <div className="flex flex-wrap gap-1.5 px-0.5">
-          {CONNECT_LINKS.map(({ href, icon: Icon, ariaLabel, title, openInNewTab = true }) => (
-            <a
-              key={href}
-              href={href}
-              {...(openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className={cn(
-                "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent",
-                "text-muted-foreground transition-all duration-200",
-                "hover:border-border/60 hover:bg-background/80 hover:text-foreground hover:shadow-sm",
-              )}
-              title={title ?? ariaLabel}
-              aria-label={ariaLabel}
-            >
-              <Icon className="h-4 w-4" strokeWidth={2} />
-            </a>
-          ))}
-        </div>
-      </div>
-    </>
+      <SidebarConnectFooter links={CONNECT_LINKS} />
+    </SidebarNavShell>
   );
 }
 
 export default function DashboardLayout() {
   const location = useLocation();
+  const { address } = useWalletContext();
+  const showInternalTeamMonitor = isInternalTeamMonitorWallet(address);
   const [isDarkMode, setIsDarkMode] = useState(() => !document.documentElement.classList.contains("light"));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -244,7 +239,7 @@ export default function DashboardLayout() {
     }
   }, [isDarkMode]);
 
-  const pageTitle = dashboardPageTitle(location.pathname);
+  const pageTitle = dashboardPageTitle(location.pathname, location.search);
 
   const handleToggleSidebar = () => {
     if (sidebarCollapsed) {
@@ -272,8 +267,8 @@ export default function DashboardLayout() {
           size="icon"
           className={cn("h-9 w-9 shrink-0 hidden min-h-[44px] min-w-[44px] sm:min-h-9 sm:min-w-9", sidebarCollapsed && "lg:flex")}
           onClick={handleToggleSidebar}
-          title="Show sidebar"
-          aria-label="Show sidebar"
+          title="Expand sidebar"
+          aria-label="Expand sidebar"
         >
           <PanelLeft className="w-4 h-4" />
         </Button>
@@ -338,20 +333,28 @@ export default function DashboardLayout() {
               minSize={SIDEBAR_PANEL.minSize}
               maxSize={SIDEBAR_PANEL.maxSize}
               collapsible
-              collapsedSize={0}
+              collapsedSize={SIDEBAR_PANEL.collapsedSize}
               onCollapse={() => setSidebarCollapsed(true)}
               onExpand={() => setSidebarCollapsed(false)}
-              className={cn(sidebarCollapsed && "min-w-0")}
+              className={cn(sidebarCollapsed && "min-w-[4.5rem]")}
             >
-              <aside className="flex h-full min-w-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground supports-[backdrop-filter]:bg-sidebar/95">
-                <DashboardSidebarContent
-                  showHeader={true}
-                  currentSection={pageTitle}
-                  onCollapse={() => sidebarPanelRef.current?.collapse()}
-                />
+              <aside className="flex h-full min-h-0 min-w-0 flex-col bg-sidebar text-sidebar-foreground">
+                {sidebarCollapsed ? (
+                  <SidebarIconRail
+                    experimentItems={EXPERIMENT_NAV_ITEMS}
+                    showInternalTeamMonitor={showInternalTeamMonitor}
+                    matchAlphaIntel={isAlphaIntelActive}
+                  />
+                ) : (
+                  <DashboardSidebarContent
+                    showHeader={true}
+                    currentSection={pageTitle}
+                    onCollapse={() => sidebarPanelRef.current?.collapse()}
+                  />
+                )}
               </aside>
             </ResizablePanel>
-            <ResizableHandle withHandle className="bg-border" />
+            {!sidebarCollapsed ? <ResizableHandle withHandle className="bg-border" /> : null}
             <ResizablePanel defaultSize={MAIN_PANEL.defaultSize} minSize={MAIN_PANEL.minSize} className="min-w-0">
               <div className="h-full flex flex-col min-h-0 min-w-0">
                 {topbar}

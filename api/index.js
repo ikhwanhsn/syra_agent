@@ -56,6 +56,8 @@ import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
+import { createPumpfunExperimentRouter } from "./routes/pumpfunExperiment.js";
+import { createRiseExperimentRouter } from "./routes/riseExperiment.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
 import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
@@ -1010,6 +1012,8 @@ app.use("/internal", await createInternalResearchRouter());
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
+app.use("/experiment/pumpfun", createPumpfunExperimentRouter());
+app.use("/experiment/rise", createRiseExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
 

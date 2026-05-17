@@ -68,7 +68,7 @@ export function WalletButton() {
         <button
           type="button"
           onClick={() => setVisible(true)}
-          className="inline-flex h-10 min-h-[44px] sm:min-h-0 sm:h-9 items-center gap-2 rounded-lg bg-primary px-3 sm:px-4 font-medium text-sm text-primary-foreground shadow-lg transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+          className="btn-primary inline-flex h-10 min-h-[44px] items-center gap-2 px-4 sm:min-h-0 sm:h-9 disabled:pointer-events-none disabled:opacity-50"
         >
           {iconWallet}
           Connect Wallet

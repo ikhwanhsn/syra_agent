@@ -4,7 +4,8 @@ export const PUMPFUN_EXPERIMENT_ENTRY_SOL = 1;
 export const PUMPFUN_EXPERIMENT_START_SOL = 10;
 export const PUMPFUN_EXPERIMENT_PERSONALITY_COUNT = 15;
 export const PUMPFUN_EXPERIMENT_EXIT_COUNT = 15;
-export const PUMPFUN_EXPERIMENT_STORAGE_KEY = "syra.pumpfunExperiment.v1";
+/** Legacy browser key — migrated once to MongoDB on first API load. */
+export const PUMPFUN_EXPERIMENT_LEGACY_STORAGE_KEY = "syra.pumpfunExperiment.v1";
 
 export interface PumpfunPersonalityMeta {
   id: number;
@@ -508,47 +509,65 @@ export function processPumpfunExperimentTick(input: ProcessTickInput): PumpfunEx
   return persisted;
 }
 
-export function loadPumpfunExperiment(): PumpfunExperimentPersisted {
-  if (typeof window === "undefined") return createInitialPersisted();
+function normalizeCell(cell: PumpfunCellState, fallback: PumpfunCellState): PumpfunCellState {
+  if (!Array.isArray(cell.open)) cell.open = [];
+  if (!Array.isArray(cell.closed)) cell.closed = [];
+  if (!cell.boughtMints || typeof cell.boughtMints !== "object") {
+    cell.boughtMints = {};
+  }
+  for (const o of cell.open) {
+    cell.boughtMints[o.mint] = true;
+  }
+  for (const c of cell.closed) {
+    cell.boughtMints[c.mint] = true;
+  }
+  if (typeof cell.balanceSol !== "number" || !Number.isFinite(cell.balanceSol)) {
+    cell.balanceSol = fallback.balanceSol;
+  }
+  return cell;
+}
+
+/** Normalize ledger from API / migration payload. */
+export function normalizePumpfunLedger(raw: unknown): PumpfunExperimentPersisted {
+  const fresh = createInitialPersisted();
+  const parsed = raw as PumpfunExperimentPersisted | null | undefined;
+  if (!parsed || parsed.v !== 1 || typeof parsed.cells !== "object") {
+    return fresh;
+  }
+
+  for (const k of Object.keys(fresh.cells)) {
+    if (!parsed.cells[k]) parsed.cells[k] = fresh.cells[k];
+    else parsed.cells[k] = normalizeCell(parsed.cells[k], fresh.cells[k]);
+  }
+
+  if (typeof parsed.feedBootstrapped !== "boolean") {
+    parsed.feedBootstrapped = Array.isArray(parsed.seenMints) && parsed.seenMints.length > 0;
+  }
+  if (!Array.isArray(parsed.seenMints)) parsed.seenMints = [];
+  if (!Array.isArray(parsed.discoveries)) parsed.discoveries = [];
+  if (!parsed.mcByMint || typeof parsed.mcByMint !== "object") parsed.mcByMint = {};
+  parsed.v = 1;
+
+  return parsed;
+}
+
+/** One-time read of legacy localStorage ledger (caller should persist to API and remove key). */
+export function readLegacyPumpfunExperimentFromLocalStorage(): PumpfunExperimentPersisted | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(PUMPFUN_EXPERIMENT_STORAGE_KEY);
-    if (!raw) return createInitialPersisted();
-    const parsed = JSON.parse(raw) as PumpfunExperimentPersisted;
-    if (parsed?.v !== 1 || typeof parsed.cells !== "object") return createInitialPersisted();
-    const fresh = createInitialPersisted();
-    for (const k of Object.keys(fresh.cells)) {
-      if (!parsed.cells[k]) parsed.cells[k] = fresh.cells[k];
-    }
-    for (const cell of Object.values(parsed.cells)) {
-      if (!Array.isArray(cell.open)) cell.open = [];
-      if (!Array.isArray(cell.closed)) cell.closed = [];
-      if (!cell.boughtMints || typeof cell.boughtMints !== "object") {
-        cell.boughtMints = {};
-      }
-      for (const o of cell.open) {
-        cell.boughtMints[o.mint] = true;
-      }
-      for (const c of cell.closed) {
-        cell.boughtMints[c.mint] = true;
-      }
-    }
-    if (typeof parsed.feedBootstrapped !== "boolean") {
-      parsed.feedBootstrapped = Array.isArray(parsed.seenMints) && parsed.seenMints.length > 0;
-    }
-    if (!Array.isArray(parsed.seenMints)) parsed.seenMints = [];
-    if (!Array.isArray(parsed.discoveries)) parsed.discoveries = [];
-    if (!parsed.mcByMint || typeof parsed.mcByMint !== "object") parsed.mcByMint = {};
-    return parsed;
+    const raw = window.localStorage.getItem(PUMPFUN_EXPERIMENT_LEGACY_STORAGE_KEY);
+    if (!raw) return null;
+    return normalizePumpfunLedger(JSON.parse(raw) as unknown);
   } catch {
-    return createInitialPersisted();
+    return null;
   }
 }
 
-export function savePumpfunExperiment(state: PumpfunExperimentPersisted): void {
+export function clearLegacyPumpfunExperimentLocalStorage(): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(PUMPFUN_EXPERIMENT_STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.removeItem(PUMPFUN_EXPERIMENT_LEGACY_STORAGE_KEY);
   } catch {
-    /* ignore quota */
+    /* ignore */
   }
 }

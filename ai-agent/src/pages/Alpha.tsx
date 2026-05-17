@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -37,6 +37,14 @@ import { fetchXProjectsAnalyze, type XProjectsBatchItem } from "@/lib/xProjectsA
 import { formatFollowers, gradeBadgeClass, userReadableAlphaDataError } from "@/lib/alphaIntelUi";
 import { fetchPumpfunAlphaTrend, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
 import { RiseAlphaTabPanel } from "@/components/alpha/RiseAlphaTabPanel";
+
+const ALPHA_TABS = ["x", "pumpfun", "rise"] as const;
+type AlphaTab = (typeof ALPHA_TABS)[number];
+
+function parseAlphaTab(raw: string | null): AlphaTab {
+  if (raw === "pumpfun" || raw === "rise") return raw;
+  return "x";
+}
 
 /** Align with server X batch cache — avoids refetching N accounts every minute (X rate limits). */
 const STALE_MS = 180_000;
@@ -627,6 +635,31 @@ function formatSignedCompactUsd(n: number | null | undefined): string {
 }
 
 export default function Alpha() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = parseAlphaTab(searchParams.get("tab"));
+
+  useEffect(() => {
+    if (searchParams.get("sub") !== "experiment") return;
+    const tab = searchParams.get("tab");
+    if (tab === "pumpfun") {
+      navigate("/dashboard/pumpfun-experiment", { replace: true });
+    } else if (tab === "rise") {
+      navigate("/dashboard/rise-experiment", { replace: true });
+    } else {
+      const next = new URLSearchParams(searchParams);
+      next.delete("sub");
+      setSearchParams(next, { replace: true });
+    }
+  }, [navigate, searchParams, setSearchParams]);
+
+  const setActiveTab = (tab: AlphaTab) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tab);
+    next.delete("sub");
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <TooltipProvider delayDuration={250}>
       <div
@@ -675,7 +708,7 @@ export default function Alpha() {
           </div>
         </div>
 
-        <Tabs defaultValue="x" className="min-h-0 flex-1 space-y-8">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(parseAlphaTab(v))} className="min-h-0 flex-1 space-y-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <TabsList className="h-auto w-full justify-start gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1.5 shadow-inner backdrop-blur-md sm:w-auto">
               <TabsTrigger

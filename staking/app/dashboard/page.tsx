@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useTheme } from "@/app/ThemeContext";
-import { StakingPageHeader } from "@/components/StakingPageHeader";
+import { StakingShell } from "@/components/StakingShell";
 import { StatsCard } from "@/components/StatsCard";
 import { ADMIN_DASHBOARD_WALLET, isAdminWallet } from "@/constants/adminWallet";
 import {
@@ -50,15 +50,14 @@ export default function StakersDashboardPage() {
   const symbol = CONFIG.stakingTokenSymbol;
 
   return (
-    <div
-      className="min-h-[100dvh] min-w-0 overflow-x-clip bg-background text-foreground"
-      data-theme={theme}
-    >
-      <StakingPageHeader />
-      <main className="mx-auto min-w-0 max-w-6xl space-y-6 px-3 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:space-y-8 sm:px-6 sm:py-10 sm:pb-16">
-        <header className="min-w-0 space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
-            Stakers
+    <StakingShell>
+      <div className="animate-fade-in min-w-0 space-y-6 sm:space-y-8" data-theme={theme}>
+        <header className="min-w-0 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] section-eyebrow-gradient">
+            Operator
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+            <span className="neon-text">Stakers</span>
           </h1>
           <p className="max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
             Wallets with an active Streamflow lock for {symbol}. Operator only — connect the
@@ -106,7 +105,7 @@ export default function StakersDashboardPage() {
                   />
                 </section>
 
-                <section className="rounded-xl border border-border/60 bg-card/25 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+                <section className="glass-card p-4 sm:p-6">
                   <h2 className="mb-4 text-base font-semibold tracking-tight">
                     User list
                     <span className="ml-2 font-normal text-muted-foreground">
@@ -209,7 +208,7 @@ export default function StakersDashboardPage() {
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="min-h-[48px] w-full touch-manipulation rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 sm:w-auto sm:py-2.5"
+                  className="btn-primary min-h-[48px] w-full touch-manipulation px-5 py-3 sm:w-auto"
                 >
                   Refresh
                 </button>
@@ -217,7 +216,7 @@ export default function StakersDashboardPage() {
             ) : null}
           </>
         )}
-      </main>
-    </div>
+      </div>
+    </StakingShell>
   );
 }

@@ -7,7 +7,6 @@ interface StatsCardProps {
   value: string;
   subValue?: React.ReactNode;
   gradient?: boolean;
-  /** Extra classes for the main value (e.g. long dates, small mono). */
   valueClassName?: string;
 }
 
@@ -18,12 +17,11 @@ export function StatsCard({
   gradient,
   valueClassName,
 }: StatsCardProps) {
-  const valueTone = gradient
-    ? "font-bold text-primary"
-    : "font-semibold text-foreground";
+  const valueTone = gradient ? "font-bold neon-text" : "font-semibold text-foreground";
+
   return (
-    <div className="card-surface flex h-full flex-col p-5 transition hover:border-primary/30">
-      <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="glass-card flex h-full flex-col p-5 transition duration-300 hover:shadow-glow-sm">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {title}
       </p>
       <p

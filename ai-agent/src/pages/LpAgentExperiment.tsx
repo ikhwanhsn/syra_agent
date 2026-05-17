@@ -290,8 +290,8 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             <h1 className="text-xl font-semibold tracking-tight">LP agent experiment</h1>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Meridian-style DLMM strategy lab on real Meteora pools — each agent has a simulated 10&nbsp;SOL bank, up to ten
-            concurrent 1&nbsp;SOL slots, compounding cash on closes, with open/close fee estimates on every leg.
+            Syra DLMM agents on live Meteora pools — each desk runs a 10&nbsp;SOL bank, up to ten concurrent 1&nbsp;SOL
+            slots, compounding cash on closes, with open/close fees on every leg.
           </p>
         </div>
         <Button
@@ -383,13 +383,13 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             {" · "}
             Bank {labStateQ.data.simConfig.startingBankSol} SOL / agent, max{" "}
             {labStateQ.data.simConfig.maxConcurrentPositions} × {labStateQ.data.simConfig.maxPositionSol} SOL deployed,
-            fees modeled at {labStateQ.data.simConfig.openFeeBps} + {labStateQ.data.simConfig.closeFeeBps} bps per leg
-            (priority + program rent approximation — tune before live capital).
+            fees at {labStateQ.data.simConfig.openFeeBps} + {labStateQ.data.simConfig.closeFeeBps} bps per leg
+            (priority + program rent).
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             Compounding: profits stay in <span className="text-foreground/90">cashSol</span> (leaderboard) until the next
             full 1&nbsp;SOL slot opens; agents wait when all ten slots are live. Path to ~100&nbsp;SOL is not guaranteed —
-            it depends on realized pool drift + fee yield minus modeled chain costs.
+            it depends on realized pool drift + fee yield minus chain costs.
           </p>
         </div>
       ) : null}
@@ -654,7 +654,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         <TabsContent value="runs" className="mt-3 space-y-3">
           <div className="mb-2 flex items-center justify-between gap-2 px-1">
             <p className="text-sm font-medium">Run history</p>
-            <p className="text-xs text-muted-foreground">Latest simulated LP runs and outcomes</p>
+            <p className="text-xs text-muted-foreground">Latest LP runs and outcomes</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select

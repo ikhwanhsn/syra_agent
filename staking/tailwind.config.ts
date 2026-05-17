@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        space: ["var(--font-space)", "Space Grotesk", "sans-serif"],
+        sans: ["var(--font-space)", "Space Grotesk", "sans-serif"],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -54,6 +58,25 @@ const config: Config = {
       boxShadow: {
         glow: "0 0 40px -10px hsl(var(--ring) / 0.22)",
         "glow-sm": "0 0 20px -5px hsl(var(--ring) / 0.18)",
+      },
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(16px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 0.55s ease-out forwards",
+        shimmer: "shimmer 2s linear infinite",
+        float: "float 6s ease-in-out infinite",
       },
     },
   },

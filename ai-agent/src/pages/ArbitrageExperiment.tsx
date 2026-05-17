@@ -695,8 +695,7 @@ export default function ArbitrageExperiment({
                   </div>
                   <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
                     Compare top market-cap assets across major CEXes. Gross
-                    spread is indicative — execution, fees, and transfer latency
-                    are not modeled here.
+                    spread is indicative — execution, fees, and transfer latency vary by venue.
                   </p>
                 </div>
               </div>

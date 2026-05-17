@@ -136,26 +136,122 @@ html:not(.dark) .wallet-dropdown .border-border {
 }
 
 html {
+  scroll-behavior: smooth;
   background: hsl(var(--background));
   overflow-x: clip;
   -webkit-text-size-adjust: 100%;
 }
+
+html.dark {
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+}
+
 body {
-  background: hsl(var(--background));
+  @apply antialiased;
+  background: var(--gradient-dark);
   color: hsl(var(--foreground));
   overflow-x: clip;
 }
 
-html:not(.dark) body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
+@layer components {
+  .glass-card {
+    @apply relative rounded-2xl;
+    overflow: visible;
+    background: hsl(var(--glass-bg) / 0.9);
+    border: 1px solid hsl(var(--glass-border));
+    backdrop-filter: blur(20px);
+    box-shadow: var(--glass-shadow);
+  }
 
-/* Dark: keep contrast; values track CSS variables */
-html.dark body,
-.dark body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  .glass-card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500;
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      hsl(var(--foreground) / 0.07),
+      hsl(var(--ring) / 0.12) 35%,
+      transparent 52%
+    );
+  }
+
+  .glass-card:hover::before {
+    @apply opacity-100;
+  }
+
+  .section-eyebrow-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--muted-foreground)) 0%,
+      hsl(var(--foreground) / 0.92) 35%,
+      hsl(var(--ring)) 52%,
+      hsl(var(--foreground) / 0.92) 68%,
+      hsl(var(--muted-foreground)) 100%
+    );
+  }
+
+  .neon-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .btn-primary {
+    @apply relative overflow-hidden rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-300;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.35);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+      0 4px 20px hsl(0 0% 0% / 0.35),
+      0 0 0 1px hsl(var(--foreground) / 0.12);
+  }
+
+  html:not(.dark) .btn-primary {
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.12);
+  }
+
+  html:not(.dark) .btn-primary:hover:not(:disabled) {
+    box-shadow:
+      0 4px 20px hsl(0 0% 0% / 0.15),
+      0 0 0 1px hsl(0 0% 0% / 0.08);
+  }
+
+  .btn-secondary {
+    @apply relative overflow-hidden rounded-xl border px-6 py-3 text-sm font-semibold transition-all duration-300;
+    background: transparent;
+    border-color: hsl(var(--primary) / 0.22);
+    color: hsl(var(--foreground));
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.45);
+  }
+
+  .grid-pattern {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .grid-pattern-accent {
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.07) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .staking-navbar {
+    @apply glass-card pointer-events-auto border border-border/60 px-4 py-3 sm:px-6 sm:py-4;
+  }
 }
 
 /* Readability: focus ring and links */

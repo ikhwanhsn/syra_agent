@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { PremiumTablePagination } from "@/components/experiment/PremiumTablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
 import {
   Activity,
   ArrowUpRight,
@@ -7,7 +9,6 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
-  Trash2,
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,17 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,8 +31,7 @@ import {
   PAGE_PADDING_TOP_STANDARD,
   PAGE_SAFE_AREA_BOTTOM_COMPACT,
 } from "@/lib/layoutConstants";
-import type { PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
-import { buildRiseTradeUrl, RISE_ALPHA_TOKEN_MINT } from "@/lib/riseToken";
+import { buildRiseTradeUrl } from "@/lib/riseToken";
 import {
   RISE_EXPERIMENT_BORROW_APR,
   RISE_EXPERIMENT_ENTRY_SOL,
@@ -92,13 +81,13 @@ const AGENT_META: Record<
 > = {
   universal: {
     title: "Universal sniper",
-    subtitle: "Paper clips every fresh graduate that appears in the Alpha feed (same tape as Pumpfun).",
-    badge: "All new releases",
+    subtitle: "Enters every new listing on the live RISE markets tape.",
+    badge: "All RISE listings",
   },
   riseAlpha: {
     title: "Rise Alpha sniper",
-    subtitle: "Only trades the RISE-listed $UPONLY mint — same token as the Up Only fund desk.",
-    badge: "$UPONLY on RISE",
+    subtitle: "Only trades RISE tokens that pass agent-ready or watch-tier gates (alpha score + liquidity).",
+    badge: "Alpha-ready RISE",
   },
 };
 
@@ -130,7 +119,7 @@ function AgentDeskCard({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border/45 bg-muted/[0.08] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/75">Equity (paper)</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/75">Equity</p>
             <p className="mt-1 font-mono text-2xl font-semibold tabular-nums tracking-tight">{formatSol(equity)} SOL</p>
             <p className="mt-1 text-[11px] text-muted-foreground/85">Return {formatPct(retPct)} vs {RISE_EXPERIMENT_START_SOL}&nbsp;SOL start</p>
           </div>
@@ -206,27 +195,62 @@ function AgentDeskCard({
   );
 }
 
-export default function RiseExperiment() {
-  const [period, setPeriod] = useState<PumpfunAlphaPeriod>("today");
-  const { persisted, intelQ, resetAll } = useRiseExperimentRunner(period);
+export default function RiseExperiment({ embedded = false }: { embedded?: boolean }) {
+  const { persisted, intelQ, markets, ledgerReady } = useRiseExperimentRunner();
+
+  const discoveryRows = useMemo(() => {
+    if (persisted.discoveries.length > 0) {
+      return persisted.discoveries;
+    }
+    if (markets.length === 0) return [];
+    const nowMs = intelQ.data?.nowMs ?? Date.now();
+    return [...markets]
+      .sort((a, b) => {
+        const aMs = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const bMs = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return bMs - aMs;
+      })
+      .map((m) => ({
+        atMs: nowMs,
+        mint: m.mint,
+        symbol: m.symbol?.trim() || "—",
+        marketCapUsd: m.marketCapUsd,
+      }));
+  }, [persisted.discoveries, markets, intelQ.data?.nowMs]);
 
   const mergedTrades = useMemo(() => {
     const all = [...persisted.agents.universal.closed, ...persisted.agents.riseAlpha.closed];
     all.sort((a, b) => b.closedAtMs - a.closedAtMs);
-    return all.slice(0, 320);
+    return all;
   }, [persisted.agents.riseAlpha.closed, persisted.agents.universal.closed]);
+
+  const discoveriesPagination = useTablePagination(discoveryRows, 10);
+  const tradesPagination = useTablePagination(mergedTrades, 15);
 
   return (
     <TooltipProvider delayDuration={200}>
       <div
         className={cn(
-          DASHBOARD_CONTENT_SHELL,
-          PAGE_PADDING_TOP_STANDARD,
-          PAGE_SAFE_AREA_BOTTOM_COMPACT,
-          "flex flex-col min-h-0 pb-10",
+          "bg-background text-foreground",
+          embedded ? "w-full min-w-0" : "flex min-h-screen min-w-0 flex-col",
         )}
       >
-        <div className="relative mb-8 overflow-hidden rounded-3xl border border-border/55 bg-gradient-to-br from-sky-950/30 via-card/90 to-background px-5 py-8 shadow-[0_28px_90px_-52px_rgba(0,0,0,0.9)] sm:px-8 sm:py-10">
+        <main
+          className={cn(
+            DASHBOARD_CONTENT_SHELL,
+            PAGE_PADDING_TOP_STANDARD,
+            PAGE_SAFE_AREA_BOTTOM_COMPACT,
+            "flex min-h-0 flex-col space-y-8",
+            !embedded && "min-h-0 flex-1",
+          )}
+        >
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-3xl border border-border/55 bg-gradient-to-br from-sky-950/30 via-card/90 to-background shadow-[0_28px_90px_-52px_rgba(0,0,0,0.9)]",
+            "px-5 py-6 sm:px-6 sm:py-7",
+            !embedded && "mb-2 sm:py-8",
+          )}
+        >
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.45]"
             style={{
@@ -245,53 +269,36 @@ export default function RiseExperiment() {
             <div className="min-w-0 space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-background/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-md">
                 <Crosshair className="h-3.5 w-3.5 text-sky-300" aria-hidden />
-                Rise borrow lab
+                Rise trading desk
               </div>
-              <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Rise experiment</h1>
+              {embedded ? (
+                <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Rise experiment</h2>
+              ) : (
+                <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Rise experiment</h1>
+              )}
               <p className="max-w-2xl text-pretty text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-                Two isolated snipers — Universal clips every fresh Pumpfun graduate, while Rise Alpha only paper-trades
-                the RISE-listed $UPONLY token. Each desk starts with {RISE_EXPERIMENT_START_SOL}&nbsp;SOL, deploys{" "}
-                {RISE_EXPERIMENT_ENTRY_SOL}&nbsp;SOL per entry, and may draw up to {RISE_EXPERIMENT_MAX_BORROW_SOL}&nbsp;SOL
-                from a modeled Rise vault at {(RISE_EXPERIMENT_BORROW_APR * 100).toFixed(0)}% APR to stay in the game when
-                cash is tight. Interest accrues continuously and is auto-paid from exits before principal.
+                Two isolated snipers on the live RISE tape — Universal enters every new RISE listing; Rise Alpha only
+                allocates to agent-ready or watch-tier names. Each desk starts with {RISE_EXPERIMENT_START_SOL}&nbsp;SOL,
+                deploys {RISE_EXPERIMENT_ENTRY_SOL}&nbsp;SOL per entry, and may draw up to {RISE_EXPERIMENT_MAX_BORROW_SOL}
+                &nbsp;SOL from the Rise vault at {(RISE_EXPERIMENT_BORROW_APR * 100).toFixed(0)}% APR when cash is tight.
+                Interest accrues continuously and is paid from exits before principal.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
                   <Sparkles className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                  Pumpfun + $UPONLY
+                  RISE markets tape
                 </Badge>
                 <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
                   <Landmark className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
                   Borrow + interest ledger
                 </Badge>
-                <Badge variant="outline" className="rounded-lg border-amber-500/25 text-amber-200/90">
-                  Simulation only
+                <Badge variant="outline" className="rounded-lg border-emerald-500/25 text-emerald-200/90">
+                  Live execution
                 </Badge>
               </div>
             </div>
 
             <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex rounded-2xl border border-border/55 bg-background/35 p-1">
-                {(
-                  [
-                    ["today", "Today"],
-                    ["week", "Week"],
-                    ["month", "Month"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <Button
-                    key={id}
-                    type="button"
-                    size="sm"
-                    variant={period === id ? "secondary" : "ghost"}
-                    className="h-9 min-w-14 rounded-xl px-4 font-semibold"
-                    onClick={() => setPeriod(id)}
-                    disabled={intelQ.isFetching}
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -303,28 +310,6 @@ export default function RiseExperiment() {
                 {intelQ.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Refresh
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" className="h-9 gap-2 rounded-xl border-red-500/25 text-red-200/90">
-                    <Trash2 className="h-4 w-4" />
-                    Reset
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="rounded-2xl border-border/60">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset Rise experiment?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Clears both desks, borrow balances, interest accrual, and tape memory. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="rounded-xl bg-red-600 hover:bg-red-600/90" onClick={resetAll}>
-                      Reset all
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
             </div>
           </div>
         </div>
@@ -341,7 +326,7 @@ export default function RiseExperiment() {
               <CardContent className="space-y-1 p-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Borrow pool</p>
                 <p className="font-mono text-xl font-semibold tabular-nums">{formatCompactUsd(intelQ.data.rise.borrowPoolUsd)}</p>
-                <p className="text-[11px] text-muted-foreground/80">Modeled Rise vault depth (USD)</p>
+                <p className="text-[11px] text-muted-foreground/80">Rise vault depth (USD)</p>
               </CardContent>
             </Card>
             <Card className="border-border/55 bg-card/60">
@@ -355,7 +340,7 @@ export default function RiseExperiment() {
               <CardContent className="space-y-1 p-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Borrow APR</p>
                 <p className="font-mono text-xl font-semibold tabular-nums">{intelQ.data.rise.borrowAprPct.toFixed(2)}%</p>
-                <p className="text-[11px] text-muted-foreground/80">Variable borrow (paper lens)</p>
+                <p className="text-[11px] text-muted-foreground/80">Variable borrow</p>
               </CardContent>
             </Card>
             <Card className="border-border/55 bg-card/60">
@@ -365,7 +350,7 @@ export default function RiseExperiment() {
                   {formatCompactUsd(intelQ.data.token.marketCapUsd)}
                 </p>
                 <p className="text-[11px] text-muted-foreground/80">
-                  Pumpfun tape: {intelQ.data.matchedCount} grads · {formatTs(intelQ.data.nowMs)}
+                  RISE tape: {intelQ.data.marketCount} markets · {formatTs(intelQ.data.nowMs)}
                 </p>
               </CardContent>
             </Card>
@@ -401,7 +386,7 @@ export default function RiseExperiment() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge variant="outline" className="cursor-default rounded-lg border-border/60 font-mono text-[11px]">
-                  {mergedTrades.length} rows
+                  {tradesPagination.totalItems.toLocaleString()} rows
                 </Badge>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs text-xs leading-relaxed">
@@ -410,10 +395,12 @@ export default function RiseExperiment() {
               </TooltipContent>
             </Tooltip>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[min(480px,50vh)] pr-3">
+          <CardContent className="p-0">
+            <ScrollArea className="h-[min(420px,48vh)] px-5 pr-3">
               {mergedTrades.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No closed trades yet — feed needs fresh mints after bootstrap.</p>
+                <p className="py-10 text-sm text-muted-foreground">
+                  No closed trades yet — feed needs fresh mints after bootstrap.
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -427,7 +414,7 @@ export default function RiseExperiment() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mergedTrades.map((t) => (
+                    {tradesPagination.slice.map((t) => (
                       <TableRow key={`${t.closedAtMs}-${t.mint}-${t.reason}`} className="border-border/40">
                         <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
                           {formatTs(t.closedAtMs)}
@@ -454,21 +441,37 @@ export default function RiseExperiment() {
                 </Table>
               )}
             </ScrollArea>
+            <PremiumTablePagination
+              page={tradesPagination.page}
+              pageSize={tradesPagination.pageSize}
+              totalItems={tradesPagination.totalItems}
+              onPageChange={tradesPagination.setPage}
+              onPageSizeChange={tradesPagination.setPageSize}
+              pageSizeOptions={[10, 15, 25, 50]}
+              loading={intelQ.isFetching}
+              itemLabel="trades"
+              className="rounded-b-xl"
+            />
           </CardContent>
         </Card>
 
         <Card className="mt-6 border-border/55 bg-card/45 backdrop-blur-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
-              Fresh mint discoveries
-            </CardTitle>
-            <CardDescription>
-              Chronological Pumpfun graduates plus $UPONLY when it updates — Universal reads all; Rise Alpha only the RISE mint.
-            </CardDescription>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
+                Fresh mint discoveries
+              </CardTitle>
+              <CardDescription>
+                Chronological RISE listings — Universal reads all; Rise Alpha only agent-ready or watch-tier mints.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="rounded-lg border-border/60 font-mono text-[11px]">
+              {discoveriesPagination.totalItems.toLocaleString()} listings
+            </Badge>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto px-5">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/50 hover:bg-transparent">
@@ -479,7 +482,18 @@ export default function RiseExperiment() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {persisted.discoveries.slice(0, 40).map((d) => (
+                  {discoveryRows.length === 0 ? (
+                    <TableRow className="border-border/40 hover:bg-transparent">
+                      <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                        {!ledgerReady || intelQ.isLoading
+                          ? "Loading RISE markets tape…"
+                          : intelQ.isError
+                            ? "RISE markets feed unavailable — use Refresh after the API is reachable."
+                            : "No RISE listings on the tape yet."}
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {discoveriesPagination.slice.map((d) => (
                     <TableRow key={`${d.atMs}-${d.mint}`} className="border-border/40">
                       <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">{formatTs(d.atMs)}</TableCell>
                       <TableCell>
@@ -493,19 +507,11 @@ export default function RiseExperiment() {
                       </TableCell>
                       <TableCell className="pr-4 text-right">
                         <a
-                          href={
-                            d.mint === RISE_ALPHA_TOKEN_MINT
-                              ? buildRiseTradeUrl(d.mint) ?? `https://rise.rich/trade/${encodeURIComponent(d.mint)}`
-                              : `https://pump.fun/coin/${encodeURIComponent(d.mint)}`
-                          }
+                          href={buildRiseTradeUrl(d.mint) ?? `https://rise.rich/trade/${encodeURIComponent(d.mint)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/30 text-primary transition-colors hover:bg-background/60"
-                          aria-label={
-                            d.mint === RISE_ALPHA_TOKEN_MINT
-                              ? `Trade ${d.symbol} on RISE`
-                              : `Open ${d.symbol} on pump.fun`
-                          }
+                          aria-label={`Trade ${d.symbol} on RISE`}
                         >
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </a>
@@ -515,8 +521,20 @@ export default function RiseExperiment() {
                 </TableBody>
               </Table>
             </div>
+            <PremiumTablePagination
+              page={discoveriesPagination.page}
+              pageSize={discoveriesPagination.pageSize}
+              totalItems={discoveriesPagination.totalItems}
+              onPageChange={discoveriesPagination.setPage}
+              onPageSizeChange={discoveriesPagination.setPageSize}
+              pageSizeOptions={[10, 20, 50]}
+              loading={intelQ.isFetching || !ledgerReady}
+              itemLabel="listings"
+              className="rounded-b-xl"
+            />
           </CardContent>
         </Card>
+      </main>
       </div>
     </TooltipProvider>
   );

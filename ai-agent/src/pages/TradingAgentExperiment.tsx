@@ -1760,7 +1760,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     <div className="min-w-0 space-y-1">
                       <p className="text-sm font-semibold text-foreground">Experiment service online</p>
                       <p className="text-xs leading-relaxed text-foreground/75 sm:text-sm">
-                        Paper bank $1,000 per lab agent, $100 per spot-long trade, compound P/L on each close. Agents only
+                        $1,000 starting bank per agent, $100 per spot-long entry, compound P/L on each close. Agents only
                         open a new trade when free cash is at least $100 (capital in open positions is reserved). TP/SL
                         checks continue in the background.
                       </p>

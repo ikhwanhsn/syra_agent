@@ -6,8 +6,10 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { isAdminWallet } from "@/constants/adminWallet";
 
 const linkClass = (active: boolean) =>
-  `inline-flex min-h-[44px] items-center rounded-md px-3 py-2 text-sm font-medium transition hover:bg-muted sm:min-h-0 sm:px-2.5 sm:py-1.5 touch-manipulation ${
-    active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+  `inline-flex min-h-[40px] items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-300 touch-manipulation sm:min-h-0 ${
+    active
+      ? "bg-primary/10 text-foreground ring-1 ring-primary/20"
+      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
   }`;
 
 export function StakingNav() {
@@ -17,7 +19,7 @@ export function StakingNav() {
 
   return (
     <nav
-      className="flex w-max min-w-0 max-w-full flex-wrap items-center gap-1 sm:w-auto"
+      className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1 sm:gap-2"
       aria-label="Main"
     >
       <Link href="/" className={linkClass(pathname === "/")}>

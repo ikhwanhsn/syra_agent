@@ -3,7 +3,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useTheme } from "@/app/ThemeContext";
-import { StakingPageHeader } from "@/components/StakingPageHeader";
+import { StakingShell } from "@/components/StakingShell";
+import { StakingStatsStrip } from "@/components/StakingStatsStrip";
 import { useStreamflowStaking } from "@/hooks/useStreamflowStaking";
 import type { UserLockRow } from "@/lib/streamflowStaking";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
@@ -86,7 +87,7 @@ function LockPositionCard(props: {
 
   if (variant === "history") {
     return (
-      <article className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-muted/[0.35] via-background/95 to-background/80 shadow-[0_1px_0_0_hsla(0,0%,100%,0.06)_inset,0_12px_40px_-18px_rgba(0,0,0,0.25)] backdrop-blur-sm transition duration-300 hover:border-border/70 hover:shadow-[0_1px_0_0_hsla(0,0%,100%,0.08)_inset,0_20px_50px_-24px_rgba(0,0,0,0.3)] dark:from-muted/[0.12] dark:via-card/40 dark:to-card/20 dark:shadow-[0_8px_40px_-20px_rgba(0,0,0,0.65)]">
+      <article className="glass-card group relative overflow-hidden transition duration-300">
         <div
           className="pointer-events-none absolute inset-y-3 left-0 w-1 rounded-full bg-gradient-to-b from-foreground/25 via-foreground/12 to-transparent opacity-90"
           aria-hidden
@@ -138,7 +139,7 @@ function LockPositionCard(props: {
   }
 
   return (
-    <article className="rounded-xl border border-border/50 bg-background/70 p-4 shadow-sm transition hover:border-border hover:bg-background/90 sm:rounded-2xl sm:p-5">
+    <article className="glass-card p-4 transition duration-300 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -185,6 +186,7 @@ export default function StreamflowStakingPage() {
   const { connected } = useWallet();
   const [amount, setAmount] = useState("");
   const [portfolioTab, setPortfolioTab] = useState<"open" | "history">("open");
+  const [statsRefreshNonce, setStatsRefreshNonce] = useState(0);
   const {
     locks,
     historyLocks,
@@ -237,46 +239,33 @@ export default function StreamflowStakingPage() {
         </>
       );
       setAmount("");
+      setStatsRefreshNonce((n) => n + 1);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Lock failed");
     }
   };
 
   return (
-    <div
-      className="relative min-h-[100dvh] min-w-0 overflow-x-clip text-foreground"
-      data-theme={theme}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        aria-hidden
-      >
-        <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-gradient-to-br from-muted/50 to-transparent blur-3xl dark:from-muted/25" />
-        <div className="absolute -right-24 top-48 h-[360px] w-[360px] rounded-full bg-gradient-to-bl from-muted/40 to-transparent blur-3xl dark:from-muted/20" />
-        <div className="absolute bottom-0 left-1/2 h-px w-[min(100%,72rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-border/80 to-transparent" />
-      </div>
-
-      <div className="relative min-h-[100dvh] min-w-0 bg-background/80 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <StakingPageHeader />
-
-        <main className="mx-auto min-w-0 max-w-6xl px-3 pb-16 pt-8 sm:px-6 sm:pb-20 sm:pt-12 md:pt-16">
-          <header className="mb-8 w-full min-w-0 space-y-4 sm:mb-10 sm:space-y-5 md:mb-14">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="inline-flex items-center rounded-full border border-border/80 bg-muted/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Streamflow
-              </span>
-              <span className="inline-flex items-center rounded-full border border-border/80 bg-card px-3 py-1 text-[11px] font-medium tabular-nums text-muted-foreground">
-                {networkLabel}
-              </span>
-              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold text-foreground">
-                {STREAMFLOW_CONFIG.lockDurationLabel} lock
+    <StakingShell>
+      <div className="animate-fade-in min-w-0 pb-8 sm:pb-12" data-theme={theme}>
+          <header className="mb-8 w-full min-w-0 space-y-5 sm:mb-10 md:mb-12">
+            <div className="inline-flex items-center gap-2 glass-card border border-primary/15 bg-primary/[0.04] px-4 py-2 shadow-none">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-success/90 shadow-[0_0_8px_hsl(var(--success)/0.45)] animate-pulse" />
+              <span className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground/90">{symbol}</span>
+                {" · "}
+                {STREAMFLOW_CONFIG.lockDurationLabel} lock · {networkLabel}
               </span>
             </div>
             <div className="space-y-3">
-              <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-4xl md:text-[2.65rem] md:leading-[1.08]">
-                Token locks
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] section-eyebrow-gradient">
+                Staking
+              </p>
+              <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+                <span className="text-foreground">Lock </span>
+                <span className="neon-text">{symbol}</span>
               </h1>
-              <p className="w-full min-w-0 max-w-none text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Lock{" "}
                 <span className="font-medium text-foreground">{symbol}</span> with{" "}
                 <a
@@ -301,7 +290,17 @@ export default function StreamflowStakingPage() {
             ) : null}
           </header>
 
-          <div className="w-full min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card/50 shadow-[0_24px_80px_-16px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-card/30 dark:shadow-[0_24px_80px_-16px_rgba(0,0,0,0.5)] sm:rounded-2xl md:rounded-3xl">
+          <StakingStatsStrip
+            symbol={symbol}
+            tokenDecimals={tokenDecimals}
+            connected={connected}
+            portfolioLoading={loading}
+            openLocks={sortedLocks}
+            walletBalanceFormatted={walletBalanceFormatted}
+            refreshNonce={statsRefreshNonce}
+          />
+
+          <div className="glass-card w-full min-w-0 overflow-hidden">
             <div className="grid min-w-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:divide-x md:divide-border/60">
               {/* Configure */}
               <section className="flex min-w-0 flex-col p-4 sm:p-8 md:p-10">
@@ -392,8 +391,7 @@ export default function StreamflowStakingPage() {
                       type="button"
                       onClick={() => void handleLock()}
                       disabled={!connected || actionLoading || loading}
-                      className="group relative min-h-[52px] w-full touch-manipulation overflow-hidden rounded-xl px-5 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-black/10 ring-1 ring-black/5 transition hover:opacity-[0.97] active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-45 dark:ring-white/10"
-                      style={{ backgroundImage: "var(--gradient-primary)" }}
+                      className="btn-primary min-h-[52px] w-full touch-manipulation px-5 py-4 text-base active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       <span className="relative z-10 flex flex-col items-center gap-0.5">
                         {actionLoading ? (
@@ -502,7 +500,7 @@ export default function StreamflowStakingPage() {
                       aria-labelledby="portfolio-tab-open"
                     >
                       {sortedLocks.length === 0 ? (
-                        <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/40 px-6 py-14 text-center md:min-h-[320px]">
+                        <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/10 px-6 py-14 text-center md:min-h-[320px]">
                           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 text-muted-foreground">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -545,7 +543,7 @@ export default function StreamflowStakingPage() {
                       aria-labelledby="portfolio-tab-history"
                     >
                       {historyLocks.length === 0 ? (
-                        <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/40 px-6 py-14 text-center md:min-h-[320px]">
+                        <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/10 px-6 py-14 text-center md:min-h-[320px]">
                           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 text-muted-foreground">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -587,8 +585,7 @@ export default function StreamflowStakingPage() {
               </section>
             </div>
           </div>
-        </main>
       </div>
-    </div>
+    </StakingShell>
   );
 }

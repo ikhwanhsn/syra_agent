@@ -6,7 +6,16 @@ export const RISE_EXPERIMENT_START_SOL = 10;
 export const RISE_EXPERIMENT_MAX_BORROW_SOL = 5;
 /** Variable borrow APR used for interest accrual (simple linear rate). */
 export const RISE_EXPERIMENT_BORROW_APR = 0.14;
-export const RISE_EXPERIMENT_STORAGE_KEY = "syra.riseExperiment.v1";
+/** Bump when the experiment tape source changes (v3 = RISE markets; v2/v1 included Pumpfun). */
+export const RISE_EXPERIMENT_FEED_VERSION = 3;
+export const RISE_EXPERIMENT_TAPE_SOURCE = "rise-markets" as const;
+/** Legacy browser keys — migrated once to MongoDB on first API load. */
+export const RISE_EXPERIMENT_LEGACY_STORAGE_KEY = "syra.riseExperiment.v3";
+const RISE_EXPERIMENT_LEGACY_STORAGE_KEYS = [
+  "syra.riseExperiment.v1",
+  "syra.riseExperiment.v2",
+  RISE_EXPERIMENT_LEGACY_STORAGE_KEY,
+] as const;
 
 export type RiseExperimentAgentId = "universal" | "riseAlpha";
 
@@ -49,6 +58,10 @@ export interface RiseAgentState {
 
 export interface RiseExperimentPersisted {
   v: 1;
+  /** Tape schema version — mismatch triggers a full reset on load. */
+  feedVersion: number;
+  /** Origin of price/discovery tape (`rise-markets` only after v3). */
+  tapeSource: typeof RISE_EXPERIMENT_TAPE_SOURCE;
   feedBootstrapped: boolean;
   seenMints: string[];
   agents: Record<RiseExperimentAgentId, RiseAgentState>;
@@ -88,9 +101,19 @@ function createEmptyAgent(): RiseAgentState {
   };
 }
 
+function isValidRiseExperimentPersisted(parsed: RiseExperimentPersisted | null | undefined): parsed is RiseExperimentPersisted {
+  if (!parsed || parsed.v !== 1) return false;
+  if (parsed.feedVersion !== RISE_EXPERIMENT_FEED_VERSION) return false;
+  if (parsed.tapeSource !== RISE_EXPERIMENT_TAPE_SOURCE) return false;
+  if (!parsed.agents?.universal || !parsed.agents?.riseAlpha) return false;
+  return true;
+}
+
 export function createInitialRiseExperiment(): RiseExperimentPersisted {
   return {
     v: 1,
+    feedVersion: RISE_EXPERIMENT_FEED_VERSION,
+    tapeSource: RISE_EXPERIMENT_TAPE_SOURCE,
     feedBootstrapped: false,
     seenMints: [],
     agents: {
@@ -254,6 +277,8 @@ export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExpe
   const { tokens, nowMs, riseAlphaMintTargets } = input;
   const persisted: RiseExperimentPersisted = {
     v: 1,
+    feedVersion: RISE_EXPERIMENT_FEED_VERSION,
+    tapeSource: RISE_EXPERIMENT_TAPE_SOURCE,
     feedBootstrapped: input.persisted.feedBootstrapped,
     seenMints: [...input.persisted.seenMints],
     agents: {
@@ -300,12 +325,27 @@ export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExpe
   }
   newTokens.sort((a, b) => (b.anchorTsMs ?? 0) - (a.anchorTsMs ?? 0));
 
+  const seedDiscoveriesFromTape = (tape: readonly PumpfunAlphaTrendToken[]): void => {
+    const sorted = [...tape].sort((a, b) => (b.anchorTsMs ?? 0) - (a.anchorTsMs ?? 0));
+    persisted.discoveries = sorted.slice(0, 120).map((t) => ({
+      atMs: nowMs,
+      mint: t.mint,
+      symbol: t.symbol,
+      marketCapUsd: t.marketCapUsd,
+    }));
+  };
+
   if (!persisted.feedBootstrapped && tokens.length > 0) {
     persisted.feedBootstrapped = true;
     persisted.seenMints = Array.from(seen);
+    seedDiscoveriesFromTape(tokens);
     runExitPass(persisted.agents.universal, tokenByMint, persisted.mcByMint, nowMs, "universal");
     runExitPass(persisted.agents.riseAlpha, tokenByMint, persisted.mcByMint, nowMs, "riseAlpha");
     return persisted;
+  }
+
+  if (persisted.feedBootstrapped && persisted.discoveries.length === 0 && tokens.length > 0) {
+    seedDiscoveriesFromTape(tokens);
   }
 
   runExitPass(persisted.agents.universal, tokenByMint, persisted.mcByMint, nowMs, "universal");
@@ -345,53 +385,84 @@ export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExpe
   return persisted;
 }
 
-export function loadRiseExperiment(): RiseExperimentPersisted {
-  if (typeof window === "undefined") return createInitialRiseExperiment();
-  try {
-    const raw = window.localStorage.getItem(RISE_EXPERIMENT_STORAGE_KEY);
-    if (!raw) return createInitialRiseExperiment();
-    const parsed = JSON.parse(raw) as RiseExperimentPersisted;
-    if (parsed?.v !== 1 || !parsed.agents?.universal || !parsed.agents?.riseAlpha) {
-      return createInitialRiseExperiment();
-    }
-    const fresh = createInitialRiseExperiment();
-    for (const id of ["universal", "riseAlpha"] as const) {
-      const a = parsed.agents[id];
-      if (!a || typeof a.balanceSol !== "number") {
-        parsed.agents[id] = fresh.agents[id];
-        continue;
-      }
-      if (!Array.isArray(a.open)) a.open = [];
-      if (!Array.isArray(a.closed)) a.closed = [];
-      if (!a.boughtMints || typeof a.boughtMints !== "object") a.boughtMints = {};
-      if (typeof a.borrowedPrincipalSol !== "number") a.borrowedPrincipalSol = 0;
-      if (typeof a.interestOwedSol !== "number") a.interestOwedSol = 0;
-      if (typeof a.interestPaidAllTimeSol !== "number") a.interestPaidAllTimeSol = 0;
-      for (const o of a.open) {
-        a.boughtMints[o.mint] = true;
-      }
-      for (const c of a.closed) {
-        a.boughtMints[c.mint] = true;
-      }
-    }
-    if (typeof parsed.feedBootstrapped !== "boolean") {
-      parsed.feedBootstrapped = Array.isArray(parsed.seenMints) && parsed.seenMints.length > 0;
-    }
-    if (!Array.isArray(parsed.seenMints)) parsed.seenMints = [];
-    if (!Array.isArray(parsed.discoveries)) parsed.discoveries = [];
-    if (!parsed.mcByMint || typeof parsed.mcByMint !== "object") parsed.mcByMint = {};
-    if (parsed.lastTickMs != null && typeof parsed.lastTickMs !== "number") parsed.lastTickMs = null;
-    return parsed;
-  } catch {
-    return createInitialRiseExperiment();
+function normalizeAgent(agent: RiseAgentState, fallback: RiseAgentState): RiseAgentState {
+  if (!Array.isArray(agent.open)) agent.open = [];
+  if (!Array.isArray(agent.closed)) agent.closed = [];
+  if (!agent.boughtMints || typeof agent.boughtMints !== "object") agent.boughtMints = {};
+  if (typeof agent.borrowedPrincipalSol !== "number") agent.borrowedPrincipalSol = 0;
+  if (typeof agent.interestOwedSol !== "number") agent.interestOwedSol = 0;
+  if (typeof agent.interestPaidAllTimeSol !== "number") agent.interestPaidAllTimeSol = 0;
+  if (typeof agent.balanceSol !== "number" || !Number.isFinite(agent.balanceSol)) {
+    agent.balanceSol = fallback.balanceSol;
   }
+  for (const o of agent.open) {
+    agent.boughtMints[o.mint] = true;
+  }
+  for (const c of agent.closed) {
+    agent.boughtMints[c.mint] = true;
+  }
+  return agent;
 }
 
-export function saveRiseExperiment(state: RiseExperimentPersisted): void {
+/** Normalize ledger from API / migration payload. */
+export function normalizeRiseLedger(raw: unknown): RiseExperimentPersisted {
+  const fresh = createInitialRiseExperiment();
+  const parsed = raw as RiseExperimentPersisted | null | undefined;
+  if (!isValidRiseExperimentPersisted(parsed)) {
+    return fresh;
+  }
+
+  for (const id of ["universal", "riseAlpha"] as const) {
+    parsed.agents[id] = normalizeAgent(parsed.agents[id], fresh.agents[id]);
+  }
+
+  if (typeof parsed.feedBootstrapped !== "boolean") parsed.feedBootstrapped = false;
+  if (!Array.isArray(parsed.seenMints)) parsed.seenMints = [];
+  if (!Array.isArray(parsed.discoveries)) parsed.discoveries = [];
+  if (!parsed.mcByMint || typeof parsed.mcByMint !== "object") parsed.mcByMint = {};
+  if (parsed.lastTickMs != null && typeof parsed.lastTickMs !== "number") parsed.lastTickMs = null;
+  parsed.tapeSource = RISE_EXPERIMENT_TAPE_SOURCE;
+  parsed.feedVersion = RISE_EXPERIMENT_FEED_VERSION;
+  parsed.v = 1;
+
+  return parsed;
+}
+
+/** One-time read of legacy localStorage ledger (caller should persist to API and remove keys). */
+export function readLegacyRiseExperimentFromLocalStorage(): RiseExperimentPersisted | null {
+  if (typeof window === "undefined") return null;
+  for (const key of RISE_EXPERIMENT_LEGACY_STORAGE_KEYS) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      const normalized = normalizeRiseLedger(JSON.parse(raw) as unknown);
+      if (isValidRiseExperimentPersisted(normalized)) {
+        return normalized;
+      }
+    } catch {
+      /* try next key */
+    }
+  }
+  return null;
+}
+
+export function clearLegacyRiseExperimentLocalStorage(): void {
   if (typeof window === "undefined") return;
+  for (const key of RISE_EXPERIMENT_LEGACY_STORAGE_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  }
   try {
-    window.localStorage.setItem(RISE_EXPERIMENT_STORAGE_KEY, JSON.stringify(state));
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("syra.riseExperiment.")) {
+        localStorage.removeItem(key);
+      }
+    }
   } catch {
-    /* ignore quota */
+    /* ignore */
   }
 }

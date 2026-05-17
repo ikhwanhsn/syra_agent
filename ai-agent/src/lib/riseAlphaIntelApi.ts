@@ -1,5 +1,8 @@
 import { getApiBaseUrl } from "@/lib/chatApi";
 import type { PumpfunAlphaTrendToken } from "@/lib/pumpfunAlphaTrendApi";
+import type { RiseAlphaMarketsBundle } from "@/lib/riseMarketsApi";
+import type { RiseMarketRow } from "@/lib/riseMarketsTypes";
+import { enrichRiseMarket } from "@/lib/riseIntelligence";
 import { RISE_ALPHA_TOKEN, RISE_ALPHA_TOKEN_MINT } from "@/lib/riseToken";
 
 /** Rise vault / fund lens layered on live $UPONLY market data (paper borrow metrics — not on-chain). */
@@ -31,8 +34,10 @@ export interface RiseAlphaIntelResponse {
   nowMs: number;
   token: RiseAlphaTokenSnapshot;
   rise: RiseAlphaFundLens;
-  /** Always the canonical RISE $UPONLY mint — Rise Alpha desk target only. */
-  riseAlphaMintTargets: readonly [typeof RISE_ALPHA_TOKEN_MINT];
+  /** RISE mints the Rise Alpha desk may enter (agent-ready / watch tier). */
+  riseAlphaMintTargets: readonly string[];
+  /** Full RISE universe size on this refresh. */
+  marketCount: number;
 }
 
 type RiseMarketRowPayload = {
@@ -88,6 +93,29 @@ function deriveFundLens(nowMs: number, marketCapUsd: number | null): RiseAlphaFu
   };
 }
 
+function parseIsoMs(iso: string | null | undefined, fallback: number): number {
+  if (!iso) return fallback;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : fallback;
+}
+
+export function riseMarketRowToTokenSnapshot(row: RiseMarketRow): RiseAlphaTokenSnapshot {
+  return {
+    mint: row.mint,
+    symbol: row.symbol?.trim() || "—",
+    name: row.name?.trim() || row.symbol || "—",
+    imageUrl: row.imageUrl,
+    priceUsd: row.priceUsd,
+    marketCapUsd: row.marketCapUsd,
+    floorPriceUsd: row.floorPriceUsd,
+    volume24hUsd: row.volume24hUsd,
+    holders: row.holders,
+    priceChange24hPct: row.priceChange24hPct,
+    level: row.level,
+    isVerified: row.isVerified,
+  };
+}
+
 function mergeTokenSnapshot(row: RiseMarketRowPayload | null | undefined, normalized: RiseMarketApiResponse["normalized"]): RiseAlphaTokenSnapshot {
   const priceUsd = row?.priceUsd ?? normalized?.priceUsd ?? null;
   const marketCapUsd = row?.marketCapUsd ?? normalized?.marketCapUsd ?? null;
@@ -107,18 +135,85 @@ function mergeTokenSnapshot(row: RiseMarketRowPayload | null | undefined, normal
   };
 }
 
-export function riseTokenToExperimentTape(token: RiseAlphaTokenSnapshot, nowMs: number): PumpfunAlphaTrendToken {
+export function riseMarketToExperimentTape(row: RiseMarketRow, nowMs: number): PumpfunAlphaTrendToken {
+  const updatedMs = parseIsoMs(row.updatedAt, nowMs);
+  const createdMs = parseIsoMs(row.createdAt, updatedMs);
   return {
-    mint: token.mint,
-    symbol: token.symbol,
-    name: token.name,
+    mint: row.mint,
+    symbol: row.symbol?.trim() || "—",
+    name: row.name?.trim() || row.symbol || "—",
     complete: true,
-    marketCapUsd: token.marketCapUsd,
-    athMarketCapUsd: token.marketCapUsd,
-    athMarketCapTimestampMs: nowMs,
-    updatedAtMs: nowMs,
-    lastTradeTimestampMs: nowMs,
-    anchorTsMs: nowMs,
+    marketCapUsd: row.marketCapUsd,
+    athMarketCapUsd: row.marketCapUsd,
+    athMarketCapTimestampMs: updatedMs,
+    updatedAtMs: updatedMs,
+    lastTradeTimestampMs: updatedMs,
+    anchorTsMs: createdMs,
+  };
+}
+
+export function riseTokenToExperimentTape(token: RiseAlphaTokenSnapshot, nowMs: number): PumpfunAlphaTrendToken {
+  return riseMarketToExperimentTape(
+    {
+      mint: token.mint,
+      marketAddress: null,
+      name: token.name,
+      symbol: token.symbol,
+      imageUrl: token.imageUrl,
+      tokenUri: null,
+      twitterUrl: null,
+      telegramUrl: null,
+      discordUrl: null,
+      priceUsd: token.priceUsd,
+      floorPriceUsd: token.floorPriceUsd,
+      marketCapUsd: token.marketCapUsd,
+      floorMarketCapUsd: null,
+      volume24hUsd: token.volume24hUsd,
+      volumeAllTimeUsd: null,
+      holders: token.holders,
+      creatorFeePct: null,
+      startingPriceUsd: null,
+      priceChange24hPct: token.priceChange24hPct,
+      floorDeltaPct: null,
+      lockedSupplyPct: null,
+      level: token.level,
+      isVerified: token.isVerified,
+      disableSell: false,
+      createdAt: null,
+      updatedAt: null,
+      ageHours: null,
+      creator: null,
+      tokenDecimals: null,
+      mintMain: null,
+    },
+    nowMs,
+  );
+}
+
+export function riseMarketsToExperimentTape(markets: readonly RiseMarketRow[], nowMs: number): PumpfunAlphaTrendToken[] {
+  const tokens = markets.map((row) => riseMarketToExperimentTape(row, nowMs));
+  tokens.sort((a, b) => (b.anchorTsMs ?? 0) - (a.anchorTsMs ?? 0));
+  return tokens;
+}
+
+export function buildRiseExperimentIntel(bundle: RiseAlphaMarketsBundle): RiseAlphaIntelResponse {
+  const nowMs = bundle.fetchedAtMs;
+  const uponlyRow =
+    bundle.markets.find((m) => m.mint === RISE_ALPHA_TOKEN_MINT) ?? bundle.aggregate.uponly ?? null;
+  const token = uponlyRow
+    ? riseMarketRowToTokenSnapshot(uponlyRow)
+    : mergeTokenSnapshot({ mint: RISE_ALPHA_TOKEN_MINT, symbol: RISE_ALPHA_TOKEN.symbol, name: RISE_ALPHA_TOKEN.name }, null);
+  const rise = deriveFundLens(nowMs, token.marketCapUsd);
+  const riseAlphaMintTargets = bundle.markets
+    .map(enrichRiseMarket)
+    .filter((r) => r.agentTier === "ready" || r.agentTier === "watch")
+    .map((r) => r.market.mint);
+  return {
+    nowMs,
+    token,
+    rise,
+    riseAlphaMintTargets,
+    marketCount: bundle.markets.length,
   };
 }
 
@@ -142,5 +237,6 @@ export async function fetchRiseAlphaIntel(): Promise<RiseAlphaIntelResponse> {
     token,
     rise,
     riseAlphaMintTargets: [RISE_ALPHA_TOKEN_MINT],
+    marketCount: 1,
   };
 }

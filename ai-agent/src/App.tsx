@@ -73,8 +73,8 @@ const App = () => (
                   <Route path="lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile embedded />} />
                   <Route path="alpha/x/:username" element={<AlphaAccountDetail />} />
                   <Route path="alpha" element={<Alpha />} />
-                  <Route path="pumpfun-experiment" element={<PumpfunExperiment />} />
-                  <Route path="rise-experiment" element={<RiseExperiment />} />
+                  <Route path="pumpfun-experiment" element={<PumpfunExperiment embedded />} />
+                  <Route path="rise-experiment" element={<RiseExperiment embedded />} />
                   <Route path="internal-team-agents" element={<InternalTeamAgentsMonitor />} />
                   <Route path="internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
                 </Route>

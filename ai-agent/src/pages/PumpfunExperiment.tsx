@@ -10,7 +10,6 @@ import {
   Rocket,
   Scale,
   Sparkles,
-  Trash2,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -27,17 +26,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -90,9 +78,9 @@ function heatClass(retPct: number): string {
   return "border-red-500/30 bg-red-500/[0.12] text-foreground";
 }
 
-export default function PumpfunExperiment() {
+export default function PumpfunExperiment({ embedded = false }: { embedded?: boolean }) {
   const [period, setPeriod] = useState<PumpfunAlphaPeriod>("today");
-  const { persisted, trendQ, resetAll } = usePumpfunExperimentRunner(period);
+  const { persisted, trendQ } = usePumpfunExperimentRunner(period);
   const [selP, setSelP] = useState(0);
   const [selE, setSelE] = useState(0);
 
@@ -154,13 +142,26 @@ export default function PumpfunExperiment() {
     <TooltipProvider delayDuration={200}>
       <div
         className={cn(
-          DASHBOARD_CONTENT_SHELL,
-          PAGE_PADDING_TOP_STANDARD,
-          PAGE_SAFE_AREA_BOTTOM_COMPACT,
-          "flex flex-col min-h-0 pb-10",
+          "bg-background text-foreground",
+          embedded ? "w-full min-w-0" : "flex min-h-screen min-w-0 flex-col",
         )}
       >
-        <div className="relative mb-8 overflow-hidden rounded-3xl border border-border/55 bg-gradient-to-br from-violet-950/35 via-card/90 to-background px-5 py-8 shadow-[0_28px_90px_-52px_rgba(0,0,0,0.9)] sm:px-8 sm:py-10">
+        <main
+          className={cn(
+            DASHBOARD_CONTENT_SHELL,
+            PAGE_PADDING_TOP_STANDARD,
+            PAGE_SAFE_AREA_BOTTOM_COMPACT,
+            "flex min-h-0 flex-col space-y-8",
+            !embedded && "min-h-0 flex-1",
+          )}
+        >
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-3xl border border-border/55 bg-gradient-to-br from-violet-950/35 via-card/90 to-background shadow-[0_28px_90px_-52px_rgba(0,0,0,0.9)]",
+            "px-5 py-6 sm:px-6 sm:py-7",
+            !embedded && "mb-2 sm:py-8",
+          )}
+        >
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.5]"
             style={{
@@ -179,15 +180,21 @@ export default function PumpfunExperiment() {
             <div className="min-w-0 space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-background/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-md">
                 <Rocket className="h-3.5 w-3.5 text-violet-400" aria-hidden />
-                Live paper lab
+                Live trading desk
               </div>
-              <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Pumpfun experiment
-              </h1>
+              {embedded ? (
+                <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                  Pumpfun experiment
+                </h2>
+              ) : (
+                <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  Pumpfun experiment
+                </h1>
+              )}
               <p className="max-w-2xl text-pretty text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-                Fifteen entry personalities × fifteen exit rules — 225 independent 10&nbsp;SOL desks compounding 1&nbsp;SOL
-                clips on every fresh graduate that hits the same Alpha Pumpfun feed. Deterministic paper marks move with
-                live market cap snapshots from the API — not on-chain execution.
+                Fifteen entry personalities × fifteen exit rules — 225 independent 10&nbsp;SOL desks deploying 1&nbsp;SOL
+                per clip on every fresh graduate from the Alpha Pumpfun feed. Marks and P/L update in real time from live
+                market cap — same tape you will route when execution goes on-chain.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
@@ -198,8 +205,8 @@ export default function PumpfunExperiment() {
                   <Activity className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
                   225 strategy cells
                 </Badge>
-                <Badge variant="outline" className="rounded-lg border-amber-500/25 text-amber-200/90">
-                  Simulation only
+                <Badge variant="outline" className="rounded-lg border-emerald-500/25 text-emerald-200/90">
+                  Live marks
                 </Badge>
               </div>
             </div>
@@ -237,33 +244,6 @@ export default function PumpfunExperiment() {
                 {trendQ.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Refresh
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-2 rounded-xl border-red-500/25 text-red-200/90"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Reset
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="rounded-2xl border-border/60">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset entire experiment?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Clears all paper balances, open bags, trade history, and feed memory. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="rounded-xl bg-red-600 hover:bg-red-600/90" onClick={resetAll}>
-                      Reset all
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
             </div>
           </div>
         </div>
@@ -641,6 +621,7 @@ export default function PumpfunExperiment() {
             </Card>
           </TabsContent>
         </Tabs>
+      </main>
       </div>
     </TooltipProvider>
   );

@@ -3,6 +3,8 @@ export const SIDEBAR_PANEL = {
   defaultSize: 18,
   minSize: 12,
   maxSize: 45,
+  /** Percent width when collapsed — icon rail (logo + nav icons). */
+  collapsedSize: 4,
 } as const;
 
 export const MAIN_PANEL = {

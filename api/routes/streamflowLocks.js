@@ -117,15 +117,19 @@ export async function createStreamflowLocksRouter() {
         return;
       }
       const filter = { mint, network, closed: false };
-      const locks = await StreamflowLock.find(filter).select('amountRaw').lean();
+      const locks = await StreamflowLock.find(filter).select('amountRaw wallet').lean();
       const openLockCount = locks.length;
       const totalAmountRaw = sumAmountRaw(locks);
+      const uniqueWallets = new Set(locks.map((d) => d.wallet).filter(Boolean)).size;
+      const closedLockCount = await StreamflowLock.countDocuments({ mint, network, closed: true });
       res.json({
         success: true,
         data: {
           network,
           mint,
           openLockCount,
+          closedLockCount,
+          uniqueWallets,
           totalAmountRaw,
         },
       });
