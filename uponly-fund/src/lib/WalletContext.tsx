@@ -1,8 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { VersionedTransaction } from "@solana/web3.js";
 import { toast } from "@/components/ui/sonner";
-
-const AUTOCONNECT_KEY = "uof.wallet.autoconnect";
 
 type WalletStatus = "idle" | "connecting" | "connected" | "no-provider";
 
@@ -43,15 +50,16 @@ function getPhantomProvider(): PhantomProvider | null {
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<WalletStatus>("idle");
   const [publicKey, setPublicKey] = useState<string | null>(null);
+  const suppressDisconnectToastRef = useRef(false);
 
   const syncFromProvider = useCallback((provider: PhantomProvider | null) => {
-    const key = provider?.publicKey?.toString() ?? null;
-    setPublicKey(key);
     if (!provider) {
+      setPublicKey(null);
       setStatus("no-provider");
       return;
     }
-    setStatus(key ? "connected" : "idle");
+    // Do not hydrate from provider.publicKey — user must call connect() so Phantom shows its popup.
+    setStatus("idle");
   }, []);
 
   useEffect(() => {
@@ -63,8 +71,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const onDisconnect = () => {
       setPublicKey(null);
       setStatus("idle");
-      localStorage.removeItem(AUTOCONNECT_KEY);
-      toast.info("Wallet disconnected");
+      if (!suppressDisconnectToastRef.current) {
+        toast.info("Wallet disconnected");
+      }
     };
 
     const onAccountChanged = (next: PhantomPublicKey | null) => {
@@ -75,20 +84,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     provider.on("disconnect", onDisconnect);
     provider.on("accountChanged", onAccountChanged);
-
-    const shouldAutoConnect = localStorage.getItem(AUTOCONNECT_KEY) === "1";
-    if (shouldAutoConnect) {
-      provider
-        .connect({ onlyIfTrusted: true })
-        .then(({ publicKey: key }) => {
-          const wallet = key.toString();
-          setPublicKey(wallet);
-          setStatus("connected");
-        })
-        .catch(() => {
-          setStatus("idle");
-        });
-    }
 
     return () => {
       provider.off("disconnect", onDisconnect);
@@ -104,17 +99,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       return;
     }
     setStatus("connecting");
+    suppressDisconnectToastRef.current = true;
     try {
-      const { publicKey: key } = await provider.connect();
+      // Clear any lingering Phantom session so connect() always opens the wallet approval popup.
+      if (provider.publicKey) {
+        await provider.disconnect();
+      }
+      const { publicKey: key } = await provider.connect({ onlyIfTrusted: false });
       const wallet = key.toString();
       setPublicKey(wallet);
       setStatus("connected");
-      localStorage.setItem(AUTOCONNECT_KEY, "1");
       toast.success("Wallet connected");
     } catch (error) {
       setStatus("idle");
       const message = error instanceof Error ? error.message : "Connection failed";
       toast.error(message);
+    } finally {
+      suppressDisconnectToastRef.current = false;
     }
   }, []);
 
@@ -128,7 +129,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await provider.disconnect();
       setPublicKey(null);
       setStatus("idle");
-      localStorage.removeItem(AUTOCONNECT_KEY);
       toast.info("Wallet disconnected");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Disconnect failed";

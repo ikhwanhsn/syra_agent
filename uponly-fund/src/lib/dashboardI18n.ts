@@ -174,6 +174,8 @@ export type DashboardDictionary = {
     narrativeLabel: Record<NarrativeTag, string>;
   };
   walletButton: {
+    menuTitle: string;
+    solana: string;
     installPhantom: string;
     connecting: string;
     connectWallet: string;
@@ -183,6 +185,7 @@ export type DashboardDictionary = {
     copyAddress: string;
     viewOnSolscan: string;
     disconnect: string;
+    disconnecting: string;
   };
   tokenDetail: {
     pageTitle: string;
@@ -285,6 +288,9 @@ export type DashboardDictionary = {
     tradeColumnIntro: string;
     /** Main H2 for the intelligence strip (distinct from eyebrow). */
     scoreSectionHeadline: string;
+    tabActivity: string;
+    tabHolders: string;
+    tabDetails: string;
     tradesTitle: string;
     tradesPartial: string;
     tradesBuySell: string;
@@ -331,6 +337,12 @@ export type DashboardDictionary = {
     tradeErrorGeneric: string;
     tradeFooterRisk: string;
     tradeSellDisabled: string;
+    tradeYourTokenBalance: string;
+    tradeAvailableToSpend: string;
+    tradePct25: string;
+    tradePct50: string;
+    tradePctMax: string;
+    tradesLatestFootnote: string;
     borrowPanelEyebrow: string;
     borrowPanelTitle: string;
     borrowModeBorrow: string;
@@ -394,6 +406,36 @@ export type DashboardDictionary = {
     reset: string;
     uploading: string;
     dropHint: string;
+    sectionIdentity: string;
+    sectionIdentityHint: string;
+    sectionStory: string;
+    sectionStoryHint: string;
+    sectionEconomics: string;
+    sectionEconomicsHint: string;
+    previewEyebrow: string;
+    previewNewMarket: string;
+    previewPlaceholderName: string;
+    previewPlaceholderSymbol: string;
+    previewBacking: string;
+    previewCreatorFee: string;
+    launchRailTitle: string;
+    stepMetadata: string;
+    stepTransactions: string;
+    stepConfirm: string;
+    checklistImage: string;
+    checklistName: string;
+    checklistWallet: string;
+    checklistSol: string;
+    connectBannerTitle: string;
+    connectBannerBody: string;
+    backingSolDesc: string;
+    backingUsdcDesc: string;
+    feeHint: string;
+    replaceImage: string;
+    removeImage: string;
+    copyMint: string;
+    mintCopied: string;
+    connectWalletPrompt: string;
   };
   bubbleMap: {
     eyebrow: string;
@@ -610,6 +652,8 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       },
     },
     walletButton: {
+      menuTitle: "Wallet",
+      solana: "Solana",
       installPhantom: "Install Phantom",
       connecting: "Connecting...",
       connectWallet: "Connect wallet",
@@ -619,11 +663,12 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       copyAddress: "Copy address",
       viewOnSolscan: "View on Solscan",
       disconnect: "Disconnect",
+      disconnecting: "Disconnecting…",
     },
     tokenDetail: {
       pageTitle: "Token",
       eyebrow: "RISE MARKET",
-      pageDescription: "Full-fidelity snapshot: live Rise endpoints plus fund-grade derived signals.",
+      pageDescription: "Price, trade, and on-chain data for this RISE market on Solana.",
       notFoundTitle: "Token not found",
       notFoundDescription: "This mint is not in the current Rise universe snapshot. Try browsing markets or Terminal.",
       browseMarkets: "Browse markets",
@@ -706,9 +751,9 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       chartSource: "Source",
       chartUpdated: "Updated",
       chartAllTimeframe: "ALL (1d)",
-      chartSectionTitle: "Historical prices",
+      chartSectionTitle: "Price chart",
       pageLayoutIntro:
-        "Read top to bottom: identity and price, derived signals, depth metrics, then holders and flow. Data is streamed from RISE indexers—verify large positions on-chain.",
+        "Trade on the right. Chart and activity below. Verify large positions on Solscan.",
       sectionScoreDescription:
         "Heuristic scores and tags derived from this market’s live fields. They summarize momentum and structure—they are not buy or sell recommendations.",
       sectionKpisDescription:
@@ -718,8 +763,11 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       kpiGroupLiquidity: "Volume & turnover",
       kpiGroupSupply: "Supply & holders",
       kpiGroupLifecycle: "Listing lifecycle",
-      tradeColumnIntro: "Live curve quotes from RISE. Treat sizes and impact as estimates until you confirm the transaction in your wallet.",
+      tradeColumnIntro: "Live RISE quote. Confirm amounts in your wallet before signing.",
       scoreSectionHeadline: "Signal board",
+      tabActivity: "Activity",
+      tabHolders: "Holders",
+      tabDetails: "Details",
       tradesTitle: "Tape",
       tradesPartial: "Some rows have partial metadata from upstream.",
       tradesBuySell: "Buy flow",
@@ -767,6 +815,12 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       tradeFooterRisk:
         "You sign an unsigned transaction from Rise. Review amounts in your wallet. Syra proxies the API key; execution is on Solana mainnet.",
       tradeSellDisabled: "Selling is disabled for this market.",
+      tradeYourTokenBalance: "You hold",
+      tradeAvailableToSpend: "Available to spend",
+      tradePct25: "25%",
+      tradePct50: "50%",
+      tradePctMax: "Max",
+      tradesLatestFootnote: "Latest 50 trades · scroll for more",
       borrowPanelEyebrow: "BORROW / REPAY",
       borrowPanelTitle: "Floor-backed borrow",
       borrowModeBorrow: "Borrow",
@@ -831,6 +885,36 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       reset: "Create another",
       uploading: "Uploading & requesting transactions…",
       dropHint: "Drag & drop or click to pick an image (max 15 MB).",
+      sectionIdentity: "Identity",
+      sectionIdentityHint: "Name, ticker, and artwork that appear on RISE and in wallets.",
+      sectionStory: "Story & links",
+      sectionStoryHint: "Optional copy and socials surfaced on the token page.",
+      sectionEconomics: "Launch economics",
+      sectionEconomicsHint: "Collateral pair and creator fee — signed on-chain in two transactions.",
+      previewEyebrow: "Live preview",
+      previewNewMarket: "New RISE market",
+      previewPlaceholderName: "Your token name",
+      previewPlaceholderSymbol: "TICKER",
+      previewBacking: "Backing",
+      previewCreatorFee: "Creator fee",
+      launchRailTitle: "Launch checklist",
+      stepMetadata: "Upload metadata",
+      stepTransactions: "Build transactions",
+      stepConfirm: "Sign in Phantom",
+      checklistImage: "Logo uploaded",
+      checklistName: "Name & ticker set",
+      checklistWallet: "Wallet connected",
+      checklistSol: "SOL reserved for fees",
+      connectBannerTitle: "Connect Phantom to launch",
+      connectBannerBody: "You’ll sign two Rise program transactions. Keep a small SOL balance for network fees.",
+      backingSolDesc: "Bond to native SOL liquidity on Rise.",
+      backingUsdcDesc: "Bond to USDC liquidity on Rise.",
+      feeHint: "Share of trade fees routed to your wallet (0–10%).",
+      replaceImage: "Replace image",
+      removeImage: "Remove",
+      copyMint: "Copy mint",
+      mintCopied: "Mint copied",
+      connectWalletPrompt: "Connect Phantom to continue",
     },
     bubbleMap: {
       eyebrow: "LIVE MARKET MAP",
@@ -1043,6 +1127,8 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       },
     },
     walletButton: {
+      menuTitle: "钱包",
+      solana: "Solana",
       installPhantom: "安装 Phantom",
       connecting: "连接中...",
       connectWallet: "连接钱包",
@@ -1052,6 +1138,7 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       copyAddress: "复制地址",
       viewOnSolscan: "在 Solscan 查看",
       disconnect: "断开连接",
+      disconnecting: "断开中…",
     },
     tokenDetail: {
       pageTitle: "代币",
@@ -1153,6 +1240,9 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       kpiGroupLifecycle: "上架生命周期",
       tradeColumnIntro: "来自 RISE 的实时曲线报价。在钱包中确认交易前，请将数量与冲击视为估算值。",
       scoreSectionHeadline: "信号面板",
+      tabActivity: "成交",
+      tabHolders: "持有人",
+      tabDetails: "详情",
       tradesTitle: "成交明细",
       tradesPartial: "部分成交字段上游不完整。",
       tradesBuySell: "买入占比",
@@ -1199,6 +1289,12 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       tradeErrorGeneric: "交易失败",
       tradeFooterRisk: "你将签署 Rise 返回的未签名交易，请在钱包中核对金额。Syra 代理 API Key；执行在主网。",
       tradeSellDisabled: "该市场已禁用卖出。",
+      tradeYourTokenBalance: "持仓",
+      tradeAvailableToSpend: "可用于买入",
+      tradePct25: "25%",
+      tradePct50: "50%",
+      tradePctMax: "最大",
+      tradesLatestFootnote: "最近 50 笔成交 · 可滚动查看",
       borrowPanelEyebrow: "借入 / 偿还",
       borrowPanelTitle: "底线抵押借贷",
       borrowModeBorrow: "借入",
@@ -1262,6 +1358,36 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
       reset: "再创建一个",
       uploading: "上传并请求交易中…",
       dropHint: "拖拽或点击选择图片（最大 15 MB）。",
+      sectionIdentity: "基础信息",
+      sectionIdentityHint: "在 RISE 与钱包中展示的名称、简称与图片。",
+      sectionStory: "叙事与链接",
+      sectionStoryHint: "可选描述与社交链接，会显示在代币页。",
+      sectionEconomics: "发行参数",
+      sectionEconomicsHint: "抵押对与创作者费率 — 需链上两次签名确认。",
+      previewEyebrow: "实时预览",
+      previewNewMarket: "新 RISE 市场",
+      previewPlaceholderName: "你的代币名称",
+      previewPlaceholderSymbol: "简称",
+      previewBacking: "抵押",
+      previewCreatorFee: "创作者费率",
+      launchRailTitle: "发行清单",
+      stepMetadata: "上传元数据",
+      stepTransactions: "构建交易",
+      stepConfirm: "Phantom 签名",
+      checklistImage: "已上传 Logo",
+      checklistName: "已填写名称与简称",
+      checklistWallet: "已连接钱包",
+      checklistSol: "预留 SOL 手续费",
+      connectBannerTitle: "连接 Phantom 以发行",
+      connectBannerBody: "需签署两笔 Rise 程序交易。请保留少量 SOL 作为网络费。",
+      backingSolDesc: "与 Rise 上原生 SOL 流动性绑定。",
+      backingUsdcDesc: "与 Rise 上 USDC 流动性绑定。",
+      feeHint: "交易费中分给创作者钱包的比例（0–10%）。",
+      replaceImage: "更换图片",
+      removeImage: "移除",
+      copyMint: "复制 Mint",
+      mintCopied: "已复制 Mint",
+      connectWalletPrompt: "请连接 Phantom 后继续",
     },
     bubbleMap: {
       eyebrow: "实时市场图",

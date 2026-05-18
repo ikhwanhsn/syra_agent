@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GlassCard, SectionHeader, formatPriceSmart } from "@/components/rise/RiseShared";
+import { GlassCard, formatPriceSmart } from "@/components/rise/RiseShared";
 import { useRiseOhlc } from "@/lib/RiseDashboardContext";
 import type { RiseMarketRow, RiseTimeframe } from "@/lib/riseDashboardTypes";
 import { formatPctSigned } from "@/lib/marketDisplayFormat";
@@ -96,47 +96,37 @@ export function TokenPriceChart({
 
   return (
     <GlassCard padded={false} className={cn("overflow-hidden", className)}>
-      <div className="border-b border-border/40 px-4 py-4 sm:px-6">
-        <SectionHeader
-          eyebrow={t.sectionPrice}
-          title={t.chartSectionTitle}
-          description={
-            tf === "all"
-              ? t.chartAllTimeframe
-              : `${resolvedTimeframe} · ${limit} candles`
-          }
-          right={
-            <div className="flex flex-wrap gap-1">
-              {TIMEFRAMES.map((x) => (
-                <button
-                  key={x}
-                  type="button"
-                  onClick={() => setTf(x)}
-                  className={cn(
-                    "rounded-md border px-2 py-1 font-mono text-[0.65rem] tabular-nums transition-colors",
-                    tf === x
-                      ? "border-foreground/55 bg-foreground/[0.08] text-foreground"
-                      : "border-border/45 bg-background/30 text-muted-foreground hover:border-border hover:text-foreground",
-                  )}
-                  aria-pressed={tf === x}
-                >
-                  {x === "all" ? "ALL" : x}
-                </button>
-              ))}
-            </div>
-          }
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 px-4 py-3 sm:px-5">
+        <p className="text-sm font-medium text-foreground">{t.chartSectionTitle}</p>
+        <div className="flex flex-wrap gap-1 rounded-lg border border-border/45 bg-muted/20 p-0.5">
+          {TIMEFRAMES.map((x) => (
+            <button
+              key={x}
+              type="button"
+              onClick={() => setTf(x)}
+              className={cn(
+                "rounded-md px-2.5 py-1 font-mono text-[0.65rem] tabular-nums transition-colors",
+                tf === x
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              aria-pressed={tf === x}
+            >
+              {x === "all" ? "ALL" : x}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-4 pb-4 pt-2 sm:px-6">
         {ohlc.isPending ? (
-          <Skeleton className="h-[360px] w-full rounded-xl" />
+          <Skeleton className="h-[280px] w-full rounded-xl sm:h-[340px]" />
         ) : ohlc.isError || data.length < 2 ? (
-          <div className="flex h-[360px] items-center justify-center rounded-xl border border-dashed border-border/45 bg-background/25 text-sm text-muted-foreground">
+          <div className="flex h-[280px] items-center justify-center rounded-xl border border-dashed border-border/45 bg-background/25 text-sm text-muted-foreground sm:h-[340px]">
             {t.chartNoData}
           </div>
         ) : (
-          <div className="h-[360px] w-full">
+          <div className="h-[280px] w-full sm:h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
                 <defs>
@@ -161,47 +151,19 @@ export function TokenPriceChart({
           </div>
         )}
 
-        <div className="mt-4 grid gap-2 border-t border-border/35 pt-4 text-[0.7rem] text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border/35 pt-3 text-[0.7rem] text-muted-foreground">
           <p>
-            <span className="text-muted-foreground/80">{t.chartHigh}:</span>{" "}
+            <span className="text-muted-foreground/80">{t.chartHigh}</span>{" "}
             <span className="font-mono tabular-nums text-foreground">{formatPriceSmart(stats.high)}</span>
           </p>
           <p>
-            <span className="text-muted-foreground/80">{t.chartLow}:</span>{" "}
+            <span className="text-muted-foreground/80">{t.chartLow}</span>{" "}
             <span className="font-mono tabular-nums text-foreground">{formatPriceSmart(stats.low)}</span>
           </p>
           <p>
-            <span className="text-muted-foreground/80">{t.chartRange}:</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">{formatPriceSmart(stats.range)}</span>
-          </p>
-          <p>
-            <span className="text-muted-foreground/80">{t.chartWindowChg}:</span>{" "}
+            <span className="text-muted-foreground/80">{t.chartWindowChg}</span>{" "}
             <span className="font-mono tabular-nums text-foreground">
               {stats.lastVsFirstPct != null ? formatPctSigned(stats.lastVsFirstPct) : "—"}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground/80">{t.chartRsi}:</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">
-              {stats.rsi14 != null ? stats.rsi14.toFixed(1) : "—"}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground/80">{t.chartMom}:</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">
-              {stats.momentum14 != null ? formatPctSigned(stats.momentum14) : "—"}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground/80">{t.chartVolSample}:</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">
-              {stats.annualisedVol != null ? stats.annualisedVol.toFixed(2) : "—"}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground/80">{t.chartUpdated}:</span>{" "}
-            <span className="font-mono text-foreground/90">
-              {ohlc.data?.updatedAt ? new Date(ohlc.data.updatedAt).toLocaleString() : "—"}
             </span>
           </p>
         </div>

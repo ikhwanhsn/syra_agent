@@ -1,25 +1,36 @@
-import { useCallback, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useState, type ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Rocket, Wallet } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { ConnectWalletButton } from "@/components/dashboard/ConnectWalletButton";
+import { CreateTokenBackingPicker } from "@/components/create-token/CreateTokenBackingPicker";
+import { CreateTokenImageUpload } from "@/components/create-token/CreateTokenImageUpload";
+import { CreateTokenLaunchRail } from "@/components/create-token/CreateTokenLaunchRail";
+import { CreateTokenPreview } from "@/components/create-token/CreateTokenPreview";
+import { CreateTokenSection } from "@/components/create-token/CreateTokenSection";
+import { CreateTokenSuccess } from "@/components/create-token/CreateTokenSuccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { GlassCard } from "@/components/rise/RiseShared";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY } from "@/lib/dashboardI18n";
 import { useWallet } from "@/lib/WalletContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
-import { postRiseCreateTransactions, uploadRiseCreateImage, uploadRiseCreateMetadata, RiseTradeApiError } from "@/lib/riseTradeApi";
+import {
+  postRiseCreateTransactions,
+  uploadRiseCreateImage,
+  uploadRiseCreateMetadata,
+  RiseTradeApiError,
+} from "@/lib/riseTradeApi";
 import { submitOrderedBase64Txs } from "@/lib/solanaTx";
 import { USDC_MAINNET, WSOL_MAINNET } from "@/lib/riseAmounts";
-import { buildSolscanTxUrl } from "@/lib/riseDashboardApi";
 import { toast } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name required").max(64),
@@ -33,11 +44,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const PAGE_GRADIENT =
+  "pointer-events-none absolute inset-x-0 -top-32 z-0 h-[30rem] bg-[radial-gradient(ellipse_68%_54%_at_50%_-8%,hsl(var(--uof)_/_0.15),transparent_56%),radial-gradient(ellipse_44%_40%_at_86%_22%,hsl(215_85%_55%/0.08),transparent_52%),radial-gradient(ellipse_38%_34%_at_12%_28%,hsl(280_70%_50%/0.06),transparent_50%)]";
+
 export default function CreateTokenPage() {
   const { language } = useLanguage();
   const p = DASHBOARD_COPY[language].pages;
   const ct = DASHBOARD_COPY[language].createTokenPage;
   const { publicKey, signAllTransactions } = useWallet();
+  const reduceMotion = useReducedMotion() ?? false;
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,22 +78,15 @@ export default function CreateTokenPage() {
     },
   });
 
-  const backing = form.watch("backing");
+  const watched = form.watch();
+  const backing = watched.backing;
+  const creatorFee = watched.creatorFeePercent;
 
-  const onDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files?.[0];
-    if (f && f.type.startsWith("image/")) setImageFile(f);
-  }, []);
-
-  const onPick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) setImageFile(f);
-  }, []);
+  const hasIdentity = Boolean(watched.name.trim() && watched.symbol.trim());
 
   const processSubmit = form.handleSubmit(async (values) => {
     if (!publicKey) {
-      toast.error("Connect Phantom first");
+      toast.error(ct.connectWalletPrompt);
       return;
     }
     if (!imageFile) {
@@ -126,156 +134,219 @@ export default function CreateTokenPage() {
     }
   });
 
+  const resetLaunch = useCallback(() => {
+    setDoneMint(null);
+    setDoneSigs([]);
+    form.reset();
+    setImageFile(null);
+  }, [form]);
+
   if (doneSigs.length > 0) {
     return (
-      <div className="relative flex flex-col gap-8">
-        <div
-          className="pointer-events-none absolute inset-x-0 -top-32 z-0 h-[26rem] bg-[radial-gradient(ellipse_68%_54%_at_50%_-8%,hsl(var(--uof)_/_0.13),transparent_56%),radial-gradient(ellipse_44%_40%_at_86%_22%,hsl(215_85%_55%/0.07),transparent_52%),radial-gradient(ellipse_38%_34%_at_12%_28%,hsl(280_70%_50%/0.06),transparent_50%)]"
-          aria-hidden
-        />
-        <div className="relative z-[1] flex flex-col gap-6">
-          <DashboardPageHeader eyebrow={p.createTokenEyebrow} title={ct.successTitle} description={ct.successBody} />
-          <GlassCard className="max-w-xl space-y-4">
-            {doneMint ? (
-              <p className="font-mono text-sm break-all">
-                <span className="text-muted-foreground">Mint: </span>
-                {doneMint}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Mint address was not returned by the API; check Solscan for your signatures.</p>
-            )}
-            <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{ct.signaturesTitle}</p>
-              <ul className="mt-2 space-y-2">
-                {doneSigs.map((sig) => {
-                  const url = buildSolscanTxUrl(sig);
-                  return (
-                    <li key={sig}>
-                      {url ? (
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-primary underline">
-                          {sig.slice(0, 10)}…
-                        </a>
-                      ) : (
-                        <span className="font-mono text-xs">{sig}</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {doneMint ? (
-                <Button asChild>
-                  <Link to={`/token/${encodeURIComponent(doneMint)}`}>{ct.viewToken}</Link>
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDoneMint(null);
-                  setDoneSigs([]);
-                  form.reset();
-                  setImageFile(null);
-                }}
-              >
-                {ct.reset}
-              </Button>
-            </div>
-          </GlassCard>
-        </div>
-      </div>
+      <CreateTokenSuccess pages={p} copy={ct} mint={doneMint} signatures={doneSigs} onReset={resetLaunch} />
     );
   }
 
   return (
     <div className="relative flex flex-col gap-8">
-      <div
-        className="pointer-events-none absolute inset-x-0 -top-32 z-0 h-[26rem] bg-[radial-gradient(ellipse_68%_54%_at_50%_-8%,hsl(var(--uof)_/_0.13),transparent_56%),radial-gradient(ellipse_44%_40%_at_86%_22%,hsl(215_85%_55%/0.07),transparent_52%),radial-gradient(ellipse_38%_34%_at_12%_28%,hsl(280_70%_50%/0.06),transparent_50%)]"
-        aria-hidden
-      />
+      <div className={PAGE_GRADIENT} aria-hidden />
+
       <div className="relative z-[1] flex flex-col gap-6">
-        <DashboardPageHeader eyebrow={p.createTokenEyebrow} title={p.createTokenTitle} description={p.createTokenDescription} />
+        <DashboardPageHeader
+          eyebrow={p.createTokenEyebrow}
+          title={p.createTokenTitle}
+          description={p.createTokenDescription}
+          emphasis="hero"
+        />
 
-        <form onSubmit={(e) => void processSubmit(e)} className="mx-auto w-full max-w-xl space-y-6">
-          <GlassCard className="space-y-4">
-            <Label className="text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground">{ct.imageLabel}</Label>
-            <label
-              htmlFor="create-token-image"
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={onDrop}
+        {!publicKey ? (
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4 rounded-2xl border border-amber-500/25 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.04] to-transparent px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10">
+                <Wallet className="h-5 w-5 text-amber-400" aria-hidden />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">{ct.connectBannerTitle}</p>
+                <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">{ct.connectBannerBody}</p>
+              </div>
+            </div>
+            <ConnectWalletButton />
+          </motion.div>
+        ) : null}
+
+        <form onSubmit={(e) => void processSubmit(e)} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)] xl:items-start xl:gap-8">
+          <div className="flex flex-col gap-5">
+            <CreateTokenSection title={ct.sectionIdentity} hint={ct.sectionIdentityHint} delay={0}>
+              <CreateTokenImageUpload copy={ct} file={imageFile} onFileChange={setImageFile} disabled={busy} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={ct.nameLabel} error={form.formState.errors.name?.message}>
+                  <Input
+                    id="ct-name"
+                    className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner"
+                    placeholder="Up Only"
+                    disabled={busy}
+                    {...form.register("name")}
+                  />
+                </Field>
+                <Field label={ct.symbolLabel} error={form.formState.errors.symbol?.message}>
+                  <Input
+                    id="ct-symbol"
+                    className="h-11 rounded-xl border-border/55 bg-background/40 font-mono uppercase shadow-inner"
+                    placeholder="UPONLY"
+                    disabled={busy}
+                    {...form.register("symbol")}
+                  />
+                </Field>
+              </div>
+            </CreateTokenSection>
+
+            <CreateTokenSection title={ct.sectionStory} hint={ct.sectionStoryHint} delay={0.05}>
+              <Field label={ct.descriptionLabel}>
+                <Textarea
+                  id="ct-desc"
+                  className="min-h-[100px] rounded-xl border-border/55 bg-background/40 shadow-inner"
+                  placeholder="What makes this token unique on Rise?"
+                  disabled={busy}
+                  {...form.register("description")}
+                />
+              </Field>
+              <motion.div className="grid gap-4 sm:grid-cols-2">
+                <Field label={ct.twitterLabel}>
+                  <Input
+                    id="ct-tw"
+                    className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner"
+                    placeholder="https://x.com/..."
+                    disabled={busy}
+                    {...form.register("twitter")}
+                  />
+                </Field>
+                <Field label={ct.telegramLabel}>
+                  <Input
+                    id="ct-tg"
+                    className="h-11 rounded-xl border-border/55 bg-background/40 shadow-inner"
+                    placeholder="https://t.me/..."
+                    disabled={busy}
+                    {...form.register("telegram")}
+                  />
+                </Field>
+              </motion.div>
+            </CreateTokenSection>
+
+            <CreateTokenSection title={ct.sectionEconomics} hint={ct.sectionEconomicsHint} delay={0.1}>
+              <div>
+                <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  {ct.backingLabel}
+                </p>
+                <CreateTokenBackingPicker
+                  copy={ct}
+                  value={backing}
+                  onChange={(v) => form.setValue("backing", v)}
+                  disabled={busy}
+                />
+              </div>
+              <div>
+                <motion.div className="mb-3 flex items-end justify-between gap-3">
+                  <div>
+                    <Label htmlFor="ct-fee" className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {ct.feeLabel}
+                    </Label>
+                    <p className="mt-1 text-xs text-muted-foreground">{ct.feeHint}</p>
+                  </div>
+                  <span className="rounded-lg border border-border/50 bg-muted/25 px-2.5 py-1 font-mono text-sm font-semibold tabular-nums">
+                    {creatorFee}%
+                  </span>
+                </motion.div>
+                <Slider
+                  id="ct-fee"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={[creatorFee]}
+                  onValueChange={([v]) => form.setValue("creatorFeePercent", v ?? 0)}
+                  disabled={busy}
+                  className="py-2"
+                />
+              </div>
+            </CreateTokenSection>
+
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.35 }}
             >
-              <Upload className="h-8 w-8 opacity-50" />
-              <span>{imageFile ? imageFile.name : ct.dropHint}</span>
-              <input id="create-token-image" type="file" accept="image/png,image/jpeg,image/jpg,image/gif" className="sr-only" onChange={onPick} />
-            </label>
-
-            <div>
-              <Label htmlFor="ct-name">{ct.nameLabel}</Label>
-              <Input id="ct-name" className="mt-1.5" {...form.register("name")} />
-              {form.formState.errors.name ? (
-                <p className="mt-1 text-xs text-destructive">{form.formState.errors.name.message}</p>
-              ) : null}
-            </div>
-            <div>
-              <Label htmlFor="ct-symbol">{ct.symbolLabel}</Label>
-              <Input id="ct-symbol" className="mt-1.5" {...form.register("symbol")} />
-              {form.formState.errors.symbol ? (
-                <p className="mt-1 text-xs text-destructive">{form.formState.errors.symbol.message}</p>
-              ) : null}
-            </div>
-            <div>
-              <Label htmlFor="ct-desc">{ct.descriptionLabel}</Label>
-              <Textarea id="ct-desc" className="mt-1.5 min-h-[88px]" {...form.register("description")} />
-            </div>
-            <div>
-              <Label htmlFor="ct-tw">{ct.twitterLabel}</Label>
-              <Input id="ct-tw" className="mt-1.5" placeholder="https://x.com/..." {...form.register("twitter")} />
-            </div>
-            <div>
-              <Label htmlFor="ct-tg">{ct.telegramLabel}</Label>
-              <Input id="ct-tg" className="mt-1.5" placeholder="https://t.me/..." {...form.register("telegram")} />
-            </div>
-
-            <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{ct.backingLabel}</p>
-              <ToggleGroup
-                type="single"
-                value={backing}
-                onValueChange={(v) => {
-                  if (v === "sol" || v === "usdc") form.setValue("backing", v);
-                }}
-                className="mt-2 justify-start gap-1"
+              <Button
+                type="submit"
+                size="lg"
+                className={cn(
+                  "h-12 w-full rounded-xl text-sm font-semibold shadow-[0_16px_40px_-18px_hsl(var(--uof)/0.55)]",
+                  "transition-[transform,box-shadow] duration-200 hover:shadow-[0_20px_48px_-16px_hsl(var(--uof)/0.65)]",
+                )}
+                disabled={busy || !publicKey}
               >
-                <ToggleGroupItem value="sol" className="px-3 text-xs">
-                  {ct.backingSol}
-                </ToggleGroupItem>
-                <ToggleGroupItem value="usdc" className="px-3 text-xs">
-                  {ct.backingUsdc}
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+                {busy ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                    {ct.uploading}
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="mr-2 h-4 w-4" aria-hidden />
+                    {ct.submit}
+                  </>
+                )}
+              </Button>
+              {!publicKey ? (
+                <p className="mt-2 text-center text-xs text-muted-foreground">{ct.connectWalletPrompt}</p>
+              ) : null}
+            </motion.div>
+          </div>
 
-            <div>
-              <Label htmlFor="ct-fee">{ct.feeLabel}</Label>
-              <Input id="ct-fee" type="number" min={0} max={10} className="mt-1.5" {...form.register("creatorFeePercent")} />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={busy || !publicKey}>
-              {busy ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {ct.uploading}
-                </>
-              ) : (
-                ct.submit
-              )}
-            </Button>
-            {!publicKey ? <p className="text-center text-xs text-muted-foreground">Connect Phantom to continue.</p> : null}
-          </GlassCard>
+          <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
+            <CreateTokenPreview
+              copy={ct}
+              name={watched.name}
+              symbol={watched.symbol}
+              description={watched.description ?? ""}
+              twitter={watched.twitter ?? ""}
+              telegram={watched.telegram ?? ""}
+              backing={backing}
+              creatorFeePercent={creatorFee}
+              imageFile={imageFile}
+            />
+            <CreateTokenLaunchRail
+              copy={ct}
+              busy={busy}
+              hasImage={Boolean(imageFile)}
+              hasIdentity={hasIdentity}
+              walletConnected={Boolean(publicKey)}
+            />
+          </aside>
         </form>
       </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <Label className="mb-2 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </Label>
+      {children}
+      {error ? <p className="mt-1.5 text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }

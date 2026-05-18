@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
+import { Activity, ExternalLink } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,7 +9,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   EmptyState,
   GlassCard,
@@ -32,10 +30,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DASHBOARD_COPY, type DashboardDictionary } from "@/lib/dashboardI18n";
-import { buildPaginationItems } from "@/lib/pagination";
 
-const DEFAULT_PAGE_SIZE = 10;
-const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
+/** Single fetch — scroll inside the panel instead of paging (balances load vs 100 rows). */
+const RECENT_TRADES_LIMIT = 50;
 
 type DerivedTrade = {
   raw: RiseTransactionRow;
@@ -53,12 +50,12 @@ type DerivedTrade = {
 };
 
 const SIDE_STYLES: Record<NormalizedTradeSide, string> = {
-  buy: "border-success/40 bg-success/[0.08] text-success",
-  sell: "border-destructive/40 bg-destructive/[0.08] text-destructive",
-  borrow: "border-amber-400/40 bg-amber-400/[0.08] text-amber-300",
-  repay: "border-sky-400/40 bg-sky-400/[0.08] text-sky-300",
-  create: "border-violet-400/40 bg-violet-400/[0.08] text-violet-300",
-  other: "border-border/40 bg-muted/30 text-muted-foreground",
+  buy: "border-emerald-500/35 bg-emerald-500/12 text-emerald-400",
+  sell: "border-red-500/35 bg-red-500/12 text-red-400",
+  borrow: "border-amber-400/35 bg-amber-400/10 text-amber-300",
+  repay: "border-sky-400/35 bg-sky-400/10 text-sky-300",
+  create: "border-violet-400/35 bg-violet-400/10 text-violet-300",
+  other: "border-border/40 bg-muted/25 text-muted-foreground",
 };
 
 function sideLabel(
@@ -97,21 +94,46 @@ function relativeWhen(
   return new Date(ts * 1000).toLocaleDateString();
 }
 
+function FlowStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex min-w-[4.5rem] flex-col gap-0.5 rounded-lg border border-border/40 bg-background/30 px-3 py-2">
+      <span className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "font-mono text-sm font-semibold tabular-nums tracking-tight text-foreground",
+          accent && "text-emerald-400",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export function TokenTradesPanel({
   market,
   className,
+  embedded = false,
+  fillHeight = false,
 }: {
   market: RiseMarketRow | null;
   className?: string;
+  embedded?: boolean;
+  fillHeight?: boolean;
 }) {
   const { language } = useLanguage();
-  const dict = DASHBOARD_COPY[language];
-  const t = dict.tokenDetail;
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
+  const t = DASHBOARD_COPY[language].tokenDetail;
 
   const address = market?.marketAddress || market?.mint || null;
-  const tx = useRiseTransactions(address, page, rowsPerPage);
+  const tx = useRiseTransactions(address, 1, RECENT_TRADES_LIMIT);
   const decimals = market?.tokenDecimals ?? null;
 
   const rawRows = useMemo(() => tx.data?.transactions ?? [], [tx.data?.transactions]);
@@ -120,9 +142,6 @@ export function TokenTradesPanel({
     const nowSec = Math.floor(Date.now() / 1000);
     return rawRows.map((row): DerivedTrade => {
       const side = classifyTradeSide(row.kind);
-
-      // Token amount: prefer raw base units + market decimals so we get a real
-      // value instead of relying on upstream having sent a decoded `amount`.
       const decodedAmount = decodeTokenAmount(row.amountTokensRaw, decimals);
       const amountTokens =
         decodedAmount !== null
@@ -132,9 +151,7 @@ export function TokenTradesPanel({
             : null;
 
       const amountUsd =
-        typeof row.amountUsd === "number" && Number.isFinite(row.amountUsd)
-          ? row.amountUsd
-          : null;
+        typeof row.amountUsd === "number" && Number.isFinite(row.amountUsd) ? row.amountUsd : null;
 
       const priceUsd =
         typeof row.priceUsd === "number" && Number.isFinite(row.priceUsd)
@@ -144,9 +161,8 @@ export function TokenTradesPanel({
       const wallet = row.wallet ?? null;
       const walletDisplay = wallet
         ? shortenMint(wallet, 4, 4)
-        : row.walletShort ?? t.tradesAggregated;
+        : (row.walletShort ?? t.tradesAggregated);
       const walletUrl = wallet ? buildSolscanAccountUrl(wallet) : null;
-
       const ts = typeof row.ts === "number" && Number.isFinite(row.ts) ? row.ts : null;
 
       return {
@@ -167,21 +183,6 @@ export function TokenTradesPanel({
   }, [rawRows, decimals, t]);
 
   const agg = useMemo(() => computeTradeAggregates(rawRows), [rawRows]);
-  const totalPages = useMemo(() => {
-    const d = tx.data;
-    if (!d) return 1;
-    if (d.totalPages != null && Number.isFinite(d.totalPages)) return Math.max(1, d.totalPages);
-    if (typeof d.total === "number" && d.total > 0) return Math.max(1, Math.ceil(d.total / rowsPerPage));
-    return 1;
-  }, [tx.data, rowsPerPage]);
-  const pageItems = useMemo(() => buildPaginationItems(page, totalPages), [page, totalPages]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [address]);
-  useEffect(() => {
-    setPage(1);
-  }, [rowsPerPage]);
 
   if (!market) return null;
 
@@ -195,211 +196,175 @@ export function TokenTradesPanel({
   );
 
   return (
-    <GlassCard padded={false} className={className}>
-      <div className="border-b border-border/40 px-4 py-4 sm:px-6">
-        <SectionHeader eyebrow={t.sectionTrades} title={t.tradesTitle} />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-border/40 bg-background/30 p-3">
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <GlassCard
+      padded={false}
+      className={cn(
+        "flex min-h-0 flex-col overflow-hidden",
+        fillHeight ? "h-full" : "max-h-[28rem]",
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          "shrink-0 border-b border-border/40 px-4 py-3 sm:px-5",
+          !embedded && "sm:py-4",
+        )}
+      >
+        {embedded ? (
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/45 bg-background/40">
+              <Activity className="h-4 w-4 text-muted-foreground" aria-hidden />
+            </span>
+            <div>
+              <h3 className="font-display text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                {t.tradesTitle}
+              </h3>
+              <p className="text-[0.65rem] text-muted-foreground">{t.sectionTrades}</p>
+            </div>
+          </div>
+        ) : (
+          <SectionHeader eyebrow={t.sectionTrades} title={t.tradesTitle} />
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <div className="flex min-w-[5.5rem] flex-col gap-1 rounded-lg border border-border/40 bg-background/30 px-3 py-2">
+            <span className="text-[0.6rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">
               {t.tradesBuySell}
-            </p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+            </span>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted/50">
               <div
-                className="h-full rounded-full bg-emerald-500/85 transition-[width]"
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500/90 to-emerald-400/50 transition-[width] duration-500"
                 style={{ width: `${buyPct !== null ? Math.min(100, Math.max(4, buyPct)) : 50}%` }}
               />
             </div>
-            <p className="mt-1 font-mono text-[0.7rem] tabular-nums text-foreground">
-              {buyPct !== null ? `${buyPct.toFixed(0)}%` : "—"}
-            </p>
           </div>
-          <div className="rounded-xl border border-border/40 bg-background/30 p-3">
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {t.tradesUniqueWallets}
-            </p>
-            <p className="mt-2 font-mono text-lg font-semibold tabular-nums">{agg.uniqueWallets}</p>
-          </div>
-          <div className="rounded-xl border border-border/40 bg-background/30 p-3">
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {t.tradesAvg}
-            </p>
-            <p className="mt-2 font-mono text-lg font-semibold tabular-nums">
-              {formatUsd(agg.avgTradeUsd, { compact: true })}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/40 bg-background/30 p-3">
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {t.tradesLargest}
-            </p>
-            <p className="mt-2 font-mono text-lg font-semibold tabular-nums">
-              {formatUsd(agg.largestTradeUsd, { compact: true })}
-            </p>
-          </div>
+          <FlowStat label={t.tradesUniqueWallets} value={String(agg.uniqueWallets)} />
+          <FlowStat label={t.tradesAvg} value={formatUsd(agg.avgTradeUsd, { compact: true })} />
+          <FlowStat label={t.tradesLargest} value={formatUsd(agg.largestTradeUsd, { compact: true })} />
         </div>
       </div>
 
-      <div className="px-4 py-4 sm:px-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-2 sm:px-5 sm:pb-4">
         {tx.isPending ? (
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-9 w-full rounded-lg" />
+          <div className="flex flex-1 flex-col gap-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full shrink-0 rounded-lg" />
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <EmptyState title={t.chartNoData} />
+          <div className="flex flex-1 items-center justify-center py-12">
+            <EmptyState title={t.chartNoData} />
+          </div>
         ) : (
           <>
             {hasPartial ? (
-              <p className="mb-3 rounded-md border border-border/45 bg-background/35 px-2.5 py-1.5 text-[0.65rem] text-muted-foreground">
+              <p className="mb-2 shrink-0 rounded-lg border border-border/40 bg-muted/20 px-2.5 py-1.5 text-[0.65rem] text-muted-foreground">
                 {t.tradesPartial}
               </p>
             ) : null}
-            <div className="overflow-hidden rounded-xl border border-border/40">
-              <Table className="text-xs tabular-nums">
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="border-border/40">
-                    <TableHead className="h-9 px-2 text-[0.65rem] uppercase tracking-wider">{t.tradesSide}</TableHead>
-                    <TableHead className="h-9 px-2 text-[0.65rem] uppercase tracking-wider">{t.tradesWallet}</TableHead>
-                    <TableHead className="h-9 px-2 text-right text-[0.65rem] uppercase tracking-wider">
-                      {t.tradesPrice}
-                    </TableHead>
-                    <TableHead className="h-9 px-2 text-right text-[0.65rem] uppercase tracking-wider">
-                      {t.tradesAmount}
-                    </TableHead>
-                    <TableHead className="h-9 px-2 text-right text-[0.65rem] uppercase tracking-wider">
-                      {t.tradesUsd}
-                    </TableHead>
-                    <TableHead className="h-9 px-2 text-right text-[0.65rem] uppercase tracking-wider">
-                      {t.tradesWhen}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((r, i) => (
-                    <TableRow key={`${r.txSig ?? i}-${i}`} className="border-border/25">
-                      <TableCell className="px-2 py-2">
-                        <span
-                          className={cn(
-                            "rounded-md border px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide",
-                            SIDE_STYLES[r.side],
-                          )}
-                        >
-                          {sideLabel(r.side, r.raw.kind, t)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-2 py-2 font-mono text-[0.65rem] text-muted-foreground">
-                        {r.walletUrl ? (
-                          <a
-                            href={r.walletUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-                            title={r.raw.wallet ?? undefined}
-                          >
-                            {r.walletDisplay}
-                          </a>
-                        ) : (
-                          <span title={r.raw.wallet ?? undefined}>{r.walletDisplay}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="px-2 py-2 text-right">{formatPriceSmart(r.priceUsd)}</TableCell>
-                      <TableCell className="px-2 py-2 text-right">
-                        {r.amountTokens !== null ? formatInt(r.amountTokens) : "—"}
-                      </TableCell>
-                      <TableCell className="px-2 py-2 text-right">
-                        {formatUsd(r.amountUsd, { compact: true })}
-                      </TableCell>
-                      <TableCell className="px-2 py-2 text-right">
-                        {r.txUrl ? (
-                          <a
-                            href={r.txUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 text-[0.65rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                            title={r.ts ? new Date(r.ts * 1000).toLocaleString() : undefined}
-                          >
-                            {r.whenLabel}
-                            <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
-                        ) : (
-                          <span
-                            className="text-[0.65rem] text-muted-foreground"
-                            title={r.ts ? new Date(r.ts * 1000).toLocaleString() : undefined}
-                          >
-                            {r.whenLabel}
-                          </span>
-                        )}
-                      </TableCell>
+
+            <div
+              className={cn(
+                "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl border border-border/45 bg-background/20",
+                "[scrollbar-gutter:stable] [scrollbar-width:thin]",
+                fillHeight ? "basis-0" : "max-h-[min(18rem,42vh)] sm:max-h-[20rem]",
+              )}
+            >
+                <Table className="text-xs tabular-nums">
+                  <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
+                    <TableRow className="border-border/40 hover:bg-transparent">
+                      <TableHead className="h-9 px-3 text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.tradesSide}
+                      </TableHead>
+                      <TableHead className="h-9 px-3 text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.tradesWallet}
+                      </TableHead>
+                      <TableHead className="h-9 px-3 text-right text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.tradesPrice}
+                      </TableHead>
+                      <TableHead className="hidden h-9 px-3 text-right text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
+                        {t.tradesAmount}
+                      </TableHead>
+                      <TableHead className="h-9 px-3 text-right text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.tradesUsd}
+                      </TableHead>
+                      <TableHead className="h-9 px-3 text-right text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.tradesWhen}
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[0.65rem] text-muted-foreground">
-                {t.chartUpdated}: {tx.data?.updatedAt ? new Date(tx.data.updatedAt).toLocaleString() : "—"}
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-                  {pageItems.map((item, idx) =>
-                    item === "gap" ? (
-                      <span key={`g-${idx}`} className="px-1.5 text-muted-foreground">
-                        …
-                      </span>
-                    ) : (
-                      <Button
-                        key={item}
-                        type="button"
-                        variant={item === page ? "secondary" : "ghost"}
-                        size="sm"
-                        className={cn(
-                          "h-8 min-w-[2.15rem] rounded-lg px-2 text-[0.7rem] tabular-nums",
-                          item === page && "pointer-events-none",
-                        )}
-                        onClick={() => setPage(item)}
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r, i) => (
+                      <TableRow
+                        key={`${r.txSig ?? i}-${i}`}
+                        className="border-border/20 transition-colors hover:bg-muted/15"
                       >
-                        {item}
-                      </Button>
-                    ),
-                  )}
-                </div>
-                <Select
-                  value={String(rowsPerPage)}
-                  onValueChange={(value) => {
-                    setRowsPerPage(Number(value));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-[7rem] rounded-lg text-[0.7rem]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZE_OPTIONS.map((size) => (
-                      <SelectItem key={size} value={String(size)}>
-                        {size} / page
-                      </SelectItem>
+                        <TableCell className="px-3 py-2.5">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-md border px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide",
+                              SIDE_STYLES[r.side],
+                            )}
+                          >
+                            {sideLabel(r.side, r.raw.kind, t)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 font-mono text-[0.65rem] text-muted-foreground">
+                          {r.walletUrl ? (
+                            <a
+                              href={r.walletUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-foreground hover:underline"
+                              title={r.raw.wallet ?? undefined}
+                            >
+                              {r.walletDisplay}
+                            </a>
+                          ) : (
+                            <span title={r.raw.wallet ?? undefined}>{r.walletDisplay}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 text-right font-medium text-foreground">
+                          {formatPriceSmart(r.priceUsd)}
+                        </TableCell>
+                        <TableCell className="hidden px-3 py-2.5 text-right text-muted-foreground sm:table-cell">
+                          {r.amountTokens !== null ? formatInt(r.amountTokens) : "—"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 text-right font-medium">
+                          {formatUsd(r.amountUsd, { compact: true })}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 text-right">
+                          {r.txUrl ? (
+                            <a
+                              href={r.txUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-0.5 text-[0.65rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                              title={r.ts ? new Date(r.ts * 1000).toLocaleString() : undefined}
+                            >
+                              {r.whenLabel}
+                              <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+                            </a>
+                          ) : (
+                            <span
+                              className="text-[0.65rem] text-muted-foreground"
+                              title={r.ts ? new Date(r.ts * 1000).toLocaleString() : undefined}
+                            >
+                              {r.whenLabel}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  {dict.terminal.prev}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  {dict.terminal.next}
-                </Button>
-              </div>
+                  </TableBody>
+                </Table>
+            </div>
+
+            <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border/35 pt-3 text-[0.62rem] text-muted-foreground">
+              <span>{t.tradesLatestFootnote}</span>
+              <span className="font-mono tabular-nums">
+                {tx.data?.updatedAt ? new Date(tx.data.updatedAt).toLocaleString() : "—"}
+              </span>
             </div>
           </>
         )}

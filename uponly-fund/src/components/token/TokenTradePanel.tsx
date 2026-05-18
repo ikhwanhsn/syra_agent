@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calculator, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { GlassCard, formatPriceSmart } from "@/components/rise/RiseShared";
 import { ConnectWalletButton } from "@/components/dashboard/ConnectWalletButton";
+import { useRisePortfolioPositionForMint } from "@/hooks/useRisePortfolioPositionForMint";
+import { useWalletCollateralBalance } from "@/hooks/useWalletCollateralBalance";
 import { useRiseQuote } from "@/lib/RiseDashboardContext";
 import type { RiseMarketRow } from "@/lib/riseDashboardTypes";
 import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
@@ -19,8 +21,11 @@ import { useWallet } from "@/lib/WalletContext";
 import { postRiseBuy, postRiseSell, RiseTradeApiError } from "@/lib/riseTradeApi";
 import { submitBase64VersionedTx } from "@/lib/solanaTx";
 import {
+  SOL_BUY_FEE_RESERVE_HUMAN,
+  USDC_MAINNET,
   applySlippageFloor,
   collateralDecimalsForMint,
+  formatAmountInputValue,
   humanToRawFloor,
   tokenDecimalsOrDefault,
 } from "@/lib/riseAmounts";
@@ -28,14 +33,24 @@ import { buildSolscanTxUrl } from "@/lib/riseDashboardApi";
 import { toast } from "@/components/ui/sonner";
 
 type Direction = "buy" | "sell";
+type AmountPreset = 25 | 50 | "max";
 
 function useDebounced<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
   }, [value, delay]);
   return debounced;
+}
+
+function formatTokenBalance(n: number | null, decimals: number): string {
+  if (n === null || !Number.isFinite(n)) return "0";
+  const d = Number.isFinite(decimals) && decimals >= 0 ? Math.min(decimals, 12) : 6;
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: d,
+    minimumFractionDigits: n !== 0 && Math.abs(n) < 1 ? Math.min(4, d) : 0,
+  }).format(n);
 }
 
 export function TokenTradePanel({
@@ -49,6 +64,7 @@ export function TokenTradePanel({
   const t = DASHBOARD_COPY[language].tokenDetail;
   const { publicKey, signTransaction } = useWallet();
   const queryClient = useQueryClient();
+  const wallet = publicKey?.trim() ?? null;
 
   const [direction, setDirection] = useState<Direction>("buy");
   const [amountStr, setAmountStr] = useState("0.1");
@@ -58,6 +74,61 @@ export function TokenTradePanel({
 
   const collateralDec = collateralDecimalsForMint(market?.mintMain ?? null);
   const tokenDec = tokenDecimalsOrDefault(market?.tokenDecimals ?? null);
+  const collateralLabel = market?.mintMain === USDC_MAINNET ? "USDC" : "SOL";
+  const isSolCollateral = market?.mintMain !== USDC_MAINNET;
+
+  const positionQuery = useRisePortfolioPositionForMint(wallet, market?.mint ?? null);
+  const collateralQuery = useWalletCollateralBalance(wallet, market?.mintMain ?? null);
+
+  const tokenBalanceHuman = useMemo(() => {
+    const raw = positionQuery.data?.balance;
+    if (raw == null || !Number.isFinite(raw)) return 0;
+    return raw;
+  }, [positionQuery.data?.balance]);
+
+  const tokenBalanceRaw = useMemo(
+    () => humanToRawFloor(tokenBalanceHuman, tokenDec),
+    [tokenBalanceHuman, tokenDec],
+  );
+
+  const spendableForPresets = useMemo(() => {
+    if (direction === "sell") {
+      return {
+        human: tokenBalanceHuman,
+        raw: tokenBalanceRaw,
+        decimals: tokenDec,
+        loading: Boolean(wallet) && positionQuery.isPending,
+      };
+    }
+    const col = collateralQuery.data;
+    let human = col?.human ?? 0;
+    if (isSolCollateral && human > SOL_BUY_FEE_RESERVE_HUMAN) {
+      human = Math.max(0, human - SOL_BUY_FEE_RESERVE_HUMAN);
+    }
+    const raw =
+      col != null
+        ? isSolCollateral && col.human > SOL_BUY_FEE_RESERVE_HUMAN
+          ? Math.max(0, col.raw - humanToRawFloor(SOL_BUY_FEE_RESERVE_HUMAN, collateralDec))
+          : col.raw
+        : 0;
+    return {
+      human,
+      raw,
+      decimals: collateralDec,
+      loading: Boolean(wallet) && collateralQuery.isPending,
+    };
+  }, [
+    collateralDec,
+    collateralQuery.data,
+    collateralQuery.isPending,
+    direction,
+    isSolCollateral,
+    positionQuery.isPending,
+    tokenBalanceHuman,
+    tokenBalanceRaw,
+    tokenDec,
+    wallet,
+  ]);
 
   const rawAmountForQuote = useMemo(() => {
     if (!market) return null;
@@ -76,7 +147,6 @@ export function TokenTradePanel({
   const quote = useRiseQuote({ address: market?.mint ?? null, amount: debouncedRaw, direction });
   const q = quote.data?.quote;
 
-  const collateralLabel = market?.mintMain === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
   const amountLabel =
     direction === "buy"
       ? humanMode
@@ -85,6 +155,26 @@ export function TokenTradePanel({
       : humanMode
         ? `${t.tradeAmountSellHuman} (${market?.symbol || "TOKEN"})`
         : t.tradeAmountSellRaw;
+
+  const applyAmountPreset = useCallback(
+    (preset: AmountPreset) => {
+      const fraction = preset === "max" ? 1 : preset / 100;
+      if (humanMode) {
+        const human = spendableForPresets.human * fraction;
+        setAmountStr(formatAmountInputValue(human, spendableForPresets.decimals));
+        return;
+      }
+      const raw = Math.floor(spendableForPresets.raw * fraction);
+      setAmountStr(raw > 0 ? String(raw) : "0");
+    },
+    [humanMode, spendableForPresets],
+  );
+
+  const presetsDisabled =
+    !wallet ||
+    spendableForPresets.loading ||
+    spendableForPresets.human <= 0 ||
+    (direction === "sell" && market?.disableSell);
 
   const onSubmit = useCallback(async () => {
     if (!market || !publicKey || rawAmountForQuote == null) return;
@@ -112,6 +202,8 @@ export function TokenTradePanel({
       }
       await queryClient.invalidateQueries({ queryKey: ["rise-portfolio-summary", publicKey] });
       await queryClient.invalidateQueries({ queryKey: ["rise-portfolio-positions", publicKey] });
+      await queryClient.invalidateQueries({ queryKey: ["rise-portfolio-position-by-mint", publicKey, market.mint] });
+      await queryClient.invalidateQueries({ queryKey: ["wallet-collateral-balance", publicKey] });
     } catch (e) {
       const msg = e instanceof RiseTradeApiError ? e.message : e instanceof Error ? e.message : t.tradeErrorGeneric;
       toast.error(msg);
@@ -123,18 +215,14 @@ export function TokenTradePanel({
   if (!market) return null;
 
   const sellBlocked = market.disableSell && direction === "sell";
+  const tokenSymbol = market.symbol ? `$${market.symbol}` : "TOKEN";
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      <GlassCard>
-        <div className="mb-4 flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/45 bg-background/40">
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">{t.sectionQuote}</p>
-            <h3 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">{t.tradePanelTitle}</h3>
-          </div>
+      <GlassCard className="border-uof/20 shadow-[0_12px_40px_-16px_hsl(var(--uof)_/_0.35)]">
+        <div className="mb-4 border-b border-border/35 pb-3">
+          <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">{t.tradePanelTitle}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{t.tradeColumnIntro}</p>
         </div>
 
         <div className="space-y-4">
@@ -143,7 +231,56 @@ export function TokenTradePanel({
               <p className="text-sm text-muted-foreground">{t.tradeWalletRequired}</p>
               <ConnectWalletButton />
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-2 rounded-xl border border-border/45 bg-background/35 px-3 py-2.5 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">{t.tradeYourTokenBalance}</span>
+                {positionQuery.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                ) : (
+                  <span className="font-mono font-medium tabular-nums text-foreground">
+                    {formatTokenBalance(tokenBalanceHuman, tokenDec)} {tokenSymbol}
+                  </span>
+                )}
+              </div>
+              {direction === "buy" ? (
+                <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-2">
+                  <span className="text-muted-foreground">{t.tradeAvailableToSpend}</span>
+                  {collateralQuery.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <span className="font-mono font-medium tabular-nums text-foreground">
+                      {formatTokenBalance(collateralQuery.data?.human ?? 0, collateralDec)} {collateralLabel}
+                    </span>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          <ToggleGroup
+            type="single"
+            value={direction}
+            onValueChange={(v) => {
+              if (v === "buy" || v === "sell") setDirection(v);
+            }}
+            className="grid w-full grid-cols-2 gap-1 rounded-lg border border-border/45 bg-muted/25 p-1"
+          >
+            <ToggleGroupItem
+              value="buy"
+              className="rounded-md px-3 py-2 text-sm font-semibold data-[state=on]:bg-emerald-500/20 data-[state=on]:text-emerald-400"
+            >
+              {t.quoteBuy}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="sell"
+              className="rounded-md px-3 py-2 text-sm font-semibold data-[state=on]:bg-red-500/15 data-[state=on]:text-red-400"
+              disabled={market.disableSell}
+            >
+              {t.quoteSell}
+            </ToggleGroupItem>
+          </ToggleGroup>
+          {market.disableSell ? <p className="text-[0.65rem] text-muted-foreground">{t.tradeSellDisabled}</p> : null}
 
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="trade-human-mode" className="text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground">
@@ -164,28 +301,21 @@ export function TokenTradePanel({
               inputMode="decimal"
               aria-label={amountLabel}
             />
-          </div>
-
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {DASHBOARD_COPY[language].terminal.trade}
-            </p>
-            <ToggleGroup
-              type="single"
-              value={direction}
-              onValueChange={(v) => {
-                if (v === "buy" || v === "sell") setDirection(v);
-              }}
-              className="mt-2 justify-start gap-1"
-            >
-              <ToggleGroupItem value="buy" className="px-3 text-xs">
-                {t.quoteBuy}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="sell" className="px-3 text-xs" disabled={market.disableSell}>
-                {t.quoteSell}
-              </ToggleGroupItem>
-            </ToggleGroup>
-            {market.disableSell ? <p className="mt-1 text-[0.65rem] text-muted-foreground">{t.tradeSellDisabled}</p> : null}
+            <div className="mt-2 flex gap-1.5">
+              {([25, 50, "max"] as const).map((preset) => (
+                <Button
+                  key={preset}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 flex-1 border-border/50 px-2 text-xs font-medium tabular-nums"
+                  disabled={presetsDisabled}
+                  onClick={() => applyAmountPreset(preset)}
+                >
+                  {preset === "max" ? t.tradePctMax : preset === 25 ? t.tradePct25 : t.tradePct50}
+                </Button>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -244,7 +374,12 @@ export function TokenTradePanel({
 
           <Button
             type="button"
-            className="w-full"
+            className={cn(
+              "w-full font-semibold",
+              direction === "buy"
+                ? "bg-emerald-600 hover:bg-emerald-600/90"
+                : "bg-red-600 hover:bg-red-600/90",
+            )}
             disabled={!publicKey || rawAmountForQuote == null || sellBlocked || submitting}
             onClick={() => void onSubmit()}
           >

@@ -25,8 +25,8 @@ type BorrowMode = "borrow" | "repay";
 function useDebounced<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
   }, [value, delay]);
   return debounced;
 }
@@ -121,98 +121,113 @@ export function TokenBorrowPanel({
   if (!market) return null;
 
   return (
-    <GlassCard className={cn(className)}>
-      <div className="mb-4 flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/45 bg-background/40">
-          <Banknote className="h-4 w-4 text-muted-foreground" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">{t.borrowPanelEyebrow}</p>
-          <h3 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">{t.borrowPanelTitle}</h3>
+    <GlassCard className={cn("border-border/50", className)}>
+      <div className="mb-4 border-b border-border/35 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/45 bg-background/40">
+            <Banknote className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </span>
+          <div>
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t.borrowPanelEyebrow}
+            </p>
+            <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">{t.borrowPanelTitle}</h3>
+          </div>
         </div>
       </div>
 
-      {!publicKey ? (
-        <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border/45 bg-background/35 p-4">
-          <p className="text-sm text-muted-foreground">{t.tradeWalletRequired}</p>
-          <ConnectWalletButton />
-        </div>
-      ) : null}
+      <div className="space-y-4">
+        {!publicKey ? (
+          <div className="flex flex-col gap-2 rounded-xl border border-border/45 bg-background/35 p-4">
+            <p className="text-sm text-muted-foreground">{t.tradeWalletRequired}</p>
+            <ConnectWalletButton />
+          </div>
+        ) : null}
 
-      <div className="mb-4">
         <ToggleGroup
           type="single"
           value={mode}
           onValueChange={(v) => {
             if (v === "borrow" || v === "repay") setMode(v);
           }}
-          className="justify-start gap-1"
+          className="grid w-full grid-cols-2 gap-1 rounded-lg border border-border/45 bg-muted/25 p-1"
         >
-          <ToggleGroupItem value="borrow" className="px-3 text-xs">
+          <ToggleGroupItem
+            value="borrow"
+            className="rounded-md px-3 py-2 text-sm font-semibold data-[state=on]:bg-amber-500/15 data-[state=on]:text-amber-300"
+          >
             {t.borrowModeBorrow}
           </ToggleGroupItem>
-          <ToggleGroupItem value="repay" className="px-3 text-xs">
+          <ToggleGroupItem
+            value="repay"
+            className="rounded-md px-3 py-2 text-sm font-semibold data-[state=on]:bg-sky-500/15 data-[state=on]:text-sky-300"
+          >
             {t.borrowModeRepay}
           </ToggleGroupItem>
         </ToggleGroup>
-      </div>
 
-      <div className="rounded-xl border border-border/40 bg-background/35 p-4">
-        {quote.isFetching ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            …
-          </div>
-        ) : quote.isError ? (
-          <p className="text-sm text-destructive">{(quote.error as Error)?.message ?? "Quote failed"}</p>
-        ) : (
-          <dl className="grid gap-2 text-sm">
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">{t.borrowMax}</dt>
-              <dd className="font-mono tabular-nums">{formatUsd(q?.maxBorrowableUsd ?? null, { compact: true })}</dd>
+        <div className="rounded-xl border border-border/40 bg-background/35 p-4">
+          {quote.isFetching ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              …
             </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">{t.borrowDebt}</dt>
-              <dd className="font-mono tabular-nums">{q?.debt != null ? String(q.debt) : "—"}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">{t.borrowFee}</dt>
-              <dd className="font-mono tabular-nums">{q?.borrowFeePercent != null ? `${q.borrowFeePercent}%` : "—"}</dd>
-            </div>
-          </dl>
-        )}
-      </div>
+          ) : quote.isError ? (
+            <p className="text-sm text-destructive">{(quote.error as Error)?.message ?? "Quote failed"}</p>
+          ) : (
+            <dl className="grid gap-2.5 text-sm">
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">{t.borrowMax}</dt>
+                <dd className="font-mono tabular-nums font-medium">{formatUsd(q?.maxBorrowableUsd ?? null, { compact: true })}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">{t.borrowDebt}</dt>
+                <dd className="font-mono tabular-nums">{q?.debt != null ? String(q.debt) : "—"}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">{t.borrowFee}</dt>
+                <dd className="font-mono tabular-nums">{q?.borrowFeePercent != null ? `${q.borrowFeePercent}%` : "—"}</dd>
+              </div>
+            </dl>
+          )}
+        </div>
 
-      <div className="mt-4">
-        <Label className="text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground">
-          {mode === "borrow" ? `${t.borrowAmountLabel} (${collateralLabel})` : `${t.repayWithdrawLabel} (${collateralLabel})`}
-        </Label>
-        <Input
-          value={amountStr}
-          onChange={(e) => setAmountStr(e.target.value)}
-          className="mt-1.5 font-mono tabular-nums"
-          inputMode="decimal"
-        />
-      </div>
+        <div>
+          <Label className="text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground">
+            {mode === "borrow" ? `${t.borrowAmountLabel} (${collateralLabel})` : `${t.repayWithdrawLabel} (${collateralLabel})`}
+          </Label>
+          <Input
+            value={amountStr}
+            onChange={(e) => setAmountStr(e.target.value)}
+            className="mt-1.5 font-mono tabular-nums"
+            inputMode="decimal"
+          />
+        </div>
 
-      <Button
-        type="button"
-        className="mt-4 w-full"
-        disabled={!publicKey || submitting}
-        onClick={() => void onSubmit()}
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            …
-          </>
-        ) : mode === "borrow" ? (
-          t.borrowExecute
-        ) : (
-          t.repayExecute
-        )}
-      </Button>
-      <p className="mt-3 text-[0.65rem] leading-relaxed text-muted-foreground">{t.borrowFooterRisk}</p>
+        <Button
+          type="button"
+          className={cn(
+            "w-full font-semibold",
+            mode === "borrow"
+              ? "bg-amber-600 hover:bg-amber-600/90"
+              : "bg-sky-600 hover:bg-sky-600/90",
+          )}
+          disabled={!publicKey || submitting}
+          onClick={() => void onSubmit()}
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              …
+            </>
+          ) : mode === "borrow" ? (
+            t.borrowExecute
+          ) : (
+            t.repayExecute
+          )}
+        </Button>
+        <p className="text-[0.65rem] leading-relaxed text-muted-foreground">{t.borrowFooterRisk}</p>
+      </div>
     </GlassCard>
   );
 }
