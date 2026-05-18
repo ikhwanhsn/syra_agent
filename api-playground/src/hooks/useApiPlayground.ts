@@ -42,6 +42,14 @@ function getApiBaseUrl(): string {
 
 /** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (playground.syraa.fun). */
 function getApiHeaders(): Record<string, string> {
+  if (import.meta.env.DEV) {
+    const leaked = (import.meta.env.VITE_API_KEY as string | undefined)?.trim();
+    if (leaked) {
+      console.warn(
+        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env — api.syraa.fun injects auth for trusted origins.",
+      );
+    }
+  }
   return {};
 }
 

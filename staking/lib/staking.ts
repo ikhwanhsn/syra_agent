@@ -67,7 +67,7 @@ export const STAKING_IDL = {
       },
     },
   ],
-} as Idl;
+} as unknown as Idl;
 
 const ACCUMULATED_REWARD_PER_SHARE_PRECISION = 1e12;
 

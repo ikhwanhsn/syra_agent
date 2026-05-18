@@ -206,11 +206,30 @@ export const ApiX402Section = () => {
               subscriptions: fund liquidity for the calls you actually need.
             </motion.p>
 
-            {/* API categories */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.12 }}
+              className="mx-auto mb-6 max-w-lg rounded-xl border border-border/80 bg-muted/30 px-4 py-3 text-left text-xs leading-relaxed text-muted-foreground sm:text-sm md:mx-0"
+            >
+              <p className="mb-2 font-medium text-foreground">API vs web apps</p>
+              <p>
+                <span className="font-mono text-foreground/90">api.syraa.fun</span> is the
+                programmatic gateway: most routes need an API key or x402 payment.{" "}
+                <span className="text-foreground/90">syraa.fun</span>,{" "}
+                <span className="text-foreground/90">docs.syraa.fun</span>,{" "}
+                <span className="text-foreground/90">agent.syraa.fun</span>, and{" "}
+                <span className="text-foreground/90">playground.syraa.fun</span> are ordinary
+                sites you open in a browser—no API credentials in the page. Syra-owned frontends
+                never ship API keys; the server injects auth for trusted origins only.
+              </p>
+            </motion.div>
+
+            {/* API categories */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.4, delay: 0.14 }}
               className="mx-auto mb-6 max-w-lg space-y-3 sm:mb-8 sm:space-y-4 md:mx-0 md:max-w-none"
             >
               <p className="section-eyebrow-gradient mb-2 text-balance text-xs font-medium uppercase tracking-wider sm:mb-3 sm:text-sm">

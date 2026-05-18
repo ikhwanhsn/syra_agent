@@ -3,14 +3,13 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
-  type SendTransactionOptions,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { Program, AnchorProvider, type Wallet, BN } from "@coral-xyz/anchor";
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { CONFIG } from "@/constants/config";
 import {
@@ -33,8 +32,10 @@ export type StakingProgram = Program;
 /** Adapter with at least signTransaction (signAllTransactions optional). */
 export interface WalletAdapterLike {
   publicKey: PublicKey | null;
-  signTransaction(tx: Transaction): Promise<Transaction>;
-  signAllTransactions?(txs: Transaction[]): Promise<Transaction[]>;
+  signTransaction<T extends Transaction | VersionedTransaction>(tx: T): Promise<T>;
+  signAllTransactions?<T extends Transaction | VersionedTransaction>(
+    txs: T[]
+  ): Promise<T[]>;
 }
 
 /**
@@ -45,14 +46,17 @@ export function toAnchorWallet(adapter: WalletAdapterLike | null): Wallet {
   if (!adapter?.publicKey) throw new Error("Wallet not connected");
   return {
     publicKey: adapter.publicKey,
-    signTransaction: (tx: Transaction) => adapter.signTransaction(tx),
-    signAllTransactions: async (txs: Transaction[]) => {
+    signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) =>
+      adapter.signTransaction(tx),
+    signAllTransactions: async <T extends Transaction | VersionedTransaction>(
+      txs: T[]
+    ) => {
       if (adapter.signAllTransactions) {
         return adapter.signAllTransactions(txs);
       }
       return Promise.all(txs.map((tx) => adapter.signTransaction(tx)));
     },
-  };
+  } as Wallet;
 }
 
 export function createStakingProgram(
@@ -84,9 +88,9 @@ export function getUserRewardAta(user: PublicKey): PublicKey {
   );
 }
 
-const OPTS: SendTransactionOptions = {
+const OPTS = {
   skipPreflight: false,
-  preflightCommitment: "confirmed",
+  preflightCommitment: "confirmed" as const,
   maxRetries: 3,
 };
 
@@ -126,10 +130,7 @@ export async function stake(
     owner,
     userStakingTokenAccount,
     owner,
-    CONFIG.stakingMint,
-    undefined,
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID
+    CONFIG.stakingMint
   );
 
   // Keys must match Anchor's camelCased IDL (see convertIdlToCamelCase): e.g. userStakeInfo1M not user_stake_info_1m.
@@ -153,7 +154,7 @@ export async function stake(
     .instruction();
 
   const tx = new Transaction().add(createStakingAtaIx, stakeIx);
-  const sig = await program.provider.sendAndConfirm(tx, [], OPTS);
+  const sig = await program.provider.sendAndConfirm!(tx, [], OPTS);
   return sig;
 }
 
@@ -194,7 +195,7 @@ export async function unstake(
     .instruction();
 
   const tx = new Transaction().add(unstakeIx);
-  const sig = await program.provider.sendAndConfirm(tx, [], OPTS);
+  const sig = await program.provider.sendAndConfirm!(tx, [], OPTS);
   return sig;
 }
 
@@ -219,10 +220,7 @@ export async function claim(
     owner,
     userRewardTokenAccount,
     owner,
-    CONFIG.rewardMint,
-    undefined,
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID
+    CONFIG.rewardMint
   );
 
   const claimIx = await program.methods
@@ -241,6 +239,6 @@ export async function claim(
     .instruction();
 
   const tx = new Transaction().add(createRewardAtaIx, claimIx);
-  const sig = await program.provider.sendAndConfirm(tx, [], OPTS);
+  const sig = await program.provider.sendAndConfirm!(tx, [], OPTS);
   return sig;
 }

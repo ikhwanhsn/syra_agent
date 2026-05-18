@@ -34,6 +34,12 @@ Payments and access
 -------------------
 Many API routes use HTTP 402 and the x402 (micropayment) model on Solana. Clients must pay or use documented dev/skip paths for local development. The Syra MCP server proxies HTTP only; it does not inject payment headers (production calls may return 402 without a wallet/facilitator flow).
 
+API vs browsable web apps
+--------------------------
+- **api.syraa.fun** — programmatic JSON/HTTP API. Non-paid routes require API key or Bearer token; paid routes require x402 settlement. Public discovery without a key: GET /.well-known/x402 and GET /openapi.json. Never embed API keys in client-side JavaScript bundles.
+- **syraa.fun, docs.syraa.fun, agent.syraa.fun, playground.syraa.fun, stake.syraa.fun** — ordinary web applications. End users open them in a browser without API credentials. Syra-owned frontends rely on server-side trusted-origin auth injection (not keys shipped to the browser).
+- **Crawlers / monitors** — headless crawlers from datacenter IPs may see Vercel Deployment Protection or API 401/402 responses that real browsers do not. That is not the same as the product being down for users.
+
 Ecosystem
 ---------
 The Syra monorepo includes: api (backend), frontend, landing, documentation site, api-playground, ai-agent (chat + x402 tools), mcp-server (MCP tools wrapping API routes), and other apps. The canonical human-facing doc set is the documentation app, deployed at docs.syraa.fun.

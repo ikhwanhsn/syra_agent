@@ -6,6 +6,7 @@ import { ApiX402Section } from "@/components/ApiX402Section";
 import { LiveDashboard } from "@/components/LiveDashboard";
 import { WhySyra } from "@/components/WhySyra";
 import { TokenSection } from "@/components/TokenSection";
+import { StakingSection } from "@/components/StakingSection";
 import { Roadmap } from "@/components/Roadmap";
 import { PartnersAndIntegrations } from "@/components/PartnersAndIntegrations";
 import { Testimonials } from "@/components/Testimonials";
@@ -26,6 +27,7 @@ const Index = () => {
         <LiveDashboard />
         <WhySyra />
         <TokenSection />
+        <StakingSection />
         <Roadmap />
         <Testimonials />
         <ArticlesSection />

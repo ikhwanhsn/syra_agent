@@ -45,6 +45,11 @@ const faqs = [
       "Yes. Syra exposes Solana x402 / MPP pay-per-request HTTP APIs (REST-style, any HTTP client): call an endpoint, complete payment when you receive 402 Payment Required, then get JSON back—no subscription wall. Higher limits and premium modules align with $SYRA staking tiers. OpenAPI and discovery live on api.syraa.fun; guides and references are at docs.syraa.fun and playground.syraa.fun.",
   },
   {
+    question: "Why does api.syraa.fun ask for a key or payment, but the website works fine?",
+    answer:
+      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, agent.syraa.fun, and playground.syraa.fun are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins. If an automated monitor or crawler reports “401” on the marketing sites, it may be hitting deployment protection or API docs—not a broken product for real visitors.",
+  },
+  {
     question: "What are the fees?",
     answer:
       "API access is priced per successful paid request via x402 and MPP on Solana—you pay only for calls you make, not a flat subscription. Exact per-route pricing comes from each endpoint’s payment requirements. Staking $SYRA can improve tiers and limits; on-chain network fees still apply to your own transactions.",

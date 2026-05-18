@@ -7,6 +7,7 @@ import {
   LINK_AGENT,
   LINK_DOCS,
   LINK_PLAYGROUND,
+  LINK_STAKING,
   LINK_TELEGRAM,
   LINK_X,
 } from "../../config/global";
@@ -14,6 +15,7 @@ import {
 const footerLinks = {
   product: [
     { label: "Agent", href: LINK_AGENT },
+    { label: "Staking", href: LINK_STAKING },
     { label: "API Docs", href: LINK_DOCS },
     { label: "Playground", href: LINK_PLAYGROUND },
     { label: "Partners", href: "/partner", internal: true },

@@ -82,8 +82,8 @@ const AUTH_WALL_MAX_BODY_LENGTH = 2_500;
 const API_AUTH_CONTEXT_MARKDOWN = `# Syra API host — auth model (INTERNAL CONTEXT — api.syraa.fun ONLY)
 
 **Scope:** This section describes **only** the JSON/HTTP API at https://api.syraa.fun. It does **not**
-describe the marketing site (syraa.fun), docs (docs.syraa.fun), web agent (agent.syraa.fun), or
-playground (playground.syraa.fun). Those apps are static/SPA deployments that normal browsers reach
+describe the marketing site (syraa.fun), docs (docs.syraa.fun), web agent (agent.syraa.fun),
+playground (playground.syraa.fun), or staking (stake.syraa.fun). Those apps are static/SPA deployments that normal browsers reach
 without site-wide login; do **not** infer that they return API-style Unauthorized responses just
 because this paragraph discusses API security.
 

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   description:
     "Stake $SYRA for the Syra smart intelligence agent for traders—governance, tiers, and protocol rewards on Solana.",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/favicon.ico",
     apple: "/logo.jpg",
   },
   openGraph: {

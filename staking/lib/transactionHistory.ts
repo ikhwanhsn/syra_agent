@@ -101,7 +101,7 @@ export async function fetchTransactionHistory(
 
   const entries: TransactionHistoryEntry[] = sigs.map((s) => ({
     signature: s.signature,
-    blockTime: s.blockTime,
+    blockTime: s.blockTime ?? null,
     slot: s.slot,
     err: s.err,
     type: "transaction" as StakingTxType,
@@ -134,7 +134,7 @@ export async function fetchTransactionHistory(
     const innerInstructions = (tx.meta?.innerInstructions ?? []).map(
       (block) => ({
         instructions: block.instructions.filter(
-          (ix): ix is { programId: PublicKey; data: string } =>
+          (ix): ix is { programId: PublicKey; accounts: PublicKey[]; data: string } =>
             "data" in ix && typeof (ix as { data?: string }).data === "string"
         ) as Array<{ programId: PublicKey; data?: string }>,
       })
