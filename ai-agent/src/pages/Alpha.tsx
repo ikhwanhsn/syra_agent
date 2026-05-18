@@ -46,8 +46,8 @@ function parseAlphaTab(raw: string | null): AlphaTab {
   return "x";
 }
 
-/** Align with server X batch cache — avoids refetching N accounts every minute (X rate limits). */
-const STALE_MS = 180_000;
+/** Batch list is persisted server-side and refreshed ~every 24h — safe to cache in the client. */
+const STALE_MS = 24 * 60 * 60 * 1000;
 
 function sortBatchItemsByScoreDesc(items: XProjectsBatchItem[]): XProjectsBatchItem[] {
   return [...items].sort((a, b) => {
@@ -119,8 +119,9 @@ function AlphaXTabPanel() {
             ) : null}
           </p>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground/90">
-            Deterministic profile and tweet sample scoring — same engine as Syra&apos;s X analyzer. Click a row for deep
-            intel, recent posts, and model-assisted synthesis. Sorted by score, highest first.
+            Deterministic profile and tweet sample scoring — same engine as Syra&apos;s X analyzer. This watchlist
+            refreshes about once every 24 hours. Click a row for deep intel, recent posts, and model-assisted synthesis.
+            Sorted by score, highest first.
           </p>
         </div>
         <Button
@@ -136,7 +137,7 @@ function AlphaXTabPanel() {
           ) : (
             <RefreshCw className="h-4 w-4" aria-hidden />
           )}
-          Refresh
+          Reload
         </Button>
       </div>
 

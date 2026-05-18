@@ -1,0 +1,41 @@
+# Daily Alpha X watchlist refresh (curated X batch scores for dashboard Alpha tab).
+#
+# Repository secrets:
+#   SYRA_AGENT_TEAM_BASE_URL — e.g. https://api.syraa.fun (no trailing slash)
+#   SYRA_ALPHA_X_BATCH_CRON_SECRET — must match ALPHA_X_BATCH_CRON_SECRET on the API host
+#
+name: Alpha X batch daily
+
+on:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-alpha-x-batch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/alpha-x-batch/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_AGENT_TEAM_BASE_URL }}
+          ALPHA_X_BATCH_CRON_SECRET: ${{ secrets.SYRA_ALPHA_X_BATCH_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${ALPHA_X_BATCH_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_AGENT_TEAM_BASE_URL and SYRA_ALPHA_X_BATCH_CRON_SECRET in repo secrets to enable this job."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          echo "Running Alpha X batch at ${ORIGIN}/internal/alpha-x-batch/run"
+          HTTP_CODE=$(curl -sS -o /tmp/alpha-x-batch.json -w "%{http_code}" -X POST "${ORIGIN}/internal/alpha-x-batch/run" \
+            -H "x-alpha-x-batch-cron-secret: ${ALPHA_X_BATCH_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/alpha-x-batch.json
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Alpha X batch returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/alpha-x-batch.json'); if(!r.success){console.error(r); process.exit(1)}"

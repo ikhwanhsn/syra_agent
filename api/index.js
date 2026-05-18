@@ -677,6 +677,16 @@ app.use(
         if (got === secret) return true;
       }
     }
+    if (
+      p === "/internal/alpha-x-batch/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.ALPHA_X_BATCH_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-alpha-x-batch-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
     if (String(req.method || "").toUpperCase() === "POST") {
       if (
         p === "/internal/growth-syra-market/run" ||
@@ -1444,6 +1454,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[uponly-fund-dev-team] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/alphaXBatchScheduler.js")
+    .then(({ startAlphaXBatchScheduler }) => {
+      startAlphaXBatchScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[alpha-x-batch] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

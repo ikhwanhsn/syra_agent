@@ -2,17 +2,20 @@
  * Batch X Project Analyzer — same scoring as /x-analyzer, no x402.
  * Only dynamic input: **type** (registry in config). X handles are static per type.
  *
+ * Batch list GET serves a Mongo snapshot refreshed by `alphaXBatchScheduler` (default every 24h).
+ * Account detail still uses short in-memory cache + live X on miss.
+ *
  * Env (optional): X_BATCH_ANALYZER_CACHE_MS (default 300000, max 1800000),
  * X_BATCH_ANALYZER_CONCURRENCY (default 2, max 5) — lower concurrency eases X rate limits.
  */
 
 import express from 'express';
-import pLimit from 'p-limit';
 import {
   getProjectAnalyzerType,
   listProjectAnalyzerTypesPublic,
   listProjectAnalyzerTypeIds,
 } from '../config/projectAnalyzerTypes.js';
+import { getAlphaXBatchForPublicRead } from '../libs/alphaXBatchPipeline.js';
 import { runXProjectAnalysis } from './x-project-analyzer.js';
 
 function parseCacheMs() {
@@ -22,19 +25,9 @@ function parseCacheMs() {
   return 5 * 60_000;
 }
 
-function parseConcurrency() {
-  const raw = process.env.X_BATCH_ANALYZER_CONCURRENCY;
-  const n = raw != null && raw !== '' ? Number.parseInt(String(raw).trim(), 10) : NaN;
-  if (Number.isFinite(n) && n >= 1) return Math.min(5, n);
-  return 2;
-}
-
 const CACHE_TTL_MS = parseCacheMs();
 /** @type {Map<string, { data: unknown; expires: number }>} */
 const cache = new Map();
-
-/** Concurrent X API fan-out to reduce rate-limit spikes (default 2). */
-const CONCURRENCY = parseConcurrency();
 
 const USERNAME_RE = /^[A-Za-z0-9_]{1,15}$/;
 
@@ -70,70 +63,6 @@ function parseBool(v, defaultVal) {
   if (s === 'true' || s === '1' || s === 'yes') return true;
   if (s === 'false' || s === '0' || s === 'no') return false;
   return defaultVal;
-}
-
-/**
- * @param {object} opts
- * @param {string} opts.typeId
- * @param {string[]} opts.handles
- * @param {number} opts.maxResults
- * @param {boolean} opts.includeAiSummary
- */
-async function runBatchAnalysis({ typeId, handles, maxResults, includeAiSummary }) {
-  const limit = pLimit(CONCURRENCY);
-  const tasks = handles.map((username) =>
-    limit(async () => {
-      const out = await runXProjectAnalysis({
-        username,
-        maxResults,
-        includeAiSummary,
-      });
-      if (out.success) {
-        return {
-          username,
-          ok: true,
-          analysis: out.data,
-        };
-      }
-      return {
-        username,
-        ok: false,
-        error: out.error || 'Analysis failed',
-        code: out.code,
-      };
-    }),
-  );
-
-  const items = await Promise.all(tasks);
-  const succeeded = items.filter((i) => i.ok);
-  const scores = succeeded
-    .map((i) =>
-      i.ok && i.analysis && typeof i.analysis.score === 'number'
-        ? i.analysis.score
-        : NaN,
-    )
-    .filter((n) => Number.isFinite(n));
-  const averageScore =
-    scores.length > 0
-      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) /
-        10
-      : null;
-
-  const typeMeta = getProjectAnalyzerType(typeId);
-
-  return {
-    type: typeMeta?.id ?? typeId,
-    label: typeMeta?.label ?? typeId,
-    provider: typeMeta?.provider ?? 'x',
-    updatedAt: new Date().toISOString(),
-    items,
-    summary: {
-      total: items.length,
-      succeeded: succeeded.length,
-      failed: items.length - succeeded.length,
-      averageScore,
-    },
-  };
 }
 
 export function createXProjectsBatchAnalyzerRouter() {
@@ -278,23 +207,28 @@ export function createXProjectsBatchAnalyzerRouter() {
         false,
       );
 
-      const cacheKey = `${typeParam}:${max_results}:${includeAiSummary}`;
-      const hit = cacheGet(cacheKey);
-      if (hit) {
-        res.setHeader('Cache-Control', `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`);
-        return res.json({ success: true, data: hit });
-      }
-
-      const data = await runBatchAnalysis({
+      const snapshot = await getAlphaXBatchForPublicRead({
         typeId: typeDef.id,
-        handles,
         maxResults: max_results,
         includeAiSummary,
       });
 
-      cacheSet(cacheKey, data);
-      res.setHeader('Cache-Control', `public, max-age=${Math.max(30, Math.floor(CACHE_TTL_MS / 1000))}`);
-      return res.json({ success: true, data });
+      if (!snapshot) {
+        return res.status(503).json({
+          success: false,
+          error:
+            'Alpha X watchlist is not ready yet. The agent refreshes this feed about once every 24 hours.',
+          code: 'ALPHA_X_BATCH_NOT_READY',
+        });
+      }
+
+      const maxAgeSec = Math.max(300, Math.floor(24 * 60 * 60));
+      res.setHeader('Cache-Control', `public, max-age=${maxAgeSec}`);
+      res.setHeader('X-Syra-Alpha-Source', snapshot.source);
+      if (snapshot.savedAt) {
+        res.setHeader('X-Syra-Alpha-Saved-At', snapshot.savedAt);
+      }
+      return res.json({ success: true, data: snapshot.data });
     } catch (err) {
       console.warn(
         '[x-projects-batch-analyzer]',

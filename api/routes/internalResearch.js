@@ -32,6 +32,11 @@ import {
   runUponlyFundDevAgentTeamPipeline,
   UPONLY_FUND_DEV_TEAM_DB_ID,
 } from "../libs/uponlyFundDevAgentScheduler.js";
+import {
+  ALPHA_X_BATCH_CANONICAL_DB_ID,
+  loadAlphaXBatchSnapshot,
+  runAlphaXBatchPipeline,
+} from "../libs/alphaXBatchPipeline.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -144,6 +149,37 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // GET /internal/alpha-x-batch/latest — persisted Alpha X watchlist (same payload as GET /x-projects-analyze)
+  router.get("/alpha-x-batch/latest", async (_req, res) => {
+    try {
+      const doc = await loadAlphaXBatchSnapshot(ALPHA_X_BATCH_CANONICAL_DB_ID);
+      if (!doc) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      return res.json({ success: true, data: doc.data, savedAt: doc.savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // POST /internal/alpha-x-batch/run — re-score curated X handles and persist (optional x-alpha-x-batch-cron-secret)
+  router.post("/alpha-x-batch/run", async (_req, res) => {
+    try {
+      const out = await runAlphaXBatchPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "alpha-x-batch pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

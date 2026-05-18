@@ -61,7 +61,8 @@ import {
 } from "@/lib/dashboardOverviewAggregates";
 import { fetchPumpfunExperimentLedger } from "@/lib/pumpfunExperimentApi";
 import { fetchRiseExperimentLedger } from "@/lib/riseExperimentApi";
-import { gradeBadgeClass, formatFollowers } from "@/lib/alphaIntelUi";
+import { gradeBadgeClass, formatFollowers, userReadableAlphaDataError } from "@/lib/alphaIntelUi";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
@@ -75,7 +76,8 @@ import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
 
 const USER_PROMPTS_SAMPLE = 100;
 const STALE_MS = 60_000;
-const ALPHA_STALE_MS = 180_000;
+/** Alpha X batch is DB-backed; server agent refreshes ~every 24h. */
+const ALPHA_STALE_MS = 24 * 60 * 60 * 1000;
 
 const wlChartConfig = {
   wins: { label: "Wins", color: "hsl(var(--foreground))" },
@@ -91,6 +93,15 @@ const promptMixConfig = {
   builtin: { label: "Built-in", color: "hsl(var(--primary))" },
   community: { label: "Community", color: "hsl(var(--muted-foreground))" },
 } satisfies ChartConfig;
+
+function formatAlphaXBatchUpdatedAt(iso: string | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return null;
+  }
+}
 
 function aggregatePromptCategories(prompts: UserPromptItem[]): { name: string; count: number }[] {
   const map = new Map<string, number>();
@@ -279,6 +290,17 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     [alphaXQ.data?.items],
   );
 
+  const alphaXUpdatedLabel = useMemo(
+    () => formatAlphaXBatchUpdatedAt(alphaXQ.data?.updatedAt),
+    [alphaXQ.data?.updatedAt],
+  );
+
+  const alphaXBatchHint = useMemo(() => {
+    if (!alphaXQ.data) return "x402 watchlist · refreshes ~every 24h";
+    const scored = `${alphaXQ.data.summary.succeeded}/${alphaXQ.data.summary.total} scored · ${alphaXQ.data.summary.failed} failed`;
+    return alphaXUpdatedLabel ? `${scored} · updated ${alphaXUpdatedLabel}` : scored;
+  }, [alphaXQ.data, alphaXUpdatedLabel]);
+
   const topPumpTokens = useMemo(
     () =>
       [...(pumpfunTrendQ.data?.tokens ?? [])]
@@ -461,12 +483,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               accent="alpha"
               isLoading={alphaXQ.isLoading}
               value={alphaXQ.isError ? "—" : alphaXQ.data?.summary.averageScore ?? "—"}
-              hint={
-                alphaXQ.data
-                  ? `${alphaXQ.data.summary.succeeded}/${alphaXQ.data.summary.total} scored · ${alphaXQ.data.summary.failed} failed`
-                  : "Ecosystem account intelligence"
-              }
-              href="/dashboard/alpha"
+              hint={alphaXBatchHint}
+              href="/dashboard/alpha?tab=x"
               error={alphaXQ.isError}
             />
             <OverviewStatCard
@@ -498,14 +516,45 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <Card className={cn(overviewCardShell, 'overflow-hidden')}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-[13px] font-semibold tracking-tight">Top X accounts</CardTitle>
-                <CardDescription>By intelligence score</CardDescription>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <CardTitle className="text-[13px] font-semibold tracking-tight">Top X accounts</CardTitle>
+                    <CardDescription>
+                      {alphaXUpdatedLabel
+                        ? `By intelligence score · updated ${alphaXUpdatedLabel} · ~24h refresh`
+                        : "By intelligence score · curated x402 watchlist (~24h refresh)"}
+                    </CardDescription>
+                  </div>
+                  <Link
+                    to="/dashboard/alpha?tab=x"
+                    className="shrink-0 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    View all
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
-                {alphaXQ.isError ? (
-                  <p className="px-4 pb-4 text-sm text-destructive">Could not load X batch.</p>
+                {alphaXQ.isLoading ? (
+                  <div className="space-y-0 divide-y divide-border/40 px-4 pb-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 py-3">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-3 w-36" />
+                        </div>
+                        <Skeleton className="h-5 w-10" />
+                      </div>
+                    ))}
+                  </div>
+                ) : alphaXQ.isError ? (
+                  <p className="px-4 pb-4 text-sm text-muted-foreground">
+                    {userReadableAlphaDataError((alphaXQ.error as Error)?.message) ||
+                      "Could not load the x402 watchlist."}
+                  </p>
                 ) : sortedXItems.length === 0 ? (
-                  <p className="px-4 pb-4 text-sm text-muted-foreground">No accounts yet.</p>
+                  <p className="px-4 pb-4 text-sm text-muted-foreground">
+                    Watchlist is warming up — scores update about once every 24 hours.
+                  </p>
                 ) : (
                   <Table>
                     <TableHeader>

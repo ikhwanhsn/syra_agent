@@ -659,7 +659,7 @@ export function buildGatewayOpenApi() {
         tags: ['Social (batch)'],
         summary: 'Batch X project analyzer (no x402)',
         description:
-          'Runs the same deterministic analysis as /x-analyzer for all X handles configured for `type` (default `x402`). Handles are not client-supplied. See GET /x-projects-analyze/types.',
+          'Returns the latest persisted batch snapshot for `type` (default `x402`). Scores are refreshed by the Alpha X agent about once every 24 hours (POST /internal/alpha-x-batch/run). Handles are not client-supplied. See GET /x-projects-analyze/types.',
         operationId: 'getXProjectsAnalyze',
         parameters: [
           {
