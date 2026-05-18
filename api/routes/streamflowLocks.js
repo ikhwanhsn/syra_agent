@@ -2,64 +2,21 @@ import { Router } from 'express';
 import connectMongoose from '../config/mongoose.js';
 import StreamflowLock from '../models/StreamflowLock.js';
 import { sumAmountRaw, computeOperatorStats } from '../services/streamflowLockAggregates.js';
+import {
+  upsertStreamflowLock,
+  bulkUpsertStreamflowLocks,
+  getWalletStakingSummary,
+  checkStakingEligibility,
+  reconcileStreamflowLocks,
+  isLockActive,
+  nowUnix,
+  DEFAULT_STAKING_MINT,
+} from '../services/streamflowStakingService.js';
 
 function toPositiveInt(value, fallback) {
   const n = Number.parseInt(String(value ?? ''), 10);
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return n;
-}
-
-function normalizeLockPayload(payload) {
-  const p = payload || {};
-  const streamId = String(p.streamId || '').trim();
-  const txId = String(p.txId || '').trim();
-  const wallet = String(p.wallet || '').trim();
-  const mint = String(p.mint || '').trim();
-  const tokenSymbol = String(p.tokenSymbol || 'TOKEN').trim() || 'TOKEN';
-  const decimals = Number(p.decimals);
-  const amountRaw = String(p.amountRaw || '').trim();
-  const amountFormatted = String(p.amountFormatted || '').trim();
-  const unlockedRaw = String(p.unlockedRaw || '0').trim();
-  const unlockedFormatted = String(p.unlockedFormatted || '0').trim();
-  const withdrawnRaw = String(p.withdrawnRaw || '0').trim();
-  const withdrawnFormatted = String(p.withdrawnFormatted || '0').trim();
-  const unlockAtUnix = Number(p.unlockAtUnix);
-  const unlockAtIso = String(p.unlockAtIso || '').trim();
-  const network = p.network === 'devnet' ? 'devnet' : 'mainnet';
-  const source = p.source === 'onchain_sync' ? 'onchain_sync' : 'app';
-
-  if (!streamId || !txId || !wallet || !mint || !amountRaw || !amountFormatted) {
-    throw new Error('Missing required fields');
-  }
-  if (!Number.isFinite(decimals) || decimals < 0) {
-    throw new Error('Invalid decimals');
-  }
-  if (!Number.isFinite(unlockAtUnix) || unlockAtUnix <= 0 || !unlockAtIso) {
-    throw new Error('Invalid unlockAt values');
-  }
-
-  return {
-    streamId,
-    txId,
-    wallet,
-    sender: p.sender ? String(p.sender).trim() : null,
-    recipient: p.recipient ? String(p.recipient).trim() : null,
-    mint,
-    tokenSymbol,
-    decimals,
-    amountRaw,
-    amountFormatted,
-    unlockedRaw,
-    unlockedFormatted,
-    withdrawnRaw,
-    withdrawnFormatted,
-    unlockAtUnix,
-    unlockAtIso,
-    network,
-    source,
-    closed: Boolean(p.closed),
-    metadata: p.metadata && typeof p.metadata === 'object' ? p.metadata : null,
-  };
 }
 
 export async function createStreamflowLocksRouter() {
@@ -68,14 +25,8 @@ export async function createStreamflowLocksRouter() {
 
   router.post('/upsert', async (req, res) => {
     try {
-      const normalized = normalizeLockPayload(req.body || {});
-      const doc = await StreamflowLock.findOneAndUpdate(
-        { streamId: normalized.streamId },
-        { $set: normalized },
-        { upsert: true, new: true }
-      ).lean();
-
-      res.json({ success: true, data: doc });
+      const { lock, snapshot } = await upsertStreamflowLock(req.body || {});
+      res.json({ success: true, data: lock, snapshot });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message || 'Invalid payload' });
     }
@@ -89,21 +40,83 @@ export async function createStreamflowLocksRouter() {
         return;
       }
 
-      const ops = items.map((item) => {
-        const normalized = normalizeLockPayload(item);
-        return {
-          updateOne: {
-            filter: { streamId: normalized.streamId },
-            update: { $set: normalized },
-            upsert: true,
-          },
-        };
-      });
-
-      const result = await StreamflowLock.bulkWrite(ops, { ordered: false });
-      res.json({ success: true, data: result });
+      const { bulkResult, snapshots } = await bulkUpsertStreamflowLocks(items);
+      res.json({ success: true, data: { bulkResult, snapshots } });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message || 'Bulk upsert failed' });
+    }
+  });
+
+  /**
+   * Wallet staking summary for utility gating (active locked SYRA).
+   * GET /streamflow-locks/wallet-summary?wallet=...&mint=...&network=mainnet
+   */
+  router.get('/wallet-summary', async (req, res) => {
+    try {
+      const wallet = String(req.query.wallet || '').trim();
+      if (!wallet) {
+        res.status(400).json({ success: false, error: 'wallet is required' });
+        return;
+      }
+      const mint = String(req.query.mint || DEFAULT_STAKING_MINT).trim();
+      const network = req.query.network === 'devnet' ? 'devnet' : 'mainnet';
+      const minAmount = req.query.minAmount != null ? Number(req.query.minAmount) : undefined;
+
+      const data = await getWalletStakingSummary(wallet, {
+        mint,
+        network,
+        minAmountFormatted: minAmount,
+      });
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message || 'Wallet summary failed' });
+    }
+  });
+
+  /**
+   * Eligibility check for product utilities (e.g. trading agent requires 1M+ active stake).
+   * GET /streamflow-locks/eligibility?wallet=...&minAmount=1000000
+   */
+  router.get('/eligibility', async (req, res) => {
+    try {
+      const wallet = String(req.query.wallet || '').trim();
+      if (!wallet) {
+        res.status(400).json({ success: false, error: 'wallet is required' });
+        return;
+      }
+      const mint = String(req.query.mint || DEFAULT_STAKING_MINT).trim();
+      const network = req.query.network === 'devnet' ? 'devnet' : 'mainnet';
+      const minAmount =
+        req.query.minAmount != null ? Number(req.query.minAmount) : undefined;
+
+      const data = await checkStakingEligibility(wallet, {
+        mint,
+        network,
+        minAmountFormatted: minAmount,
+      });
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message || 'Eligibility check failed' });
+    }
+  });
+
+  /**
+   * Mark expired locks and refresh wallet snapshots. Operator key required in production.
+   */
+  router.post('/reconcile', async (req, res) => {
+    try {
+      const key = String(req.headers['x-operator-key'] || '').trim();
+      const expected = process.env.STREAMFLOW_LOCKS_OPERATOR_KEY;
+      if (expected && key !== expected) {
+        res.status(403).json({ success: false, error: 'Forbidden' });
+        return;
+      }
+      const mint = req.body?.mint ? String(req.body.mint).trim() : req.query.mint;
+      const network = req.body?.network ?? req.query.network;
+      const data = await reconcileStreamflowLocks({ mint, network });
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message || 'Reconcile failed' });
     }
   });
 
@@ -116,12 +129,15 @@ export async function createStreamflowLocksRouter() {
         res.status(400).json({ success: false, error: 'mint is required' });
         return;
       }
-      const filter = { mint, network, closed: false };
-      const locks = await StreamflowLock.find(filter).select('amountRaw wallet').lean();
-      const openLockCount = locks.length;
-      const totalAmountRaw = sumAmountRaw(locks);
-      const uniqueWallets = new Set(locks.map((d) => d.wallet).filter(Boolean)).size;
-      const closedLockCount = await StreamflowLock.countDocuments({ mint, network, closed: true });
+      const atUnix = nowUnix();
+      const locks = await StreamflowLock.find({ mint, network })
+        .select('amountRaw wallet remainingAmountRaw closed unlockAtUnix status')
+        .lean();
+      const activeLocks = locks.filter((d) => isLockActive(d, atUnix));
+      const openLockCount = activeLocks.length;
+      const totalAmountRaw = sumAmountRaw(activeLocks);
+      const uniqueWallets = new Set(activeLocks.map((d) => d.wallet).filter(Boolean)).size;
+      const closedLockCount = locks.length - activeLocks.length;
       res.json({
         success: true,
         data: {
@@ -168,6 +184,7 @@ export async function createStreamflowLocksRouter() {
       const mint = String(req.query.mint || '').trim();
       const network = req.query.network === 'devnet' ? 'devnet' : 'mainnet';
       const includeClosed = String(req.query.includeClosed || 'false') === 'true';
+      const activeOnly = String(req.query.activeOnly || 'false') === 'true';
       const limit = Math.min(toPositiveInt(req.query.limit, 200), 500);
 
       if (!wallet) {
@@ -179,7 +196,13 @@ export async function createStreamflowLocksRouter() {
       if (mint) filter.mint = mint;
       if (!includeClosed) filter.closed = false;
 
-      const items = await StreamflowLock.find(filter).sort({ unlockAtUnix: 1 }).limit(limit).lean();
+      let items = await StreamflowLock.find(filter).sort({ unlockAtUnix: 1 }).limit(limit).lean();
+
+      if (activeOnly) {
+        const atUnix = nowUnix();
+        items = items.filter((d) => isLockActive(d, atUnix));
+      }
+
       res.json({ success: true, data: items });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message || 'Failed to fetch locks' });

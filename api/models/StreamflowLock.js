@@ -18,16 +18,30 @@ const streamflowLockSchema = new mongoose.Schema(
     withdrawnFormatted: { type: String, default: '0' },
     unlockAtUnix: { type: Number, required: true, index: true },
     unlockAtIso: { type: String, required: true },
+    /** Wall-clock lock duration chosen at stake time (seconds). */
+    lockDurationSeconds: { type: Number, default: null },
+    /** active = still locked; expired = unlock time passed; closed = Streamflow marked closed. */
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'closed'],
+      default: 'active',
+      index: true,
+    },
+    /** Remaining locked amount in base units (deposited − withdrawn). */
+    remainingAmountRaw: { type: String, default: null },
     network: { type: String, enum: ['mainnet', 'devnet'], required: true, index: true },
     source: { type: String, enum: ['app', 'onchain_sync'], default: 'app' },
     closed: { type: Boolean, default: false, index: true },
+    lastSyncedAt: { type: Date, default: Date.now },
     metadata: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   { timestamps: true }
 );
 
 streamflowLockSchema.index({ wallet: 1, mint: 1, network: 1, closed: 1 });
+streamflowLockSchema.index({ wallet: 1, mint: 1, network: 1, status: 1 });
 streamflowLockSchema.index({ wallet: 1, unlockAtUnix: 1 });
+streamflowLockSchema.index({ mint: 1, network: 1, status: 1 });
 
 const StreamflowLock =
   mongoose.models.StreamflowLock || mongoose.model('StreamflowLock', streamflowLockSchema);

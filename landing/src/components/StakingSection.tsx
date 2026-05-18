@@ -87,7 +87,7 @@ export const StakingSection = () => {
           : stats
             ? stats.openLockCount.toLocaleString()
             : "—",
-        hint: "1-year lock term",
+        hint: "1-month lock term",
       },
     ],
     [isPending, stats],
@@ -202,7 +202,7 @@ export const StakingSection = () => {
                 Powered by{" "}
                 <span className="font-medium text-foreground">Streamflow</span>
                 {" · "}
-                Mainnet · 1-year lock
+                Mainnet · 1-month lock
               </span>
             </motion.div>
 
@@ -375,7 +375,7 @@ export const StakingSection = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Unlocks on a fixed 1-year schedule · automatic payout to your wallet
+                  Unlocks on a fixed 1-month schedule · automatic payout to your wallet
                 </p>
               </motion.div>
             </motion.div>

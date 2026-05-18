@@ -141,29 +141,37 @@ export function useStreamflowStaking(): StreamflowStakingState {
 
     if (chainRows.length > 0) {
       const network = toRegistryNetwork();
-      const items: StreamflowLockRegistryItem[] = chainRows.map((row) => ({
-        streamId: row.id,
-        txId: row.id,
-        wallet: publicKey.toBase58(),
-        sender: row.sender,
-        recipient: row.recipient,
-        mint: row.mint,
-        tokenSymbol: STREAMFLOW_CONFIG.tokenSymbol,
-        decimals,
-        amountRaw: row.depositedRaw,
-        amountFormatted: row.depositedFormatted,
-        unlockedRaw: row.unlockedRaw,
-        unlockedFormatted: row.unlockedFormatted,
-        withdrawnRaw: row.withdrawnRaw,
-        withdrawnFormatted: row.withdrawnFormatted,
-        unlockAtUnix: row.unlocksAtUnix,
-        unlockAtIso: new Date(row.unlocksAtUnix * 1000).toISOString(),
-        network,
-        source: "onchain_sync",
-        closed: row.closed,
-        metadata: null,
-      }));
-      await bulkUpsertLocksToRegistry(items).catch(() => undefined);
+      const nowUnix = Math.floor(Date.now() / 1000);
+      const items: StreamflowLockRegistryItem[] = chainRows.map((row) => {
+        const isActive = !row.closed && row.unlocksAtUnix > nowUnix;
+        return {
+          streamId: row.id,
+          txId: row.id,
+          wallet: publicKey.toBase58(),
+          sender: row.sender,
+          recipient: row.recipient,
+          mint: row.mint,
+          tokenSymbol: STREAMFLOW_CONFIG.tokenSymbol,
+          decimals,
+          amountRaw: row.depositedRaw,
+          amountFormatted: row.depositedFormatted,
+          unlockedRaw: row.unlockedRaw,
+          unlockedFormatted: row.unlockedFormatted,
+          withdrawnRaw: row.withdrawnRaw,
+          withdrawnFormatted: row.withdrawnFormatted,
+          unlockAtUnix: row.unlocksAtUnix,
+          unlockAtIso: new Date(row.unlocksAtUnix * 1000).toISOString(),
+          lockDurationSeconds: STREAMFLOW_CONFIG.lockDurationSeconds,
+          network,
+          source: "onchain_sync",
+          closed: row.closed || !isActive,
+          status: row.closed ? "closed" : isActive ? "active" : "expired",
+          metadata: { syncedAt: new Date().toISOString() },
+        };
+      });
+      await bulkUpsertLocksToRegistry(items).catch((err) => {
+        console.warn("[staking] registry bulk sync failed:", err);
+      });
     }
   }, [connection, publicKey, mint, decimals]);
 
@@ -245,12 +253,16 @@ export function useStreamflowStaking(): StreamflowStakingState {
             withdrawnFormatted: "0",
             unlockAtUnix,
             unlockAtIso: new Date(unlockAtUnix * 1000).toISOString(),
+            lockDurationSeconds,
             network: toRegistryNetwork(),
             source: "app",
             closed: false,
+            status: "active",
             metadata: { createdAtClient: new Date().toISOString() },
           };
-          await upsertLockToRegistry(lockPayload).catch(() => undefined);
+          await upsertLockToRegistry(lockPayload).catch((err) => {
+            console.warn("[staking] registry upsert failed:", err);
+          });
         }
         await new Promise((r) => setTimeout(r, 2000));
         await refetchAll();

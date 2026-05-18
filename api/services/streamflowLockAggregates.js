@@ -1,10 +1,11 @@
 import StreamflowLock from '../models/StreamflowLock.js';
+import { isLockActive, nowUnix, parseRawAmount, computeRemainingAmountRaw } from './streamflowStakingService.js';
 
 export function sumAmountRaw(docs) {
   let total = BigInt(0);
   for (const d of docs) {
     try {
-      total += BigInt(String(d.amountRaw || '0'));
+      total += parseRawAmount(d.remainingAmountRaw ?? d.amountRaw);
     } catch {
       // skip invalid
     }
@@ -16,26 +17,32 @@ export function sumAmountRaw(docs) {
  * Operator registry analytics for a mint + network (requires Mongo connected).
  */
 export async function computeOperatorStats(mint, network) {
-  const openDocs = await StreamflowLock.find({ mint, network, closed: false }).lean();
-  const closedLockCount = await StreamflowLock.countDocuments({ mint, network, closed: true });
+  const atUnix = nowUnix();
+  const allOpenDocs = await StreamflowLock.find({ mint, network, closed: false }).lean();
+  const openDocs = allOpenDocs.filter((d) => isLockActive(d, atUnix));
+  const closedLockCount = await StreamflowLock.countDocuments({
+    mint,
+    network,
+    $or: [{ closed: true }, { status: { $in: ['closed', 'expired'] } }],
+  });
   const wallets = new Set(openDocs.map((d) => d.wallet));
   const recent = await StreamflowLock.find({ mint, network })
     .sort({ updatedAt: -1 })
     .limit(25)
-    .select('streamId wallet amountFormatted unlockAtIso closed source')
+    .select('streamId wallet amountFormatted unlockAtIso closed status source')
     .lean();
 
-  /** One row per wallet with at least one open lock (active staking). */
+  /** One row per wallet with at least one active lock. */
   const byWallet = new Map();
   for (const d of openDocs) {
     const w = d.wallet;
     if (!byWallet.has(w)) {
-      byWallet.set(w, { openLockCount: 0, totalAmountRaw: BigInt(0) });
+      byWallet.set(w, { openLockCount: 0, totalAmountRaw: 0n });
     }
     const row = byWallet.get(w);
     row.openLockCount += 1;
     try {
-      row.totalAmountRaw += BigInt(String(d.amountRaw || '0'));
+      row.totalAmountRaw += parseRawAmount(computeRemainingAmountRaw(d));
     } catch {
       // skip bad amountRaw
     }
@@ -68,6 +75,7 @@ export async function computeOperatorStats(mint, network) {
       amountFormatted: r.amountFormatted,
       unlockAtIso: r.unlockAtIso,
       closed: Boolean(r.closed),
+      status: r.status,
       source: r.source,
     })),
   };

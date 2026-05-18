@@ -18,9 +18,11 @@ export interface StreamflowLockRegistryItem {
   withdrawnFormatted?: string;
   unlockAtUnix: number;
   unlockAtIso: string;
+  lockDurationSeconds?: number | null;
   network: "mainnet" | "devnet";
   source: "app" | "onchain_sync";
   closed?: boolean;
+  status?: "active" | "expired" | "closed";
   metadata?: Record<string, unknown> | null;
 }
 
