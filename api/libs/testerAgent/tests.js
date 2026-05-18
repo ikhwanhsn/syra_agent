@@ -402,6 +402,7 @@ const SKIP_PAID_RESPONSE_IDS = new Set([
  * `TESTER_AGENT_CONFIG.paidResponseChecksWhenPayerSet` is true.
  */
 export function shouldRunPaidResponseChecks() {
+  if (TESTER_AGENT_CONFIG.paidX402ProbesEnabled !== true) return false;
   if (!String(process.env.PAYER_KEYPAIR || "").trim()) return false;
   return TESTER_AGENT_CONFIG.paidResponseChecksWhenPayerSet === true;
 }
@@ -813,8 +814,11 @@ export async function testAllX402SmokeProbes(baseUrl, signal) {
   };
 }
 
-const includePaidNews = Boolean(String(process.env.PAYER_KEYPAIR || "").trim());
+const paidProbesOn = TESTER_AGENT_CONFIG.paidX402ProbesEnabled === true;
+const includePaidNews =
+  paidProbesOn && Boolean(String(process.env.PAYER_KEYPAIR || "").trim());
 const includeBasePaidNews =
+  paidProbesOn &&
   TESTER_AGENT_CONFIG.includeBasePaidNewsE2E === true &&
   Boolean(String(process.env.CMC_PAYER_PRIVATE_KEY || "").trim());
 const runPaidSchema = includePaidNews && shouldRunPaidResponseChecks();

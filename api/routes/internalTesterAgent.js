@@ -38,7 +38,7 @@ export function createInternalTesterAgentRouter() {
     res.json({
       service: "tester-agent",
       description:
-        "x402 health: unpaid 402 smoke on every route; with PAYER_KEYPAIR, paid JSON checks unless disabled in testerAgentConfig.js.",
+        "x402 health: unpaid 402 smoke on every route; paid Solana/Base probes only when paidX402ProbesEnabled in testerAgentConfig.js.",
       run: "POST or GET /internal/tester-agent/run",
       probeBaseUrl: "SYRA_PROBE_BASE_URL in testerAgentConfig.js",
       configModule: "api/libs/testerAgent/testerAgentConfig.js",

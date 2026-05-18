@@ -35,6 +35,14 @@ function formatFailureMessage(baseUrl, result) {
  * Starts setInterval; safe to call once at process startup.
  */
 export function startHealthX402Monitor() {
+  if (TESTER_AGENT_CONFIG.healthX402MonitorEnabled !== true) {
+    console.log("[health-x402-monitor] disabled (testerAgentConfig.healthX402MonitorEnabled)");
+    return;
+  }
+  if (TESTER_AGENT_CONFIG.paidX402ProbesEnabled !== true) {
+    console.log("[health-x402-monitor] disabled (testerAgentConfig.paidX402ProbesEnabled)");
+    return;
+  }
   const baseUrl = SYRA_PROBE_BASE_URL.replace(/\/+$/, "");
   if (!String(process.env.PAYER_KEYPAIR || "").trim()) {
     console.warn("[health-x402-monitor] skipped: set PAYER_KEYPAIR to pay x402 /health");

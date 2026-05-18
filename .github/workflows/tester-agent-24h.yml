@@ -1,11 +1,10 @@
-# Runs the Syra internal x402 tester (smoke + optional paid Solana; Base E2E gated in testerAgentConfig.js) every 24 hours.
+# Manual-only: paid Solana/Base x402 probes are paused in api/libs/testerAgent/testerAgentConfig.js
+# (`paidX402ProbesEnabled: false`) to avoid facilitator transaction spam.
 # Configure repository secrets: SYRA_TESTER_BASE_URL (e.g. https://api.syraa.fun) and
 # SYRA_TESTER_AGENT_CRON_SECRET (must match the API’s TESTER_AGENT_CRON_SECRET when set).
 name: x402 tester agent (24h)
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch: {}
 
 jobs:

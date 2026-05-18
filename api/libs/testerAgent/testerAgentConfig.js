@@ -3,7 +3,9 @@
  *
  * Probe origin: `SYRA_PROBE_BASE_URL` below (in-process schedule, health monitor, `/internal/tester-agent/run`).
  *
- * Still read from environment (secrets only):
+ * Paid probes (Solana + Base): gated by `paidX402ProbesEnabled` below (off by default while facilitator load is high).
+ *
+ * Still read from environment (secrets only, when paid probes are enabled):
  * - `PAYER_KEYPAIR` — enables paid Solana x402 JSON checks when set.
  * - `CMC_PAYER_PRIVATE_KEY` — required for Base GET /news E2E when `includeBasePaidNewsE2E` is true.
  * - `TESTER_AGENT_CRON_SECRET` / `TESTER_AGENT_SKIP_BUYBACK_SECRET` — auth + buyback skip for probes.
@@ -17,8 +19,13 @@
 /** Public API origin for scheduled probes and health x402 monitor (no trailing slash). */
 export const SYRA_PROBE_BASE_URL = "https://api.syraa.fun";
 
-/** @type {Readonly<{ smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; includeBasePaidNewsE2E: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number; healthX402MonitorIntervalMs: number; healthX402MonitorTimeoutMs: number; healthX402MonitorRunOnStart: boolean }>} */
+/** @type {Readonly<{ paidX402ProbesEnabled: boolean; smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; includeBasePaidNewsE2E: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number; healthX402MonitorEnabled: boolean; healthX402MonitorIntervalMs: number; healthX402MonitorTimeoutMs: number; healthX402MonitorRunOnStart: boolean }>} */
 export const TESTER_AGENT_CONFIG = Object.freeze({
+  /**
+   * Master switch for all x402 payment/settlement probes (Solana + Base).
+   * When false: no paid catalog, no GET /news E2E, no health x402 monitor — only unpaid 402 smoke if invoked manually.
+   */
+  paidX402ProbesEnabled: false,
   /**
    * Parallel unpaid smoke fetches per batch when not using inter-probe throttling or grouped smoke batches.
    * 3× baseline (was 8): higher fan-out against the API smoke catalog.
@@ -48,10 +55,10 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
    * Off by default — Solana-only tester runs until Base E2E is needed again.
    */
   includeBasePaidNewsE2E: false,
-  /** In-process scheduled runner in `api/index.js`. 3× baseline (was 24h → 8h between full suite runs). */
-  inProcessScheduleEnabled: true,
+  /** In-process scheduled runner in `api/index.js`. Paused while paid probes are off. */
+  inProcessScheduleEnabled: false,
   scheduleIntervalMs: 8 * 60 * 60 * 1000,
-  scheduleRunOnStart: true,
+  scheduleRunOnStart: false,
   /** End the tester run on HTTP 429 / facilitator “Too Many Requests” (skip remaining probes and later suite steps). */
   stopSuiteOnRateLimit429: true,
   /**
@@ -60,8 +67,9 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
    */
   facilitatorRetryMaxAttempts: 6,
   facilitatorRetryBaseDelayMs: 2000,
-  /** Paid GET /health x402 monitor (`healthX402Monitor.js`). 3× baseline (was 60s). */
+  /** Paid GET /health x402 monitor (`healthX402Monitor.js`). Paused while facilitator load is high. */
+  healthX402MonitorEnabled: false,
   healthX402MonitorIntervalMs: 20_000,
   healthX402MonitorTimeoutMs: 120_000,
-  healthX402MonitorRunOnStart: true,
+  healthX402MonitorRunOnStart: false,
 });
