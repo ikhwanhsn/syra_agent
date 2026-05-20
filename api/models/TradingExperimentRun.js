@@ -8,7 +8,7 @@ const tradingExperimentRunSchema = new mongoose.Schema(
   {
     /** Isolated experiment ledger: primary (default / legacy) vs secondary. */
     suite: { type: String, default: "primary", index: true },
-    agentId: { type: Number, required: true, min: 0, max: 99, index: true },
+    agentId: { type: Number, required: true, min: 0, max: 999, index: true },
     agentName: { type: String, required: true },
     token: { type: String, required: true },
     bar: { type: String, required: true },

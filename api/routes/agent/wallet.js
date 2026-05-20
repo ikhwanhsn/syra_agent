@@ -16,6 +16,64 @@ const avatarGenerator = new AvatarGenerator();
 
 const router = express.Router();
 
+const LIST_DEFAULT_LIMIT = 100;
+const LIST_MAX_LIMIT = 200;
+const WALLET_GROUP_DEFAULT_LIMIT = 10;
+const WALLET_GROUP_MAX_LIMIT = 50;
+
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildLinkedWalletMatch(walletFilter, search, chain) {
+  const clauses = [{ walletAddress: { $exists: true, $nin: [null, ''] } }];
+  if (walletFilter) clauses.push({ walletAddress: walletFilter });
+  const q = typeof search === 'string' ? search.trim() : '';
+  if (q) {
+    const re = new RegExp(escapeRegex(q), 'i');
+    clauses.push({ $or: [{ walletAddress: re }, { agentAddress: re }, { anonymousId: re }] });
+  }
+  if (chain === 'base') {
+    clauses.push({ chain: 'base' });
+  } else if (chain === 'solana') {
+    clauses.push({
+      $or: [{ chain: 'solana' }, { chain: { $exists: false } }, { chain: null }],
+    });
+  }
+  if (clauses.length === 1) return clauses[0];
+  return { $and: clauses };
+}
+
+function serializeAgentDoc(doc) {
+  return {
+    anonymousId: doc.anonymousId,
+    walletAddress: doc.walletAddress,
+    chain: doc.chain || 'solana',
+    agentAddress: doc.agentAddress,
+    avatarUrl: doc.avatarUrl || null,
+    createdAt: doc.createdAt?.toISOString?.() ?? doc.createdAt ?? null,
+    updatedAt: doc.updatedAt?.toISOString?.() ?? doc.updatedAt ?? null,
+  };
+}
+
+async function listGlobalStats(match) {
+  const [totalAgents, totalUsers, chainCounts] = await Promise.all([
+    AgentWallet.countDocuments(match),
+    AgentWallet.distinct('walletAddress', match).then((rows) => rows.length),
+    AgentWallet.aggregate([
+      { $match: match },
+      { $group: { _id: { $ifNull: ['$chain', 'solana'] }, count: { $sum: 1 } } },
+    ]),
+  ]);
+  let solanaCount = 0;
+  let baseCount = 0;
+  for (const row of chainCounts) {
+    if (row._id === 'base') baseCount = row.count;
+    else solanaCount += row.count;
+  }
+  return { totalAgents, totalUsers, solanaCount, baseCount };
+}
+
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const LAMPORTS_PER_SOL = 1e9;
 
@@ -32,6 +90,126 @@ function decodeAnonymousId(param) {
     return param;
   }
 }
+
+/**
+ * GET /agent/wallet/list
+ * List agent wallets linked to user wallets (walletAddress set).
+ * Query:
+ *   - groupBy=wallet — paginate by user wallet (nested agents per wallet)
+ *   - limit, offset — page size (wallet groups or flat agents)
+ *   - walletAddress — exact user wallet filter
+ *   - q — search wallet / agent / anonymousId (case-insensitive)
+ *   - chain — "solana" | "base" (optional)
+ */
+router.get('/list', async (req, res) => {
+  try {
+    const rawLimit = Number.parseInt(String(req.query?.limit ?? ''), 10);
+    const rawOffset = Number.parseInt(String(req.query?.offset ?? ''), 10);
+    const groupByWallet = req.query?.groupBy === 'wallet';
+    const maxLimit = groupByWallet ? WALLET_GROUP_MAX_LIMIT : LIST_MAX_LIMIT;
+    const defaultLimit = groupByWallet ? WALLET_GROUP_DEFAULT_LIMIT : LIST_DEFAULT_LIMIT;
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), maxLimit)
+      : defaultLimit;
+    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
+    const walletFilter =
+      typeof req.query?.walletAddress === 'string' && req.query.walletAddress.trim()
+        ? req.query.walletAddress.trim()
+        : null;
+    const search = typeof req.query?.q === 'string' ? req.query.q : '';
+    const chainParam = req.query?.chain === 'base' ? 'base' : req.query?.chain === 'solana' ? 'solana' : null;
+
+    const match = buildLinkedWalletMatch(walletFilter, search, chainParam);
+
+    if (groupByWallet) {
+      const stats = await listGlobalStats(match);
+      const grouped = await AgentWallet.aggregate([
+        { $match: match },
+        { $sort: { updatedAt: -1 } },
+        {
+          $group: {
+            _id: '$walletAddress',
+            agents: {
+              $push: {
+                anonymousId: '$anonymousId',
+                walletAddress: '$walletAddress',
+                chain: { $ifNull: ['$chain', 'solana'] },
+                agentAddress: '$agentAddress',
+                avatarUrl: '$avatarUrl',
+                createdAt: '$createdAt',
+                updatedAt: '$updatedAt',
+              },
+            },
+            latestUpdatedAt: { $max: '$updatedAt' },
+          },
+        },
+        { $sort: { latestUpdatedAt: -1 } },
+        {
+          $facet: {
+            page: [{ $skip: offset }, { $limit: limit }],
+            meta: [{ $count: 'totalUsers' }],
+          },
+        },
+      ]);
+
+      const facet = grouped[0] ?? { page: [], meta: [] };
+      const totalUsers = facet.meta[0]?.totalUsers ?? stats.totalUsers;
+      const wallets = (facet.page ?? []).map((row) => ({
+        walletAddress: row._id,
+        latestUpdatedAt: row.latestUpdatedAt?.toISOString?.() ?? row.latestUpdatedAt ?? null,
+        agents: (row.agents ?? []).map((doc) => serializeAgentDoc(doc)),
+      }));
+
+      return res.json({
+        success: true,
+        groupBy: 'wallet',
+        totalAgents: stats.totalAgents,
+        totalUsers,
+        solanaCount: stats.solanaCount,
+        baseCount: stats.baseCount,
+        limit,
+        offset,
+        wallets,
+      });
+    }
+
+    const sortParam = req.query?.sort;
+    const orderDir = req.query?.order === 'asc' ? 1 : -1;
+    let sortSpec = { updatedAt: orderDir };
+    if (sortParam === 'wallet') sortSpec = { walletAddress: orderDir, updatedAt: -1 };
+    else if (sortParam === 'chain') sortSpec = { chain: orderDir, walletAddress: orderDir, updatedAt: -1 };
+    else if (sortParam === 'agent') sortSpec = { agentAddress: orderDir, updatedAt: -1 };
+
+    const [total, agents, stats] = await Promise.all([
+      AgentWallet.countDocuments(match),
+      AgentWallet.find(match)
+        .select('anonymousId walletAddress chain agentAddress avatarUrl createdAt updatedAt')
+        .sort(sortSpec)
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      listGlobalStats(match),
+    ]);
+
+    const userIds = new Set(agents.map((a) => a.walletAddress).filter(Boolean));
+
+    return res.json({
+      success: true,
+      total,
+      userCount: userIds.size,
+      totalAgents: stats.totalAgents,
+      totalUsers: stats.totalUsers,
+      solanaCount: stats.solanaCount,
+      baseCount: stats.baseCount,
+      limit,
+      offset,
+      agents: agents.map((doc) => serializeAgentDoc(doc)),
+    });
+  } catch (error) {
+    console.error('[agent/wallet] list error:', error?.message ?? String(error));
+    return res.status(500).json({ success: false, error: error.message || 'Failed to list agent wallets' });
+  }
+});
 
 /**
  * GET /agent/wallet/:anonymousId/balance
@@ -158,16 +336,23 @@ router.get('/:anonymousId', async (req, res) => {
     if (!anonymousId) {
       return res.status(400).json({ success: false, error: 'anonymousId is required' });
     }
-    const doc = await AgentWallet.findOne({ anonymousId }).select('agentAddress avatarUrl chain').lean();
+    const doc = await AgentWallet.findOne({ anonymousId })
+      .select('anonymousId walletAddress chain agentAddress avatarUrl createdAt updatedAt')
+      .lean();
     if (!doc) {
       return res.status(404).json({ success: false, error: 'Agent wallet not found' });
     }
     const solanaAgentAddress = await getSolanaAgentAddress(anonymousId);
     return res.json({
       success: true,
+      anonymousId: doc.anonymousId,
+      walletAddress: doc.walletAddress || null,
+      chain: doc.chain || 'solana',
       agentAddress: doc.agentAddress,
       avatarUrl: doc.avatarUrl || null,
       solanaAgentAddress: solanaAgentAddress || null,
+      createdAt: doc.createdAt?.toISOString?.() ?? doc.createdAt ?? null,
+      updatedAt: doc.updatedAt?.toISOString?.() ?? doc.updatedAt ?? null,
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });

@@ -3,12 +3,13 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { SignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getAssociatedTokenAddressSync, getAccount } from "@solana/spl-token";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { formatUnits, parseUnits } from "@/lib/format";
 import {
   createTokenLockStake,
+  fetchAtaBalance,
   fetchUserTokenLocksAll,
+  mapStreamflowError,
   type UserLockRow,
 } from "@/lib/streamflowStaking";
 import {
@@ -62,6 +63,8 @@ export interface StreamflowStakingState {
   walletBalanceRaw: bigint;
   walletBalanceFormatted: string;
   refetch: () => Promise<void>;
+  /** Refetch only the wallet's SPL balance (cheap; used by Max/50% buttons). */
+  refreshBalance: () => Promise<bigint>;
   lockTokens: (amount: string, lockDurationSeconds: number) => Promise<string>;
   loading: boolean;
   actionLoading: boolean;
@@ -87,17 +90,18 @@ export function useStreamflowStaking(): StreamflowStakingState {
     [walletBalanceRaw, decimals]
   );
 
-  const fetchBalance = useCallback(async () => {
+  const fetchBalance = useCallback(async (): Promise<bigint> => {
     if (!publicKey) {
       setWalletBalanceRaw(BigInt(0));
-      return;
+      return BigInt(0);
     }
     try {
-      const ata = getAssociatedTokenAddressSync(mint, publicKey, false);
-      const acc = await getAccount(connection, ata).catch(() => null);
-      setWalletBalanceRaw(acc?.amount ?? BigInt(0));
+      const { balance } = await fetchAtaBalance(connection, mint, publicKey);
+      setWalletBalanceRaw(balance);
+      return balance;
     } catch {
       setWalletBalanceRaw(BigInt(0));
+      return BigInt(0);
     }
   }, [connection, publicKey, mint]);
 
@@ -213,6 +217,24 @@ export function useStreamflowStaking(): StreamflowStakingState {
     await fetchData();
   }, [fetchData]);
 
+  /** Auto-refresh balance when the tab regains focus, so users coming back
+   *  from a swap/transfer in their wallet see fresh numbers before staking. */
+  useEffect(() => {
+    if (!publicKey) return;
+    const onFocus = () => {
+      void fetchBalance();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void fetchBalance();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [publicKey, fetchBalance]);
+
   const lockTokens = useCallback(
     async (amount: string, lockDurationSeconds: number): Promise<string> => {
       if (!connected || !wallet?.adapter) {
@@ -224,10 +246,17 @@ export function useStreamflowStaking(): StreamflowStakingState {
       if (raw <= BigInt(1)) {
         throw new Error("Amount too small for Streamflow (minimum 2 base units)");
       }
-      if (raw > walletBalanceRaw) throw new Error("Insufficient balance");
       setActionLoading(true);
       setError(null);
       try {
+        const liveBalance = await fetchBalance();
+        if (raw > liveBalance) {
+          throw new Error(
+            `Insufficient ${STREAMFLOW_CONFIG.tokenSymbol} balance. You have ` +
+              `${formatUnits(liveBalance, decimals, decimals)} but tried to lock ` +
+              `${formatUnits(raw, decimals, decimals)}.`
+          );
+        }
         const { txId, metadataId, unlockAtUnix } = await createTokenLockStake(
           connection,
           adapter,
@@ -268,14 +297,23 @@ export function useStreamflowStaking(): StreamflowStakingState {
         await refetchAll();
         return txId;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Lock failed";
-        setError(msg);
-        throw e instanceof Error ? e : new Error(msg);
+        const mapped = mapStreamflowError(e, STREAMFLOW_CONFIG.tokenSymbol);
+        setError(mapped.message);
+        throw mapped;
       } finally {
         setActionLoading(false);
       }
     },
-    [connected, wallet?.adapter, decimals, walletBalanceRaw, connection, refetchAll, publicKey, mint]
+    [
+      connected,
+      wallet?.adapter,
+      decimals,
+      connection,
+      refetchAll,
+      publicKey,
+      mint,
+      fetchBalance,
+    ]
   );
 
   return {
@@ -284,6 +322,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
     walletBalanceRaw,
     walletBalanceFormatted,
     refetch: refetchAll,
+    refreshBalance: fetchBalance,
     lockTokens,
     loading,
     actionLoading,

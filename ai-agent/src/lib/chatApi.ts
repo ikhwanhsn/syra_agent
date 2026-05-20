@@ -415,10 +415,186 @@ export const agentWalletApi = {
     };
   },
 
+  /** List agent wallets linked to user wallets (flat, paginated by agent). */
+  async list(options?: {
+    limit?: number;
+    offset?: number;
+    walletAddress?: string;
+    q?: string;
+    chain?: "solana" | "base";
+    sort?: "updated" | "wallet" | "chain" | "agent";
+    order?: "asc" | "desc";
+  }): Promise<{
+    total: number;
+    userCount: number;
+    totalAgents: number;
+    totalUsers: number;
+    solanaCount: number;
+    baseCount: number;
+    limit: number;
+    offset: number;
+    agents: Array<{
+      anonymousId: string;
+      walletAddress: string;
+      chain: "solana" | "base";
+      agentAddress: string;
+      avatarUrl: string | null;
+      createdAt: string | null;
+      updatedAt: string | null;
+    }>;
+  }> {
+    const params = new URLSearchParams();
+    if (options?.limit != null) params.set("limit", String(options.limit));
+    if (options?.offset != null) params.set("offset", String(options.offset));
+    if (options?.walletAddress?.trim()) params.set("walletAddress", options.walletAddress.trim());
+    if (options?.q?.trim()) params.set("q", options.q.trim());
+    if (options?.chain) params.set("chain", options.chain);
+    if (options?.sort) params.set("sort", options.sort);
+    if (options?.order) params.set("order", options.order);
+    const qs = params.toString();
+    const res = await fetch(`${agentWalletBase()}/list${qs ? `?${qs}` : ""}`, {
+      headers: getApiHeaders(),
+    });
+    const data = await handleRes<{
+      success: boolean;
+      total: number;
+      userCount: number;
+      totalAgents?: number;
+      totalUsers?: number;
+      solanaCount?: number;
+      baseCount?: number;
+      limit: number;
+      offset: number;
+      agents: Array<{
+        anonymousId: string;
+        walletAddress: string;
+        chain: "solana" | "base";
+        agentAddress: string;
+        avatarUrl: string | null;
+        createdAt: string | null;
+        updatedAt: string | null;
+      }>;
+    }>(res);
+    return {
+      total: data.total,
+      userCount: data.userCount,
+      totalAgents: data.totalAgents ?? data.total,
+      totalUsers: data.totalUsers ?? data.userCount,
+      solanaCount: data.solanaCount ?? 0,
+      baseCount: data.baseCount ?? 0,
+      limit: data.limit,
+      offset: data.offset,
+      agents: data.agents,
+    };
+  },
+
+  /** List agents grouped by user wallet (paginated by wallet group). */
+  async listGroupedByWallet(options?: {
+    limit?: number;
+    offset?: number;
+    walletAddress?: string;
+    q?: string;
+  }): Promise<{
+    totalAgents: number;
+    totalUsers: number;
+    solanaCount: number;
+    baseCount: number;
+    limit: number;
+    offset: number;
+    wallets: Array<{
+      walletAddress: string;
+      latestUpdatedAt: string | null;
+      agents: Array<{
+        anonymousId: string;
+        walletAddress: string;
+        chain: "solana" | "base";
+        agentAddress: string;
+        avatarUrl: string | null;
+        createdAt: string | null;
+        updatedAt: string | null;
+      }>;
+    }>;
+  }> {
+    const params = new URLSearchParams({ groupBy: "wallet" });
+    if (options?.limit != null) params.set("limit", String(options.limit));
+    if (options?.offset != null) params.set("offset", String(options.offset));
+    if (options?.walletAddress?.trim()) params.set("walletAddress", options.walletAddress.trim());
+    if (options?.q?.trim()) params.set("q", options.q.trim());
+    const res = await fetch(`${agentWalletBase()}/list?${params.toString()}`, {
+      headers: getApiHeaders(),
+    });
+    const data = await handleRes<{
+      success: boolean;
+      totalAgents: number;
+      totalUsers: number;
+      solanaCount: number;
+      baseCount: number;
+      limit: number;
+      offset: number;
+      wallets: Array<{
+        walletAddress: string;
+        latestUpdatedAt: string | null;
+        agents: Array<{
+          anonymousId: string;
+          walletAddress: string;
+          chain: "solana" | "base";
+          agentAddress: string;
+          avatarUrl: string | null;
+          createdAt: string | null;
+          updatedAt: string | null;
+        }>;
+      }>;
+    }>(res);
+    return {
+      totalAgents: data.totalAgents,
+      totalUsers: data.totalUsers,
+      solanaCount: data.solanaCount,
+      baseCount: data.baseCount,
+      limit: data.limit,
+      offset: data.offset,
+      wallets: data.wallets,
+    };
+  },
+
   /** Get agent wallet address by anonymousId (404 if not created yet). Includes solanaAgentAddress for 8004 "Your Agents" filter. */
   async get(anonymousId: string): Promise<{ agentAddress: string; avatarUrl?: string | null; solanaAgentAddress?: string | null }> {
     const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
     return handleRes(res);
+  },
+
+  /** Full agent wallet profile for dashboard detail view. */
+  async getProfile(anonymousId: string): Promise<{
+    anonymousId: string;
+    walletAddress: string | null;
+    chain: "solana" | "base";
+    agentAddress: string;
+    avatarUrl: string | null;
+    solanaAgentAddress: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+  }> {
+    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
+    const data = await handleRes<{
+      success: boolean;
+      anonymousId: string;
+      walletAddress: string | null;
+      chain: "solana" | "base";
+      agentAddress: string;
+      avatarUrl: string | null;
+      solanaAgentAddress: string | null;
+      createdAt: string | null;
+      updatedAt: string | null;
+    }>(res);
+    return {
+      anonymousId: data.anonymousId,
+      walletAddress: data.walletAddress,
+      chain: data.chain === "base" ? "base" : "solana",
+      agentAddress: data.agentAddress,
+      avatarUrl: data.avatarUrl ?? null,
+      solanaAgentAddress: data.solanaAgentAddress ?? null,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
   },
 
   /** Get agent wallet SOL and USDC balance. */

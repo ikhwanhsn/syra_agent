@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { SearchX, Home, Store } from "lucide-react";
+import { SearchX, Home, LayoutDashboard } from "lucide-react";
 
 const NotFound = () => {
   return (
@@ -39,9 +39,9 @@ const NotFound = () => {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="gap-2 min-w-[160px]">
-            <Link to="/dashboard/marketplace/prompts">
-              <Store className="h-4 w-4" />
-              Marketplace
+            <Link to="/dashboard/overview">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
             </Link>
           </Button>
         </div>

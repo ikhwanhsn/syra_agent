@@ -1,11 +1,31 @@
-import { useCallback, useState, type ReactNode } from "react";
-import { Check, Copy, ExternalLink, Loader2, Shield, SlidersHorizontal, Sparkles, User, UserRound, Wallet2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowUpRight,
+  Bot,
+  Check,
+  Copy,
+  ExternalLink,
+  FlaskConical,
+  Loader2,
+  MessageSquareText,
+  RefreshCw,
+  Sparkles,
+  User,
+  Wallet2,
+  Zap,
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -13,54 +33,44 @@ import {
   PAGE_PADDING_TOP_STANDARD,
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
+import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
+import { overviewAccentBackground, overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
+import { agentDetailPath } from "@/lib/agentWalletUi";
+import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
+import {
+  LS_AGENT_DISPLAY_NAME,
+  LS_AGENT_SYSTEM_PROMPT,
+  LS_PREF_COMPACT,
+  LS_PREF_PRODUCT_UPDATES,
+  LS_PREF_USAGE_INSIGHTS,
+  readAgentSetupBool,
+  readAgentSetupString,
+  writeAgentSetupBool,
+  writeAgentSetupString,
+} from "@/lib/agentSetupStorage";
+import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
 
-const LS_DISPLAY_NAME = "syra.settings.displayName";
-const LS_PREF_PRODUCT_UPDATES = "syra.settings.pref.productUpdates";
-const LS_PREF_USAGE_INSIGHTS = "syra.settings.pref.usageInsights";
-const LS_PREF_COMPACT = "syra.settings.pref.compactDensity";
+const STALE_MS = 45_000;
 
-function readString(key: string, fallback: string): string {
-  try {
-    return localStorage.getItem(key) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
+type SetupChain = "solana" | "base";
 
-function readBool(key: string, fallback: boolean): boolean {
-  try {
-    const v = localStorage.getItem(key);
-    if (v === null) return fallback;
-    return v === "1" || v === "true";
-  } catch {
-    return fallback;
-  }
-}
-
-function writeString(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    /* quota / private mode */
-  }
-}
-
-function writeBool(key: string, value: boolean): void {
-  try {
-    localStorage.setItem(key, value ? "1" : "0");
-  } catch {
-    /* quota / private mode */
-  }
+interface AgentSetupRecord {
+  anonymousId: string;
+  agentAddress: string;
+  avatarUrl: string | null;
+  chain: SetupChain;
+  walletAddress: string;
 }
 
 function maskAnonymousId(id: string): string {
   if (!id) return "—";
   if (id.startsWith("wallet:")) {
-    const pubkey = id.slice(7).trim();
+    const pubkey = id.slice(7).replace(":base", "").trim();
     if (pubkey.length <= 8) return pubkey;
     return `${pubkey.slice(0, 4)}…${pubkey.slice(-4)}`;
   }
@@ -68,19 +78,19 @@ function maskAnonymousId(id: string): string {
   return `${id.slice(0, 6)}…${id.slice(-4)}`;
 }
 
-function formatTokenAmount(value: number | null | undefined, maxDecimals: number): string {
-  if (value == null || Number.isNaN(value)) return "—";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 10_000) return `${(value / 1_000).toFixed(1)}k`;
-  if (value >= 1) return value.toFixed(maxDecimals);
-  return value.toFixed(Math.min(6, maxDecimals));
+function shortenAddress(addr: string, chain: SetupChain): string {
+  if (!addr) return "—";
+  if (chain === "base" || addr.startsWith("0x")) {
+    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  }
+  return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
 function FieldShell({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        "flex min-h-10 w-full items-center rounded-lg border border-border/80 bg-muted/20 px-3.5 py-2.5 text-[13px] text-muted-foreground/90 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.35)]",
+        "flex min-h-10 w-full items-center rounded-xl border border-border/80 bg-muted/20 px-3.5 py-2.5 text-[13px] text-muted-foreground/90",
         className,
       )}
     >
@@ -89,67 +99,142 @@ function FieldShell({ children, className }: { children: ReactNode; className?: 
   );
 }
 
-export interface DashboardSettingsProps {
-  /** When embedded in the agent app (`/settings`), use tighter top rhythm and copy. */
-  layout?: "dashboard" | "agent";
+async function fetchAgentSetup(walletAddress: string, chain: SetupChain): Promise<AgentSetupRecord> {
+  const res = await agentWalletApi.getOrCreateByWallet(walletAddress, chain);
+  return {
+    anonymousId: res.anonymousId,
+    agentAddress: res.agentAddress,
+    avatarUrl: res.avatarUrl ?? null,
+    chain,
+    walletAddress,
+  };
 }
 
-const RESOURCE_LINKS = [
-  { href: "https://docs.syraa.fun", label: "Help & documentation" },
-  { href: "https://syraa.fun", label: "Syra website" },
-  { href: "https://x.com/syra_agent", label: "Syra on X" },
-] as const;
+export interface DashboardSettingsProps {
+  layout?: "dashboard" | "agent";
+  embedded?: boolean;
+}
 
-export default function DashboardSettings({ layout = "dashboard" }: DashboardSettingsProps) {
+export default function DashboardSettings({ layout = "dashboard", embedded = false }: DashboardSettingsProps) {
   const { toast } = useToast();
-  const { connected, shortAddress, baseConnected, baseShortAddress } = useWalletContext();
+  const queryClient = useQueryClient();
   const {
-    ready,
-    anonymousId,
-    agentAddress,
-    agentShortAddress,
+    address: solanaAddress,
+    shortAddress,
+    baseAddress,
+    baseShortAddress,
+    baseConnected,
+    effectiveChain,
+    connectForChain,
+  } = useWalletContext();
+  const {
+    ready: contextReady,
+    anonymousId: contextAnonymousId,
+    agentAddress: contextAgentAddress,
+    avatarUrl: contextAvatarUrl,
+    connectedChain,
+    connectedWalletAddress,
+    refetchBalance,
+    updateAvatarUrl,
     agentSolBalance,
     agentUsdcBalance,
     agentBaseEthBalance,
     agentBaseUsdcBalance,
-    connectedWalletAddress,
-    connectedChain,
-    refetchBalance,
-    avatarUrl,
-    updateAvatarUrl,
   } = useAgentWallet();
 
-  const [displayName, setDisplayName] = useState(() => readString(LS_DISPLAY_NAME, ""));
-  const [productUpdates, setProductUpdates] = useState(() => readBool(LS_PREF_PRODUCT_UPDATES, true));
-  const [usageInsights, setUsageInsights] = useState(() => readBool(LS_PREF_USAGE_INSIGHTS, false));
-  const [compactDensity, setCompactDensity] = useState(() => readBool(LS_PREF_COMPACT, false));
+  const hasSolana = Boolean(solanaAddress);
+  const hasBase = Boolean(baseAddress);
+  const chainTabs: SetupChain[] = useMemo(() => {
+    const tabs: SetupChain[] = [];
+    if (hasSolana) tabs.push("solana");
+    if (hasBase) tabs.push("base");
+    return tabs;
+  }, [hasSolana, hasBase]);
+
+  const [activeChain, setActiveChain] = useState<SetupChain>(() => {
+    if (effectiveChain === "base" && hasBase) return "base";
+    if (hasSolana) return "solana";
+    return "base";
+  });
+
+  useEffect(() => {
+    if (chainTabs.length === 0) return;
+    if (!chainTabs.includes(activeChain)) {
+      setActiveChain(chainTabs[0] ?? "solana");
+    }
+  }, [chainTabs, activeChain]);
+
+  const solanaQ = useQuery({
+    queryKey: ["agent-setup", "solana", solanaAddress],
+    queryFn: () => fetchAgentSetup(solanaAddress!, "solana"),
+    enabled: hasSolana,
+    staleTime: STALE_MS,
+  });
+
+  const baseQ = useQuery({
+    queryKey: ["agent-setup", "base", baseAddress],
+    queryFn: () => fetchAgentSetup(baseAddress!, "base"),
+    enabled: hasBase,
+    staleTime: STALE_MS,
+  });
+
+  const guestAgent: AgentSetupRecord | undefined = useMemo(() => {
+    if (hasSolana || hasBase || !contextReady || !contextAnonymousId || !contextAgentAddress) return undefined;
+    return {
+      anonymousId: contextAnonymousId,
+      agentAddress: contextAgentAddress,
+      avatarUrl: contextAvatarUrl,
+      chain: "solana",
+      walletAddress: connectedWalletAddress ?? "",
+    };
+  }, [
+    hasSolana,
+    hasBase,
+    contextReady,
+    contextAnonymousId,
+    contextAgentAddress,
+    contextAvatarUrl,
+    connectedWalletAddress,
+  ]);
+
+  const activeAgent =
+    chainTabs.length > 0
+      ? activeChain === "base"
+        ? baseQ.data
+        : solanaQ.data
+      : guestAgent;
+  const activeQ = chainTabs.length > 0 ? (activeChain === "base" ? baseQ : solanaQ) : { isLoading: !contextReady, isFetching: false };
+  const isContextAgent =
+    !!activeAgent &&
+    contextReady &&
+    activeAgent.anonymousId === contextAnonymousId &&
+    activeAgent.chain === connectedChain;
+
+  const balanceQ = useQuery({
+    queryKey: ["agent-wallet-balance", activeAgent?.anonymousId],
+    queryFn: () => agentWalletApi.getBalance(activeAgent!.anonymousId),
+    enabled: Boolean(activeAgent?.anonymousId) && activeChain === "solana",
+    staleTime: STALE_MS,
+  });
+
+  const [displayName, setDisplayName] = useState(() => readAgentSetupString(LS_AGENT_DISPLAY_NAME, ""));
+  const [customPrompt, setCustomPrompt] = useState(() => readAgentSetupString(LS_AGENT_SYSTEM_PROMPT, ""));
+  const [productUpdates, setProductUpdates] = useState(() => readAgentSetupBool(LS_PREF_PRODUCT_UPDATES, true));
+  const [usageInsights, setUsageInsights] = useState(() => readAgentSetupBool(LS_PREF_USAGE_INSIGHTS, false));
+  const [compactDensity, setCompactDensity] = useState(() => readAgentSetupBool(LS_PREF_COMPACT, false));
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [refreshingBalances, setRefreshingBalances] = useState(false);
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
+  const [refreshingBalances, setRefreshingBalances] = useState(false);
+  const [fuelOpen, setFuelOpen] = useState(false);
 
-  const saveDisplayName = useCallback(() => {
-    const trimmed = displayName.trim();
-    writeString(LS_DISPLAY_NAME, trimmed);
+  const saveIdentity = useCallback(() => {
+    writeAgentSetupString(LS_AGENT_DISPLAY_NAME, displayName.trim());
+    writeAgentSetupString(LS_AGENT_SYSTEM_PROMPT, customPrompt.trim());
     toast({
-      title: "Profile saved",
-      description: "Display name is stored on this device only.",
+      title: "Agent saved",
+      description: "Display name and instructions are stored on this device.",
     });
-  }, [displayName, toast]);
-
-  const setProductUpdatesPref = useCallback((v: boolean) => {
-    setProductUpdates(v);
-    writeBool(LS_PREF_PRODUCT_UPDATES, v);
-  }, []);
-
-  const setUsageInsightsPref = useCallback((v: boolean) => {
-    setUsageInsights(v);
-    writeBool(LS_PREF_USAGE_INSIGHTS, v);
-  }, []);
-
-  const setCompactPref = useCallback((v: boolean) => {
-    setCompactDensity(v);
-    writeBool(LS_PREF_COMPACT, v);
-  }, []);
+  }, [displayName, customPrompt, toast]);
 
   const copyToClipboard = useCallback(
     (text: string, label: string) => {
@@ -159,39 +244,25 @@ export default function DashboardSettings({ layout = "dashboard" }: DashboardSet
           setCopiedField(label);
           window.setTimeout(() => setCopiedField(null), 2000);
         },
-        () => toast({ title: "Could not copy", description: "Select the text and copy manually.", variant: "destructive" }),
+        () => toast({ title: "Could not copy", variant: "destructive" }),
       );
     },
     [toast],
   );
 
-  const handleRefreshBalances = useCallback(async () => {
-    if (!agentAddress) return;
-    setRefreshingBalances(true);
-    try {
-      await refetchBalance();
-      toast({ title: "Balances updated", description: "Loaded the latest amounts from the network." });
-    } finally {
-      setRefreshingBalances(false);
-    }
-  }, [agentAddress, refetchBalance, toast]);
-
   const handleGenerateAvatar = useCallback(async () => {
-    if (!anonymousId) {
-      toast({
-        title: "Session not ready",
-        description: "Connect a wallet and wait for the session to load, then try again.",
-        variant: "destructive",
-      });
+    if (!activeAgent?.anonymousId) {
+      toast({ title: "No agent", description: "Connect a wallet to configure an agent.", variant: "destructive" });
       return;
     }
     setGeneratingAvatar(true);
     try {
-      const result = await agentWalletApi.generateAvatar(anonymousId);
-      if (updateAvatarUrl && result.avatarUrl) {
+      const result = await agentWalletApi.generateAvatar(activeAgent.anonymousId);
+      if (isContextAgent && updateAvatarUrl && result.avatarUrl) {
         updateAvatarUrl(result.avatarUrl);
       }
-      toast({ title: "Avatar updated", description: "A new random avatar has been generated." });
+      void queryClient.invalidateQueries({ queryKey: ["agent-setup", activeChain] });
+      toast({ title: "Avatar updated", description: "New avatar applied to this agent." });
     } catch (err) {
       toast({
         title: "Could not generate avatar",
@@ -201,367 +272,533 @@ export default function DashboardSettings({ layout = "dashboard" }: DashboardSet
     } finally {
       setGeneratingAvatar(false);
     }
-  }, [anonymousId, toast, updateAvatarUrl]);
+  }, [activeAgent, activeChain, isContextAgent, queryClient, toast, updateAvatarUrl]);
 
-  const identityParts: string[] = [];
-  if (connected && shortAddress) identityParts.push(`Solana · ${shortAddress}`);
-  if (baseConnected && baseShortAddress) identityParts.push(`Base · ${baseShortAddress}`);
-  const identityLine =
-    identityParts.length > 0 ? identityParts.join(" · ") : "Connect a wallet from the agent to link your session.";
+  const handleRefreshBalances = useCallback(async () => {
+    setRefreshingBalances(true);
+    try {
+      if (isContextAgent) await refetchBalance();
+      if (activeAgent?.anonymousId && activeChain === "solana") {
+        await balanceQ.refetch();
+      }
+      if (activeAgent?.anonymousId) {
+        await queryClient.invalidateQueries({ queryKey: ["agent-wallet-balance", activeAgent.anonymousId] });
+      }
+      toast({ title: "Balances updated" });
+    } finally {
+      setRefreshingBalances(false);
+    }
+  }, [activeAgent, activeChain, balanceQ, isContextAgent, queryClient, refetchBalance, toast]);
 
-  const walletLinkSummary =
-    connectedWalletAddress && connectedChain === "solana"
-      ? "Linked with Solana"
-      : connectedWalletAddress && connectedChain === "base"
-        ? "Linked with Base"
-        : "Browsing without a linked wallet (guest session)";
+  const handleFundAgent = useCallback(() => {
+    if (activeChain !== connectedChain) {
+      toast({
+        title: `Switch to ${activeChain === "base" ? "Base" : "Solana"}`,
+        description: "Connect the matching wallet in the header to fund this agent treasury.",
+      });
+      void connectForChain?.(activeChain);
+      return;
+    }
+    setFuelOpen(true);
+  }, [activeChain, connectedChain, connectForChain, toast]);
 
-  const topPadding = layout === "agent" ? PAGE_PADDING_TOP_STANDARD : PAGE_PADDING_TOP_MEDIUM;
+  const topPadding = layout === "agent" && !embedded ? PAGE_PADDING_TOP_STANDARD : PAGE_PADDING_TOP_MEDIUM;
+  const shell = cn(DASHBOARD_CONTENT_SHELL, topPadding, PAGE_SAFE_AREA_BOTTOM, "pb-8");
 
-  const isBaseAgent = connectedChain === "base";
+  const solBalance =
+    isContextAgent && activeChain === "solana"
+      ? agentSolBalance
+      : balanceQ.data?.solBalance ?? null;
+  const usdcBalance =
+    isContextAgent && activeChain === "solana"
+      ? agentUsdcBalance
+      : balanceQ.data?.usdcBalance ?? null;
+  const ethBalance = isContextAgent && activeChain === "base" ? agentBaseEthBalance : null;
+  const baseUsdc = isContextAgent && activeChain === "base" ? agentBaseUsdcBalance : null;
 
   return (
-    <div className={cn(DASHBOARD_CONTENT_SHELL, topPadding, PAGE_SAFE_AREA_BOTTOM, "space-y-10 pb-6")}>
-      <header className="space-y-1.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/60">
-          {layout === "agent" ? "Agent" : "Workspace"}
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">Profile & settings</h1>
-        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground/90">
-          Your avatar, display name, wallets, and preferences for this browser. With a connected wallet, chats can sync
-          to Syra and your agent wallet pays for on-chain tools.
-        </p>
-      </header>
+    <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1" : "min-h-screen")}>
+      {embedded ? null : <OverviewPageBackdrop />}
+      <div className={cn(shell, "relative space-y-6")}>
+        <header className={cn(overviewCardShell, "overflow-hidden rounded-3xl px-5 py-6 sm:px-8 sm:py-7")}>
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.4]"
+            style={{ background: overviewAccentBackground("neutral") }}
+            aria-hidden
+          />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <p className={overviewKickerClass}>Configuration</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">Agent setup</h1>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Configure each agent wallet tied to your addresses — appearance, treasury, behavior, and links to
+                experiment desks. Soon you&apos;ll deploy capital from here into trading and LP follows.
+              </p>
+            </div>
+            {activeAgent ? (
+              <Button variant="outline" size="sm" className="shrink-0 rounded-xl gap-2" asChild>
+                <Link to={agentDetailPath(activeAgent.anonymousId)}>
+                  View profile
+                  <ArrowUpRight className="h-4 w-4" aria-hidden />
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
-        <div className="space-y-6">
-          <Card className="overflow-hidden border-border/80 bg-card/40 shadow-none ring-1 ring-white/[0.04] dark:ring-white/[0.06]">
-            <CardHeader className="space-y-1 pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground">
-                  <UserRound className="h-4 w-4" strokeWidth={2} aria-hidden />
-                </span>
-                <div>
-                  <CardTitle className="text-base font-semibold tracking-tight">Profile</CardTitle>
-                  <CardDescription className="text-[13px]">
-                    Avatar, display name, and how you appear in Syra on this device.
-                  </CardDescription>
-                </div>
+        {!hasSolana && !hasBase && !guestAgent ? (
+          <Card className={overviewCardShell}>
+            <CardContent className="space-y-4 py-12 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
+                <Wallet2 className="h-7 w-7 text-muted-foreground" aria-hidden />
               </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <Label className="text-xs font-medium text-muted-foreground">Avatar</Label>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <div className="relative shrink-0">
-                    {avatarUrl ? (
-                      <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-border bg-card shadow-md">
-                        <img src={avatarUrl} alt="" className="h-full w-full object-cover" draggable={false} />
-                      </div>
-                    ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-border bg-gradient-to-br from-muted to-muted-foreground/20 shadow-md">
-                        <User className="h-10 w-10 text-muted-foreground" aria-hidden />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                      onClick={() => void handleGenerateAvatar()}
-                      disabled={generatingAvatar || !anonymousId}
-                    >
-                      {generatingAvatar ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" aria-hidden />
-                          Generating…
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                          Generate random avatar
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs leading-relaxed text-muted-foreground/90">
-                      Random avatars are tied to your Syra session and appear in chat right away.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="settings-display-name" className="text-xs font-medium text-muted-foreground">
-                  Display name
-                </Label>
-                <Input
-                  id="settings-display-name"
-                  autoComplete="nickname"
-                  placeholder="Your name or handle"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="h-10 border-border/80 bg-background/80"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Wallets</Label>
-                <FieldShell className="text-[12px] leading-relaxed">{identityLine}</FieldShell>
-              </div>
-              <Button type="button" onClick={saveDisplayName} className="w-full sm:w-auto">
-                Save profile
+              <p className="font-medium text-foreground">Loading your agent session…</p>
+              <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                Connect a wallet for a persistent agent per chain, or continue as guest from chat.
+              </p>
+              <Button className="rounded-xl" onClick={() => void connectForChain("solana")}>
+                Connect wallet
               </Button>
             </CardContent>
           </Card>
+        ) : (
+          <>
+            {chainTabs.length > 1 ? (
+              <Tabs value={activeChain} onValueChange={(v) => setActiveChain(v as SetupChain)}>
+                <TabsList className="h-10 w-full max-w-md rounded-xl border border-border/60 bg-muted/30 p-1">
+                  {hasSolana ? (
+                    <TabsTrigger value="solana" className="flex-1 rounded-lg text-sm font-medium">
+                      Solana agent
+                    </TabsTrigger>
+                  ) : null}
+                  {hasBase ? (
+                    <TabsTrigger value="base" className="flex-1 rounded-lg text-sm font-medium">
+                      Base agent
+                    </TabsTrigger>
+                  ) : null}
+                </TabsList>
+                <TabsContent value={activeChain} className="mt-6 space-y-6">
+                  <AgentSetupSections
+                    activeAgent={activeAgent}
+                    activeQ={activeQ}
+                    activeChain={activeChain}
+                    shortWallet={activeChain === "base" ? baseShortAddress : shortAddress}
+                    displayName={displayName}
+                    setDisplayName={setDisplayName}
+                    customPrompt={customPrompt}
+                    setCustomPrompt={setCustomPrompt}
+                    generatingAvatar={generatingAvatar}
+                    onGenerateAvatar={handleGenerateAvatar}
+                    onSave={saveIdentity}
+                    onCopy={copyToClipboard}
+                    copiedField={copiedField}
+                    solBalance={solBalance}
+                    usdcBalance={usdcBalance}
+                    ethBalance={ethBalance}
+                    baseUsdc={baseUsdc}
+                    refreshingBalances={refreshingBalances}
+                    onRefreshBalances={handleRefreshBalances}
+                    onFund={handleFundAgent}
+                    balanceLoading={balanceQ.isLoading && activeChain === "solana"}
+                  />
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <AgentSetupSections
+                activeAgent={activeAgent}
+                activeQ={activeQ}
+                activeChain={activeChain}
+                shortWallet={activeChain === "base" ? baseShortAddress : shortAddress}
+                displayName={displayName}
+                setDisplayName={setDisplayName}
+                customPrompt={customPrompt}
+                setCustomPrompt={setCustomPrompt}
+                generatingAvatar={generatingAvatar}
+                onGenerateAvatar={handleGenerateAvatar}
+                onSave={saveIdentity}
+                onCopy={copyToClipboard}
+                copiedField={copiedField}
+                solBalance={solBalance}
+                usdcBalance={usdcBalance}
+                ethBalance={ethBalance}
+                baseUsdc={baseUsdc}
+                refreshingBalances={refreshingBalances}
+                onRefreshBalances={handleRefreshBalances}
+                onFund={handleFundAgent}
+                balanceLoading={balanceQ.isLoading && activeChain === "solana"}
+              />
+            )}
 
-          <Card className="overflow-hidden border-border/80 bg-card/40 shadow-none ring-1 ring-white/[0.04] dark:ring-white/[0.06]">
-            <CardHeader className="space-y-1 pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground">
-                  <Wallet2 className="h-4 w-4" strokeWidth={2} aria-hidden />
-                </span>
-                <div>
-                  <CardTitle className="text-base font-semibold tracking-tight">Agent wallet</CardTitle>
-                  <CardDescription className="text-[13px]">
-                    Your Syra agent has its own address for tools and USDC payments. Fund it from the wallet menu in chat
-                    when you use paid features.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Connection</Label>
-                <FieldShell className="text-[12px] leading-relaxed text-foreground/90">{walletLinkSummary}</FieldShell>
-              </div>
+            <Card className={cn(overviewCardShell, "overflow-hidden")}>
+              <CardHeader className="border-b border-border/40 pb-4">
+                <CardTitle className="text-base font-semibold">App preferences</CardTitle>
+                <CardDescription>Stored locally on this device only.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <PrefRow
+                  id="pref-product"
+                  label="Product updates"
+                  description="In-app tips and release highlights."
+                  checked={productUpdates}
+                  onCheckedChange={(v) => {
+                    setProductUpdates(v);
+                    writeAgentSetupBool(LS_PREF_PRODUCT_UPDATES, v);
+                  }}
+                />
+                <Separator className="bg-border/40" />
+                <PrefRow
+                  id="pref-usage"
+                  label="Usage insights"
+                  description="Optional local flags for future analytics."
+                  checked={usageInsights}
+                  onCheckedChange={(v) => {
+                    setUsageInsights(v);
+                    writeAgentSetupBool(LS_PREF_USAGE_INSIGHTS, v);
+                  }}
+                />
+                <Separator className="bg-border/40" />
+                <PrefRow
+                  id="pref-compact"
+                  label="Compact density"
+                  description="Tighter spacing in lists when supported."
+                  checked={compactDensity}
+                  onCheckedChange={(v) => {
+                    setCompactDensity(v);
+                    writeAgentSetupBool(LS_PREF_COMPACT, v);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
 
-              {!ready ? (
-                <p className="text-sm text-muted-foreground/90">Loading your session…</p>
-              ) : !agentAddress ? (
-                <p className="text-sm leading-relaxed text-muted-foreground/90">
-                  Your agent address will appear here once the wallet session is ready. If this persists, open the wallet
-                  menu in the chat header and try again.
-                </p>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Agent address</Label>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <FieldShell className="min-w-0 flex-1 font-mono text-[12px] tracking-tight text-foreground/90">
-                        <span className="truncate">{agentShortAddress ?? agentAddress}</span>
-                      </FieldShell>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 border-border/80 bg-background/50"
-                        onClick={() => copyToClipboard(agentAddress, "Agent address")}
-                      >
-                        {copiedField === "Agent address" ? (
-                          <>
-                            <Check className="mr-2 h-4 w-4" aria-hidden />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="mr-2 h-4 w-4" aria-hidden />
-                            Copy
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+      <FuelAgentModal open={fuelOpen} onOpenChange={setFuelOpen} initialFlowTab="deposit" />
+    </div>
+  );
+}
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Balances</Label>
-                    {isBaseAgent ? (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <FieldShell className="justify-between text-[12px] text-foreground/90">
-                          <span className="text-muted-foreground">ETH (Base)</span>
-                          <span className="font-medium tabular-nums">{formatTokenAmount(agentBaseEthBalance, 5)}</span>
-                        </FieldShell>
-                        <FieldShell className="justify-between text-[12px] text-foreground/90">
-                          <span className="text-muted-foreground">USDC (Base)</span>
-                          <span className="font-medium tabular-nums">{formatTokenAmount(agentBaseUsdcBalance, 2)}</span>
-                        </FieldShell>
-                      </div>
-                    ) : (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <FieldShell className="justify-between text-[12px] text-foreground/90">
-                          <span className="text-muted-foreground">SOL</span>
-                          <span className="font-medium tabular-nums">{formatTokenAmount(agentSolBalance, 4)}</span>
-                        </FieldShell>
-                        <FieldShell className="justify-between text-[12px] text-foreground/90">
-                          <span className="text-muted-foreground">USDC</span>
-                          <span className="font-medium tabular-nums">{formatTokenAmount(agentUsdcBalance, 2)}</span>
-                        </FieldShell>
-                      </div>
-                    )}
-                  </div>
+function PrefRow({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  id: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 space-y-1">
+        <Label htmlFor={id} className="text-sm font-medium text-foreground">
+          {label}
+        </Label>
+        <p id={`${id}-desc`} className="text-xs text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} aria-describedby={`${id}-desc`} />
+    </div>
+  );
+}
 
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    disabled={refreshingBalances}
-                    onClick={() => void handleRefreshBalances()}
-                  >
-                    {refreshingBalances ? "Refreshing…" : "Refresh balances"}
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+function AgentSetupSections({
+  activeAgent,
+  activeQ,
+  activeChain,
+  shortWallet,
+  displayName,
+  setDisplayName,
+  customPrompt,
+  setCustomPrompt,
+  generatingAvatar,
+  onGenerateAvatar,
+  onSave,
+  onCopy,
+  copiedField,
+  solBalance,
+  usdcBalance,
+  ethBalance,
+  baseUsdc,
+  refreshingBalances,
+  onRefreshBalances,
+  onFund,
+  balanceLoading,
+}: {
+  activeAgent: AgentSetupRecord | undefined;
+  activeQ: { isLoading: boolean; isFetching: boolean };
+  activeChain: SetupChain;
+  shortWallet: string | null;
+  displayName: string;
+  setDisplayName: (v: string) => void;
+  customPrompt: string;
+  setCustomPrompt: (v: string) => void;
+  generatingAvatar: boolean;
+  onGenerateAvatar: () => void;
+  onSave: () => void;
+  onCopy: (text: string, label: string) => void;
+  copiedField: string | null;
+  solBalance: number | null;
+  usdcBalance: number | null;
+  ethBalance: number | null;
+  baseUsdc: number | null;
+  refreshingBalances: boolean;
+  onRefreshBalances: () => void;
+  onFund: () => void;
+  balanceLoading: boolean;
+}) {
+  if (activeQ.isLoading && !activeAgent) {
+    return (
+      <div className="space-y-4">
+        <div className="h-40 animate-pulse rounded-2xl bg-muted/30" />
+        <div className="h-56 animate-pulse rounded-2xl bg-muted/30" />
+      </div>
+    );
+  }
 
-          <Card className="overflow-hidden border-border/80 bg-card/40 shadow-none ring-1 ring-white/[0.04] dark:ring-white/[0.06]">
-            <CardHeader className="space-y-1 pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground">
-                  <Shield className="h-4 w-4" strokeWidth={2} aria-hidden />
-                </span>
-                <div>
-                  <CardTitle className="text-base font-semibold tracking-tight">Privacy & session</CardTitle>
-                  <CardDescription className="text-[13px]">
-                    What Syra stores and where your data lives, in plain language.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Session ID (masked)</Label>
-                <FieldShell className="font-mono text-[12px] text-foreground/90">
-                  {anonymousId ? maskAnonymousId(anonymousId) : "—"}
-                </FieldShell>
-                <p className="text-xs leading-relaxed text-muted-foreground/85">
-                  This id groups your agent wallet and chat usage. It is not your seed phrase and should not be shared
-                  publicly.
-                </p>
-              </div>
-              {anonymousId ? (
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">Session ID (full)</Label>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <FieldShell className="min-w-0 flex-1 font-mono text-[11px] leading-snug text-foreground/90">
-                      <span className="min-w-0 break-all">{anonymousId}</span>
-                    </FieldShell>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 border-border/80 bg-background/50"
-                      onClick={() => copyToClipboard(anonymousId, "Session ID")}
-                    >
-                      {copiedField === "Session ID" ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" aria-hidden />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="mr-2 h-4 w-4" aria-hidden />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-              <ul className="list-disc space-y-2 pl-4 text-xs leading-relaxed text-muted-foreground/90">
-                <li>Your display name above is saved only in this browser.</li>
-                <li>
-                  When a wallet is connected, chat titles and messages can be saved to your Syra account so you can pick
-                  up where you left off on this device.
-                </li>
-                <li>Paid tools use USDC (and network fees) from your agent wallet—never from your personal wallet without your action in the app.</li>
-              </ul>
-              <Separator className="bg-border/60" />
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Resources</Label>
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                  {RESOURCE_LINKS.map((link) => (
-                    <Button key={link.href} type="button" variant="outline" size="sm" className="justify-start border-border/80 bg-background/50" asChild>
-                      <a href={link.href} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                        {link.label}
-                      </a>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+  if (!activeAgent) {
+    return (
+      <Card className={overviewCardShell}>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">Could not load agent.</CardContent>
+      </Card>
+    );
+  }
 
-        <Card className="border-border/80 bg-card/40 shadow-none ring-1 ring-white/[0.04] dark:ring-white/[0.06] lg:sticky lg:top-6">
-          <CardHeader className="space-y-1 pb-4">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground">
-                <SlidersHorizontal className="h-4 w-4" strokeWidth={2} aria-hidden />
-              </span>
-              <div>
-                <CardTitle className="text-base font-semibold tracking-tight">Preferences</CardTitle>
-                <CardDescription className="text-[13px]">Stored locally; used as defaults where supported.</CardDescription>
-              </div>
-            </div>
+  const avatarUrl = activeAgent.avatarUrl;
+  const chainLabel = activeChain === "base" ? "Base" : "Solana";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+        <Card className={cn(overviewCardShell, "overflow-hidden")}>
+          <CardHeader className="border-b border-border/40 pb-4">
+            <CardTitle className="text-base font-semibold">Identity</CardTitle>
+            <CardDescription>How this agent appears across Syra.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-0">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1">
-                <Label htmlFor="pref-product" className="text-sm font-medium text-foreground/95">
-                  Product updates
-                </Label>
-                <p id="pref-product-desc" className="text-xs leading-relaxed text-muted-foreground/85">
-                  In-app tips and release highlights.
-                </p>
+          <CardContent className="space-y-5 pt-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <Avatar className="h-20 w-20 shrink-0 rounded-2xl border-2 border-border/50 shadow-md">
+                {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="object-cover" /> : null}
+                <AvatarFallback className="rounded-2xl bg-muted/50">
+                  <Bot className="h-9 w-9 text-muted-foreground" aria-hidden />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-1 flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit rounded-xl gap-2"
+                  onClick={onGenerateAvatar}
+                  disabled={generatingAvatar}
+                >
+                  {generatingAvatar ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                  )}
+                  Generate avatar
+                </Button>
+                <p className="text-xs text-muted-foreground">Unique per agent wallet on {chainLabel}.</p>
               </div>
-              <Switch
-                id="pref-product"
-                checked={productUpdates}
-                onCheckedChange={setProductUpdatesPref}
-                className="shrink-0 data-[state=checked]:bg-primary"
-                aria-describedby="pref-product-desc"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agent-display-name">Display name</Label>
+              <Input
+                id="agent-display-name"
+                placeholder="Name shown in Syra (this device)"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="h-10 rounded-xl border-border/80"
               />
             </div>
-            <Separator className="my-4 bg-border/60" />
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1">
-                <Label htmlFor="pref-usage" className="text-sm font-medium text-foreground/95">
-                  Usage insights
-                </Label>
-                <p id="pref-usage-desc" className="text-xs leading-relaxed text-muted-foreground/85">
-                  Optional local flags for future analytics toggles.
-                </p>
-              </div>
-              <Switch
-                id="pref-usage"
-                checked={usageInsights}
-                onCheckedChange={setUsageInsightsPref}
-                className="shrink-0 data-[state=checked]:bg-primary"
-                aria-describedby="pref-usage-desc"
-              />
-            </div>
-            <Separator className="my-4 bg-border/60" />
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1">
-                <Label htmlFor="pref-compact" className="text-sm font-medium text-foreground/95">
-                  Compact density
-                </Label>
-                <p id="pref-compact-desc" className="text-xs leading-relaxed text-muted-foreground/85">
-                  Tighter spacing in lists when the app reads this preference.
-                </p>
-              </div>
-              <Switch
-                id="pref-compact"
-                checked={compactDensity}
-                onCheckedChange={setCompactPref}
-                className="shrink-0 data-[state=checked]:bg-primary"
-                aria-describedby="pref-compact-desc"
-              />
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Linked wallet</Label>
+              <FieldShell className="font-mono text-xs text-foreground/90">
+                {chainLabel} · {shortWallet ?? shortenAddress(activeAgent.walletAddress, activeChain)}
+              </FieldShell>
             </div>
           </CardContent>
         </Card>
+
+        <Card className={cn(overviewCardShell, "overflow-hidden ring-1 ring-primary/10")}>
+          <CardHeader className="border-b border-border/40 pb-4">
+            <CardTitle className="text-base font-semibold">Treasury</CardTitle>
+            <CardDescription>Capital this agent can spend on tools and experiments.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-5">
+            {activeChain === "solana" ? (
+              <div className="space-y-3">
+                <div className="flex justify-between font-mono text-sm tabular-nums">
+                  <span className="text-muted-foreground">SOL</span>
+                  <span className="font-medium text-foreground">
+                    {balanceLoading ? "…" : solBalance != null ? formatSol(solBalance) : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between font-mono text-sm tabular-nums">
+                  <span className="text-muted-foreground">USDC</span>
+                  <span className="font-medium text-foreground">
+                    {balanceLoading ? "…" : usdcBalance != null ? formatCompactUsd(usdcBalance) : "—"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between font-mono text-sm tabular-nums">
+                  <span className="text-muted-foreground">ETH</span>
+                  <span className="font-medium text-foreground">
+                    {ethBalance != null ? ethBalance.toFixed(4) : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between font-mono text-sm tabular-nums">
+                  <span className="text-muted-foreground">USDC</span>
+                  <span className="font-medium text-foreground">
+                    {baseUsdc != null ? formatCompactUsd(baseUsdc) : "—"}
+                  </span>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 pt-1">
+              <Button type="button" className="w-full rounded-xl gap-2" onClick={onFund}>
+                <Zap className="h-4 w-4" aria-hidden />
+                Fund agent
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full rounded-xl"
+                disabled={refreshingBalances}
+                onClick={onRefreshBalances}
+              >
+                {refreshingBalances ? "Refreshing…" : "Refresh balances"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className={cn(overviewCardShell, "overflow-hidden")}>
+        <CardHeader className="border-b border-border/40 pb-4">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <div>
+              <CardTitle className="text-base font-semibold">Agent instructions</CardTitle>
+              <CardDescription>
+                Custom system prompt for new chats on this device. Leave empty to use Syra&apos;s default trader
+                intelligence prompt.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-5">
+          <Textarea
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            placeholder={DEFAULT_SYSTEM_PROMPT.slice(0, 120) + "…"}
+            className="min-h-[140px] resize-y rounded-xl border-border/80 bg-background/80 font-mono text-xs leading-relaxed"
+          />
+          <p className="text-xs text-muted-foreground">
+            Applies to agent chat sessions started after you save. Experiment follow and treasury deploy controls are
+            coming next.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card className={overviewCardShell}>
+          <CardHeader className="border-b border-border/40 pb-4">
+            <CardTitle className="text-base font-semibold">Wallet details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-5">
+            <CopyField
+              label="Agent address"
+              value={activeAgent.agentAddress}
+              display={shortenAddress(activeAgent.agentAddress, activeChain)}
+              onCopy={onCopy}
+              copied={copiedField === "Agent address"}
+            />
+            <CopyField
+              label="Session ID"
+              value={activeAgent.anonymousId}
+              display={maskAnonymousId(activeAgent.anonymousId)}
+              onCopy={onCopy}
+              copied={copiedField === "Session ID"}
+              breakAll
+            />
+            <Badge variant="outline" className="rounded-md text-[10px] font-semibold uppercase">
+              {chainLabel} chain
+            </Badge>
+          </CardContent>
+        </Card>
+
+        <Card className={overviewCardShell}>
+          <CardHeader className="border-b border-border/40 pb-4">
+            <CardTitle className="text-base font-semibold">Experiment desks</CardTitle>
+            <CardDescription>Where this agent will deploy capital when live.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2 pt-5">
+            {[
+              { to: "/dashboard/trading-experiment", label: "Trading agents", icon: FlaskConical },
+            ].map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex items-center gap-3 rounded-xl border border-border/45 px-3 py-3 transition-colors hover:bg-muted/25"
+              >
+                <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <span className="text-sm font-medium">{label}</span>
+                <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />
+              </Link>
+            ))}
+            <p className="pt-2 text-xs text-muted-foreground">
+              LP follow and copy-trade allocation from your agent treasury — coming soon.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" className="rounded-xl" onClick={onSave}>
+          Save agent setup
+        </Button>
+        <Button type="button" variant="outline" className="rounded-xl" asChild>
+          <Link to={agentDetailPath(activeAgent.anonymousId)}>Open agent profile</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CopyField({
+  label,
+  value,
+  display,
+  onCopy,
+  copied,
+  breakAll,
+}: {
+  label: string;
+  value: string;
+  display: string;
+  onCopy: (text: string, label: string) => void;
+  copied: boolean;
+  breakAll?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="flex gap-2">
+        <FieldShell className={cn("min-w-0 flex-1 font-mono text-xs text-foreground/90", breakAll && "[&_span]:break-all")}>
+          <span className="truncate">{display}</span>
+        </FieldShell>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-xl" onClick={() => onCopy(value, label)}>
+          {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+        </Button>
       </div>
     </div>
   );

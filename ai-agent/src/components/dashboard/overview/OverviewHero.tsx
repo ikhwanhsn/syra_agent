@@ -54,8 +54,7 @@ export function OverviewHero({ liveSignals, className }: OverviewHeroProps) {
                 Overview
               </h1>
               <p className="mt-1.5 max-w-2xl text-pretty text-[14px] leading-relaxed text-muted-foreground sm:text-[15px]">
-                Every lab, feed, and marketplace metric in one place. Cards refresh independently — open any tile for
-                the full workspace.
+                Every lab and feed in one place. Cards refresh independently — open any tile for the full workspace.
               </p>
             </div>
           </div>

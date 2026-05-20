@@ -43,6 +43,3 @@ export const PAGE_PADDING_TOP_STANDARD = "pt-4 sm:pt-5 lg:pt-6";
 
 /** Roomier top for overview-style pages. */
 export const PAGE_PADDING_TOP_MEDIUM = "pt-6 sm:pt-8 lg:pt-8";
-
-/** Prompts library hero — slightly taller top. */
-export const PAGE_PADDING_TOP_PROMPTS = "pt-6 sm:pt-8 lg:pt-10";

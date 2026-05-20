@@ -1595,9 +1595,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 <div className="relative mb-4 space-y-1">
                   <h3 className="text-base font-semibold tracking-tight text-foreground">Roster filters</h3>
                   <p className="text-xs text-foreground/75 sm:text-sm">
-                    Public lab is 30 agents: 15 algorithm strategies (primary ledger) and 15 short-bar scalpers
-                    (secondary). Each ledger drops the five worst win-rate slots about once per day and respawns random
-                    configs in those ids. Search by name or ID, then slice by market, timeframe, and open exposure.
+                    Public lab runs two ledgers (algorithm + scalper). Each day, agents at or below $900 equity
+                    (–10% from $1,000) are culled and replaced; 15 new agents spawn per ledger (up to 1,000 per ledger).
+                    Search by name or ID, then slice by market, timeframe, and open exposure.
                   </p>
                 </div>
                 <MobileExperimentFiltersToggle

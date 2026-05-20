@@ -562,7 +562,7 @@ export function WalletNav(props: WalletNavProps = {}) {
               <span className="flex w-8 shrink-0 justify-center">
                 <Settings className="h-4 w-4 opacity-80" aria-hidden />
               </span>
-              <span>Profile & settings</span>
+              <span>Agent setup</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"

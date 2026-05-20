@@ -193,6 +193,7 @@ export default function StreamflowStakingPage() {
     walletBalanceRaw,
     walletBalanceFormatted,
     lockTokens,
+    refreshBalance,
     loading,
     actionLoading,
     error,
@@ -202,14 +203,21 @@ export default function StreamflowStakingPage() {
   const symbol = STREAMFLOW_CONFIG.tokenSymbol;
   const networkLabel = CONFIG.IS_DEVNET ? "Devnet" : "Mainnet";
 
+  /**
+   * Always read the freshest on-chain balance when applying Max/50%,
+   * so the input never targets a stale figure that would later fail
+   * with InsufficientFunds at submit time.
+   */
   const applyBalanceFraction = useCallback(
-    (numerator: bigint, denominator: bigint) => {
-      if (walletBalanceRaw <= 0n || denominator <= 0n) return;
-      const raw = (walletBalanceRaw * numerator) / denominator;
+    async (numerator: bigint, denominator: bigint) => {
+      if (denominator <= 0n) return;
+      const live = await refreshBalance();
+      if (live <= 0n) return;
+      const raw = (live * numerator) / denominator;
       if (raw <= 0n) return;
       setAmount(formatUnits(raw, tokenDecimals, tokenDecimals));
     },
-    [walletBalanceRaw, tokenDecimals]
+    [refreshBalance, tokenDecimals]
   );
 
   const sortedLocks = useMemo(() => locks, [locks]);
@@ -334,7 +342,7 @@ export default function StreamflowStakingPage() {
                         type="button"
                         className="w-full text-left text-xs text-muted-foreground transition hover:text-foreground sm:w-auto sm:text-right"
                         title={walletBalanceFormatted}
-                        onClick={() => applyBalanceFraction(1n, 1n)}
+                        onClick={() => void applyBalanceFraction(1n, 1n)}
                         disabled={!connected || walletBalanceRaw <= 0n}
                       >
                         <span className="font-medium text-foreground tabular-nums">
@@ -358,7 +366,7 @@ export default function StreamflowStakingPage() {
                       <div className="flex shrink-0 items-stretch justify-end gap-1 border-t border-border/60 bg-muted/20 p-1.5 sm:border-l sm:border-t-0 sm:pl-2">
                         <button
                           type="button"
-                          onClick={() => applyBalanceFraction(1n, 2n)}
+                          onClick={() => void applyBalanceFraction(1n, 2n)}
                           disabled={
                             !connected || actionLoading || walletBalanceRaw <= 0n
                           }
@@ -368,7 +376,7 @@ export default function StreamflowStakingPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => applyBalanceFraction(1n, 1n)}
+                          onClick={() => void applyBalanceFraction(1n, 1n)}
                           disabled={
                             !connected || actionLoading || walletBalanceRaw <= 0n
                           }

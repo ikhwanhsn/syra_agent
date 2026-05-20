@@ -2,11 +2,8 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import {
-  BarChart3,
-  Bot,
   Crosshair,
   Droplets,
-  FileText,
   FlaskConical,
   Lock,
   Activity,
@@ -18,7 +15,7 @@ import {
   UsersRound,
   Wifi,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -32,8 +29,6 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
-import { userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
-import { agent8004Api } from "@/lib/agent8004Api";
 import { fetchTradingExperimentStats } from "@/lib/tradingExperimentApi";
 import { fetchArbitrageSnapshot, fetchCmcTop } from "@/lib/arbitrageExperimentApi";
 import { fetchLpStats } from "@/lib/lpAgentExperimentApi";
@@ -48,7 +43,6 @@ import {
   fetchHrCoachLatest,
   fetchX402XTrendsLatest,
 } from "@/lib/internalTeamAgentsApi";
-import { BUILTIN_MARKETPLACE_PROMPT_COUNT } from "@/lib/marketplaceBuiltinCount";
 import {
   aggregateLpAgents,
   aggregatePumpfunExperiment,
@@ -74,7 +68,6 @@ import { useWalletContext } from "@/contexts/WalletContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
 import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
 
-const USER_PROMPTS_SAMPLE = 100;
 const STALE_MS = 60_000;
 /** Alpha X batch is DB-backed; server agent refreshes ~every 24h. */
 const ALPHA_STALE_MS = 24 * 60 * 60 * 1000;
@@ -89,11 +82,6 @@ const venueChartConfig = {
   err: { label: "Unavailable", color: "hsl(var(--destructive))" },
 } satisfies ChartConfig;
 
-const promptMixConfig = {
-  builtin: { label: "Built-in", color: "hsl(var(--primary))" },
-  community: { label: "Community", color: "hsl(var(--muted-foreground))" },
-} satisfies ChartConfig;
-
 function formatAlphaXBatchUpdatedAt(iso: string | undefined): string | null {
   if (!iso) return null;
   try {
@@ -101,18 +89,6 @@ function formatAlphaXBatchUpdatedAt(iso: string | undefined): string | null {
   } catch {
     return null;
   }
-}
-
-function aggregatePromptCategories(prompts: UserPromptItem[]): { name: string; count: number }[] {
-  const map = new Map<string, number>();
-  for (const p of prompts) {
-    const key = p.category?.trim() || "general";
-    map.set(key, (map.get(key) ?? 0) + 1);
-  }
-  return [...map.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
 }
 
 export interface DashboardOverviewProps {
@@ -125,16 +101,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
 
   const queries = useQueries({
     queries: [
-      {
-        queryKey: ["dashboard-overview", "user-prompts"],
-        queryFn: () => userPromptsApi.list({ limit: USER_PROMPTS_SAMPLE, skip: 0 }),
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["dashboard-overview", "registry-stats"],
-        queryFn: () => agent8004Api.stats(),
-        staleTime: 120_000,
-      },
       {
         queryKey: ["dashboard-overview", "trading-stats"],
         queryFn: () => fetchTradingExperimentStats("primary"),
@@ -220,8 +186,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
   });
 
   const [
-    promptsQ,
-    regQ,
     tradeQ,
     arbQ,
     cmcQ,
@@ -239,17 +203,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     hrCoachQ,
   ] = queries;
 
-  const communityPrompts = promptsQ.data?.prompts ?? [];
-  const communityCount = communityPrompts.length;
-  const communityMaybeTruncated = communityCount >= USER_PROMPTS_SAMPLE;
-
-  const registryTotal =
-    typeof regQ.data?.totalAgents === "number"
-      ? regQ.data.totalAgents
-      : typeof (regQ.data as { total?: number } | undefined)?.total === "number"
-        ? (regQ.data as { total: number }).total
-        : null;
-
   const tradingAgents = tradeQ.data?.agents ?? [];
   const tradingStrategies = tradeQ.data?.strategies ?? [];
   const tradingTotals = useMemo(() => aggregateTradingAgents(tradingAgents), [tradingAgents]);
@@ -265,8 +218,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     return { ok, err, token: arbQ.data?.token ?? "—", spread: arbQ.data?.strategy?.grossSpreadPct };
   }, [arbQ.data]);
 
-  const categoryChartData = useMemo(() => aggregatePromptCategories(communityPrompts), [communityPrompts]);
-
   const cmcBarData = useMemo(
     () =>
       (cmcQ.data?.assets ?? []).map((a) => ({
@@ -275,14 +226,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         score: Math.max(1, 51 - Math.min(50, a.cmcRank)),
       })),
     [cmcQ.data?.assets],
-  );
-
-  const promptMixData = useMemo(
-    () => [
-      { name: "builtin", label: "Built-in", value: BUILTIN_MARKETPLACE_PROMPT_COUNT, fill: "var(--color-builtin)" },
-      { name: "community", label: "Community", value: Math.max(0, communityCount), fill: "var(--color-community)" },
-    ],
-    [communityCount],
   );
 
   const sortedXItems = useMemo(
@@ -347,17 +290,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     hrCoachQ.data,
   ]);
 
-  const CATEGORY_BAR_COLORS = [
-    "hsl(var(--foreground))",
-    "hsl(var(--primary))",
-    "hsl(var(--muted-foreground))",
-    "hsl(var(--ring))",
-    "hsl(0 0% 52%)",
-    "hsl(0 0% 42%)",
-    "hsl(0 0% 62%)",
-    "hsl(0 0% 35%)",
-  ];
-
   return (
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1 min-h-0" : "min-h-screen")}>
       <OverviewPageBackdrop />
@@ -379,102 +311,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             </>
           }
         />
-        <OverviewGroupLabel icon={FileText}>Marketplace</OverviewGroupLabel>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <OverviewStatCard
-              label="Prompts"
-              icon={FileText}
-              accent="marketplace"
-              isLoading={promptsQ.isLoading}
-              value={
-                promptsQ.isError
-                  ? "—"
-                  : `${BUILTIN_MARKETPLACE_PROMPT_COUNT + communityCount}${communityMaybeTruncated ? "+" : ""}`
-              }
-              hint={`${BUILTIN_MARKETPLACE_PROMPT_COUNT} built-in · ${communityCount} community${communityMaybeTruncated ? ` (sample cap ${USER_PROMPTS_SAMPLE})` : ""}`}
-              href="/dashboard/marketplace/prompts"
-              error={promptsQ.isError}
-            />
-            <OverviewStatCard
-              label="Trustless agents"
-              icon={Bot}
-              accent="marketplace"
-              isLoading={regQ.isLoading}
-              value={regQ.isError ? "—" : registryTotal != null ? registryTotal.toLocaleString() : "—"}
-              hint="8004 registry global agent count"
-              href="/dashboard/marketplace/agents"
-              error={regQ.isError}
-            />
-            <OverviewStatCard
-              label="Community categories"
-              icon={BarChart3}
-              accent="marketplace"
-              isLoading={promptsQ.isLoading}
-              value={promptsQ.isError ? "—" : String(categoryChartData.length)}
-              hint="Distinct categories in community sample"
-              href="/dashboard/marketplace/prompts"
-              error={promptsQ.isError}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className={overviewCardShell}>
-              <CardHeader>
-                <CardTitle className="text-[13px] font-semibold tracking-tight">Prompt catalog mix</CardTitle>
-                <CardDescription>Built-in vs community prompts</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[240px] flex flex-col sm:flex-row items-center gap-4">
-                {promptsQ.isError ? (
-                  <p className="text-sm text-destructive">Could not load community prompts.</p>
-                ) : (
-                  <>
-                    <ChartContainer config={promptMixConfig} className="h-[200px] w-full sm:w-1/2 aspect-auto">
-                      <PieChart>
-                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                        <Pie data={promptMixData} dataKey="value" nameKey="label" innerRadius={44} outerRadius={72} paddingAngle={2} />
-                      </PieChart>
-                    </ChartContainer>
-                    <ul className="text-sm text-muted-foreground space-y-1 w-full sm:w-1/2">
-                      <li>
-                        <span className="text-foreground font-medium">{BUILTIN_MARKETPLACE_PROMPT_COUNT}</span> built-in
-                      </li>
-                      <li>
-                        <span className="text-foreground font-medium">{communityCount}</span> community
-                      </li>
-                    </ul>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className={overviewCardShell}>
-              <CardHeader>
-                <CardTitle className="text-base">Community prompts by category</CardTitle>
-                <CardDescription>Top categories in the latest sample</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[240px]">
-                {categoryChartData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No community prompts in sample.</p>
-                ) : (
-                  <ChartContainer config={{ count: { label: "Prompts", color: "hsl(var(--primary))" } }} className="h-full w-full aspect-auto">
-                    <BarChart data={categoryChartData} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" horizontal={false} />
-                      <XAxis type="number" tickLine={false} axisLine={false} />
-                      <YAxis type="category" dataKey="name" width={88} tickLine={false} axisLine={false} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                        {categoryChartData.map((row, i) => (
-                          <Cell key={row.name} fill={CATEGORY_BAR_COLORS[i % CATEGORY_BAR_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
         <OverviewGroupLabel icon={Telescope}>Alpha intelligence</OverviewGroupLabel>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <OverviewStatCard

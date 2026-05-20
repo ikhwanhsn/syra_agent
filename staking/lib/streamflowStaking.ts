@@ -11,6 +11,12 @@ import {
   type ICreateLinearStreamData,
   type Stream,
 } from "@streamflow/stream";
+import {
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+  getAccount,
+} from "@solana/spl-token";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 
 type StreamflowCreateExt = Parameters<SolanaStreamClient["create"]>[1];
@@ -24,13 +30,51 @@ export function createStreamflowClient(connection: Connection): SolanaStreamClie
   });
 }
 
+/**
+ * Detect whether the mint is owned by classic SPL Token or Token-2022.
+ * Falls back to SPL Token if the mint cannot be read.
+ */
+export async function resolveTokenProgramId(
+  connection: Connection,
+  mint: PublicKey
+): Promise<PublicKey> {
+  try {
+    const info = await connection.getAccountInfo(mint, "confirmed");
+    if (!info) return TOKEN_PROGRAM_ID;
+    if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
+    return TOKEN_PROGRAM_ID;
+  } catch {
+    return TOKEN_PROGRAM_ID;
+  }
+}
+
+/**
+ * Fetch the on-chain ATA balance for a given owner/mint, auto-selecting
+ * the correct token program. Returns 0n when the ATA doesn't exist yet.
+ */
+export async function fetchAtaBalance(
+  connection: Connection,
+  mint: PublicKey,
+  owner: PublicKey
+): Promise<{ balance: bigint; ata: PublicKey; tokenProgramId: PublicKey }> {
+  const tokenProgramId = await resolveTokenProgramId(connection, mint);
+  const ata = getAssociatedTokenAddressSync(mint, owner, false, tokenProgramId);
+  try {
+    const acc = await getAccount(connection, ata, "confirmed", tokenProgramId);
+    return { balance: acc.amount, ata, tokenProgramId };
+  } catch {
+    return { balance: BigInt(0), ata, tokenProgramId };
+  }
+}
+
 export function buildTokenLockCreateParams(args: {
   wallet: PublicKey;
   amountRaw: BN;
   unlockAtUnix: number;
   name: string;
+  tokenProgramId?: PublicKey;
 }): ICreateLinearStreamData {
-  const { wallet, amountRaw, unlockAtUnix, name } = args;
+  const { wallet, amountRaw, unlockAtUnix, name, tokenProgramId } = args;
   if (amountRaw.lte(new BN(1))) {
     throw new Error("Amount too small for a Streamflow token lock (min 2 base units).");
   }
@@ -40,6 +84,7 @@ export function buildTokenLockCreateParams(args: {
   return {
     recipient: wallet.toBase58(),
     tokenId: STREAMFLOW_CONFIG.tokenMint.toBase58(),
+    tokenProgramId: tokenProgramId?.toBase58(),
     start: unlockAtUnix,
     amount: amountRaw,
     period: 1,
@@ -62,6 +107,41 @@ export interface CreateLockStakeResult {
   unlockAtUnix: number;
 }
 
+/**
+ * Translate raw Streamflow / Solana send errors into clear user-facing strings.
+ * Falls back to the original message if no known pattern is found.
+ */
+export function mapStreamflowError(err: unknown, symbol: string): Error {
+  const raw = err instanceof Error ? err.message : String(err);
+  const logs: string[] | undefined =
+    err && typeof err === "object" && "logs" in err
+      ? ((err as { logs?: string[] }).logs ?? undefined)
+      : undefined;
+  const haystack = [raw, ...(logs ?? [])].join("\n").toLowerCase();
+
+  if (haystack.includes("insufficient funds") || haystack.includes("insufficientfunds")) {
+    return new Error(
+      `Insufficient ${symbol} balance in your wallet to create this lock. ` +
+        `Refresh your balance and try a smaller amount.`
+    );
+  }
+  if (
+    haystack.includes("0x1") &&
+    (haystack.includes("system program") || haystack.includes("transfer"))
+  ) {
+    return new Error(
+      `Not enough SOL to pay for Streamflow account rent. Add a small amount of SOL and retry.`
+    );
+  }
+  if (haystack.includes("blockhash not found") || haystack.includes("block height exceeded")) {
+    return new Error("Network was slow — your transaction expired. Please try again.");
+  }
+  if (haystack.includes("user rejected") || haystack.includes("rejected the request")) {
+    return new Error("Transaction was rejected in your wallet.");
+  }
+  return err instanceof Error ? err : new Error(raw);
+}
+
 export async function createTokenLockStake(
   connection: Connection,
   walletAdapter: SignerWalletAdapter,
@@ -70,6 +150,19 @@ export async function createTokenLockStake(
 ): Promise<CreateLockStakeResult> {
   const sender = walletAdapter.publicKey;
   if (!sender) throw new Error("Wallet not connected");
+
+  const { balance: liveBalance, tokenProgramId } = await fetchAtaBalance(
+    connection,
+    STREAMFLOW_CONFIG.tokenMint,
+    sender
+  );
+
+  if (amountRaw > liveBalance) {
+    throw new Error(
+      `Insufficient ${STREAMFLOW_CONFIG.tokenSymbol} balance. ` +
+        `Your wallet has fewer tokens than requested — refresh and try again.`
+    );
+  }
 
   const amountBn = new BN(amountRaw.toString());
   const now = Math.floor(Date.now() / 1000);
@@ -81,14 +174,18 @@ export async function createTokenLockStake(
     amountRaw: amountBn,
     unlockAtUnix: unlockAt,
     name: `${STREAMFLOW_CONFIG.tokenSymbol} lock · Syra`,
+    tokenProgramId,
   });
 
-  const { txId, metadataId } = await client.create(params, {
-    sender: walletAdapter as unknown as StreamflowCreateExt["sender"],
-    isNative: false,
-  });
-
-  return { txId, metadataId, unlockAtUnix: unlockAt };
+  try {
+    const { txId, metadataId } = await client.create(params, {
+      sender: walletAdapter as unknown as StreamflowCreateExt["sender"],
+      isNative: false,
+    });
+    return { txId, metadataId, unlockAtUnix: unlockAt };
+  } catch (err) {
+    throw mapStreamflowError(err, STREAMFLOW_CONFIG.tokenSymbol);
+  }
 }
 
 export interface UserLockRow {

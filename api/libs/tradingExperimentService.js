@@ -7,6 +7,7 @@ import TradingExperimentAgentState from "../models/TradingExperimentAgentState.j
 import {
   TRADING_EXPERIMENT_STARTING_USD,
   TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+  computeAgentEquityUsd,
 } from "../config/tradingExperimentSim.js";
 import {
   EXPERIMENT_SUITE_PRIMARY,
@@ -238,7 +239,7 @@ function buildListRunsFilter(suiteNorm, f) {
     parts.push({ status: st });
   }
 
-  if (f.agentId != null && Number.isInteger(f.agentId) && f.agentId >= 0 && f.agentId <= 99) {
+  if (f.agentId != null && Number.isInteger(f.agentId) && f.agentId >= 0 && f.agentId <= 999) {
     parts.push({ agentId: f.agentId });
   }
 
@@ -801,7 +802,7 @@ export async function getExperimentStats(opts = {}) {
     const cashUsd =
       Math.round((toNum(st?.cashUsd, TRADING_EXPERIMENT_STARTING_USD) + Number.EPSILON) * 100) / 100;
     const deployedUsd = openCount * TRADING_EXPERIMENT_TRADE_NOTIONAL_USD;
-    const equityUsd = Math.round((cashUsd + deployedUsd + Number.EPSILON) * 100) / 100;
+    const equityUsd = computeAgentEquityUsd(cashUsd, openCount);
 
     agents.push({
       agentId: s.id,

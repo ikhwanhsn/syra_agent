@@ -76,7 +76,7 @@ export const TRADING_EXPERIMENT_STRATEGIES = Object.freeze([
   },
 ]);
 
-/** Scalper lane: 15 short-timeframe agents (1m–15m); isolated ledger; daily evolution replaces 5 worst. */
+/** Scalper lane: 15 short-timeframe agents (1m–15m); isolated ledger; daily evolution culls –10% equity agents and spawns new ones. */
 export const TRADING_EXPERIMENT_STRATEGIES_SECONDARY = Object.freeze([
   {
     id: 0,
@@ -247,14 +247,14 @@ export function getStrategiesForSuite(suite) {
 export const EXPERIMENT_SUITES_META = Object.freeze([
   {
     id: EXPERIMENT_SUITE_PRIMARY,
-    title: "Algorithm agents (15)",
+    title: "Algorithm agents",
     description:
-      "Fifteen Binance spot agents (ids 0–14): swing/trend mixes + gates/filters. Worst five by win rate are replaced daily with random variants (same slots).",
+      "Binance spot agents: 15 core slots (ids 0–14) plus up to 985 spawned variants. Agents below $900 equity (–10%) are culled daily; 15 new agents spawn per day (max 1000 per ledger).",
   },
   {
     id: EXPERIMENT_SUITE_SECONDARY,
-    title: "Scalper agents (15)",
+    title: "Scalper agents",
     description:
-      "Fifteen short-bar agents (1m–15m) for higher trade frequency. Isolated ledger; same daily cull of five worst + random respawn.",
+      "Short-bar agents (1m–15m) for higher trade frequency. Isolated ledger; same –10% equity cull and daily spawn rules as the primary roster.",
   },
 ]);

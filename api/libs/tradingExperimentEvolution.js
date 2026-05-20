@@ -1,13 +1,22 @@
 /**
- * Daily evolutionary replacement for standard lab agents: drop worst win rates,
- * spawn random variants in the same agent slots. Never touches suite `user_custom` / wallet strategies.
+ * Daily evolutionary replacement for standard lab agents:
+ * - Cull agents whose equity falls to –10% ($900) with no open positions
+ * - Spawn 15 new random agents per day (up to 1000 per suite)
  *
  * Schedule defaults live in {@link TRADING_EXPERIMENT_EVOLUTION_SCHEDULE} (enabled in code, no env).
  */
 import TradingExperimentRun from "../models/TradingExperimentRun.js";
 import TradingExperimentLabAgentOverride from "../models/TradingExperimentLabAgentOverride.js";
 import TradingExperimentAgentState from "../models/TradingExperimentAgentState.js";
-import { TRADING_EXPERIMENT_STARTING_USD } from "../config/tradingExperimentSim.js";
+import {
+  TRADING_EXPERIMENT_STARTING_USD,
+  TRADING_EXPERIMENT_CULL_EQUITY_USD,
+  TRADING_EXPERIMENT_DAILY_SPAWN_COUNT,
+  TRADING_EXPERIMENT_MAX_AGENTS,
+  TRADING_EXPERIMENT_MAX_AGENT_ID,
+  TRADING_EXPERIMENT_STATIC_AGENT_COUNT,
+  computeAgentEquityUsd,
+} from "../config/tradingExperimentSim.js";
 import {
   TRADING_EXPERIMENT_STRATEGIES,
   TRADING_EXPERIMENT_STRATEGIES_SECONDARY,
@@ -188,7 +197,7 @@ export function parsePinnedAgentIds(raw) {
   if (!s) return set;
   for (const part of s.split(",")) {
     const n = Number(part.trim());
-    if (Number.isInteger(n) && n >= 0 && n <= 99) set.add(n);
+    if (Number.isInteger(n) && n >= 0 && n <= TRADING_EXPERIMENT_MAX_AGENT_ID) set.add(n);
   }
   return set;
 }
@@ -199,24 +208,34 @@ export const TRADING_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   intervalMs: 86_400_000,
   /** Default suite when calling evolution without args (cron still runs both ledgers). */
   suite: "primary",
-  removeCount: 5,
-  minDecided: 5,
+  cullEquityUsd: TRADING_EXPERIMENT_CULL_EQUITY_USD,
+  dailySpawnCount: TRADING_EXPERIMENT_DAILY_SPAWN_COUNT,
+  maxAgents: TRADING_EXPERIMENT_MAX_AGENTS,
   /** Agent ids never culled (empty = all lab slots eligible). */
   pinnedAgentIds: Object.freeze(/** @type {readonly number[]} */ ([])),
 });
 
 /**
- * @returns {{ enabled: boolean; ms: number; suite: string; removeCount: number; minDecided: number; pinned: Set<number> }}
+ * @returns {{
+ *   enabled: boolean;
+ *   ms: number;
+ *   suite: string;
+ *   cullEquityUsd: number;
+ *   dailySpawnCount: number;
+ *   maxAgents: number;
+ *   pinned: Set<number>;
+ * }}
  */
 export function evolutionConfigFromEnv() {
-  const { enabled, intervalMs, suite, removeCount, minDecided, pinnedAgentIds } =
+  const { enabled, intervalMs, suite, cullEquityUsd, dailySpawnCount, maxAgents, pinnedAgentIds } =
     TRADING_EXPERIMENT_EVOLUTION_SCHEDULE;
   return {
     enabled,
     ms: intervalMs,
     suite: normalizeSuite(suite),
-    removeCount,
-    minDecided,
+    cullEquityUsd,
+    dailySpawnCount,
+    maxAgents,
     pinned: new Set(pinnedAgentIds),
   };
 }
@@ -240,7 +259,113 @@ function matchRunsForEvolutionSuite(suiteNorm) {
 }
 
 /**
- * @param {{ suite?: string; removeCount?: number; minDecided?: number; pinned?: Set<number> }} [opts]
+ * @param {string} suiteNorm
+ * @returns {(agentId: number) => ReturnType<typeof buildRandomLabStrategy>}
+ */
+function strategyBuilderForSuite(suiteNorm) {
+  return suiteNorm === EXPERIMENT_SUITE_SECONDARY ? buildRandomScalperStrategy : buildRandomLabStrategy;
+}
+
+/**
+ * @param {ReturnType<typeof buildRandomLabStrategy>} strat
+ * @returns {Record<string, unknown>}
+ */
+function overridePayloadFromStrategy(strat) {
+  return {
+    name: strat.name,
+    token: strat.token,
+    bar: strat.bar,
+    limit: strat.limit,
+    lookAheadBars: strat.lookAheadBars,
+    experimentGate: strat.experimentGate,
+    indicatorFilter: strat.indicatorFilter ?? null,
+    source: null,
+  };
+}
+
+/**
+ * @param {string} suiteNorm
+ * @param {number} agentId
+ * @param {ReturnType<typeof buildRandomLabStrategy>} strat
+ */
+async function upsertSpawnedAgent(suiteNorm, agentId, strat) {
+  await TradingExperimentAgentState.findOneAndUpdate(
+    { suite: suiteNorm, agentId },
+    {
+      $set: {
+        cashUsd: TRADING_EXPERIMENT_STARTING_USD,
+        startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+      },
+    },
+    { upsert: true },
+  );
+  await TradingExperimentLabAgentOverride.findOneAndUpdate(
+    { suite: suiteNorm, agentId },
+    {
+      $set: {
+        suite: suiteNorm,
+        agentId,
+        ...overridePayloadFromStrategy(strat),
+      },
+    },
+    { upsert: true, new: true },
+  );
+}
+
+/**
+ * @param {string} suiteNorm
+ * @param {number} count
+ * @param {number} currentTotal
+ * @param {number} maxAgents
+ * @returns {Promise<number[]>}
+ */
+async function allocateNewAgentIds(suiteNorm, count, currentTotal, maxAgents) {
+  const room = maxAgents - currentTotal;
+  if (room <= 0 || count <= 0) return [];
+
+  const toCreate = Math.min(count, room);
+  const overrides = await TradingExperimentLabAgentOverride.find({ suite: suiteNorm })
+    .select("agentId")
+    .lean();
+  const used = new Set(overrides.map((o) => o.agentId));
+  for (let i = 0; i < TRADING_EXPERIMENT_STATIC_AGENT_COUNT; i++) used.add(i);
+
+  /** @type {number[]} */
+  const ids = [];
+  for (let id = TRADING_EXPERIMENT_STATIC_AGENT_COUNT; id <= TRADING_EXPERIMENT_MAX_AGENT_ID; id++) {
+    if (ids.length >= toCreate) break;
+    if (!used.has(id)) {
+      ids.push(id);
+      used.add(id);
+    }
+  }
+  return ids;
+}
+
+/**
+ * @param {{
+ *   suiteNorm: string;
+ *   agentId: number;
+ *   suiteMatch: Record<string, unknown>;
+ *   buildStrategy: (agentId: number) => ReturnType<typeof buildRandomLabStrategy>;
+ *   previousEquityUsd: number;
+ * }} opts
+ */
+async function cullAndReplaceAgent(opts) {
+  const { suiteNorm, agentId, suiteMatch, buildStrategy, previousEquityUsd } = opts;
+  await TradingExperimentRun.deleteMany({ agentId, ...suiteMatch });
+  const strat = buildStrategy(agentId);
+  await upsertSpawnedAgent(suiteNorm, agentId, strat);
+  return {
+    agentId,
+    previousEquityUsd,
+    action: "replaced",
+    strategy: strat,
+  };
+}
+
+/**
+ * @param {{ suite?: string; cullEquityUsd?: number; dailySpawnCount?: number; maxAgents?: number; pinned?: Set<number> }} [opts]
  */
 export async function runTradingExperimentEvolution(opts = {}) {
   const envCfg = evolutionConfigFromEnv();
@@ -251,111 +376,100 @@ export async function runTradingExperimentEvolution(opts = {}) {
       suite: suiteNorm,
       culled: [],
       spawned: [],
+      dailySpawned: [],
       skipped: "Evolution runs only on primary or secondary suite",
     };
   }
 
-  const removeCount = opts.removeCount ?? envCfg.removeCount;
-  const minDecided = opts.minDecided ?? envCfg.minDecided;
+  const cullEquityUsd = opts.cullEquityUsd ?? envCfg.cullEquityUsd;
+  const dailySpawnCount = opts.dailySpawnCount ?? envCfg.dailySpawnCount;
+  const maxAgents = opts.maxAgents ?? envCfg.maxAgents;
   const pinned = opts.pinned ?? envCfg.pinned;
+  const buildStrategy = strategyBuilderForSuite(suiteNorm);
+  const suiteMatch = matchRunsForEvolutionSuite(suiteNorm);
 
   const strategies = await resolveStrategiesForSuite(suiteNorm);
-  /** @type {{ agentId: number; wins: number; losses: number; decided: number; winRate: number | null; openPositions: number }[]} */
-  const rows = [];
+  const states = await TradingExperimentAgentState.find({ suite: suiteNorm }).lean();
+  const stateByAgent = new Map(states.map((x) => [x.agentId, x]));
 
-  const suiteMatch = matchRunsForEvolutionSuite(suiteNorm);
+  /** @type {{ agentId: number; equityUsd: number }[]} */
+  const victims = [];
 
   for (const s of strategies) {
     if (pinned.has(s.id)) continue;
-
-    const settled = await TradingExperimentRun.find({
-      agentId: s.id,
-      status: { $in: ["win", "loss"] },
-      ...suiteMatch,
-    }).lean();
-    const wins = settled.filter((r) => r.status === "win").length;
-    const losses = settled.filter((r) => r.status === "loss").length;
-    const decided = wins + losses;
-    const winRate = decided > 0 ? wins / decided : null;
 
     const openPositions = await TradingExperimentRun.countDocuments({
       agentId: s.id,
       status: "open",
       ...suiteMatch,
     });
+    if (openPositions > 0) continue;
 
-    rows.push({ agentId: s.id, wins, losses, decided, winRate, openPositions });
+    const st = stateByAgent.get(s.id);
+    const cashUsd = st?.cashUsd ?? TRADING_EXPERIMENT_STARTING_USD;
+    const equityUsd = computeAgentEquityUsd(cashUsd, openPositions);
+    if (equityUsd <= cullEquityUsd) {
+      victims.push({ agentId: s.id, equityUsd });
+    }
   }
 
-  const experienced = rows.filter((r) => r.decided >= minDecided && r.openPositions === 0);
-  const fresh = rows.filter((r) => r.decided < minDecided && r.openPositions === 0);
+  victims.sort((a, b) => a.equityUsd - b.equityUsd);
 
-  experienced.sort((a, b) => {
-    const ra = a.winRate ?? 0;
-    const rb = b.winRate ?? 0;
-    if (ra !== rb) return ra - rb;
-    return b.decided - a.decided;
-  });
-
-  fresh.sort((a, b) => {
-    if (a.decided !== b.decided) return a.decided - b.decided;
-    const ra = a.winRate ?? 0;
-    const rb = b.winRate ?? 0;
-    return ra - rb;
-  });
-
-  const ordered = [...experienced, ...fresh];
-  const victims = ordered.slice(0, removeCount);
-  if (victims.length === 0) {
-    return { ok: true, suite: suiteNorm, culled: [], spawned: [], skipped: "No eligible agents" };
-  }
-
-  /** @type {{ agentId: number; previousWinRate: number | null; previousDecided: number }[]} */
+  /** @type {{ agentId: number; previousEquityUsd: number; action: string; strategy: ReturnType<typeof buildRandomLabStrategy> | null }[]} */
   const culled = [];
-  /** @type {{ agentId: number; strategy: ReturnType<typeof buildRandomLabStrategy> }[]} */
+  /** @type {{ agentId: number; reason: string; strategy: ReturnType<typeof buildRandomLabStrategy> }[]} */
   const spawned = [];
 
   for (const v of victims) {
-    await TradingExperimentRun.deleteMany({ agentId: v.agentId, ...suiteMatch });
-    await TradingExperimentAgentState.findOneAndUpdate(
-      { suite: suiteNorm, agentId: v.agentId },
-      {
-        $set: {
-          cashUsd: TRADING_EXPERIMENT_STARTING_USD,
-          startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
-        },
-      },
-      { upsert: true },
-    );
-    const strat =
-      suiteNorm === EXPERIMENT_SUITE_SECONDARY
-        ? buildRandomScalperStrategy(v.agentId)
-        : buildRandomLabStrategy(v.agentId);
-    await TradingExperimentLabAgentOverride.findOneAndUpdate(
-      { suite: suiteNorm, agentId: v.agentId },
-      {
-        $set: {
-          suite: suiteNorm,
-          agentId: v.agentId,
-          name: strat.name,
-          token: strat.token,
-          bar: strat.bar,
-          limit: strat.limit,
-          lookAheadBars: strat.lookAheadBars,
-          experimentGate: strat.experimentGate,
-          indicatorFilter: strat.indicatorFilter ?? null,
-          source: null,
-        },
-      },
-      { upsert: true, new: true },
-    );
-    culled.push({
+    const out = await cullAndReplaceAgent({
+      suiteNorm,
       agentId: v.agentId,
-      previousWinRate: v.winRate,
-      previousDecided: v.decided,
+      suiteMatch,
+      buildStrategy,
+      previousEquityUsd: v.equityUsd,
     });
-    spawned.push({ agentId: v.agentId, strategy: strat });
+    culled.push(out);
+    if (out.strategy) {
+      spawned.push({ agentId: out.agentId, reason: "equity_cull", strategy: out.strategy });
+    }
   }
 
-  return { ok: true, suite: suiteNorm, culled, spawned, skipped: null };
+  const postCullStrategies = await resolveStrategiesForSuite(suiteNorm);
+  const newIds = await allocateNewAgentIds(
+    suiteNorm,
+    dailySpawnCount,
+    postCullStrategies.length,
+    maxAgents,
+  );
+
+  /** @type {{ agentId: number; reason: string; strategy: ReturnType<typeof buildRandomLabStrategy> }[]} */
+  const dailySpawned = [];
+  for (const agentId of newIds) {
+    const strat = buildStrategy(agentId);
+    await upsertSpawnedAgent(suiteNorm, agentId, strat);
+    const entry = { agentId, reason: "daily_spawn", strategy: strat };
+    dailySpawned.push(entry);
+    spawned.push(entry);
+  }
+
+  if (culled.length === 0 && dailySpawned.length === 0) {
+    const atCap = postCullStrategies.length >= maxAgents;
+    return {
+      ok: true,
+      suite: suiteNorm,
+      culled,
+      spawned,
+      dailySpawned,
+      skipped: atCap ? "At max agent cap" : "No agents eligible for cull or spawn",
+    };
+  }
+
+  return {
+    ok: true,
+    suite: suiteNorm,
+    culled,
+    spawned,
+    dailySpawned,
+    skipped: null,
+  };
 }

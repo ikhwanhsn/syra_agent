@@ -12,9 +12,9 @@ import {
   Twitter,
   BookOpen,
   ExternalLink,
-  FileText,
-  Bot,
   LayoutDashboard,
+  Bot,
+  Settings2,
   Mail,
   Send,
   UsersRound,
@@ -42,11 +42,6 @@ import {
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
-
-const MARKETPLACE_SECTIONS = [
-  { path: "prompts", label: "Prompts", icon: FileText },
-  { path: "agents", label: "Agents", icon: Bot },
-] as const;
 
 const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
   {
@@ -95,11 +90,6 @@ function isAlphaIntelActive(pathname: string, _search: string): boolean {
   return pathname.startsWith("/dashboard/alpha");
 }
 
-const MARKETPLACE_PAGE_TITLES: Record<string, string> = {
-  prompts: "Prompts",
-  agents: "Agents",
-};
-
 /** Same community links as chat `Sidebar.tsx` footer. */
 const SYRA_TELEGRAM = "https://t.me/syra_ai";
 const SYRA_SUPPORT_EMAIL = "support@syraa.fun";
@@ -121,14 +111,11 @@ const CONNECT_LINKS: SidebarConnectLink[] = [
 function dashboardPageTitle(pathname: string, search: string): string {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] !== "dashboard") return "Overview";
-  if (parts[1] === "marketplace") {
-    if (parts[2] === "prompts" && parts[3] === "syra") return "Syra prompts";
-    if (parts[2] === "prompts" && parts[3] === "user" && parts[4]) return "Creator profile";
-    const key = parts[2] ?? "prompts";
-    return MARKETPLACE_PAGE_TITLES[key] ?? "Prompts";
-  }
   if (parts[1] === "trading-experiment" && parts[2] === "agent") return "Agent profile";
   if (parts[1] === "overview") return "Overview";
+  if (parts[1] === "agents" && parts[2]) return "Agent detail";
+  if (parts[1] === "agents") return "Agents";
+  if (parts[1] === "agent-setup") return "Agent setup";
   if (parts[1] === "alpha" && parts[2] === "x" && parts[3]) return "Alpha · Intel";
   if (parts[1] === "alpha") return "Alpha";
   if (parts[1] === "pumpfun-experiment") return "Pumpfun experiment";
@@ -188,15 +175,12 @@ function DashboardSidebarContent({
             <SidebarNavLink to="/dashboard/overview" icon={LayoutDashboard} end>
               Overview
             </SidebarNavLink>
-          </div>
-
-          <SidebarSectionLabel>Marketplace</SidebarSectionLabel>
-          <div className="space-y-1">
-            {MARKETPLACE_SECTIONS.map(({ path, label, icon: Icon }) => (
-              <SidebarNavLink key={path} to={`/dashboard/marketplace/${path}`} icon={Icon}>
-                {label}
-              </SidebarNavLink>
-            ))}
+            <SidebarNavLink to="/dashboard/agents" icon={Bot} end>
+              Agents
+            </SidebarNavLink>
+            <SidebarNavLink to="/dashboard/agent-setup" icon={Settings2} end>
+              Agent setup
+            </SidebarNavLink>
           </div>
 
           <SidebarSectionLabel>Intelligence</SidebarSectionLabel>

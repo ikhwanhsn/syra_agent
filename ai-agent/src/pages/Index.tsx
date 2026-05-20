@@ -10,7 +10,7 @@ import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { SIDEBAR_PANEL, MAIN_PANEL, SIDEBAR_AUTO_SAVE_ID } from "@/lib/layoutConstants";
 import { chatApi, getApiBaseUrl, type AgentInlineUiPayload } from "@/lib/chatApi";
 import { resolveAssistantSwapInlineUi } from "@/lib/swapIntentFromMessage";
-import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
+import { getAgentSystemPrompt } from "@/lib/agentSetupStorage";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -767,7 +767,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }
       const { response: responseText, amountChargedUsd, toolUsages, inlineUi } = await chatApi.completion({
         messages: apiMessages,
-        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        systemPrompt: getAgentSystemPrompt(),
         chatId:
           walletConnected && chatId && !isLocalChat(chatId) ? chatId : undefined,
         anonymousId: anonymousId ?? undefined,
@@ -1000,7 +1000,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }
       const { response: responseText, amountChargedUsd, toolUsages, inlineUi } = await chatApi.completion({
         messages: apiMessages,
-        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        systemPrompt: getAgentSystemPrompt(),
         chatId: walletConnected && !isLocalChat(chatId) ? chatId : undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
@@ -1244,7 +1244,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                   onRegenerate={handleRegenerate}
                   selectedAgent={selectedAgent}
                   onSelectAgent={setSelectedAgent}
-                  systemPrompt={DEFAULT_SYSTEM_PROMPT}
+                  systemPrompt={getAgentSystemPrompt()}
                   onToggleSidebar={handleToggleSidebar}
                   sidebarCollapsed={sidebarCollapsed}
                   sessionReady={sessionReady}
@@ -1286,7 +1286,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             onRegenerate={handleRegenerate}
             selectedAgent={selectedAgent}
             onSelectAgent={setSelectedAgent}
-            systemPrompt={DEFAULT_SYSTEM_PROMPT}
+            systemPrompt={getAgentSystemPrompt()}
             onToggleSidebar={() => setSidebarOpen(true)}
             sidebarCollapsed={false}
             sessionReady={sessionReady}

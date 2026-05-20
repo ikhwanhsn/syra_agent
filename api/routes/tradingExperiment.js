@@ -3,7 +3,7 @@
  *
  * Env (optional):
  * - TRADING_EXPERIMENT_CRON_SECRET: if set, POST /run-cycle, POST /validate-tick, POST /evolution-tick require header x-trading-experiment-secret
- * - Lab evolution schedule defaults: TRADING_EXPERIMENT_EVOLUTION_SCHEDULE in tradingExperimentEvolution.js
+ * - Lab evolution schedule defaults: TRADING_EXPERIMENT_EVOLUTION_SCHEDULE in tradingExperimentEvolution.js (equity cull + daily spawn)
  * - COINMARKETCAP_API_KEY: enables live top-10 list for GET /cmc-top (arbitrage experiment); otherwise a static fallback list is used
  * - BINANCE_DATA_API_BASE_URL: optional fallback for Binance ticker (default https://data-api.binance.vision/api/v3) when api.binance.com fails
  * - OKX_API_BASE_URL: optional OKX REST host (default https://www.okx.com)
@@ -267,30 +267,34 @@ export function createTradingExperimentRouter() {
 
   /** New hourly samples only; does not run validation (assumes validate-tick cron). Body: { suite?: "primary" | "secondary" | "all" } (default all). */
   /**
-   * Replace worst-performing standard lab agents (same suite) with random new configs; clears their runs.
-   * Never affects suite `user_custom`. Body optional: { suite?, removeCount?, minDecided?, pinnedAgentIds?: number[] }.
+   * Cull lab agents at or below –10% equity ($900) and spawn 15 new agents per suite (max 1000).
+   * Never affects suite `user_custom`. Body optional: { suite?, cullEquityUsd?, dailySpawnCount?, maxAgents?, pinnedAgentIds?: number[] }.
    */
   router.post("/evolution-tick", requireCronSecret, async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const suiteRaw = typeof body.suite === "string" ? body.suite.trim().toLowerCase() : "";
-      const removeCount =
-        body.removeCount != null && Number.isFinite(Number(body.removeCount))
-          ? Number(body.removeCount)
+      const cullEquityUsd =
+        body.cullEquityUsd != null && Number.isFinite(Number(body.cullEquityUsd))
+          ? Number(body.cullEquityUsd)
           : undefined;
-      const minDecided =
-        body.minDecided != null && Number.isFinite(Number(body.minDecided))
-          ? Number(body.minDecided)
+      const dailySpawnCount =
+        body.dailySpawnCount != null && Number.isFinite(Number(body.dailySpawnCount))
+          ? Number(body.dailySpawnCount)
+          : undefined;
+      const maxAgents =
+        body.maxAgents != null && Number.isFinite(Number(body.maxAgents))
+          ? Number(body.maxAgents)
           : undefined;
       let pinned = undefined;
       if (Array.isArray(body.pinnedAgentIds)) {
         pinned = new Set(
           body.pinnedAgentIds
             .map((x) => Number(x))
-            .filter((n) => Number.isInteger(n) && n >= 0 && n <= 99),
+            .filter((n) => Number.isInteger(n) && n >= 0 && n <= 999),
         );
       }
-      const common = { removeCount, minDecided, pinned };
+      const common = { cullEquityUsd, dailySpawnCount, maxAgents, pinned };
       if (suiteRaw === "all" || suiteRaw === "both") {
         const [primary, secondary] = await Promise.all([
           runTradingExperimentEvolution({ ...common, suite: "primary" }),

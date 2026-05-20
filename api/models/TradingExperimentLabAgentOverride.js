@@ -14,7 +14,7 @@ const experimentGateSchema = new mongoose.Schema(
 const tradingExperimentLabAgentOverrideSchema = new mongoose.Schema(
   {
     suite: { type: String, required: true, index: true },
-    agentId: { type: Number, required: true, min: 0, max: 99 },
+    agentId: { type: Number, required: true, min: 0, max: 999 },
     name: { type: String, required: true },
     token: { type: String, required: true },
     bar: { type: String, required: true },

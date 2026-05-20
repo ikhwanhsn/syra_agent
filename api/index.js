@@ -1327,9 +1327,12 @@ app.listen(PORT, () => {
               console.info(
                 "[Trading experiment evolution]",
                 out.suite,
-                "replaced",
+                "culled",
+                out.culled?.length ?? 0,
+                "spawned",
                 out.spawned?.length ?? 0,
-                "agents",
+                "daily",
+                out.dailySpawned?.length ?? 0,
               );
             }
           })
