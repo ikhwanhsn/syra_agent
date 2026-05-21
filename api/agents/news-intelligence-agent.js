@@ -122,19 +122,30 @@ Base judgments ONLY on the provided titles/descriptions. No markdown fences.`,
     },
   ];
 
-  const { response } = await callOpenRouter(messages, {
-    model: modelId,
-    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.internalResearch,
-    temperature: 0.15,
-  });
+  try {
+    const { response } = await callOpenRouter(messages, {
+      model: modelId,
+      max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.internalResearch,
+      temperature: 0.15,
+    });
 
-  const parsed = parseJsonObjectFromLlm(response);
-  const map = coerceSentimentMap(parsed);
+    const parsed = parseJsonObjectFromLlm(response);
+    const map = coerceSentimentMap(parsed);
 
-  for (const a of articles) {
-    if (!map[a.id]) map[a.id] = { sentiment: "Neutral", score: 0 };
+    for (const a of articles) {
+      if (!map[a.id]) map[a.id] = { sentiment: "Neutral", score: 0 };
+    }
+    return map;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[news-intelligence] sentiment LLM failed, using neutral fallback:", msg);
+    /** @type {Record<string, SentimentResult>} */
+    const fallback = {};
+    for (const a of articles) {
+      fallback[a.id] = { sentiment: "Neutral", score: 0 };
+    }
+    return fallback;
   }
-  return map;
 }
 
 /**

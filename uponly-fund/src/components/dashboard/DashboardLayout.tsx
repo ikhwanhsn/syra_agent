@@ -38,6 +38,68 @@ import { buildRiseTradeUrl } from "@/lib/riseDashboardApi";
 import { RISE_UPONLY_MINT } from "@/components/rise/RiseShared";
 import { DashboardOutletSkeleton } from "@/components/dashboard/DashboardOutletSkeleton";
 
+/**
+ * Right-side action group used by both mobile + desktop headers.
+ * Extracted to kill duplicated EN/中文 + theme + connect markup.
+ */
+function TopBarActions({
+  language,
+  setLanguage,
+  isDark,
+  setTheme,
+  dictionary,
+  compact = false,
+}: {
+  language: "en" | "zh";
+  setLanguage: (lang: "en" | "zh") => void;
+  isDark: boolean;
+  setTheme: (theme: "dark" | "light") => void;
+  dictionary: DashboardDictionary;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("flex items-center", compact ? "gap-1" : "gap-1.5 sm:gap-2")}>
+      <div
+        className="inline-flex h-9 items-center rounded-md border border-border/60 bg-background/70 p-0.5"
+        role="group"
+        aria-label="Language switcher"
+      >
+        <Button
+          type="button"
+          variant={language === "en" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 px-2 text-[11px] font-semibold"
+          onClick={() => setLanguage("en")}
+          aria-pressed={language === "en"}
+        >
+          EN
+        </Button>
+        <Button
+          type="button"
+          variant={language === "zh" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 px-2 text-[11px] font-semibold"
+          onClick={() => setLanguage("zh")}
+          aria-pressed={language === "zh"}
+        >
+          中文
+        </Button>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9"
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+        title={isDark ? dictionary.lightMode : dictionary.darkMode}
+        aria-label={isDark ? dictionary.switchToLightMode : dictionary.switchToDarkMode}
+      >
+        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </Button>
+      <ConnectWalletButton />
+    </div>
+  );
+}
+
 function SidebarContent({
   dictionary,
   sidebarItems,
@@ -287,61 +349,19 @@ export default function DashboardLayout() {
                   className="min-w-0"
                 >
                   <div className="flex h-full min-h-0 min-w-0 flex-col">
-                    <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-border/80 bg-background/85 px-3 py-2 backdrop-blur-xl sm:px-4">
+                    <header className="flex min-h-11 flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-border/70 bg-background px-3 py-1.5 sm:px-4">
                       <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-foreground sm:text-base">
+                        <p className="truncate text-sm font-semibold tracking-tight text-foreground sm:text-[0.95rem]">
                           {pageTitle}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <div
-                          className="inline-flex h-9 items-center rounded-md border border-border/60 bg-background/70 p-0.5"
-                          role="group"
-                          aria-label="Language switcher"
-                        >
-                          <Button
-                            type="button"
-                            variant={language === "en" ? "default" : "ghost"}
-                            size="sm"
-                            className="h-7 px-2 text-[11px] font-semibold"
-                            onClick={() => setLanguage("en")}
-                            aria-pressed={language === "en"}
-                          >
-                            EN
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={language === "zh" ? "default" : "ghost"}
-                            size="sm"
-                            className="h-7 px-2 text-[11px] font-semibold"
-                            onClick={() => setLanguage("zh")}
-                            aria-pressed={language === "zh"}
-                          >
-                            中文
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9"
-                          onClick={() => setTheme(isDark ? "light" : "dark")}
-                          title={
-                            isDark ? dictionary.lightMode : dictionary.darkMode
-                          }
-                          aria-label={
-                            isDark
-                              ? dictionary.switchToLightMode
-                              : dictionary.switchToDarkMode
-                          }
-                        >
-                          {isDark ? (
-                            <Sun className="h-4 w-4" />
-                          ) : (
-                            <Moon className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <ConnectWalletButton />
-                      </div>
+                      <TopBarActions
+                        language={language}
+                        setLanguage={setLanguage}
+                        isDark={isDark}
+                        setTheme={setTheme}
+                        dictionary={dictionary}
+                      />
                     </header>
                     <div className="min-h-0 flex-1 overflow-auto overflow-x-hidden">
                       <div className={cn(contentShell, "py-4 sm:py-5 lg:py-6")}>
@@ -356,7 +376,7 @@ export default function DashboardLayout() {
             </div>
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:hidden">
-              <header className="flex min-h-12 items-center justify-between gap-2 border-b border-border/80 bg-background/85 px-2 py-2 backdrop-blur-xl">
+              <header className="flex min-h-11 items-center justify-between gap-2 border-b border-border/70 bg-background px-2 py-1.5">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <Button
                     variant="ghost"
@@ -368,57 +388,18 @@ export default function DashboardLayout() {
                   >
                     <Menu className="h-5 w-5" />
                   </Button>
-                  <p className="truncate text-sm font-semibold text-foreground">
+                  <p className="truncate text-sm font-semibold tracking-tight text-foreground">
                     {pageTitle}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <div
-                    className="inline-flex h-9 items-center rounded-md border border-border/60 bg-background/70 p-0.5"
-                    role="group"
-                    aria-label="Language switcher"
-                  >
-                    <Button
-                      type="button"
-                      variant={language === "en" ? "default" : "ghost"}
-                      size="sm"
-                      className="h-7 px-2 text-[11px] font-semibold"
-                      onClick={() => setLanguage("en")}
-                      aria-pressed={language === "en"}
-                    >
-                      EN
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={language === "zh" ? "default" : "ghost"}
-                      size="sm"
-                      className="h-7 px-2 text-[11px] font-semibold"
-                      onClick={() => setLanguage("zh")}
-                      aria-pressed={language === "zh"}
-                    >
-                      中文
-                    </Button>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={() => setTheme(isDark ? "light" : "dark")}
-                    title={isDark ? dictionary.lightMode : dictionary.darkMode}
-                    aria-label={
-                      isDark
-                        ? dictionary.switchToLightMode
-                        : dictionary.switchToDarkMode
-                    }
-                  >
-                    {isDark ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <ConnectWalletButton />
-                </div>
+                <TopBarActions
+                  language={language}
+                  setLanguage={setLanguage}
+                  isDark={isDark}
+                  setTheme={setTheme}
+                  dictionary={dictionary}
+                  compact
+                />
               </header>
               <div className="min-h-0 flex-1 overflow-auto overflow-x-hidden">
                 <div

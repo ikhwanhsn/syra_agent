@@ -678,21 +678,43 @@ async function computeLivePreviewSentiment(ticker) {
   const hit = previewSentimentLiveCache.get(key);
   if (hit && Date.now() < hit.expires) return hit.data;
 
-  const articles = await getArticlesWithinHours(24);
-  const batch = articles.slice(0, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE);
-  if (batch.length === 0) return [];
+  try {
+    const articles = await getArticlesWithinHours(24);
+    const batch = articles.slice(0, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE);
+    if (batch.length === 0) return [];
 
-  const classifications = await classifyArticleSentiments(batch);
-  const stats = aggregateSentimentStats(classifications);
-  const date = new Date().toISOString().slice(0, 10);
-  const row =
-    ticker !== "general"
-      ? { date, ticker: stats }
-      : { date, general: stats };
+    const classifications = await classifyArticleSentiments(batch);
+    const stats = aggregateSentimentStats(classifications);
+    const date = new Date().toISOString().slice(0, 10);
+    const row =
+      ticker !== "general"
+        ? { date, ticker: stats }
+        : { date, general: stats };
 
-  const data = [row];
-  previewSentimentLiveCache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
-  return data;
+    const data = [row];
+    previewSentimentLiveCache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
+    return data;
+  } catch (err) {
+    const msg = err?.message || String(err);
+    console.warn("[internal-news] live preview sentiment failed:", msg);
+    return [];
+  }
+}
+
+function emptyPreviewSentimentPayload() {
+  return {
+    sentiment: {
+      data: {},
+      total: {
+        "Total Positive": 0,
+        "Total Negative": 0,
+        "Total Neutral": 0,
+        "Sentiment Score": 0,
+      },
+    },
+    sentimentAnalysis: [],
+    source: "empty",
+  };
 }
 
 /** Preview (no x402) sentiment router for /preview/sentiment */
@@ -732,7 +754,13 @@ export async function createSentimentRouterRegular() {
   router.get("/", async (req, res) => {
     try {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      try {
+        ticker = await resolveTicker(ticker);
+      } catch (resolveErr) {
+        console.warn("[internal-news] /preview/sentiment resolveTicker:", resolveErr?.message || resolveErr);
+        ticker = "general";
+      }
+
       let result;
       let source = "series";
 
@@ -761,7 +789,11 @@ export async function createSentimentRouterRegular() {
         source = result.length > 0 ? "live" : "empty";
       }
 
-      res.json({
+      if (!result?.length) {
+        return res.json(emptyPreviewSentimentPayload());
+      }
+
+      return res.json({
         sentiment: { data: buildSentimentData(result), total: buildSentimentTotal(result) },
         sentimentAnalysis: result,
         source,
@@ -769,9 +801,7 @@ export async function createSentimentRouterRegular() {
     } catch (err) {
       const msg = err?.message || String(err);
       console.warn("[internal-news] /preview/sentiment error:", msg);
-      return res.status(503).json({
-        error: "Sentiment service is temporarily unavailable. Please try again later.",
-      });
+      return res.json(emptyPreviewSentimentPayload());
     }
   });
   return router;

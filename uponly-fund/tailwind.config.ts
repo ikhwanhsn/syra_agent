@@ -1,5 +1,14 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Floorsniffer-style screener palette + Up Only Fund landing accent.
+ * Two font stacks:
+ *   - `font-sans` (default body): Rethink Sans → Inter → system. Picked for
+ *     dense dashboard tables; high x-height, tabular nums look clean.
+ *   - `font-display` (landing only): Outfit, retained so marketing pages
+ *     keep their existing typographic identity.
+ *   - `font-mono`: JetBrains Mono for addresses/hashes.
+ */
 export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
@@ -14,8 +23,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        space: ["Space Grotesk", "sans-serif"],
-        display: ["Outfit", "Space Grotesk", "system-ui", "sans-serif"],
+        sans: ["Rethink Sans", "Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        space: ["Rethink Sans", "Inter", "system-ui", "sans-serif"],
+        display: ["Outfit", "Rethink Sans", "Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -85,6 +96,44 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Floorsniffer-parity screener semantics. Use these in dashboard chrome
+        // instead of hard-coding `emerald-500` / `red-500` so light + dark work.
+        ds: {
+          canvas: "var(--ds-canvas)",
+          panel: "var(--ds-panel)",
+          surface: {
+            1: "var(--ds-surface-1)",
+            2: "var(--ds-surface-2)",
+            3: "var(--ds-surface-3)",
+          },
+          border: "var(--ds-border)",
+          divider: "var(--ds-divider)",
+          text: {
+            display: "var(--ds-text-display)",
+            primary: "var(--ds-text-primary)",
+            secondary: "var(--ds-text-secondary)",
+            tertiary: "var(--ds-text-tertiary)",
+            muted: "var(--ds-text-muted)",
+          },
+          positive: "var(--ds-positive)",
+          "positive-soft": "var(--ds-positive-soft)",
+          "positive-border": "var(--ds-positive-border)",
+          negative: "var(--ds-negative)",
+          "negative-soft": "var(--ds-negative-soft)",
+          "negative-border": "var(--ds-negative-border)",
+          warning: "var(--ds-warning)",
+          "warning-soft": "var(--ds-warning-soft)",
+          "warning-border": "var(--ds-warning-border)",
+          info: "var(--ds-info)",
+          "info-soft": "var(--ds-info-soft)",
+          "info-border": "var(--ds-info-border)",
+          special: "var(--ds-special)",
+          "special-soft": "var(--ds-special-soft)",
+          "special-border": "var(--ds-special-border)",
+          accent: "var(--ds-accent)",
+          "accent-soft": "var(--ds-accent-soft)",
+          "accent-border": "var(--ds-accent-border)",
+        },
       },
       transitionDuration: {
         400: "400ms",
@@ -106,44 +155,6 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "fade-in-left": {
-          "0%": { opacity: "0", transform: "translateX(-40px)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
-        "fade-in-right": {
-          "0%": { opacity: "0", transform: "translateX(40px)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
-        "scale-in": {
-          "0%": { opacity: "0", transform: "scale(0.95)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
-        },
-        float: {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-20px)" },
-        },
-        "pulse-glow": {
-          "0%, 100%": { opacity: "0.4" },
-          "50%": { opacity: "0.8" },
-        },
-        orbit: {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        "data-stream": {
-          "0%": { transform: "translateY(100%)", opacity: "0" },
-          "10%": { opacity: "1" },
-          "90%": { opacity: "1" },
-          "100%": { transform: "translateY(-100%)", opacity: "0" },
-        },
         marquee: {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
@@ -152,17 +163,6 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.6s ease-out forwards",
-        "fade-in-left": "fade-in-left 0.6s ease-out forwards",
-        "fade-in-right": "fade-in-right 0.6s ease-out forwards",
-        "scale-in": "scale-in 0.4s ease-out forwards",
-        shimmer: "shimmer 2s linear infinite",
-        float: "float 6s ease-in-out infinite",
-        "pulse-glow": "pulse-glow 3s ease-in-out infinite",
-        orbit: "orbit 30s linear infinite",
-        "orbit-slow": "orbit 50s linear infinite",
-        "orbit-reverse": "orbit 40s linear infinite reverse",
-        "data-stream": "data-stream 4s linear infinite",
         marquee: "marquee 50s linear infinite",
       },
       backgroundImage: {

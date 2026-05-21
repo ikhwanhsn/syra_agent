@@ -18,7 +18,8 @@ import Identity from "./pages/Identity";
 import Teams from "./pages/Teams";
 import Partner from "./pages/Partner";
 import PartnerDetail from "./pages/PartnerDetail";
-import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { FloatingActionStack } from "@/components/FloatingActionStack";
+import { QwertiAutoLoad } from "@/components/QwertiAutoLoad";
 import { RedirectToUponlyApp } from "@/components/RedirectToUponlyApp";
 
 const queryClient = new QueryClient();
@@ -83,7 +84,8 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <ScrollToTopButton />
+          <QwertiAutoLoad />
+          <FloatingActionStack />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

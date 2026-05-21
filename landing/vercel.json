@@ -1,7 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/((?!assets/|images/|.*\\..*).*)",
+      "source": "/qwerti/:path*",
+      "destination": "https://widget.qwerti.ai/:path*"
+    },
+    {
+      "source": "/((?!assets/|images/|qwerti|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
@@ -32,7 +36,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.syraa.fun https://api.coingecko.com; img-src 'self' data: https:;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://widget.qwerti.ai; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://app.qwerti.ai; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.syraa.fun https://api.coingecko.com https://widget.qwerti.ai https://app.qwerti.ai https://*.moonpay.com https://*.privy.io https://*.helius-rpc.com https://*.solana.com wss://widget.qwerti.ai wss://app.qwerti.ai wss://*.moonpay.com; frame-src 'self' https://widget.qwerti.ai https://app.qwerti.ai https://*.moonpay.com https://*.privy.io https://*.jup.ag https://*.jupiter.ag https://*.hel.io; img-src 'self' data: https: blob:;"
         }
       ]
     }

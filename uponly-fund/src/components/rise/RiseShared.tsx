@@ -132,12 +132,27 @@ function ChangePillImpl({
 }: ChangePillProps) {
   const tone = changeTone(pct);
   const text = pct === null ? "—" : withSign ? formatPctSigned(pct) : formatPct(pct);
+  // Semantic tokens (--ds-positive / --ds-negative) drive both themes —
+  // matches floorsniffer's flat pill (no glow, no gradient, tabular nums).
+  const toneStyle =
+    tone === "up"
+      ? {
+          color: "var(--ds-positive)",
+          backgroundColor: "var(--ds-positive-soft)",
+          borderColor: "var(--ds-positive-border)",
+        }
+      : tone === "down"
+        ? {
+            color: "var(--ds-negative)",
+            backgroundColor: "var(--ds-negative-soft)",
+            borderColor: "var(--ds-negative-border)",
+          }
+        : undefined;
   return (
     <span
+      style={toneStyle}
       className={cn(
         "inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[0.65rem] font-medium tabular-nums leading-none sm:text-xs",
-        tone === "up" && "border-emerald-500/45 bg-emerald-500/15 text-emerald-400",
-        tone === "down" && "border-red-500/45 bg-red-500/15 text-red-400",
         tone === "neutral" && "border-border/50 bg-muted/30 text-muted-foreground",
         className,
       )}
@@ -233,7 +248,8 @@ export function RiseTradeButton({
   );
 }
 
-/** Glass-card surface — same look used throughout /uponly. */
+/** Flat dashboard surface — no blur, no gradient. Matches floorsniffer's
+ *  screener panels. Single hairline border, subtle inset only on dark theme. */
 export function GlassCard({
   className,
   children,
@@ -248,7 +264,7 @@ export function GlassCard({
   return (
     <Tag
       className={cn(
-        "relative min-w-0 overflow-hidden rounded-2xl border border-border/55 bg-gradient-to-b from-card/60 to-card/30 shadow-[0_0_0_1px_hsl(0_0%_100%/0.04)_inset,0_18px_44px_-18px_hsl(0_0%_0%/0.35)] backdrop-blur-md",
+        "relative min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_0_0_1px_hsl(0_0%_100%/0.02)_inset]",
         padded && "p-4 sm:p-5",
         className,
       )}

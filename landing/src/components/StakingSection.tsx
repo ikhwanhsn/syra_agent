@@ -11,16 +11,13 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_BASE, LINK_STAKING } from "../../config/global";
+import { getSyraApiBase, LINK_STAKING } from "../../config/global";
 import {
   fetchStakingProtocolSummary,
   formatStakingStatsDisplay,
 } from "@/lib/stakingStats";
 
-const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(
-  /\/?$/,
-  "/",
-);
+const SYRA_API_BASE = getSyraApiBase();
 
 const benefits = [
   {

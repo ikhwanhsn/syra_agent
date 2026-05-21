@@ -30,7 +30,7 @@ export function ScrollToTopButton() {
     <div
       className={cn(
         "fixed z-[100] transition-all duration-300 ease-out",
-        "bottom-[max(1rem,env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] sm:bottom-6 sm:right-6",
+        "bottom-[max(6rem,calc(env(safe-area-inset-bottom,0px)+5rem))] right-[max(1rem,env(safe-area-inset-right,0px))] sm:bottom-28 sm:right-6",
         visible
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-3 opacity-0",

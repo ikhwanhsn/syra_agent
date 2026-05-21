@@ -15,8 +15,62 @@ function getAgentAskUrl(question: string): string {
 }
 const LINK_DOCS = "https://docs.syraa.fun";
 const LINK_PLAYGROUND = "https://playground.syraa.fun";
-// In dev, use /api so Vite proxies to localhost:3000 (run: cd api && npm run dev)
-const API_BASE = import.meta.env.DEV ? "/api" : "https://api.syraa.fun";
+
+/** Production Syra API gateway (landing preview, stats, leaderboard). */
+const PRODUCTION_API_ORIGIN = "https://api.syraa.fun";
+
+function isLocalApiHost(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (lower === "/api" || lower.startsWith("/api/")) return true;
+  try {
+    const host = new URL(url, "http://localhost").hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return /localhost|127\.0\.0\.1/.test(lower);
+  }
+}
+
+function devUsesLocalApiProxy(): boolean {
+  return (
+    import.meta.env.DEV &&
+    String(import.meta.env.VITE_USE_LOCAL_API ?? "").toLowerCase() === "true"
+  );
+}
+
+/**
+ * API origin for browser fetches.
+ * - Default (dev + prod): https://api.syraa.fun
+ * - Local API: VITE_USE_LOCAL_API=true → /api (Vite proxies to localhost:3000)
+ * - VITE_SYRA_API_URL is ignored when it points at localhost unless local mode is on
+ *   (avoids accidental http://localhost:3000 in .env causing 502/503 spam)
+ */
+function resolveApiBase(): string {
+  const useLocalProxy = devUsesLocalApiProxy();
+  if (useLocalProxy) return "/api";
+
+  const explicit = (import.meta.env.VITE_SYRA_API_URL as string | undefined)?.trim();
+  if (explicit) {
+    if (isLocalApiHost(explicit)) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          "[Syra] VITE_SYRA_API_URL points at localhost but VITE_USE_LOCAL_API is not true — using https://api.syraa.fun. For a local gateway use VITE_USE_LOCAL_API=true (proxied via /api).",
+        );
+      }
+      return PRODUCTION_API_ORIGIN;
+    }
+    return explicit.replace(/\/$/, "");
+  }
+
+  return PRODUCTION_API_ORIGIN;
+}
+
+const API_BASE = resolveApiBase();
+
+/** Trailing-slash base for preview routes (binance-ticker, preview/*). */
+function getSyraApiBase(): string {
+  return `${API_BASE.replace(/\/$/, "")}/`;
+}
+
 const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
 const EMAIL_SUPPORT = "support@syraa.fun";
@@ -48,6 +102,8 @@ export {
   LINK_DOCS,
   LINK_PLAYGROUND,
   API_BASE,
+  PRODUCTION_API_ORIGIN,
+  getSyraApiBase,
   EMAIL_SUPPORT,
   getApiHeaders,
   LINK_TELEGRAM,

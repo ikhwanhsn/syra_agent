@@ -106,7 +106,7 @@ export const LiveDashboard = () => {
       const isNetwork = /failed to fetch|network|err_failed|connection/i.test(msg);
       setError(
         isNetwork && import.meta.env.DEV
-          ? "Dashboard unavailable. Start the API: cd api && npm run dev"
+          ? "Dashboard unavailable. Check your connection or set VITE_USE_LOCAL_API=true with the API running locally."
           : msg
       );
       if (!hasData) setData(null);

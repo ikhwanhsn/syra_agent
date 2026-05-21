@@ -14,6 +14,12 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
+      "/qwerti": {
+        target: "https://widget.qwerti.ai",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/qwerti/, ""),
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

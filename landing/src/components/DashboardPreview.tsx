@@ -1,14 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Zap,
-  User,
-  ThermometerSnowflakeIcon,
-  Gem,
-} from "lucide-react";
+import { TrendingUp, Activity, Zap, Gem } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -20,77 +12,86 @@ import {
   ReferenceLine,
 } from "recharts";
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE, getApiHeaders } from "../../config/global";
+import { getApiHeaders, getSyraApiBase } from "../../config/global";
 import {
+  buildPlaceholderSentimentPayload,
   daySentimentScore,
+  fetchBinanceTicker,
   fetchPreviewNews,
   fetchPreviewSentiment,
+  fetchPreviewSignal,
+  formatPreviewSignalTokenLabel,
+  PREVIEW_SIGNAL_TOKENS,
   resolveNewsArticleUrl,
   toChartScore,
   type SyraNewsArticle,
 } from "@/lib/syraPreviewApi";
 
-// API base for dashboard preview: env VITE_SYRA_API_URL or fallback to API_BASE (ensure trailing slash)
-const SYRA_API_BASE = (import.meta.env.VITE_SYRA_API_URL || `${API_BASE}/`).replace(/\/?$/, "/");
+const SYRA_API_BASE = getSyraApiBase();
+
+/** Headlines cycle quickly; AI signals stay longer and start offset so rows rarely animate together. */
+const NEWS_ROTATE_MS = 5_000;
+const SIGNAL_ROTATE_MS = 12_000;
+const SIGNAL_ROTATE_START_DELAY_MS = 4_000;
 
 export const DashboardPreview = () => {
-  const [counter, setCounter] = useState(0);
-  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
-  const {
-    isPending: isPendingCryptoPrice,
-    error: errorCryptoPrice,
-    data: dataCryptoPrice,
-  } = useQuery({
-    queryKey: ["cryptoPrice"],
-    queryFn: () =>
-      fetch(`${SYRA_API_BASE}binance-ticker`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      }).then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      }),
-    refetchInterval: 15_000, // 15s to avoid Binance request weight limit / IP ban (-1003)
-  });
-
-  const {
-    isPending: isPendingCryptoChange,
-    error: errorCryptoChange,
-    data: dataCryptoChange,
-  } = useQuery({
-    queryKey: ["cryptoChange"],
-    queryFn: () =>
-      fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true`,
-      ).then((res) => res.json()),
-  });
-
+  const [newsTick, setNewsTick] = useState(0);
+  const [signalTick, setSignalTick] = useState(0);
   const apiHeaders = getApiHeaders();
+
+  const { data: dataCryptoPrice = [] } = useQuery({
+    queryKey: ["cryptoPrice", SYRA_API_BASE],
+    queryFn: ({ signal }) => fetchBinanceTicker(SYRA_API_BASE, apiHeaders, signal),
+    refetchInterval: 15_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 
   const {
     isPending: isPendingNews,
     error: errorNews,
     data: newsItems = [],
   } = useQuery({
-    queryKey: ["syra-preview-news"],
-    queryFn: ({ signal }) => fetchPreviewNews(SYRA_API_BASE, apiHeaders, signal),
+    queryKey: ["syra-preview-news", SYRA_API_BASE],
+    queryFn: async ({ signal }) => {
+      try {
+        return await fetchPreviewNews(SYRA_API_BASE, apiHeaders, signal);
+      } catch {
+        return [];
+      }
+    },
     refetchInterval: 90_000,
-    retry: 2,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const {
     isPending: isPendingSentiment,
-    error: errorSentiment,
     data: sentimentPayload,
   } = useQuery({
-    queryKey: ["syra-preview-sentiment"],
-    queryFn: ({ signal }) => fetchPreviewSentiment(SYRA_API_BASE, apiHeaders, signal),
+    queryKey: ["syra-preview-sentiment", SYRA_API_BASE],
+    queryFn: async ({ signal }) => {
+      try {
+        return await fetchPreviewSentiment(SYRA_API_BASE, apiHeaders, signal);
+      } catch {
+        return buildPlaceholderSentimentPayload();
+      }
+    },
     refetchInterval: 120_000,
-    retry: 2,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  const sentimentData = sentimentPayload?.data ?? {};
-  const sentimentTotal = sentimentPayload?.total;
+  const hasLiveSentiment =
+    Object.keys(sentimentPayload?.data ?? {}).length > 0;
+  const displaySentiment = hasLiveSentiment
+    ? sentimentPayload
+    : buildPlaceholderSentimentPayload();
+  const sentimentUsesPlaceholder =
+    !isPendingSentiment && !hasLiveSentiment;
+
+  const sentimentData = displaySentiment?.data ?? {};
+  const sentimentTotal = displaySentiment?.total;
   const sentimentDates = useMemo(
     () => Object.keys(sentimentData).sort(),
     [sentimentData],
@@ -112,10 +113,8 @@ export const DashboardPreview = () => {
       .reverse();
   }, [sentimentData, sentimentDates]);
 
-  // Scale for negative count (so red line shows actual Negative count trend, not flat when score > 0)
   const maxNegative = Math.max(1, ...chartData.map((d) => d.negative));
 
-  // Custom tooltip component
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { dateKey?: string; score?: number; positive?: number; negative?: number; neutral?: number } }> }) => {
     if (active && payload && payload.length) {
       const dataKey = payload[0].payload.dateKey;
@@ -152,45 +151,47 @@ export const DashboardPreview = () => {
     return null;
   };
 
-  const {
-    isPending: isPendingSignals,
-    error: errorSignals,
-    data: dataSignals,
-  } = useQuery({
-    queryKey: ["signals"],
-    queryFn: () =>
-      fetch(`${SYRA_API_BASE}preview/signal?token=bitcoin`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      }).then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      }),
+  const activeSignalToken =
+    PREVIEW_SIGNAL_TOKENS[signalTick % PREVIEW_SIGNAL_TOKENS.length];
+
+  const { data: dataSignals, isFetching: isFetchingSignal } = useQuery({
+    queryKey: ["signals", SYRA_API_BASE, activeSignalToken],
+    queryFn: ({ signal }) =>
+      fetchPreviewSignal(SYRA_API_BASE, apiHeaders, activeSignalToken, signal),
+    placeholderData: keepPreviousData,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
-  const getSafePrice = (binanceSymbol, coingeckoPrice) => {
-    const binancePrice = dataCryptoPrice?.find(
-      (item) => item.symbol === binanceSymbol,
-    )?.price;
-    const price = binancePrice || coingeckoPrice;
-    return price ? Number(price).toFixed(2) : "---";
-  };
-  const getSafeChange = (change) => {
-    if (!change && change !== 0) return "---";
-    const num = Number(change);
-    return isNaN(num) ? "---" : `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
+  const getSafePrice = (binanceSymbol: string) => {
+    const binancePrice = dataCryptoPrice.find((item) => item.symbol === binanceSymbol)?.price;
+    return binancePrice ? Number(binancePrice).toFixed(2) : "---";
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCounter((prev) => prev + 1);
-    }, 5000);
-
+      setNewsTick((prev) => prev + 1);
+    }, NEWS_ROTATE_MS);
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const startDelayId = setTimeout(() => {
+      const advance = () => setSignalTick((prev) => prev + 1);
+      advance();
+      intervalId = setInterval(advance, SIGNAL_ROTATE_MS);
+    }, SIGNAL_ROTATE_START_DELAY_MS);
+
+    return () => {
+      clearTimeout(startDelayId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
   const activeNewsIndex =
-    newsItems.length > 0 ? counter % newsItems.length : 0;
+    newsItems.length > 0 ? newsTick % newsItems.length : 0;
   const activeNews: SyraNewsArticle | undefined = newsItems[activeNewsIndex];
   const activeNewsTitle =
     typeof activeNews?.title === "string" ? activeNews.title : "";
@@ -200,13 +201,14 @@ export const DashboardPreview = () => {
       ? activeNews.source_name
       : "";
 
+  const btcPrice = getSafePrice("BTCUSDT");
+  const ethPrice = getSafePrice("ETHUSDT");
+
   return (
     <div className="relative w-full">
-      {/* Glow effect behind dashboard */}
       <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-3xl" />
 
       <div className="glass-card relative mx-auto min-w-0 w-full max-w-full rounded-2xl border border-accent/20 p-4 shadow-[0_0_40px_-12px_hsl(var(--accent)/0.14)] sm:mx-0 sm:p-6">
-        {/* Dashboard Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-red-500 rounded-full" />
@@ -218,7 +220,6 @@ export const DashboardPreview = () => {
           </span>
         </div>
 
-        {/* Price Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -228,22 +229,9 @@ export const DashboardPreview = () => {
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">BTC/USDT</span>
-              {dataCryptoChange?.bitcoin?.usd_24h_change >= 0 ? (
-                <TrendingUp className="w-4 h-4 text-green-400" />
-              ) : (
-                <TrendingDown className="w-4 h-4 text-red-400" />
-              )}
+              <TrendingUp className="w-4 h-4 text-green-400" />
             </div>
-            <div className="text-xl font-bold text-foreground">{`$${getSafePrice("BTCUSDT", dataCryptoChange?.bitcoin?.usd)}`}</div>
-            <div
-              className={`text-xs ${
-                dataCryptoChange?.bitcoin?.usd_24h_change >= 0
-                  ? "text-green-400"
-                  : "text-red-400"
-              }`}
-            >
-              {getSafeChange(dataCryptoChange?.bitcoin?.usd_24h_change)}
-            </div>
+            <div className="text-xl font-bold text-foreground">{`$${btcPrice}`}</div>
           </motion.div>
 
           <motion.div
@@ -254,26 +242,12 @@ export const DashboardPreview = () => {
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">ETH/USDT</span>
-              {dataCryptoChange?.ethereum?.usd_24h_change >= 0 ? (
-                <TrendingUp className="w-4 h-4 text-green-400" />
-              ) : (
-                <TrendingDown className="w-4 h-4 text-red-400" />
-              )}
+              <TrendingUp className="w-4 h-4 text-green-400" />
             </div>
-            <div className="text-xl font-bold text-foreground">{`$${getSafePrice("ETHUSDT", dataCryptoChange?.ethereum?.usd)}`}</div>
-            <div
-              className={`text-xs ${
-                dataCryptoChange?.ethereum?.usd_24h_change >= 0
-                  ? "text-green-400"
-                  : "text-red-400"
-              }`}
-            >
-              {getSafeChange(dataCryptoChange?.ethereum?.usd_24h_change)}
-            </div>
+            <div className="text-xl font-bold text-foreground">{`$${ethPrice}`}</div>
           </motion.div>
         </div>
 
-        {/* Chart Area */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -283,7 +257,11 @@ export const DashboardPreview = () => {
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium">AI Sentiment Score</span>
             <span className="text-xs text-primary">
-              {isPendingSentiment ? "Loading" : errorSentiment ? "Unavailable" : "Live"}
+              {isPendingSentiment
+                ? "Loading"
+                : sentimentUsesPlaceholder
+                  ? "Syncing"
+                  : "Live"}
             </span>
           </div>
 
@@ -324,13 +302,12 @@ export const DashboardPreview = () => {
             </div>
           </motion.div>
 
-          {errorSentiment && (
+          {sentimentUsesPlaceholder && (
             <p className="mb-3 text-[10px] text-muted-foreground">
-              Sentiment from Syra news agent is warming up. Headlines still refresh below.
+              Live sentiment is syncing from the Syra news agent. Preview data shown until ready.
             </p>
           )}
 
-          {/* Chart: one blue line for score (-100..100); fill only above zero so negative isn’t weird. */}
           <ResponsiveContainer width="100%" height={128}>
             <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
               <defs>
@@ -347,7 +324,6 @@ export const DashboardPreview = () => {
                 content={<CustomTooltip />}
                 cursor={{ fill: "hsl(var(--foreground) / 0.08)" }}
               />
-              {/* Fill only when score > 0 (no red area below zero) */}
               <Area
                 type="monotone"
                 dataKey={(d) => (d.score > 0 ? d.score : 0)}
@@ -356,7 +332,6 @@ export const DashboardPreview = () => {
                 animationDuration={1000}
                 baseValue={0}
               />
-              {/* Single blue line for full score so negative just dips below zero, no red */}
               <Line
                 type="monotone"
                 dataKey="score"
@@ -365,7 +340,6 @@ export const DashboardPreview = () => {
                 dot={false}
                 animationDuration={1000}
               />
-              {/* Negative count over time (right axis), muted so it doesn’t fight the score line */}
               <Line
                 type="monotone"
                 dataKey="negative"
@@ -381,7 +355,6 @@ export const DashboardPreview = () => {
           </ResponsiveContainer>
         </motion.div>
 
-        {/* Activity Feed */}
         <div className="space-y-2">
           {(() => {
             const newsLabel = activeNewsSource
@@ -403,19 +376,30 @@ export const DashboardPreview = () => {
               {
                 icon: Activity,
                 text: (() => {
-                  const token = dataSignals?.token
-                    ? dataSignals.token.charAt(0).toUpperCase() +
-                      dataSignals.token.slice(1)
-                    : "Crypto";
-                  const signal = dataSignals?.signal?.metadata?.TRADING_SIGNAL;
-                  const strength = dataSignals?.signal?.metadata?.SIGNAL_STRENGTH;
+                  const tokenLabel =
+                    formatPreviewSignalTokenLabel(activeSignalToken);
+                  const dataToken = dataSignals?.token?.toLowerCase();
+                  const hasFreshData = dataToken === activeSignalToken;
 
-                  return dataSignals?.signal?.metadata
-                    ? `AI Signal: ${token} ${signal} with ${strength} confidence`
-                    : "No signal available";
+                  if (!hasFreshData && isFetchingSignal) {
+                    return `Loading AI signal for ${tokenLabel}…`;
+                  }
+
+                  const signal = dataSignals?.signal?.metadata?.TRADING_SIGNAL;
+                  const strength =
+                    dataSignals?.signal?.metadata?.SIGNAL_STRENGTH;
+                  const displayLabel = dataSignals?.token
+                    ? formatPreviewSignalTokenLabel(dataSignals.token)
+                    : tokenLabel;
+
+                  return hasFreshData && dataSignals?.signal?.metadata
+                    ? `AI Signal: ${displayLabel} ${signal} with ${strength} confidence`
+                    : `No signal available for ${tokenLabel}`;
                 })(),
                 color: "text-green-400",
                 isNews: false,
+                isSignal: true,
+                signalKey: activeSignalToken,
               },
               {
                 icon: Gem,
@@ -461,6 +445,19 @@ export const DashboardPreview = () => {
                         {item.text || "Loading news..."}
                       </motion.span>
                     )}
+                  </AnimatePresence>
+                ) : "isSignal" in item && item.isSignal ? (
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={item.signalKey}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+                    >
+                      {item.text}
+                    </motion.span>
                   </AnimatePresence>
                 ) : (
                   <span className="text-xs text-muted-foreground shrink-0">

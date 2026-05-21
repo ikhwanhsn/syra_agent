@@ -62,6 +62,20 @@ The dashboard preview and analytics page call `api.syraa.fun` (`/dashboard-summa
 - **`VITE_SYRA_API_URL`** — leave unset or set to `https://api.syraa.fun/` so the app targets the production API. (Do not use `http://localhost:3000/` for production builds.)
 - Ensure the API’s `CORS_EXTRA_ORIGINS` (or default allowlist) includes your deployment origin so the server can treat it as trusted.
 
+### Local dev API
+
+By default, `npm run dev` calls **`https://api.syraa.fun`** (no local API process required).
+
+**Do not** set `VITE_SYRA_API_URL=http://localhost:3000` — that bypasses the Vite proxy and causes 502/503 errors when the local gateway is down or misconfigured. Remove that line from `.env` / `.env.local` if present.
+
+To proxy through Vite to a local gateway (`cd api && npm run dev` on port 3000), use only:
+
+```bash
+VITE_USE_LOCAL_API=true
+```
+
+See [`.env.example`](./.env.example).
+
 ---
 
 ## License
