@@ -10,11 +10,31 @@ import {
 } from '@solana/spl-token';
 import connectMongoose from '../config/mongoose.js';
 import { computeOperatorStats } from '../services/streamflowLockAggregates.js';
+import { requireSession } from '../utils/requireSession.js';
 
 const DEFAULT_ADMIN_WALLET = 'Cp5yFGYx88EEuUjhDAaQzXHrgxvVeYEWixtRnLFE81K4';
 
 function getAdminWallet() {
   return (process.env.ADMIN_DASHBOARD_WALLET || DEFAULT_ADMIN_WALLET).trim();
+}
+
+/**
+ * Admin gate (SECURITY P0.8): the previous header-based check (`x-admin-wallet`) was trivially
+ * spoofable — any HTTP client could set the header to the admin address and gain access.
+ * New flow: caller must hold a Syra session JWT whose verified wallet equals ADMIN_DASHBOARD_WALLET.
+ * Session JWTs are minted only after a fresh SIWS signature, so spoofing requires the admin's
+ * actual private key.
+ */
+function requireStakingAdmin(req, res, next) {
+  if (!req.user || req.user.guest || !req.user.walletAddress) {
+    res.status(401).json({ success: false, error: 'auth_required' });
+    return;
+  }
+  if (req.user.walletAddress !== getAdminWallet()) {
+    res.status(403).json({ success: false, error: 'not_admin' });
+    return;
+  }
+  next();
 }
 
 function getFaucetKeypair() {
@@ -50,15 +70,10 @@ export async function createStakingAppRouter() {
 
   /**
    * Internal staking dashboard — registry operator metrics.
-   * x-admin-wallet must match ADMIN_DASHBOARD_WALLET (UI gate; not a cryptographic proof).
+   * Requires a Syra session whose verified wallet equals ADMIN_DASHBOARD_WALLET (P0.8).
    */
-  router.get('/dashboard/operator-stats', async (req, res) => {
+  router.get('/dashboard/operator-stats', requireSession({ allowGuest: false, requireOwnership: false }), requireStakingAdmin, async (req, res) => {
     try {
-      const wallet = String(req.headers['x-admin-wallet'] || '').trim();
-      if (!wallet || wallet !== getAdminWallet()) {
-        res.status(403).json({ success: false, error: 'Forbidden' });
-        return;
-      }
       const mint = String(req.query.mint || '').trim();
       const network = req.query.network === 'devnet' ? 'devnet' : 'mainnet';
       if (!mint) {

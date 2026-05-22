@@ -9,8 +9,8 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import AgentWallet from '../models/agent/AgentWallet.js';
-import { getSolanaAgentKeypair } from './agentWallet.js';
 import { pickSolanaConnectionForReads } from './solanaServerRpc.js';
+import { executeIntent } from '../services/walletBroker.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const LAMPORTS_PER_SOL = 1e9;
@@ -55,15 +55,11 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
   if (doc.walletAddress !== recipientStr) {
     throw new Error('Withdraw only to your linked wallet.');
   }
+  if (doc.status && doc.status !== 'active') {
+    throw new Error(`Agent wallet status is ${doc.status}; cannot withdraw.`);
+  }
 
-  const agentKeypair = await getSolanaAgentKeypair(id);
-  if (!agentKeypair) {
-    throw new Error('Could not load agent wallet');
-  }
-  const agentPk = agentKeypair.publicKey;
-  if (agentPk.toBase58() !== doc.agentAddress) {
-    throw new Error('Agent wallet configuration error');
-  }
+  const agentPk = new PublicKey(doc.agentAddress);
 
   const { connection, lamports: lamportsBalance } = await pickSolanaConnectionForReads(agentPk);
 
@@ -155,27 +151,49 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
     throw new Error('Nothing to withdraw');
   }
 
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+  const { blockhash } = await connection.getLatestBlockhash('confirmed');
   const tx = new Transaction();
   tx.feePayer = agentPk;
   tx.recentBlockhash = blockhash;
   for (const ix of instructions) {
     tx.add(ix);
   }
-  tx.sign(agentKeypair);
+  const serializedTxBase64 = tx
+    .serialize({ requireAllSignatures: false, verifySignatures: false })
+    .toString('base64');
 
-  const signature = await connection.sendRawTransaction(tx.serialize(), {
-    skipPreflight: false,
-    maxRetries: 3,
-  });
+  // SECURITY P1.5 — withdraw flows through the wallet broker so policy + simulation + audit + Privy
+  // custody all apply. The broker may return a require_confirm verdict for unusually large or
+  // unallowlisted withdraws; the caller forwards that to the UI.
+  const usdcDelta = opts.usdcAmount && Number.isFinite(opts.usdcAmount) ? Number(opts.usdcAmount) : 0;
+  const solDelta = opts.solAmount && Number.isFinite(opts.solAmount) ? Number(opts.solAmount) : 0;
+  const estimatedUsd = usdcDelta + solDelta * 150; // rough estimate; policy treats it as advisory
 
-  // Return immediately so clients are not stuck on "Moving…" while RPC polls confirmation
-  // (can be tens of seconds). Confirmation still runs in the background for observability.
-  void connection
-    .confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-    .catch((err) => {
-      console.warn('[agentWalletWithdrawSol] post-send confirm failed:', signature, err?.message || err);
-    });
-
-  return { signature };
+  const result = await executeIntent(
+    {
+      anonymousId: id,
+      ip: opts.ip,
+      userAgent: opts.userAgent,
+      sessionId: opts.sessionId,
+    },
+    {
+      type: 'withdraw',
+      chain: 'solana',
+      toAddress: recipientStr,
+      estimatedUsd,
+      serializedTxBase64,
+      summary: `Withdraw ${opts.asset || 'usdc+sol'} to linked wallet`,
+    }
+  );
+  if (result.status === 'pending_confirmation') {
+    const err = new Error('user_confirmation_required');
+    err.code = 'CONFIRMATION_REQUIRED';
+    err.intentId = result.intentId;
+    err.expiresAt = result.expiresAt;
+    throw err;
+  }
+  if (result.status !== 'ok') {
+    throw new Error(`Withdraw refused: ${result.reasons?.join(';')}`);
+  }
+  return { signature: result.signature };
 }

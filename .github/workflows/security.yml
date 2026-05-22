@@ -1,0 +1,104 @@
+name: security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly Monday 06:00 UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  policy-tests:
+    name: Policy engine unit tests (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: api/package-lock.json
+      - working-directory: api
+        run: npm ci --ignore-scripts
+      - working-directory: api
+        run: node --test services/policyEngine.test.js
+
+  sast-semgrep:
+    name: SAST — Semgrep (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/owasp-top-ten
+            p/javascript
+            p/typescript
+            p/secrets
+        env:
+          SEMGREP_RULES: ${{ secrets.SEMGREP_RULES || '' }}
+
+  sast-codeql:
+    name: SAST — CodeQL (blocking)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: ["javascript-typescript"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/analyze@v3
+
+  secret-scan:
+    name: Secret scan — Gitleaks (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  dast-zap-baseline:
+    name: DAST — OWASP ZAP baseline (non-blocking weekly)
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.13.0
+        with:
+          target: "https://api.syraa.fun"
+          fail_action: false
+          cmd_options: "-a -j"
+
+  audit-deps:
+    name: npm audit (blocking on high+)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [api, ai-agent, mcp-server, landing, api-playground]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Audit ${{ matrix.dir }}
+        working-directory: ${{ matrix.dir }}
+        run: |
+          if [ -f package.json ]; then
+            npm audit --audit-level=high --omit=dev || (echo "::warning::Vulnerable deps in ${{ matrix.dir }}"; exit 1)
+          else
+            echo "no package.json"
+          fi

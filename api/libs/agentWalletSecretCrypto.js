@@ -1,9 +1,10 @@
 /**
  * Envelope encryption for AgentWallet.agentSecretKey at rest.
- * - Per-record random DEK (AES-256); DEK wrapped with master key from env (KMS-style operational pattern: keep master outside DB).
- * - Legacy plaintext rows remain readable until migrated (see scripts/migrate-agent-wallet-secrets.js).
+ * - Per-record random DEK (AES-256-GCM); DEK wrapped with master key from env (KMS-style operational pattern: keep master outside DB).
+ * - As of v2 security upgrade (P0.1), encryption is MANDATORY: a missing master key now refuses to encrypt and the
+ *   server refuses to boot (see assertAgentWalletSecretEncryptionConfigured() used in api/index.js).
  *
- * Env: AGENT_WALLET_SECRET_ENCRYPTION_KEY — 32 bytes as 64-char hex or base64 (no key => new rows stay plaintext; encrypted rows require key).
+ * Env: AGENT_WALLET_SECRET_ENCRYPTION_KEY — 32 bytes as 64-char hex or base64.
  */
 import crypto from 'crypto';
 
@@ -34,6 +35,22 @@ export function isAgentWalletSecretEncryptionConfigured() {
 }
 
 /**
+ * Boot-time assertion: refuses to start the server if encryption is not configured.
+ * Required as of P0.1 — we never want to silently store plaintext private keys again.
+ * @returns {void}
+ * @throws {Error} when AGENT_WALLET_SECRET_ENCRYPTION_KEY is missing or malformed
+ */
+export function assertAgentWalletSecretEncryptionConfigured() {
+  if (!isAgentWalletSecretEncryptionConfigured()) {
+    throw new Error(
+      'FATAL: AGENT_WALLET_SECRET_ENCRYPTION_KEY is missing or malformed. ' +
+        'Refusing to start: agent wallet private keys must never be stored unencrypted. ' +
+        'Set AGENT_WALLET_SECRET_ENCRYPTION_KEY to a 32-byte hex (64 chars) or base64 value.'
+    );
+  }
+}
+
+/**
  * @param {string} stored
  * @returns {boolean}
  */
@@ -42,16 +59,21 @@ export function isEncryptedAgentWalletSecret(stored) {
 }
 
 /**
- * Encrypt plaintext secret for DB storage. If master key unset, returns plaintext unchanged.
+ * Encrypt plaintext secret for DB storage. Refuses to operate if master key unset.
  * @param {string} plaintext
  * @returns {string}
+ * @throws {Error} when master key missing or plaintext invalid
  */
 export function encryptAgentSecretForStorage(plaintext) {
   if (plaintext == null || typeof plaintext !== 'string') {
     throw new Error('encryptAgentSecretForStorage: plaintext must be a string');
   }
   const masterKey = getAgentWalletSecretMasterKey();
-  if (!masterKey) return plaintext;
+  if (!masterKey) {
+    throw new Error(
+      'encryptAgentSecretForStorage: AGENT_WALLET_SECRET_ENCRYPTION_KEY is not set — refusing to store plaintext key'
+    );
+  }
 
   const dek = crypto.randomBytes(DEK_LEN);
   const ivWrap = crypto.randomBytes(IV_LEN);

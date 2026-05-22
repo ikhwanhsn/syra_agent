@@ -10,6 +10,8 @@ import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
 import { withdrawSolanaAgentToRecipient } from '../../libs/agentWalletWithdrawSol.js';
 import { encryptAgentSecretForStorage } from '../../libs/agentWalletSecretCrypto.js';
 import { pickSolanaConnectionForReads } from '../../libs/solanaServerRpc.js';
+import { requireSession } from '../../utils/requireSession.js';
+import { isPrivyConfigured, createPrivyServerWallet, getDefaultCustodyMode } from '../../services/privyServerWallet.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -93,15 +95,30 @@ function decodeAnonymousId(param) {
 
 /**
  * GET /agent/wallet/list
- * List agent wallets linked to user wallets (walletAddress set).
- * Query:
- *   - groupBy=wallet — paginate by user wallet (nested agents per wallet)
- *   - limit, offset — page size (wallet groups or flat agents)
- *   - walletAddress — exact user wallet filter
- *   - q — search wallet / agent / anonymousId (case-insensitive)
- *   - chain — "solana" | "base" (optional)
+ *
+ * SECURITY P0.8 — admin only. The pre-v2 endpoint allowed any caller with the shared API key to
+ * enumerate all agent wallets globally. This is now an admin-scope endpoint gated by both an
+ * authenticated session AND an admin allowlist in env (`SYRA_ADMIN_WALLETS`, comma-separated
+ * Solana base58 addresses).
  */
-router.get('/list', async (req, res) => {
+function requireAdminWallet(req, res, next) {
+  const allow = (process.env.SYRA_ADMIN_WALLETS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (allow.length === 0) {
+    return res.status(403).json({ success: false, error: 'admin_disabled' });
+  }
+  if (!req.user || req.user.guest || !req.user.walletAddress) {
+    return res.status(403).json({ success: false, error: 'admin_required' });
+  }
+  if (!allow.includes(req.user.walletAddress)) {
+    return res.status(403).json({ success: false, error: 'not_admin' });
+  }
+  next();
+}
+
+router.get('/list', requireSession({ allowGuest: false, requireOwnership: false }), requireAdminWallet, async (req, res) => {
   try {
     const rawLimit = Number.parseInt(String(req.query?.limit ?? ''), 10);
     const rawOffset = Number.parseInt(String(req.query?.offset ?? ''), 10);
@@ -214,8 +231,10 @@ router.get('/list', async (req, res) => {
 /**
  * GET /agent/wallet/:anonymousId/balance
  * Returns SOL and USDC balance for the agent wallet.
+ *
+ * Guest sessions are allowed (read-only) so the deposit UI can show balances before sign-in.
  */
-router.get('/:anonymousId/balance', async (req, res) => {
+router.get('/:anonymousId/balance', requireSession({ allowGuest: true }), async (req, res) => {
   let anonymousId;
   let doc;
   try {
@@ -290,9 +309,12 @@ router.get('/:anonymousId/balance', async (req, res) => {
 /**
  * POST /agent/wallet/:anonymousId/withdraw
  * Body: { recipient: string, asset?: 'usdc'|'sol'|'both', usdcAmount?: number, solAmount?: number }
- * — Solana address must match linked walletAddress. Amounts are optional caps in human units.
+ *
+ * SECURITY: requires authenticated session that owns this anonymousId. Withdraw target must equal
+ * the linked walletAddress (enforced in the underlying withdraw lib AND by the broker's policy
+ * engine via destinationAllowlist). Guests cannot withdraw.
  */
-router.post('/:anonymousId/withdraw', async (req, res) => {
+router.post('/:anonymousId/withdraw', requireSession({ allowGuest: false }), async (req, res) => {
   try {
     const anonymousId = decodeAnonymousId(req.params.anonymousId);
     const recipient =
@@ -318,9 +340,21 @@ router.post('/:anonymousId/withdraw', async (req, res) => {
       ...(asset && { asset }),
       ...(usdcAmount != null && { usdcAmount }),
       ...(solAmount != null && { solAmount }),
+      ip: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+      sessionId: req.user?.sessionId,
     });
     return res.json({ success: true, signature });
   } catch (error) {
+    if (error?.code === 'CONFIRMATION_REQUIRED') {
+      return res.status(202).json({
+        success: false,
+        confirmationRequired: true,
+        intentId: error.intentId,
+        expiresAt: error.expiresAt,
+        error: 'user_confirmation_required',
+      });
+    }
     const message = error?.message || 'Withdraw failed';
     return res.status(400).json({ success: false, error: message });
   }
@@ -328,9 +362,10 @@ router.post('/:anonymousId/withdraw', async (req, res) => {
 
 /**
  * GET /agent/wallet/:anonymousId
- * Get agent wallet address by anonymousId.
+ * Get agent wallet address by anonymousId. Guests allowed (read-only) so they can pre-load the
+ * deposit UI before authenticating.
  */
-router.get('/:anonymousId', async (req, res) => {
+router.get('/:anonymousId', requireSession({ allowGuest: true }), async (req, res) => {
   try {
     const anonymousId = decodeAnonymousId(req.params.anonymousId);
     if (!anonymousId) {
@@ -361,13 +396,19 @@ router.get('/:anonymousId', async (req, res) => {
 
 /**
  * POST /agent/wallet/connect
- * Get or create agent wallet by connected wallet address and chain.
- * Body: { walletAddress: string, chain?: "solana" | "base" }
- * - chain "solana" (default): creates Solana agent keypair on first create.
- * - chain "base": creates EVM/Base agent wallet (new address on Base).
- * Returns: { anonymousId, agentAddress, avatarUrl?, isNewWallet? }
+ *
+ * SECURITY P0.2 — DEPRECATED. The old endpoint provisioned an agent wallet on plain POST
+ * with a `walletAddress` claim and no signature. That allowed anyone to enumerate or hijack
+ * the implicit agent wallet by guessing a Privy address. New flow:
+ *
+ *   1. POST /agent/auth/nonce   (get a sign-in message)
+ *   2. Wallet signs the message with the user's connected wallet
+ *   3. POST /agent/auth/sign-in (verify signature, mint session, provision agent wallet)
+ *
+ * This route is kept ONLY to return existing agent metadata to callers that already authenticated.
+ * It requires a session whose verified wallet matches the requested `walletAddress`.
  */
-router.post('/connect', async (req, res) => {
+router.post('/connect', requireSession({ allowGuest: false, requireOwnership: false }), async (req, res) => {
   try {
     const walletAddress = typeof req.body?.walletAddress === 'string'
       ? req.body.walletAddress.trim()
@@ -376,6 +417,10 @@ router.post('/connect', async (req, res) => {
       return res.status(400).json({ success: false, error: 'walletAddress is required' });
     }
     const chain = req.body?.chain === 'base' ? 'base' : 'solana';
+    // SECURITY P0.2 — caller may only request a connect for the address they signed in with.
+    if (req.user.walletAddress !== walletAddress) {
+      return res.status(403).json({ success: false, error: 'session_address_mismatch' });
+    }
 
     const findQuery = chain === 'base'
       ? { walletAddress, chain: 'base' }
@@ -395,30 +440,14 @@ router.post('/connect', async (req, res) => {
     const avatarUrl = avatarGenerator.generateRandomAvatar(walletAddress);
 
     if (chain === 'base') {
-      // Create EVM/Base agent wallet (new private key, derive address)
-      const { generatePrivateKey, privateKeyToAccount } = await import('viem/accounts');
-      const privateKey = generatePrivateKey();
-      const account = privateKeyToAccount(privateKey);
-      const agentAddress = account.address;
-      const agentSecretKey = privateKey; // hex string
-      const anonymousId = `wallet:${walletAddress}:base`;
-
-      await AgentWallet.create({
-        anonymousId,
-        walletAddress,
-        chain: 'base',
-        agentAddress,
-        agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
-        avatarUrl,
-      });
-
-      return res.status(201).json({
-        success: true,
-        anonymousId,
-        agentAddress,
-        avatarUrl,
-        isNewWallet: true,
-        chain: 'base',
+      // SECURITY P0.7 — Base custodial wallet creation is disabled. The previous code path generated
+      // a raw EVM private key and stored it server-side, but no production code ever signed Base
+      // transactions with it. Maintaining dead key material expands the blast radius of any DB leak.
+      // Re-enable only after Base signing is wired through Privy Server Wallets (P1.1).
+      return res.status(410).json({
+        success: false,
+        error: 'Base custodial agent wallets are disabled. Use the Solana agent wallet for now; ' +
+          'Base support will return via Privy Server Wallets.',
       });
     }
 
@@ -470,10 +499,11 @@ router.post('/connect', async (req, res) => {
 /**
  * POST /agent/wallet/pay-402
  * Build and sign x402 payment from 402 response using agent wallet; return payment header for client retry.
- * Body: { anonymousId: string, paymentRequired: object } (paymentRequired = 402 response body with accepts[])
- * Returns: { success: true, paymentHeader: string } or { success: false, error: string }
+ *
+ * Requires authenticated session; the broker-policy applies (per-tx cap etc.) — but for x402
+ * read-only API calls under the per-tx cap this is currently auto-allowed.
  */
-router.post('/pay-402', async (req, res) => {
+router.post('/pay-402', requireSession({ allowGuest: false }), async (req, res) => {
   const payStart = Date.now();
   try {
     const { anonymousId, paymentRequired } = req.body || {};
@@ -499,9 +529,11 @@ router.post('/pay-402', async (req, res) => {
 
 /**
  * POST /agent/wallet
- * Get or create agent wallet. No wallet connect required.
- * Body: { anonymousId?: string } (optional; if omitted, server generates one)
- * Returns: { anonymousId: string, agentAddress: string }
+ *
+ * SECURITY P0.2 — guest wallet provisioning. Returns an existing wallet if anonymousId is known.
+ * Newly-created wallets are flagged as guest (no walletAddress); guest wallets are policy-locked
+ * to read-only and cannot sign transactions or withdraw. To enable signing, the user must sign in
+ * with their connected wallet via POST /agent/auth/sign-in.
  */
 router.post('/', async (req, res) => {
   try {
@@ -520,18 +552,38 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const keypair = Keypair.generate();
-    const agentAddress = keypair.publicKey.toBase58();
-    const agentSecretKey = bs58.encode(keypair.secretKey);
     // Generate unique avatar based on anonymousId
     const avatarUrl = avatarGenerator.generateRandomAvatar(anonymousId);
 
-    await AgentWallet.create({
-      anonymousId,
-      agentAddress,
-      agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
-      avatarUrl,
-    });
+    // SECURITY: prefer Privy custody for new guest wallets when configured (no raw keys in our DB).
+    let agentAddress;
+    const custody = getDefaultCustodyMode();
+    if (custody === 'privy' && isPrivyConfigured()) {
+      const out = await createPrivyServerWallet({ chain: 'solana', anonymousId });
+      agentAddress = out.agentAddress;
+      await AgentWallet.create({
+        anonymousId,
+        agentAddress,
+        custody: 'privy',
+        privyWalletId: out.privyWalletId,
+        status: 'active',
+        avatarUrl,
+        allowedTools: ['news', 'signal', 'sentiment', 'event', 'analytics-summary', 'arbitrage', 'trending-jupiter'],
+      });
+    } else {
+      const keypair = Keypair.generate();
+      agentAddress = keypair.publicKey.toBase58();
+      await AgentWallet.create({
+        anonymousId,
+        agentAddress,
+        agentSecretKey: encryptAgentSecretForStorage(bs58.encode(keypair.secretKey)),
+        custody: 'legacy',
+        status: 'active',
+        avatarUrl,
+        // Guest wallets allow only read-only tools; signing tools are blocked by the policy engine.
+        allowedTools: ['news', 'signal', 'sentiment', 'event', 'analytics-summary', 'arbitrage', 'trending-jupiter'],
+      });
+    }
 
     return res.status(201).json({
       success: true,

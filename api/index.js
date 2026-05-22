@@ -15,6 +15,8 @@ import { createXProjectAnalyzerRouter } from "./agents/x-project-analyzer.js";
 import { createXProjectsBatchAnalyzerRouter } from "./agents/x-projects-batch-analyzer.js";
 import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
+import { createAgentAuthRouter } from "./routes/agent/auth.js";
+import { createAgentWalletIntentRouter } from "./routes/agent/walletIntent.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
 import { createAgentPumpfunCoinRouter } from "./routes/agent/pumpfunCoin.js";
 import { createPumpfunAlphaTrendRouter } from "./routes/agent/pumpfunAlphaTrend.js";
@@ -75,6 +77,8 @@ import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 // import { ExactSvmScheme } from "@x402/svm/exact/server";
 import dotenv from "dotenv";
 import { zauthProvider } from "@zauthx402/sdk/middleware";
+import { assertAgentWalletSecretEncryptionConfigured } from "./libs/agentWalletSecretCrypto.js";
+import { metricsHandler } from "./utils/metrics.js";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import { createBrainRouter } from "./routes/brain.js";
@@ -94,6 +98,15 @@ const __dirname = path.dirname(__filename);
 
 // Always load api/.env first (so SOLANA_RPC_URL etc. are set even when run from monorepo root)
 dotenv.config({ path: path.resolve(__dirname, ".env") });
+
+// SECURITY P0.1 — refuse to boot if agent wallet encryption is not configured.
+// Skipping this check would silently allow plaintext storage of private keys.
+try {
+  assertAgentWalletSecretEncryptionConfigured();
+} catch (err) {
+  console.error("\n" + (err?.message || String(err)) + "\n");
+  process.exit(1);
+}
 
 // x402 Payment Configuration
 // NOTE: Individual routes use requirePayment() from utils/x402Payment.js
@@ -995,12 +1008,25 @@ app.use((req, res, next) => {
   next();
 });
 app.use("/health", await createHealthRouter());
+
+// SECURITY P1.8 — Prometheus metrics. Gated behind METRICS_TOKEN to prevent enumeration.
+app.get("/metrics", (req, res, next) => {
+  const expected = (process.env.METRICS_TOKEN || "").trim();
+  if (!expected) return res.status(404).end();
+  const got = (req.get("x-metrics-token") || req.query?.token || "").trim();
+  if (got !== expected) return res.status(401).end();
+  return metricsHandler(req, res).catch(next);
+});
 app.use("/mpp/v1", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/x-analyzer", await createXProjectAnalyzerRouter());
 app.use("/x-projects-analyze", createXProjectsBatchAnalyzerRouter());
 app.use("/brain", await createBrainRouter());
 app.use("/openrouter", await createOpenRouterChatRouter());
+// SECURITY P0.2 — wallet sign-in (SIWS/SIWE), token refresh, sign-out
+app.use("/agent/auth", await createAgentAuthRouter());
+// SECURITY P1.4 — per-intent user confirmation for high-risk wallet actions
+app.use("/agent/wallet/intent", await createAgentWalletIntentRouter());
 // Agent chat: completion, generate-description, generate-agent-image (Xona), share, CRUD
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/chart", createAgentChartRouter());

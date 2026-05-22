@@ -22,23 +22,35 @@ function isSolanaChainDoc(doc) {
 async function findSolanaAgentDocByWallet(walletAddress) {
   const w = String(walletAddress || '').trim();
   if (!w) return null;
-  let row = await AgentWallet.findOne({ walletAddress: w, chain: 'solana' }).lean();
+  let row = await AgentWallet.findOne({ walletAddress: w, chain: 'solana' })
+    .select('+agentSecretKey custody status chain walletAddress agentAddress')
+    .lean();
   if (!row) {
-    row = await AgentWallet.findOne({ walletAddress: w, chain: { $exists: false } }).lean();
+    row = await AgentWallet.findOne({ walletAddress: w, chain: { $exists: false } })
+      .select('+agentSecretKey custody status chain walletAddress agentAddress')
+      .lean();
   }
   return row;
 }
 
 /**
  * Get the agent keypair for an anonymous user.
- * Backend uses this to sign x402 payments without user interaction.
+ *
+ * SECURITY: this is a legacy-custody loader. The wallet broker prefers the Privy custody path
+ * (no raw keys ever loaded into our process). This function refuses to return a keypair for
+ * wallets that are not active + legacy custody — see WalletBroker for the canonical signing path.
+ *
  * @param {string} anonymousId - Client's anonymous id (from localStorage)
  * @returns {Promise<Keypair | null>} Agent keypair or null if not found
  */
 export async function getAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
-  const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
+  const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
+    .select('+agentSecretKey custody status chain')
+    .lean();
   if (!doc?.agentSecretKey) return null;
+  if (doc.custody && doc.custody !== 'legacy') return null;
+  if (doc.status && doc.status !== 'active') return null;
   let plainSecret;
   try {
     plainSecret = decryptAgentSecretFromStorage(doc.agentSecretKey);
@@ -78,8 +90,12 @@ export async function getSolanaAgentAddress(anonymousId) {
  */
 export async function getSolanaAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
-  let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
+  let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
+    .select('+agentSecretKey custody status chain walletAddress agentAddress')
+    .lean();
   if (!doc) return null;
+  if (doc.custody && doc.custody !== 'legacy') return null;
+  if (doc.status && doc.status !== 'active') return null;
   if (isSolanaChainDoc(doc) && doc.agentSecretKey) {
     let plain;
     try {
@@ -96,7 +112,7 @@ export async function getSolanaAgentKeypair(anonymousId) {
   }
   if (doc.walletAddress) {
     const solanaDoc = await findSolanaAgentDocByWallet(doc.walletAddress);
-    if (solanaDoc?.agentSecretKey) {
+    if (solanaDoc?.agentSecretKey && (!solanaDoc.custody || solanaDoc.custody === 'legacy') && (!solanaDoc.status || solanaDoc.status === 'active')) {
       let plain;
       try {
         plain = decryptAgentSecretFromStorage(solanaDoc.agentSecretKey);

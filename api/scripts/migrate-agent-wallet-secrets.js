@@ -28,7 +28,7 @@ async function main() {
   }
 
   await connectMongoose();
-  const cursor = AgentWallet.find({}).select('_id agentSecretKey').cursor();
+  const cursor = AgentWallet.find({}).select('_id +agentSecretKey').cursor();
   let updated = 0;
   let skipped = 0;
   for await (const doc of cursor) {

@@ -706,57 +706,63 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
  * @param {string} serializedTxBase64
  * @returns {Promise<{ signature: string }>}
  */
-export async function signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64) {
-  const keypair = await getAgentKeypair(anonymousId);
-  if (!keypair) {
-    throw new Error('Agent wallet not found for this user');
-  }
-  let connection = getConnection();
-  const txBuf = Buffer.from(serializedTxBase64, 'base64');
-
-  /** @type {Uint8Array} */
-  let serialized;
-  try {
-    const vtx = VersionedTransaction.deserialize(txBuf);
-    vtx.sign([keypair]);
-    const sig0 = vtx.signatures[0];
-    if (!sig0 || sig0.length !== 64) {
-      throw new Error('Failed to sign versioned transaction');
+/**
+ * Sign and submit a base64 Solana transaction.
+ *
+ * SECURITY P1.5 — every signing path now routes through the wallet broker, which:
+ *   - refuses to sign if the wallet is frozen / retired
+ *   - refuses to sign for guests
+ *   - enforces per-tx / hourly / daily caps and allowlists
+ *   - simulates the tx and refuses if it would drain SOL
+ *   - prefers Privy custody when configured (raw key never leaves Privy)
+ *   - writes a tamper-evident audit row for every attempt
+ *
+ * Callers must pass `context` with at minimum { toolId, estimatedUsd } so the policy engine can
+ * apply the right caps. When `context` is omitted the broker treats it as a high-risk action
+ * and is far more likely to require confirmation.
+ *
+ * @param {string} anonymousId
+ * @param {string} serializedTxBase64
+ * @param {{ toolId?: string; estimatedUsd?: number; requestId?: string; sessionId?: string;
+ *           ip?: string; userAgent?: string; guest?: boolean; bypassPolicy?: boolean }} [context]
+ * @returns {Promise<{ signature: string }>}
+ */
+export async function signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64, context = {}) {
+  // Dynamic import avoids a require cycle (broker imports agentWalletSecretCrypto which imports nothing here).
+  const { executeIntent } = await import('../services/walletBroker.js');
+  const result = await executeIntent(
+    {
+      anonymousId,
+      guest: context.guest === true,
+      requestId: context.requestId,
+      sessionId: context.sessionId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    },
+    {
+      type: 'tx_sign',
+      chain: 'solana',
+      toolId: context.toolId,
+      estimatedUsd: Number.isFinite(context.estimatedUsd) ? Number(context.estimatedUsd) : 0,
+      serializedTxBase64,
+      summary: context.toolId ? `Sign on-chain transaction for ${context.toolId}` : undefined,
     }
-    serialized = vtx.serialize();
-  } catch {
-    const legacy = Transaction.from(txBuf);
-    legacy.partialSign(keypair);
-    serialized = legacy.serialize({ requireAllSignatures: false });
+  );
+  if (result.status === 'ok') {
+    return { signature: result.signature };
   }
-
-  const sendOnce = async () =>
-    connection.sendRawTransaction(serialized, {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
-
-  try {
-    const signature = await sendOnce();
-    return { signature };
-  } catch (sendErr) {
-    if (isRpcBlockchainAccessError(sendErr)) {
-      switchToFallbackRpc();
-      connection = getConnection();
-      const signature = await sendOnce();
-      return { signature };
-    }
-    const rawMsg = sendErr?.message || 'Failed to submit transaction to Solana';
-    const isDebitNoCredit =
-      /debit an account but found no record of a prior credit/i.test(rawMsg) ||
-      /insufficient funds/i.test(rawMsg);
-    const err = isDebitNoCredit
-      ? 'Agent wallet needs SOL for transaction fees. Send a small amount of SOL (e.g. 0.01) to the agent wallet.'
-      : rawMsg;
-    throw new Error(err);
+  if (result.status === 'pending_confirmation') {
+    const err = new Error('user_confirmation_required');
+    err.code = 'CONFIRMATION_REQUIRED';
+    err.intentId = result.intentId;
+    err.expiresAt = result.expiresAt;
+    err.summary = result.summary;
+    throw err;
   }
+  // denied
+  throw new Error(`Wallet broker refused to sign: ${result.reasons?.join(';')}`);
 }
 
-export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase64) {
-  return signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64);
+export async function signAndSubmitSwapTransaction(anonymousId, serializedTxBase64, context = {}) {
+  return signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64, context);
 }

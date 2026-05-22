@@ -1,11 +1,60 @@
 /**
- * Rate limiting for non-x402 (free) APIs to prevent spam, DDoS, and abuse.
- * - Simple window: single window (e.g. 100 req/min).
- * - Strict (dual-window): burst limit (e.g. 25/10s) + sustained (e.g. 100/min) to mitigate burst attacks.
- * - Periodic cleanup of expired entries to prevent memory exhaustion.
+ * Rate limiting for non-x402 (free) APIs.
+ *
+ * Two backends:
+ *  - default in-memory (legacy; ok for a single API instance)
+ *  - Redis when SYRA_REDIS_URL is set (required for multi-instance deploys; counters live in Redis
+ *    so all API replicas share state). Falls back to memory if Redis is unreachable.
+ *
+ * P0.8 — strict mode supports per-route key suffix so wallet endpoints can be limited per-user
+ * (when authenticated) instead of per-IP.
  */
+import crypto from "node:crypto";
 
-const DEFAULT_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
+const DEFAULT_CLEANUP_INTERVAL_MS = 60 * 1000;
+
+// Lazy Redis client. Loaded once at first use to avoid forcing a hard dep when SYRA_REDIS_URL is unset.
+let _redisClient = null;
+let _redisLoading = null;
+async function getRedis() {
+  if (_redisClient) return _redisClient;
+  const url = (process.env.SYRA_REDIS_URL || "").trim();
+  if (!url) return null;
+  if (_redisLoading) return _redisLoading;
+  _redisLoading = (async () => {
+    try {
+      const mod = await import("ioredis").catch(() => null);
+      if (!mod) {
+        console.warn("[rateLimit] SYRA_REDIS_URL set but `ioredis` not installed; using in-memory limiter");
+        return null;
+      }
+      const Redis = mod.default || mod.Redis || mod;
+      const client = new Redis(url, { lazyConnect: false, enableOfflineQueue: false });
+      client.on("error", (e) => console.warn("[rateLimit] redis error:", e?.message || e));
+      _redisClient = client;
+      return client;
+    } catch (e) {
+      console.warn("[rateLimit] redis init failed:", e?.message || e);
+      return null;
+    }
+  })();
+  return _redisLoading;
+}
+
+async function redisIncrWithExpiry(key, ttlSec) {
+  const r = await getRedis();
+  if (!r) return null;
+  try {
+    const pipeline = r.pipeline();
+    pipeline.incr(key);
+    pipeline.expire(key, ttlSec, "NX");
+    const results = await pipeline.exec();
+    const count = Array.isArray(results?.[0]) ? Number(results[0][1]) : null;
+    return count;
+  } catch (e) {
+    return null;
+  }
+}
 
 function simpleRateLimit(options) {
   const windowMs = options.windowMs || 60000;
@@ -54,13 +103,14 @@ function simpleRateLimit(options) {
  * Request is blocked if either limit is exceeded. Mitigates burst DDoS and sustained spam.
  */
 function strictRateLimit(options) {
-  const burstWindowMs = options.burstWindowMs ?? 10 * 1000;   // 10 seconds
+  const burstWindowMs = options.burstWindowMs ?? 10 * 1000;
   const burstMax = options.burstMax ?? 25;
-  const windowMs = options.windowMs ?? 60 * 1000;            // 1 minute
+  const windowMs = options.windowMs ?? 60 * 1000;
   const max = options.max ?? 100;
   const skip = options.skip || (() => false);
+  const keyOf = options.keyOf || ((req) => getClientIp(req));
 
-  const burstHits = new Map();  // ip -> { count, resetTime }
+  const burstHits = new Map();
   const sustainedHits = new Map();
 
   const cleanup = () => {
@@ -75,52 +125,63 @@ function strictRateLimit(options) {
   const cleanupInterval = setInterval(cleanup, options.cleanupIntervalMs ?? DEFAULT_CLEANUP_INTERVAL_MS);
   cleanupInterval.unref?.();
 
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (skip(req)) return next();
-    const ip = getClientIp(req);
+    const key = String(keyOf(req) || "unknown");
     const now = Date.now();
     const burstReset = now + burstWindowMs;
     const sustainedReset = now + windowMs;
 
-    // Burst window
-    if (!burstHits.has(ip)) {
-      burstHits.set(ip, { count: 1, resetTime: burstReset });
+    // Try Redis first when configured; falls back to in-memory transparently.
+    const redisKeyB = `rl:b:${hashKey(key)}:${Math.floor(now / burstWindowMs)}`;
+    const redisKeyS = `rl:s:${hashKey(key)}:${Math.floor(now / windowMs)}`;
+    const burstCount = await redisIncrWithExpiry(redisKeyB, Math.ceil(burstWindowMs / 1000));
+    if (burstCount != null) {
+      if (burstCount > burstMax) {
+        res.setHeader("Retry-After", String(Math.ceil(burstWindowMs / 1000)));
+        return res.status(429).json({ success: false, message: "Too many requests. Please slow down." });
+      }
+      const sustainedCount = await redisIncrWithExpiry(redisKeyS, Math.ceil(windowMs / 1000));
+      if (sustainedCount != null && sustainedCount > max) {
+        res.setHeader("Retry-After", String(Math.ceil(windowMs / 1000)));
+        return res.status(429).json({ success: false, message: "Too many requests. Please slow down." });
+      }
+      return next();
+    }
+
+    if (!burstHits.has(key)) {
+      burstHits.set(key, { count: 1, resetTime: burstReset });
     } else {
-      const b = burstHits.get(ip);
-      if (now > b.resetTime) {
-        burstHits.set(ip, { count: 1, resetTime: burstReset });
-      } else {
+      const b = burstHits.get(key);
+      if (now > b.resetTime) burstHits.set(key, { count: 1, resetTime: burstReset });
+      else {
         b.count++;
         if (b.count > burstMax) {
           res.setHeader("Retry-After", String(Math.ceil((b.resetTime - now) / 1000)));
-          return res.status(429).json({
-            success: false,
-            message: "Too many requests. Please slow down.",
-          });
+          return res.status(429).json({ success: false, message: "Too many requests. Please slow down." });
         }
       }
     }
 
-    // Sustained window
-    if (!sustainedHits.has(ip)) {
-      sustainedHits.set(ip, { count: 1, resetTime: sustainedReset });
+    if (!sustainedHits.has(key)) {
+      sustainedHits.set(key, { count: 1, resetTime: sustainedReset });
     } else {
-      const s = sustainedHits.get(ip);
-      if (now > s.resetTime) {
-        sustainedHits.set(ip, { count: 1, resetTime: sustainedReset });
-      } else {
+      const s = sustainedHits.get(key);
+      if (now > s.resetTime) sustainedHits.set(key, { count: 1, resetTime: sustainedReset });
+      else {
         s.count++;
         if (s.count > max) {
           res.setHeader("Retry-After", String(Math.ceil((s.resetTime - now) / 1000)));
-          return res.status(429).json({
-            success: false,
-            message: "Too many requests. Please slow down.",
-          });
+          return res.status(429).json({ success: false, message: "Too many requests. Please slow down." });
         }
       }
     }
     next();
   };
+}
+
+function hashKey(s) {
+  return crypto.createHash("sha1").update(String(s)).digest("hex").slice(0, 16);
 }
 
 /** Resolve client IP (supports X-Forwarded-For when trust proxy is set). */

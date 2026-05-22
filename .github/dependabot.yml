@@ -1,0 +1,53 @@
+# Dependabot — automated dependency updates (SECURITY P0.8).
+# Generates PRs for known-vulnerable or outdated direct dependencies.
+# Reviewers should triage weekly; only merge after CI passes.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 8
+    labels: ["dependencies", "api"]
+    versioning-strategy: increase-if-necessary
+    ignore:
+      # Solana SDK ships frequent point releases; pin in code where needed.
+      - dependency-name: "@solana/web3.js"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "npm"
+    directory: "/ai-agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 8
+    labels: ["dependencies", "ai-agent"]
+
+  - package-ecosystem: "npm"
+    directory: "/mcp-server"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "mcp-server"]
+    open-pull-requests-limit: 4
+
+  - package-ecosystem: "npm"
+    directory: "/landing"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "landing"]
+    open-pull-requests-limit: 4
+
+  - package-ecosystem: "npm"
+    directory: "/api-playground"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "api-playground"]
+    open-pull-requests-limit: 4
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels: ["ci"]

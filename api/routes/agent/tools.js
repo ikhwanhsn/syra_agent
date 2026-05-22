@@ -45,6 +45,7 @@ import {
   parsePayshForceRefresh,
 } from '../../libs/payshClient.js';
 import { resolveAgentBaseUrl } from './utils.js';
+import { requireSession } from '../../utils/requireSession.js';
 
 const router = express.Router();
 
@@ -73,9 +74,11 @@ router.get('/', async (req, res) => {
  * POST /agent/tools/call
  * Call an x402 API using the agent wallet. Always check balance first.
  * If balance is 0 or lower than price, return insufficientBalance and a message; otherwise pay and call.
- * Body: { anonymousId: string, toolId: string, params?: Record<string, string> }
+ *
+ * SECURITY P0.2 — requires an authenticated session. Guests are admitted ONLY for read-only,
+ * non-signing tools (the policy engine in walletBroker rejects signing tools for guests).
  */
-router.post('/call', async (req, res) => {
+router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
   try {
     const { anonymousId, toolId, params: rawParams = {} } = req.body || {};
     if (!anonymousId || !toolId) {
@@ -476,14 +479,32 @@ router.post('/call', async (req, res) => {
       let data = out.data;
       if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
         try {
-          const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction);
+          const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction, {
+            toolId: tool.id,
+            estimatedUsd: effectivePrice,
+            sessionId: req.user?.sessionId,
+            ip: req.ip,
+            userAgent: req.get('user-agent') || undefined,
+            guest: req.user?.guest === true,
+          });
           data = { ...data, submittedSignature: signature, submittedOnChain: true };
         } catch (pumpErr) {
-          data = {
-            ...data,
-            submittedOnChain: false,
-            submitError: pumpErr?.message || 'Failed to sign or submit Solana transaction',
-          };
+          if (pumpErr?.code === 'CONFIRMATION_REQUIRED') {
+            data = {
+              ...data,
+              submittedOnChain: false,
+              confirmationRequired: true,
+              intentId: pumpErr.intentId,
+              expiresAt: pumpErr.expiresAt,
+              submitError: 'User confirmation required',
+            };
+          } else {
+            data = {
+              ...data,
+              submittedOnChain: false,
+              submitError: pumpErr?.message || 'Failed to sign or submit Solana transaction',
+            };
+          }
         }
       }
 
@@ -535,7 +556,15 @@ router.post('/call', async (req, res) => {
         try {
           const { signature } = await signAndSubmitSwapTransaction(
             anonymousId,
-            buyResult.data.serializedTransaction
+            buyResult.data.serializedTransaction,
+            {
+              toolId: 'purch-vault-buy',
+              estimatedUsd: tool.priceUsd || 1,
+              sessionId: req.user?.sessionId,
+              ip: req.ip,
+              userAgent: req.get('user-agent') || undefined,
+              guest: req.user?.guest === true,
+            }
           );
           const downloadResult = await purchVaultDownload(anonymousId, {
             purchaseId: buyResult.data.purchaseId,
@@ -611,14 +640,32 @@ router.post('/call', async (req, res) => {
     let data = result.data;
     if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
       try {
-        const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction);
+        const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction, {
+          toolId: tool.id,
+          estimatedUsd: effectivePrice,
+          sessionId: req.user?.sessionId,
+          ip: req.ip,
+          userAgent: req.get('user-agent') || undefined,
+          guest: req.user?.guest === true,
+        });
         data = { ...data, submittedSignature: signature, submittedOnChain: true };
       } catch (pumpErr) {
-        data = {
-          ...data,
-          submittedOnChain: false,
-          submitError: pumpErr?.message || 'Failed to sign or submit Solana transaction',
-        };
+        if (pumpErr?.code === 'CONFIRMATION_REQUIRED') {
+          data = {
+            ...data,
+            submittedOnChain: false,
+            confirmationRequired: true,
+            intentId: pumpErr.intentId,
+            expiresAt: pumpErr.expiresAt,
+            submitError: 'User confirmation required',
+          };
+        } else {
+          data = {
+            ...data,
+            submittedOnChain: false,
+            submitError: pumpErr?.message || 'Failed to sign or submit Solana transaction',
+          };
+        }
       }
     }
 
