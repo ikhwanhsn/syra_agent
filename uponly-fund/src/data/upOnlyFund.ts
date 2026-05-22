@@ -52,7 +52,7 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   name: "Up Only Fund",
   shortName: "UOF",
   publicSummary:
-    "Smart Agent Fund on Solana—an independent venture allocator with a published mandate, live profitable book, and operator leverage across agent infrastructure and Solana-native teams. Treasury address and positions publish as they go live—no public LP subscriptions in v1.",
+    "Smart Agent Fund on Solana—an independent venture allocator with a published mandate and selective project disclosures. Operator leverage across agent infrastructure and Solana-native teams; treasury address publishes when set. No public LP subscriptions in v1.",
   mandate:
     "A venture and strategic hedge desk focused on Solana-native teams—capital for liquidity and distribution, plus operator support where agent-grade data and execution tooling compound outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
   treasuryAddress: null,
@@ -68,10 +68,10 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   utilityRoadmap: [
     {
       id: "uof-transparency",
-      title: "Public mandate & positions",
+      title: "Public mandate & backed projects",
       status: "in-progress",
       description:
-        "This page: mandate, future treasury address, and holdings as they are published. No public deposits in v1.",
+        "This page: mandate, future treasury address, and backed projects as they are published—without sizing or returns. No public deposits in v1.",
     },
     {
       id: "uof-analytics-tools",

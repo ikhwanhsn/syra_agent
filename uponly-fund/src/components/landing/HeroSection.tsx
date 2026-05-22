@@ -65,9 +65,9 @@ export function HeroSection({ className }: HeroSectionProps) {
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="rounded-md border-[hsl(var(--ds-positive-border))] bg-[hsl(var(--ds-positive-soft))] px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--ds-positive))]"
+                  className="rounded-md border-border/55 bg-background/60 px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
                 >
-                  Live · Profitable book
+                  Solana-native allocator
                 </Badge>
               </motion.div>
 

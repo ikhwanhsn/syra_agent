@@ -16,7 +16,7 @@ import { siteShell } from "@/lib/siteLayout";
 
 const navLinks = [
   { label: "Fund", href: "/#uof-landing-hero", desc: "Overview" },
-  { label: "Portfolio", href: "/#portfolio", desc: "Positions" },
+  { label: "Portfolio", href: "/#portfolio", desc: "Backed projects" },
   { label: "Dashboard", href: "/#dashboard", desc: "Terminal" },
   { label: "Mandate", href: "/#mandate", desc: "Strategy" },
   { label: "Risk", href: "/#risk-disclosure", desc: "Legal" },

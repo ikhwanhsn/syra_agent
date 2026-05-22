@@ -2,7 +2,6 @@ import { useReducedMotion, motion } from "framer-motion";
 import { ArrowUpRight, PieChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UP_ONLY_FUND, getFundHoldingRiseUrl } from "@/data/upOnlyFund";
-import { formatPct, formatUsd } from "@/lib/marketDisplayFormat";
 import { solscanTokenUrl } from "@/data/agentIdentity";
 import { cn } from "@/lib/utils";
 import { fadeUp, SectionEyebrow } from "../primitives";
@@ -22,15 +21,15 @@ export function HoldingsSection({ className }: HoldingsSectionProps) {
       aria-labelledby="uof-holdings-heading"
     >
       <div className="mb-6 min-w-0 max-w-3xl sm:mb-8">
-        <SectionEyebrow>Transparency</SectionEyebrow>
+        <SectionEyebrow>Disclosure</SectionEyebrow>
         <h2
           id="uof-holdings-heading"
           className="text-balance break-words text-xl font-bold tracking-[-0.02em] min-[500px]:text-2xl sm:text-3xl"
         >
-          Positions
+          Backed projects
         </h2>
         <p className="mt-2 break-words text-sm text-muted-foreground [overflow-wrap:anywhere] sm:text-base sm:leading-relaxed">
-          First positions and weights will be published when the fund is operational. This is a disclosure surface, not a
+          Project identity and thesis when published—not ticket size, weights, or marks. This is a disclosure surface, not a
           product pitch.
         </p>
       </div>
@@ -42,7 +41,7 @@ export function HoldingsSection({ className }: HoldingsSectionProps) {
         >
           <PieChart className="mx-auto h-10 w-10 text-foreground/35" aria-hidden />
           <p className="mt-4 break-words text-pretty text-sm italic leading-relaxed text-muted-foreground/95 sm:text-base">
-            First positions to be published when the fund is operational.
+            Backed projects will be listed here when published.
           </p>
         </div>
       ) : (
@@ -72,22 +71,16 @@ export function HoldingsSection({ className }: HoldingsSectionProps) {
                       </a>
                     ) : null}
                   </div>
-                  <div className="shrink-0 text-left sm:text-right">
-                    <p className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">Weight (ref.)</p>
-                    <p className="mt-0.5 font-semibold tabular-nums text-foreground">{formatPct(h.weightPct)}</p>
-                    <p className="mt-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">Size (ref.)</p>
-                    <p className="mt-0.5 font-semibold tabular-nums text-foreground">
-                      {formatUsd(h.positionUsd, { compact: false })}
-                    </p>
-                    {rise ? (
-                      <Button asChild variant="secondary" size="sm" className="mt-2 w-full min-[500px]:w-auto">
+                  {rise ? (
+                    <div className="shrink-0">
+                      <Button asChild variant="secondary" size="sm" className="w-full min-[500px]:w-auto">
                         <a href={rise} target="_blank" rel="noopener noreferrer" className="gap-1.5">
                           RISE
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </a>
                       </Button>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </li>
             );

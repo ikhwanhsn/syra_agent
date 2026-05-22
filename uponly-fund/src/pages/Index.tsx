@@ -2,7 +2,6 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { FundMetricsBar } from "@/components/landing/FundMetricsBar";
 import { PortfolioSection } from "@/components/landing/PortfolioSection";
 import { DashboardAccessSection } from "@/components/landing/DashboardAccessSection";
 import { SolanaEcosystemStrip } from "@/components/landing/SolanaEcosystemStrip";
@@ -24,7 +23,7 @@ import { cn } from "@/lib/utils";
 const PAGE_TITLE =
   "Up Only Fund | Smart Agent Fund on Solana — Venture & Strategic Capital" as const;
 const PAGE_DESC =
-  "Up Only Fund is a live, profitable Smart Agent Fund on Solana—venture and strategic capital with institutional mandate, portfolio transparency, and a command dashboard for on-chain diligence. DYOR — not financial advice." as const;
+  "Up Only Fund is a Smart Agent Fund on Solana—venture and strategic capital with a published mandate, backed-project disclosures, and a command dashboard for on-chain diligence. DYOR — not financial advice." as const;
 
 const Index = () => {
   useDocumentMeta({
@@ -82,14 +81,6 @@ const Index = () => {
             <HeroSection />
           </div>
         </section>
-
-        <LandingBand
-          variant="muted"
-          scrollReveal={false}
-          contentClassName="!py-12 md:!py-16 lg:!py-20"
-        >
-          <FundMetricsBar />
-        </LandingBand>
 
         <LandingBand variant="transparent">
           <PortfolioSection />

@@ -296,12 +296,9 @@ export const TokenSection = () => {
       await openQwertiBuyWidget();
       setBuyOpen(false);
     } catch {
-      toast.error("Qwerti widget could not load", {
-        description: "Try opening the buy page in a new tab.",
-        action: {
-          label: "Open Qwerti",
-          onClick: () => window.open(QWERTI_MAGIC_LINK, "_blank", "noopener,noreferrer"),
-        },
+      window.open(QWERTI_MAGIC_LINK, "_blank", "noopener,noreferrer");
+      toast.error("Opened Qwerti in a new tab", {
+        description: "The embedded widget could not start on this page.",
       });
     } finally {
       setQwertiLoading(false);

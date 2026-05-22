@@ -21,8 +21,8 @@ export function StrategicAnchorSection({ className }: StrategicAnchorSectionProp
           className="mt-4 max-w-4xl font-display text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-3xl md:text-[2.125rem] md:leading-[1.1]"
         >
           <span className="uof-wordmark">Up Only Fund</span> is the{" "}
-          <span className="text-foreground/85">Smart Agent Fund on Solana</span>—a standalone allocator brand with a live,
-          profitable book.
+          <span className="text-foreground/85">Smart Agent Fund on Solana</span>—a standalone allocator brand with a
+          published mandate and selective project disclosures.
         </h2>
         <p className="mt-5 max-w-3xl text-pretty text-sm font-medium leading-relaxed text-muted-foreground sm:mt-6 sm:text-base">
           Mandate, portfolio disclosures, and the liquid <span className="font-mono text-foreground/88">$UPONLY</span>{" "}

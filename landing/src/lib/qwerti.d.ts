@@ -19,6 +19,7 @@ export interface QwertiSdk {
   destroy: () => void;
   on: (event: QwertiEvent, handler: QwertiEventHandler) => void;
   off: (event: QwertiEvent, handler: QwertiEventHandler) => void;
+  getState?: () => { ready?: boolean; isOpen?: boolean };
   version?: string;
 }
 

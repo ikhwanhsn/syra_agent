@@ -9,7 +9,7 @@ export const FUND_LANDING = {
   heroSubtitle:
     "An autonomous venture allocator deploying capital, operator leverage, and agent-grade intelligence across Solana—built for institutional rigor, not retail hype.",
   heroBody:
-    "The fund is live with a profitable book, published mandate, and a command dashboard for on-chain diligence. We compound distribution, liquidity, and product velocity for teams with structural edges on Solana.",
+    "A published mandate, privacy-conscious portfolio disclosures, and a command dashboard for on-chain diligence. We compound distribution, liquidity, and product velocity for teams with structural edges on Solana.",
   dashboardCta: "Open command dashboard",
   mandateCta: "Investment mandate",
 } as const;
