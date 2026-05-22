@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sun, Moon } from "lucide-react";
+import { Menu, X, Sun, Moon, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
 import { BrandMark } from "./BrandMark";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import { siteShell } from "@/lib/siteLayout";
 
 const navLinks = [
   { label: "Fund", href: "/#uof-landing-hero", desc: "Overview" },
-  { label: "Sleeve", href: "/#landing-token", desc: "$UPONLY" },
+  { label: "Portfolio", href: "/#portfolio", desc: "Positions" },
+  { label: "Dashboard", href: "/#dashboard", desc: "Terminal" },
   { label: "Mandate", href: "/#mandate", desc: "Strategy" },
   { label: "Risk", href: "/#risk-disclosure", desc: "Legal" },
 ] as const;
@@ -25,11 +26,14 @@ export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const location = useLocation();
+  const isLanding = location.pathname === "/" || location.pathname === "/landing";
+
   const isActiveLink = (href: string) => {
     if (href === "/terminal") return location.pathname === "/terminal";
     if (!href.startsWith("/#")) return location.pathname === href;
+    if (!isLanding) return false;
     const hash = href.slice(1);
-    return location.pathname === "/" && location.hash === hash;
+    return location.hash === hash;
   };
 
   return (
@@ -94,10 +98,12 @@ export const Navbar = () => {
               <Button
                 asChild
                 size="sm"
-                className="h-9 shrink-0 rounded-lg px-3 text-xs font-semibold !text-[hsl(var(--uof-foreground))] shadow-sm sm:h-9 sm:px-4 sm:text-[13px]"
+                className="h-9 shrink-0 gap-1.5 rounded-lg px-3 text-xs font-semibold !text-[hsl(var(--uof-foreground))] shadow-sm sm:h-9 sm:px-4 sm:text-[13px]"
               >
                 <Link to="/terminal" onClick={() => setIsOpen(false)}>
-                  Dashboard
+                  <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden min-[420px]:inline">Dashboard</span>
+                  <span className="min-[420px]:hidden">Desk</span>
                 </Link>
               </Button>
 
@@ -143,6 +149,14 @@ export const Navbar = () => {
                       </span>
                     </Link>
                   ))}
+                  <Link
+                    to="/terminal"
+                    onClick={() => setIsOpen(false)}
+                    className="mt-2 flex min-h-11 items-center gap-2 rounded-lg bg-uof/90 px-3 py-2.5 font-semibold !text-[hsl(var(--uof-foreground))]"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Open command dashboard
+                  </Link>
                 </div>
                 <div className="mt-2 border-t border-border/40 pt-3">
                   <a

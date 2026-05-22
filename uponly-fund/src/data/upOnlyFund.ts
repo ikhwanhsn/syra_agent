@@ -52,9 +52,9 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   name: "Up Only Fund",
   shortName: "UOF",
   publicSummary:
-    "Independent venture allocator with a published mandate to deploy capital and operator leverage across the RISE ecosystem. Treasury address and positions publish as they go live—no public LP subscriptions in v1.",
+    "Smart Agent Fund on Solana—an independent venture allocator with a published mandate, live profitable book, and operator leverage across agent infrastructure and Solana-native teams. Treasury address and positions publish as they go live—no public LP subscriptions in v1.",
   mandate:
-    "A venture and strategic hedge desk focused on RISE-native teams—capital for liquidity and distribution, plus operator support where data and execution tooling compound outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
+    "A venture and strategic hedge desk focused on Solana-native teams—capital for liquidity and distribution, plus operator support where agent-grade data and execution tooling compound outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
   treasuryAddress: null,
   stats: {
     aumUsd: null,
@@ -78,7 +78,7 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
       title: "Fund-grade analytics",
       status: "planned",
       description:
-        "Deeper on-chain and market context for RISE ecosystem positions via dashboards and automation (roadmap TBA).",
+        "Deeper on-chain and market context for Solana positions via the command dashboard and automation (roadmap TBA).",
     },
     {
       id: "uof-broader-utility",

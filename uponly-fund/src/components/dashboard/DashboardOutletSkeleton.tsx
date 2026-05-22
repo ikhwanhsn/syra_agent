@@ -167,7 +167,7 @@ export function DashboardOutletSkeleton() {
   if (pathname === "/terminal") {
     return <TerminalPageSkeleton />;
   }
-  if (pathname === "/") {
+  if (pathname === "/overview") {
     return <TrendingPageSkeleton />;
   }
   if (pathname === "/market") {

@@ -68,15 +68,16 @@ const App = () => (
             <ScrollToTop />
             <Routes>
               <Route
-                path="/landing"
+                path="/"
                 element={
                   <Suspense fallback={<LandingRouteFallback />}>
                     <Index />
                   </Suspense>
                 }
               />
+              <Route path="/landing" element={<Navigate to="/" replace />} />
               <Route element={<DashboardLayout />}>
-                <Route path="/" element={<TrendingPage />} />
+                <Route path="/overview" element={<TrendingPage />} />
                 <Route path="/terminal" element={<TerminalPage />} />
                 <Route path="/market" element={<MarketsPage />} />
                 <Route path="/wallet" element={<WalletPage />} />
@@ -85,8 +86,8 @@ const App = () => (
                 <Route path="/create-token" element={<CreateTokenPage />} />
                 <Route path="/token/:address" element={<TokenDetailPage />} />
               </Route>
-              <Route path="/dashboard" element={<Navigate to="/" replace />} />
-              <Route path="/dashboard/overview" element={<Navigate to="/" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/overview" replace />} />
+              <Route path="/dashboard/overview" element={<Navigate to="/overview" replace />} />
               <Route path="/dashboard/markets" element={<Navigate to="/market" replace />} />
               <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
               <Route path="/dashboard/simulator" element={<Navigate to="/simulator" replace />} />
@@ -101,11 +102,11 @@ const App = () => (
               <Route path="/dashboard/signals" element={<Navigate to="/insights?tab=signals" replace />} />
               <Route path="/dashboard/dca" element={<Navigate to="/simulator?tab=dca" replace />} />
               <Route path="/dashboard/news" element={<Navigate to="/insights?tab=news" replace />} />
-              <Route path="/uponly/overview" element={<Navigate to="/" replace />} />
+              <Route path="/uponly/overview" element={<Navigate to="/overview" replace />} />
               <Route path="/uponly/fund" element={<Navigate to="/" replace />} />
               <Route path="/uponly/rise" element={<Navigate to="/terminal" replace />} />
-              <Route path="/tranche" element={<Navigate to="/" replace />} />
-              <Route path="/treasury" element={<Navigate to="/" replace />} />
+              <Route path="/tranche" element={<Navigate to="/#landing-token" replace />} />
+              <Route path="/treasury" element={<Navigate to="/#mandate" replace />} />
               <Route
                 path="*"
                 element={

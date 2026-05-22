@@ -192,7 +192,7 @@ export function HeroIllustration({ className }: HeroIllustrationProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: reduceMotion ? 0 : 0.85, duration: 0.4 }}
           >
-            Allocator mandate · disclosure · RISE
+            Smart Agent Fund · Solana · Live book
           </motion.p>
         </div>
       </motion.div>

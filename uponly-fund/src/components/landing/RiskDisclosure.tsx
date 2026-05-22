@@ -26,7 +26,7 @@ export function RiskDisclosure({ className }: RiskDisclosureProps) {
           <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
             Up Only Fund describes a venture-style allocator mandate; this is still{" "}
             <strong className="font-medium text-foreground/90">not</strong> personalized investment advice, a registered
-            security offering, or a retail subscription product in v1. Token and venue risk can go to zero—read RISE terms,
+            security offering, or a retail subscription product in v1. Token and venue risk can go to zero—read venue terms,
             verify contracts, and size only what you can lose. Past or hypothetical performance is not a guarantee of
             future results.
           </p>

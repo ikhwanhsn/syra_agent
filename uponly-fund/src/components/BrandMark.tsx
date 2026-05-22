@@ -68,7 +68,7 @@ export function BrandMark({
           </div>
           {!compact ? (
             <p className="mt-0.5 hidden text-[0.6rem] font-medium uppercase tracking-[0.18em] text-muted-foreground/80 sm:block">
-              Smart Agent Fund · RISE
+              Smart Agent Fund · Solana
             </p>
           ) : null}
         </div>

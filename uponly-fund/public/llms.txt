@@ -2,11 +2,12 @@ Up Only Fund — machine-readable summary
 ========================================
 
 Name: Up Only Fund
-Focus: RISE ecosystem allocator narrative, $UPONLY liquid tranche transparency, and a live RISE market terminal.
+Tagline: Smart Agent Fund on Solana
+Focus: Venture & strategic capital on Solana, live portfolio disclosures, $UPONLY liquid sleeve, and command dashboard for market intelligence.
 
 What this site is
 -----------------
-Up Only Fund is presented as its own program brand: published mandate, treasury intent, and desk tooling for RISE markets. It is not financial advice or a guarantee of returns.
+Up Only Fund is an independent allocator brand with a published mandate, profitable operating book, and institutional-grade dashboard. It is not financial advice or a guarantee of returns.
 
 Where to follow
 ---------------
@@ -15,8 +16,9 @@ Where to follow
 
 App routes (typical)
 --------------------
-- / — RISE markets overview
-- /terminal — terminal layout
-- /landing — marketing / mandate page
+- / — fund landing (marketing, mandate, portfolio)
+- /terminal — command dashboard / terminal layout
+- /overview — markets overview
+- /market, /wallet, /simulator, /insights, /create-token — dashboard modules
 
 Set the public origin for metadata with VITE_PUBLIC_SITE_ORIGIN (see src/config/site.ts).

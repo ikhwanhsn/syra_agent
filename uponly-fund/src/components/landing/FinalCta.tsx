@@ -30,8 +30,8 @@ export function FinalCta({ className }: FinalCtaProps) {
             Price the same upside we allocate to
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:text-[1.0625rem]">
-            Mandate, treasury mechanics, and live RISE desk tools live in one place—so you can diligence like an allocator
-            before sizing <span className="font-mono text-foreground/88">$UPONLY</span>.
+            Mandate, treasury mechanics, and the live command dashboard live in one place—so you can diligence like an
+            allocator on Solana before sizing <span className="font-mono text-foreground/88">$UPONLY</span>.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 min-[400px]:flex-row md:mt-12">
             <Button
@@ -40,7 +40,7 @@ export function FinalCta({ className }: FinalCtaProps) {
               className="h-12 min-w-[13rem] rounded-lg bg-uof !text-[hsl(var(--uof-foreground))] px-8 font-semibold shadow-[0_10px_32px_-8px_hsl(var(--uof)/0.45)] hover:bg-uof/92"
             >
               <Link to="/terminal" className="inline-flex items-center justify-center gap-2">
-                Open live desk
+                Open command dashboard
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

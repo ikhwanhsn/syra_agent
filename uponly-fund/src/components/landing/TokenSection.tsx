@@ -33,8 +33,9 @@ export function TokenSection({ className }: TokenSectionProps) {
         Align with <span className="uof-wordmark">$UPONLY</span>
       </h2>
       <p className="mt-4 max-w-3xl text-pretty text-sm text-muted-foreground sm:text-base md:text-[1.0625rem] md:leading-relaxed">
-        The RISE-listed liquid tranche lets markets participate alongside our allocator mandate—same ecosystem upside,
-        venue-native liquidity. Verify the mint, then trade through RISE or prep inside the dashboard.
+        The liquid <span className="font-mono text-foreground/88">$UPONLY</span> sleeve lets markets participate alongside
+        our Solana allocator mandate—venue-native liquidity with on-chain verification. Confirm the mint, then trade or
+        prep inside the command dashboard.
       </p>
 
       <Card className="landing-token-panel mt-10 grid gap-0 overflow-hidden rounded-xl border border-border/50 bg-card/45 p-0 sm:mt-12 lg:grid-cols-[1.15fr_minmax(0,0.95fr)]">

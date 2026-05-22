@@ -478,7 +478,7 @@ export type DashboardDictionary = {
 
 export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
   en: {
-    sidebar: "Smart Agent Fund · RISE",
+    sidebar: "Smart Agent Fund · Solana",
     showSidebar: "Show sidebar",
     hideSidebar: "Hide sidebar",
     openMenu: "Open menu",
@@ -1431,7 +1431,7 @@ export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
 export function getPageTitle(pathname: string, dictionary: DashboardDictionary): string {
   const t = dictionary.pages;
   if (pathname.startsWith("/token/")) return dictionary.tokenDetail.pageTitle;
-  if (pathname === "/" || pathname === "") return t.overviewPageTitle;
+  if (pathname === "/overview" || pathname === "/dashboard/overview") return t.overviewPageTitle;
   if (pathname === "/terminal") return t.riseTerminal;
   if (pathname === "/create-token") return t.createTokenTitle;
   if (pathname.endsWith("/market")) return t.market;

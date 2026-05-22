@@ -139,7 +139,7 @@ function SidebarContent({
           )}
         >
           <Link
-            to="/"
+            to="/overview"
             className={cn(
               "block rounded-lg p-1 hover:bg-muted/30",
               compact && "inline-flex",

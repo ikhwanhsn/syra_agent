@@ -20,13 +20,14 @@ export function StrategicAnchorSection({ className }: StrategicAnchorSectionProp
           id="uof-backed-heading"
           className="mt-4 max-w-4xl font-display text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-3xl md:text-[2.125rem] md:leading-[1.1]"
         >
-          <span className="uof-wordmark">Up Only Fund</span> is a{" "}
-          <span className="text-foreground/85">standalone program brand</span> on Solana and RISE.
+          <span className="uof-wordmark">Up Only Fund</span> is the{" "}
+          <span className="text-foreground/85">Smart Agent Fund on Solana</span>—a standalone allocator brand with a live,
+          profitable book.
         </h2>
         <p className="mt-5 max-w-3xl text-pretty text-sm font-medium leading-relaxed text-muted-foreground sm:mt-6 sm:text-base">
-          Mandate, diligence, and the liquid <span className="font-mono text-foreground/88">$UPONLY</span> sleeve are
-          published here; execution routes through venues you can verify on-chain. Treat dashboards and APIs as tooling,
-          not a guarantee of third-party uptime—always confirm contracts and venue status yourself.
+          Mandate, portfolio disclosures, and the liquid <span className="font-mono text-foreground/88">$UPONLY</span>{" "}
+          sleeve are published here; execution routes through Solana venues you can verify on-chain. Treat dashboards and
+          APIs as tooling, not a guarantee of third-party uptime—always confirm contracts and program status yourself.
         </p>
       </div>
     </section>

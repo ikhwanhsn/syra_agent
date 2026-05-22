@@ -2,7 +2,10 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { HomeStatsStrip } from "@/components/landing/HomeStatsStrip";
+import { FundMetricsBar } from "@/components/landing/FundMetricsBar";
+import { PortfolioSection } from "@/components/landing/PortfolioSection";
+import { DashboardAccessSection } from "@/components/landing/DashboardAccessSection";
+import { SolanaEcosystemStrip } from "@/components/landing/SolanaEcosystemStrip";
 import { StrategicAnchorSection } from "@/components/landing/StrategicAnchorSection";
 import { MissionSection } from "@/components/landing/MissionSection";
 import { WhatIsUof } from "@/components/landing/WhatIsUof";
@@ -19,9 +22,9 @@ import { siteShell } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
 const PAGE_TITLE =
-  "Up Only Fund | Venture & strategic capital for the RISE ecosystem" as const;
+  "Up Only Fund | Smart Agent Fund on Solana — Venture & Strategic Capital" as const;
 const PAGE_DESC =
-  "Up Only Fund deploys capital and strategy alongside high-conviction teams on RISE—venture-style growth allocation with published mandate and live market tools. DYOR — not financial advice." as const;
+  "Up Only Fund is a live, profitable Smart Agent Fund on Solana—venture and strategic capital with institutional mandate, portfolio transparency, and a command dashboard for on-chain diligence. DYOR — not financial advice." as const;
 
 const Index = () => {
   useDocumentMeta({
@@ -66,7 +69,6 @@ const Index = () => {
           <div className="absolute inset-0 grid-pattern-accent opacity-[0.07] dark:opacity-[0.11]" />
         </div>
 
-        {/* Hero — pt clears fixed navbar (safe area + nav mt + bar height + buffer) */}
         <section
           id="uof-landing-hero-zone"
           className="relative scroll-mt-[7.5rem] border-b border-border/30 sm:scroll-mt-[8rem] lg:scroll-mt-[8.5rem]"
@@ -86,7 +88,19 @@ const Index = () => {
           scrollReveal={false}
           contentClassName="!py-12 md:!py-16 lg:!py-20"
         >
-          <HomeStatsStrip />
+          <FundMetricsBar />
+        </LandingBand>
+
+        <LandingBand variant="transparent">
+          <PortfolioSection />
+        </LandingBand>
+
+        <LandingBand variant="surface">
+          <DashboardAccessSection />
+        </LandingBand>
+
+        <LandingBand variant="muted" contentClassName="!py-14 md:!py-20">
+          <SolanaEcosystemStrip />
         </LandingBand>
 
         <LandingBand variant="transparent">

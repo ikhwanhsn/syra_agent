@@ -20,10 +20,10 @@ export function MandateSection({ className }: MandateSectionProps) {
           id="uof-mandate-heading"
           className="landing-section-title text-balance break-words max-w-4xl"
         >
-          Mandate: ecosystem venture outcomes, not promotional timing
+          Mandate: Solana venture outcomes, not promotional timing
         </h2>
         <p className="mt-3 text-pretty text-sm text-muted-foreground [overflow-wrap:anywhere] sm:text-base sm:leading-relaxed">
-          <strong className="font-medium text-foreground/90">Up Only Fund</strong> behaves like a venture/strategic hedge desk on RISE—we deploy
+          <strong className="font-medium text-foreground/90">Up Only Fund</strong> behaves like a venture/strategic hedge desk on Solana—we deploy
           capital and hands-on strategy inside our mandate to accelerate credible teams. We publish structure and intent;
           we do not forecast markets. Any outcome is{" "}
           <strong className="font-medium text-foreground/90">probabilistic and uncertain</strong>—your diligence matters if you touch{" "}
@@ -39,7 +39,7 @@ export function MandateSection({ className }: MandateSectionProps) {
       >
         {[
           "Source of truth remains on-chain plus disclosures published here—this site mirrors intent; contracts define settlement.",
-          "Mandate: multi-year backing for RISE-native founders—capital for liquidity and distribution, operator support where analytics and execution tooling compound outcomes.",
+          "Mandate: multi-year backing for Solana-native founders—capital for liquidity and distribution, operator support where agent analytics and execution tooling compound outcomes.",
           "Not personalized investment advice; not an open-ended pooled vehicle for retail subscribers in v1—education and sleeve transparency first.",
         ].map((line) => (
           <motion.li

@@ -25,7 +25,7 @@ export function MissionSection({ className }: MissionSectionProps) {
         id="uof-mission"
         className="landing-section-title mt-3 max-w-4xl text-foreground"
       >
-        Back RISE-native winners with{" "}
+        Back Solana-native winners with{" "}
         <span className="text-foreground/78">capital and strategy at institutional rigor.</span>
       </h2>
       <div className="mt-12 grid gap-6 md:grid-cols-2 md:gap-8 lg:gap-10">
@@ -46,7 +46,7 @@ export function MissionSection({ className }: MissionSectionProps) {
                 North star
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Identify teams with structural edges on RISE—then fund distribution, liquidity, and integrations so they
+                Identify teams with structural edges on Solana—then fund distribution, liquidity, and integrations so they
                 scale like venture-backed companies, not one-off launches.
               </p>
             </div>

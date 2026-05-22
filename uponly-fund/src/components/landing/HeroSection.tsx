@@ -1,8 +1,9 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FUND_LANDING } from "@/data/fundLanding";
 import { cn } from "@/lib/utils";
 import { HeroIllustration } from "./HeroIllustration";
 import { LANDING_EASE } from "./landingMotion";
@@ -39,7 +40,6 @@ export function HeroSection({ className }: HeroSectionProps) {
     <div className={cn("relative", className)}>
       <header className="relative" aria-labelledby="uof-landing-hero">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-16">
-          {/* Editorial column — staggered mount */}
           <div className="min-w-0 lg:col-span-7 xl:col-span-7 lg:self-start">
             <motion.div
               className="landing-hero-accent border-l-[3px] border-uof pl-5 sm:pl-7 md:pl-8"
@@ -55,51 +55,54 @@ export function HeroSection({ className }: HeroSectionProps) {
                   variant="secondary"
                   className="rounded-md border border-border/55 bg-background/80 px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-foreground/90 shadow-sm"
                 >
-                  Venture &amp; growth allocator
+                  {FUND_LANDING.heroEyebrow}
                 </Badge>
                 <Badge
                   variant="outline"
                   className="rounded-md border-uof/40 bg-uof/[0.09] px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-foreground/90"
                 >
-                  RISE ecosystem
+                  Solana
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="rounded-md border-[hsl(var(--ds-positive-border))] bg-[hsl(var(--ds-positive-soft))] px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--ds-positive))]"
+                >
+                  Live · Profitable book
                 </Badge>
               </motion.div>
+
+              <motion.p
+                variants={item}
+                className="mt-6 text-[0.7rem] font-bold uppercase tracking-[0.32em] text-muted-foreground sm:mt-7"
+              >
+                {FUND_LANDING.brandLine}
+              </motion.p>
 
               <motion.h1
                 variants={item}
                 id="uof-landing-hero"
-                className="landing-display mt-6 max-w-[22rem] text-foreground min-[400px]:max-w-none sm:mt-8"
+                className="landing-display mt-3 max-w-[22rem] text-foreground min-[400px]:max-w-none"
               >
-                <span className="uof-wordmark">Up Only Fund</span>
+                <span className="uof-wordmark">{FUND_LANDING.heroTitle}</span>
               </motion.h1>
 
               <motion.div
                 variants={item}
-                className="mt-6 h-px max-w-xs bg-gradient-to-r from-border/80 via-border/40 to-transparent sm:mt-8"
+                className="mt-6 h-px max-w-md bg-gradient-to-r from-uof/70 via-border/50 to-transparent sm:mt-8"
               />
 
               <motion.p
                 variants={item}
-                className="mt-6 max-w-2xl text-pretty text-base font-medium leading-[1.65] text-foreground/[0.92] sm:mt-7 sm:text-lg sm:leading-relaxed"
+                className="mt-6 max-w-2xl text-pretty text-base font-medium leading-[1.65] text-foreground/[0.92] sm:mt-7 sm:text-lg sm:leading-relaxed md:text-xl md:leading-[1.55]"
               >
-                A real allocator on RISE: we deploy{" "}
-                <span className="text-foreground">
-                  capital, strategy, and operator leverage
-                </span>{" "}
-                so serious teams can compound distribution, liquidity, and
-                product velocity—not a lab experiment, an institutional mandate
-                with public disclosures.
+                {FUND_LANDING.heroSubtitle}
               </motion.p>
 
               <motion.p
                 variants={item}
                 className="mt-5 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:max-w-2xl"
               >
-                Agents, APIs, and research tooling sit behind the scenes. Up Only
-                Fund is the venture surface—who we back, how the treasury is
-                run, and why the liquid{" "}
-                <span className="font-mono text-foreground/85">$UPONLY</span>{" "}
-                tranche aligns incentives with that growth story.
+                {FUND_LANDING.heroBody}
               </motion.p>
 
               <motion.div
@@ -109,13 +112,14 @@ export function HeroSection({ className }: HeroSectionProps) {
                 <Button
                   asChild
                   size="lg"
-                  className="h-12 min-h-[3rem] rounded-lg bg-uof !text-[hsl(var(--uof-foreground))] px-8 font-semibold shadow-[0_8px_28px_-6px_hsl(var(--uof)/0.45)] hover:bg-uof/92 sm:min-w-[13.5rem]"
+                  className="h-12 min-h-[3rem] rounded-lg bg-uof !text-[hsl(var(--uof-foreground))] px-8 font-semibold shadow-[0_8px_28px_-6px_hsl(var(--uof)/0.45)] hover:bg-uof/92 sm:min-w-[14rem]"
                 >
                   <Link
-                    to="/#mandate"
+                    to="/terminal"
                     className="inline-flex items-center justify-center gap-2"
                   >
-                    Investment mandate
+                    <LayoutDashboard className="h-4 w-4" />
+                    {FUND_LANDING.dashboardCta}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -126,10 +130,10 @@ export function HeroSection({ className }: HeroSectionProps) {
                   className="h-12 min-h-[3rem] rounded-lg border-border/65 bg-background/50 px-8 font-medium backdrop-blur-sm hover:bg-background/80"
                 >
                   <Link
-                    to="/terminal"
+                    to="/#mandate"
                     className="inline-flex items-center justify-center gap-2"
                   >
-                    Institutional dashboard
+                    {FUND_LANDING.mandateCta}
                     <ChevronRight className="h-4 w-4 opacity-55" />
                   </Link>
                 </Button>
@@ -137,7 +141,6 @@ export function HeroSection({ className }: HeroSectionProps) {
             </motion.div>
           </div>
 
-          {/* Visual — delayed fade-rise */}
           <motion.div
             className="relative flex min-h-0 w-full flex-col items-center justify-center lg:col-span-5 xl:col-span-5"
             initial={reduceMotion ? false : { opacity: 0, y: 36 }}

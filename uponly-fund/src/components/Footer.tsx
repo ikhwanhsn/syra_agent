@@ -35,7 +35,7 @@ export const Footer = () => {
               <span className="uof-wordmark">Up Only Fund</span> like a venture allocator—not a headline.
             </h2>
             <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-              We publish how capital and strategy are aimed at RISE-native growth; execution, venue rules, and token risk
+              We publish how capital and strategy are aimed at Solana-native growth; execution, venue rules, and token risk
               still live on-chain. This site is transparency and tooling—never a promise of returns.
             </p>
             <div className="mt-8 flex min-w-0 flex-col items-stretch justify-center gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-center">
@@ -77,9 +77,8 @@ export const Footer = () => {
           <div className="min-w-0 md:col-span-4">
             <BrandMark className="text-foreground" compact />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              A tech-utility program fund focused on the RISE launch stack — mandate-first, disclosure-heavy, and
-              structurally separate from the liquid <span className="font-mono text-foreground/90">$UPONLY</span>{" "}
-              tranche. Not an offer. Not financial advice.
+              Smart Agent Fund on Solana — mandate-first, disclosure-heavy, and structurally separate from the liquid{" "}
+              <span className="font-mono text-foreground/90">$UPONLY</span> tranche. Not an offer. Not financial advice.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <a
@@ -136,14 +135,14 @@ export const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href="https://rise.rich"
+                    href="https://solana.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-muted-foreground transition hover:text-foreground"
                   >
-                    RISE
+                    Solana
                   </a>{" "}
-                  <span className="text-[0.65rem] text-muted-foreground/80">(venue)</span>
+                  <span className="text-[0.65rem] text-muted-foreground/80">(network)</span>
                 </li>
                 <li>
                   <a
@@ -197,7 +196,7 @@ export const Footer = () => {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/40 pt-8 text-xs text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} Up Only Fund program. All rights reserved.</p>
-          <p className="text-center sm:text-right">Independent brand · RISE ecosystem focus</p>
+          <p className="text-center sm:text-right">Smart Agent Fund · Solana</p>
         </div>
       </div>
     </footer>
