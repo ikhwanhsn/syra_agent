@@ -10,35 +10,33 @@ import {
 } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { agentWalletApi } from "@/lib/chatApi";
 
 const STORAGE_KEY = "syra_agent_anonymous_id";
-/** Last known agent wallet snapshot when API succeeds; used if getOrCreate fails later. */
 const AGENT_WALLET_CACHE_KEY = "syra_agent_wallet_cache_v1";
 
 interface AgentWalletCachePayload {
   v: 1;
   anonymousId: string | null;
   linkedWallet: string | null;
-  chain: "solana" | "base" | null;
+  chain: "solana" | null;
   agentAddress: string;
   avatarUrl: string | null;
   agentSolBalance: number | null;
   agentUsdcBalance: number | null;
-  agentBaseEthBalance: number | null;
-  agentBaseUsdcBalance: number | null;
   updatedAt: number;
 }
 
-function walletKeyMatches(stored: string | null | undefined, query: string, chain: "solana" | "base"): boolean {
+function walletKeyMatches(stored: string | null | undefined, query: string): boolean {
   if (!stored || !query) return false;
-  return chain === "base" ? stored.toLowerCase() === query.toLowerCase() : stored === query;
+  return stored === query;
 }
 
 function readAgentWalletCache(
   query:
     | { kind: "guest"; anonymousId: string }
-    | { kind: "wallet"; linkedWallet: string; chain: "solana" | "base" },
+    | { kind: "wallet"; linkedWallet: string },
 ): AgentWalletCachePayload | null {
   if (typeof localStorage === "undefined") return null;
   try {
@@ -53,8 +51,8 @@ function readAgentWalletCache(
       if (parsed.chain != null) return null;
       return parsed;
     }
-    if (parsed.chain !== query.chain) return null;
-    if (!walletKeyMatches(parsed.linkedWallet, query.linkedWallet, query.chain)) return null;
+    if (parsed.chain !== "solana") return null;
+    if (!walletKeyMatches(parsed.linkedWallet, query.linkedWallet)) return null;
     return parsed;
   } catch {
     return null;
@@ -75,8 +73,6 @@ function writeAgentWalletCache(
       avatarUrl: payload.avatarUrl,
       agentSolBalance: payload.agentSolBalance,
       agentUsdcBalance: payload.agentUsdcBalance,
-      agentBaseEthBalance: payload.agentBaseEthBalance,
-      agentBaseUsdcBalance: payload.agentBaseUsdcBalance,
       updatedAt: payload.updatedAt ?? Date.now(),
     };
     localStorage.setItem(AGENT_WALLET_CACHE_KEY, JSON.stringify(full));
@@ -85,11 +81,26 @@ function writeAgentWalletCache(
   }
 }
 
+function restoreWalletCacheToState(
+  cached: AgentWalletCachePayload,
+  setters: {
+    setAnonymousId: (v: string | null) => void;
+    setAgentAddress: (v: string | null) => void;
+    setAvatarUrl: (v: string | null) => void;
+    setAgentSolBalance: (v: number | null) => void;
+    setAgentUsdcBalance: (v: number | null) => void;
+  },
+): void {
+  setters.setAnonymousId(cached.anonymousId);
+  setters.setAgentAddress(cached.agentAddress);
+  setters.setAvatarUrl(cached.avatarUrl ?? null);
+  setters.setAgentSolBalance(cached.agentSolBalance);
+  setters.setAgentUsdcBalance(cached.agentUsdcBalance);
+}
+
 function mergeCachedBalances(
   agentAddress: string,
-  patch: Partial<
-    Pick<AgentWalletCachePayload, "agentSolBalance" | "agentUsdcBalance" | "agentBaseEthBalance" | "agentBaseUsdcBalance">
-  >,
+  patch: Partial<Pick<AgentWalletCachePayload, "agentSolBalance" | "agentUsdcBalance">>,
 ): void {
   if (typeof localStorage === "undefined") return;
   try {
@@ -107,7 +118,6 @@ function mergeCachedBalances(
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
-/** Fetch agent wallet SOL + USDC from chain (same way as user wallet in WalletNav). */
 async function fetchAgentBalanceFromChain(
   connection: import("@solana/web3.js").Connection,
   agentAddress: string
@@ -126,29 +136,6 @@ async function fetchAgentBalanceFromChain(
   return { solBalance, usdcBalance };
 }
 
-const BASE_USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" as const;
-
-/** Fetch Base agent wallet ETH + USDC (same way as connected Base wallet in WalletContext). */
-async function fetchAgentBalanceBase(agentAddress: string): Promise<{ ethBalance: number; usdcBalance: number }> {
-  const { createPublicClient, http, formatEther, formatUnits, getAddress } = await import("viem");
-  const { base } = await import("viem/chains");
-  const client = createPublicClient({ chain: base, transport: http() });
-  const address = getAddress(agentAddress) as `0x${string}`;
-  const [ethWei, usdcRaw] = await Promise.all([
-    client.getBalance({ address }),
-    client.readContract({
-      address: BASE_USDC,
-      abi: [{ type: "function", name: "balanceOf", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] }] as const,
-      functionName: "balanceOf",
-      args: [address],
-    }),
-  ]);
-  return {
-    ethBalance: Number(formatEther(ethWei)),
-    usdcBalance: Number(formatUnits(usdcRaw, 6)),
-  };
-}
-
 export interface AgentWalletState {
   ready: boolean;
   anonymousId: string | null;
@@ -156,187 +143,145 @@ export interface AgentWalletState {
   agentShortAddress: string | null;
   agentSolBalance: number | null;
   agentUsdcBalance: number | null;
-  /** When on Base: agent ETH and USDC on Base */
-  agentBaseEthBalance: number | null;
-  agentBaseUsdcBalance: number | null;
-  /** User avatar URL generated when wallet was created */
   avatarUrl: string | null;
-  /** Connected user wallet address (Solana or Base), used for agent wallet */
   connectedWalletAddress: string | null;
   connectedWalletShort: string | null;
-  /** Which chain is linked: 'solana' | 'base' */
-  connectedChain: "solana" | "base" | null;
-  /** Transient: amount just debited (for -$X.XX effect); cleared after animation */
+  connectedChain: "solana" | null;
   lastDebitUsd: number | null;
-  /** Refetch SOL/USDC balance (e.g. after a tool call). */
   refetchBalance: () => Promise<void>;
-  /** Fetch current agent wallet balances from chain (same as dropdown). Use before completion so chat sees correct balance. */
   getAgentWalletBalances: () => Promise<{ usdcBalance: number; solBalance: number } | null>;
-  /** Show debit effect (e.g. -0.01) then clear after a short delay. */
   reportDebit: (amountUsd: number) => void;
-  /** Optimistic agent SOL decrease (e.g. after withdraw-SOL); schedules chain refetch. */
   reportNativeDebit: (amountSol: number) => void;
-  /** Update avatar URL in real-time (e.g. after generating new avatar). */
   updateAvatarUrl: (newAvatarUrl: string | null) => void;
 }
 
 const AgentWalletContext = createContext<AgentWalletState | null>(null);
 
 function AgentWalletContextInner({ children }: { children: ReactNode }) {
-  const { connection, address: solanaAddress, baseAddress, effectiveChain } = useWalletContext();
-  /** Use effectiveChain so Base (e.g. MetaMask) is used when user connected with Base */
-  const connectedWalletAddress =
-    effectiveChain === "base" && baseAddress
-      ? baseAddress
-      : (solanaAddress ?? baseAddress ?? null);
-  const connectedChain = effectiveChain ?? (solanaAddress ? "solana" : baseAddress ? "base" : null);
+  const { connection, address: solanaAddress } = useWalletContext();
+  const { syraAuthReady, ensureSyraAuth } = useSyraAuth();
+
+  const connectedWalletAddress = solanaAddress ?? null;
+  const connectedChain: "solana" | null = solanaAddress ? "solana" : null;
 
   const [ready, setReady] = useState(false);
   const [anonymousId, setAnonymousId] = useState<string | null>(null);
   const [agentAddress, setAgentAddress] = useState<string | null>(null);
   const [agentSolBalance, setAgentSolBalance] = useState<number | null>(null);
   const [agentUsdcBalance, setAgentUsdcBalance] = useState<number | null>(null);
-  const [agentBaseEthBalance, setAgentBaseEthBalance] = useState<number | null>(null);
-  const [agentBaseUsdcBalance, setAgentBaseUsdcBalance] = useState<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [lastDebitUsd, setLastDebitUsd] = useState<number | null>(null);
   const initRef = useRef(false);
   const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refetchTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // When user connects with Base: create/show agent wallet on Base chain
+  const cacheSetters = {
+    setAnonymousId,
+    setAgentAddress,
+    setAvatarUrl,
+    setAgentSolBalance,
+    setAgentUsdcBalance,
+  };
+
   useEffect(() => {
-    if (connectedWalletAddress && connectedChain === "base") {
+    if (!syraAuthReady || !connectedWalletAddress || connectedChain !== "solana") return;
+
+    const cached = readAgentWalletCache({
+      kind: "wallet",
+      linkedWallet: connectedWalletAddress,
+    });
+    if (cached) {
+      restoreWalletCacheToState(cached, cacheSetters);
+      setReady(true);
+    } else {
       setReady(false);
       setAgentSolBalance(null);
       setAgentUsdcBalance(null);
-      agentWalletApi
-        .getOrCreateByWallet(connectedWalletAddress, "base")
-        .then(async (res) => {
-          const { anonymousId: id, agentAddress: addr, avatarUrl: avatar } = res;
-          setAnonymousId(id);
-          setAgentAddress(addr);
-          setAvatarUrl(avatar || null);
-          let eth: number | null = null;
-          let usdc: number | null = null;
-          try {
-            const bal = await fetchAgentBalanceBase(addr);
-            eth = bal.ethBalance;
-            usdc = bal.usdcBalance;
-            setAgentBaseEthBalance(eth);
-            setAgentBaseUsdcBalance(usdc);
-          } catch {
-            setAgentBaseEthBalance(null);
-            setAgentBaseUsdcBalance(null);
-          }
-          writeAgentWalletCache({
-            anonymousId: id,
-            linkedWallet: connectedWalletAddress,
-            chain: "base",
-            agentAddress: addr,
-            avatarUrl: avatar ?? null,
-            agentSolBalance: null,
-            agentUsdcBalance: null,
-            agentBaseEthBalance: eth,
-            agentBaseUsdcBalance: usdc,
-          });
-        })
-        .catch(() => {
-          const cached = readAgentWalletCache({
-            kind: "wallet",
-            linkedWallet: connectedWalletAddress,
-            chain: "base",
-          });
-          if (cached) {
-            setAnonymousId(cached.anonymousId);
-            setAgentAddress(cached.agentAddress);
-            setAvatarUrl(cached.avatarUrl ?? null);
-            setAgentBaseEthBalance(cached.agentBaseEthBalance);
-            setAgentBaseUsdcBalance(cached.agentBaseUsdcBalance);
-            void (async () => {
-              try {
-                const { ethBalance, usdcBalance } = await fetchAgentBalanceBase(cached.agentAddress);
-                setAgentBaseEthBalance(ethBalance);
-                setAgentBaseUsdcBalance(usdcBalance);
-                mergeCachedBalances(cached.agentAddress, {
-                  agentBaseEthBalance: ethBalance,
-                  agentBaseUsdcBalance: usdcBalance,
-                });
-              } catch {
-                /* keep restored values */
-              }
-            })();
-          }
-        })
-        .finally(() => setReady(true));
-      return;
     }
 
-    // Connected with Solana: get or create agent wallet by that address
-    if (connectedWalletAddress && connectedChain === "solana") {
-      setReady(false);
-      setAgentBaseEthBalance(null);
-      setAgentBaseUsdcBalance(null);
-      agentWalletApi
-        .getOrCreateByWallet(connectedWalletAddress)
-        .then(async (res) => {
-          const { anonymousId: id, agentAddress: addr, avatarUrl: avatar } = res;
-          setAnonymousId(id);
-          setAgentAddress(addr);
-          setAvatarUrl(avatar || null);
-          let sol: number | null = null;
-          let usdc: number | null = null;
+    let cancelled = false;
+    (async () => {
+      const signIn = await ensureSyraAuth();
+      if (cancelled) return;
+      if (!signIn) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+      try {
+        const res = await agentWalletApi.getOrCreateByWallet(connectedWalletAddress);
+        if (cancelled) return;
+        const { anonymousId: id, agentAddress: addr, avatarUrl: avatar } = res;
+        setAnonymousId(id);
+        setAgentAddress(addr);
+        setAvatarUrl(avatar || null);
+        if (typeof localStorage !== "undefined") {
           try {
-            const bal = await fetchAgentBalanceFromChain(connection, addr);
-            sol = bal.solBalance;
-            usdc = bal.usdcBalance;
-            setAgentSolBalance(sol);
-            setAgentUsdcBalance(usdc);
+            localStorage.setItem(STORAGE_KEY, id);
           } catch {
-            setAgentSolBalance((prev) => prev);
-            setAgentUsdcBalance((prev) => prev);
+            /* ignore */
           }
-          writeAgentWalletCache({
-            anonymousId: id,
-            linkedWallet: connectedWalletAddress,
-            chain: "solana",
-            agentAddress: addr,
-            avatarUrl: avatar ?? null,
-            agentSolBalance: sol,
-            agentUsdcBalance: usdc,
-            agentBaseEthBalance: null,
-            agentBaseUsdcBalance: null,
-          });
-        })
-        .catch(() => {
-          const cached = readAgentWalletCache({
-            kind: "wallet",
-            linkedWallet: connectedWalletAddress,
-            chain: "solana",
-          });
-          if (cached) {
-            setAnonymousId(cached.anonymousId);
-            setAgentAddress(cached.agentAddress);
-            setAvatarUrl(cached.avatarUrl ?? null);
-            setAgentSolBalance(cached.agentSolBalance);
-            setAgentUsdcBalance(cached.agentUsdcBalance);
-            void (async () => {
-              try {
-                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, cached.agentAddress);
-                setAgentSolBalance(solBalance);
-                setAgentUsdcBalance(usdcBalance);
-                mergeCachedBalances(cached.agentAddress, { agentSolBalance: solBalance, agentUsdcBalance: usdcBalance });
-              } catch {
-                /* keep restored or null balances */
-              }
-            })();
-          }
-        })
-        .finally(() => setReady(true));
-      return;
-    }
+        }
+        let sol: number | null = null;
+        let usdc: number | null = null;
+        try {
+          const bal = await fetchAgentBalanceFromChain(connection, addr);
+          sol = bal.solBalance;
+          usdc = bal.usdcBalance;
+          setAgentSolBalance(sol);
+          setAgentUsdcBalance(usdc);
+        } catch {
+          setAgentSolBalance((prev) => prev);
+          setAgentUsdcBalance((prev) => prev);
+        }
+        writeAgentWalletCache({
+          anonymousId: id,
+          linkedWallet: connectedWalletAddress,
+          chain: "solana",
+          agentAddress: addr,
+          avatarUrl: avatar ?? null,
+          agentSolBalance: sol,
+          agentUsdcBalance: usdc,
+        });
+      } catch {
+        if (cancelled) return;
+        const cachedFallback = readAgentWalletCache({
+          kind: "wallet",
+          linkedWallet: connectedWalletAddress,
+        });
+        if (cachedFallback) {
+          setAnonymousId(cachedFallback.anonymousId);
+          setAgentAddress(cachedFallback.agentAddress);
+          setAvatarUrl(cachedFallback.avatarUrl ?? null);
+          setAgentSolBalance(cachedFallback.agentSolBalance);
+          setAgentUsdcBalance(cachedFallback.agentUsdcBalance);
+          void (async () => {
+            try {
+              const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(
+                connection,
+                cachedFallback.agentAddress,
+              );
+              setAgentSolBalance(solBalance);
+              setAgentUsdcBalance(usdcBalance);
+              mergeCachedBalances(cachedFallback.agentAddress, {
+                agentSolBalance: solBalance,
+                agentUsdcBalance: usdcBalance,
+              });
+            } catch {
+              /* keep restored values */
+            }
+          })();
+        }
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [syraAuthReady, connectedWalletAddress, connectedChain, connection, ensureSyraAuth]);
 
-    // No wallet connected: allow chat immediately with anonymous id (from storage or new). getOrCreate runs in background.
+  useEffect(() => {
+    if (connectedWalletAddress) return;
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     let id = stored?.trim() || null;
     if (!id) {
@@ -348,12 +293,11 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
         try {
           localStorage.setItem(STORAGE_KEY, id);
         } catch {
-          // ignore (e.g. private mode)
+          // ignore
         }
       }
     }
     if (id) {
-      // Always set session ready so user can chat without connecting wallet; getOrCreate runs in background
       setAnonymousId(id);
       setReady(true);
       initRef.current = true;
@@ -383,8 +327,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
             avatarUrl: avatar ?? null,
             agentSolBalance: sol,
             agentUsdcBalance: usdc,
-            agentBaseEthBalance: null,
-            agentBaseUsdcBalance: null,
           });
         })
         .catch(() => {
@@ -396,10 +338,16 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
             setAgentUsdcBalance(cached.agentUsdcBalance);
             void (async () => {
               try {
-                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(connection, cached.agentAddress);
+                const { solBalance, usdcBalance } = await fetchAgentBalanceFromChain(
+                  connection,
+                  cached.agentAddress,
+                );
                 setAgentSolBalance(solBalance);
                 setAgentUsdcBalance(usdcBalance);
-                mergeCachedBalances(cached.agentAddress, { agentSolBalance: solBalance, agentUsdcBalance: usdcBalance });
+                mergeCachedBalances(cached.agentAddress, {
+                  agentSolBalance: solBalance,
+                  agentUsdcBalance: usdcBalance,
+                });
               } catch {
                 /* keep cached balances */
               }
@@ -442,8 +390,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
             avatarUrl: avatar ?? null,
             agentSolBalance: sol,
             agentUsdcBalance: usdc,
-            agentBaseEthBalance: null,
-            agentBaseUsdcBalance: null,
           });
         })
         .catch(() => {
@@ -456,25 +402,10 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           setReady(true);
         });
     }
-  }, [connectedWalletAddress, connectedChain, connection]);
+  }, [connectedWalletAddress, connection]);
 
   const refetchBalance = useCallback(async () => {
     if (!agentAddress) return;
-    if (connectedChain === "base") {
-      try {
-        const { ethBalance, usdcBalance } = await fetchAgentBalanceBase(agentAddress);
-        setAgentBaseEthBalance(ethBalance);
-        setAgentBaseUsdcBalance(usdcBalance);
-        mergeCachedBalances(agentAddress, {
-          agentBaseEthBalance: ethBalance,
-          agentBaseUsdcBalance: usdcBalance,
-        });
-      } catch {
-        setAgentBaseEthBalance((prev) => prev);
-        setAgentBaseUsdcBalance((prev) => prev);
-      }
-      return;
-    }
     try {
       const { solBalance: sol, usdcBalance: usdc } = await fetchAgentBalanceFromChain(connection, agentAddress);
       setAgentSolBalance(sol);
@@ -484,53 +415,21 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setAgentSolBalance((prev) => prev);
       setAgentUsdcBalance((prev) => prev);
     }
-  }, [agentAddress, connection, connectedChain]);
+  }, [agentAddress, connection]);
 
-  /** Fetch current agent wallet balances from chain (same source as dropdown). Use before completion so AI sees correct balance. */
   const getAgentWalletBalances = useCallback(async (): Promise<{ usdcBalance: number; solBalance: number } | null> => {
     if (!agentAddress) return null;
-    if (connectedChain === "base") {
-      try {
-        const { usdcBalance } = await fetchAgentBalanceBase(agentAddress);
-        return { usdcBalance, solBalance: 0 };
-      } catch {
-        return null;
-      }
-    }
     try {
       return await fetchAgentBalanceFromChain(connection, agentAddress);
     } catch {
       return null;
     }
-  }, [agentAddress, connection, connectedChain]);
+  }, [agentAddress, connection]);
 
   useEffect(() => {
     if (!agentAddress) return;
     let cancelled = false;
     const pollMs = 30000;
-    if (connectedChain === "base") {
-      function fetchBase() {
-        fetchAgentBalanceBase(agentAddress!)
-          .then(({ ethBalance, usdcBalance }) => {
-            if (!cancelled) {
-              setAgentBaseEthBalance(ethBalance);
-              setAgentBaseUsdcBalance(usdcBalance);
-            }
-          })
-          .catch(() => {
-            if (!cancelled) {
-              setAgentBaseEthBalance((prev) => prev);
-              setAgentBaseUsdcBalance((prev) => prev);
-            }
-          });
-      }
-      fetchBase();
-      const interval = setInterval(fetchBase, pollMs);
-      return () => {
-        cancelled = true;
-        clearInterval(interval);
-      };
-    }
     function fetchBalance() {
       fetchAgentBalanceFromChain(connection, agentAddress!)
         .then(({ solBalance: sol, usdcBalance: usdc }) => {
@@ -552,7 +451,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [agentAddress, connection, connectedChain]);
+  }, [agentAddress, connection]);
 
   const reportDebit = useCallback(
     (amountUsd: number) => {
@@ -560,11 +459,9 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       refetchTimeoutsRef.current.forEach((t) => clearTimeout(t));
       refetchTimeoutsRef.current = [];
       setLastDebitUsd(amountUsd);
-      // Optimistic update: subtract from balance immediately so UI updates in real time
       setAgentUsdcBalance((prev) =>
         prev != null ? Math.max(0, prev - amountUsd) : null
       );
-      // Sync with chain: refetch now and after delays (chain may confirm later)
       refetchBalance();
       refetchTimeoutsRef.current = [
         setTimeout(refetchBalance, 2000),
@@ -603,15 +500,11 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   );
 
   const agentShortAddress = agentAddress
-    ? agentAddress.startsWith("0x")
-      ? `${agentAddress.slice(0, 6)}...${agentAddress.slice(-4)}`
-      : `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`
+    ? `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`
     : null;
 
   const connectedWalletShort = connectedWalletAddress
-    ? connectedWalletAddress.startsWith("0x")
-      ? `${connectedWalletAddress.slice(0, 6)}...${connectedWalletAddress.slice(-4)}`
-      : `${connectedWalletAddress.slice(0, 4)}...${connectedWalletAddress.slice(-4)}`
+    ? `${connectedWalletAddress.slice(0, 4)}...${connectedWalletAddress.slice(-4)}`
     : null;
 
   const updateAvatarUrl = useCallback((newAvatarUrl: string | null) => {
@@ -638,8 +531,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentShortAddress,
       agentSolBalance,
       agentUsdcBalance,
-      agentBaseEthBalance,
-      agentBaseUsdcBalance,
       avatarUrl,
       connectedWalletAddress,
       connectedWalletShort,
@@ -658,8 +549,6 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentShortAddress,
       agentSolBalance,
       agentUsdcBalance,
-      agentBaseEthBalance,
-      agentBaseUsdcBalance,
       avatarUrl,
       connectedWalletAddress,
       connectedWalletShort,

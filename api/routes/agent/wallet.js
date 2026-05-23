@@ -8,9 +8,10 @@ import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildPaymentHeaderFrom402Body } from '../../libs/agentX402Client.js';
 import { getSolanaAgentAddress } from '../../libs/agentWallet.js';
 import { withdrawSolanaAgentToRecipient } from '../../libs/agentWalletWithdrawSol.js';
-import { encryptAgentSecretForStorage } from '../../libs/agentWalletSecretCrypto.js';
+import { encryptAgentSecretForStorage, decryptAgentSecretFromStorage } from '../../libs/agentWalletSecretCrypto.js';
+import { writeSignAudit } from '../../libs/signAudit.js';
 import { pickSolanaConnectionForReads } from '../../libs/solanaServerRpc.js';
-import { requireSession } from '../../utils/requireSession.js';
+import { requireSession, optionalWalletSession } from '../../utils/requireSession.js';
 import { isPrivyConfigured, createPrivyServerWallet, getDefaultCustodyMode } from '../../services/privyServerWallet.js';
 
 const { AvatarGenerator } = pkg;
@@ -27,20 +28,28 @@ function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildLinkedWalletMatch(walletFilter, search, chain) {
-  const clauses = [{ walletAddress: { $exists: true, $nin: [null, ''] } }];
+const SOLANA_CHAIN_MATCH = {
+  $or: [{ chain: 'solana' }, { chain: { $exists: false } }, { chain: null }],
+};
+
+function isSolanaAgentDoc(doc) {
+  if (!doc) return false;
+  if (doc.chain === 'base') return false;
+  if (typeof doc.agentAddress === 'string' && doc.agentAddress.startsWith('0x')) return false;
+  if (typeof doc.walletAddress === 'string' && doc.walletAddress.startsWith('0x')) return false;
+  return true;
+}
+
+function buildLinkedWalletMatch(walletFilter, search) {
+  const clauses = [
+    { walletAddress: { $exists: true, $nin: [null, ''] } },
+    SOLANA_CHAIN_MATCH,
+  ];
   if (walletFilter) clauses.push({ walletAddress: walletFilter });
   const q = typeof search === 'string' ? search.trim() : '';
   if (q) {
     const re = new RegExp(escapeRegex(q), 'i');
     clauses.push({ $or: [{ walletAddress: re }, { agentAddress: re }, { anonymousId: re }] });
-  }
-  if (chain === 'base') {
-    clauses.push({ chain: 'base' });
-  } else if (chain === 'solana') {
-    clauses.push({
-      $or: [{ chain: 'solana' }, { chain: { $exists: false } }, { chain: null }],
-    });
   }
   if (clauses.length === 1) return clauses[0];
   return { $and: clauses };
@@ -96,10 +105,8 @@ function decodeAnonymousId(param) {
 /**
  * GET /agent/wallet/list
  *
- * SECURITY P0.8 — admin only. The pre-v2 endpoint allowed any caller with the shared API key to
- * enumerate all agent wallets globally. This is now an admin-scope endpoint gated by both an
- * authenticated session AND an admin allowlist in env (`SYRA_ADMIN_WALLETS`, comma-separated
- * Solana base58 addresses).
+ * Public agent directory: any caller with a valid Syra API key may list all agent wallets
+ * (paginated). Filtering by walletAddress requires a session for that wallet or admin access.
  */
 function requireAdminWallet(req, res, next) {
   const allow = (process.env.SYRA_ADMIN_WALLETS || '')
@@ -118,7 +125,35 @@ function requireAdminWallet(req, res, next) {
   next();
 }
 
-router.get('/list', requireSession({ allowGuest: false, requireOwnership: false }), requireAdminWallet, async (req, res) => {
+function walletAddressMatchesSession(sessionAddress, sessionChain, walletFilter) {
+  if (!sessionAddress || !walletFilter) return false;
+  if (sessionChain === 'base') {
+    return walletFilter.toLowerCase() === sessionAddress.toLowerCase();
+  }
+  return walletFilter === sessionAddress;
+}
+
+/** Global directory is public (API key); wallet-scoped filters require ownership or admin. */
+function requireListScope(req, res, next) {
+  const walletFilter =
+    typeof req.query?.walletAddress === 'string' && req.query.walletAddress.trim()
+      ? req.query.walletAddress.trim()
+      : null;
+
+  if (!walletFilter) {
+    return next();
+  }
+
+  if (req.user && !req.user.guest && req.user.walletAddress) {
+    if (walletAddressMatchesSession(req.user.walletAddress, req.user.chain, walletFilter)) {
+      return next();
+    }
+  }
+
+  return requireAdminWallet(req, res, next);
+}
+
+router.get('/list', optionalWalletSession(), requireListScope, async (req, res) => {
   try {
     const rawLimit = Number.parseInt(String(req.query?.limit ?? ''), 10);
     const rawOffset = Number.parseInt(String(req.query?.offset ?? ''), 10);
@@ -134,9 +169,8 @@ router.get('/list', requireSession({ allowGuest: false, requireOwnership: false 
         ? req.query.walletAddress.trim()
         : null;
     const search = typeof req.query?.q === 'string' ? req.query.q : '';
-    const chainParam = req.query?.chain === 'base' ? 'base' : req.query?.chain === 'solana' ? 'solana' : null;
 
-    const match = buildLinkedWalletMatch(walletFilter, search, chainParam);
+    const match = buildLinkedWalletMatch(walletFilter, search);
 
     if (groupByWallet) {
       const stats = await listGlobalStats(match);
@@ -361,6 +395,161 @@ router.post('/:anonymousId/withdraw', requireSession({ allowGuest: false }), asy
 });
 
 /**
+ * GET /agent/wallet/:anonymousId/export-key/status
+ * Whether this agent wallet's private key can be exported (does not return the key).
+ */
+router.get('/:anonymousId/export-key/status', requireSession({ allowGuest: true }), async (req, res) => {
+  try {
+    const anonymousId = decodeAnonymousId(req.params.anonymousId);
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    }
+    const doc = await AgentWallet.findOne({ anonymousId })
+      .select('custody status chain walletAddress agentAddress')
+      .lean();
+    if (!doc) {
+      return res.status(404).json({ success: false, error: 'Agent wallet not found' });
+    }
+    if (doc.chain === 'base') {
+      return res.json({
+        success: true,
+        exportable: false,
+        reason: 'base_not_exportable',
+        custody: doc.custody || 'legacy',
+        chain: 'base',
+      });
+    }
+    if (doc.custody === 'privy') {
+      return res.json({
+        success: true,
+        exportable: false,
+        reason: 'privy_custody_not_exportable',
+        custody: 'privy',
+        chain: doc.chain || 'solana',
+      });
+    }
+    if (doc.status && doc.status !== 'active') {
+      return res.json({
+        success: true,
+        exportable: false,
+        reason: `wallet_${doc.status}`,
+        custody: doc.custody || 'legacy',
+        chain: doc.chain || 'solana',
+      });
+    }
+    const requiresWalletAuth = Boolean(doc.walletAddress);
+    if (requiresWalletAuth && req.user?.guest) {
+      // Wallet may be connected in the UI; Syra session is established at export time via sign-in.
+      return res.json({
+        success: true,
+        exportable: true,
+        reason: 'auth_required',
+        pendingAuth: true,
+        custody: doc.custody || 'legacy',
+        chain: doc.chain || 'solana',
+        requiresWalletAuth: true,
+        agentAddress: doc.agentAddress,
+      });
+    }
+    if (requiresWalletAuth && req.user?.walletAddress && req.user.walletAddress !== doc.walletAddress) {
+      return res.json({
+        success: true,
+        exportable: false,
+        reason: 'wallet_mismatch',
+        custody: doc.custody || 'legacy',
+        chain: doc.chain || 'solana',
+        requiresWalletAuth: true,
+      });
+    }
+    return res.json({
+      success: true,
+      exportable: true,
+      custody: doc.custody || 'legacy',
+      chain: doc.chain || 'solana',
+      requiresWalletAuth,
+      agentAddress: doc.agentAddress,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'Failed to check export status' });
+  }
+});
+
+/**
+ * POST /agent/wallet/:anonymousId/export-key
+ * Export the agent wallet private key (legacy Solana custody only).
+ *
+ * Linked wallets require an authenticated Syra session whose wallet matches walletAddress.
+ * Guest agents (no linked wallet) may export with a guest session that owns the anonymousId.
+ */
+router.post('/:anonymousId/export-key', requireSession({ allowGuest: true }), async (req, res) => {
+  try {
+    const anonymousId = decodeAnonymousId(req.params.anonymousId);
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    }
+    const doc = await AgentWallet.findOne({ anonymousId })
+      .select('+agentSecretKey custody status chain walletAddress agentAddress')
+      .lean();
+    if (!doc) {
+      return res.status(404).json({ success: false, error: 'Agent wallet not found' });
+    }
+    if (doc.chain === 'base') {
+      return res.status(403).json({ success: false, error: 'base_not_exportable' });
+    }
+    if (doc.custody === 'privy') {
+      return res.status(403).json({ success: false, error: 'privy_custody_not_exportable' });
+    }
+    if (doc.status && doc.status !== 'active') {
+      return res.status(403).json({ success: false, error: `wallet_${doc.status}` });
+    }
+    if (!doc.agentSecretKey) {
+      return res.status(404).json({ success: false, error: 'no_exportable_key' });
+    }
+    if (doc.walletAddress) {
+      if (req.user?.guest) {
+        return res.status(401).json({ success: false, error: 'auth_required' });
+      }
+      if (req.user?.walletAddress !== doc.walletAddress) {
+        return res.status(403).json({ success: false, error: 'wallet_mismatch' });
+      }
+    }
+
+    let privateKeyBase58;
+    try {
+      privateKeyBase58 = decryptAgentSecretFromStorage(doc.agentSecretKey);
+    } catch (err) {
+      console.error('[agent/wallet] export-key decrypt failed:', err?.message ?? String(err));
+      return res.status(500).json({ success: false, error: 'decrypt_failed' });
+    }
+
+    await writeSignAudit({
+      anonymousId,
+      walletAddress: doc.walletAddress || req.user?.walletAddress || null,
+      agentAddress: doc.agentAddress,
+      chain: doc.chain || 'solana',
+      action: 'message_sign',
+      policyDecision: 'allow',
+      policyReasons: ['export_private_key'],
+      status: 'ok',
+      sessionId: req.user?.sessionId,
+      ip: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    });
+
+    return res.json({
+      success: true,
+      privateKeyBase58,
+      agentAddress: doc.agentAddress,
+      format: 'solana-base58',
+      custody: doc.custody || 'legacy',
+    });
+  } catch (error) {
+    console.error('[agent/wallet] export-key error:', error?.message ?? String(error));
+    return res.status(500).json({ success: false, error: error.message || 'Export failed' });
+  }
+});
+
+/**
  * GET /agent/wallet/:anonymousId
  * Get agent wallet address by anonymousId. Guests allowed (read-only) so they can pre-load the
  * deposit UI before authenticating.
@@ -375,6 +564,9 @@ router.get('/:anonymousId', requireSession({ allowGuest: true }), async (req, re
       .select('anonymousId walletAddress chain agentAddress avatarUrl createdAt updatedAt')
       .lean();
     if (!doc) {
+      return res.status(404).json({ success: false, error: 'Agent wallet not found' });
+    }
+    if (!isSolanaAgentDoc(doc)) {
       return res.status(404).json({ success: false, error: 'Agent wallet not found' });
     }
     const solanaAgentAddress = await getSolanaAgentAddress(anonymousId);
@@ -416,15 +608,20 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
     if (!walletAddress) {
       return res.status(400).json({ success: false, error: 'walletAddress is required' });
     }
-    const chain = req.body?.chain === 'base' ? 'base' : 'solana';
+    if (req.body?.chain === 'base') {
+      return res.status(410).json({
+        success: false,
+        error: 'base_agent_disabled',
+        message: 'Base agent wallets are no longer supported. Connect with Solana.',
+      });
+    }
+    const chain = 'solana';
     // SECURITY P0.2 — caller may only request a connect for the address they signed in with.
     if (req.user.walletAddress !== walletAddress) {
       return res.status(403).json({ success: false, error: 'session_address_mismatch' });
     }
 
-    const findQuery = chain === 'base'
-      ? { walletAddress, chain: 'base' }
-      : { walletAddress, $or: [{ chain: 'solana' }, { chain: { $exists: false } }] };
+    const findQuery = { walletAddress, $or: [{ chain: 'solana' }, { chain: { $exists: false } }] };
     let doc = await AgentWallet.findOne(findQuery).lean();
     if (doc) {
       return res.json({

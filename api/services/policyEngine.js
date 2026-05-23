@@ -50,7 +50,16 @@
  * @property {number} riskScore
  */
 
+/** LP Real Agent tool ids — must appear in AgentWallet.allowedTools (set on enable). */
+export const LP_REAL_TOOL_IDS = Object.freeze([
+  'lp_real_open',
+  'lp_real_close',
+  'lp_real_claim',
+]);
+
 const KNOWN_PROGRAMS_SOLANA = new Set([
+  // Meteora DLMM (LB CLMM)
+  'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo',
   // Jupiter v6 aggregator
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
   // pump.fun bonding curve program

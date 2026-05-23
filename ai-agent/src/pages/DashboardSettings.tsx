@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowUpRight,
   Bot,
   Check,
   Copy,
   ExternalLink,
+  Droplets,
   FlaskConical,
+  KeyRound,
   Loader2,
   MessageSquareText,
   RefreshCw,
@@ -16,10 +19,17 @@ import {
   Wallet2,
   Zap,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -30,12 +40,12 @@ import { cn } from "@/lib/utils";
 import {
   DASHBOARD_CONTENT_SHELL,
   PAGE_PADDING_TOP_MEDIUM,
-  PAGE_PADDING_TOP_STANDARD,
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewAccentBackground, overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
@@ -54,10 +64,11 @@ import {
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
+import { LpRealSettingsCard } from "@/components/dashboard/settings/LpRealSettingsCard";
 
 const STALE_MS = 45_000;
 
-type SetupChain = "solana" | "base";
+type SetupChain = "solana";
 
 interface AgentSetupRecord {
   anonymousId: string;
@@ -111,20 +122,15 @@ async function fetchAgentSetup(walletAddress: string, chain: SetupChain): Promis
 }
 
 export interface DashboardSettingsProps {
-  layout?: "dashboard" | "agent";
   embedded?: boolean;
 }
 
-export default function DashboardSettings({ layout = "dashboard", embedded = false }: DashboardSettingsProps) {
+export default function DashboardSettings({ embedded = false }: DashboardSettingsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const {
     address: solanaAddress,
     shortAddress,
-    baseAddress,
-    baseShortAddress,
-    baseConnected,
-    effectiveChain,
     connectForChain,
   } = useWalletContext();
   const {
@@ -138,48 +144,46 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
     updateAvatarUrl,
     agentSolBalance,
     agentUsdcBalance,
-    agentBaseEthBalance,
-    agentBaseUsdcBalance,
   } = useAgentWallet();
+  const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
 
   const hasSolana = Boolean(solanaAddress);
-  const hasBase = Boolean(baseAddress);
-  const chainTabs: SetupChain[] = useMemo(() => {
-    const tabs: SetupChain[] = [];
-    if (hasSolana) tabs.push("solana");
-    if (hasBase) tabs.push("base");
-    return tabs;
-  }, [hasSolana, hasBase]);
+  const activeChain: SetupChain = "solana";
 
-  const [activeChain, setActiveChain] = useState<SetupChain>(() => {
-    if (effectiveChain === "base" && hasBase) return "base";
-    if (hasSolana) return "solana";
-    return "base";
-  });
-
-  useEffect(() => {
-    if (chainTabs.length === 0) return;
-    if (!chainTabs.includes(activeChain)) {
-      setActiveChain(chainTabs[0] ?? "solana");
-    }
-  }, [chainTabs, activeChain]);
+  const walletQueriesEnabled = syraAuthReady && syraAuthenticated;
 
   const solanaQ = useQuery({
     queryKey: ["agent-setup", "solana", solanaAddress],
     queryFn: () => fetchAgentSetup(solanaAddress!, "solana"),
-    enabled: hasSolana,
+    enabled: hasSolana && walletQueriesEnabled,
     staleTime: STALE_MS,
+    retry: 1,
   });
 
-  const baseQ = useQuery({
-    queryKey: ["agent-setup", "base", baseAddress],
-    queryFn: () => fetchAgentSetup(baseAddress!, "base"),
-    enabled: hasBase,
-    staleTime: STALE_MS,
-  });
+  const contextLinkedAgent: AgentSetupRecord | undefined = useMemo(() => {
+    if (!contextReady || !contextAnonymousId || !contextAgentAddress) return undefined;
+    if (hasSolana && connectedChain === "solana" && solanaAddress) {
+      return {
+        anonymousId: contextAnonymousId,
+        agentAddress: contextAgentAddress,
+        avatarUrl: contextAvatarUrl,
+        chain: "solana",
+        walletAddress: solanaAddress,
+      };
+    }
+    return undefined;
+  }, [
+    hasSolana,
+    contextReady,
+    contextAnonymousId,
+    contextAgentAddress,
+    contextAvatarUrl,
+    connectedChain,
+    solanaAddress,
+  ]);
 
   const guestAgent: AgentSetupRecord | undefined = useMemo(() => {
-    if (hasSolana || hasBase || !contextReady || !contextAnonymousId || !contextAgentAddress) return undefined;
+    if (hasSolana || !contextReady || !contextAnonymousId || !contextAgentAddress) return undefined;
     return {
       anonymousId: contextAnonymousId,
       agentAddress: contextAgentAddress,
@@ -189,7 +193,6 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
     };
   }, [
     hasSolana,
-    hasBase,
     contextReady,
     contextAnonymousId,
     contextAgentAddress,
@@ -197,13 +200,28 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
     connectedWalletAddress,
   ]);
 
-  const activeAgent =
-    chainTabs.length > 0
-      ? activeChain === "base"
-        ? baseQ.data
-        : solanaQ.data
-      : guestAgent;
-  const activeQ = chainTabs.length > 0 ? (activeChain === "base" ? baseQ : solanaQ) : { isLoading: !contextReady, isFetching: false };
+  const activeAgent = hasSolana ? solanaQ.data ?? contextLinkedAgent : guestAgent;
+  const activeQ = hasSolana ? solanaQ : { isLoading: !contextReady, isFetching: false, isError: false };
+  const authPending = hasSolana && syraAuthReady && !syraAuthenticated;
+  const setupLoading =
+    hasSolana
+      ? !activeAgent && (!syraAuthReady || authPending || activeQ.isLoading || activeQ.isFetching)
+      : !contextReady;
+  const setupLoadError =
+    hasSolana && syraAuthReady && syraAuthenticated && activeQ.isError && !activeAgent;
+
+  const handleRetryLoad = useCallback(async () => {
+    const ok = await ensureSyraAuth();
+    if (!ok) {
+      toast({
+        title: "Sign in required",
+        description: "Approve the wallet sign-in prompt to load your agent setup.",
+        variant: "destructive",
+      });
+      return;
+    }
+    await solanaQ.refetch();
+  }, [ensureSyraAuth, solanaQ, toast]);
   const isContextAgent =
     !!activeAgent &&
     contextReady &&
@@ -213,7 +231,7 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
   const balanceQ = useQuery({
     queryKey: ["agent-wallet-balance", activeAgent?.anonymousId],
     queryFn: () => agentWalletApi.getBalance(activeAgent!.anonymousId),
-    enabled: Boolean(activeAgent?.anonymousId) && activeChain === "solana",
+    enabled: Boolean(activeAgent?.anonymousId),
     staleTime: STALE_MS,
   });
 
@@ -291,30 +309,21 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
   }, [activeAgent, activeChain, balanceQ, isContextAgent, queryClient, refetchBalance, toast]);
 
   const handleFundAgent = useCallback(() => {
-    if (activeChain !== connectedChain) {
+    if (connectedChain !== "solana") {
       toast({
-        title: `Switch to ${activeChain === "base" ? "Base" : "Solana"}`,
-        description: "Connect the matching wallet in the header to fund this agent treasury.",
+        title: "Connect Solana wallet",
+        description: "Connect your Solana wallet in the header to fund this agent treasury.",
       });
-      void connectForChain?.(activeChain);
+      void connectForChain("solana");
       return;
     }
     setFuelOpen(true);
-  }, [activeChain, connectedChain, connectForChain, toast]);
+  }, [connectedChain, connectForChain, toast]);
 
-  const topPadding = layout === "agent" && !embedded ? PAGE_PADDING_TOP_STANDARD : PAGE_PADDING_TOP_MEDIUM;
-  const shell = cn(DASHBOARD_CONTENT_SHELL, topPadding, PAGE_SAFE_AREA_BOTTOM, "pb-8");
+  const shell = cn(DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM, "pb-8");
 
-  const solBalance =
-    isContextAgent && activeChain === "solana"
-      ? agentSolBalance
-      : balanceQ.data?.solBalance ?? null;
-  const usdcBalance =
-    isContextAgent && activeChain === "solana"
-      ? agentUsdcBalance
-      : balanceQ.data?.usdcBalance ?? null;
-  const ethBalance = isContextAgent && activeChain === "base" ? agentBaseEthBalance : null;
-  const baseUsdc = isContextAgent && activeChain === "base" ? agentBaseUsdcBalance : null;
+  const solBalance = isContextAgent ? agentSolBalance : balanceQ.data?.solBalance ?? null;
+  const usdcBalance = isContextAgent ? agentUsdcBalance : balanceQ.data?.usdcBalance ?? null;
 
   return (
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1" : "min-h-screen")}>
@@ -328,11 +337,11 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
           />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
-              <p className={overviewKickerClass}>Configuration</p>
+              <p className={overviewKickerClass}>Agent setup &amp; settings</p>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">Agent setup</h1>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Configure each agent wallet tied to your addresses — appearance, treasury, behavior, and links to
-                experiment desks. Soon you&apos;ll deploy capital from here into trading and LP follows.
+                Configure your agent wallet — appearance, treasury, behavior, and app preferences. Link to experiment
+                desks from your profile when you&apos;re ready to deploy capital.
               </p>
             </div>
             {activeAgent ? (
@@ -346,7 +355,7 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
           </div>
         </header>
 
-        {!hasSolana && !hasBase && !guestAgent ? (
+        {!hasSolana && !guestAgent ? (
           <Card className={overviewCardShell}>
             <CardContent className="space-y-4 py-12 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
@@ -354,7 +363,7 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
               </div>
               <p className="font-medium text-foreground">Loading your agent session…</p>
               <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                Connect a wallet for a persistent agent per chain, or continue as guest from chat.
+                Connect a Solana wallet for a persistent agent, or continue as guest from chat.
               </p>
               <Button className="rounded-xl" onClick={() => void connectForChain("solana")}>
                 Connect wallet
@@ -363,71 +372,29 @@ export default function DashboardSettings({ layout = "dashboard", embedded = fal
           </Card>
         ) : (
           <>
-            {chainTabs.length > 1 ? (
-              <Tabs value={activeChain} onValueChange={(v) => setActiveChain(v as SetupChain)}>
-                <TabsList className="h-10 w-full max-w-md rounded-xl border border-border/60 bg-muted/30 p-1">
-                  {hasSolana ? (
-                    <TabsTrigger value="solana" className="flex-1 rounded-lg text-sm font-medium">
-                      Solana agent
-                    </TabsTrigger>
-                  ) : null}
-                  {hasBase ? (
-                    <TabsTrigger value="base" className="flex-1 rounded-lg text-sm font-medium">
-                      Base agent
-                    </TabsTrigger>
-                  ) : null}
-                </TabsList>
-                <TabsContent value={activeChain} className="mt-6 space-y-6">
-                  <AgentSetupSections
-                    activeAgent={activeAgent}
-                    activeQ={activeQ}
-                    activeChain={activeChain}
-                    shortWallet={activeChain === "base" ? baseShortAddress : shortAddress}
-                    displayName={displayName}
-                    setDisplayName={setDisplayName}
-                    customPrompt={customPrompt}
-                    setCustomPrompt={setCustomPrompt}
-                    generatingAvatar={generatingAvatar}
-                    onGenerateAvatar={handleGenerateAvatar}
-                    onSave={saveIdentity}
-                    onCopy={copyToClipboard}
-                    copiedField={copiedField}
-                    solBalance={solBalance}
-                    usdcBalance={usdcBalance}
-                    ethBalance={ethBalance}
-                    baseUsdc={baseUsdc}
-                    refreshingBalances={refreshingBalances}
-                    onRefreshBalances={handleRefreshBalances}
-                    onFund={handleFundAgent}
-                    balanceLoading={balanceQ.isLoading && activeChain === "solana"}
-                  />
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <AgentSetupSections
-                activeAgent={activeAgent}
-                activeQ={activeQ}
-                activeChain={activeChain}
-                shortWallet={activeChain === "base" ? baseShortAddress : shortAddress}
-                displayName={displayName}
-                setDisplayName={setDisplayName}
-                customPrompt={customPrompt}
-                setCustomPrompt={setCustomPrompt}
-                generatingAvatar={generatingAvatar}
-                onGenerateAvatar={handleGenerateAvatar}
-                onSave={saveIdentity}
-                onCopy={copyToClipboard}
-                copiedField={copiedField}
-                solBalance={solBalance}
-                usdcBalance={usdcBalance}
-                ethBalance={ethBalance}
-                baseUsdc={baseUsdc}
-                refreshingBalances={refreshingBalances}
-                onRefreshBalances={handleRefreshBalances}
-                onFund={handleFundAgent}
-                balanceLoading={balanceQ.isLoading && activeChain === "solana"}
-              />
-            )}
+            <AgentSetupSections
+              activeAgent={activeAgent}
+              setupLoading={setupLoading}
+              setupLoadError={setupLoadError}
+              onRetryLoad={handleRetryLoad}
+              activeChain={activeChain}
+              shortWallet={shortAddress}
+              displayName={displayName}
+              setDisplayName={setDisplayName}
+              customPrompt={customPrompt}
+              setCustomPrompt={setCustomPrompt}
+              generatingAvatar={generatingAvatar}
+              onGenerateAvatar={handleGenerateAvatar}
+              onSave={saveIdentity}
+              onCopy={copyToClipboard}
+              copiedField={copiedField}
+              solBalance={solBalance}
+              usdcBalance={usdcBalance}
+              refreshingBalances={refreshingBalances}
+              onRefreshBalances={handleRefreshBalances}
+              onFund={handleFundAgent}
+              balanceLoading={balanceQ.isLoading}
+            />
 
             <Card className={cn(overviewCardShell, "overflow-hidden")}>
               <CardHeader className="border-b border-border/40 pb-4">
@@ -508,7 +475,9 @@ function PrefRow({
 
 function AgentSetupSections({
   activeAgent,
-  activeQ,
+  setupLoading,
+  setupLoadError,
+  onRetryLoad,
   activeChain,
   shortWallet,
   displayName,
@@ -522,15 +491,15 @@ function AgentSetupSections({
   copiedField,
   solBalance,
   usdcBalance,
-  ethBalance,
-  baseUsdc,
   refreshingBalances,
   onRefreshBalances,
   onFund,
   balanceLoading,
 }: {
   activeAgent: AgentSetupRecord | undefined;
-  activeQ: { isLoading: boolean; isFetching: boolean };
+  setupLoading: boolean;
+  setupLoadError: boolean;
+  onRetryLoad: () => void;
   activeChain: SetupChain;
   shortWallet: string | null;
   displayName: string;
@@ -551,12 +520,25 @@ function AgentSetupSections({
   onFund: () => void;
   balanceLoading: boolean;
 }) {
-  if (activeQ.isLoading && !activeAgent) {
+  if (setupLoading && !activeAgent) {
     return (
       <div className="space-y-4">
         <div className="h-40 animate-pulse rounded-2xl bg-muted/30" />
         <div className="h-56 animate-pulse rounded-2xl bg-muted/30" />
       </div>
+    );
+  }
+
+  if (!activeAgent && setupLoadError) {
+    return (
+      <Card className={overviewCardShell}>
+        <CardContent className="space-y-4 py-10 text-center">
+          <p className="text-sm text-muted-foreground">Could not load agent. Sign in with your wallet and try again.</p>
+          <Button type="button" variant="outline" className="rounded-xl" onClick={() => void onRetryLoad()}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -569,7 +551,7 @@ function AgentSetupSections({
   }
 
   const avatarUrl = activeAgent.avatarUrl;
-  const chainLabel = activeChain === "base" ? "Base" : "Solana";
+  const chainLabel = "Solana";
 
   return (
     <div className="space-y-6">
@@ -631,37 +613,20 @@ function AgentSetupSections({
             <CardDescription>Capital this agent can spend on tools and experiments.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
-            {activeChain === "solana" ? (
-              <div className="space-y-3">
-                <div className="flex justify-between font-mono text-sm tabular-nums">
-                  <span className="text-muted-foreground">SOL</span>
-                  <span className="font-medium text-foreground">
-                    {balanceLoading ? "…" : solBalance != null ? formatSol(solBalance) : "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between font-mono text-sm tabular-nums">
-                  <span className="text-muted-foreground">USDC</span>
-                  <span className="font-medium text-foreground">
-                    {balanceLoading ? "…" : usdcBalance != null ? formatCompactUsd(usdcBalance) : "—"}
-                  </span>
-                </div>
+            <div className="space-y-3">
+              <div className="flex justify-between font-mono text-sm tabular-nums">
+                <span className="text-muted-foreground">SOL</span>
+                <span className="font-medium text-foreground">
+                  {balanceLoading ? "…" : solBalance != null ? formatSol(solBalance) : "—"}
+                </span>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex justify-between font-mono text-sm tabular-nums">
-                  <span className="text-muted-foreground">ETH</span>
-                  <span className="font-medium text-foreground">
-                    {ethBalance != null ? ethBalance.toFixed(4) : "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between font-mono text-sm tabular-nums">
-                  <span className="text-muted-foreground">USDC</span>
-                  <span className="font-medium text-foreground">
-                    {baseUsdc != null ? formatCompactUsd(baseUsdc) : "—"}
-                  </span>
-                </div>
+              <div className="flex justify-between font-mono text-sm tabular-nums">
+                <span className="text-muted-foreground">USDC</span>
+                <span className="font-medium text-foreground">
+                  {balanceLoading ? "…" : usdcBalance != null ? formatCompactUsd(usdcBalance) : "—"}
+                </span>
               </div>
-            )}
+            </div>
             <div className="flex flex-col gap-2 pt-1">
               <Button type="button" className="w-full rounded-xl gap-2" onClick={onFund}>
                 <Zap className="h-4 w-4" aria-hidden />
@@ -744,6 +709,7 @@ function AgentSetupSections({
           <CardContent className="grid gap-2 pt-5">
             {[
               { to: "/dashboard/trading-experiment", label: "Trading agents", icon: FlaskConical },
+              { to: "/dashboard/lp-experiment#real-agent", label: "LP agents (sim + real)", icon: Droplets },
             ].map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
@@ -755,12 +721,13 @@ function AgentSetupSections({
                 <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />
               </Link>
             ))}
-            <p className="pt-2 text-xs text-muted-foreground">
-              LP follow and copy-trade allocation from your agent treasury — coming soon.
-            </p>
           </CardContent>
         </Card>
+
+        <LpRealSettingsCard />
       </div>
+
+      <AgentPrivateKeySection activeAgent={activeAgent} activeChain={activeChain} onCopy={onCopy} copiedField={copiedField} />
 
       <div className="flex flex-wrap gap-3">
         <Button type="button" className="rounded-xl" onClick={onSave}>
@@ -771,6 +738,228 @@ function AgentSetupSections({
         </Button>
       </div>
     </div>
+  );
+}
+
+function exportKeyStatusMessage(reason: string | undefined): string {
+  switch (reason) {
+    case "privy_custody_not_exportable":
+      return "This agent wallet is custodied by Privy (TEE). Private keys cannot be exported.";
+    case "base_not_exportable":
+      return "Base agent wallets do not support private key export.";
+    case "auth_required":
+      return "Approve the wallet signature prompt to verify ownership before export.";
+    case "wallet_mismatch":
+      return "Switch to the wallet linked to this agent to export its key.";
+    case "no_exportable_key":
+      return "No exportable private key is stored for this agent.";
+    default:
+      return "Private key export is not available for this agent.";
+  }
+}
+
+function AgentPrivateKeySection({
+  activeAgent,
+  activeChain,
+  onCopy,
+  copiedField,
+}: {
+  activeAgent: AgentSetupRecord;
+  activeChain: SetupChain;
+  onCopy: (text: string, label: string) => void;
+  copiedField: string | null;
+}) {
+  const { toast } = useToast();
+  const { ensureSyraAuthForWallet, syraAuthReady, syraAuthenticated } = useSyraAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [exportable, setExportable] = useState<boolean | null>(null);
+  const [statusReason, setStatusReason] = useState<string | undefined>();
+  const [requiresWalletAuth, setRequiresWalletAuth] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatusLoading(true);
+    void agentWalletApi
+      .getExportKeyStatus(activeAgent.anonymousId)
+      .then((status) => {
+        if (cancelled) return;
+        setExportable(status.exportable);
+        setStatusReason(status.reason);
+        setRequiresWalletAuth(Boolean(status.requiresWalletAuth));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setExportable(false);
+        setStatusReason(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setStatusLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAgent.anonymousId, syraAuthenticated]);
+
+  const handleModalOpenChange = useCallback((open: boolean) => {
+    setModalOpen(open);
+    if (!open) setPrivateKey(null);
+  }, []);
+
+  const handleShowPrivateKey = useCallback(async () => {
+    if (activeChain !== "solana") {
+      toast({
+        title: "Not available",
+        description: "Private key export is only supported for Solana agents.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const hardBlock = exportable === false && statusReason !== "auth_required";
+    if (hardBlock) {
+      toast({
+        title: "Cannot export",
+        description: exportKeyStatusMessage(statusReason),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (privateKey) {
+      setModalOpen(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const linkedWallet = activeAgent.walletAddress?.trim();
+      if (requiresWalletAuth || statusReason === "auth_required") {
+        if (!linkedWallet) return;
+        const signIn = await ensureSyraAuthForWallet(linkedWallet);
+        if (!signIn) return;
+      }
+      const result = await agentWalletApi.exportPrivateKey(activeAgent.anonymousId);
+      setPrivateKey(result.privateKeyBase58);
+      setModalOpen(true);
+    } catch (err) {
+      toast({
+        title: "Could not export key",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    activeAgent.anonymousId,
+    activeChain,
+    ensureSyraAuthForWallet,
+    exportable,
+    privateKey,
+    requiresWalletAuth,
+    statusReason,
+    toast,
+  ]);
+
+  if (activeChain !== "solana") return null;
+
+  return (
+    <>
+      <Card className={cn(overviewCardShell, "overflow-hidden border-amber-500/20 ring-1 ring-amber-500/10")}>
+      <CardHeader className="border-b border-border/40 pb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10">
+            <KeyRound className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="text-base font-semibold">Agent private key</CardTitle>
+            <CardDescription>
+              Export the Solana keypair for this agent wallet. Anyone with this key controls the treasury.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-5">
+        <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+          <p>
+            Never share your agent private key. Store it securely if you import this wallet elsewhere. Syra cannot
+            recover a key you lose after export.
+          </p>
+        </div>
+
+        {statusLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Checking export availability…
+          </div>
+        ) : exportable === false ? (
+          <p className="text-sm text-muted-foreground">{exportKeyStatusMessage(statusReason)}</p>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl gap-2 border-amber-500/30"
+            disabled={loading || !syraAuthReady}
+            onClick={() => void handleShowPrivateKey()}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <KeyRound className="h-4 w-4" aria-hidden />
+            )}
+            Show private key
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+
+    <Dialog open={modalOpen} onOpenChange={handleModalOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Agent private key</DialogTitle>
+          <DialogDescription>
+            Base58 secret for{" "}
+            <span className="font-mono text-foreground/90">{shortenAddress(activeAgent.agentAddress, activeChain)}</span>.
+            Anyone with this key can control the agent treasury.
+          </DialogDescription>
+        </DialogHeader>
+        {privateKey ? (
+          <div className="space-y-3">
+            <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <p>Do not share this key or paste it into untrusted sites.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Private key (base58)</Label>
+              <FieldShell className="max-h-32 overflow-y-auto font-mono text-xs leading-relaxed text-foreground/90 [&_span]:break-all">
+                <span>{privateKey}</span>
+              </FieldShell>
+            </div>
+          </div>
+        ) : null}
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" className="rounded-xl" onClick={() => handleModalOpenChange(false)}>
+            Close
+          </Button>
+          {privateKey ? (
+            <Button
+              type="button"
+              className="rounded-xl gap-2"
+              onClick={() => onCopy(privateKey, "Agent private key")}
+            >
+              {copiedField === "Agent private key" ? (
+                <Check className="h-4 w-4" aria-hidden />
+              ) : (
+                <Copy className="h-4 w-4" aria-hidden />
+              )}
+              Copy private key
+            </Button>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -35,6 +35,17 @@ export function shortenAddress(addr: string, isEvm = false): string {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
+export function isSolanaAgent(agent: {
+  chain?: AgentChain | string;
+  agentAddress?: string;
+  walletAddress?: string | null;
+}): boolean {
+  if (agent.chain === "base") return false;
+  if (agent.agentAddress?.startsWith("0x")) return false;
+  if (agent.walletAddress?.startsWith("0x")) return false;
+  return true;
+}
+
 export function chainLabel(chain: AgentChain): string {
   return chain === "base" ? "Base" : "Solana";
 }

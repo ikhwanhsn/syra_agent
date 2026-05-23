@@ -40,6 +40,7 @@ import {
   isPrivyConfigured,
   getDefaultCustodyMode,
 } from '../../services/privyServerWallet.js';
+import { canonicalAnonymousId, resolveAgentWalletForUser } from '../../libs/agentWalletResolve.js';
 
 const router = express.Router();
 
@@ -95,9 +96,11 @@ router.post('/sign-in', async (req, res) => {
       return res.status(401).json({ success: false, error: 'signature_invalid', detail: verified.reason });
     }
 
-    // Get or provision the agent wallet for this user.
-    const anonymousId = chain === 'base' ? `wallet:${address}:base` : `wallet:${address}`;
-    let wallet = await AgentWallet.findOne({ anonymousId }).lean();
+    // Get or provision the agent wallet for this user (prefer existing linked / guest-funded rows).
+    const guestAnonymousId =
+      typeof req.body?.anonymousId === 'string' ? req.body.anonymousId.trim() : null;
+    const anonymousId = canonicalAnonymousId(address, chain);
+    let wallet = await resolveAgentWalletForUser({ address, chain, guestAnonymousId });
     if (!wallet) {
       if (chain === 'base') {
         return res.status(410).json({
@@ -135,6 +138,7 @@ router.post('/sign-in', async (req, res) => {
         });
       }
     }
+    const sessionAnonymousId = wallet.anonymousId || anonymousId;
     if (wallet.status === 'frozen' || wallet.status === 'retired') {
       return res.status(403).json({ success: false, error: `wallet_${wallet.status}` });
     }
@@ -146,7 +150,7 @@ router.post('/sign-in', async (req, res) => {
     const claims = {
       sub: address,
       chain,
-      aid: anonymousId,
+      aid: sessionAnonymousId,
       sid: sessionId,
       fid: familyId,
     };
@@ -155,7 +159,7 @@ router.post('/sign-in', async (req, res) => {
 
     setRefreshCookie(res, refreshToken);
     await writeSignAudit({
-      anonymousId,
+      anonymousId: sessionAnonymousId,
       walletAddress: address,
       agentAddress: wallet.agentAddress,
       chain,
@@ -172,7 +176,7 @@ router.post('/sign-in', async (req, res) => {
       success: true,
       accessToken,
       expiresAt: Date.now() + TOKEN_CONFIG.ACCESS_TTL_SEC * 1000,
-      anonymousId,
+      anonymousId: sessionAnonymousId,
       agentAddress: wallet.agentAddress,
       chain,
     });

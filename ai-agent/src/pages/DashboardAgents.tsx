@@ -5,25 +5,22 @@ import {
   Bot,
   Copy,
   ExternalLink,
-  Layers,
   Loader2,
   RefreshCw,
   Search,
   SlidersHorizontal,
-  Sparkles,
-  Users,
-  Wallet,
   X,
 } from "lucide-react";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
+import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { agentWalletApi } from "@/lib/chatApi";
 import {
   agentDetailPath,
-  chainBadgeClass,
-  chainLabel,
   defaultSortOrder,
   explorerUrl,
   formatRelativeTime,
+  isSolanaAgent,
   shortenAddress,
   sortAgentRows,
   type AgentSortKey,
@@ -39,7 +36,7 @@ import {
   overviewCardShell,
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
-import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
+import { AgentsPageHero } from "@/components/dashboard/agents/AgentsPageHero";
 import { AgentsSortableHeader } from "@/components/dashboard/agents/AgentsSortableHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,8 +67,20 @@ const STALE_MS = 45_000;
 const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
-type ChainFilter = "all" | "solana" | "base";
 type OwnershipFilter = "all" | "mine";
+
+function listErrorMessage(error: unknown, ownershipFilter: OwnershipFilter): string {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (msg === "auth_required") {
+    return "Connect your wallet and approve the Syra sign-in message to load agents.";
+  }
+  if (msg === "not_admin" || msg === "admin_required" || msg === "admin_disabled") {
+    if (ownershipFilter === "all") {
+      return "The global agent directory is admin-only. Switch ownership to My wallets to see your agents.";
+    }
+  }
+  return "Could not load agents. Check the API and try again.";
+}
 
 export interface DashboardAgentsProps {
   embedded?: boolean;
@@ -161,12 +170,18 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 
 export default function DashboardAgents({ embedded = false }: DashboardAgentsProps) {
   const navigate = useNavigate();
-  const { address, baseAddress } = useWalletContext();
+  const { address, requestConnect } = useWalletContext();
+  const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
+  const {
+    ready: agentWalletReady,
+    anonymousId: contextAnonymousId,
+    agentAddress: contextAgentAddress,
+    avatarUrl: contextAvatarUrl,
+  } = useAgentWallet();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [chainFilter, setChainFilter] = useState<ChainFilter>("all");
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>("all");
   const [sortKey, setSortKey] = useState<AgentSortKey>("updated");
   const [sortOrder, setSortOrder] = useState<AgentSortOrder>("desc");
@@ -180,7 +195,7 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, chainFilter, ownershipFilter, pageSize, sortKey, sortOrder]);
+  }, [debouncedSearch, ownershipFilter, pageSize, sortKey, sortOrder]);
 
   const onSort = useCallback((key: AgentSortKey) => {
     setSortKey((prev) => {
@@ -196,20 +211,21 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
   const connectedWalletKeys = useMemo(() => {
     const keys = new Set<string>();
     if (address) keys.add(address.toLowerCase());
-    if (baseAddress) keys.add(baseAddress.toLowerCase());
     return keys;
-  }, [address, baseAddress]);
+  }, [address]);
 
   const mineWallets = useMemo(() => {
     const list: string[] = [];
     if (address) list.push(address);
-    if (baseAddress && !list.some((w) => w.toLowerCase() === baseAddress.toLowerCase())) {
-      list.push(baseAddress);
-    }
     return list;
-  }, [address, baseAddress]);
+  }, [address]);
 
-  const apiChain = chainFilter === "all" ? undefined : chainFilter;
+  useEffect(() => {
+    if (ownershipFilter !== "mine" || !syraAuthReady || !address || syraAuthenticated) return;
+    void ensureSyraAuth();
+  }, [ownershipFilter, syraAuthReady, address, syraAuthenticated, ensureSyraAuth]);
+
+  const apiChain = "solana" as const;
   const useClientPagination = ownershipFilter === "mine" && mineWallets.length > 0;
   const serverOffset = (page - 1) * pageSize;
 
@@ -219,7 +235,6 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
       ownershipFilter,
       mineWallets.join("|"),
       debouncedSearch,
-      chainFilter,
       useClientPagination ? "client" : page,
       useClientPagination ? "all" : pageSize,
       sortKey,
@@ -261,12 +276,33 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
     },
     staleTime: STALE_MS,
     placeholderData: (prev) => prev,
+    enabled:
+      ownershipFilter === "all" ||
+      (syraAuthReady && syraAuthenticated && mineWallets.length > 0),
   });
 
-  const agents = (listQ.data?.agents ?? []) as AgentWalletRow[];
+  const contextLinkedAgent = useMemo((): AgentWalletRow | undefined => {
+    if (!agentWalletReady || !contextAnonymousId || !contextAgentAddress || !address) return undefined;
+    return {
+      anonymousId: contextAnonymousId,
+      walletAddress: address,
+      chain: "solana",
+      agentAddress: contextAgentAddress,
+      avatarUrl: contextAvatarUrl,
+      createdAt: null,
+      updatedAt: null,
+    };
+  }, [agentWalletReady, contextAnonymousId, contextAgentAddress, contextAvatarUrl, address]);
+
+  const agents = (listQ.data?.agents ?? []).filter(isSolanaAgent) as AgentWalletRow[];
+  const agentsWithFallback = useMemo(() => {
+    if (ownershipFilter !== "mine" || !contextLinkedAgent) return agents;
+    if (agents.some((agent) => agent.anonymousId === contextLinkedAgent.anonymousId)) return agents;
+    return [contextLinkedAgent, ...agents];
+  }, [agents, contextLinkedAgent, ownershipFilter]);
   const sortedForClient = useMemo(
-    () => (useClientPagination ? sortAgentRows(agents, sortKey, sortOrder) : agents),
-    [agents, sortKey, sortOrder, useClientPagination],
+    () => (useClientPagination ? sortAgentRows(agentsWithFallback, sortKey, sortOrder) : agentsWithFallback),
+    [agentsWithFallback, sortKey, sortOrder, useClientPagination],
   );
 
   const clientPagination = useTablePagination(sortedForClient, pageSize);
@@ -277,17 +313,15 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if (debouncedSearch) n += 1;
-    if (chainFilter !== "all") n += 1;
     if (ownershipFilter === "mine") n += 1;
     return n;
-  }, [debouncedSearch, chainFilter, ownershipFilter]);
+  }, [debouncedSearch, ownershipFilter]);
 
   const stats = useMemo(
     () => ({
       totalAgents: listQ.data?.totalAgents ?? listQ.data?.total ?? 0,
       userCount: listQ.data?.totalUsers ?? listQ.data?.userCount ?? 0,
       solana: listQ.data?.solanaCount ?? 0,
-      base: listQ.data?.baseCount ?? 0,
     }),
     [listQ.data],
   );
@@ -295,7 +329,6 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
   const clearFilters = () => {
     setSearch("");
     setDebouncedSearch("");
-    setChainFilter("all");
     setOwnershipFilter("all");
     setPage(1);
   };
@@ -309,7 +342,13 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
     }
   };
 
-  const isEmpty = !listQ.isLoading && displayAgents.length === 0;
+  const authBlocked =
+    ownershipFilter === "mine" &&
+    mineWallets.length > 0 &&
+    syraAuthReady &&
+    !syraAuthenticated;
+
+  const isEmpty = !listQ.isLoading && !authBlocked && displayAgents.length === 0;
 
   return (
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1 min-h-0" : "min-h-screen")}>
@@ -322,55 +361,11 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
           PAGE_SAFE_AREA_BOTTOM,
         )}
       >
-        <div className={cn(overviewCardShell, "overflow-hidden rounded-3xl px-5 py-6 sm:px-8 sm:py-7")}>
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.45]"
-            style={{ background: overviewAccentBackground("neutral") }}
-            aria-hidden
-          />
-          <div className="relative flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border/55 bg-background/50 shadow-inner">
-              <Bot className="h-5 w-5 text-foreground" aria-hidden />
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-background/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-md">
-                <Sparkles className="h-3.5 w-3.5 text-foreground/80" aria-hidden />
-                Agent directory
-              </div>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">Agents</h1>
-              <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Click a row to open the agent profile — statistics and activity will appear there as experiments roll out.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <OverviewStatCard
-            label="User wallets"
-            value={listQ.isLoading && !listQ.data ? "—" : String(stats.userCount)}
-            icon={Users}
-            accent="marketplace"
-          />
-          <OverviewStatCard
-            label="Agent wallets"
-            value={listQ.isLoading && !listQ.data ? "—" : String(stats.totalAgents)}
-            icon={Layers}
-            accent="experiment"
-          />
-          <OverviewStatCard
-            label="Solana"
-            value={listQ.isLoading && !listQ.data ? "—" : String(stats.solana)}
-            icon={Bot}
-            accent="alpha"
-          />
-          <OverviewStatCard
-            label="Base"
-            value={listQ.isLoading && !listQ.data ? "—" : String(stats.base)}
-            icon={Wallet}
-            accent="internal"
-          />
-        </div>
+        <AgentsPageHero
+          stats={stats}
+          isLoading={listQ.isLoading && !listQ.data}
+          isFetching={listQ.isFetching}
+        />
 
         <div className={cn(overviewCardShell, "overflow-hidden")}>
           <div
@@ -384,12 +379,12 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
               <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               <div>
                 <h2 className="text-sm font-semibold tracking-tight text-foreground">Filters</h2>
-                <p className="text-xs text-muted-foreground/90">Narrow the roster before sorting in the table.</p>
+                <p className="text-xs text-muted-foreground/90">Solana agents only — narrow the roster before sorting.</p>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-5">
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-6">
                 <Label htmlFor="agents-search" className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
                   Search
                 </Label>
@@ -405,21 +400,7 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                 </div>
               </div>
 
-              <div className="space-y-1.5 lg:col-span-2">
-                <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">Chain</Label>
-                <Select value={chainFilter} onValueChange={(v) => setChainFilter(v as ChainFilter)}>
-                  <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/60">
-                    <SelectItem value="all">All chains</SelectItem>
-                    <SelectItem value="solana">Solana</SelectItem>
-                    <SelectItem value="base">Base</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5 lg:col-span-2">
+              <div className="space-y-1.5 lg:col-span-3">
                 <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">Ownership</Label>
                 <Select
                   value={ownershipFilter}
@@ -476,12 +457,6 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                     onRemove={() => setSearch("")}
                   />
                 ) : null}
-                {chainFilter !== "all" ? (
-                  <FilterChip
-                    label={chainLabel(chainFilter as AgentWalletRow["chain"])}
-                    onRemove={() => setChainFilter("all")}
-                  />
-                ) : null}
                 {ownershipFilter === "mine" ? (
                   <FilterChip label="My wallets" onRemove={() => setOwnershipFilter("all")} />
                 ) : null}
@@ -503,9 +478,38 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
               </div>
             ) : listQ.isError ? (
               <div className="px-6 py-12 text-center">
-                <p className="text-sm text-muted-foreground">Could not load agents. Check the API and try again.</p>
-                <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => listQ.refetch()}>
-                  Retry
+                <p className="text-sm text-muted-foreground">
+                  {!syraAuthenticated
+                    ? "Connect your wallet and approve the Syra sign-in message to load agents."
+                    : listErrorMessage(listQ.error, ownershipFilter)}
+                </p>
+                {!syraAuthenticated ? (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="mt-4 rounded-xl"
+                    onClick={() => requestConnect("solana")}
+                  >
+                    Connect wallet
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => listQ.refetch()}>
+                    Retry
+                  </Button>
+                )}
+              </div>
+            ) : authBlocked ? (
+              <div className="px-6 py-12 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Approve the Syra sign-in message in your wallet to load your agent wallets.
+                </p>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="mt-4 rounded-xl"
+                  onClick={() => void ensureSyraAuth()}
+                >
+                  Sign in with wallet
                 </Button>
               </div>
             ) : isEmpty ? (
@@ -517,9 +521,9 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                 <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
                   {ownershipFilter === "mine"
                     ? "Connect a wallet and fund an agent from chat."
-                    : debouncedSearch || chainFilter !== "all"
+                    : debouncedSearch
                       ? "Try clearing filters or a different search."
-                      : "Agents appear when users connect wallets and create agent keys."}
+                      : "Solana agent wallets appear when users connect wallets and create agent keys."}
                 </p>
                 {activeFilterCount > 0 ? (
                   <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={clearFilters}>
@@ -552,14 +556,6 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                         onSort={onSort}
                         className="min-w-[140px]"
                       />
-                      <AgentsSortableHeader
-                        label="Chain"
-                        sortKey="chain"
-                        activeKey={sortKey}
-                        order={sortOrder}
-                        onSort={onSort}
-                        className="w-[100px]"
-                      />
                       <TableHead className="h-10 min-w-[120px] px-3 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/85">
                         Balance
                       </TableHead>
@@ -575,13 +571,9 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                   </TableHeader>
                   <TableBody>
                     {displayAgents.map((agent) => {
-                      const isEvm = agent.chain === "base" || agent.agentAddress.startsWith("0x");
                       const isMine = connectedWalletKeys.has(agent.walletAddress.toLowerCase());
-                      const agentExplorer = explorerUrl(agent.chain, agent.agentAddress);
-                      const userExplorer = explorerUrl(
-                        agent.walletAddress.startsWith("0x") ? "base" : "solana",
-                        agent.walletAddress,
-                      );
+                      const agentExplorer = explorerUrl("solana", agent.agentAddress);
+                      const userExplorer = explorerUrl("solana", agent.walletAddress);
 
                       return (
                         <TableRow
@@ -599,7 +591,7 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                           }}
                           tabIndex={0}
                           role="link"
-                          aria-label={`View agent ${shortenAddress(agent.agentAddress, isEvm)}`}
+                          aria-label={`View agent ${shortenAddress(agent.agentAddress)}`}
                         >
                           <TableCell className="py-3">
                             <div className="flex items-center gap-3">
@@ -614,7 +606,7 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                               <div className="min-w-0">
                                 <AddressCell
                                   address={agent.agentAddress}
-                                  isEvm={isEvm}
+                                  isEvm={false}
                                   onCopy={handleCopy}
                                   explorer={agentExplorer}
                                 />
@@ -629,21 +621,13 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                           <TableCell className="py-3">
                             <AddressCell
                               address={agent.walletAddress}
-                              isEvm={agent.walletAddress.startsWith("0x")}
+                              isEvm={false}
                               onCopy={handleCopy}
                               explorer={userExplorer}
                             />
                           </TableCell>
-                          <TableCell className="py-3">
-                            <Badge
-                              variant="outline"
-                              className={cn("rounded-md text-[10px] font-semibold uppercase", chainBadgeClass(agent.chain))}
-                            >
-                              {chainLabel(agent.chain)}
-                            </Badge>
-                          </TableCell>
                           <TableCell className="py-3 text-right">
-                            <BalanceCell anonymousId={agent.anonymousId} chain={agent.chain} />
+                            <BalanceCell anonymousId={agent.anonymousId} chain="solana" />
                           </TableCell>
                           <TableCell className="py-3 font-mono text-xs tabular-nums text-muted-foreground">
                             {formatRelativeTime(agent.updatedAt)}

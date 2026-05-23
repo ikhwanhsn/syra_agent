@@ -14,7 +14,6 @@ import {
   ExternalLink,
   LayoutDashboard,
   Bot,
-  Settings2,
   Mail,
   Send,
   UsersRound,
@@ -115,7 +114,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[1] === "overview") return "Overview";
   if (parts[1] === "agents" && parts[2]) return "Agent detail";
   if (parts[1] === "agents") return "Agents";
-  if (parts[1] === "agent-setup") return "Agent setup";
+  if (parts[1] === "settings" || parts[1] === "agent-setup") return "Agent setup";
   if (parts[1] === "alpha" && parts[2] === "x" && parts[3]) return "Alpha · Intel";
   if (parts[1] === "alpha") return "Alpha";
   if (parts[1] === "pumpfun-experiment") return "Pumpfun experiment";
@@ -177,9 +176,6 @@ function DashboardSidebarContent({
             </SidebarNavLink>
             <SidebarNavLink to="/dashboard/agents" icon={Bot} end>
               Agents
-            </SidebarNavLink>
-            <SidebarNavLink to="/dashboard/agent-setup" icon={Settings2} end>
-              Agent setup
             </SidebarNavLink>
           </div>
 

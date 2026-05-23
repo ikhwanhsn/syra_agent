@@ -87,6 +87,31 @@ export function requireSession({ allowGuest = false, requireOwnership = true } =
   };
 }
 
+export function optionalWalletSession() {
+  return async (req, res, next) => {
+    const token = extractBearer(req) || extractCookie(req, 'syra_access');
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+    try {
+      const claims = await verifyToken(token, 'access');
+      req.user = {
+        walletAddress: claims.sub,
+        chain: claims.chain,
+        anonymousId: claims.aid,
+        sessionId: claims.sid,
+        familyId: claims.fid,
+        guest: false,
+      };
+      return next();
+    } catch {
+      req.user = null;
+      return next();
+    }
+  };
+}
+
 function pickAnonymousId(req) {
   const fromBody =
     typeof req.body?.anonymousId === 'string' && req.body.anonymousId.trim()

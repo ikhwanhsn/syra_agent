@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
@@ -27,6 +27,7 @@ import {
   Sun,
   Wallet,
 } from "lucide-react";
+import { agentSettingsPath } from "@/lib/agentSettingsRoute";
 import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -57,12 +58,8 @@ export function WalletNav(props: WalletNavProps = {}) {
     isPrivyMounted,
     connectForChain,
     openLoginModal,
-    baseConnected,
-    baseAddress,
-    baseShortAddress,
-    baseUsdcBalance,
-    baseEthBalance,
-    effectiveChain,
+    connected,
+    shortAddress,
   } = useWalletContext();
   const { openConnectModal } = useConnectModal();
   const {
@@ -72,17 +69,13 @@ export function WalletNav(props: WalletNavProps = {}) {
     connectedWalletShort,
     agentUsdcBalance,
     agentSolBalance,
-    agentBaseEthBalance,
-    agentBaseUsdcBalance,
     lastDebitUsd,
     refetchBalance,
   } = useAgentWallet();
-  /** Which chain to show when both are connected; use effectiveChain so Base (MetaMask) shows when user connected with Base */
-  const hasAnyWallet = !!publicKey || baseConnected;
-  const displaySolana = effectiveChain === "solana";
-  const displayBase = effectiveChain === "base";
+  const hasAnyWallet = connected && !!publicKey;
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
   const [fuelInitialTab, setFuelInitialTab] = useState<"deposit" | "withdraw">("deposit");
@@ -149,7 +142,6 @@ export function WalletNav(props: WalletNavProps = {}) {
 
   const handleCopyWallet = () => {
     if (publicKey) copyToClipboard(publicKey.toBase58(), "Wallet address");
-    else if (baseAddress) copyToClipboard(baseAddress, "Wallet address");
     setOpen(false);
   };
 
@@ -177,7 +169,7 @@ export function WalletNav(props: WalletNavProps = {}) {
 
   const agentLoading = hasAnyWallet && !ready;
   const hasUsdc = agentUsdcBalance != null && agentUsdcBalance > 0;
-  const displayShortAddress = displaySolana ? connectedWalletShort : baseShortAddress;
+  const displayShortAddress = connectedWalletShort ?? shortAddress;
 
   function formatUsdc(value: number | null | undefined): string {
     if (value == null) return "—";
@@ -224,7 +216,7 @@ export function WalletNav(props: WalletNavProps = {}) {
     "h-9 min-h-[44px] sm:min-h-0 rounded-xl border border-border/60 bg-muted/25 px-2.5 shadow-sm backdrop-blur-sm sm:px-3 gap-2 text-sm font-medium tabular-nums inline-flex items-center min-w-0 touch-manipulation transition-colors hover:bg-muted/40";
 
   const balanceJustReduced = lastDebitUsd != null && lastDebitUsd > 0;
-  const agentUsdcDisplay = displayBase ? agentBaseUsdcBalance : agentUsdcBalance;
+  const agentUsdcDisplay = agentUsdcBalance;
   const hasUsdcAgent = agentUsdcDisplay != null && agentUsdcDisplay > 0;
 
   return (
@@ -233,31 +225,17 @@ export function WalletNav(props: WalletNavProps = {}) {
       {hasAnyWallet && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div
-              className={cn(
-                "hidden h-9 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-semibold shadow-sm lg:flex lg:min-h-0",
-                displaySolana
-                  ? "border-foreground/20 bg-muted/50 text-foreground ring-1 ring-foreground/10"
-                  : "border-border bg-muted/40 text-foreground ring-1 ring-border/80",
-              )}
-            >
+            <div className="hidden h-9 shrink-0 items-center gap-2 rounded-xl border border-foreground/20 bg-muted/50 px-3 text-xs font-semibold text-foreground shadow-sm ring-1 ring-foreground/10 lg:flex lg:min-h-0">
               <span
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  displaySolana
-                    ? "bg-foreground/80 shadow-[0_0_8px_hsl(var(--foreground)/0.35)]"
-                    : "bg-muted-foreground shadow-[0_0_8px_hsl(var(--muted-foreground)/0.35)]",
-                )}
+                className="h-2 w-2 shrink-0 rounded-full bg-foreground/80 shadow-[0_0_8px_hsl(var(--foreground)/0.35)]"
                 aria-hidden
               />
-              {displaySolana ? "Solana" : "Base"}
+              Solana
             </div>
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">
-              {displaySolana
-                ? "Connected with Solana. Agent wallet and paid tools use Solana."
-                : "Connected with Base. Agent wallet and paid tools use Base. Use Fuel to add USDC and ETH."}
+              Connected with Solana. Agent wallet and paid tools use Solana.
             </p>
           </TooltipContent>
         </Tooltip>
@@ -277,8 +255,8 @@ export function WalletNav(props: WalletNavProps = {}) {
               setFuelInitialTab("deposit");
               setFuelModalOpen(true);
             }}
-            title={displayBase ? "Add USDC and ETH to your agent wallet" : "Add USDC and SOL to your agent wallet"}
-            aria-label={displayBase ? "Open add funds for agent wallet on Base" : "Open add funds for agent wallet on Solana"}
+            title="Add USDC and SOL to your agent wallet"
+            aria-label="Open add funds for agent wallet on Solana"
           >
             <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -374,7 +352,7 @@ export function WalletNav(props: WalletNavProps = {}) {
               )}
             >
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
-                Agent wallet {displayBase ? "(Base)" : "(Solana)"}
+                Agent wallet (Solana)
               </p>
               {agentLoading ? (
                 <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
@@ -393,59 +371,28 @@ export function WalletNav(props: WalletNavProps = {}) {
                     </span>
                     <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
                   </button>
-                  {displayBase ? (
-                    <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
-                      {agentBaseUsdcBalance != null && (
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                            <CoinLogo symbol="USDC" size="xs" />
-                            USDC
-                          </span>
-                          <span
-                            className={
-                              agentBaseUsdcBalance > 0
-                                ? "font-semibold text-emerald-600 dark:text-emerald-400"
-                                : "text-muted-foreground"
-                            }
-                          >
-                            ${agentBaseUsdcBalance.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      {agentBaseEthBalance != null && (
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                            <CoinLogo symbol="ETH" size="xs" />
-                            ETH
-                          </span>
-                          <span className="text-muted-foreground">{agentBaseEthBalance.toFixed(4)}</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
-                      {agentUsdcBalance != null && (
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                            <CoinLogo symbol="USDC" size="xs" />
-                            USDC
-                          </span>
-                          <span className={hasUsdc ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
-                            ${formatUsdc(agentUsdcBalance)}
-                          </span>
-                        </div>
-                      )}
-                      {agentSolBalance != null && (
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                            <CoinLogo symbol="SOL" size="xs" />
-                            SOL
-                          </span>
-                          <span className="text-muted-foreground">{agentSolBalance.toFixed(4)}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
+                    {agentUsdcBalance != null && (
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          <CoinLogo symbol="USDC" size="xs" />
+                          USDC
+                        </span>
+                        <span className={hasUsdc ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
+                          ${formatUsdc(agentUsdcBalance)}
+                        </span>
+                      </div>
+                    )}
+                    {agentSolBalance != null && (
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          <CoinLogo symbol="SOL" size="xs" />
+                          SOL
+                        </span>
+                        <span className="text-muted-foreground">{agentSolBalance.toFixed(4)}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex gap-2 border-t border-border/40 pt-2.5 lg:hidden">
                     <Button
                       type="button"
@@ -485,7 +432,7 @@ export function WalletNav(props: WalletNavProps = {}) {
             {/* Connected wallet */}
             <div className="min-w-0 space-y-2.5 rounded-xl border border-border/70 bg-gradient-to-br from-card to-muted/25 p-3.5 shadow-sm ring-1 ring-white/[0.03]">
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
-                Connected wallet {displaySolana ? "(Solana)" : "(Base)"}
+                Connected wallet (Solana)
               </p>
               <button
                 type="button"
@@ -494,17 +441,15 @@ export function WalletNav(props: WalletNavProps = {}) {
               >
                 <span
                   className="min-w-0 truncate font-mono text-[13px] text-foreground sm:text-sm"
-                  title={publicKey?.toBase58() ?? baseAddress ?? undefined}
+                  title={publicKey?.toBase58()}
                 >
-                  {displaySolana && publicKey
+                  {publicKey
                     ? (connectedWalletShort ?? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`)
-                    : baseAddress
-                      ? (baseShortAddress ?? `${baseAddress.slice(0, 6)}...${baseAddress.slice(-4)}`)
-                      : "…"}
+                    : "…"}
                 </span>
                 <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
               </button>
-              {displaySolana && userUsdcBalance != null && userSolBalance != null && (
+              {userUsdcBalance != null && userSolBalance != null && (
                 <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
@@ -524,30 +469,6 @@ export function WalletNav(props: WalletNavProps = {}) {
                   </div>
                 </div>
               )}
-              {displayBase && (baseUsdcBalance != null || baseEthBalance != null) && (
-                <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
-                  {baseUsdcBalance != null && (
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                        <CoinLogo symbol="USDC" size="xs" />
-                        USDC
-                      </span>
-                      <span className={baseUsdcBalance > 0 ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
-                        ${baseUsdcBalance.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                  {baseEthBalance != null && (
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                        <CoinLogo symbol="ETH" size="xs" />
-                        ETH
-                      </span>
-                      <span className="text-muted-foreground">{baseEthBalance.toFixed(4)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
@@ -556,7 +477,7 @@ export function WalletNav(props: WalletNavProps = {}) {
               className="cursor-pointer gap-0 rounded-lg px-4 py-2.5 text-sm focus:bg-muted/60"
               onSelect={() => {
                 setOpen(false);
-                navigate("/settings");
+                navigate(agentSettingsPath(location.pathname));
               }}
             >
               <span className="flex w-8 shrink-0 justify-center">

@@ -1,3 +1,5 @@
+import { syraFetch } from "@/lib/agentAuthApi";
+
 export const getApiBaseUrl = () => {
   const env = import.meta.env?.VITE_API_URL;
   if (env && typeof env === "string") return env.replace(/\/$/, "");
@@ -366,7 +368,7 @@ export const agentWalletApi = {
     isNewWallet?: boolean;
     chain?: "solana" | "base";
   }> {
-    const res = await fetch(`${agentWalletBase()}/connect`, {
+    const res = await syraFetch(`${agentWalletBase()}/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ walletAddress, chain }),
@@ -454,6 +456,7 @@ export const agentWalletApi = {
     const qs = params.toString();
     const res = await fetch(`${agentWalletBase()}/list${qs ? `?${qs}` : ""}`, {
       headers: getApiHeaders(),
+      credentials: "include",
     });
     const data = await handleRes<{
       success: boolean;
@@ -520,7 +523,7 @@ export const agentWalletApi = {
     if (options?.offset != null) params.set("offset", String(options.offset));
     if (options?.walletAddress?.trim()) params.set("walletAddress", options.walletAddress.trim());
     if (options?.q?.trim()) params.set("q", options.q.trim());
-    const res = await fetch(`${agentWalletBase()}/list?${params.toString()}`, {
+    const res = await syraFetch(`${agentWalletBase()}/list?${params.toString()}`, {
       headers: getApiHeaders(),
     });
     const data = await handleRes<{
@@ -558,7 +561,7 @@ export const agentWalletApi = {
 
   /** Get agent wallet address by anonymousId (404 if not created yet). Includes solanaAgentAddress for 8004 "Your Agents" filter. */
   async get(anonymousId: string): Promise<{ agentAddress: string; avatarUrl?: string | null; solanaAgentAddress?: string | null }> {
-    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
+    const res = await syraFetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
     return handleRes(res);
   },
 
@@ -573,7 +576,7 @@ export const agentWalletApi = {
     createdAt: string | null;
     updatedAt: string | null;
   }> {
-    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
+    const res = await syraFetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, { headers: getApiHeaders() });
     const data = await handleRes<{
       success: boolean;
       anonymousId: string;
@@ -603,7 +606,7 @@ export const agentWalletApi = {
     solBalance: number;
     usdcBalance: number;
   }> {
-    const res = await fetch(
+    const res = await syraFetch(
       `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/balance`,
       { headers: getApiHeaders() },
     );
@@ -624,7 +627,7 @@ export const agentWalletApi = {
       solAmount?: number;
     },
   ): Promise<{ success: boolean; signature: string }> {
-    const res = await fetch(
+    const res = await syraFetch(
       `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/withdraw`,
       {
         method: "POST",
@@ -658,7 +661,7 @@ export const agentWalletApi = {
     anonymousId: string,
     paymentRequired: { accepts: unknown[]; x402Version?: number; [k: string]: unknown }
   ): Promise<{ paymentHeader: string; signature?: string }> {
-    const res = await fetch(`${agentWalletBase()}/pay-402`, {
+    const res = await syraFetch(`${agentWalletBase()}/pay-402`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, paymentRequired }),
@@ -672,7 +675,7 @@ export const agentWalletApi = {
 
   /** Update user avatar with a base64 image data URL. */
   async updateAvatar(anonymousId: string, avatarDataUrl: string): Promise<{ success: boolean; avatarUrl: string }> {
-    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar`, {
+    const res = await syraFetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ avatarUrl: avatarDataUrl }),
@@ -682,11 +685,70 @@ export const agentWalletApi = {
 
   /** Generate a new random avatar for the user. */
   async generateAvatar(anonymousId: string): Promise<{ success: boolean; avatarUrl: string }> {
-    const res = await fetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar/generate`, {
+    const res = await syraFetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/avatar/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
     });
     return handleRes(res);
+  },
+
+  /** Check whether this agent wallet private key can be exported. */
+  async getExportKeyStatus(anonymousId: string): Promise<{
+    exportable: boolean;
+    reason?: string;
+    custody: string;
+    chain: "solana" | "base";
+    requiresWalletAuth?: boolean;
+    agentAddress?: string;
+  }> {
+    const res = await syraFetch(
+      `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/export-key/status`,
+      { headers: getApiHeaders() },
+    );
+    const data = await handleRes<{
+      success: boolean;
+      exportable: boolean;
+      reason?: string;
+      custody: string;
+      chain: "solana" | "base";
+      requiresWalletAuth?: boolean;
+      agentAddress?: string;
+    }>(res);
+    return {
+      exportable: data.exportable,
+      reason: data.reason,
+      custody: data.custody,
+      chain: data.chain === "base" ? "base" : "solana",
+      requiresWalletAuth: data.requiresWalletAuth,
+      agentAddress: data.agentAddress,
+    };
+  },
+
+  /** Export agent wallet private key (legacy Solana custody only). Requires Syra session for linked wallets. */
+  async exportPrivateKey(anonymousId: string): Promise<{
+    privateKeyBase58: string;
+    agentAddress: string;
+    format: string;
+    custody: string;
+  }> {
+    const res = await syraFetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}/export-key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
+      body: "{}",
+    });
+    const data = await handleRes<{
+      success: boolean;
+      privateKeyBase58: string;
+      agentAddress: string;
+      format: string;
+      custody: string;
+    }>(res);
+    return {
+      privateKeyBase58: data.privateKeyBase58,
+      agentAddress: data.agentAddress,
+      format: data.format,
+      custody: data.custody,
+    };
   },
 };
 

@@ -23,6 +23,7 @@ import {
   explorerUrl,
   formatRelativeTime,
   formatTimestamp,
+  isSolanaAgent,
   shortenAddress,
   userWalletExplorerUrl,
 } from "@/lib/agentWalletUi";
@@ -141,7 +142,7 @@ function ComingSoonPanel({
 export default function DashboardAgentDetail({ embedded = false }: DashboardAgentDetailProps) {
   const { anonymousId: idParam } = useParams<{ anonymousId: string }>();
   const anonymousId = idParam ? decodeURIComponent(idParam) : "";
-  const { address, baseAddress } = useWalletContext();
+  const { address } = useWalletContext();
   const { toast } = useToast();
 
   const profileQ = useQuery({
@@ -154,15 +155,16 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
   const balanceQ = useQuery({
     queryKey: ["agent-wallet-balance", anonymousId],
     queryFn: () => agentWalletApi.getBalance(anonymousId),
-    enabled: Boolean(anonymousId) && profileQ.data?.chain === "solana",
+    enabled: Boolean(anonymousId) && Boolean(profileQ.data && isSolanaAgent(profileQ.data)),
     staleTime: STALE_MS,
   });
 
   const profile = profileQ.data;
+  const profileUnavailable = profileQ.isError || !profile || !isSolanaAgent(profile);
   const isMine =
     !!profile?.walletAddress &&
-    ((address && profile.walletAddress.toLowerCase() === address.toLowerCase()) ||
-      (baseAddress && profile.walletAddress.toLowerCase() === baseAddress.toLowerCase()));
+    !!address &&
+    profile.walletAddress.toLowerCase() === address.toLowerCase();
 
   const copy = async (text: string, label: string) => {
     try {
@@ -172,8 +174,6 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
       toast({ title: "Copy failed", variant: "destructive" });
     }
   };
-
-  const isEvm = profile?.chain === "base" || profile?.agentAddress.startsWith("0x");
 
   return (
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1 min-h-0" : "min-h-screen")}>
@@ -195,7 +195,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
           </Button>
           <span className="text-muted-foreground/40">/</span>
           <span className="truncate font-mono text-sm text-foreground">
-            {profile ? shortenAddress(profile.agentAddress, isEvm) : "…"}
+            {profile ? shortenAddress(profile.agentAddress) : "…"}
           </span>
           {isMine ? (
             <Badge className="ml-auto rounded-md bg-primary/15 text-[10px] font-semibold uppercase tracking-wider text-primary hover:bg-primary/15">
@@ -213,7 +213,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
             </div>
             <Skeleton className="h-48 w-full rounded-2xl" />
           </div>
-        ) : profileQ.isError || !profile ? (
+        ) : profileUnavailable ? (
           <Card className={cn(overviewCardShell, "border-destructive/20")}>
             <CardContent className="space-y-4 p-8 text-center">
               <p className="font-medium text-foreground">Agent not found</p>
@@ -248,15 +248,15 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
                         Agent profile
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className={cn("rounded-md text-[10px] font-semibold uppercase", chainBadgeClass(profile.chain))}>
-                          {chainLabel(profile.chain)}
+                        <Badge variant="outline" className={cn("rounded-md text-[10px] font-semibold uppercase", chainBadgeClass("solana"))}>
+                          {chainLabel("solana")}
                         </Badge>
                         {profile.updatedAt ? (
                           <span className="text-xs text-muted-foreground">Updated {formatRelativeTime(profile.updatedAt)}</span>
                         ) : null}
                       </div>
                       <h1 className="font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                        {shortenAddress(profile.agentAddress, isEvm)}
+                        {shortenAddress(profile.agentAddress)}
                       </h1>
                       <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                         Command center for this agent&apos;s treasury, performance stats, and experiment activity. Soon you&apos;ll
@@ -272,7 +272,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
                       disabled={profileQ.isFetching}
                       onClick={() => {
                         void profileQ.refetch();
-                        if (profile.chain === "solana") void balanceQ.refetch();
+                        void balanceQ.refetch();
                       }}
                     >
                       {profileQ.isFetching ? (
@@ -282,9 +282,9 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
                       )}
                       Refresh
                     </Button>
-                    {explorerUrl(profile.chain, profile.agentAddress) ? (
+                    {explorerUrl("solana", profile.agentAddress) ? (
                       <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
-                        <a href={explorerUrl(profile.chain, profile.agentAddress)!} target="_blank" rel="noopener noreferrer">
+                        <a href={explorerUrl("solana", profile.agentAddress)!} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-4 w-4" aria-hidden />
                           Explorer
                         </a>
@@ -297,8 +297,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
 
             <div>
               <p className={cn(overviewKickerClass, "mb-3 px-0.5")}>Treasury</p>
-              {profile.chain === "solana" ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <Card className={cn(overviewCardShell, "ring-1 ring-primary/10")}>
                     <CardHeader className="pb-2">
                       <CardDescription className={overviewKickerClass}>SOL</CardDescription>
@@ -331,13 +330,6 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
                     </CardContent>
                   </Card>
                 </div>
-              ) : (
-                <Card className={overviewCardShell}>
-                  <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                    Base agent treasury metrics will appear here when on-chain balances are wired.
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2">
@@ -415,7 +407,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
                     value={profile.agentAddress}
                     mono
                     onCopy={() => copy(profile.agentAddress, "Agent address")}
-                    href={explorerUrl(profile.chain, profile.agentAddress)}
+                    href={explorerUrl("solana", profile.agentAddress)}
                   />
                   {profile.walletAddress ? (
                     <>

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WalletContextProvider } from "@/contexts/WalletContext";
+import { SyraAuthProvider } from "@/contexts/SyraAuthContext";
 import { ConnectModalProvider } from "@/contexts/ConnectModalContext";
 import { AgentWalletProvider } from "@/contexts/AgentWalletContext";
 import Index from "./pages/Index";
@@ -36,8 +37,9 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <WalletContextProvider>
-      <ConnectModalProvider>
-        <AgentWalletProvider>
+      <SyraAuthProvider>
+        <ConnectModalProvider>
+          <AgentWalletProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -52,8 +54,8 @@ const App = () => (
                   <Route path="overview" element={<DashboardOverview embedded />} />
                   <Route path="agents" element={<DashboardAgents embedded />} />
                   <Route path="agents/:anonymousId" element={<DashboardAgentDetail embedded />} />
-                  <Route path="agent-setup" element={<DashboardSettings embedded layout="dashboard" />} />
-                  <Route path="settings" element={<Navigate to="/dashboard/agent-setup" replace />} />
+                  <Route path="settings" element={<DashboardSettings embedded />} />
+                  <Route path="agent-setup" element={<Navigate to="/dashboard/settings" replace />} />
                   <Route path="marketplace/*" element={<Navigate to="/dashboard/overview" replace />} />
                   <Route path="trading-experiment" element={<TradingAgentExperiment embedded />} />
                   <Route
@@ -85,6 +87,7 @@ const App = () => (
           </TooltipProvider>
         </AgentWalletProvider>
       </ConnectModalProvider>
+      </SyraAuthProvider>
     </WalletContextProvider>
   </QueryClientProvider>
 );

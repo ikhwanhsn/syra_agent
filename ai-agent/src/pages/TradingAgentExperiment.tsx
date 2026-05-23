@@ -729,15 +729,14 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { publicKey, baseConnected, baseAddress, effectiveChain } = useWalletContext();
+  const { publicKey } = useWalletContext();
   const { openConnectModal } = useConnectModal();
   const { toast } = useToast();
   const [connectWalletForCreateAgentOpen, setConnectWalletForCreateAgentOpen] = useState(false);
   const walletAddress = useMemo(() => {
-    if (effectiveChain === "base" && baseConnected && baseAddress) return baseAddress;
     if (publicKey) return publicKey.toBase58();
     return null;
-  }, [effectiveChain, baseConnected, baseAddress, publicKey]);
+  }, [publicKey]);
 
   const [myAgents, setMyAgents] = useState<UserCustomStrategyAgentStats[]>([]);
   const [myRuns, setMyRuns] = useState<TradingExperimentRunRow[]>([]);
@@ -1559,7 +1558,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
               <AlertDialogHeader>
                 <AlertDialogTitle>Connect your wallet</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Connect a Solana or Base wallet to create a custom trading strategy agent and track its experiment runs.
+                  Connect a Solana wallet to create a custom trading strategy agent and track its experiment runs.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="gap-2 sm:gap-2">
@@ -2326,7 +2325,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                             </span>
                           ) : leaderboardScope === "mine" && !walletAddress ? (
                             <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
-                              Connect your Solana or Base wallet to see your agents here.
+                              Connect your Solana wallet to see your agents here.
                             </p>
                           ) : leaderboardScope === "mine" && walletAddress ? (
                             <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -2735,7 +2734,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           <Users className="h-10 w-10 text-muted-foreground/35" aria-hidden />
                           <p className="text-sm font-semibold tracking-tight text-foreground">Connect a wallet</p>
                           <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                            Connect your Solana or Base wallet to create agents and view stats.
+                            Connect your Solana wallet to create agents and view stats.
                           </p>
                         </div>
                       </TableCell>

@@ -58,6 +58,7 @@ import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
+import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
 import { createPumpfunExperimentRouter } from "./routes/pumpfunExperiment.js";
 import { createRiseExperimentRouter } from "./routes/riseExperiment.js";
 import { createHealthRouter } from "./routes/health.js";
@@ -1050,6 +1051,8 @@ app.use("/internal", await createInternalResearchRouter());
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
+// LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet
+app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
 app.use("/experiment/pumpfun", createPumpfunExperimentRouter());
 app.use("/experiment/rise", createRiseExperimentRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
@@ -1179,6 +1182,7 @@ const PORT = process.env.PORT || 3000;
 connectMongoose()
   .then(() =>
     import("./libs/lpExperimentService.js").then((m) => m.ensureLpExperimentBootstrapped().catch(() => {})),
+    import("./libs/lpRealService.js").then((m) => m.ensureLpRealBootstrapped().catch(() => {})),
   )
   .catch(() => {});
 
@@ -1302,6 +1306,42 @@ app.listen(PORT, () => {
   }
   if (LP_AGENT_RESOLVE_INTERVAL_MS >= 5_000) {
     setInterval(runLpResolve, LP_AGENT_RESOLVE_INTERVAL_MS);
+  }
+
+  const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
+  const LP_AGENT_REAL_RESOLVE_INTERVAL_MS = 30_000;
+
+  const runLpRealSignal = () =>
+    import("./libs/lpRealService.js")
+      .then(({ isRealCronEnabled, runLpRealSignalCycle }) => {
+        if (!isRealCronEnabled()) return null;
+        return runLpRealSignalCycle();
+      })
+      .then((out) => {
+        if (out?.errors?.length) {
+          console.warn("[LP real] signal errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) => console.warn("[LP real] signal failed:", err?.message || err));
+
+  const runLpRealResolve = () =>
+    import("./libs/lpRealService.js")
+      .then(({ isRealCronEnabled, resolveLpRealPositions }) => {
+        if (!isRealCronEnabled()) return null;
+        return resolveLpRealPositions();
+      })
+      .then((out) => {
+        if (out?.errors?.length) {
+          console.warn("[LP real] resolve errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) => console.warn("[LP real] resolve failed:", err?.message || err));
+
+  if (LP_AGENT_REAL_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runLpRealSignal, LP_AGENT_REAL_SIGNAL_INTERVAL_MS);
+  }
+  if (LP_AGENT_REAL_RESOLVE_INTERVAL_MS >= 5_000) {
+    setInterval(runLpRealResolve, LP_AGENT_REAL_RESOLVE_INTERVAL_MS);
   }
 
   import("./libs/lpExperimentEvolution.js")

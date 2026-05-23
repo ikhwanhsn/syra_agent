@@ -69,7 +69,6 @@ function getDepositAmountError(params: {
   usdcBalanceDisplay: number | null | undefined;
   nativeBalance: number | null | undefined;
   nativeLabel: string;
-  isBase: boolean;
 }): string | null {
   if (params.flowTab !== "deposit" || !params.hasDepositAmount) return null;
   if (params.depositMode === "usdc") {
@@ -81,15 +80,13 @@ function getDepositAmountError(params: {
   }
   if (params.nativeBalance == null || !Number.isFinite(params.nativeBalance)) return null;
   if (params.depositNativeHuman > params.nativeBalance + 1e-8) {
-    const dec = params.isBase ? 6 : 4;
-    return `You have ${params.nativeBalance.toFixed(dec)} ${params.nativeLabel} in your wallet. Lower the amount.`;
+    return `You have ${params.nativeBalance.toFixed(4)} ${params.nativeLabel} in your wallet. Lower the amount.`;
   }
   return null;
 }
 
 function getWithdrawAmountError(params: {
   flowTab: "deposit" | "withdraw";
-  isBase: boolean;
   hasWithdrawAmount: boolean;
   withdrawMode: "usdc" | "native";
   withdrawUsdcHuman: number;
@@ -98,7 +95,7 @@ function getWithdrawAmountError(params: {
   agentSolBalance: number | null | undefined;
   nativeLabel: string;
 }): string | null {
-  if (params.flowTab !== "withdraw" || params.isBase) return null;
+  if (params.flowTab !== "withdraw") return null;
   if (!params.hasWithdrawAmount) return null;
   if (params.withdrawMode === "usdc") {
     if (params.agentUsdcDisplay == null || !Number.isFinite(params.agentUsdcDisplay)) return null;
@@ -126,29 +123,21 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     connection,
     publicKey,
     sendTransaction,
-    baseAddress,
-    baseUsdcBalance,
-    baseEthBalance,
-    sendBaseFuelTransaction,
     solBalance,
     usdcBalance,
     refreshSolanaBalances,
-    refreshBaseBalances,
   } = useWalletContext();
   const {
     agentAddress,
     anonymousId,
     refetchBalance,
-    connectedChain,
     agentSolBalance,
     agentUsdcBalance,
-    agentBaseEthBalance,
-    agentBaseUsdcBalance,
     reportDebit,
     reportNativeDebit,
   } = useAgentWallet();
   const { toast } = useToast();
-  /** USDC vs native (SOL on Solana, ETH on Base). */
+  /** USDC vs native SOL. */
   const [depositMode, setDepositMode] = useState<"usdc" | "native">("usdc");
   const [customUsd, setCustomUsd] = useState("");
   const [customNative, setCustomNative] = useState("");
@@ -239,9 +228,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       fuelBodyHeightAnimRef.current = null;
     };
   }, [open]);
-
-  const isSolana = connectedChain === "solana";
-  const isBase = connectedChain === "base";
 
   const depositUsdcHuman = depositMode === "native" ? 0 : parseAmountInput(customUsd);
   const depositNativeHuman = depositMode === "native" ? parseAmountInput(customNative) : 0;
@@ -341,10 +327,9 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       depositMode,
       depositUsdcHuman,
       depositNativeHuman,
-      usdcBalanceDisplay: isBase ? baseUsdcBalance : usdcBalance,
-      nativeBalance: isBase ? baseEthBalance : solBalance,
-      nativeLabel: isBase ? "ETH" : "SOL",
-      isBase,
+      usdcBalanceDisplay: usdcBalance,
+      nativeBalance: solBalance,
+      nativeLabel: "SOL",
     });
     if (depositErr) {
       toast({
@@ -356,27 +341,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     }
     setSubmitting(true);
     try {
-      if (isBase && sendBaseFuelTransaction) {
-        const txHash = await sendBaseFuelTransaction(
-          agentAddress,
-          depositUsdcHuman,
-          depositNativeHuman,
-        );
-        const parts: string[] = [];
-        if (depositUsdcHuman > 0) parts.push(`${depositUsdcHuman.toFixed(2)} USDC`);
-        if (depositNativeHuman > 0) parts.push(`${depositNativeHuman.toFixed(6)} ETH`);
-        toast({
-          title: "Transfer sent",
-          description: `${parts.join(" + ")} sent to agent on Base. Tx: ${txHash.slice(0, 10)}…`,
-        });
-        void runAgentBalanceRefresh();
-        void refreshBaseBalances();
-        setCustomUsd("");
-        setCustomNative("");
-        return;
-      }
-
-      if (isSolana && publicKey && sendTransaction) {
+      if (publicKey && sendTransaction) {
         const sendOpts = { skipPreflight: false, maxRetries: 3 };
         let lastErr: unknown;
         for (let attempt = 0; attempt < 2; attempt++) {
@@ -426,31 +391,18 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     depositUsdcHuman,
     depositNativeHuman,
     agentAddress,
-    isBase,
-    isSolana,
     publicKey,
     sendTransaction,
-    sendBaseFuelTransaction,
     buildSolanaTx,
     toast,
     runAgentBalanceRefresh,
     refreshSolanaBalances,
-    refreshBaseBalances,
     depositMode,
     usdcBalance,
     solBalance,
-    baseUsdcBalance,
-    baseEthBalance,
   ]);
 
   const handleWithdrawToUserWallet = useCallback(async () => {
-    if (isBase) {
-      toast({
-        title: "Withdraw on Base",
-        description: "Withdrawing agent funds to your Base wallet is not available yet. Use Solana or contact support.",
-      });
-      return;
-    }
     if (!anonymousId || !publicKey) {
       toast({
         title: "Connect wallet",
@@ -462,7 +414,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     const hasW = withdrawUsdcHuman > 0 || withdrawNativeHuman > 0;
     const withdrawErr = getWithdrawAmountError({
       flowTab: "withdraw",
-      isBase,
       hasWithdrawAmount: hasW,
       withdrawMode,
       withdrawUsdcHuman,
@@ -525,7 +476,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     }
   }, [
     anonymousId,
-    isBase,
     publicKey,
     reportDebit,
     reportNativeDebit,
@@ -544,9 +494,9 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   const formatBalance = (v: number | null | undefined) =>
     v == null ? "—" : v.toFixed(4);
 
-  const nativeLabel = isBase ? "ETH" : "SOL";
-  const nativeBalance = isBase ? baseEthBalance : solBalance;
-  const usdcBalanceDisplay = isBase ? baseUsdcBalance : usdcBalance;
+  const nativeLabel = "SOL";
+  const nativeBalance = solBalance;
+  const usdcBalanceDisplay = usdcBalance;
 
   const fillUsdcFromWalletFraction = useCallback(
     (fraction: 0.5 | 1) => {
@@ -577,17 +527,16 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
         return;
       }
       const v = fraction === 1 ? b : b * 0.5;
-      const decimals = isBase ? 6 : 5;
-      setCustomNative(Number(v.toFixed(decimals)).toString());
+      setCustomNative(Number(v.toFixed(5)).toString());
     },
-    [isBase, nativeBalance, nativeLabel, toast],
+    [nativeBalance, nativeLabel, toast],
   );
 
   const walletUsdcReady = usdcBalanceDisplay != null && usdcBalanceDisplay > 0;
   const walletNativeReady = nativeBalance != null && nativeBalance > 0;
 
-  const agentNativeBalance = isBase ? agentBaseEthBalance : agentSolBalance;
-  const agentUsdcDisplay = isBase ? agentBaseUsdcBalance : agentUsdcBalance;
+  const agentNativeBalance = agentSolBalance;
+  const agentUsdcDisplay = agentUsdcBalance;
 
   const fillWithdrawUsdcFromAgentFraction = useCallback(
     (fraction: 0.5 | 1) => {
@@ -637,7 +586,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
         usdcBalanceDisplay,
         nativeBalance,
         nativeLabel,
-        isBase,
       }),
     [
       flowTab,
@@ -648,7 +596,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       usdcBalanceDisplay,
       nativeBalance,
       nativeLabel,
-      isBase,
     ],
   );
 
@@ -656,7 +603,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     () =>
       getWithdrawAmountError({
         flowTab,
-        isBase,
         hasWithdrawAmount,
         withdrawMode,
         withdrawUsdcHuman,
@@ -667,7 +613,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       }),
     [
       flowTab,
-      isBase,
       hasWithdrawAmount,
       withdrawMode,
       withdrawUsdcHuman,
@@ -683,16 +628,16 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     !depositAmountError &&
     !!agentAddress &&
     !submitting &&
-    (isBase ? !!baseAddress && !!sendBaseFuelTransaction : !!publicKey && !!sendTransaction);
+    !!publicKey &&
+    !!sendTransaction;
   const canSubmitWithdraw =
     hasWithdrawAmount &&
     !withdrawAmountError &&
     !!agentAddress &&
     !!anonymousId &&
-    (isBase ? !!baseAddress : !!publicKey) &&
+    !!publicKey &&
     !withdrawing &&
-    !submitting &&
-    !isBase;
+    !submitting;
 
   const modalPadX = "px-4 min-[380px]:px-5 sm:px-6";
   const modalPadAfter =
@@ -714,9 +659,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
             Agent wallet
           </DialogTitle>
           <DialogDescription className="line-clamp-2 text-[12px] leading-snug text-muted-foreground/90 min-[380px]:text-[13px] sm:text-sm">
-            {isBase
-              ? "Add USDC or ETH to your agent from the wallet you connected on Base."
-              : "Add funds from your wallet to your agent, or move them back to the same connected wallet."}
+            Add funds from your Solana wallet to your agent, or move them back to the same connected wallet.
           </DialogDescription>
         </DialogHeader>
 
@@ -730,9 +673,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                 flowTab === "deposit" &&
                   "border-primary/25 bg-gradient-to-br from-primary/[0.07] via-muted/12 to-amber-500/[0.05] shadow-[inset_0_1px_0_0_hsl(var(--primary)/0.06)]",
                 flowTab === "withdraw" &&
-                  !isBase &&
                   "border-emerald-500/20 bg-gradient-to-br from-amber-500/[0.06] via-muted/12 to-primary/[0.07] shadow-[inset_0_1px_0_0_hsl(var(--primary)/0.05)]",
-                flowTab === "withdraw" && isBase && "border-border/50 bg-muted/10",
               )}
             >
               <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch sm:gap-3">
@@ -741,7 +682,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                     "min-w-0 rounded-xl px-2 py-1.5 transition-[background-color,box-shadow] duration-300 sm:px-3 sm:py-2.5",
                     flowTab === "deposit" && "bg-primary/[0.11] ring-1 ring-inset ring-primary/20",
                     flowTab === "withdraw" &&
-                      !isBase &&
                       "bg-amber-500/[0.09] ring-1 ring-inset ring-amber-500/18",
                   )}
                 >
@@ -765,11 +705,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                     flowTab === "deposit" &&
                       "flex min-h-[1.75rem] border-y border-primary/15 py-1 sm:min-h-0 sm:border-x sm:border-y-0 sm:py-0",
                     flowTab === "withdraw" &&
-                      !isBase &&
                       "flex min-h-[1.75rem] border-y border-emerald-500/15 py-1 sm:min-h-0 sm:border-x sm:border-y-0 sm:py-0",
-                    flowTab === "withdraw" &&
-                      isBase &&
-                      "hidden border-y border-border/35 py-2 sm:flex sm:border-x sm:border-y-0 sm:border-border/40 sm:py-0",
                   )}
                   aria-hidden
                 >
@@ -786,7 +722,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                         aria-hidden
                       />
                     </span>
-                  ) : flowTab === "withdraw" && !isBase ? (
+                  ) : flowTab === "withdraw" ? (
                     <span key={withdrawFlowAnimKey} className="flex flex-col items-center justify-center gap-0.5">
                       <ChevronsDown
                         className="h-5 w-5 text-emerald-500 sm:hidden animate-withdraw-flow-down"
@@ -810,7 +746,6 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                     flowTab === "deposit" &&
                       "border-primary/15 bg-amber-500/[0.08] ring-1 ring-inset ring-amber-500/15 sm:border-0",
                     flowTab === "withdraw" &&
-                      !isBase &&
                       "border-emerald-500/15 bg-primary/[0.1] ring-1 ring-inset ring-primary/18 sm:border-0",
                   )}
                 >
@@ -858,19 +793,15 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
               </button>
               <button
                 type="button"
-                disabled={isBase}
                 onClick={() => {
-                  if (!isBase) {
-                    setFlowTab("withdraw");
-                    setWithdrawFlowAnimKey((k) => k + 1);
-                  }
+                  setFlowTab("withdraw");
+                  setWithdrawFlowAnimKey((k) => k + 1);
                 }}
                 className={cn(
                   "rounded-2xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-3.5",
-                  isBase && "cursor-not-allowed opacity-40",
-                  flowTab === "withdraw" && !isBase
+                  flowTab === "withdraw"
                     ? "border-foreground/25 bg-muted/30 shadow-sm ring-1 ring-border/40"
-                    : !isBase && "border-border/40 bg-background/40 hover:border-border/60 hover:bg-muted/20",
+                    : "border-border/40 bg-background/40 hover:border-border/60 hover:bg-muted/20",
                 )}
               >
                 <div className="flex items-start gap-2.5">
@@ -880,7 +811,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                   <div className="min-w-0 space-y-0.5">
                     <p className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">Move out</p>
                     <p className="text-[11px] leading-snug text-muted-foreground sm:text-xs">
-                      {isBase ? "Not on Base yet" : "From the agent to your wallet"}
+                      From the agent to your wallet
                     </p>
                   </div>
                 </div>
@@ -1021,7 +952,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
               </div>
             )}
 
-            {flowTab === "withdraw" && !isBase && (
+            {flowTab === "withdraw" && (
               <div className="space-y-1.5 sm:space-y-2">
                 <Label htmlFor="withdraw-amount" className="text-[11px] font-medium text-muted-foreground sm:text-xs">
                   {withdrawMode === "usdc" ? "USDC" : nativeLabel} amount
@@ -1153,14 +1084,9 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
               </div>
             )}
 
-            {flowTab === "withdraw" && isBase && (
-              <p className="rounded-xl border border-border/50 bg-muted/10 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground sm:px-3 sm:py-2.5 sm:text-sm">
-                Moving funds out on Base is not available yet. Use Solana for withdrawals, or add funds above.
-              </p>
-            )}
               </div>
 
-              {(flowTab === "deposit" || (flowTab === "withdraw" && !isBase)) && (
+              {(flowTab === "deposit" || flowTab === "withdraw") && (
                 <div
                   className={cn(
                     "relative shrink-0 overflow-hidden rounded-xl border text-[11px] leading-snug",
@@ -1202,9 +1128,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                               </span>
                             )}
                             <span className="mt-1 block text-[11px] font-normal text-muted-foreground sm:text-xs">
-                              {isBase
-                                ? "From your wallet to the agent on Base."
-                                : "From your wallet to the agent."}
+                              From your Solana wallet to the agent.
                             </span>
                           </p>
                         ) : (

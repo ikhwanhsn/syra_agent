@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
+import { LpRealSection } from "@/components/experiment/LpRealSection";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -393,6 +394,8 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           </p>
         </div>
       ) : null}
+
+      <LpRealSection />
 
       <Tabs defaultValue="leaderboard" className="w-full">
         <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-border/70 bg-muted/30 p-1">

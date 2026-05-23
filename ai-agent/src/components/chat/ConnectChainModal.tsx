@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-export type ConnectOption = "solana" | "base" | "email";
+export type ConnectOption = "solana" | "email";
 
 interface ConnectChainModalProps {
   isOpen: boolean;
@@ -59,8 +59,8 @@ export function ConnectChainModal({
             </DialogTitle>
             <DialogDescription className="space-y-3 text-pretty text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
               <span className="block">
-                Pick a path to continue. Email uses Privy; Solana or Base opens the
-                wallet list for that network.
+                Pick a path to continue. Email uses Privy; Solana opens Phantom,
+                Solflare, and other Solana wallets.
               </span>
               <span className="flex flex-wrap items-center gap-x-1 rounded-lg border border-border/40 bg-muted/25 px-3 py-2.5 text-[12px] leading-snug sm:text-[13px]">
                 <span className="text-muted-foreground">Solana x402:</span>
@@ -93,8 +93,7 @@ export function ConnectChainModal({
                   </span>
                 </span>
                 <span className="block text-[13px] leading-snug text-muted-foreground">
-                  Sign in with email or social — ideal if you are starting on Base or
-                  prefer a passwordless flow.
+                  Sign in with email — passwordless, then connect a Solana wallet.
                 </span>
               </span>
               <ChevronRight
@@ -133,32 +132,6 @@ export function ConnectChainModal({
               </span>
               <ChevronRight
                 className="h-5 w-5 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#9945FF]/80"
-                aria-hidden
-              />
-            </button>
-
-            <button
-              type="button"
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                optionRowClass,
-                "hover:border-[#0052FF]/35 hover:shadow-[0_12px_40px_-16px_rgba(0,82,255,0.28)]",
-              )}
-              onClick={() => handlePick("base")}
-            >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0052FF]/25 to-[#0052FF]/5 ring-1 ring-[#0052FF]/25">
-                <span className="text-lg font-bold leading-none text-[#0052FF]">B</span>
-              </span>
-              <span className="min-w-0 flex-1 space-y-1">
-                <span className="text-[15px] font-semibold tracking-tight text-foreground">
-                  Base
-                </span>
-                <span className="block text-[13px] leading-snug text-muted-foreground">
-                  MetaMask, Rainbow, Coinbase Wallet, and other EVM wallets.
-                </span>
-              </span>
-              <ChevronRight
-                className="h-5 w-5 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#0052FF]/80"
                 aria-hidden
               />
             </button>

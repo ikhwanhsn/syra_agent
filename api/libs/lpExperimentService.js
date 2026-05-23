@@ -319,6 +319,7 @@ export async function getLpExperimentLabState() {
  */
 export async function resetLpExperimentFromScratch(opts = {}) {
   await ensureLpExperimentBootstrapped();
+  // Never wipe real on-chain LP positions or config when resetting the sim lab.
   const state = await LpExperimentState.findById("singleton");
   if (!state) throw new Error("LP experiment state missing");
   const cfg = mergedSimConfig(state);

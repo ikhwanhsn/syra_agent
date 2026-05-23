@@ -10,7 +10,6 @@ import {
   useRef,
 } from "react";
 import { PrivyProvider, usePrivy, useLoginWithSiws, useLogout } from "@privy-io/react-auth";
-import { useWallets as usePrivyEvmWallets } from "@privy-io/react-auth";
 import {
   useWallets as usePrivySolanaWallets,
   useSignTransaction,
@@ -24,58 +23,16 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import { Connection } from "@solana/web3.js";
-import { createWalletClient, custom, getAddress, encodeFunctionData, parseUnits } from "viem";
-import { base } from "viem/chains";
 import { toast } from "@/hooks/use-toast";
 
-/** Minimal EVM signer type for Base (e.g. x402). Not used by agent wallet; kept for API parity. */
-export interface EvmSigner {
-  address: string;
-  signTypedData: (args: {
-    domain: unknown;
-    types: unknown;
-    primaryType: string;
-    message: unknown;
-  }) => Promise<string>;
-}
-
-/**
- * Curated Privy wallet options only (no detected_* / wallet_connect registry).
- * Rabby is not available as a named Privy entry (see Privy docs: rabby_wallet deprecated).
- */
-const POPULAR_EVM_WALLET_LIST: string[] = [
-  "metamask",
-  "coinbase_wallet",
-  "rainbow",
-  "base_account",
-  "okx_wallet",
-];
-
+/** Curated Privy Solana wallet options only. */
 const POPULAR_SOLANA_WALLET_LIST: string[] = [
   "phantom",
   "solflare",
   "backpack",
 ];
 
-/** Login / multi-chain modal when walletChainType is ethereum-and-solana. */
-const POPULAR_MULTICHAIN_WALLET_LIST: string[] = [
-  "phantom",
-  "metamask",
-  "solflare",
-  "backpack",
-  "coinbase_wallet",
-  "rainbow",
-  "base_account",
-  "okx_wallet",
-];
-
-function getPopularWalletListForChain(chain: "solana" | "base"): string[] {
-  return chain === "base"
-    ? [...POPULAR_EVM_WALLET_LIST]
-    : [...POPULAR_SOLANA_WALLET_LIST];
-}
-
-/** Login modal: only email and wallet (no social logins); wallet list is curated above. */
+/** Login modal: only email and wallet (no social logins). */
 const MINIMAL_LOGIN_OPTIONS = { loginMethods: ["email", "wallet"] as const };
 
 const USDC_MINT = new PublicKey(
@@ -83,7 +40,6 @@ const USDC_MINT = new PublicKey(
 );
 const MAINNET_RPC =
   import.meta.env.VITE_SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
-const BASE_USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" as const;
 
 export const connection = new Connection(MAINNET_RPC);
 
@@ -97,7 +53,7 @@ export interface WalletContextState {
   usdcBalance: number | null;
   network: string;
   connect: () => Promise<void>;
-  connectForChain: (chain: "solana" | "base") => Promise<void>;
+  connectForChain: (chain: "solana") => Promise<void>;
   disconnect: () => Promise<void>;
   signTransaction: (transaction: unknown) => Promise<VersionedTransaction>;
   /** Sign and send a legacy Transaction (e.g. for FuelAgentModal). Returns signature. */
@@ -107,33 +63,14 @@ export interface WalletContextState {
   ) => Promise<string>;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
   publicKey: PublicKey | null;
-  baseConnected: boolean;
-  baseConnecting: boolean;
-  baseAddress: string | null;
-  baseShortAddress: string | null;
-  baseUsdcBalance: number | null;
-  /** Base native token (ETH) balance */
-  baseEthBalance: number | null;
-  connectBase: () => Promise<void>;
   connectSolana: () => Promise<void>;
-  disconnectBase: () => Promise<void>;
-  getEvmSigner: () => Promise<EvmSigner | null>;
-  setConnectChainOverride: (v: "ethereum-only" | "solana-only" | null) => void;
   openLoginModal: () => void;
   isPrivyMounted: boolean;
-  requestConnect: (option: "email" | "solana" | "base") => void;
-  /** Which chain to show/use when both Solana and Base are connected (set when user picks in connect modal) */
-  effectiveChain: "solana" | "base" | null;
-  /** Send USDC + ETH to agent wallet on Base. Only available when Base wallet is connected. */
-  sendBaseFuelTransaction: (
-    agentAddress: string,
-    usdcAmountUsd: number,
-    ethAmountUsd: number
-  ) => Promise<string> | null;
-  /** One-shot refresh of linked Solana wallet SOL + USDC (e.g. after agent deposit/withdraw). */
+  requestConnect: (option: "email" | "solana") => void;
+  /** Active chain when connected (Solana only). */
+  effectiveChain: "solana" | null;
+  /** One-shot refresh of linked Solana wallet SOL + USDC. */
   refreshSolanaBalances: () => Promise<void>;
-  /** One-shot refresh of linked Base wallet ETH + USDC. */
-  refreshBaseBalances: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextState | null>(null);
@@ -172,7 +109,6 @@ function setSiws403Origin(origin: string): void {
   }
 }
 
-/** Known Privy SDK keys from @privy-io/react-auth (context-CcPjcQxY) – clear all so refresh stays disconnected. */
 const PRIVY_LOCAL_KEYS = [
   "privy:token",
   "privy:refresh_token",
@@ -188,7 +124,6 @@ const PRIVY_LOCAL_KEYS = [
 ];
 const PRIVY_COOKIE_NAMES = ["privy-token", "privy-refresh-token", "privy-id-token", "privy-session"];
 
-/** Clear any Privy-related IndexedDB databases (SDK or WalletConnect may use them). */
 function clearPrivyIndexedDB(): void {
   try {
     if (typeof indexedDB === "undefined" || !indexedDB.databases) return;
@@ -236,7 +171,6 @@ function clearPrivySessionStorage(): void {
   }
 }
 
-/** When set, user chose to disconnect; after refresh we force logout so wallet doesn't auto-reconnect. */
 const DISCONNECTED_BY_USER_KEY = "syra_wallet_disconnected_by_user";
 function setDisconnectedByUserFlag(): void {
   try {
@@ -262,7 +196,6 @@ function getDisconnectedByUserFlag(): boolean {
   }
 }
 
-/** Check if any Privy auth token exists in storage (run before PrivyProvider mounts). If none, user cleared data or never logged in – treat as disconnected. */
 function hasPrivyTokenInStorage(): boolean {
   try {
     if (typeof localStorage === "undefined") return false;
@@ -277,46 +210,17 @@ function hasPrivyTokenInStorage(): boolean {
   }
 }
 
-const PREFERRED_CHAIN_KEY = "syra_wallet_preferred_chain";
-function getStoredPreferredChain(): "solana" | "base" | null {
-  try {
-    if (typeof localStorage === "undefined") return null;
-    const v = localStorage.getItem(PREFERRED_CHAIN_KEY);
-    if (v === "solana" || v === "base") return v;
-  } catch {
-    /* localStorage unavailable */
-  }
-  return null;
-}
-function setStoredPreferredChain(chain: "solana" | "base") {
-  try {
-    if (typeof localStorage !== "undefined") localStorage.setItem(PREFERRED_CHAIN_KEY, chain);
-  } catch {
-    /* localStorage unavailable */
-  }
-}
-
-type WalletChainOverride = "ethereum-only" | "solana-only" | null;
-type ConnectOption = "email" | "solana" | "base";
+type ConnectOption = "email" | "solana";
 
 const WalletContextInner: FC<{
   children: ReactNode;
-  connectChainOverride: WalletChainOverride;
-  setConnectChainOverride: (v: WalletChainOverride) => void;
   pendingConnectOption: ConnectOption | null;
   setPendingConnectOption: (v: ConnectOption | null) => void;
-  preferredChain: "solana" | "base" | null;
-  setPreferredChain: (v: "solana" | "base" | null) => void;
-  /** When true, there was no Privy token in storage at page load (e.g. user cleared browser data) – force disconnected until user connects again. */
   noPrivyTokenOnLoad: boolean;
 }> = ({
   children,
-  connectChainOverride,
-  setConnectChainOverride,
   pendingConnectOption,
   setPendingConnectOption,
-  preferredChain,
-  setPreferredChain,
   noPrivyTokenOnLoad,
 }) => {
   const { ready: privyReady, authenticated, login, connectWallet } =
@@ -324,7 +228,6 @@ const WalletContextInner: FC<{
   const { logout } = useLogout({
     onSuccess: () => {
       clearPrivySessionStorage();
-      // Clear again after delays – Privy may re-write storage async after logout
       setTimeout(clearPrivySessionStorage, 50);
       setTimeout(clearPrivySessionStorage, 200);
     },
@@ -332,7 +235,6 @@ const WalletContextInner: FC<{
   const { generateSiwsMessage, loginWithSiws } = useLoginWithSiws();
   const { wallets: solanaWallets, ready: solanaWalletsReady } =
     usePrivySolanaWallets();
-  const { wallets: evmWallets } = usePrivyEvmWallets();
   const { signTransaction: privySignTransaction } = useSignTransaction();
   const { signMessage: privySignMessage } = useSignMessage();
 
@@ -342,33 +244,20 @@ const WalletContextInner: FC<{
 
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
-  const [baseUsdcBalance, setBaseUsdcBalance] = useState<number | null>(null);
-  const [baseEthBalance, setBaseEthBalance] = useState<number | null>(null);
-  /** When true, UI shows disconnected immediately; cleared when Privy authenticated becomes false */
   const [forceDisconnected, setForceDisconnected] = useState(false);
-  /** Once user explicitly connects (auth + wallet), stop treating noPrivyTokenOnLoad as disconnected so they see connected. */
   const [noTokenOverriddenByConnect, setNoTokenOverriddenByConnect] = useState(false);
 
   const solanaWallet = solanaWallets?.[0] ?? null;
   const address = solanaWallet?.address ?? null;
   const publicKey = address ? new PublicKey(address) : null;
   const connected = !!(authenticated && solanaWallet);
-
-  const evmWallet = evmWallets?.[0] ?? null;
-  const baseAddress = evmWallet?.address ?? null;
-  const baseConnected = !!(authenticated && baseAddress);
   const connecting =
     !privyReady || (authenticated && !solanaWalletsReady);
-  const baseConnecting = false;
 
   const shortAddress = address
     ? `${address.slice(0, 4)}...${address.slice(-4)}`
     : null;
-  const baseShortAddress = baseAddress
-    ? `${baseAddress.slice(0, 6)}...${baseAddress.slice(-4)}`
-    : null;
 
-  // On mount: if user had disconnected before refresh, or there was no Privy token (e.g. cleared browser data), force logout so wallet doesn't auto-reconnect
   const didApplyDisconnectOnMountRef = useRef(false);
   useEffect(() => {
     if (!privyReady || didApplyDisconnectOnMountRef.current) return;
@@ -386,50 +275,16 @@ const WalletContextInner: FC<{
       .catch(() => {});
   }, [privyReady, logout, noPrivyTokenOnLoad]);
 
-  // Clear forceDisconnected when:
-  // - Fully logged out (no auth + no wallets) so we don't keep it true forever, or
-  // - User has connected (auth + wallets) so connect flow shows correctly
   useEffect(() => {
-    const noWallets =
-      (!solanaWallets || solanaWallets.length === 0) &&
-      (!evmWallets || evmWallets.length === 0);
+    const noWallets = !solanaWallets || solanaWallets.length === 0;
     if (!authenticated && noWallets) {
       setForceDisconnected(false);
     } else if (authenticated && !noWallets) {
       setForceDisconnected(false);
-      setNoTokenOverriddenByConnect(true); // user connected; stop treating noPrivyTokenOnLoad as disconnected
-      clearDisconnectedByUserFlag(); // user connected again; next refresh can stay connected
+      setNoTokenOverriddenByConnect(true);
+      clearDisconnectedByUserFlag();
     }
-  }, [authenticated, solanaWallets, evmWallets]);
-
-  // When only one chain has a wallet, set preferredChain so UI shows that chain (e.g. Base-only user).
-  // Do not overwrite stored preference with the "other" chain when only one list has loaded (race on refresh).
-  useEffect(() => {
-    if (!authenticated) return;
-    const hasSolana = !!(solanaWallets?.length);
-    const hasBase = !!(evmWallets?.length);
-    const stored = getStoredPreferredChain();
-    if (hasBase && !hasSolana) {
-      if (stored !== "solana") {
-        setPreferredChain("base");
-        setStoredPreferredChain("base");
-      }
-    } else if (hasSolana && !hasBase) {
-      if (stored !== "base") {
-        setPreferredChain("solana");
-        setStoredPreferredChain("solana");
-      }
-    }
-  }, [authenticated, solanaWallets?.length, evmWallets?.length, setPreferredChain]);
-
-  // When both chains connected, restore preferred from storage so Base stays selected after refresh
-  useEffect(() => {
-    if (!authenticated) return;
-    const hasBoth = !!(solanaWallets?.length) && !!(evmWallets?.length);
-    if (!hasBoth) return;
-    const stored = getStoredPreferredChain();
-    if (stored && stored !== preferredChain) setPreferredChain(stored);
-  }, [authenticated, solanaWallets?.length, evmWallets?.length, preferredChain, setPreferredChain]);
+  }, [authenticated, solanaWallets]);
 
   const refreshSolanaBalances = useCallback(async () => {
     if (!publicKey || !connected) {
@@ -465,54 +320,12 @@ const WalletContextInner: FC<{
     return () => clearInterval(interval);
   }, [publicKey, connected, refreshSolanaBalances]);
 
-  const refreshBaseBalances = useCallback(async () => {
-    if (!baseAddress || typeof window === "undefined") {
-      setBaseUsdcBalance(null);
-      setBaseEthBalance(null);
-      return;
-    }
-    const abi = [
-      {
-        type: "function",
-        name: "balanceOf",
-        inputs: [{ name: "account", type: "address" }],
-        outputs: [{ type: "uint256" }],
-      },
-    ] as const;
-    try {
-      const { createPublicClient, http, formatUnits, formatEther } = await import("viem");
-      const client = createPublicClient({
-        chain: base,
-        transport: http(),
-      });
-      const [usdcRaw, ethWei] = await Promise.all([
-        client.readContract({
-          address: BASE_USDC as `0x${string}`,
-          abi,
-          functionName: "balanceOf",
-          args: [getAddress(baseAddress)],
-        }),
-        client.getBalance({ address: getAddress(baseAddress) as `0x${string}` }),
-      ]);
-      setBaseUsdcBalance(Number(formatUnits(usdcRaw, 6)));
-      setBaseEthBalance(Number(formatEther(ethWei)));
-    } catch {
-      setBaseUsdcBalance(0);
-      setBaseEthBalance(null);
-    }
-  }, [baseAddress]);
-
-  useEffect(() => {
-    void refreshBaseBalances();
-  }, [refreshBaseBalances]);
-
   useEffect(() => {
     const wallet = solanaWallets?.[0];
     if (!privyReady || authenticated || !wallet?.address) return;
     if (justDisconnectedRef.current) return;
     if (loginModalJustOpenedRef.current) return;
     if (siwsAttemptedForRef.current === wallet.address) return;
-    // Don't trigger Phantom sign (SIWS) when user disconnected or cleared data – would open wallet on refresh
     if (forceDisconnected || noPrivyTokenOnLoad || didApplyDisconnectOnMountRef.current) return;
     if (!hasPrivyTokenInStorage()) return;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -617,12 +430,8 @@ const WalletContextInner: FC<{
   }, [privyReady, login]);
 
   const connectForChain = useCallback(
-    async (chain: "solana" | "base") => {
-      setPreferredChain(chain);
-      setStoredPreferredChain(chain);
+    async (_chain: "solana") => {
       if (!privyReady) return;
-      const walletList = getPopularWalletListForChain(chain);
-
       if (!authenticated) {
         loginModalJustOpenedRef.current = true;
         login(MINIMAL_LOGIN_OPTIONS);
@@ -631,14 +440,13 @@ const WalletContextInner: FC<{
         }, 25000);
         return;
       }
-      // Already have a wallet for this chain (e.g. from previous session) — don't open Privy modal
-      if (chain === "solana" && solanaWallets?.[0]) return;
-      if (chain === "base" && evmWallets?.[0]) return;
-      const walletChainType =
-        chain === "base" ? "ethereum-only" : "solana-only";
-      connectWallet({ walletList, walletChainType });
+      if (solanaWallets?.[0]) return;
+      connectWallet({
+        walletList: [...POPULAR_SOLANA_WALLET_LIST],
+        walletChainType: "solana-only",
+      });
     },
-    [privyReady, authenticated, solanaWallets, evmWallets, login, connectWallet, setPreferredChain]
+    [privyReady, authenticated, solanaWallets, login, connectWallet]
   );
 
   useEffect(() => {
@@ -649,7 +457,7 @@ const WalletContextInner: FC<{
       login(MINIMAL_LOGIN_OPTIONS);
       return;
     }
-    connectForChain(option);
+    connectForChain("solana");
   }, [pendingConnectOption, privyReady, login, connectForChain, setPendingConnectOption]);
 
   const disconnect = useCallback(async () => {
@@ -657,9 +465,8 @@ const WalletContextInner: FC<{
     siwsAttemptedForRef.current = null;
     setSolBalance(null);
     setUsdcBalance(null);
-    setBaseUsdcBalance(null);
     setForceDisconnected(true);
-    setDisconnectedByUserFlag(); // so refresh stays disconnected
+    setDisconnectedByUserFlag();
     try {
       await logout();
       clearPrivySessionStorage();
@@ -674,31 +481,16 @@ const WalletContextInner: FC<{
     }
   }, [logout]);
 
-  const connectBase = useCallback(async () => {
-    if (!authenticated) {
-      login(MINIMAL_LOGIN_OPTIONS);
-      return;
-    }
-    connectWallet({
-      walletList: getPopularWalletListForChain("base"),
-      walletChainType: "ethereum-only",
-    });
-  }, [authenticated, login, connectWallet]);
-
   const connectSolana = useCallback(async () => {
     if (!authenticated) {
       login(MINIMAL_LOGIN_OPTIONS);
       return;
     }
     connectWallet({
-      walletList: getPopularWalletListForChain("solana"),
+      walletList: [...POPULAR_SOLANA_WALLET_LIST],
       walletChainType: "solana-only",
     });
   }, [authenticated, login, connectWallet]);
-
-  const disconnectBase = useCallback(async () => {
-    await disconnect();
-  }, [disconnect]);
 
   const signTransaction = useCallback(
     async (transaction: unknown) => {
@@ -724,7 +516,6 @@ const WalletContextInner: FC<{
       options?: { skipPreflight?: boolean; maxRetries?: number }
     ) => {
       if (!solanaWallet || !publicKey) throw new Error("No Solana wallet connected");
-      // Use "finalized" so the blockhash is on all RPC nodes (avoids "Blockhash not found" when load-balanced)
       const { blockhash } = await connection.getLatestBlockhash("finalized");
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
@@ -760,110 +551,10 @@ const WalletContextInner: FC<{
     [solanaWallet, privySignMessage]
   );
 
-  const getEvmSigner = useCallback((): Promise<EvmSigner | null> => {
-    if (!baseAddress || !evmWallet) return Promise.resolve(null);
-    return (async () => {
-      const provider = await evmWallet.getEthereumProvider();
-      const walletClient = createWalletClient({
-        chain: base,
-        transport: custom(provider as import("viem").EIP1193Provider),
-        account: getAddress(baseAddress) as import("viem").Address,
-      });
-      return {
-        address: baseAddress,
-        signTypedData: async (
-          args: Parameters<EvmSigner["signTypedData"]>[0]
-        ) => {
-          const sig = await walletClient!.signTypedData({
-            account: {
-              address: getAddress(baseAddress) as import("viem").Address,
-              type: "json-rpc",
-            },
-            domain: args.domain,
-            types: args.types,
-            primaryType: args.primaryType,
-            message: args.message,
-          });
-          return sig;
-        },
-      };
-    })();
-  }, [baseAddress, evmWallet]);
-
-  /** Send USDC (ERC-20) and ETH to agent address on Base. Returns last tx hash. */
-  const sendBaseFuelTransaction = useCallback(
-    async (
-      agentAddress: string,
-      usdcAmountUsd: number,
-      ethAmountUsd: number
-    ): Promise<string> => {
-      if (!baseAddress || !evmWallet) throw new Error("No Base wallet connected");
-      const provider = await evmWallet.getEthereumProvider();
-      const walletClient = createWalletClient({
-        chain: base,
-        transport: custom(provider as import("viem").EIP1193Provider),
-        account: getAddress(baseAddress) as import("viem").Address,
-      });
-      if (!walletClient?.account) throw new Error("Wallet client not ready");
-      const toAddress = getAddress(agentAddress) as `0x${string}`;
-      const USDC_DECIMALS = 6;
-      let lastHash: string | null = null;
-      if (usdcAmountUsd > 0) {
-        const rawAmount = parseUnits(usdcAmountUsd.toFixed(USDC_DECIMALS), USDC_DECIMALS);
-        const data = encodeFunctionData({
-          abi: [
-            {
-              type: "function",
-              name: "transfer",
-              inputs: [
-                { name: "to", type: "address" },
-                { name: "amount", type: "uint256" },
-              ],
-              outputs: [{ type: "bool" }],
-            },
-          ],
-          functionName: "transfer",
-          args: [toAddress, rawAmount],
-        });
-        const hash = await walletClient.sendTransaction({
-          to: BASE_USDC as `0x${string}`,
-          data,
-          value: 0n,
-          account: walletClient.account,
-        });
-        lastHash = hash;
-      }
-      if (ethAmountUsd > 0) {
-        const ethWei = parseUnits(
-          ethAmountUsd.toFixed(18),
-          18
-        );
-        const hash = await walletClient.sendTransaction({
-          to: toAddress,
-          value: ethWei,
-          account: walletClient.account,
-        });
-        lastHash = hash;
-      }
-      if (!lastHash) throw new Error("No transfer sent");
-      return lastHash;
-    },
-    [baseAddress, evmWallet]
-  );
-
   const effectivelyDisconnected = forceDisconnected || (noPrivyTokenOnLoad && !noTokenOverriddenByConnect);
-  const effectiveChain: "solana" | "base" | null = (() => {
-    if (effectivelyDisconnected) return null;
-    const solanaConnected = !!(authenticated && solanaWallets?.[0]);
-    const baseConnectedHere = !!(authenticated && evmWallets?.[0]);
-    if (solanaConnected && baseConnectedHere) {
-      // Prefer stored chain so Base stays selected after refresh
-      return preferredChain ?? getStoredPreferredChain() ?? "solana";
-    }
-    if (solanaConnected) return "solana";
-    if (baseConnectedHere) return "base";
-    return null;
-  })();
+  const effectiveChain: "solana" | null =
+    effectivelyDisconnected || !(authenticated && solanaWallets?.[0]) ? null : "solana";
+
   const contextValue: WalletContextState = useMemo(
     () => ({
       connection,
@@ -881,24 +572,12 @@ const WalletContextInner: FC<{
       sendTransaction,
       signMessage,
       publicKey: effectivelyDisconnected ? null : publicKey,
-      baseConnected: effectivelyDisconnected ? false : baseConnected,
-      baseConnecting: effectivelyDisconnected ? false : baseConnecting,
-      baseAddress: effectivelyDisconnected ? null : baseAddress,
-      baseShortAddress: effectivelyDisconnected ? null : baseShortAddress,
-      baseUsdcBalance: effectivelyDisconnected ? null : baseUsdcBalance,
-      baseEthBalance: effectivelyDisconnected ? null : baseEthBalance,
-      connectBase,
       connectSolana,
-      disconnectBase,
-      getEvmSigner,
-      setConnectChainOverride,
       openLoginModal,
       isPrivyMounted: true,
       requestConnect: () => {},
       effectiveChain,
-      sendBaseFuelTransaction: baseAddress && evmWallet ? sendBaseFuelTransaction : null,
       refreshSolanaBalances,
-      refreshBaseBalances,
     }),
     [
       forceDisconnected,
@@ -919,24 +598,10 @@ const WalletContextInner: FC<{
       sendTransaction,
       signMessage,
       publicKey,
-      baseConnected,
-      baseConnecting,
-      baseAddress,
-      baseShortAddress,
-      baseUsdcBalance,
-      baseEthBalance,
-      connectBase,
       connectSolana,
-      disconnectBase,
-      getEvmSigner,
-      setConnectChainOverride,
       openLoginModal,
       refreshSolanaBalances,
-      refreshBaseBalances,
       effectiveChain,
-      sendBaseFuelTransaction,
-      baseAddress,
-      evmWallet,
     ]
   );
 
@@ -972,36 +637,20 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
     throw new Error("Wallet not configured");
   },
   publicKey: null,
-  baseConnected: false,
-  baseConnecting: false,
-  baseAddress: null,
-  baseShortAddress: null,
-  baseUsdcBalance: null,
-  baseEthBalance: null,
-  connectBase: async () => {},
   connectSolana: async () => {},
-  disconnectBase: async () => {},
-  getEvmSigner: async () => null,
-  setConnectChainOverride: () => {},
   openLoginModal: () => {},
   isPrivyMounted: false,
   requestConnect: () => {},
   effectiveChain: null,
-  sendBaseFuelTransaction: null,
   refreshSolanaBalances: async () => {},
-  refreshBaseBalances: async () => {},
 };
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [connectChainOverride, setConnectChainOverride] =
-    useState<WalletChainOverride>(null);
-  // Check before any clear: if no Privy token in storage at load (e.g. user cleared browser data), force disconnected until they connect again
   const [noPrivyTokenOnLoad] = useState(
     () => typeof window !== "undefined" && !hasPrivyTokenInStorage()
   );
-  // Clear Privy session before mount when user previously disconnected (per Privy docs: logout clears session; we clear storage before Privy reads it on refresh)
   const [mountPrivy] = useState(() => {
     if (typeof window !== "undefined" && getDisconnectedByUserFlag()) {
       clearPrivySessionStorage();
@@ -1015,20 +664,6 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
   const requestConnectWhenDeferred = useCallback((option: ConnectOption) => {
     setPendingConnectOption(option);
   }, []);
-
-  const [preferredChain, setPreferredChainState] = useState<
-    "solana" | "base" | null
-  >(() => getStoredPreferredChain());
-  const setPreferredChain = useCallback((v: "solana" | "base" | null) => {
-    setPreferredChainState(v);
-    if (v) setStoredPreferredChain(v);
-  }, []);
-
-  const appearanceWalletList = useMemo(() => {
-    if (connectChainOverride === "ethereum-only") return [...POPULAR_EVM_WALLET_LIST];
-    if (connectChainOverride === "solana-only") return [...POPULAR_SOLANA_WALLET_LIST];
-    return [...POPULAR_MULTICHAIN_WALLET_LIST];
-  }, [connectChainOverride]);
 
   if (!PRIVY_APP_ID?.trim()) {
     return (
@@ -1052,18 +687,16 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
     );
   }
 
-  const walletChainType = connectChainOverride ?? "ethereum-and-solana";
   return (
     <PrivyProvider
       appId={PRIVY_APP_ID}
       {...(PRIVY_CLIENT_ID ? { clientId: PRIVY_CLIENT_ID } : {})}
       config={{
         appearance: {
-          walletChainType,
-          walletList: appearanceWalletList,
+          walletChainType: "solana-only",
+          walletList: [...POPULAR_SOLANA_WALLET_LIST],
         },
         embeddedWallets: {
-          ethereum: { createOnLogin: "users-without-wallets" },
           solana: { createOnLogin: "users-without-wallets" },
         },
         externalWallets: {
@@ -1074,12 +707,8 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
       }}
     >
       <WalletContextInner
-        connectChainOverride={connectChainOverride}
-        setConnectChainOverride={setConnectChainOverride}
         pendingConnectOption={pendingConnectOption}
         setPendingConnectOption={setPendingConnectOption}
-        preferredChain={preferredChain}
-        setPreferredChain={setPreferredChain}
         noPrivyTokenOnLoad={noPrivyTokenOnLoad}
       >
         {children}
