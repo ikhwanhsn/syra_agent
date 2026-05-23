@@ -625,6 +625,7 @@ app.use(
     skip: (req) => {
       const p = req.path || "";
       return (
+        p.startsWith("/agent/auth/") ||
         isX402Route(p) ||
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/agent-team/run") ||

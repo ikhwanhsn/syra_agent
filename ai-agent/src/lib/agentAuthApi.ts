@@ -15,6 +15,7 @@ const SESSION_CHAIN_KEY = "syra_session_chain";
 let memoryAccessToken: string | null = null;
 let memoryExpiresAt = 0;
 let refreshInFlight: Promise<string | null> | null = null;
+let signOutInFlight: Promise<void> | null = null;
 
 export interface SyraSignInResult {
   accessToken: string;
@@ -108,6 +109,10 @@ export async function refreshAccessToken(): Promise<string | null> {
         body: "{}",
       });
       if (!res.ok) {
+        if (res.status !== 401) {
+          // Keep stale access token on transient errors; caller can retry.
+          return getCachedAccessToken();
+        }
         clearSyraSession();
         return null;
       }
@@ -199,18 +204,23 @@ export async function signInWithWallet(params: {
 }
 
 export async function signOutSyraSession(): Promise<void> {
-  try {
-    await fetch(`${AUTH_BASE()}/sign-out`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-  } catch {
-    /* ignore network errors on sign-out */
-  } finally {
+  if (signOutInFlight) return signOutInFlight;
+  signOutInFlight = (async () => {
     clearSyraSession();
-  }
+    try {
+      await fetch(`${AUTH_BASE()}/sign-out`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+    } catch {
+      /* ignore network errors on sign-out */
+    }
+  })().finally(() => {
+    signOutInFlight = null;
+  });
+  return signOutInFlight;
 }
 
 /** Authenticated fetch for Syra API routes (session cookie + Bearer access token). */

@@ -235,20 +235,57 @@ router.post('/sign-out', async (req, res) => {
   } catch {
     /* ignore */
   }
-  res.setHeader('Set-Cookie', 'syra_refresh=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+  res.setHeader('Set-Cookie', buildRefreshCookieClearHeader());
   res.json({ success: true });
 });
 
-function setRefreshCookie(res, token) {
+/** Cross-site credentialed fetch (agent.syraa.fun → api.syraa.fun) requires SameSite=None. */
+function refreshCookieSameSite() {
+  if (process.env.SYRA_AUTH_COOKIE_SAMESITE) {
+    return process.env.SYRA_AUTH_COOKIE_SAMESITE.trim();
+  }
+  return process.env.NODE_ENV === 'production' ? 'None' : 'Lax';
+}
+
+function refreshCookieDomain() {
+  const d = (process.env.SYRA_AUTH_COOKIE_DOMAIN || '').trim();
+  return d || null;
+}
+
+function buildRefreshCookieHeader(token) {
   const parts = [
     `syra_refresh=${encodeURIComponent(token)}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${refreshCookieSameSite()}`,
     `Max-Age=${TOKEN_CONFIG.REFRESH_TTL_SEC}`,
   ];
-  if (process.env.NODE_ENV === 'production') parts.push('Secure');
-  res.setHeader('Set-Cookie', parts.join('; '));
+  const domain = refreshCookieDomain();
+  if (domain) parts.push(`Domain=${domain}`);
+  if (process.env.NODE_ENV === 'production' || refreshCookieSameSite() === 'None') {
+    parts.push('Secure');
+  }
+  return parts.join('; ');
+}
+
+function buildRefreshCookieClearHeader() {
+  const parts = [
+    'syra_refresh=',
+    'Path=/',
+    'HttpOnly',
+    `SameSite=${refreshCookieSameSite()}`,
+    'Max-Age=0',
+  ];
+  const domain = refreshCookieDomain();
+  if (domain) parts.push(`Domain=${domain}`);
+  if (process.env.NODE_ENV === 'production' || refreshCookieSameSite() === 'None') {
+    parts.push('Secure');
+  }
+  return parts.join('; ');
+}
+
+function setRefreshCookie(res, token) {
+  res.setHeader('Set-Cookie', buildRefreshCookieHeader(token));
 }
 
 function parseCookie(req, name) {
