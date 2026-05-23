@@ -51,7 +51,7 @@ function pnlClass(value: number | null | undefined): string {
 
 export function LpRealSection() {
   const { anonymousId, agentAddress, agentSolBalance } = useAgentWallet();
-  const { requestSyraAuth } = useSyraAuth();
+  const { ensureSyraAuth } = useSyraAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [stopAllOpen, setStopAllOpen] = useState(false);
@@ -77,9 +77,10 @@ export function LpRealSection() {
 
   const stopAllMutation = useMutation({
     mutationFn: async () => {
-      const auth = await requestSyraAuth();
-      if (!auth) throw new Error("wallet_sign_in_required");
-      return disableLpReal({ closeAll: true });
+      const auth = await ensureSyraAuth();
+      const sessionAnonymousId = auth?.anonymousId ?? anonymousId;
+      if (!sessionAnonymousId) throw new Error("wallet_sign_in_required");
+      return disableLpReal({ closeAll: true, anonymousId: sessionAnonymousId });
     },
     onSuccess: () => {
       setStopAllOpen(false);
@@ -88,7 +89,7 @@ export function LpRealSection() {
     },
     onError: (err: Error) => {
       const msg = err.message.includes("wallet_sign_in_required")
-        ? "Wallet sign-in was cancelled."
+        ? "Connect your wallet with the button in the top bar, then try again."
         : err.message;
       toast({ title: "Stop failed", description: msg, variant: "destructive" });
     },
@@ -368,9 +369,22 @@ export function LpRealSection() {
                           {row.poolName || row.poolAddress.slice(0, 8)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {row.status.replace(/_/g, " ")}
-                          </Badge>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <Badge
+                              variant={row.status === "error" ? "destructive" : "outline"}
+                              className="text-[10px] capitalize"
+                            >
+                              {row.status.replace(/_/g, " ")}
+                            </Badge>
+                            {row.status === "error" && row.errorMessage ? (
+                              <span
+                                className="max-w-[220px] truncate text-[10px] text-destructive"
+                                title={row.errorMessage}
+                              >
+                                {row.errorMessage}
+                              </span>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm">
                           {formatSol(row.depositSol)}

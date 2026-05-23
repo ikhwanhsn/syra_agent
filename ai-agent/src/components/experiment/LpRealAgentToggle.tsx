@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Power, PowerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,8 @@ type Props = {
 };
 
 export function LpRealAgentToggle({ state, isLoading, className, layout = "default" }: Props) {
-  const { requestSyraAuth } = useSyraAuth();
+  const { anonymousId } = useAgentWallet();
+  const { ensureSyraAuth } = useSyraAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,12 +31,13 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
 
   const toggleMutation = useMutation({
     mutationFn: async (nextEnabled: boolean) => {
-      const auth = await requestSyraAuth();
-      if (!auth) {
+      const auth = await ensureSyraAuth();
+      const sessionAnonymousId = auth?.anonymousId ?? anonymousId;
+      if (!sessionAnonymousId) {
         throw new Error("wallet_sign_in_required");
       }
-      if (nextEnabled) return enableLpReal();
-      return disableLpReal({ closeAll: false });
+      if (nextEnabled) return enableLpReal(sessionAnonymousId);
+      return disableLpReal({ closeAll: false, anonymousId: sessionAnonymousId });
     },
     onSuccess: (_data, nextEnabled) => {
       void queryClient.invalidateQueries({ queryKey: ["lp-real"] });
@@ -52,7 +55,7 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
         : msg.includes("agent_wallet_not_found")
           ? "Create and fund a Solana agent wallet in Settings first."
           : msg.includes("wallet_sign_in_required")
-            ? "Wallet sign-in was cancelled. Connect your wallet to turn the agent on."
+            ? "Connect your wallet with the button in the top bar, then try again."
             : msg;
       toast({ title: "Could not update agent", description: friendly, variant: "destructive" });
     },

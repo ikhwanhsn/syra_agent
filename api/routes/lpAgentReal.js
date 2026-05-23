@@ -93,9 +93,16 @@ export function createLpAgentRealRouter() {
 
   router.post("/enable", requireSession({ allowGuest: false }), async (req, res) => {
     try {
-      const anonymousId = req.user?.anonymousId;
+      const bodyAid =
+        typeof req.body?.anonymousId === "string" && req.body.anonymousId.trim()
+          ? req.body.anonymousId.trim()
+          : null;
+      const anonymousId = req.user?.anonymousId ?? bodyAid;
       if (!anonymousId) {
         return res.status(401).json({ success: false, error: "auth_required" });
+      }
+      if (req.user?.anonymousId && bodyAid && bodyAid !== req.user.anonymousId) {
+        return res.status(403).json({ success: false, error: "anonymous_id_mismatch" });
       }
       const data = await enableLpReal({ anonymousId, enabledBy: anonymousId });
       res.json({ success: true, data });
@@ -120,9 +127,16 @@ export function createLpAgentRealRouter() {
 
   router.post("/disable", requireSession({ allowGuest: false }), async (req, res) => {
     try {
-      const anonymousId = req.user?.anonymousId;
+      const bodyAid =
+        typeof req.body?.anonymousId === "string" && req.body.anonymousId.trim()
+          ? req.body.anonymousId.trim()
+          : null;
+      const anonymousId = req.user?.anonymousId ?? bodyAid;
       if (!anonymousId) {
         return res.status(401).json({ success: false, error: "auth_required" });
+      }
+      if (req.user?.anonymousId && bodyAid && bodyAid !== req.user.anonymousId) {
+        return res.status(403).json({ success: false, error: "anonymous_id_mismatch" });
       }
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const closeAll = Boolean(body.closeAll);

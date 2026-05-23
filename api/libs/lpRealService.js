@@ -18,8 +18,10 @@ import {
   buildOpenPositionTx,
   buildClosePositionTx,
   buildClaimFeesTx,
+  clampPositionBinRange,
   fetchOnChainPosition,
   getAgentSolBalance,
+  MAX_METEORA_POSITION_BINS,
 } from "./meteoraDlmmExecutor.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import { getLpRealDefaultTargetBankSol } from "../config/lpRealAgentAccess.js";
@@ -28,6 +30,28 @@ const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
 const LP_REAL_TOOL_IDS = ["lp_real_open", "lp_real_close", "lp_real_claim"];
+
+/**
+ * Map known Meteora DLMM Anchor error codes to a short, operator-friendly hint
+ * so the dashboard shows something more actionable than `Custom:6040`.
+ */
+const METEORA_DLMM_ERROR_HINTS = Object.freeze({
+  6018: "math_overflow_on_chain",
+  6038: "bin_id_out_of_bound",
+  6040: "position_width_exceeds_meteora_limit",
+});
+
+function humanizeBrokerError(rawReason) {
+  if (!rawReason) return "broker_pending_or_failed";
+  const match = /"Custom"\s*:\s*(\d+)/.exec(rawReason);
+  if (match) {
+    const code = Number(match[1]);
+    const hint = METEORA_DLMM_ERROR_HINTS[code];
+    if (hint) return `${hint} (dlmm_error:${code})`;
+    return `dlmm_error:${code}`;
+  }
+  return rawReason;
+}
 
 let cachedSolPrice = { value: 150, ts: 0 };
 
@@ -784,15 +808,39 @@ async function runLpRealSignalCycleForConfig(config) {
 
     const poolDetail = await fetchMeteoraPoolDetail(poolCandidate.poolAddress);
 
+    // Pre-clamp once for telemetry — buildOpenPositionTx clamps again defensively.
+    const clampedRange = clampPositionBinRange(strategy.binsBelow, strategy.binsAbove);
+    if (clampedRange.binsBelow === 0 && clampedRange.binsAbove === 0) {
+      const errMsg = `strategy_bin_range_invalid (strategy:${strategy.id})`;
+      errors.push(errMsg);
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 0,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
+    }
+
     const txBuild = await buildOpenPositionTx({
       lbPairAddress: poolCandidate.poolAddress,
-      binsBelow: strategy.binsBelow,
-      binsAbove: strategy.binsAbove,
+      binsBelow: clampedRange.binsBelow,
+      binsAbove: clampedRange.binsAbove,
       lpShape: strategy.lpShape,
       depositSol,
       agentPubkey: config.agentAddress,
       slippageBps: envSlippageBps(),
     });
+
+    if (clampedRange.clamped) {
+      console.info(
+        `[lpReal] clamped position width for strategy ${strategy.id} (${strategy.name}): ` +
+          `${strategy.binsBelow}/${strategy.binsAbove} -> ${txBuild.effectiveBinsBelow}/${txBuild.effectiveBinsAbove} ` +
+          `(max ${MAX_METEORA_POSITION_BINS} bins)`,
+      );
+    }
 
     const pending = await LpRealPosition.create({
       experimentId: config.experimentId,
@@ -806,8 +854,8 @@ async function runLpRealSignalCycleForConfig(config) {
       baseMint: poolDetail.baseMint,
       quoteMint: poolDetail.quoteMint,
       binStep: poolDetail.binStep,
-      binsBelow: strategy.binsBelow,
-      binsAbove: strategy.binsAbove,
+      binsBelow: txBuild.effectiveBinsBelow,
+      binsAbove: txBuild.effectiveBinsAbove,
       activeBinAtOpen: txBuild.activeBinAtOpen,
       entryPriceUsd: poolDetail.currentPrice,
       positionPubkey: txBuild.positionPubkey,
@@ -830,10 +878,11 @@ async function runLpRealSignalCycleForConfig(config) {
     );
 
     if (brokerResult.status !== "ok") {
-      const errMsg =
+      const rawErrMsg =
         brokerResult.status === "denied"
           ? (brokerResult.reasons || []).join(";")
           : "broker_pending_or_failed";
+      const errMsg = humanizeBrokerError(rawErrMsg);
       await LpRealPosition.updateOne(
         { _id: pending._id },
         { $set: { status: "error", errorMessage: errMsg, resolvedAt: new Date() } },
@@ -1001,10 +1050,11 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
       );
 
       if (closeResult.status !== "ok") {
-        const errMsg =
+        const rawErrMsg =
           closeResult.status === "denied"
             ? (closeResult.reasons || []).join(";")
             : "close_broker_failed";
+        const errMsg = humanizeBrokerError(rawErrMsg);
         await LpRealPosition.updateOne(
           { _id: position._id },
           {

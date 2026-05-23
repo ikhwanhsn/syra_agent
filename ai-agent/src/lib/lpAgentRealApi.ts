@@ -130,22 +130,32 @@ export async function fetchLpRealPositions(options?: {
   return parseJson<LpRealPositionsPage>(res);
 }
 
-export async function enableLpReal(): Promise<LpRealState> {
+export async function enableLpReal(anonymousId?: string | null): Promise<LpRealState> {
   const res = await syraFetch(`${base()}/enable`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: "{}",
+    body: JSON.stringify(
+      anonymousId?.trim() ? { anonymousId: anonymousId.trim() } : {},
+    ),
   });
   return parseJson<LpRealState>(res);
 }
 
-export async function disableLpReal(options?: { closeAll?: boolean }): Promise<LpRealState> {
+export async function disableLpReal(options?: {
+  closeAll?: boolean;
+  anonymousId?: string | null;
+}): Promise<LpRealState> {
   const res = await syraFetch(`${base()}/disable`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ closeAll: Boolean(options?.closeAll) }),
+    body: JSON.stringify({
+      closeAll: Boolean(options?.closeAll),
+      ...(options?.anonymousId?.trim()
+        ? { anonymousId: options.anonymousId.trim() }
+        : {}),
+    }),
   });
   return parseJson<LpRealState>(res);
 }

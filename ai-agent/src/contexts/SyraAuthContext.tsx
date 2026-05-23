@@ -228,6 +228,18 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     void restoreSessionForWallet(activeWallet.address);
   }, [syraAuthReady, authenticated, activeWallet, restoreSessionForWallet, syraAuthenticated]);
 
+  /** One Syra session sign-in after user clicks Connect wallet (skipped if refresh cookie exists). */
+  useEffect(() => {
+    if (!syraAuthReady || !activeWallet) return;
+
+    const onWalletConnected = () => {
+      void signInForWalletInteractive(activeWallet.address);
+    };
+
+    window.addEventListener("syra-wallet-connected", onWalletConnected);
+    return () => window.removeEventListener("syra-wallet-connected", onWalletConnected);
+  }, [syraAuthReady, activeWallet, signInForWalletInteractive]);
+
   useEffect(() => {
     if (!authenticated) {
       lastSignedWalletRef.current = null;

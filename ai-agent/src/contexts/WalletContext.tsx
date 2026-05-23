@@ -239,8 +239,14 @@ const WalletContextInner: FC<{
   const { signMessage: privySignMessage } = useSignMessage();
 
   const siwsAttemptedForRef = useRef<string | null>(null);
+  const userRequestedWalletConnectRef = useRef(false);
   const justDisconnectedRef = useRef(false);
   const loginModalJustOpenedRef = useRef(false);
+
+  const markUserInitiatedConnect = useCallback(() => {
+    userRequestedWalletConnectRef.current = true;
+    siwsAttemptedForRef.current = null;
+  }, []);
 
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
@@ -320,9 +326,21 @@ const WalletContextInner: FC<{
     return () => clearInterval(interval);
   }, [publicKey, connected, refreshSolanaBalances]);
 
+  /** After explicit Connect wallet, notify Syra auth (one session sign-in if needed). */
+  useEffect(() => {
+    if (!authenticated || !address) return;
+    if (!userRequestedWalletConnectRef.current) return;
+    userRequestedWalletConnectRef.current = false;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("syra-wallet-connected"));
+    }
+  }, [authenticated, address]);
+
   useEffect(() => {
     const wallet = solanaWallets?.[0];
     if (!privyReady || authenticated || !wallet?.address) return;
+    // Never auto-prompt wallet signature on page load — only after Connect wallet.
+    if (!userRequestedWalletConnectRef.current) return;
     if (justDisconnectedRef.current) return;
     if (loginModalJustOpenedRef.current) return;
     if (siwsAttemptedForRef.current === wallet.address) return;
@@ -412,26 +430,29 @@ const WalletContextInner: FC<{
 
   const connect = useCallback(async () => {
     if (!privyReady) return;
+    markUserInitiatedConnect();
     if (!authenticated) {
       login(MINIMAL_LOGIN_OPTIONS);
       return;
     }
     connectWallet();
-  }, [privyReady, authenticated, login, connectWallet]);
+  }, [privyReady, authenticated, login, connectWallet, markUserInitiatedConnect]);
 
   const openLoginModal = useCallback(() => {
     if (privyReady) {
+      markUserInitiatedConnect();
       loginModalJustOpenedRef.current = true;
       login(MINIMAL_LOGIN_OPTIONS);
       setTimeout(() => {
         loginModalJustOpenedRef.current = false;
       }, 25000);
     }
-  }, [privyReady, login]);
+  }, [privyReady, login, markUserInitiatedConnect]);
 
   const connectForChain = useCallback(
     async (_chain: "solana") => {
       if (!privyReady) return;
+      markUserInitiatedConnect();
       if (!authenticated) {
         loginModalJustOpenedRef.current = true;
         login(MINIMAL_LOGIN_OPTIONS);
@@ -446,22 +467,24 @@ const WalletContextInner: FC<{
         walletChainType: "solana-only",
       });
     },
-    [privyReady, authenticated, solanaWallets, login, connectWallet]
+    [privyReady, authenticated, solanaWallets, login, connectWallet, markUserInitiatedConnect]
   );
 
   useEffect(() => {
     if (!pendingConnectOption || !privyReady) return;
     const option = pendingConnectOption;
     setPendingConnectOption(null);
+    markUserInitiatedConnect();
     if (option === "email") {
       login(MINIMAL_LOGIN_OPTIONS);
       return;
     }
     connectForChain("solana");
-  }, [pendingConnectOption, privyReady, login, connectForChain, setPendingConnectOption]);
+  }, [pendingConnectOption, privyReady, login, connectForChain, setPendingConnectOption, markUserInitiatedConnect]);
 
   const disconnect = useCallback(async () => {
     justDisconnectedRef.current = true;
+    userRequestedWalletConnectRef.current = false;
     siwsAttemptedForRef.current = null;
     setSolBalance(null);
     setUsdcBalance(null);
@@ -482,6 +505,7 @@ const WalletContextInner: FC<{
   }, [logout]);
 
   const connectSolana = useCallback(async () => {
+    markUserInitiatedConnect();
     if (!authenticated) {
       login(MINIMAL_LOGIN_OPTIONS);
       return;
@@ -490,7 +514,7 @@ const WalletContextInner: FC<{
       walletList: [...POPULAR_SOLANA_WALLET_LIST],
       walletChainType: "solana-only",
     });
-  }, [authenticated, login, connectWallet]);
+  }, [authenticated, login, connectWallet, markUserInitiatedConnect]);
 
   const signTransaction = useCallback(
     async (transaction: unknown) => {

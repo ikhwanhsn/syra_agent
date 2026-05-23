@@ -22,6 +22,17 @@ const DLMM = require("@meteora-ag/dlmm");
 
 const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
 
+/**
+ * Meteora DLMM legacy `Position` accounts encode at most 70 bins
+ * (`maxBinId - minBinId + 1 ≤ 70`). Exceeding this triggers the on-chain
+ * program's Anchor error 6040 `invalidPositionWidth` and the pre-flight
+ * simulation refuses to sign, surfacing as `Custom:6040` to the operator.
+ *
+ * We hard-clamp here so simulation strategies (designed without this cap)
+ * cannot ship invalid position widths to the broker.
+ */
+export const MAX_METEORA_POSITION_BINS = 70;
+
 let connectionSingleton = null;
 
 function getConnection() {
@@ -38,6 +49,48 @@ function getConnection() {
 function toNum(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Clamp a (binsBelow, binsAbove) pair so the resulting position width fits
+ * Meteora's legacy `Position` limit while preserving the directional skew.
+ *
+ * Width formula: `binsBelow + binsAbove + 1` (active bin included).
+ * Returns the (possibly scaled) values plus a `clamped` flag for telemetry.
+ *
+ * @param {number} binsBelow
+ * @param {number} binsAbove
+ * @param {number} [maxWidth=MAX_METEORA_POSITION_BINS]
+ * @returns {{ binsBelow: number, binsAbove: number, clamped: boolean }}
+ */
+export function clampPositionBinRange(binsBelow, binsAbove, maxWidth = MAX_METEORA_POSITION_BINS) {
+  const rawBelow = Math.max(0, Math.floor(toNum(binsBelow, 0)));
+  const rawAbove = Math.max(0, Math.floor(toNum(binsAbove, 0)));
+  const maxSides = Math.max(0, maxWidth - 1);
+  const total = rawBelow + rawAbove;
+
+  if (total <= maxSides) {
+    return { binsBelow: rawBelow, binsAbove: rawAbove, clamped: false };
+  }
+
+  if (total === 0) {
+    return { binsBelow: 0, binsAbove: 0, clamped: false };
+  }
+
+  let scaledBelow = Math.floor((rawBelow * maxSides) / total);
+  let scaledAbove = Math.floor((rawAbove * maxSides) / total);
+  let slack = maxSides - (scaledBelow + scaledAbove);
+
+  while (slack > 0) {
+    if (rawBelow >= rawAbove) {
+      scaledBelow += 1;
+    } else {
+      scaledAbove += 1;
+    }
+    slack -= 1;
+  }
+
+  return { binsBelow: scaledBelow, binsAbove: scaledAbove, clamped: true };
 }
 
 /** Map sim lpShape to Meteora StrategyType enum. */
@@ -150,8 +203,11 @@ export async function buildOpenPositionTx({
   const dlmmPool = await DLMM.create(connection, lbPair);
 
   const activeBin = await dlmmPool.getActiveBin();
-  const minBinId = activeBin.binId - toNum(binsBelow, 0);
-  const maxBinId = activeBin.binId + toNum(binsAbove, 0);
+  const clampedRange = clampPositionBinRange(binsBelow, binsAbove);
+  const effectiveBinsBelow = clampedRange.binsBelow;
+  const effectiveBinsAbove = clampedRange.binsAbove;
+  const minBinId = activeBin.binId - effectiveBinsBelow;
+  const maxBinId = activeBin.binId + effectiveBinsAbove;
 
   const tokenXDecimals = dlmmPool.tokenX?.mint?.decimals ?? 9;
   const tokenYDecimals = dlmmPool.tokenY?.mint?.decimals ?? 9;
@@ -195,6 +251,9 @@ export async function buildOpenPositionTx({
     activeBinAtOpen: activeBin.binId,
     baseMint: tokenXMint.toBase58(),
     quoteMint: tokenYMint.toBase58(),
+    effectiveBinsBelow,
+    effectiveBinsAbove,
+    binsClamped: clampedRange.clamped,
   };
 }
 
