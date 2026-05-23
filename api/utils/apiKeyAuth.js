@@ -2,10 +2,9 @@
  * API key / Bearer token auth for non-x402 routes.
  * When API_KEY or API_KEYS is set in env, requests to protected routes must send a valid key.
  *
- * Accepted headers (case-insensitive):
- * - Authorization: Bearer <token>
- * - X-API-Key: <key>
- * - api-key: <key>
+ * Accepted headers (priority for gateway auth):
+ * - X-API-Key / api-key (preferred — allows Syra session JWT in Authorization alongside)
+ * - Authorization: Bearer <api-key> (legacy / scripts)
  *
  * Env:
  * - API_KEY: single secret (e.g. "your-secret-key")
@@ -18,19 +17,28 @@ const RAW_KEYS = (process.env.API_KEYS || process.env.API_KEY || "")
   .map((k) => k.trim())
   .filter(Boolean);
 
-const VALID_KEYS = new Set(RAW_KEYS);
+export const VALID_KEYS = new Set(RAW_KEYS);
 const AUTH_REQUIRED = VALID_KEYS.size > 0;
 
-function getKeyFromRequest(req) {
-  const auth = req.get("authorization");
-  if (auth && /^Bearer\s+/i.test(auth)) {
-    return auth.replace(/^Bearer\s+/i, "").trim();
-  }
+/** @param {import('express').Request} req */
+export function getKeyFromRequest(req) {
   const xApiKey = req.get("x-api-key");
   if (xApiKey) return xApiKey.trim();
   const apiKey = req.get("api-key");
   if (apiKey) return apiKey.trim();
+  const auth = req.get("authorization");
+  if (auth && /^Bearer\s+/i.test(auth)) {
+    return auth.replace(/^Bearer\s+/i, "").trim();
+  }
   return null;
+}
+
+/** True when Authorization Bearer is already one of the configured API keys (not a Syra JWT). */
+export function authorizationBearerIsApiKey(req) {
+  const auth = req.get("authorization");
+  if (!auth || !/^Bearer\s+/i.test(auth)) return false;
+  const bearer = auth.replace(/^Bearer\s+/i, "").trim();
+  return VALID_KEYS.has(bearer);
 }
 
 /**
@@ -60,4 +68,4 @@ export function requireApiKey(skip) {
   };
 }
 
-export { AUTH_REQUIRED, VALID_KEYS };
+export { AUTH_REQUIRED };

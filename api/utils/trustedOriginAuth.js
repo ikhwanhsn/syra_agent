@@ -1,11 +1,12 @@
 /**
  * Injects API key for requests from trusted browser origins (syraa.fun, dashboard, agent, playground).
  * Covers agent chat, Alpha /x-projects-analyze, X single-account analyzer, etc.
- * This allows frontends to call the API without embedding the key in client bundles.
  *
- * When Origin (or Referer) is in the allowlist and the path is browser-callable,
- * we set X-API-Key from env so requireApiKey passes. The client must not send the key.
+ * Syra frontends use Authorization: Bearer <access JWT> for wallet sessions. We still inject
+ * X-API-Key for trusted origins so requireApiKey passes without treating the JWT as the gateway key.
  */
+
+import { authorizationBearerIsApiKey } from "./apiKeyAuth.js";
 
 const RAW_KEYS = (process.env.API_KEYS || process.env.API_KEY || "")
   .split(",")
@@ -45,13 +46,9 @@ const TRUSTED_ORIGINS = [
 
 /**
  * Paths a Syra-owned browser frontend may call. When the request comes from a trusted Syra
- * origin (see TRUSTED_ORIGINS) AND no explicit Authorization / X-API-Key header is set, the
- * middleware injects the server's API key so frontends don't have to embed it in client
- * bundles. External origins are not granted the key — they must send their own valid key,
- * which they don't have, so requireApiKey returns 401 for them. This is how non-x402 routes
- * stay Syra-internal.
+ * origin, we inject X-API-Key so requireApiKey passes. Session routes read Authorization separately.
  */
-function isBrowserCallablePath(path) {
+export function isBrowserCallablePath(path) {
   if (!path || path === "/") return false;
   return (
     path.startsWith("/analytics") ||
@@ -109,14 +106,14 @@ function isTrustedOrigin(origin) {
 }
 
 /**
- * Middleware: for requests from trusted origins to browser-callable paths,
- * if no API key is sent, inject the server's API key so requireApiKey passes.
+ * For trusted origins on browser-callable paths, inject server X-API-Key when missing.
+ * Runs even when Authorization carries a Syra access JWT (see getKeyFromRequest priority).
  */
 export function injectTrustedOriginApiKey(req, res, next) {
   if (!SERVER_KEY) return next();
 
-  const existing = req.get("authorization") || req.get("x-api-key") || req.get("api-key");
-  if (existing) return next();
+  if (req.get("x-api-key") || req.get("api-key")) return next();
+  if (authorizationBearerIsApiKey(req)) return next();
 
   const origin = getOriginFromRequest(req);
   if (!origin || !isTrustedOrigin(origin)) return next();
