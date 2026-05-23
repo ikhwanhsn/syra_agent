@@ -89,7 +89,11 @@ import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
-import connectMongoose from "./config/mongoose.js";
+import {
+  onMongooseConnected,
+  runIfMongoConnected,
+  startMongooseConnectionLoop,
+} from "./config/mongoose.js";
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
 import { buildGatewayOpenApi } from "./libs/gatewayOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
@@ -1178,13 +1182,18 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB (Mongoose) for prediction game
-connectMongoose()
-  .then(() =>
-    import("./libs/lpExperimentService.js").then((m) => m.ensureLpExperimentBootstrapped().catch(() => {})),
-    import("./libs/lpRealService.js").then((m) => m.ensureLpRealBootstrapped().catch(() => {})),
-  )
-  .catch(() => {});
+// Connect to MongoDB in background with retry (do not block server startup)
+startMongooseConnectionLoop();
+onMongooseConnected(() => {
+  return Promise.all([
+    import("./libs/lpExperimentService.js").then((m) =>
+      m.ensureLpExperimentBootstrapped().catch(() => {}),
+    ),
+    import("./libs/lpRealService.js").then((m) =>
+      m.ensureLpRealBootstrapped().catch(() => {}),
+    ),
+  ]);
+});
 
 // Eager-init x402 V2 Corbits bundle (default facilitator) so first paid request doesn't wait for /supported
 import("./utils/x402ResourceServer.js").then(
@@ -1202,7 +1211,7 @@ app.listen(PORT, () => {
     process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0,
   );
 
-  const runValidate = () =>
+  const runValidate = runIfMongoConnected(() =>
     import("./libs/tradingExperimentService.js")
       .then(({ resolveOpenExperimentRunsIncremental1m }) =>
         resolveOpenExperimentRunsIncremental1m(),
@@ -1220,9 +1229,9 @@ app.listen(PORT, () => {
           "[Trading experiment] validate failed:",
           err?.message || err,
         ),
-      );
+      ));
 
-  const runSignal = () =>
+  const runSignal = runIfMongoConnected(() =>
     Promise.all([
       import("./libs/tradingExperimentService.js").then(
         ({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles(),
@@ -1250,9 +1259,9 @@ app.listen(PORT, () => {
           "[Trading experiment] signal failed:",
           err?.message || err,
         ),
-      );
+      ));
 
-  const runFull = () =>
+  const runFull = runIfMongoConnected(() =>
     import("./libs/tradingExperimentService.js")
       .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
       .then((out) => {
@@ -1265,7 +1274,7 @@ app.listen(PORT, () => {
       })
       .catch((err) =>
         console.warn("[Trading experiment] cycle failed:", err?.message || err),
-      );
+      ));
 
   if (validateMs >= 1_000) {
     setInterval(runValidate, validateMs);
@@ -1277,7 +1286,7 @@ app.listen(PORT, () => {
     setInterval(runFull, legacyMs);
   }
 
-  const runLpSignal = () =>
+  const runLpSignal = runIfMongoConnected(() =>
     import("./libs/lpExperimentService.js")
       .then(({ runLpExperimentSignalCycle }) => runLpExperimentSignalCycle())
       .then((out) => {
@@ -1287,9 +1296,9 @@ app.listen(PORT, () => {
       })
       .catch((err) =>
         console.warn("[LP experiment] signal failed:", err?.message || err),
-      );
+      ));
 
-  const runLpResolve = () =>
+  const runLpResolve = runIfMongoConnected(() =>
     import("./libs/lpExperimentService.js")
       .then(({ resolveOpenLpRuns }) => resolveOpenLpRuns())
       .then((out) => {
@@ -1299,7 +1308,7 @@ app.listen(PORT, () => {
       })
       .catch((err) =>
         console.warn("[LP experiment] resolve failed:", err?.message || err),
-      );
+      ));
 
   if (LP_AGENT_SIGNAL_INTERVAL_MS >= 60_000) {
     setInterval(runLpSignal, LP_AGENT_SIGNAL_INTERVAL_MS);
@@ -1311,7 +1320,7 @@ app.listen(PORT, () => {
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_REAL_RESOLVE_INTERVAL_MS = 30_000;
 
-  const runLpRealSignal = () =>
+  const runLpRealSignal = runIfMongoConnected(() =>
     import("./libs/lpRealService.js")
       .then(({ isRealCronEnabled, runLpRealSignalCycle }) => {
         if (!isRealCronEnabled()) return null;
@@ -1322,9 +1331,9 @@ app.listen(PORT, () => {
           console.warn("[LP real] signal errors:", out.errors.slice(0, 3));
         }
       })
-      .catch((err) => console.warn("[LP real] signal failed:", err?.message || err));
+      .catch((err) => console.warn("[LP real] signal failed:", err?.message || err)));
 
-  const runLpRealResolve = () =>
+  const runLpRealResolve = runIfMongoConnected(() =>
     import("./libs/lpRealService.js")
       .then(({ isRealCronEnabled, resolveLpRealPositions }) => {
         if (!isRealCronEnabled()) return null;
@@ -1335,7 +1344,7 @@ app.listen(PORT, () => {
           console.warn("[LP real] resolve errors:", out.errors.slice(0, 3));
         }
       })
-      .catch((err) => console.warn("[LP real] resolve failed:", err?.message || err));
+      .catch((err) => console.warn("[LP real] resolve failed:", err?.message || err)));
 
   if (LP_AGENT_REAL_SIGNAL_INTERVAL_MS >= 60_000) {
     setInterval(runLpRealSignal, LP_AGENT_REAL_SIGNAL_INTERVAL_MS);
@@ -1348,7 +1357,7 @@ app.listen(PORT, () => {
     .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {
       const evo = lpEvolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = () =>
+      const tick = runIfMongoConnected(() =>
         runLpExperimentEvolution({
           removeCount: evo.removeCount,
           minDecided: evo.minDecided,
@@ -1370,7 +1379,7 @@ app.listen(PORT, () => {
           })
           .catch((err) =>
             console.warn("[LP experiment evolution failed]", err?.message || err),
-          );
+          ));
       setInterval(tick, evo.ms);
     })
     .catch(() => {});
@@ -1379,7 +1388,7 @@ app.listen(PORT, () => {
     .then(({ evolutionConfigFromEnv, runTradingExperimentEvolution }) => {
       const evo = evolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = () =>
+      const tick = runIfMongoConnected(() =>
         Promise.all([
           runTradingExperimentEvolution({ suite: "primary" }),
           runTradingExperimentEvolution({ suite: "secondary" }),
@@ -1407,7 +1416,7 @@ app.listen(PORT, () => {
               "[Trading experiment evolution failed]",
               err?.message || err,
             ),
-          );
+          ));
       setInterval(tick, evo.ms);
     })
     .catch(() => {});

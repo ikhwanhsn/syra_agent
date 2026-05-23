@@ -18,6 +18,7 @@ import {
   PAGE_SAFE_AREA_BOTTOM_COMPACT,
 } from "@/lib/layoutConstants";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
+import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExperimentRiskAgreementDialog";
 import {
   fetchLpCandidatePools,
   fetchLpLabState,
@@ -148,6 +149,8 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
         "space-y-4",
       )}
     >
+      <LpExperimentRiskAgreementDialog />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

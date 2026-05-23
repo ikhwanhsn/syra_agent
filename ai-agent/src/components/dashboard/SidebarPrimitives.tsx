@@ -192,7 +192,7 @@ export function SidebarIconRail({
               key={item.id}
               to={item.to}
               icon={item.icon}
-              label={item.label}
+              label={item.badge ? `${item.label} (${item.badge.label})` : item.label}
               matchActive={item.isActive}
             />
           ))}
@@ -245,6 +245,11 @@ export function SidebarNavLink({
   );
 }
 
+export type SidebarExperimentBadge = {
+  label: string;
+  className?: string;
+};
+
 export type SidebarExperimentItem = {
   id: string;
   label: string;
@@ -252,7 +257,21 @@ export type SidebarExperimentItem = {
   icon: ComponentType<LucideProps>;
   to: string;
   isActive: ActiveMatcher;
+  badge?: SidebarExperimentBadge;
 };
+
+function ExperimentNavBadge({ badge }: { badge: SidebarExperimentBadge }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-md border border-amber-500/35 bg-amber-500/10 px-1.5 py-0 text-[9px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300",
+        badge.className,
+      )}
+    >
+      {badge.label}
+    </span>
+  );
+}
 
 export function SidebarExperimentsNav({ items }: { items: readonly SidebarExperimentItem[] }) {
   const { pathname, search } = useLocation();
@@ -341,8 +360,11 @@ export function SidebarExperimentsNav({ items }: { items: readonly SidebarExperi
                     <Icon className="h-4 w-4" strokeWidth={active ? 2.25 : 2} aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] font-semibold leading-tight tracking-tight">
-                      {item.label}
+                    <span className="flex items-center gap-1.5">
+                      <span className="block truncate text-[12px] font-semibold leading-tight tracking-tight">
+                        {item.label}
+                      </span>
+                      {item.badge ? <ExperimentNavBadge badge={item.badge} /> : null}
                     </span>
                     {item.description ? (
                       <span className="mt-0.5 block truncate text-[10px] leading-snug text-muted-foreground/65">

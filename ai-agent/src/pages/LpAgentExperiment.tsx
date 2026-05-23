@@ -24,7 +24,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
+import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExperimentRiskAgreementDialog";
 import { LpRealSection } from "@/components/experiment/LpRealSection";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -278,6 +280,8 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         "space-y-4",
       )}
     >
+      <LpExperimentRiskAgreementDialog />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -289,6 +293,12 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
               </Link>
             )}
             <h1 className="text-xl font-semibold tracking-tight">LP agent experiment</h1>
+            <Badge
+              variant="outline"
+              className="border-amber-500/40 bg-amber-500/10 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300"
+            >
+              Beta
+            </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Syra DLMM agents on live Meteora pools — each desk runs a 10&nbsp;SOL bank, up to ten concurrent 1&nbsp;SOL

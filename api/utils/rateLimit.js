@@ -16,26 +16,63 @@ const DEFAULT_CLEANUP_INTERVAL_MS = 60 * 1000;
 // Lazy Redis client. Loaded once at first use to avoid forcing a hard dep when SYRA_REDIS_URL is unset.
 let _redisClient = null;
 let _redisLoading = null;
+let _redisDisabled = false;
+
+/** ioredis expects redis:// or rediss:// — not Upstash REST (https://) URLs. */
+function isValidRedisUrl(url) {
+  return /^rediss?:\/\/.+/i.test(url);
+}
+
+function disableRedis(reason) {
+  if (_redisDisabled) return;
+  _redisDisabled = true;
+  if (_redisClient) {
+    _redisClient.disconnect(false);
+    _redisClient = null;
+  }
+  console.warn(`[rateLimit] ${reason}; using in-memory limiter`);
+}
+
 async function getRedis() {
+  if (_redisDisabled) return null;
   if (_redisClient) return _redisClient;
   const url = (process.env.SYRA_REDIS_URL || "").trim();
   if (!url) return null;
+  if (!isValidRedisUrl(url)) {
+    const scheme = url.split(":")[0] || "unknown";
+    disableRedis(
+      scheme === "https" || scheme === "http"
+        ? "SYRA_REDIS_URL must be redis:// or rediss:// (not the REST https URL — use the Redis URL from your provider dashboard)"
+        : `SYRA_REDIS_URL has invalid scheme "${scheme}" (expected redis:// or rediss://)`
+    );
+    return null;
+  }
   if (_redisLoading) return _redisLoading;
   _redisLoading = (async () => {
     try {
       const mod = await import("ioredis").catch(() => null);
       if (!mod) {
-        console.warn("[rateLimit] SYRA_REDIS_URL set but `ioredis` not installed; using in-memory limiter");
+        disableRedis("SYRA_REDIS_URL set but `ioredis` not installed");
         return null;
       }
       const Redis = mod.default || mod.Redis || mod;
-      const client = new Redis(url, { lazyConnect: false, enableOfflineQueue: false });
-      client.on("error", (e) => console.warn("[rateLimit] redis error:", e?.message || e));
+      const client = new Redis(url, {
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: 0,
+        retryStrategy: () => null,
+      });
+      client.on("error", (e) => {
+        disableRedis(`redis error: ${e?.message || e}`);
+      });
+      await client.connect();
       _redisClient = client;
       return client;
     } catch (e) {
-      console.warn("[rateLimit] redis init failed:", e?.message || e);
+      disableRedis(`redis init failed: ${e?.message || e}`);
       return null;
+    } finally {
+      _redisLoading = null;
     }
   })();
   return _redisLoading;

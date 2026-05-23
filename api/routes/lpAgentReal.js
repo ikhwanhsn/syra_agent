@@ -28,8 +28,12 @@ export function createLpAgentRealRouter() {
 
   router.get("/state", optionalWalletSession(), async (req, res) => {
     try {
+      const queryAid =
+        typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
+          ? req.query.anonymousId.trim()
+          : null;
       const data = await getLpRealState({
-        viewerAnonymousId: req.user?.anonymousId ?? null,
+        viewerAnonymousId: req.user?.anonymousId ?? queryAid,
       });
       res.json({ success: true, data });
     } catch (e) {
@@ -42,8 +46,12 @@ export function createLpAgentRealRouter() {
 
   router.get("/summary", optionalWalletSession(), async (req, res) => {
     try {
+      const queryAid =
+        typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
+          ? req.query.anonymousId.trim()
+          : null;
       const data = await getLpRealSummary({
-        viewerAnonymousId: req.user?.anonymousId ?? null,
+        viewerAnonymousId: req.user?.anonymousId ?? queryAid,
       });
       res.json({ success: true, data });
     } catch (e) {
@@ -63,12 +71,16 @@ export function createLpAgentRealRouter() {
         typeof req.query.experimentId === "string" && req.query.experimentId.trim() !== ""
           ? req.query.experimentId.trim()
           : undefined;
+      const queryAid =
+        typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
+          ? req.query.anonymousId.trim()
+          : null;
       const data = await listLpRealPositions({
         limit,
         offset,
         status,
         experimentId,
-        viewerAnonymousId: req.user?.anonymousId ?? null,
+        viewerAnonymousId: req.user?.anonymousId ?? queryAid,
       });
       res.json({ success: true, data });
     } catch (e) {

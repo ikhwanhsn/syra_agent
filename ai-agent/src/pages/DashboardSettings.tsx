@@ -64,8 +64,6 @@ import {
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
-import { LpRealSettingsCard } from "@/components/dashboard/settings/LpRealSettingsCard";
-
 const STALE_MS = 45_000;
 
 type SetupChain = "solana";
@@ -724,7 +722,6 @@ function AgentSetupSections({
           </CardContent>
         </Card>
 
-        <LpRealSettingsCard />
       </div>
 
       <AgentPrivateKeySection activeAgent={activeAgent} activeChain={activeChain} onCopy={onCopy} copiedField={copiedField} />

@@ -8,7 +8,7 @@ import {
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import connectMongoose from '../config/mongoose.js';
+import { requireMongooseConnection } from '../config/mongoose.js';
 import { computeOperatorStats } from '../services/streamflowLockAggregates.js';
 import { requireSession } from '../utils/requireSession.js';
 
@@ -65,8 +65,8 @@ function getFaucetKeypair() {
 }
 
 export async function createStakingAppRouter() {
-  await connectMongoose();
   const router = Router();
+  router.use(requireMongooseConnection);
 
   /**
    * Internal staking dashboard — registry operator metrics.

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import connectMongoose from '../config/mongoose.js';
+import { requireMongooseConnection } from '../config/mongoose.js';
 import StreamflowLock from '../models/StreamflowLock.js';
 import { sumAmountRaw, computeOperatorStats } from '../services/streamflowLockAggregates.js';
 import {
@@ -20,8 +20,8 @@ function toPositiveInt(value, fallback) {
 }
 
 export async function createStreamflowLocksRouter() {
-  await connectMongoose();
   const router = Router();
+  router.use(requireMongooseConnection);
 
   router.post('/upsert', async (req, res) => {
     try {

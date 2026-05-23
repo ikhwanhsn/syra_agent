@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
 
+/**
+ * Per-agent LP real config. _id is the Solana agent wallet pubkey (string), not ObjectId.
+ */
 const lpRealConfigSchema = new mongoose.Schema(
   {
-    /** Same as agent wallet public key (document _id). */
+    _id: { type: String, required: true },
     agentAddress: { type: String, required: true, unique: true, index: true },
-    /** Links to AgentWallet.anonymousId — updated when session migrates. */
     anonymousId: { type: String, required: true, index: true },
-    /** Master kill switch — cron skips when false. */
     enabled: { type: Boolean, default: false, index: true },
     experimentId: { type: String, required: true, index: true },
     title: { type: String, default: "LP Real Agent (Meteora DLMM)" },
@@ -32,7 +33,16 @@ const lpRealConfigSchema = new mongoose.Schema(
 
 lpRealConfigSchema.index({ enabled: 1, agentAddress: 1 });
 
-const LpRealConfig =
-  mongoose.models.LpRealConfig || mongoose.model("LpRealConfig", lpRealConfigSchema);
+lpRealConfigSchema.pre("validate", function syncIdFromAddress() {
+  if (this.agentAddress) {
+    this._id = this.agentAddress;
+  }
+});
+
+if (mongoose.models.LpRealConfig) {
+  delete mongoose.models.LpRealConfig;
+}
+
+const LpRealConfig = mongoose.model("LpRealConfig", lpRealConfigSchema);
 
 export default LpRealConfig;

@@ -66,6 +66,7 @@ const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
     icon: Droplets,
     to: "/dashboard/lp-experiment",
     isActive: (pathname) => pathname.startsWith("/dashboard/lp-experiment"),
+    badge: { label: "Beta" },
   },
   {
     id: "pumpfun",

@@ -3,6 +3,7 @@
  * First run after boot when no snapshot exists (or after ALPHA_X_BATCH_BOOT_DELAY_MS).
  */
 
+import { isMongooseConnected } from "../config/mongoose.js";
 import { ALPHA_X_BATCH_CRON_MS } from "../config/alphaXBatchConfig.js";
 import {
   ALPHA_X_BATCH_CANONICAL_DB_ID,
@@ -25,6 +26,9 @@ const BOOT_DELAY_MS = Math.min(
 );
 
 export async function runAlphaXBatchTick() {
+  if (!isMongooseConnected()) {
+    return { success: false, error: "mongodb_not_connected" };
+  }
   if (tickInFlight) {
     return { success: false, error: "tick already in flight" };
   }
@@ -66,6 +70,7 @@ export function startAlphaXBatchScheduler() {
   );
 
   setTimeout(async () => {
+    if (!isMongooseConnected()) return;
     try {
       const existing = await loadAlphaXBatchSnapshot(ALPHA_X_BATCH_CANONICAL_DB_ID);
       if (!existing) {

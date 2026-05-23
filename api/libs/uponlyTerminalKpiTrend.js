@@ -1,3 +1,4 @@
+import { isMongooseConnected } from '../config/mongoose.js';
 import UponlyTerminalKpiDaily from '../models/UponlyTerminalKpiDaily.js';
 
 export function utcCalendarDayKey(d = new Date()) {
@@ -31,6 +32,8 @@ export function pctChangeVsBaseline(current, baseline) {
  * @param {{ sampledCount: number }} meta
  */
 export async function persistAndBuildTerminalKpiTrend(todaySnapshot, meta) {
+  if (!isMongooseConnected()) return null;
+
   const dayUtc = utcCalendarDayKey();
 
   try {

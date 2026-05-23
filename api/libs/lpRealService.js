@@ -36,8 +36,9 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function configId(config) {
-  return config?._id || config?.agentAddress;
+function configAgentFilter(config) {
+  const agentAddress = config?.agentAddress || config?._id;
+  return agentAddress ? { agentAddress: String(agentAddress) } : null;
 }
 
 async function getViewerAgentWallet(anonymousId) {
@@ -49,9 +50,11 @@ async function getViewerAgentWallet(anonymousId) {
  * Migrate legacy singleton row (v1) to per-agent document keyed by agentAddress.
  */
 async function migrateLegacySingletonConfig(agentAddress) {
-  const existing = await LpRealConfig.findById(agentAddress).lean();
+  const existing = await LpRealConfig.findOne({ agentAddress }).lean();
   if (existing) return existing;
-  const legacy = await LpRealConfig.findById("singleton").lean();
+  const legacy = await LpRealConfig.findOne({
+    $or: [{ _id: "singleton" }, { agentAddress }],
+  }).lean();
   if (!legacy || legacy.agentAddress !== agentAddress) return null;
   const doc = {
     _id: agentAddress,
@@ -74,7 +77,7 @@ async function migrateLegacySingletonConfig(agentAddress) {
     closeAllRequested: legacy.closeAllRequested,
   };
   await LpRealConfig.create(doc);
-  return LpRealConfig.findById(agentAddress).lean();
+  return LpRealConfig.findOne({ agentAddress }).lean();
 }
 
 /**
@@ -83,7 +86,7 @@ async function migrateLegacySingletonConfig(agentAddress) {
  */
 async function getOrCreateConfigForWallet(wallet, opts = {}) {
   if (!wallet?.agentAddress) return null;
-  let config = await LpRealConfig.findById(wallet.agentAddress).lean();
+  let config = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
   if (!config) config = await migrateLegacySingletonConfig(wallet.agentAddress);
   if (!config && opts.createIfMissing) {
     const experimentId = `lp-real-${wallet.agentAddress.slice(0, 8)}-${Date.now()}`;
@@ -101,11 +104,11 @@ async function getOrCreateConfigForWallet(wallet, opts = {}) {
       reserveSolForFees: 0.05,
       strategySelectionMode: "dynamic_best_net_pnl",
     });
-    config = await LpRealConfig.findById(wallet.agentAddress).lean();
+    config = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
   }
   if (config && config.anonymousId !== wallet.anonymousId) {
     await LpRealConfig.updateOne(
-      { _id: wallet.agentAddress },
+      { agentAddress: wallet.agentAddress },
       { $set: { anonymousId: wallet.anonymousId } },
     );
     config.anonymousId = wallet.anonymousId;
@@ -354,12 +357,30 @@ function canEnableLpReal(onChainBalanceSol, config) {
   return toNum(onChainBalanceSol) >= minBank - 1e-9;
 }
 
+/** UI + enable gate before first Mongo row is created. */
+function buildPreviewLpRealConfig(wallet, minBankSol) {
+  return {
+    agentAddress: wallet.agentAddress,
+    enabled: false,
+    targetBankSol: minBankSol,
+    maxPositionSol: 1,
+    maxConcurrentPositions: 10,
+    reserveSolForFees: 0.05,
+    currentStrategyId: null,
+    lastSignalAt: null,
+    lastResolveAt: null,
+    lastError: null,
+    experimentId: "",
+    closeAllRequested: false,
+  };
+}
+
 export async function getLpRealState({ viewerAnonymousId } = {}) {
   const minBankSol = getLpRealDefaultTargetBankSol();
+  const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
   const isOperator = await viewerIsLpRealOperator(viewerAnonymousId);
-  const wallet = isOperator ? await getViewerAgentWallet(viewerAnonymousId) : null;
 
-  if (!wallet) {
+  if (!wallet || !isOperator) {
     return {
       config: null,
       onChainBalanceSol: 0,
@@ -374,18 +395,37 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   }
 
   const onChainBalanceSol = await getAgentSolBalance(wallet.agentAddress);
-  const config = await getOrCreateConfigForWallet(wallet, { createIfMissing: false });
+  let config = await getOrCreateConfigForWallet(wallet, { createIfMissing: false });
+  const preview = !config;
 
   if (!config) {
+    config = {
+      agentAddress: wallet.agentAddress,
+      enabled: false,
+      targetBankSol: minBankSol,
+      maxPositionSol: 1,
+      maxConcurrentPositions: 10,
+      reserveSolForFees: 0.05,
+      currentStrategyId: null,
+      lastSignalAt: null,
+      lastResolveAt: null,
+      lastError: null,
+      experimentId: "",
+      closeAllRequested: false,
+    };
+  }
+
+  if (preview) {
+    const canEnable = onChainBalanceSol >= minBankSol - 1e-9;
     return {
-      config: null,
+      config: buildPreviewLpRealConfig(wallet, minBankSol),
       onChainBalanceSol,
       deployedSol: 0,
-      availableSol: Math.max(0, onChainBalanceSol - 0.05),
+      availableSol: Math.max(0, onChainBalanceSol - toNum(config.reserveSolForFees, 0.05)),
       openPositionsCount: 0,
       currentStrategy: null,
       minBankSol,
-      canEnable: onChainBalanceSol >= minBankSol - 1e-9,
+      canEnable,
       isOperator,
     };
   }
@@ -563,15 +603,24 @@ async function bumpWalletPolicyForLpReal(anonymousId) {
   const solPrice = await fetchSolPriceUsd();
   const perTxCapUsd = Math.max(250, solPrice * 1.5);
   const dailySpendCapUsd = Math.max(2500, solPrice * 12);
-  const wallet = await AgentWallet.findOne({ anonymousId });
+  const wallet = await AgentWallet.findOne({ anonymousId })
+    .select("allowedTools perTxCapUsd dailySpendCapUsd hourlySpendCapUsd")
+    .lean();
   if (!wallet) throw new Error("agent_wallet_not_found");
 
   const tools = new Set([...(wallet.allowedTools || []), ...LP_REAL_TOOL_IDS]);
-  wallet.allowedTools = [...tools];
-  wallet.perTxCapUsd = Math.max(toNum(wallet.perTxCapUsd, 50), perTxCapUsd);
-  wallet.dailySpendCapUsd = Math.max(toNum(wallet.dailySpendCapUsd, 250), dailySpendCapUsd);
-  wallet.hourlySpendCapUsd = Math.max(toNum(wallet.hourlySpendCapUsd, 100), solPrice * 5);
-  await wallet.save();
+  // updateOne avoids full-document validate() — agentSecretKey is select:false and must not be re-saved.
+  await AgentWallet.updateOne(
+    { anonymousId },
+    {
+      $set: {
+        allowedTools: [...tools],
+        perTxCapUsd: Math.max(toNum(wallet.perTxCapUsd, 50), perTxCapUsd),
+        dailySpendCapUsd: Math.max(toNum(wallet.dailySpendCapUsd, 250), dailySpendCapUsd),
+        hourlySpendCapUsd: Math.max(toNum(wallet.hourlySpendCapUsd, 100), solPrice * 5),
+      },
+    },
+  );
 }
 
 export async function enableLpReal({ anonymousId, enabledBy }) {
@@ -588,31 +637,25 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
     throw err;
   }
   await bumpWalletPolicyForLpReal(anonymousId);
-  await LpRealConfig.updateOne(
-    { _id: configId(config) },
-    {
-      $set: {
-        enabled: true,
-        lastEnabledBy: enabledBy || anonymousId,
-        lastError: null,
-        closeAllRequested: false,
-      },
+  await LpRealConfig.updateOne(configAgentFilter(config), {
+    $set: {
+      enabled: true,
+      lastEnabledBy: enabledBy || anonymousId,
+      lastError: null,
+      closeAllRequested: false,
     },
-  );
+  });
   return getLpRealState({ viewerAnonymousId: anonymousId });
 }
 
 export async function disableLpReal({ anonymousId, closeAll = false }) {
   const config = await assertLpRealOperator(anonymousId);
-  await LpRealConfig.updateOne(
-    { _id: configId(config) },
-    {
-      $set: {
-        enabled: false,
-        closeAllRequested: Boolean(closeAll),
-      },
+  await LpRealConfig.updateOne(configAgentFilter(config), {
+    $set: {
+      enabled: false,
+      closeAllRequested: Boolean(closeAll),
     },
-  );
+  });
   if (closeAll) {
     await resolveLpRealPositions({ forceCloseAll: true, agentAddress: config.agentAddress });
   }
@@ -620,7 +663,7 @@ export async function disableLpReal({ anonymousId, closeAll = false }) {
 }
 
 async function runLpRealSignalCycleForConfig(config) {
-  const cid = configId(config);
+  const agentFilter = configAgentFilter(config);
   const errors = [];
   const opened = [];
   const skipped = [];
@@ -628,7 +671,7 @@ async function runLpRealSignalCycleForConfig(config) {
   const onChainBalance = await getAgentSolBalance(config.agentAddress);
   if (!canEnableLpReal(onChainBalance, config)) {
     await LpRealConfig.updateOne(
-      { _id: cid },
+      agentFilter,
       {
         $set: {
           enabled: false,
@@ -652,7 +695,7 @@ async function runLpRealSignalCycleForConfig(config) {
     if (!best?.strategy) {
       skipped.push({ reason: "no_best_strategy" });
       await LpRealConfig.updateOne(
-        { _id: cid },
+        agentFilter,
         { $set: { lastSignalAt: new Date(), lastError: "no_best_strategy" } },
       );
       return {
@@ -666,7 +709,7 @@ async function runLpRealSignalCycleForConfig(config) {
     }
 
     await LpRealConfig.updateOne(
-      { _id: cid },
+      agentFilter,
       { $set: { currentStrategyId: best.strategyId, lastSignalAt: new Date(), lastError: null } },
     );
 
@@ -796,7 +839,7 @@ async function runLpRealSignalCycleForConfig(config) {
         { $set: { status: "error", errorMessage: errMsg, resolvedAt: new Date() } },
       );
       errors.push(errMsg);
-      await LpRealConfig.updateOne({ _id: cid }, { $set: { lastError: errMsg } });
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -820,7 +863,7 @@ async function runLpRealSignalCycleForConfig(config) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     errors.push(msg);
-    await LpRealConfig.updateOne({ _id: cid }, { $set: { lastError: msg, lastSignalAt: new Date() } });
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastError: msg, lastSignalAt: new Date() } });
   }
 
   return {
@@ -855,7 +898,7 @@ export async function runLpRealSignalCycle() {
 }
 
 async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false } = {}) {
-  const cid = configId(config);
+  const agentFilter = configAgentFilter(config);
   const openRuns = await LpRealPosition.find({
     experimentId: config.experimentId,
     status: { $in: ["open", "closing"] },
@@ -1036,10 +1079,10 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
     status: { $in: ["open", "closing"] },
   });
   if (config.closeAllRequested && stillOpen === 0) {
-    await LpRealConfig.updateOne({ _id: cid }, { $set: { closeAllRequested: false } });
+    await LpRealConfig.updateOne(agentFilter, { $set: { closeAllRequested: false } });
   }
 
-  await LpRealConfig.updateOne({ _id: cid }, { $set: { lastResolveAt: new Date() } });
+  await LpRealConfig.updateOne(agentFilter, { $set: { lastResolveAt: new Date() } });
 
   return {
     agentAddress: config.agentAddress,

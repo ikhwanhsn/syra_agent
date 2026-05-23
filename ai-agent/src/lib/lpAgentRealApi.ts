@@ -97,13 +97,20 @@ export interface LpRealPositionsPage {
   offset: number;
 }
 
-export async function fetchLpRealState(): Promise<LpRealState> {
-  const res = await syraFetch(`${base()}/state`);
+function lpRealQuery(anonymousId?: string | null): string {
+  const q = new URLSearchParams();
+  if (anonymousId?.trim()) q.set("anonymousId", anonymousId.trim());
+  const qs = q.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export async function fetchLpRealState(anonymousId?: string | null): Promise<LpRealState> {
+  const res = await syraFetch(`${base()}/state${lpRealQuery(anonymousId)}`);
   return parseJson<LpRealState>(res);
 }
 
-export async function fetchLpRealSummary(): Promise<LpRealSummary> {
-  const res = await syraFetch(`${base()}/summary`);
+export async function fetchLpRealSummary(anonymousId?: string | null): Promise<LpRealSummary> {
+  const res = await syraFetch(`${base()}/summary${lpRealQuery(anonymousId)}`);
   return parseJson<LpRealSummary>(res);
 }
 
@@ -111,8 +118,10 @@ export async function fetchLpRealPositions(options?: {
   limit?: number;
   offset?: number;
   status?: string;
+  anonymousId?: string | null;
 }): Promise<LpRealPositionsPage> {
   const q = new URLSearchParams();
+  if (options?.anonymousId?.trim()) q.set("anonymousId", options.anonymousId.trim());
   if (options?.limit != null) q.set("limit", String(options.limit));
   if (options?.offset != null) q.set("offset", String(options.offset));
   if (options?.status) q.set("status", options.status);

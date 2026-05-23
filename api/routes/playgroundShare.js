@@ -4,7 +4,7 @@
  */
 import { Router } from 'express';
 import crypto from 'crypto';
-import connectMongoose from '../config/mongoose.js';
+import { requireMongooseConnection } from '../config/mongoose.js';
 import PlaygroundShare from '../models/PlaygroundShare.js';
 
 function escapeRegex(s) {
@@ -35,8 +35,8 @@ function slugFromRequest(payload) {
 }
 
 export async function createPlaygroundShareRouter() {
-  await connectMongoose();
   const router = Router();
+  router.use(requireMongooseConnection);
 
   /** POST /playground/share — create or get share. Body: { method, url, params?, headers?, body?, sharedByWallet?, sharedByChain?, sharedByEmail? }. Returns { slug }. */
   router.post('/share', async (req, res) => {

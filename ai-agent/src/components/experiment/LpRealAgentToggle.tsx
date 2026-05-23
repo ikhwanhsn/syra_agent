@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function LpRealAgentToggle({ state, isLoading, className, layout = "default" }: Props) {
-  const { syraAuthenticated, ensureSyraAuth } = useSyraAuth();
+  const { ensureSyraAuth } = useSyraAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,7 +29,10 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
 
   const toggleMutation = useMutation({
     mutationFn: async (nextEnabled: boolean) => {
-      await ensureSyraAuth();
+      const auth = await ensureSyraAuth();
+      if (!auth) {
+        throw new Error("wallet_sign_in_required");
+      }
       if (nextEnabled) return enableLpReal();
       return disableLpReal({ closeAll: false });
     },
@@ -48,7 +51,9 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
         ? `Fund the agent wallet with at least ${minBank} SOL before turning on.`
         : msg.includes("agent_wallet_not_found")
           ? "Create and fund a Solana agent wallet in Settings first."
-          : msg;
+          : msg.includes("wallet_sign_in_required")
+            ? "Wallet sign-in was cancelled. Connect your wallet to turn the agent on."
+            : msg;
       toast({ title: "Could not update agent", description: friendly, variant: "destructive" });
     },
   });
@@ -58,17 +63,13 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
   if (!isOperator) {
     return (
       <p className={cn("text-xs text-muted-foreground", className)}>
-        Sign in and connect a Solana agent wallet in Settings to run real on-chain LP. You need at
-        least {formatSol(minBank)} on-chain to enable.
+        Create a Solana agent wallet in Settings to run real on-chain LP. You need at least{" "}
+        {formatSol(minBank)} on-chain to enable.
       </p>
     );
   }
 
   const handleTurnOn = () => {
-    if (!syraAuthenticated) {
-      void ensureSyraAuth();
-      return;
-    }
     if (!canEnable) {
       toast({
         title: "Not enough SOL",
@@ -81,54 +82,43 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
   };
 
   const handleTurnOff = () => {
-    if (!syraAuthenticated) {
-      void ensureSyraAuth();
-      return;
-    }
     toggleMutation.mutate(false);
   };
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex flex-wrap items-center gap-2">
-        {enabled ? (
-          <Button
-            type="button"
-            variant="outline"
-            size={layout === "compact" ? "sm" : "default"}
-            className="rounded-xl gap-2"
-            disabled={pending}
-            onClick={handleTurnOff}
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <PowerOff className="h-4 w-4" aria-hidden />
-            )}
-            Turn off agent
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            size={layout === "compact" ? "sm" : "default"}
-            className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-500"
-            disabled={pending || !canEnable}
-            onClick={handleTurnOn}
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Power className="h-4 w-4" aria-hidden />
-            )}
-            Turn on agent
-          </Button>
-        )}
-        {!syraAuthenticated ? (
-          <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => void ensureSyraAuth()}>
-            Sign in to control
-          </Button>
-        ) : null}
-      </div>
+      {enabled ? (
+        <Button
+          type="button"
+          variant="outline"
+          size={layout === "compact" ? "sm" : "default"}
+          className="rounded-xl gap-2"
+          disabled={pending}
+          onClick={handleTurnOff}
+        >
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <PowerOff className="h-4 w-4" aria-hidden />
+          )}
+          Turn off agent
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          size={layout === "compact" ? "sm" : "default"}
+          className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-500"
+          disabled={pending || !canEnable}
+          onClick={handleTurnOn}
+        >
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <Power className="h-4 w-4" aria-hidden />
+          )}
+          Turn on agent
+        </Button>
+      )}
       {!enabled && !canEnable ? (
         <p className="text-xs text-amber-700 dark:text-amber-300">
           Need {formatSol(minBank)} on-chain to enable · current {formatSol(balance)}

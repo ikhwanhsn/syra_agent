@@ -2,6 +2,7 @@
  * Daily sentiment pipeline — classify last 24h articles, persist rolling Mongo series.
  */
 
+import { isMongooseConnected } from "../config/mongoose.js";
 import NewsSentimentDaily from "../models/NewsSentimentDaily.js";
 import { getArticlesWithinHours } from "./newsAggregator.js";
 import { keywordsForTicker, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE, INTERNAL_NEWS_SENTIMENT_CRON_MS } from "../config/internalNewsConfig.js";
@@ -67,6 +68,9 @@ async function upsertDailySection(section, stats) {
  * @returns {Promise<{ success: boolean; sections: number; error?: string }>}
  */
 export async function runDailySentimentTick() {
+  if (!isMongooseConnected()) {
+    return { success: false, sections: 0, error: "mongodb_not_connected" };
+  }
   if (tickInFlight) {
     return { success: false, sections: 0, error: "tick already in flight" };
   }
