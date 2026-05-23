@@ -40,9 +40,11 @@ export function createLpAgentRealRouter() {
     }
   });
 
-  router.get("/summary", async (_req, res) => {
+  router.get("/summary", optionalWalletSession(), async (req, res) => {
     try {
-      const data = await getLpRealSummary();
+      const data = await getLpRealSummary({
+        viewerAnonymousId: req.user?.anonymousId ?? null,
+      });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -52,7 +54,7 @@ export function createLpAgentRealRouter() {
     }
   });
 
-  router.get("/positions", async (req, res) => {
+  router.get("/positions", optionalWalletSession(), async (req, res) => {
     try {
       const limit = req.query.limit != null ? Number(req.query.limit) : 50;
       const offset = req.query.offset != null ? Number(req.query.offset) : 0;
@@ -61,7 +63,13 @@ export function createLpAgentRealRouter() {
         typeof req.query.experimentId === "string" && req.query.experimentId.trim() !== ""
           ? req.query.experimentId.trim()
           : undefined;
-      const data = await listLpRealPositions({ limit, offset, status, experimentId });
+      const data = await listLpRealPositions({
+        limit,
+        offset,
+        status,
+        experimentId,
+        viewerAnonymousId: req.user?.anonymousId ?? null,
+      });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -83,10 +91,9 @@ export function createLpAgentRealRouter() {
       const msg = e instanceof Error ? e.message : String(e);
       let status = 500;
       if (
-        msg === "not_owner_of_lp_real_agent" ||
-        e?.code === "not_owner_of_lp_real_agent" ||
-        msg === "lp_real_wallet_not_allowlisted" ||
-        e?.code === "lp_real_wallet_not_allowlisted"
+        e?.code === "auth_required" ||
+        e?.code === "agent_wallet_not_found" ||
+        msg.startsWith("wallet_")
       ) {
         status = 403;
       } else if (e?.code === "insufficient_balance" || msg.startsWith("insufficient_balance")) status = 400;
@@ -113,10 +120,9 @@ export function createLpAgentRealRouter() {
       const msg = e instanceof Error ? e.message : String(e);
       let status = 500;
       if (
-        msg === "not_owner_of_lp_real_agent" ||
-        e?.code === "not_owner_of_lp_real_agent" ||
-        msg === "lp_real_wallet_not_allowlisted" ||
-        e?.code === "lp_real_wallet_not_allowlisted"
+        e?.code === "auth_required" ||
+        e?.code === "agent_wallet_not_found" ||
+        msg.startsWith("wallet_")
       ) {
         status = 403;
       }

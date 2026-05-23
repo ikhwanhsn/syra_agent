@@ -2,11 +2,10 @@ import mongoose from "mongoose";
 
 const lpRealConfigSchema = new mongoose.Schema(
   {
-    _id: { type: String, default: "singleton" },
-    /** Links to AgentWallet.anonymousId */
+    /** Same as agent wallet public key (document _id). */
+    agentAddress: { type: String, required: true, unique: true, index: true },
+    /** Links to AgentWallet.anonymousId — updated when session migrates. */
     anonymousId: { type: String, required: true, index: true },
-    /** Backend-custodied agent wallet public key (e.g. HSnkAy...). */
-    agentAddress: { type: String, required: true, index: true },
     /** Master kill switch — cron skips when false. */
     enabled: { type: Boolean, default: false, index: true },
     experimentId: { type: String, required: true, index: true },
@@ -21,7 +20,6 @@ const lpRealConfigSchema = new mongoose.Schema(
       enum: ["dynamic_best_net_pnl"],
       default: "dynamic_best_net_pnl",
     },
-    /** Cached from last signal tick for UI. */
     currentStrategyId: { type: Number, default: null, min: 0, max: 99 },
     lastSignalAt: { type: Date, default: null },
     lastResolveAt: { type: Date, default: null },
@@ -31,6 +29,8 @@ const lpRealConfigSchema = new mongoose.Schema(
   },
   { collection: "lp_real_config", timestamps: true },
 );
+
+lpRealConfigSchema.index({ enabled: 1, agentAddress: 1 });
 
 const LpRealConfig =
   mongoose.models.LpRealConfig || mongoose.model("LpRealConfig", lpRealConfigSchema);

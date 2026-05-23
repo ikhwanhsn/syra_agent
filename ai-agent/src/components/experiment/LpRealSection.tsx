@@ -123,7 +123,7 @@ export function LpRealSection() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {config ? (
+          {stateQ.data?.isOperator ? (
             <LpRealAgentToggle state={stateQ.data} isLoading={loading} layout="compact" />
           ) : null}
           {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden /> : null}

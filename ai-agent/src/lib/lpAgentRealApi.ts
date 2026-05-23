@@ -3,10 +3,6 @@ import { syraFetch } from "@/lib/agentAuthApi";
 
 const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/lp-agent-real`;
 
-/** V1 allowlist — must match api/config/lpRealAgentAccess.js default. */
-export const LP_REAL_ALLOWED_AGENT_ADDRESS =
-  "HSnkAyYSGHXN5KcfUAYjdCQkeN4SH4yYzZ7ciV76zeJ3";
-
 async function parseJson<T>(res: Response): Promise<T> {
   const body = (await res.json().catch(() => ({}))) as {
     success?: boolean;
@@ -45,9 +41,7 @@ export interface LpRealState {
   minBankSol: number;
   /** True when on-chain balance >= minBankSol. */
   canEnable: boolean;
-  /** Wallet that may run the real LP experiment (v1 single-tenant). */
-  allowedAgentAddress: string;
-  /** True when the signed-in session owns the allowlisted agent wallet. */
+  /** True when signed-in session has an active Solana agent wallet. */
   isOperator: boolean;
 }
 
@@ -109,7 +103,7 @@ export async function fetchLpRealState(): Promise<LpRealState> {
 }
 
 export async function fetchLpRealSummary(): Promise<LpRealSummary> {
-  const res = await fetch(`${base()}/summary`, { credentials: "include" });
+  const res = await syraFetch(`${base()}/summary`);
   return parseJson<LpRealSummary>(res);
 }
 
@@ -123,7 +117,7 @@ export async function fetchLpRealPositions(options?: {
   if (options?.offset != null) q.set("offset", String(options.offset));
   if (options?.status) q.set("status", options.status);
   const qs = q.toString();
-  const res = await fetch(`${base()}/positions${qs ? `?${qs}` : ""}`, { credentials: "include" });
+  const res = await syraFetch(`${base()}/positions${qs ? `?${qs}` : ""}`);
   return parseJson<LpRealPositionsPage>(res);
 }
 

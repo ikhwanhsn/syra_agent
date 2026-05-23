@@ -22,17 +22,13 @@ import {
   getAgentSolBalance,
 } from "./meteoraDlmmExecutor.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
-import {
-  getLpRealAllowedAgentAddress,
-  isAllowedLpRealAgentAddress,
-} from "../config/lpRealAgentAccess.js";
+import { getLpRealDefaultTargetBankSol } from "../config/lpRealAgentAccess.js";
 
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
 const LP_REAL_TOOL_IDS = ["lp_real_open", "lp_real_close", "lp_real_claim"];
 
-let bootPromise = null;
 let cachedSolPrice = { value: 150, ts: 0 };
 
 function toNum(value, fallback = 0) {
@@ -40,63 +36,115 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function envAgentAddress() {
-  return getLpRealAllowedAgentAddress();
+function configId(config) {
+  return config?._id || config?.agentAddress;
+}
+
+async function getViewerAgentWallet(anonymousId) {
+  if (!anonymousId) return null;
+  return AgentWallet.findOne({ anonymousId }).select("anonymousId agentAddress chain status").lean();
 }
 
 /**
- * True when the signed-in session controls the allowlisted agent wallet (by agentAddress).
- * @param {string | null | undefined} viewerAnonymousId
+ * Migrate legacy singleton row (v1) to per-agent document keyed by agentAddress.
  */
+async function migrateLegacySingletonConfig(agentAddress) {
+  const existing = await LpRealConfig.findById(agentAddress).lean();
+  if (existing) return existing;
+  const legacy = await LpRealConfig.findById("singleton").lean();
+  if (!legacy || legacy.agentAddress !== agentAddress) return null;
+  const doc = {
+    _id: agentAddress,
+    anonymousId: legacy.anonymousId,
+    agentAddress: legacy.agentAddress,
+    enabled: legacy.enabled,
+    experimentId: legacy.experimentId,
+    title: legacy.title,
+    startedAt: legacy.startedAt,
+    targetBankSol: legacy.targetBankSol,
+    maxPositionSol: legacy.maxPositionSol,
+    maxConcurrentPositions: legacy.maxConcurrentPositions,
+    reserveSolForFees: legacy.reserveSolForFees,
+    strategySelectionMode: legacy.strategySelectionMode,
+    currentStrategyId: legacy.currentStrategyId,
+    lastSignalAt: legacy.lastSignalAt,
+    lastResolveAt: legacy.lastResolveAt,
+    lastError: legacy.lastError,
+    lastEnabledBy: legacy.lastEnabledBy,
+    closeAllRequested: legacy.closeAllRequested,
+  };
+  await LpRealConfig.create(doc);
+  return LpRealConfig.findById(agentAddress).lean();
+}
+
+/**
+ * @param {import("mongoose").LeanDocument<any>} wallet
+ * @param {{ createIfMissing?: boolean }} [opts]
+ */
+async function getOrCreateConfigForWallet(wallet, opts = {}) {
+  if (!wallet?.agentAddress) return null;
+  let config = await LpRealConfig.findById(wallet.agentAddress).lean();
+  if (!config) config = await migrateLegacySingletonConfig(wallet.agentAddress);
+  if (!config && opts.createIfMissing) {
+    const experimentId = `lp-real-${wallet.agentAddress.slice(0, 8)}-${Date.now()}`;
+    await LpRealConfig.create({
+      _id: wallet.agentAddress,
+      anonymousId: wallet.anonymousId,
+      agentAddress: wallet.agentAddress,
+      enabled: false,
+      experimentId,
+      title: "LP Real Agent (Meteora DLMM)",
+      startedAt: new Date(),
+      targetBankSol: getLpRealDefaultTargetBankSol(),
+      maxPositionSol: 1,
+      maxConcurrentPositions: 10,
+      reserveSolForFees: 0.05,
+      strategySelectionMode: "dynamic_best_net_pnl",
+    });
+    config = await LpRealConfig.findById(wallet.agentAddress).lean();
+  }
+  if (config && config.anonymousId !== wallet.anonymousId) {
+    await LpRealConfig.updateOne(
+      { _id: wallet.agentAddress },
+      { $set: { anonymousId: wallet.anonymousId } },
+    );
+    config.anonymousId = wallet.anonymousId;
+  }
+  return config;
+}
+
 async function viewerIsLpRealOperator(viewerAnonymousId) {
-  if (!viewerAnonymousId) return false;
-  const allowed = getLpRealAllowedAgentAddress();
-  const viewer = await AgentWallet.findOne({ anonymousId: viewerAnonymousId })
-    .select("agentAddress")
-    .lean();
-  return Boolean(viewer?.agentAddress && viewer.agentAddress === allowed);
+  const wallet = await getViewerAgentWallet(viewerAnonymousId);
+  if (!wallet?.agentAddress) return false;
+  if (wallet.chain && wallet.chain !== "solana") return false;
+  if (wallet.status && wallet.status !== "active") return false;
+  return true;
 }
 
-/**
- * Only the allowlisted agent wallet's linked session may enable/disable or operate cron.
- * @param {string} anonymousId
- */
 async function assertLpRealOperator(anonymousId) {
   if (!anonymousId) {
     const err = new Error("auth_required");
     err.code = "auth_required";
     throw err;
   }
-  const config = await getConfigDoc();
+  const wallet = await getViewerAgentWallet(anonymousId);
+  if (!wallet?.agentAddress) {
+    const err = new Error("agent_wallet_not_found");
+    err.code = "agent_wallet_not_found";
+    throw err;
+  }
+  if (wallet.status && wallet.status !== "active") {
+    const err = new Error(`wallet_${wallet.status}`);
+    err.code = `wallet_${wallet.status}`;
+    throw err;
+  }
+  const config = await getOrCreateConfigForWallet(wallet, { createIfMissing: true });
   if (!config) {
-    const err = new Error("lp_real_not_bootstrapped");
-    err.code = "lp_real_not_bootstrapped";
+    const err = new Error("lp_real_config_missing");
+    err.code = "lp_real_config_missing";
     throw err;
-  }
-  if (!isAllowedLpRealAgentAddress(config.agentAddress)) {
-    const err = new Error("lp_real_wallet_not_allowlisted");
-    err.code = "lp_real_wallet_not_allowlisted";
-    throw err;
-  }
-  const isOp = await viewerIsLpRealOperator(anonymousId);
-  if (!isOp) {
-    const err = new Error("not_owner_of_lp_real_agent");
-    err.code = "not_owner_of_lp_real_agent";
-    throw err;
-  }
-  // Keep singleton owner id aligned with the active session (guest → wallet link migrations).
-  if (config.anonymousId !== anonymousId) {
-    await LpRealConfig.updateOne({ _id: "singleton" }, { $set: { anonymousId } });
-    config.anonymousId = anonymousId;
   }
   return config;
-}
-
-/** Cron / signal safety: refuse if singleton config points at a non-allowlisted wallet. */
-function assertLpRealConfigWalletAllowed(config) {
-  if (!config || !isAllowedLpRealAgentAddress(config.agentAddress)) {
-    throw new Error("lp_real_wallet_not_allowlisted");
-  }
 }
 
 function envEnabledDefault() {
@@ -186,53 +234,9 @@ function evaluateRealPositionExit(position, detail, hoursElapsed) {
   return { shouldClose, resolution, finalStatus, netPnlPct, priceDriftPct, feeYieldPct };
 }
 
-async function getConfigDoc() {
-  await ensureLpRealBootstrapped();
-  return LpRealConfig.findById("singleton").lean();
-}
-
-/**
- * Bootstrap singleton config pinned to env agent address.
- */
+/** Ensures sim lab is ready; per-agent LP real configs are created on demand. */
 export async function ensureLpRealBootstrapped() {
-  if (bootPromise) return bootPromise;
-  bootPromise = (async () => {
-    const agentAddress = envAgentAddress();
-    let config = await LpRealConfig.findById("singleton").lean();
-    if (config) {
-      if (!isAllowedLpRealAgentAddress(config.agentAddress)) {
-        throw new Error(
-          `LP real config agent ${config.agentAddress} is not allowlisted (expected ${agentAddress})`,
-        );
-      }
-      return;
-    }
-
-    const wallet = await AgentWallet.findOne({ agentAddress }).lean();
-    if (!wallet) {
-      throw new Error(`AgentWallet not found for LP real agent address ${agentAddress}`);
-    }
-
-    const experimentId = `lp-real-cohort-${Date.now()}`;
-    await LpRealConfig.create({
-      _id: "singleton",
-      anonymousId: wallet.anonymousId,
-      agentAddress: wallet.agentAddress,
-      enabled: envEnabledDefault(),
-      experimentId,
-      title: "LP Real Agent (Meteora DLMM)",
-      startedAt: new Date(),
-      targetBankSol: 10,
-      maxPositionSol: 1,
-      maxConcurrentPositions: 10,
-      reserveSolForFees: 0.05,
-      strategySelectionMode: "dynamic_best_net_pnl",
-    });
-  })().catch((err) => {
-    bootPromise = null;
-    throw err;
-  });
-  return bootPromise;
+  await ensureLpExperimentBootstrapped();
 }
 
 /**
@@ -342,7 +346,7 @@ async function brokerSignTx(anonymousId, toolId, serializedTxBase64, estimatedUs
 }
 
 function minBankSolForConfig(config) {
-  return toNum(config?.targetBankSol, 10);
+  return toNum(config?.targetBankSol, getLpRealDefaultTargetBankSol());
 }
 
 function canEnableLpReal(onChainBalanceSol, config) {
@@ -351,9 +355,11 @@ function canEnableLpReal(onChainBalanceSol, config) {
 }
 
 export async function getLpRealState({ viewerAnonymousId } = {}) {
-  const allowedAgentAddress = envAgentAddress();
-  const config = await getConfigDoc();
-  if (!config) {
+  const minBankSol = getLpRealDefaultTargetBankSol();
+  const isOperator = await viewerIsLpRealOperator(viewerAnonymousId);
+  const wallet = isOperator ? await getViewerAgentWallet(viewerAnonymousId) : null;
+
+  if (!wallet) {
     return {
       config: null,
       onChainBalanceSol: 0,
@@ -361,10 +367,26 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
       availableSol: 0,
       openPositionsCount: 0,
       currentStrategy: null,
-      minBankSol: 10,
+      minBankSol,
       canEnable: false,
-      allowedAgentAddress,
-      isOperator: false,
+      isOperator,
+    };
+  }
+
+  const onChainBalanceSol = await getAgentSolBalance(wallet.agentAddress);
+  const config = await getOrCreateConfigForWallet(wallet, { createIfMissing: false });
+
+  if (!config) {
+    return {
+      config: null,
+      onChainBalanceSol,
+      deployedSol: 0,
+      availableSol: Math.max(0, onChainBalanceSol - 0.05),
+      openPositionsCount: 0,
+      currentStrategy: null,
+      minBankSol,
+      canEnable: onChainBalanceSol >= minBankSol - 1e-9,
+      isOperator,
     };
   }
 
@@ -374,7 +396,6 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   }).lean();
 
   const deployedSol = openPositions.reduce((s, p) => s + toNum(p.depositSol), 0);
-  const onChainBalanceSol = await getAgentSolBalance(config.agentAddress);
   const availableSol = Math.max(
     0,
     onChainBalanceSol - deployedSol - toNum(config.reserveSolForFees, 0.05),
@@ -410,13 +431,13 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
     currentStrategy,
     minBankSol: minBankSolForConfig(config),
     canEnable: canEnableLpReal(onChainBalanceSol, config),
-    allowedAgentAddress,
-    isOperator: await viewerIsLpRealOperator(viewerAnonymousId),
+    isOperator,
   };
 }
 
-export async function getLpRealSummary() {
-  const config = await getConfigDoc();
+export async function getLpRealSummary({ viewerAnonymousId } = {}) {
+  const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
+  const config = wallet ? await getOrCreateConfigForWallet(wallet, { createIfMissing: false }) : null;
   if (!config) {
     return {
       realizedNetPnlSol: 0,
@@ -491,8 +512,9 @@ export async function getLpRealSummary() {
   };
 }
 
-export async function listLpRealPositions({ limit, offset, status, experimentId } = {}) {
-  const config = await getConfigDoc();
+export async function listLpRealPositions({ limit, offset, status, experimentId, viewerAnonymousId } = {}) {
+  const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
+  const config = wallet ? await getOrCreateConfigForWallet(wallet, { createIfMissing: false }) : null;
   const expId = experimentId || config?.experimentId;
   if (!expId) return { positions: [], total: 0, limit: DEFAULT_LIST_LIMIT, offset: 0 };
 
@@ -567,7 +589,7 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
   }
   await bumpWalletPolicyForLpReal(anonymousId);
   await LpRealConfig.updateOne(
-    { _id: "singleton" },
+    { _id: configId(config) },
     {
       $set: {
         enabled: true,
@@ -577,13 +599,13 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
       },
     },
   );
-  return getLpRealState();
+  return getLpRealState({ viewerAnonymousId: anonymousId });
 }
 
 export async function disableLpReal({ anonymousId, closeAll = false }) {
   const config = await assertLpRealOperator(anonymousId);
   await LpRealConfig.updateOne(
-    { _id: "singleton" },
+    { _id: configId(config) },
     {
       $set: {
         enabled: false,
@@ -592,47 +614,59 @@ export async function disableLpReal({ anonymousId, closeAll = false }) {
     },
   );
   if (closeAll) {
-    await resolveLpRealPositions({ forceCloseAll: true });
+    await resolveLpRealPositions({ forceCloseAll: true, agentAddress: config.agentAddress });
   }
-  return getLpRealState();
+  return getLpRealState({ viewerAnonymousId: anonymousId });
 }
 
-export async function runLpRealSignalCycle() {
-  if (!isRealCronEnabled()) {
-    return { skipped: true, reason: "env_disabled" };
-  }
-
-  const config = await getConfigDoc();
-  if (!config?.enabled) {
-    return { skipped: true, reason: "config_disabled" };
-  }
-  try {
-    assertLpRealConfigWalletAllowed(config);
-  } catch (err) {
-    return {
-      skipped: true,
-      reason: "wallet_not_allowlisted",
-      errors: [err instanceof Error ? err.message : String(err)],
-    };
-  }
-
+async function runLpRealSignalCycleForConfig(config) {
+  const cid = configId(config);
   const errors = [];
   const opened = [];
   const skipped = [];
+
+  const onChainBalance = await getAgentSolBalance(config.agentAddress);
+  if (!canEnableLpReal(onChainBalance, config)) {
+    await LpRealConfig.updateOne(
+      { _id: cid },
+      {
+        $set: {
+          enabled: false,
+          lastError: "insufficient_balance",
+          lastSignalAt: new Date(),
+        },
+      },
+    );
+    return {
+      agentAddress: config.agentAddress,
+      opened: 0,
+      skipped: 1,
+      errors: ["insufficient_balance"],
+      openedRows: opened,
+      skippedRows: [{ reason: "insufficient_balance", onChainBalance }],
+    };
+  }
 
   try {
     const best = await pickBestStrategy();
     if (!best?.strategy) {
       skipped.push({ reason: "no_best_strategy" });
       await LpRealConfig.updateOne(
-        { _id: "singleton" },
+        { _id: cid },
         { $set: { lastSignalAt: new Date(), lastError: "no_best_strategy" } },
       );
-      return { opened: 0, skipped: skipped.length, errors, openedRows: opened, skippedRows: skipped };
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: skipped.length,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
     }
 
     await LpRealConfig.updateOne(
-      { _id: "singleton" },
+      { _id: cid },
       { $set: { currentStrategyId: best.strategyId, lastSignalAt: new Date(), lastError: null } },
     );
 
@@ -642,10 +676,16 @@ export async function runLpRealSignalCycle() {
     });
     if (openCount >= config.maxConcurrentPositions) {
       skipped.push({ reason: "max_positions" });
-      return { opened: 0, skipped: 1, errors, openedRows: opened, skippedRows: skipped };
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
     }
 
-    const onChainBalance = await getAgentSolBalance(config.agentAddress);
     const openPositions = await LpRealPosition.find({
       experimentId: config.experimentId,
       status: { $in: ["open", "opening", "closing"] },
@@ -655,7 +695,14 @@ export async function runLpRealSignalCycle() {
 
     if (availableSol < config.maxPositionSol) {
       skipped.push({ reason: "insufficient_balance", availableSol });
-      return { opened: 0, skipped: 1, errors, openedRows: opened, skippedRows: skipped };
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
     }
 
     const candidates = await getLpCandidatePools();
@@ -665,12 +712,26 @@ export async function runLpRealSignalCycle() {
 
     if (!poolCandidate) {
       skipped.push({ reason: "no_candidate", strategyId: best.strategyId });
-      return { opened: 0, skipped: 1, errors, openedRows: opened, skippedRows: skipped };
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
     }
 
     if (await hasRecentRealPosition(config.experimentId, poolCandidate.poolAddress)) {
       skipped.push({ reason: "cooldown_or_open", pool: poolCandidate.poolAddress });
-      return { opened: 0, skipped: 1, errors, openedRows: opened, skippedRows: skipped };
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
     }
 
     const solPrice = await fetchSolPriceUsd();
@@ -735,8 +796,15 @@ export async function runLpRealSignalCycle() {
         { $set: { status: "error", errorMessage: errMsg, resolvedAt: new Date() } },
       );
       errors.push(errMsg);
-      await LpRealConfig.updateOne({ _id: "singleton" }, { $set: { lastError: errMsg } });
-      return { opened: 0, skipped: 0, errors, openedRows: opened, skippedRows: skipped };
+      await LpRealConfig.updateOne({ _id: cid }, { $set: { lastError: errMsg } });
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 0,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
     }
 
     await LpRealPosition.updateOne(
@@ -752,30 +820,42 @@ export async function runLpRealSignalCycle() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     errors.push(msg);
-    await LpRealConfig.updateOne({ _id: "singleton" }, { $set: { lastError: msg, lastSignalAt: new Date() } });
+    await LpRealConfig.updateOne({ _id: cid }, { $set: { lastError: msg, lastSignalAt: new Date() } });
   }
 
-  return { opened: opened.length, skipped: skipped.length, errors, openedRows: opened, skippedRows: skipped };
+  return {
+    agentAddress: config.agentAddress,
+    opened: opened.length,
+    skipped: skipped.length,
+    errors,
+    openedRows: opened,
+    skippedRows: skipped,
+  };
 }
 
-export async function resolveLpRealPositions({ forceCloseAll = false } = {}) {
-  if (!isRealCronEnabled() && !forceCloseAll) {
-    return { resolved: 0, openChecked: 0, errors: [], rows: [] };
+export async function runLpRealSignalCycle() {
+  if (!isRealCronEnabled()) {
+    return { skipped: true, reason: "env_disabled" };
   }
 
-  const config = await getConfigDoc();
-  if (!config) return { resolved: 0, openChecked: 0, errors: ["no_config"], rows: [] };
-  try {
-    assertLpRealConfigWalletAllowed(config);
-  } catch (err) {
-    return {
-      resolved: 0,
-      openChecked: 0,
-      errors: [err instanceof Error ? err.message : String(err)],
-      rows: [],
-    };
+  const configs = await LpRealConfig.find({ enabled: true }).lean();
+  if (!configs.length) {
+    return { skipped: true, reason: "no_enabled_configs", agents: 0 };
   }
 
+  const results = [];
+  for (const config of configs) {
+    results.push(await runLpRealSignalCycleForConfig(config));
+  }
+
+  const opened = results.reduce((n, r) => n + r.opened, 0);
+  const skipped = results.reduce((n, r) => n + r.skipped, 0);
+  const errors = results.flatMap((r) => r.errors || []);
+  return { agents: configs.length, opened, skipped, errors, results };
+}
+
+async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false } = {}) {
+  const cid = configId(config);
   const openRuns = await LpRealPosition.find({
     experimentId: config.experimentId,
     status: { $in: ["open", "closing"] },
@@ -956,15 +1036,52 @@ export async function resolveLpRealPositions({ forceCloseAll = false } = {}) {
     status: { $in: ["open", "closing"] },
   });
   if (config.closeAllRequested && stillOpen === 0) {
-    await LpRealConfig.updateOne({ _id: "singleton" }, { $set: { closeAllRequested: false } });
+    await LpRealConfig.updateOne({ _id: cid }, { $set: { closeAllRequested: false } });
   }
 
-  await LpRealConfig.updateOne({ _id: "singleton" }, { $set: { lastResolveAt: new Date() } });
+  await LpRealConfig.updateOne({ _id: cid }, { $set: { lastResolveAt: new Date() } });
 
   return {
+    agentAddress: config.agentAddress,
     resolved: resolvedRows.length,
     openChecked: openRuns.length,
     errors,
     rows: resolvedRows,
+  };
+}
+
+export async function resolveLpRealPositions({ forceCloseAll = false, agentAddress = null } = {}) {
+  if (!isRealCronEnabled() && !forceCloseAll) {
+    return { resolved: 0, openChecked: 0, errors: [], rows: [], agents: 0 };
+  }
+
+  let configs;
+  if (agentAddress) {
+    const one = await LpRealConfig.findOne({ agentAddress }).lean();
+    configs = one ? [one] : [];
+  } else if (forceCloseAll) {
+    configs = await LpRealConfig.find({}).lean();
+  } else {
+    configs = await LpRealConfig.find({ enabled: true }).lean();
+  }
+
+  if (!configs.length) {
+    return { resolved: 0, openChecked: 0, errors: ["no_config"], rows: [], agents: 0 };
+  }
+
+  const results = [];
+  for (const config of configs) {
+    const closeThisAgent =
+      forceCloseAll && (!agentAddress || config.agentAddress === agentAddress);
+    results.push(await resolveLpRealPositionsForConfig(config, { forceCloseAll: closeThisAgent }));
+  }
+
+  return {
+    agents: configs.length,
+    resolved: results.reduce((n, r) => n + r.resolved, 0),
+    openChecked: results.reduce((n, r) => n + r.openChecked, 0),
+    errors: results.flatMap((r) => r.errors || []),
+    rows: results.flatMap((r) => r.rows || []),
+    results,
   };
 }

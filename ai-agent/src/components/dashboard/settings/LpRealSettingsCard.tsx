@@ -16,8 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
-import { useAgentWallet } from "@/contexts/AgentWalletContext";
-import { LP_REAL_ALLOWED_AGENT_ADDRESS } from "@/lib/lpAgentRealApi";
 import { useToast } from "@/hooks/use-toast";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import {
@@ -32,7 +30,6 @@ import { LpRealAgentToggle } from "@/components/experiment/LpRealAgentToggle";
 
 export function LpRealSettingsCard() {
   const { syraAuthenticated, ensureSyraAuth } = useSyraAuth();
-  const { agentAddress: contextAgentAddress } = useAgentWallet();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [stopAllOpen, setStopAllOpen] = useState(false);
@@ -90,13 +87,7 @@ export function LpRealSettingsCard() {
   const enabled = Boolean(config?.enabled);
   const minBank = stateQ.data?.minBankSol ?? config?.targetBankSol ?? 10;
   const canEnable = stateQ.data?.canEnable ?? (stateQ.data?.onChainBalanceSol ?? 0) >= minBank;
-  const allowedAddress =
-    stateQ.data?.allowedAgentAddress ?? config?.agentAddress ?? LP_REAL_ALLOWED_AGENT_ADDRESS;
-  const isOperator =
-    stateQ.data?.isOperator ??
-    (syraAuthenticated &&
-      Boolean(contextAgentAddress) &&
-      contextAgentAddress === allowedAddress);
+  const isOperator = stateQ.data?.isOperator ?? false;
 
   if (!syraAuthenticated) {
     return (
@@ -107,7 +98,7 @@ export function LpRealSettingsCard() {
             LP Real Agent (Meteora DLMM)
           </CardTitle>
           <CardDescription>
-            Connect and sign in with the designated agent wallet to run real on-chain LP.
+            Connect and sign in with your Solana agent wallet to run real on-chain LP.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-5">
@@ -127,26 +118,15 @@ export function LpRealSettingsCard() {
             <Droplets className="h-4 w-4 text-violet-500" aria-hidden />
             LP Real Agent (Meteora DLMM)
           </CardTitle>
-          <CardDescription>Real on-chain LP is limited to one operator wallet during the beta.</CardDescription>
+          <CardDescription>Create a Solana agent wallet to run autonomous Meteora LP.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 pt-5 text-sm text-muted-foreground">
           <p>
-            Only agent{" "}
-            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{allowedAddress}</code> can run this
-            experiment.
-            {contextAgentAddress && contextAgentAddress !== allowedAddress ? (
-              <>
-                {" "}
-                You are on agent <code className="font-mono text-xs">{contextAgentAddress}</code> — open Agents and
-                select the allowlisted agent, then sign in again.
-              </>
-            ) : (
-              <> Sign in with the wallet linked to that agent in Settings.</>
-            )}{" "}
-            SYRA staking access for other wallets is coming later.
+            You need an active backend-custodied Solana agent wallet. Create one under Agents, fund it
+            with at least {formatSol(minBank)} SOL, then return here to enable the experiment.
           </p>
           <Button type="button" variant="outline" className="rounded-xl" asChild>
-            <Link to="/dashboard/lp-experiment#real-agent">View public stats</Link>
+            <Link to="/dashboard/lp-experiment#real-agent">View LP experiment</Link>
           </Button>
         </CardContent>
       </Card>
@@ -198,59 +178,69 @@ export function LpRealSettingsCard() {
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading LP Real config…
             </div>
-          ) : config ? (
+          ) : isOperator ? (
             <>
-              <div className="grid gap-2 text-sm sm:grid-cols-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">Agent address</p>
-                  <p className="font-mono text-xs">{config.agentAddress}</p>
+              {config ? (
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Agent address</p>
+                    <p className="font-mono text-xs">{config.agentAddress}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">On-chain balance</p>
+                    <p className="font-medium tabular-nums">{formatSol(stateQ.data?.onChainBalanceSol ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bank / slot / max</p>
+                    <p className="font-medium">
+                      {config.targetBankSol} SOL · {config.maxPositionSol} SOL · {config.maxConcurrentPositions}{" "}
+                      slots
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Reserve (fees)</p>
+                    <p className="font-medium">{config.reserveSolForFees} SOL</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Following strategy</p>
+                    {stateQ.data?.currentStrategy ? (
+                      <Badge variant="secondary" className="mt-1 font-normal">
+                        #{stateQ.data.currentStrategy.id} {stateQ.data.currentStrategy.name} — dynamic best net
+                        PnL
+                      </Badge>
+                    ) : (
+                      <p className="text-muted-foreground">Picked on next signal tick</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Realized PnL</p>
+                    <p className="font-medium tabular-nums">
+                      {formatSol(summaryQ.data?.realizedNetPnlSol ?? 0)} ·{" "}
+                      {formatLpUsd(summaryQ.data?.realizedNetPnlUsd ?? 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Last ticks</p>
+                    <p className="text-xs text-muted-foreground">
+                      Signal: {config.lastSignalAt ? new Date(config.lastSignalAt).toLocaleString() : "—"}
+                      <br />
+                      Resolve: {config.lastResolveAt ? new Date(config.lastResolveAt).toLocaleString() : "—"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">On-chain balance</p>
-                  <p className="font-medium tabular-nums">{formatSol(stateQ.data?.onChainBalanceSol ?? 0)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Bank / slot / max</p>
-                  <p className="font-medium">
-                    {config.targetBankSol} SOL · {config.maxPositionSol} SOL · {config.maxConcurrentPositions} slots
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Reserve (fees)</p>
-                  <p className="font-medium">{config.reserveSolForFees} SOL</p>
-                </div>
-                <div className="sm:col-span-2">
-                  <p className="text-xs text-muted-foreground">Following strategy</p>
-                  {stateQ.data?.currentStrategy ? (
-                    <Badge variant="secondary" className="mt-1 font-normal">
-                      #{stateQ.data.currentStrategy.id} {stateQ.data.currentStrategy.name} — dynamic best net PnL
-                    </Badge>
-                  ) : (
-                    <p className="text-muted-foreground">Picked on next signal tick</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Realized PnL</p>
-                  <p className="font-medium tabular-nums">
-                    {formatSol(summaryQ.data?.realizedNetPnlSol ?? 0)} ·{" "}
-                    {formatLpUsd(summaryQ.data?.realizedNetPnlUsd ?? 0)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Last ticks</p>
-                  <p className="text-xs text-muted-foreground">
-                    Signal: {config.lastSignalAt ? new Date(config.lastSignalAt).toLocaleString() : "—"}
-                    <br />
-                    Resolve: {config.lastResolveAt ? new Date(config.lastResolveAt).toLocaleString() : "—"}
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Fund your agent wallet with at least {formatSol(minBank)} SOL, then enable the experiment.
+                  Current balance: {formatSol(stateQ.data?.onChainBalanceSol ?? 0)}.
+                </p>
+              )}
 
               <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.08] px-3 py-2.5 text-xs text-amber-900 dark:text-amber-200">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <p>
-                  Real SOL leaves your agent wallet. Transactions run automatically every ~2 minutes (open) and ~30
-                  seconds (monitor/close). Fund the wallet with at least 10 SOL before enabling.
+                  Real SOL leaves your agent wallet. Transactions run automatically every ~2 minutes (open)
+                  and ~30 seconds (monitor/close). Fund the wallet with at least {formatSol(minBank)} SOL
+                  before enabling.
                 </p>
               </div>
 
@@ -283,12 +273,7 @@ export function LpRealSettingsCard() {
                 ) : null}
               </div>
             </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              LP Real Agent is not bootstrapped on the server. Ensure{" "}
-              <code className="text-xs">LP_AGENT_REAL_AGENT_ADDRESS</code> matches your funded agent wallet.
-            </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -297,8 +282,8 @@ export function LpRealSettingsCard() {
           <DialogHeader>
             <DialogTitle>Stop LP Real Agent?</DialogTitle>
             <DialogDescription>
-              This disables the agent and queues close transactions for all open Meteora positions. SOL returns to your
-              agent wallet after closes confirm on-chain.
+              This disables the agent and queues close transactions for all open Meteora positions. SOL
+              returns to your agent wallet after closes confirm on-chain.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
