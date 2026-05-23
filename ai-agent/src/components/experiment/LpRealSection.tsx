@@ -51,7 +51,7 @@ function pnlClass(value: number | null | undefined): string {
 
 export function LpRealSection() {
   const { anonymousId, agentAddress, agentSolBalance } = useAgentWallet();
-  const { ensureSyraAuth } = useSyraAuth();
+  const { requestSyraAuth } = useSyraAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [stopAllOpen, setStopAllOpen] = useState(false);
@@ -77,7 +77,7 @@ export function LpRealSection() {
 
   const stopAllMutation = useMutation({
     mutationFn: async () => {
-      const auth = await ensureSyraAuth();
+      const auth = await requestSyraAuth();
       if (!auth) throw new Error("wallet_sign_in_required");
       return disableLpReal({ closeAll: true });
     },

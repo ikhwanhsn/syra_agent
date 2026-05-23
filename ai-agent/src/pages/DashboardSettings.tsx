@@ -143,7 +143,7 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
     agentSolBalance,
     agentUsdcBalance,
   } = useAgentWallet();
-  const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
+  const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
 
   const hasSolana = Boolean(solanaAddress);
   const activeChain: SetupChain = "solana";
@@ -209,7 +209,7 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
     hasSolana && syraAuthReady && syraAuthenticated && activeQ.isError && !activeAgent;
 
   const handleRetryLoad = useCallback(async () => {
-    const ok = await ensureSyraAuth();
+    const ok = await requestSyraAuth();
     if (!ok) {
       toast({
         title: "Sign in required",
@@ -219,7 +219,7 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
       return;
     }
     await solanaQ.refetch();
-  }, [ensureSyraAuth, solanaQ, toast]);
+  }, [requestSyraAuth, solanaQ, toast]);
   const isContextAgent =
     !!activeAgent &&
     contextReady &&
@@ -767,7 +767,7 @@ function AgentPrivateKeySection({
   copiedField: string | null;
 }) {
   const { toast } = useToast();
-  const { ensureSyraAuthForWallet, syraAuthReady, syraAuthenticated } = useSyraAuth();
+  const { requestSyraAuthForWallet, syraAuthReady, syraAuthenticated } = useSyraAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -832,7 +832,7 @@ function AgentPrivateKeySection({
       const linkedWallet = activeAgent.walletAddress?.trim();
       if (requiresWalletAuth || statusReason === "auth_required") {
         if (!linkedWallet) return;
-        const signIn = await ensureSyraAuthForWallet(linkedWallet);
+        const signIn = await requestSyraAuthForWallet(linkedWallet);
         if (!signIn) return;
       }
       const result = await agentWalletApi.exportPrivateKey(activeAgent.anonymousId);
@@ -850,7 +850,7 @@ function AgentPrivateKeySection({
   }, [
     activeAgent.anonymousId,
     activeChain,
-    ensureSyraAuthForWallet,
+    requestSyraAuthForWallet,
     exportable,
     privateKey,
     requiresWalletAuth,

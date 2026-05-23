@@ -171,7 +171,7 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 export default function DashboardAgents({ embedded = false }: DashboardAgentsProps) {
   const navigate = useNavigate();
   const { address, requestConnect } = useWalletContext();
-  const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
+  const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
   const {
     ready: agentWalletReady,
     anonymousId: contextAnonymousId,
@@ -219,11 +219,6 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
     if (address) list.push(address);
     return list;
   }, [address]);
-
-  useEffect(() => {
-    if (ownershipFilter !== "mine" || !syraAuthReady || !address || syraAuthenticated) return;
-    void ensureSyraAuth();
-  }, [ownershipFilter, syraAuthReady, address, syraAuthenticated, ensureSyraAuth]);
 
   const apiChain = "solana" as const;
   const useClientPagination = ownershipFilter === "mine" && mineWallets.length > 0;
@@ -507,7 +502,7 @@ export default function DashboardAgents({ embedded = false }: DashboardAgentsPro
                   variant="default"
                   size="sm"
                   className="mt-4 rounded-xl"
-                  onClick={() => void ensureSyraAuth()}
+                  onClick={() => void requestSyraAuth()}
                 >
                   Sign in with wallet
                 </Button>

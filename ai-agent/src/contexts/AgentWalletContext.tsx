@@ -159,7 +159,7 @@ const AgentWalletContext = createContext<AgentWalletState | null>(null);
 
 function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const { connection, address: solanaAddress } = useWalletContext();
-  const { syraAuthReady, ensureSyraAuth } = useSyraAuth();
+  const { syraAuthReady, syraAuthenticated } = useSyraAuth();
 
   const connectedWalletAddress = solanaAddress ?? null;
   const connectedChain: "solana" | null = solanaAddress ? "solana" : null;
@@ -174,6 +174,8 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const initRef = useRef(false);
   const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refetchTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const walletConnectFlightRef = useRef<Promise<void> | null>(null);
+  const walletConnectCooldownUntilRef = useRef(0);
 
   const cacheSetters = {
     setAnonymousId,
@@ -199,14 +201,18 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       setAgentUsdcBalance(null);
     }
 
+    if (!syraAuthenticated) {
+      setReady(true);
+      return;
+    }
+
+    if (Date.now() < walletConnectCooldownUntilRef.current) {
+      setReady(true);
+      return;
+    }
+
     let cancelled = false;
-    (async () => {
-      const signIn = await ensureSyraAuth();
-      if (cancelled) return;
-      if (!signIn) {
-        if (!cancelled) setReady(true);
-        return;
-      }
+    const syncWallet = async () => {
       try {
         const res = await agentWalletApi.getOrCreateByWallet(connectedWalletAddress);
         if (cancelled) return;
@@ -242,8 +248,12 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           agentSolBalance: sol,
           agentUsdcBalance: usdc,
         });
-      } catch {
+      } catch (err) {
         if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("429") || /too many requests/i.test(msg)) {
+          walletConnectCooldownUntilRef.current = Date.now() + 60_000;
+        }
         const cachedFallback = readAgentWalletCache({
           kind: "wallet",
           linkedWallet: connectedWalletAddress,
@@ -274,11 +284,25 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       } finally {
         if (!cancelled) setReady(true);
       }
-    })();
+    };
+
+    if (walletConnectFlightRef.current) {
+      void walletConnectFlightRef.current.finally(() => {
+        if (!cancelled) setReady(true);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    walletConnectFlightRef.current = syncWallet().finally(() => {
+      walletConnectFlightRef.current = null;
+    });
+
     return () => {
       cancelled = true;
     };
-  }, [syraAuthReady, connectedWalletAddress, connectedChain, connection, ensureSyraAuth]);
+  }, [syraAuthReady, syraAuthenticated, connectedWalletAddress, connectedChain, connection]);
 
   useEffect(() => {
     if (connectedWalletAddress) return;

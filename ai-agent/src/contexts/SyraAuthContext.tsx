@@ -45,11 +45,12 @@ export interface SyraAuthState {
   syraAuthReady: boolean;
   syraAuthenticated: boolean;
   lastSignIn: SyraSignInResult | null;
+  /** Restore session from cookie/storage only — never opens the wallet signature popup. */
   ensureSyraAuth: () => Promise<SyraSignInResult | null>;
-  /** Sign in for a specific linked Solana wallet (opens wallet signature popup when needed). */
-  ensureSyraAuthForWallet: (
-    walletAddress: string,
-  ) => Promise<SyraSignInResult | null>;
+  /** Prompt wallet signature when needed (use on explicit user actions only). */
+  requestSyraAuth: () => Promise<SyraSignInResult | null>;
+  /** Per-wallet interactive sign-in (explicit user actions only). */
+  requestSyraAuthForWallet: (walletAddress: string) => Promise<SyraSignInResult | null>;
 }
 
 const SyraAuthContext = createContext<SyraAuthState | null>(null);
@@ -125,7 +126,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signInForWallet = useCallback(
+  const restoreSessionForWallet = useCallback(
     async (walletAddress: string): Promise<SyraSignInResult | null> => {
       const address = walletAddress.trim();
       if (!address) return null;
@@ -133,16 +134,30 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
       const walletKey = `solana:${address}`;
       const token = await ensureAccessToken();
       const session = getSyraSessionWallet();
-      if (token && session && walletMatchesSession(session, address)) {
-        setSyraAuthenticated(true);
-        lastSignedWalletRef.current = walletKey;
-        if (lastSignInRef.current) return lastSignInRef.current;
-        const restored = signInResultFromSession(token, { address });
-        lastSignInRef.current = restored;
-        setLastSignIn(restored);
-        return restored;
+      if (!token || !session || !walletMatchesSession(session, address)) {
+        return null;
       }
 
+      setSyraAuthenticated(true);
+      lastSignedWalletRef.current = walletKey;
+      if (lastSignInRef.current?.accessToken === token) return lastSignInRef.current;
+      const restored = signInResultFromSession(token, { address });
+      lastSignInRef.current = restored;
+      setLastSignIn(restored);
+      return restored;
+    },
+    [],
+  );
+
+  const signInForWalletInteractive = useCallback(
+    async (walletAddress: string): Promise<SyraSignInResult | null> => {
+      const address = walletAddress.trim();
+      if (!address) return null;
+
+      const restored = await restoreSessionForWallet(address);
+      if (restored) return restored;
+
+      const walletKey = `solana:${address}`;
       if (signInFlightRef.current) return signInFlightRef.current;
 
       signInFlightRef.current = (async () => {
@@ -180,22 +195,22 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
 
       return signInFlightRef.current;
     },
-    [signMessage, solanaAddress],
+    [restoreSessionForWallet, signMessage, solanaAddress],
   );
-
-  const signInActiveWallet = useCallback(async (): Promise<SyraSignInResult | null> => {
-    if (!activeWallet) return null;
-    return signInForWallet(activeWallet.address);
-  }, [activeWallet, signInForWallet]);
 
   const ensureSyraAuth = useCallback(async (): Promise<SyraSignInResult | null> => {
     if (!activeWallet) return null;
-    return signInForWallet(activeWallet.address);
-  }, [activeWallet, signInForWallet]);
+    return restoreSessionForWallet(activeWallet.address);
+  }, [activeWallet, restoreSessionForWallet]);
 
-  const ensureSyraAuthForWallet = useCallback(
-    (walletAddress: string) => signInForWallet(walletAddress),
-    [signInForWallet],
+  const requestSyraAuth = useCallback(async (): Promise<SyraSignInResult | null> => {
+    if (!activeWallet) return null;
+    return signInForWalletInteractive(activeWallet.address);
+  }, [activeWallet, signInForWalletInteractive]);
+
+  const requestSyraAuthForWallet = useCallback(
+    (walletAddress: string) => signInForWalletInteractive(walletAddress),
+    [signInForWalletInteractive],
   );
 
   useEffect(() => {
@@ -210,8 +225,8 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     }
     const walletKey = `solana:${activeWallet.address}`;
     if (lastSignedWalletRef.current === walletKey && syraAuthenticated) return;
-    void signInActiveWallet();
-  }, [syraAuthReady, authenticated, activeWallet, signInActiveWallet, syraAuthenticated]);
+    void restoreSessionForWallet(activeWallet.address);
+  }, [syraAuthReady, authenticated, activeWallet, restoreSessionForWallet, syraAuthenticated]);
 
   useEffect(() => {
     if (!authenticated) {
@@ -228,7 +243,8 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     syraAuthenticated,
     lastSignIn,
     ensureSyraAuth,
-    ensureSyraAuthForWallet,
+    requestSyraAuth,
+    requestSyraAuthForWallet,
   };
 
   return <SyraAuthContext.Provider value={value}>{children}</SyraAuthContext.Provider>;

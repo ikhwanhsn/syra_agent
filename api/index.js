@@ -626,6 +626,7 @@ app.use(
       const p = req.path || "";
       return (
         p.startsWith("/agent/auth/") ||
+        p === "/agent/wallet/connect" ||
         isX402Route(p) ||
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/agent-team/run") ||

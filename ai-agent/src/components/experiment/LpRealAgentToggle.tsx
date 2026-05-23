@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function LpRealAgentToggle({ state, isLoading, className, layout = "default" }: Props) {
-  const { ensureSyraAuth } = useSyraAuth();
+  const { requestSyraAuth } = useSyraAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,7 +29,7 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
 
   const toggleMutation = useMutation({
     mutationFn: async (nextEnabled: boolean) => {
-      const auth = await ensureSyraAuth();
+      const auth = await requestSyraAuth();
       if (!auth) {
         throw new Error("wallet_sign_in_required");
       }
