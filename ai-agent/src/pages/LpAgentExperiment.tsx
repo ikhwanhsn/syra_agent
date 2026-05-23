@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  FlaskConical,
   ListOrdered,
-  Loader2,
-  RefreshCw,
   Trophy,
   Waves,
 } from "lucide-react";
@@ -25,9 +23,14 @@ import {
 } from "@/components/ui/table";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExperimentRiskAgreementDialog";
+import { LpExperimentBackdrop } from "@/components/experiment/lp/LpExperimentBackdrop";
+import { LpExperimentHero } from "@/components/experiment/lp/LpExperimentHero";
 import { LpRealSection } from "@/components/experiment/LpRealSection";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  overviewCardShell,
+  overviewKickerClass,
+} from "@/components/dashboard/overview/overviewStyles";
 import {
   DASHBOARD_CONTENT_SHELL,
   PAGE_PADDING_TOP_STANDARD,
@@ -122,7 +125,7 @@ function PaginationBar({
   onNext: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/45 bg-background/20 px-4 py-3 text-xs text-muted-foreground sm:px-5">
       <span>
         Page {page} / {totalPages} - {totalRowsLabel}
       </span>
@@ -271,159 +274,101 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     strategiesQ.isLoading || statsQ.isLoading || candidatesQ.isLoading || runsQ.isLoading || labStateQ.isLoading;
   const failed = strategiesQ.isError || statsQ.isError || candidatesQ.isError || runsQ.isError || labStateQ.isError;
 
+  const refreshAll = useCallback(() => {
+    void strategiesQ.refetch();
+    void statsQ.refetch();
+    void candidatesQ.refetch();
+    void runsQ.refetch();
+    void labStateQ.refetch();
+  }, [strategiesQ, statsQ, candidatesQ, runsQ, labStateQ]);
+
+  const tableShell = cn(overviewCardShell, "overflow-hidden rounded-3xl ring-1 ring-border/25");
+
   return (
-    <div
-      className={cn(
-        DASHBOARD_CONTENT_SHELL,
-        PAGE_PADDING_TOP_STANDARD,
-        PAGE_SAFE_AREA_BOTTOM_COMPACT,
-        "space-y-4",
-      )}
-    >
-      <LpExperimentRiskAgreementDialog />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            {!embedded && (
-              <Link to="/dashboard/overview" aria-label="Back to dashboard overview">
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-            <h1 className="text-xl font-semibold tracking-tight">LP agent experiment</h1>
-            <Badge
-              variant="outline"
-              className="border-amber-500/40 bg-amber-500/10 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300"
-            >
-              Beta
-            </Badge>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Syra DLMM agents on live Meteora pools — each desk runs a 10&nbsp;SOL bank, up to ten concurrent 1&nbsp;SOL
-            slots, compounding cash on closes, with open/close fees on every leg.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => {
-            strategiesQ.refetch();
-            statsQ.refetch();
-            candidatesQ.refetch();
-            runsQ.refetch();
-            labStateQ.refetch();
-          }}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
-
+    <>
+      <LpExperimentBackdrop />
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border px-4 py-3.5 sm:px-5",
-          failed
-            ? "border-destructive/40 bg-destructive/[0.08] text-destructive"
-            : loading
-              ? "border-amber-500/35 bg-muted/50 dark:bg-muted/30"
-              : "border-border bg-muted/50 text-foreground dark:bg-muted/30",
+          DASHBOARD_CONTENT_SHELL,
+          PAGE_PADDING_TOP_STANDARD,
+          PAGE_SAFE_AREA_BOTTOM_COMPACT,
+          "relative space-y-6",
         )}
-        role="status"
-        aria-live="polite"
-        aria-label={
-          failed ? "LP experiment API error" : loading ? "LP experiment data syncing" : "LP experiment service online"
-        }
       >
-        {!failed && !loading ? (
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-600"
-            aria-hidden
-          />
-        ) : null}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
-          {failed ? (
-            <>
-              <span className="relative mt-0.5 flex h-2.5 w-2.5 shrink-0 rounded-full bg-destructive" aria-hidden />
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-semibold">LP experiment API unavailable</p>
-                <p className="text-xs leading-relaxed text-destructive/90 sm:text-sm">
-                  Use Refresh after checking your connection or API configuration.
-                </p>
-              </div>
-            </>
-          ) : loading ? (
-            <>
-              <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-amber-600 dark:text-amber-400" aria-hidden />
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-semibold text-foreground">Syncing LP experiment data…</p>
-                <p className="text-xs leading-relaxed text-foreground/70 sm:text-sm">
-                  Tables update when the request finishes.
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50 opacity-60" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.45)]" />
+        <LpExperimentRiskAgreementDialog />
+
+        <LpExperimentHero
+          embedded={embedded}
+          loading={loading}
+          failed={failed}
+          openPositions={openPositions}
+          onRefresh={refreshAll}
+        />
+
+        {labStateQ.data?.activeExperimentId ? (
+          <article className={cn(tableShell, "px-5 py-5 sm:px-7 sm:py-6")}>
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border/45 bg-background/40">
+                <FlaskConical className="h-4 w-4 text-muted-foreground" aria-hidden />
               </span>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground">LP experiment live</p>
-                  <AgentBackgroundLiveIndicator openPositions={openPositions} />
-                </div>
-                <p className="text-xs leading-relaxed text-foreground/75 sm:text-sm">
-                  Meteora pool feeds and leaderboard refresh automatically. Strategies with open runs show a green{" "}
-                  <span className="font-medium text-foreground">Live</span> pill; resolves continue while you use other
-                  pages when the experiment API is ticking.
+              <div className="min-w-0 flex-1">
+                <p className={overviewKickerClass}>Active cohort</p>
+                <p className="mt-1 text-base font-semibold tracking-tight text-foreground">
+                  {labStateQ.data.title || "Simulation cohort"}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  <span className="font-mono text-foreground/90">{labStateQ.data.activeExperimentId}</span>
+                  {" · "}
+                  {labStateQ.data.simConfig.startingBankSol} SOL bank · max{" "}
+                  {labStateQ.data.simConfig.maxConcurrentPositions} × {labStateQ.data.simConfig.maxPositionSol} SOL ·
+                  fees {labStateQ.data.simConfig.openFeeBps}+{labStateQ.data.simConfig.closeFeeBps} bps per leg
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground/90">
+                  Profits compound in cash until the next full slot opens. Path to ~100 SOL depends on drift, fee yield,
+                  and chain costs — not guaranteed.
                 </p>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+            </div>
+          </article>
+        ) : null}
 
-      {labStateQ.data?.activeExperimentId ? (
-        <div className="rounded-xl border border-border/70 bg-card/60 px-4 py-3 text-sm">
-          <p className="font-medium text-foreground">{labStateQ.data.title || "Active cohort"}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Cohort <span className="font-mono text-foreground/90">{labStateQ.data.activeExperimentId}</span>
-            {" · "}
-            Bank {labStateQ.data.simConfig.startingBankSol} SOL / agent, max{" "}
-            {labStateQ.data.simConfig.maxConcurrentPositions} × {labStateQ.data.simConfig.maxPositionSol} SOL deployed,
-            fees at {labStateQ.data.simConfig.openFeeBps} + {labStateQ.data.simConfig.closeFeeBps} bps per leg
-            (priority + program rent).
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Compounding: profits stay in <span className="text-foreground/90">cashSol</span> (leaderboard) until the next
-            full 1&nbsp;SOL slot opens; agents wait when all ten slots are live. Path to ~100&nbsp;SOL is not guaranteed —
-            it depends on realized pool drift + fee yield minus chain costs.
-          </p>
-        </div>
-      ) : null}
+        <LpRealSection />
 
-      <LpRealSection />
+        <section className="space-y-4">
+          <div>
+            <p className={overviewKickerClass}>Benchmark</p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Simulation lab</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Strategy cohorts compete on live Meteora pools. The real agent above follows the current leaderboard leader.
+            </p>
+          </div>
 
-      <Tabs defaultValue="leaderboard" className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-border/70 bg-muted/30 p-1">
-          <TabsTrigger value="leaderboard" className="h-9 gap-1.5 rounded-lg text-xs sm:text-sm">
-            <Trophy className="h-3.5 w-3.5" />
-            Leaderboard
-          </TabsTrigger>
-          <TabsTrigger value="candidates" className="h-9 gap-1.5 rounded-lg text-xs sm:text-sm">
-            <Waves className="h-3.5 w-3.5" />
-            Candidates
-          </TabsTrigger>
-          <TabsTrigger value="runs" className="h-9 gap-1.5 rounded-lg text-xs sm:text-sm">
-            <ListOrdered className="h-3.5 w-3.5" />
-            Runs
-          </TabsTrigger>
-        </TabsList>
+          <Tabs defaultValue="leaderboard" className="w-full space-y-4">
+            <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border/50 bg-background/35 p-1 backdrop-blur-md">
+              <TabsTrigger
+                value="leaderboard"
+                className="h-10 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
+              >
+                <Trophy className="h-3.5 w-3.5" />
+                Leaderboard
+              </TabsTrigger>
+              <TabsTrigger
+                value="candidates"
+                className="h-10 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
+              >
+                <Waves className="h-3.5 w-3.5" />
+                Candidates
+              </TabsTrigger>
+              <TabsTrigger
+                value="runs"
+                className="h-10 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
+                Runs
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="leaderboard" className="mt-3">
+        <TabsContent value="leaderboard" className="mt-0 space-y-3">
           <div className="mb-2 flex items-center justify-between gap-2 px-1">
             <p className="text-sm font-medium">Strategy performance board</p>
             <p className="text-xs text-muted-foreground">
@@ -431,7 +376,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
               run’s SOL/USD snapshot at open; cash USD uses the lab reference SOL price.
             </p>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border/70 bg-card/70 backdrop-blur-sm">
+          <div className={tableShell}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -578,12 +523,12 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           </div>
         </TabsContent>
 
-        <TabsContent value="candidates" className="mt-3">
+        <TabsContent value="candidates" className="mt-0 space-y-3">
           <div className="mb-2 flex items-center justify-between gap-2 px-1">
             <p className="text-sm font-medium">Top candidate pools</p>
             <p className="text-xs text-muted-foreground">Highest score pools passing all strategy gates</p>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border/70 bg-card/70 backdrop-blur-sm">
+          <div className={tableShell}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -664,7 +609,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           </div>
         </TabsContent>
 
-        <TabsContent value="runs" className="mt-3 space-y-3">
+        <TabsContent value="runs" className="mt-0 space-y-3">
           <div className="mb-2 flex items-center justify-between gap-2 px-1">
             <p className="text-sm font-medium">Run history</p>
             <p className="text-xs text-muted-foreground">Latest LP runs and outcomes</p>
@@ -698,7 +643,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
               Apply
             </Button>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border/70 bg-card/70 backdrop-blur-sm">
+          <div className={tableShell}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -805,6 +750,8 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+        </section>
+      </div>
+    </>
   );
 }

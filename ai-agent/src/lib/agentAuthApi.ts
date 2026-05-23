@@ -225,17 +225,29 @@ export async function signOutSyraSession(): Promise<void> {
 
 /** Authenticated fetch for Syra API routes (session cookie + Bearer access token). */
 export async function syraFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const token = await ensureAccessToken();
-  const headers = new Headers(init?.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (!headers.has("Content-Type") && init?.body) {
-    headers.set("Content-Type", "application/json");
+  const doFetch = async (accessToken: string | null) => {
+    const headers = new Headers(init?.headers);
+    if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+    if (!headers.has("Content-Type") && init?.body) {
+      headers.set("Content-Type", "application/json");
+    }
+    return fetch(input, {
+      ...init,
+      credentials: "include",
+      headers,
+    });
+  };
+
+  let token = await ensureAccessToken();
+  let res = await doFetch(token);
+  if (res.status === 401 && init?.method && init.method !== "GET") {
+    const refreshed = await refreshAccessToken();
+    if (refreshed && refreshed !== token) {
+      token = refreshed;
+      res = await doFetch(token);
+    }
   }
-  return fetch(input, {
-    ...init,
-    credentials: "include",
-    headers,
-  });
+  return res;
 }
 
 export function encodeSolanaSignature(signature: Uint8Array): string {

@@ -1,5 +1,6 @@
 /**
- * LP Real Agent access defaults (no wallet allowlist — any agent with min bank may enable).
+ * LP Real Agent access defaults (no wallet allowlist — any funded agent wallet may enable).
+ * Enable/entry gate uses min wallet for one pool slot; targetBankSol is a scale target only.
  * Future: SYRA stake gate for additional wallets.
  */
 

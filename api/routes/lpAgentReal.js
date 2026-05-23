@@ -120,7 +120,7 @@ export function createLpAgentRealRouter() {
         success: false,
         error: msg,
         ...(e?.onChainBalanceSol != null ? { onChainBalanceSol: e.onChainBalanceSol } : {}),
-        ...(e?.minBankSol != null ? { minBankSol: e.minBankSol } : {}),
+        ...(e?.minWalletToStartSol != null ? { minWalletToStartSol: e.minWalletToStartSol } : {}),
       });
     }
   });

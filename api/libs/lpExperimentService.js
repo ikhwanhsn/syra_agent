@@ -376,6 +376,8 @@ export async function getLpCandidatePools() {
         poolName: pool.poolName,
         baseSymbol: pool.baseSymbol,
         quoteSymbol: pool.quoteSymbol,
+        baseMint: pool.baseMint,
+        quoteMint: pool.quoteMint,
         score: scoredRow.score,
         gatePassed: scoredRow.gatePassed,
         gateReasons: scoredRow.gateReasons,

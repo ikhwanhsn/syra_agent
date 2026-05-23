@@ -60,13 +60,15 @@ export async function simulateSolanaTx({
   }
 
   const buf = Buffer.from(serializedTxBase64, 'base64');
-  let vtx;
+  /** @type {VersionedTransaction | Transaction | null} */
+  let txToSimulate = null;
   try {
-    vtx = VersionedTransaction.deserialize(buf);
+    txToSimulate = VersionedTransaction.deserialize(buf);
   } catch {
     try {
-      const legacy = Transaction.from(buf);
-      vtx = new VersionedTransaction(legacy.compileMessage());
+      // Legacy txs (Meteora DLMM open/close) keep partial position signatures only if we do NOT
+      // recompile via compileMessage() — recompiling drops sigs and sim fails (e.g. Custom:1).
+      txToSimulate = Transaction.from(buf);
     } catch {
       return { ok: false, reasons: ['deserialize_failed'], preBalances: {}, postBalances: {} };
     }
@@ -75,7 +77,7 @@ export async function simulateSolanaTx({
   const { connection, lamports: preLamports } = await pickSolanaConnectionForReads(agentPubkey);
   let sim;
   try {
-    sim = await connection.simulateTransaction(vtx, {
+    sim = await connection.simulateTransaction(txToSimulate, {
       sigVerify: false,
       replaceRecentBlockhash: true,
       accounts: { encoding: 'base64', addresses: [agentAddress] },

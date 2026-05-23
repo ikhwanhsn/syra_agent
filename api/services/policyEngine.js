@@ -101,6 +101,14 @@ const VELOCITY_MAX = 10;
 const ANOMALY_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const ANOMALY_SPIKE_MULT = 3;
 
+/** LP real cron tools — skip volume-based soft rules; hard caps and simulation still apply. */
+const LP_REAL_AUTO_TOOLS = new Set([
+  'lp_real_open',
+  'lp_real_close',
+  'lp_real_claim',
+  'lp_real_swap',
+]);
+
 /**
  * Evaluate an intent against a wallet configuration and recent history.
  * Pure function — deterministic given inputs.
@@ -168,13 +176,16 @@ export function evaluate(intent, walletConfig, history) {
   if (sumLast24h + amount > dailyCap) add('over_daily_cap', `${(sumLast24h + amount).toFixed(2)}>${dailyCap}`);
   if (sumLast1h + amount > hourlyCap) add('over_hourly_cap', `${(sumLast1h + amount).toFixed(2)}>${hourlyCap}`);
 
+  const isLpAuto = intent.toolId && LP_REAL_AUTO_TOOLS.has(intent.toolId);
+
   // Anomaly: spend > N x last-30-day median (rough proxy: average over lookback) within last 1h
   const median = approxMedianAmount(history);
-  if (median > 0 && sumLast1h + amount > median * ANOMALY_SPIKE_MULT) {
-    add('anomaly_spike', `${(sumLast1h + amount).toFixed(2)}>${(median * ANOMALY_SPIKE_MULT).toFixed(2)}`);
+  if (!isLpAuto) {
+    if (median > 0 && sumLast1h + amount > median * ANOMALY_SPIKE_MULT) {
+      add('anomaly_spike', `${(sumLast1h + amount).toFixed(2)}>${(median * ANOMALY_SPIKE_MULT).toFixed(2)}`);
+    }
+    if (amount > 100) add('large_amount', amount.toFixed(2));
   }
-
-  if (amount > 100) add('large_amount', amount.toFixed(2));
 
   // Destination allowlist — strict for withdrawals; advisory elsewhere
   if (intent.type === 'withdraw' && intent.toAddress) {

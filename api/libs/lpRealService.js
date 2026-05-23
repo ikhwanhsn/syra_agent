@@ -19,10 +19,14 @@ import {
   buildClosePositionTx,
   buildClaimFeesTx,
   clampPositionBinRange,
+  computeCloseProceedsSol,
   fetchOnChainPosition,
   getAgentSolBalance,
+  isSolMint,
   MAX_METEORA_POSITION_BINS,
+  snapshotAgentWalletForPool,
 } from "./meteoraDlmmExecutor.js";
+import { ensureSidecarTokenForPool, sweepNonSolTokensToSol } from "./lpRealSidecarSwap.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
   getLpRealDefaultTargetBankSol,
@@ -30,31 +34,81 @@ import {
   getLpRealMinWalletWhileLiveSol,
 } from "../config/lpRealAgentAccess.js";
 
+const LAMPORTS_PER_SOL = 1_000_000_000;
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
-const LP_REAL_TOOL_IDS = ["lp_real_open", "lp_real_close", "lp_real_claim"];
+const LP_REAL_TOOL_IDS = ["lp_real_open", "lp_real_close", "lp_real_claim", "lp_real_swap"];
 
 /**
  * Map known Meteora DLMM Anchor error codes to a short, operator-friendly hint
  * so the dashboard shows something more actionable than `Custom:6040`.
  */
 const METEORA_DLMM_ERROR_HINTS = Object.freeze({
+  6000: "invalid_start_bin_index",
+  6001: "invalid_bin_id",
+  6002: "invalid_input",
+  6003: "exceeded_amount_slippage",
+  6004: "exceeded_bin_slippage",
+  6007: "zero_liquidity",
+  6008: "invalid_position",
+  6009: "bin_array_not_found",
+  6012: "pair_insufficient_liquidity",
   6018: "math_overflow_on_chain",
   6038: "bin_id_out_of_bound",
   6040: "position_width_exceeds_meteora_limit",
 });
 
+function isOrphanedLiveLpPosition(position) {
+  return (
+    position?.status === "error" &&
+    Boolean(position?.openTxSig) &&
+    !position?.closeTxSig
+  );
+}
+
 function humanizeBrokerError(rawReason) {
   if (!rawReason) return "broker_pending_or_failed";
-  const match = /"Custom"\s*:\s*(\d+)/.exec(rawReason);
+  if (rawReason === "pending_confirmation" || rawReason?.status === "pending_confirmation") {
+    return "broker_pending_or_failed (policy requires user confirmation)";
+  }
+  const joined = Array.isArray(rawReason) ? rawReason.join(";") : String(rawReason);
+  const splTokenFailed =
+    /Tokenkeg[A-Za-z0-9]{30,}\s+failed/i.test(joined) ||
+    /insufficient funds/i.test(joined) ||
+    joined.includes("spl_insufficient_funds");
+  if (splTokenFailed) {
+    const splCustom = /"Custom"\s*:\s*(\d+)/.exec(joined);
+    const code = splCustom ? Number(splCustom[1]) : null;
+    if (code === 1) {
+      return "spl_insufficient_funds (wallet missing pool token; sidecar swap may have failed)";
+    }
+    return code != null ? `spl_token_error:${code}` : "spl_insufficient_funds";
+  }
+  if (joined.includes("simulation_failed") || joined.includes("sim_returned_err")) {
+    const custom = /"Custom"\s*:\s*(\d+)/.exec(joined);
+    if (custom) {
+      const code = Number(custom[1]);
+      const hint = METEORA_DLMM_ERROR_HINTS[code];
+      if (hint) {
+        return `Simulation failed: ${hint.replace(/_/g, " ")} (dlmm_error:${code})`;
+      }
+      if (code < 100) {
+        return "Simulation failed: transaction missing co-signatures or stale — retrying";
+      }
+      return `Simulation failed (dlmm_error:${code})`;
+    }
+    return "Simulation failed before agent could sign";
+  }
+  const match = /"Custom"\s*:\s*(\d+)/.exec(joined);
   if (match) {
     const code = Number(match[1]);
     const hint = METEORA_DLMM_ERROR_HINTS[code];
     if (hint) return `${hint} (dlmm_error:${code})`;
+    if (code < 100) return "meteora_tx_missing_signatures";
     return `dlmm_error:${code}`;
   }
-  return rawReason;
+  return joined;
 }
 
 let cachedSolPrice = { value: 150, ts: 0 };
@@ -406,24 +460,33 @@ function computeAvailableSol(onChainBalanceSol, reserveSol) {
   return Math.max(0, toNum(onChainBalanceSol) - toNum(reserveSol, 0.05));
 }
 
-function meetsTargetBank(totalCapitalSol, config) {
-  return toNum(totalCapitalSol) >= minBankSolForConfig(config) - 1e-9;
+/** Liquid wallet SOL required to deposit one maxPositionSol slot (reserve kept in wallet). */
+function canAffordPoolEntry({ onChainBalanceSol, config }) {
+  const availableSol = computeAvailableSol(onChainBalanceSol, config?.reserveSolForFees);
+  return availableSol >= toNum(config?.maxPositionSol, 1) - 1e-9;
 }
 
-function canOpenNewPosition({ onChainBalanceSol, deployedSol, config }) {
-  const totalCapital = computeTotalCapitalSol(onChainBalanceSol, deployedSol);
-  const availableSol = computeAvailableSol(onChainBalanceSol, config?.reserveSolForFees);
-  return (
-    meetsTargetBank(totalCapital, config) &&
-    availableSol >= toNum(config?.maxPositionSol, 1) - 1e-9
-  );
+function canOpenNewPosition({ onChainBalanceSol, config }) {
+  return canAffordPoolEntry({ onChainBalanceSol, config });
+}
+
+function canTurnOnAgent({ onChainBalanceSol, openPositions, config }) {
+  if ((openPositions || []).length > 0) return true;
+  return onChainBalanceSol >= minWalletToStartSol(config) - 1e-9;
 }
 
 /** Configs that need resolve ticks: enabled agents + any agent with open Meteora positions. */
 async function getConfigsForResolve() {
   const enabled = await LpRealConfig.find({ enabled: true }).lean();
   const openExperimentIds = await LpRealPosition.distinct("experimentId", {
-    status: { $in: ["open", "opening", "closing"] },
+    $or: [
+      { status: { $in: ["open", "opening", "closing"] } },
+      {
+        status: "error",
+        openTxSig: { $ne: null },
+        $or: [{ closeTxSig: null }, { closeTxSig: "" }],
+      },
+    ],
   });
   const enabledExpIds = new Set(enabled.map((c) => c.experimentId).filter(Boolean));
   const extraIds = openExperimentIds.filter((id) => id && !enabledExpIds.has(id));
@@ -497,8 +560,8 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   if (preview) {
     const totalCapitalSol = onChainBalanceSol;
     const minStart = minWalletToStartSol(config);
-    const canEnable = meetsTargetBank(totalCapitalSol, config);
     const availableSol = computeAvailableSol(onChainBalanceSol, config.reserveSolForFees);
+    const canOpenNewPositions = canOpenNewPosition({ onChainBalanceSol, config });
     return {
       config: buildPreviewLpRealConfig(wallet, minBankSol),
       onChainBalanceSol,
@@ -509,13 +572,9 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
       currentStrategy: null,
       minBankSol,
       minWalletToStartSol: minStart,
-      canEnable,
-      canTurnOn: canEnable || onChainBalanceSol >= minStart - 1e-9,
-      canOpenNewPositions: canOpenNewPosition({
-        onChainBalanceSol,
-        deployedSol: 0,
-        config,
-      }),
+      canEnable: canOpenNewPositions,
+      canTurnOn: canTurnOnAgent({ onChainBalanceSol, openPositions: [], config }),
+      canOpenNewPositions,
       isOperator,
     };
   }
@@ -529,14 +588,9 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   const totalCapitalSol = computeTotalCapitalSol(onChainBalanceSol, deployedSol);
   const availableSol = computeAvailableSol(onChainBalanceSol, config.reserveSolForFees);
   const minStart = minWalletToStartSol(config);
-  const canEnable = meetsTargetBank(totalCapitalSol, config);
-  const canTurnOn =
-    canEnable || (openPositions.length === 0 && onChainBalanceSol >= minStart - 1e-9);
-  const canOpenNewPositions = canOpenNewPosition({
-    onChainBalanceSol,
-    deployedSol,
-    config,
-  });
+  const canOpenNewPositions = canOpenNewPosition({ onChainBalanceSol, config });
+  const canEnable = canOpenNewPositions;
+  const canTurnOn = canTurnOnAgent({ onChainBalanceSol, openPositions, config });
 
   let currentStrategy = null;
   if (config.currentStrategyId != null) {
@@ -733,21 +787,19 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
   }).lean();
   const deployedSol = sumDeployedSol(openPositions);
   const totalCapitalSol = computeTotalCapitalSol(onChainBalanceSol, deployedSol);
-  const minBank = minBankSolForConfig(config);
   const minStart = minWalletToStartSol(config);
-  const canStart =
-    meetsTargetBank(totalCapitalSol, config) ||
-    (openPositions.length === 0 && onChainBalanceSol >= minStart - 1e-9);
+  const canStart = canTurnOnAgent({ onChainBalanceSol, openPositions, config });
   if (!canStart) {
+    const availableSol = computeAvailableSol(onChainBalanceSol, config.reserveSolForFees);
     const err = new Error(
-      `insufficient_balance: total capital ${totalCapitalSol.toFixed(4)} SOL ` +
-        `(wallet ${onChainBalanceSol.toFixed(4)} + deployed ${deployedSol.toFixed(4)}); ` +
-        `need ${minBank} SOL book or ${minStart.toFixed(2)} SOL wallet to start`,
+      `insufficient_balance: wallet ${onChainBalanceSol.toFixed(4)} SOL ` +
+        `(${availableSol.toFixed(4)} available after reserve); ` +
+        `need ~${minStart.toFixed(2)} SOL wallet to enter a pool`,
     );
     err.code = "insufficient_balance";
     err.onChainBalanceSol = onChainBalanceSol;
     err.totalCapitalSol = totalCapitalSol;
-    err.minBankSol = minBank;
+    err.minWalletToStartSol = minStart;
     throw err;
   }
   await bumpWalletPolicyForLpReal(anonymousId);
@@ -791,10 +843,8 @@ async function runLpRealSignalCycleForConfig(config) {
   const totalCapital = computeTotalCapitalSol(onChainBalance, deployedEarly);
   const availableEarly = computeAvailableSol(onChainBalance, config.reserveSolForFees);
 
-  if (!canOpenNewPosition({ onChainBalanceSol: onChainBalance, deployedSol: deployedEarly, config })) {
-    const reason = !meetsTargetBank(totalCapital, config)
-      ? "insufficient_total_capital"
-      : "insufficient_available_sol";
+  if (!canOpenNewPosition({ onChainBalanceSol: onChainBalance, config })) {
+    const reason = "insufficient_available_sol";
     await LpRealConfig.updateOne(agentFilter, {
       $set: { lastError: reason, lastSignalAt: new Date() },
     });
@@ -873,9 +923,13 @@ async function runLpRealSignalCycleForConfig(config) {
     }
 
     const candidates = await getLpCandidatePools();
-    const poolCandidate = candidates
-      .filter((c) => c.strategyId === best.strategyId && c.gatePassed)
-      .sort((a, b) => b.score - a.score)[0];
+    const solCandidates = candidates.filter(
+      (c) =>
+        c.strategyId === best.strategyId &&
+        c.gatePassed &&
+        (isSolMint(c.baseMint) || isSolMint(c.quoteMint)),
+    );
+    const poolCandidate = solCandidates.sort((a, b) => b.score - a.score)[0];
 
     if (!poolCandidate) {
       skipped.push({ reason: "no_candidate", strategyId: best.strategyId });
@@ -907,6 +961,17 @@ async function runLpRealSignalCycleForConfig(config) {
     const strategy = best.strategy;
 
     const poolDetail = await fetchMeteoraPoolDetail(poolCandidate.poolAddress);
+    if (!isSolMint(poolDetail.baseMint) && !isSolMint(poolDetail.quoteMint)) {
+      skipped.push({ reason: "non_sol_pool", pool: poolCandidate.poolAddress });
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
+    }
 
     // Pre-clamp once for telemetry — buildOpenPositionTx clamps again defensively.
     const clampedRange = clampPositionBinRange(strategy.binsBelow, strategy.binsAbove);
@@ -924,6 +989,39 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
+    let sidecar = {};
+    try {
+      const sidecarResult = await ensureSidecarTokenForPool({
+        anonymousId: config.anonymousId,
+        agentAddress: config.agentAddress,
+        baseMint: poolDetail.baseMint,
+        quoteMint: poolDetail.quoteMint,
+        otherSymbol: isSolMint(poolDetail.baseMint)
+          ? poolCandidate.quoteSymbol
+          : poolCandidate.baseSymbol,
+        depositSol,
+        binsBelow: clampedRange.binsBelow,
+        binsAbove: clampedRange.binsAbove,
+        solPriceUsd: solPrice,
+      });
+      sidecar = {
+        swappedSolLamports: sidecarResult.swappedSolLamports,
+        otherTokenRaw: sidecarResult.otherTokenRaw,
+      };
+    } catch (sidecarErr) {
+      const msg = sidecarErr instanceof Error ? sidecarErr.message : String(sidecarErr);
+      errors.push(`sidecar_swap:${msg}`);
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: msg, lastSignalAt: new Date() } });
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
+    }
+
     const txBuild = await buildOpenPositionTx({
       lbPairAddress: poolCandidate.poolAddress,
       binsBelow: clampedRange.binsBelow,
@@ -932,6 +1030,7 @@ async function runLpRealSignalCycleForConfig(config) {
       depositSol,
       agentPubkey: config.agentAddress,
       slippageBps: envSlippageBps(),
+      sidecar,
     });
 
     if (clampedRange.clamped) {
@@ -1048,9 +1147,17 @@ export async function runLpRealSignalCycle() {
 
 async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false } = {}) {
   const agentFilter = configAgentFilter(config);
+  const shouldSweepToSol = Boolean(forceCloseAll || config.closeAllRequested);
   const openRuns = await LpRealPosition.find({
     experimentId: config.experimentId,
-    status: { $in: ["open", "closing"] },
+    $or: [
+      { status: { $in: ["open", "closing"] } },
+      {
+        status: "error",
+        openTxSig: { $ne: null },
+        $or: [{ closeTxSig: null }, { closeTxSig: "" }],
+      },
+    ],
   })
     .select("+positionSecretEnc")
     .sort({ openedAt: 1 })
@@ -1122,7 +1229,10 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
       }
 
       const shouldClose =
-        forceCloseAll || config.closeAllRequested || exitEval.shouldClose;
+        forceCloseAll ||
+        config.closeAllRequested ||
+        exitEval.shouldClose ||
+        isOrphanedLiveLpPosition(position);
 
       if (!shouldClose) {
         await LpRealPosition.updateOne({ _id: position._id }, { $set: { processing: false } });
@@ -1131,23 +1241,43 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
 
       await LpRealPosition.updateOne({ _id: position._id }, { $set: { status: "closing" } });
 
-      const balanceBefore = await getAgentSolBalance(config.agentAddress);
+      const walletBefore = await snapshotAgentWalletForPool(
+        config.agentAddress,
+        position.poolAddress,
+      );
+
+      if (position.status === "error") {
+        await LpRealPosition.updateOne({ _id: position._id }, { $set: { status: "open" } });
+        position.status = "open";
+      }
 
       const closeTx = await buildClosePositionTx({
         lbPairAddress: position.poolAddress,
         positionPubkey: position.positionPubkey,
         agentPubkey: config.agentAddress,
         positionSecretEnc: position.positionSecretEnc,
+        activeBinAtOpen: position.activeBinAtOpen,
+        binsBelow: position.binsBelow,
+        binsAbove: position.binsAbove,
         slippageBps: envSlippageBps(),
       });
 
-      const closeResult = await brokerSignTx(
-        config.anonymousId,
-        "lp_real_close",
-        closeTx.serializedTxBase64,
-        position.depositUsd,
-        `Close LP position ${position.poolName}`,
-      );
+      const closeTxs =
+        closeTx.serializedTxBase64List?.length > 0
+          ? closeTx.serializedTxBase64List
+          : [closeTx.serializedTxBase64];
+
+      let closeResult = { status: "denied", reasons: ["no_close_tx"] };
+      for (let i = 0; i < closeTxs.length; i += 1) {
+        closeResult = await brokerSignTx(
+          config.anonymousId,
+          "lp_real_close",
+          closeTxs[i],
+          position.depositUsd / closeTxs.length,
+          `Close LP position ${position.poolName}${closeTxs.length > 1 ? ` (${i + 1}/${closeTxs.length})` : ""}`,
+        );
+        if (closeResult.status !== "ok") break;
+      }
 
       if (closeResult.status !== "ok") {
         const rawErrMsg =
@@ -1171,10 +1301,33 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
       }
 
       await new Promise((r) => setTimeout(r, 2000));
-      const balanceAfter = await getAgentSolBalance(config.agentAddress);
-      const solDelta = balanceAfter - balanceBefore;
-      const feesClaimed = toNum(position.realFeesClaimedSol) + unclaimedFees;
-      const realNetPnlSol = solDelta + feesClaimed;
+      const walletAfter = await snapshotAgentWalletForPool(
+        config.agentAddress,
+        position.poolAddress,
+      );
+      const feeRow = await LpRealPosition.findById(position._id).select("realFeesClaimedSol").lean();
+      const priorFeesClaimedSol = toNum(feeRow?.realFeesClaimedSol, 0);
+      const pricePerToken =
+        toNum(onChain?.currentPrice, 0) ||
+        toNum(poolDetail.currentPrice, 0) ||
+        toNum(position.entryPriceUsd, 0);
+      let proceedsSol = computeCloseProceedsSol({
+        before: walletBefore,
+        after: walletAfter,
+        pricePerToken,
+      });
+      if (proceedsSol == null || !Number.isFinite(proceedsSol)) {
+        const dX = BigInt(walletAfter.xRaw) - BigInt(walletBefore.xRaw);
+        const dY = BigInt(walletAfter.yRaw) - BigInt(walletBefore.yRaw);
+        if (walletBefore.solIsX) {
+          proceedsSol = Number(dX) / LAMPORTS_PER_SOL;
+        } else if (walletBefore.solIsY) {
+          proceedsSol = Number(dY) / LAMPORTS_PER_SOL;
+        } else {
+          proceedsSol = 0;
+        }
+      }
+      const realNetPnlSol = proceedsSol + priorFeesClaimedSol - toNum(position.depositSol, 0);
       const realNetPnlUsd =
         position.depositSol > 0 ? realNetPnlSol * (position.depositUsd / position.depositSol) : 0;
 
@@ -1191,10 +1344,10 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
             status: finalStatus,
             resolution: exitEval.resolution,
             closeTxSig: closeResult.signature,
-            realFinalSolOut: solDelta,
+            realFinalSolOut: proceedsSol,
             realNetPnlSol,
             realNetPnlUsd,
-            realFeesClaimedSol: feesClaimed,
+            realFeesClaimedSol: priorFeesClaimedSol,
             processing: false,
             resolvedAt: new Date(),
           },
@@ -1226,8 +1379,26 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
 
   const stillOpen = await LpRealPosition.countDocuments({
     experimentId: config.experimentId,
-    status: { $in: ["open", "closing"] },
+    status: { $in: ["open", "opening", "closing"] },
   });
+
+  if (shouldSweepToSol && stillOpen === 0) {
+    try {
+      const solPrice = await fetchSolPriceUsd();
+      const sweep = await sweepNonSolTokensToSol({
+        anonymousId: config.anonymousId,
+        agentAddress: config.agentAddress,
+        solPriceUsd: solPrice,
+      });
+      for (const sweepErr of sweep.errors) {
+        errors.push(`sweep:${sweepErr}`);
+      }
+    } catch (sweepErr) {
+      const msg = sweepErr instanceof Error ? sweepErr.message : String(sweepErr);
+      errors.push(`sweep:${msg}`);
+    }
+  }
+
   if (config.closeAllRequested && stillOpen === 0) {
     await LpRealConfig.updateOne(agentFilter, { $set: { closeAllRequested: false } });
   }
