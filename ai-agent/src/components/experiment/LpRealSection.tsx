@@ -99,7 +99,12 @@ export function LpRealSection() {
   const agentAddr = config?.agentAddress ?? agentAddress ?? "";
   const minBank = stateQ.data?.minBankSol ?? config?.targetBankSol ?? 10;
   const onChainBalanceSol = Math.max(stateQ.data?.onChainBalanceSol ?? 0, agentSolBalance ?? 0);
-  const canEnable = stateQ.data?.canEnable ?? onChainBalanceSol >= minBank - 1e-9;
+  const deployedSol = stateQ.data?.deployedSol ?? 0;
+  const totalCapitalSol =
+    stateQ.data?.totalCapitalSol ?? onChainBalanceSol + deployedSol;
+  const canEnable = stateQ.data?.canEnable ?? totalCapitalSol >= minBank - 1e-9;
+  const canOpenNewPositions = stateQ.data?.canOpenNewPositions ?? false;
+  const openPositionsCount = stateQ.data?.openPositionsCount ?? 0;
   const enabled = Boolean(config?.enabled);
   const hasAgentWallet = Boolean(agentAddr || anonymousId);
   const loading = Boolean(anonymousId) && (stateQ.isLoading || summaryQ.isLoading);
@@ -120,27 +125,35 @@ export function LpRealSection() {
       config: buildPreviewConfig(agentAddr, minBank),
       onChainBalanceSol,
       deployedSol: 0,
+      totalCapitalSol: onChainBalanceSol,
       availableSol: Math.max(0, onChainBalanceSol - 0.05),
       openPositionsCount: 0,
       currentStrategy: null,
       minBankSol: minBank,
       canEnable,
+      canOpenNewPositions: canEnable && onChainBalanceSol >= 1.05,
       isOperator: true,
     };
   }, [stateQ.data, agentAddr, minBank, onChainBalanceSol, canEnable]);
 
-  const live = Boolean(enabled && (stateQ.data?.openPositionsCount ?? 0) > 0);
+  const live = Boolean(enabled && openPositionsCount > 0);
+  const monitoringOnly =
+    enabled && openPositionsCount > 0 && !canOpenNewPositions;
 
   const metrics = useMemo(
     () => [
       {
-        label: "On-chain SOL",
-        value: formatSol(onChainBalanceSol),
+        label: "Total capital",
+        value: `${formatSol(totalCapitalSol)} / ${formatSol(minBank)}`,
         warn: !canEnable && !enabled,
       },
       {
+        label: "Wallet SOL",
+        value: formatSol(onChainBalanceSol),
+      },
+      {
         label: "Deployed",
-        value: formatSol(stateQ.data?.deployedSol ?? 0),
+        value: formatSol(deployedSol),
       },
       {
         label: "Available",
@@ -154,7 +167,17 @@ export function LpRealSection() {
         value: `${formatSol(summaryQ.data?.realizedNetPnlSol ?? 0)} · ${formatLpUsd(summaryQ.data?.realizedNetPnlUsd ?? 0)}`,
       },
     ],
-    [stateQ.data, summaryQ.data, canEnable, enabled, onChainBalanceSol, config?.reserveSolForFees],
+    [
+      stateQ.data,
+      summaryQ.data,
+      canEnable,
+      enabled,
+      onChainBalanceSol,
+      totalCapitalSol,
+      deployedSol,
+      minBank,
+      config?.reserveSolForFees,
+    ],
   );
 
   const onCopy = async (text: string) => {
@@ -166,7 +189,11 @@ export function LpRealSection() {
   };
 
   const statusBadge = enabled && live ? (
-    <AgentBackgroundLiveIndicator openPositions={stateQ.data?.openPositionsCount ?? 0} />
+    <AgentBackgroundLiveIndicator openPositions={openPositionsCount} />
+  ) : enabled && monitoringOnly ? (
+    <Badge variant="outline" className="border-amber-500/40 text-[10px] text-amber-800 dark:text-amber-300">
+      Monitoring — no new opens
+    </Badge>
   ) : enabled ? (
     <Badge variant="outline" className="border-emerald-500/30 text-[10px] text-emerald-700 dark:text-emerald-400">
       Running
@@ -200,8 +227,8 @@ export function LpRealSection() {
             {hasAgentWallet ? statusBadge : null}
           </div>
           <p className="text-xs text-muted-foreground sm:text-sm">
-            Autonomous Meteora DLMM on your agent wallet — {minBank} SOL bank, 1 SOL per slot (max 10). Follows the
-            sim strategy with the highest net PnL each tick.
+            Autonomous Meteora DLMM on your agent wallet — {minBank} SOL total book (wallet + deployed), 1 SOL per
+            slot (max 10). Follows the sim strategy with the highest net PnL each tick.
           </p>
         </div>
         {lpState ? (
@@ -238,7 +265,7 @@ export function LpRealSection() {
 
       {hasAgentWallet && agentAddr && !loading ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {metrics.map((m) => (
               <div
                 key={m.label}
@@ -286,12 +313,17 @@ export function LpRealSection() {
 
           {!canEnable && !enabled ? (
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              Deposit at least {formatSol(minBank)} SOL to your agent wallet to turn on ({formatSol(onChainBalanceSol)}{" "}
-              on-chain).
+              Need {formatSol(minBank)} SOL total capital (wallet + deployed) to turn on — currently{" "}
+              {formatSol(totalCapitalSol)} ({formatSol(onChainBalanceSol)} wallet + {formatSol(deployedSol)} deployed).
             </p>
           ) : !enabled && canEnable ? (
             <p className="text-xs text-violet-700 dark:text-violet-300">
-              Wallet funded — click Turn on agent to start real Meteora LP.
+              Book funded — click Turn on agent to start real Meteora LP.
+            </p>
+          ) : monitoringOnly ? (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Agent is monitoring {openPositionsCount} open position{openPositionsCount === 1 ? "" : "s"} but will not
+              open new slots until wallet has room ({formatSol(stateQ.data?.availableSol ?? 0)} available).
             </p>
           ) : null}
 
@@ -330,7 +362,7 @@ export function LpRealSection() {
             </p>
           </div>
 
-          {enabled ? (
+          {openPositionsCount > 0 ? (
             <Button
               type="button"
               variant="destructive"

@@ -24,7 +24,11 @@ import {
   MAX_METEORA_POSITION_BINS,
 } from "./meteoraDlmmExecutor.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
-import { getLpRealDefaultTargetBankSol } from "../config/lpRealAgentAccess.js";
+import {
+  getLpRealDefaultTargetBankSol,
+  getLpRealFeeBufferSol,
+  getLpRealMinWalletWhileLiveSol,
+} from "../config/lpRealAgentAccess.js";
 
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 50;
@@ -376,9 +380,56 @@ function minBankSolForConfig(config) {
   return toNum(config?.targetBankSol, getLpRealDefaultTargetBankSol());
 }
 
-function canEnableLpReal(onChainBalanceSol, config) {
-  const minBank = minBankSolForConfig(config);
-  return toNum(onChainBalanceSol) >= minBank - 1e-9;
+function minWalletToStartSol(config) {
+  return (
+    toNum(config?.maxPositionSol, 1) +
+    toNum(config?.reserveSolForFees, 0.05) +
+    getLpRealFeeBufferSol()
+  );
+}
+
+function minWalletWhileLiveSol() {
+  return getLpRealMinWalletWhileLiveSol();
+}
+
+function sumDeployedSol(openPositions) {
+  return (openPositions || []).reduce((s, p) => s + toNum(p.depositSol), 0);
+}
+
+/** Economic book: liquid wallet + notional recorded in open positions. */
+function computeTotalCapitalSol(onChainBalanceSol, deployedSol) {
+  return toNum(onChainBalanceSol) + toNum(deployedSol);
+}
+
+/** SOL free in wallet for the next open (deployed capital already left the wallet). */
+function computeAvailableSol(onChainBalanceSol, reserveSol) {
+  return Math.max(0, toNum(onChainBalanceSol) - toNum(reserveSol, 0.05));
+}
+
+function meetsTargetBank(totalCapitalSol, config) {
+  return toNum(totalCapitalSol) >= minBankSolForConfig(config) - 1e-9;
+}
+
+function canOpenNewPosition({ onChainBalanceSol, deployedSol, config }) {
+  const totalCapital = computeTotalCapitalSol(onChainBalanceSol, deployedSol);
+  const availableSol = computeAvailableSol(onChainBalanceSol, config?.reserveSolForFees);
+  return (
+    meetsTargetBank(totalCapital, config) &&
+    availableSol >= toNum(config?.maxPositionSol, 1) - 1e-9
+  );
+}
+
+/** Configs that need resolve ticks: enabled agents + any agent with open Meteora positions. */
+async function getConfigsForResolve() {
+  const enabled = await LpRealConfig.find({ enabled: true }).lean();
+  const openExperimentIds = await LpRealPosition.distinct("experimentId", {
+    status: { $in: ["open", "opening", "closing"] },
+  });
+  const enabledExpIds = new Set(enabled.map((c) => c.experimentId).filter(Boolean));
+  const extraIds = openExperimentIds.filter((id) => id && !enabledExpIds.has(id));
+  if (!extraIds.length) return enabled;
+  const extra = await LpRealConfig.find({ experimentId: { $in: extraIds } }).lean();
+  return [...enabled, ...extra];
 }
 
 /** UI + enable gate before first Mongo row is created. */
@@ -409,11 +460,15 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
       config: null,
       onChainBalanceSol: 0,
       deployedSol: 0,
+      totalCapitalSol: 0,
       availableSol: 0,
       openPositionsCount: 0,
       currentStrategy: null,
       minBankSol,
+      minWalletToStartSol: minWalletToStartSol({ maxPositionSol: 1, reserveSolForFees: 0.05 }),
       canEnable: false,
+      canTurnOn: false,
+      canOpenNewPositions: false,
       isOperator,
     };
   }
@@ -440,16 +495,27 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   }
 
   if (preview) {
-    const canEnable = onChainBalanceSol >= minBankSol - 1e-9;
+    const totalCapitalSol = onChainBalanceSol;
+    const minStart = minWalletToStartSol(config);
+    const canEnable = meetsTargetBank(totalCapitalSol, config);
+    const availableSol = computeAvailableSol(onChainBalanceSol, config.reserveSolForFees);
     return {
       config: buildPreviewLpRealConfig(wallet, minBankSol),
       onChainBalanceSol,
       deployedSol: 0,
-      availableSol: Math.max(0, onChainBalanceSol - toNum(config.reserveSolForFees, 0.05)),
+      totalCapitalSol,
+      availableSol,
       openPositionsCount: 0,
       currentStrategy: null,
       minBankSol,
+      minWalletToStartSol: minStart,
       canEnable,
+      canTurnOn: canEnable || onChainBalanceSol >= minStart - 1e-9,
+      canOpenNewPositions: canOpenNewPosition({
+        onChainBalanceSol,
+        deployedSol: 0,
+        config,
+      }),
       isOperator,
     };
   }
@@ -459,11 +525,18 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
     status: { $in: ["open", "opening", "closing"] },
   }).lean();
 
-  const deployedSol = openPositions.reduce((s, p) => s + toNum(p.depositSol), 0);
-  const availableSol = Math.max(
-    0,
-    onChainBalanceSol - deployedSol - toNum(config.reserveSolForFees, 0.05),
-  );
+  const deployedSol = sumDeployedSol(openPositions);
+  const totalCapitalSol = computeTotalCapitalSol(onChainBalanceSol, deployedSol);
+  const availableSol = computeAvailableSol(onChainBalanceSol, config.reserveSolForFees);
+  const minStart = minWalletToStartSol(config);
+  const canEnable = meetsTargetBank(totalCapitalSol, config);
+  const canTurnOn =
+    canEnable || (openPositions.length === 0 && onChainBalanceSol >= minStart - 1e-9);
+  const canOpenNewPositions = canOpenNewPosition({
+    onChainBalanceSol,
+    deployedSol,
+    config,
+  });
 
   let currentStrategy = null;
   if (config.currentStrategyId != null) {
@@ -490,11 +563,15 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
     },
     onChainBalanceSol,
     deployedSol,
+    totalCapitalSol,
     availableSol,
     openPositionsCount: openPositions.length,
     currentStrategy,
     minBankSol: minBankSolForConfig(config),
-    canEnable: canEnableLpReal(onChainBalanceSol, config),
+    minWalletToStartSol: minStart,
+    canEnable,
+    canTurnOn,
+    canOpenNewPositions,
     isOperator,
   };
 }
@@ -650,13 +727,26 @@ async function bumpWalletPolicyForLpReal(anonymousId) {
 export async function enableLpReal({ anonymousId, enabledBy }) {
   const config = await assertLpRealOperator(anonymousId);
   const onChainBalanceSol = await getAgentSolBalance(config.agentAddress);
+  const openPositions = await LpRealPosition.find({
+    experimentId: config.experimentId,
+    status: { $in: ["open", "opening", "closing"] },
+  }).lean();
+  const deployedSol = sumDeployedSol(openPositions);
+  const totalCapitalSol = computeTotalCapitalSol(onChainBalanceSol, deployedSol);
   const minBank = minBankSolForConfig(config);
-  if (!canEnableLpReal(onChainBalanceSol, config)) {
+  const minStart = minWalletToStartSol(config);
+  const canStart =
+    meetsTargetBank(totalCapitalSol, config) ||
+    (openPositions.length === 0 && onChainBalanceSol >= minStart - 1e-9);
+  if (!canStart) {
     const err = new Error(
-      `insufficient_balance: wallet has ${onChainBalanceSol.toFixed(4)} SOL; need at least ${minBank} SOL`,
+      `insufficient_balance: total capital ${totalCapitalSol.toFixed(4)} SOL ` +
+        `(wallet ${onChainBalanceSol.toFixed(4)} + deployed ${deployedSol.toFixed(4)}); ` +
+        `need ${minBank} SOL book or ${minStart.toFixed(2)} SOL wallet to start`,
     );
     err.code = "insufficient_balance";
     err.onChainBalanceSol = onChainBalanceSol;
+    err.totalCapitalSol = totalCapitalSol;
     err.minBankSol = minBank;
     throw err;
   }
@@ -693,25 +783,38 @@ async function runLpRealSignalCycleForConfig(config) {
   const skipped = [];
 
   const onChainBalance = await getAgentSolBalance(config.agentAddress);
-  if (!canEnableLpReal(onChainBalance, config)) {
-    await LpRealConfig.updateOne(
-      agentFilter,
-      {
-        $set: {
-          enabled: false,
-          lastError: "insufficient_balance",
-          lastSignalAt: new Date(),
-        },
-      },
-    );
+  const openPositionsEarly = await LpRealPosition.find({
+    experimentId: config.experimentId,
+    status: { $in: ["open", "opening", "closing"] },
+  }).lean();
+  const deployedEarly = sumDeployedSol(openPositionsEarly);
+  const totalCapital = computeTotalCapitalSol(onChainBalance, deployedEarly);
+  const availableEarly = computeAvailableSol(onChainBalance, config.reserveSolForFees);
+
+  if (!canOpenNewPosition({ onChainBalanceSol: onChainBalance, deployedSol: deployedEarly, config })) {
+    const reason = !meetsTargetBank(totalCapital, config)
+      ? "insufficient_total_capital"
+      : "insufficient_available_sol";
+    await LpRealConfig.updateOne(agentFilter, {
+      $set: { lastError: reason, lastSignalAt: new Date() },
+    });
     return {
       agentAddress: config.agentAddress,
       opened: 0,
       skipped: 1,
-      errors: ["insufficient_balance"],
+      errors: [reason],
       openedRows: opened,
-      skippedRows: [{ reason: "insufficient_balance", onChainBalance }],
+      skippedRows: [{ reason, onChainBalance, totalCapital, availableSol: availableEarly }],
     };
+  }
+
+  if (
+    openPositionsEarly.length > 0 &&
+    onChainBalance < minWalletWhileLiveSol() - 1e-9
+  ) {
+    await LpRealConfig.updateOne(agentFilter, {
+      $set: { lastError: "low_wallet_fee_reserve", lastSignalAt: new Date() },
+    });
   }
 
   try {
@@ -753,15 +856,12 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
-    const openPositions = await LpRealPosition.find({
-      experimentId: config.experimentId,
-      status: { $in: ["open", "opening", "closing"] },
-    }).lean();
-    const deployedSol = openPositions.reduce((s, p) => s + toNum(p.depositSol), 0);
-    const availableSol = onChainBalance - deployedSol - toNum(config.reserveSolForFees, 0.05);
+    const openPositions = openPositionsEarly;
+    const deployedSol = deployedEarly;
+    const availableSol = availableEarly;
 
     if (availableSol < config.maxPositionSol) {
-      skipped.push({ reason: "insufficient_balance", availableSol });
+      skipped.push({ reason: "insufficient_available_sol", availableSol });
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1155,7 +1255,7 @@ export async function resolveLpRealPositions({ forceCloseAll = false, agentAddre
   } else if (forceCloseAll) {
     configs = await LpRealConfig.find({}).lean();
   } else {
-    configs = await LpRealConfig.find({ enabled: true }).lean();
+    configs = await getConfigsForResolve();
   }
 
   if (!configs.length) {

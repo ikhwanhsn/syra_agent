@@ -34,13 +34,21 @@ export interface LpRealState {
   config: LpRealConfig | null;
   onChainBalanceSol: number;
   deployedSol: number;
+  /** Wallet SOL + open position deposits (economic book). */
+  totalCapitalSol: number;
   availableSol: number;
   openPositionsCount: number;
   currentStrategy: { id: number; name: string; lpShape: string } | null;
-  /** Minimum on-chain SOL required to enable (matches targetBankSol). */
+  /** Target book size (wallet + deployed); matches sim starting bank. */
   minBankSol: number;
-  /** True when on-chain balance >= minBankSol. */
+  /** Minimum wallet SOL to turn on with zero open positions (~1 slot + fees). */
+  minWalletToStartSol: number;
+  /** True when totalCapitalSol >= minBankSol. */
   canEnable: boolean;
+  /** True when the user may enable (full book or starter wallet). */
+  canTurnOn: boolean;
+  /** True when the agent can open another maxPositionSol slot on the next tick. */
+  canOpenNewPositions: boolean;
   /** True when signed-in session has an active Solana agent wallet. */
   isOperator: boolean;
 }

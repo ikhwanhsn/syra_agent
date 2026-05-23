@@ -25,8 +25,11 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
   const config = state?.config;
   const enabled = Boolean(config?.enabled);
   const minBank = state?.minBankSol ?? config?.targetBankSol ?? 10;
-  const canEnable = state?.canEnable ?? (state?.onChainBalanceSol ?? 0) >= minBank;
   const balance = state?.onChainBalanceSol ?? 0;
+  const deployed = state?.deployedSol ?? 0;
+  const totalCapital = state?.totalCapitalSol ?? balance + deployed;
+  const canEnable = state?.canEnable ?? totalCapital >= minBank - 1e-9;
+  const canTurnOn = state?.canTurnOn ?? canEnable;
   const isOperator = state?.isOperator ?? false;
 
   const toggleMutation = useMutation({
@@ -51,7 +54,7 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
     onError: (err: Error) => {
       const msg = err.message || "Request failed";
       const friendly = msg.includes("insufficient_balance")
-        ? `Fund the agent wallet with at least ${minBank} SOL before turning on.`
+        ? `Need ${formatSol(minBank)} SOL total capital (wallet + deployed) or ~1.2 SOL wallet to start.`
         : msg.includes("agent_wallet_not_found")
           ? "Create and fund a Solana agent wallet in Settings first."
           : msg.includes("wallet_sign_in_required")
@@ -67,16 +70,16 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
     return (
       <p className={cn("text-xs text-muted-foreground", className)}>
         Create a Solana agent wallet in Settings to run real on-chain LP. You need at least{" "}
-        {formatSol(minBank)} on-chain to enable.
+        {formatSol(minBank)} SOL total book (wallet + deployed) to enable.
       </p>
     );
   }
 
   const handleTurnOn = () => {
-    if (!canEnable) {
+    if (!canTurnOn) {
       toast({
         title: "Not enough SOL",
-        description: `Wallet has ${formatSol(balance)}. Deposit at least ${formatSol(minBank)} to turn the agent on.`,
+        description: `Total capital ${formatSol(totalCapital)} (${formatSol(balance)} wallet + ${formatSol(deployed)} deployed). Need ${formatSol(minBank)} book or ~${formatSol(state?.minWalletToStartSol ?? 1.2)} wallet to start.`,
         variant: "destructive",
       });
       return;
@@ -111,7 +114,7 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
           type="button"
           size={layout === "compact" ? "sm" : "default"}
           className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-500"
-          disabled={pending || !canEnable}
+          disabled={pending || !canTurnOn}
           onClick={handleTurnOn}
         >
           {pending ? (
@@ -122,9 +125,14 @@ export function LpRealAgentToggle({ state, isLoading, className, layout = "defau
           Turn on agent
         </Button>
       )}
-      {!enabled && !canEnable ? (
+      {!enabled && !canTurnOn ? (
         <p className="text-xs text-amber-700 dark:text-amber-300">
-          Need {formatSol(minBank)} on-chain to enable · current {formatSol(balance)}
+          Need {formatSol(minBank)} total capital · current {formatSol(totalCapital)}
+        </p>
+      ) : !enabled && canTurnOn && !canEnable ? (
+        <p className="text-xs text-amber-700 dark:text-amber-300">
+          Starter mode — wallet has {formatSol(balance)}. Agent will open only when the {formatSol(minBank)} book is
+          met.
         </p>
       ) : null}
     </div>
