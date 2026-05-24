@@ -1,5 +1,5 @@
 import type { Connection } from "@solana/web3.js";
-import { PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import type { SignerWalletAdapter } from "@solana/wallet-adapter-base";
 import BN from "bn.js";
 import {
@@ -8,6 +8,7 @@ import {
   ICluster,
   StreamDirection,
   StreamType,
+  calculateTotalAmountToDeposit,
   type ICreateLinearStreamData,
   type Stream,
 } from "@streamflow/stream";
@@ -16,18 +17,126 @@ import {
   TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddressSync,
   getAccount,
+  getMint,
 } from "@solana/spl-token";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 
 type StreamflowCreateExt = Parameters<SolanaStreamClient["create"]>[1];
 
+/** Minimum SOL required for Streamflow metadata + escrow rent. */
+const MIN_SOL_FOR_LOCK_LAMPORTS = Math.floor(0.005 * LAMPORTS_PER_SOL);
+
+const FEE_MULTIPLIER_BN = new BN(1_000_000);
+const FEE_NORMALIZER = 10_000;
+
+/** Extra base units reserved so fee rounding + simulation never exceeds ATA balance. */
+const STAKE_AMOUNT_BUFFER_RAW = 10_000n;
+
+export interface WalletMintState {
+  balance: bigint;
+  ata: PublicKey;
+  tokenProgramId: PublicKey;
+  decimals: number;
+  ataExists: boolean;
+}
+
 export function createStreamflowClient(connection: Connection): SolanaStreamClient {
   const cluster = STREAMFLOW_CONFIG.isDevnet ? ICluster.Devnet : ICluster.Mainnet;
   return new SolanaStreamClient({
-    clusterUrl: STREAMFLOW_CONFIG.rpcEndpoint,
+    clusterUrl: connection.rpcEndpoint,
     cluster,
     commitment: "confirmed",
   });
+}
+
+/** Max lock amount from wallet balance after reserving Streamflow's token fee. */
+export function computeMaxLockableRaw(balance: BN, feePercent: number): BN {
+  if (feePercent <= 0 || balance.lte(new BN(0))) {
+    return balance;
+  }
+  const feeNorm = new BN(Math.round(feePercent * FEE_NORMALIZER));
+  return balance.mul(FEE_MULTIPLIER_BN).div(feeNorm.add(FEE_MULTIPLIER_BN));
+}
+
+export function computeRequiredBalanceRaw(depositRaw: BN, feePercent: number): BN {
+  return calculateTotalAmountToDeposit(depositRaw, feePercent);
+}
+
+/**
+ * Largest deposit amount that still fits in `balance` after Streamflow fees and
+ * integer rounding. Always use this (not raw wallet balance) for Max + submit.
+ */
+export function computeMaxDepositRaw(balance: BN, feePercent: number): BN {
+  if (balance.lte(new BN(2))) {
+    return new BN(0);
+  }
+
+  let deposit = computeMaxLockableRaw(balance, feePercent);
+
+  while (deposit.gt(new BN(2))) {
+    const required = computeRequiredBalanceRaw(deposit, feePercent);
+    if (required.lte(balance)) {
+      break;
+    }
+    deposit = deposit.subn(1);
+  }
+
+  if (deposit.lte(new BN(2))) {
+    return new BN(0);
+  }
+
+  const bufferBn = new BN(STAKE_AMOUNT_BUFFER_RAW.toString());
+  if (deposit.gt(bufferBn.addn(2))) {
+    deposit = deposit.sub(bufferBn);
+  }
+
+  while (deposit.gt(new BN(2))) {
+    const required = computeRequiredBalanceRaw(deposit, feePercent);
+    if (required.lte(balance)) {
+      break;
+    }
+    deposit = deposit.subn(1);
+  }
+
+  return deposit.gt(new BN(2)) ? deposit : new BN(0);
+}
+
+export interface ResolvedStakeAmount {
+  amountRaw: bigint;
+  maxDepositRaw: bigint;
+  walletState: WalletMintState;
+  wasClamped: boolean;
+}
+
+/**
+ * Clamp a requested lock amount to what the wallet can actually fund on-chain.
+ */
+export async function resolveStakeAmountRaw(
+  connection: Connection,
+  owner: PublicKey,
+  requestedRaw: bigint
+): Promise<ResolvedStakeAmount> {
+  const walletState = await fetchWalletMintState(
+    connection,
+    STREAMFLOW_CONFIG.tokenMint,
+    owner
+  );
+  const client = createStreamflowClient(connection);
+  const feePercent = await client.getTotalFee({ address: owner.toBase58() });
+  const maxDeposit = computeMaxDepositRaw(
+    new BN(walletState.balance.toString()),
+    feePercent
+  );
+  const maxDepositRaw = BigInt(maxDeposit.toString());
+
+  let amountRaw = requestedRaw;
+  let wasClamped = false;
+  if (amountRaw > maxDepositRaw) {
+    amountRaw = maxDepositRaw;
+    wasClamped = true;
+  }
+
+  return { amountRaw, maxDepositRaw, walletState, wasClamped };
 }
 
 /**
@@ -49,6 +158,45 @@ export async function resolveTokenProgramId(
 }
 
 /**
+ * Read mint decimals, token program, and the wallet's ATA balance used by Streamflow.
+ */
+export async function fetchWalletMintState(
+  connection: Connection,
+  mint: PublicKey,
+  owner: PublicKey
+): Promise<WalletMintState> {
+  const tokenProgramId = await resolveTokenProgramId(connection, mint);
+  const ata = getAssociatedTokenAddressSync(mint, owner, false, tokenProgramId);
+
+  let decimals = STREAMFLOW_CONFIG.tokenDecimals;
+  try {
+    const mintInfo = await getMint(connection, mint, "confirmed", tokenProgramId);
+    decimals = mintInfo.decimals;
+  } catch {
+    // keep configured decimals
+  }
+
+  try {
+    const acc = await getAccount(connection, ata, "confirmed", tokenProgramId);
+    return {
+      balance: acc.amount,
+      ata,
+      tokenProgramId,
+      decimals,
+      ataExists: true,
+    };
+  } catch {
+    return {
+      balance: BigInt(0),
+      ata,
+      tokenProgramId,
+      decimals,
+      ataExists: false,
+    };
+  }
+}
+
+/**
  * Fetch the on-chain ATA balance for a given owner/mint, auto-selecting
  * the correct token program. Returns 0n when the ATA doesn't exist yet.
  */
@@ -57,14 +205,12 @@ export async function fetchAtaBalance(
   mint: PublicKey,
   owner: PublicKey
 ): Promise<{ balance: bigint; ata: PublicKey; tokenProgramId: PublicKey }> {
-  const tokenProgramId = await resolveTokenProgramId(connection, mint);
-  const ata = getAssociatedTokenAddressSync(mint, owner, false, tokenProgramId);
-  try {
-    const acc = await getAccount(connection, ata, "confirmed", tokenProgramId);
-    return { balance: acc.amount, ata, tokenProgramId };
-  } catch {
-    return { balance: BigInt(0), ata, tokenProgramId };
-  }
+  const state = await fetchWalletMintState(connection, mint, owner);
+  return {
+    balance: state.balance,
+    ata: state.ata,
+    tokenProgramId: state.tokenProgramId,
+  };
 }
 
 export function buildTokenLockCreateParams(args: {
@@ -105,6 +251,8 @@ export interface CreateLockStakeResult {
   txId: string;
   metadataId: string;
   unlockAtUnix: number;
+  amountRaw: bigint;
+  wasClamped: boolean;
 }
 
 /**
@@ -120,9 +268,18 @@ export function mapStreamflowError(err: unknown, symbol: string): Error {
   const haystack = [raw, ...(logs ?? [])].join("\n").toLowerCase();
 
   if (haystack.includes("insufficient funds") || haystack.includes("insufficientfunds")) {
+    const mentionsSol =
+      haystack.includes("system program") ||
+      haystack.includes("11111111111111111111111111111111");
+    if (mentionsSol) {
+      return new Error(
+        "Not enough SOL in this wallet to pay Streamflow account rent. " +
+          "Keep at least 0.005 SOL and try again."
+      );
+    }
     return new Error(
-      `Insufficient ${symbol} balance in your wallet to create this lock. ` +
-        `Refresh your balance and try a smaller amount.`
+      `Insufficient ${symbol} in your token account for this lock. ` +
+        `Use Max (not your full wallet display if it includes other tokens) or enter a smaller amount.`
     );
   }
   if (
@@ -142,6 +299,50 @@ export function mapStreamflowError(err: unknown, symbol: string): Error {
   return err instanceof Error ? err : new Error(raw);
 }
 
+async function assertStakePreflight(
+  connection: Connection,
+  client: SolanaStreamClient,
+  sender: PublicKey,
+  amountRaw: bigint,
+  walletState: WalletMintState
+): Promise<void> {
+  const symbol = STREAMFLOW_CONFIG.tokenSymbol;
+  const solBalance = await connection.getBalance(sender, "confirmed");
+  if (solBalance < MIN_SOL_FOR_LOCK_LAMPORTS) {
+    throw new Error(
+      `Not enough SOL to open a Streamflow lock (need ~0.005 SOL for rent). ` +
+        `You have ${(solBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL — add SOL and retry.`
+    );
+  }
+
+  if (!walletState.ataExists || walletState.balance <= 0n) {
+    throw new Error(
+      `No ${symbol} token account found for this wallet on ${STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet"}. ` +
+        `Receive ${symbol} in your wallet first, then try again.`
+    );
+  }
+
+  const amountBn = new BN(amountRaw.toString());
+  const feePercent = await client.getTotalFee({ address: sender.toBase58() });
+  const requiredRaw = BigInt(computeRequiredBalanceRaw(amountBn, feePercent).toString());
+
+  if (requiredRaw > walletState.balance) {
+    const maxDeposit = computeMaxDepositRaw(
+      new BN(walletState.balance.toString()),
+      feePercent
+    );
+    throw new Error(
+      `Insufficient ${symbol} balance. ` +
+        `This lock needs ${requiredRaw.toString()} base units` +
+        (feePercent > 0 ? ` (includes Streamflow fee ~${feePercent}%)` : "") +
+        ` but your account has ${walletState.balance.toString()}.` +
+        (maxDeposit.gt(new BN(2))
+          ? ` Use Max or enter at most ${getNumberFromBN(maxDeposit, walletState.decimals)} ${symbol}.`
+          : "")
+    );
+  }
+}
+
 export async function createTokenLockStake(
   connection: Connection,
   walletAdapter: SignerWalletAdapter,
@@ -151,41 +352,82 @@ export async function createTokenLockStake(
   const sender = walletAdapter.publicKey;
   if (!sender) throw new Error("Wallet not connected");
 
-  const { balance: liveBalance, tokenProgramId } = await fetchAtaBalance(
-    connection,
-    STREAMFLOW_CONFIG.tokenMint,
-    sender
-  );
-
-  if (amountRaw > liveBalance) {
+  const resolved = await resolveStakeAmountRaw(connection, sender, amountRaw);
+  if (resolved.amountRaw <= 2n) {
     throw new Error(
-      `Insufficient ${STREAMFLOW_CONFIG.tokenSymbol} balance. ` +
-        `Your wallet has fewer tokens than requested — refresh and try again.`
+      `Amount too small to lock ${STREAMFLOW_CONFIG.tokenSymbol}. Use Max or enter a larger amount.`
     );
   }
 
-  const amountBn = new BN(amountRaw.toString());
+  const walletState = resolved.walletState;
+  const stakeRaw = resolved.amountRaw;
+
+  const amountBn = new BN(stakeRaw.toString());
   const now = Math.floor(Date.now() / 1000);
   const unlockAt = now + lockDurationSeconds;
 
   const client = createStreamflowClient(connection);
+  await assertStakePreflight(connection, client, sender, stakeRaw, walletState);
+
   const params = buildTokenLockCreateParams({
     wallet: sender,
     amountRaw: amountBn,
     unlockAtUnix: unlockAt,
     name: `${STREAMFLOW_CONFIG.tokenSymbol} lock · Syra`,
-    tokenProgramId,
+    tokenProgramId: walletState.tokenProgramId,
   });
 
+  const ext: StreamflowCreateExt = {
+    sender: walletAdapter as unknown as StreamflowCreateExt["sender"],
+    isNative: false,
+  };
+
   try {
-    const { txId, metadataId } = await client.create(params, {
-      sender: walletAdapter as unknown as StreamflowCreateExt["sender"],
-      isNative: false,
+    const { tx } = await client.buildCreateTransaction(params, ext);
+    const simulation = await client.getConnection().simulateTransaction(tx, {
+      sigVerify: false,
+      replaceRecentBlockhash: true,
     });
-    return { txId, metadataId, unlockAtUnix: unlockAt };
+    if (simulation.value.err) {
+      throw mapStreamflowError(
+        {
+          message: JSON.stringify(simulation.value.err),
+          logs: simulation.value.logs ?? undefined,
+        },
+        STREAMFLOW_CONFIG.tokenSymbol
+      );
+    }
+
+    const { txId, metadataId } = await client.create(params, ext);
+    return {
+      txId,
+      metadataId,
+      unlockAtUnix: unlockAt,
+      amountRaw: stakeRaw,
+      wasClamped: resolved.wasClamped,
+    };
   } catch (err) {
     throw mapStreamflowError(err, STREAMFLOW_CONFIG.tokenSymbol);
   }
+}
+
+/** Max deposit (raw) the wallet can lock after Streamflow fees and safety buffer. */
+export async function fetchMaxLockableRaw(
+  connection: Connection,
+  owner: PublicKey
+): Promise<{ maxLockable: bigint; walletState: WalletMintState; feePercent: number }> {
+  const walletState = await fetchWalletMintState(connection, STREAMFLOW_CONFIG.tokenMint, owner);
+  const client = createStreamflowClient(connection);
+  const feePercent = await client.getTotalFee({ address: owner.toBase58() });
+  const maxDeposit = computeMaxDepositRaw(
+    new BN(walletState.balance.toString()),
+    feePercent
+  );
+  return {
+    maxLockable: BigInt(maxDeposit.toString()),
+    walletState,
+    feePercent,
+  };
 }
 
 export interface UserLockRow {

@@ -165,7 +165,7 @@ function RunStatusBadge({ status }: { status: LpRunStatus }) {
 
 export default function LpAgentExperiment({ embedded = false }: { embedded?: boolean }) {
   const [leaderboardSort, setLeaderboardSort] = useState<{ key: LeaderboardSortKey; dir: SortDirection }>({
-    key: "winRatePct",
+    key: "sumNetPnlSol",
     dir: "desc",
   });
   const [candidateSort, setCandidateSort] = useState<{ key: CandidateSortKey; dir: SortDirection }>({
@@ -339,7 +339,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             <p className={overviewKickerClass}>Benchmark</p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Simulation lab</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Strategy cohorts compete on live Meteora pools. The real agent above follows the current leaderboard leader.
+              Strategy cohorts compete on live Meteora pools. The real agent above follows the sim strategy with the highest net PnL.
             </p>
           </div>
 

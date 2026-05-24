@@ -1,10 +1,9 @@
 /**
  * LP Real Agent — on-chain Meteora DLMM execution from a backend-custodied agent wallet.
- * Dynamically follows the sim cohort strategy with highest sumNetPnlSol each signal tick.
+ * Dynamically follows the sim cohort strategy with the highest net PnL each signal tick.
  */
 import LpRealConfig from "../models/LpRealConfig.js";
 import LpRealPosition from "../models/LpRealPosition.js";
-import LpExperimentRun from "../models/LpExperimentRun.js";
 import LpExperimentState from "../models/LpExperimentState.js";
 import AgentWallet from "../models/agent/AgentWallet.js";
 import { LP_AGENT_EXPERIMENT_DEFAULTS } from "../config/lpAgentExperimentStrategies.js";
@@ -12,6 +11,8 @@ import { resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import {
   ensureLpExperimentBootstrapped,
   getLpCandidatePools,
+  pickBestNetPnlStrategy,
+  rankLpExperimentStrategiesByNetPnl,
 } from "./lpExperimentService.js";
 import { executeIntent } from "../services/walletBroker.js";
 import {
@@ -22,10 +23,12 @@ import {
   computeCloseProceedsSol,
   fetchOnChainPosition,
   getAgentSolBalance,
+  getSolanaConnection,
   isSolMint,
   MAX_METEORA_POSITION_BINS,
   snapshotAgentWalletForPool,
 } from "./meteoraDlmmExecutor.js";
+import { isSolanaTxConfirmedOnChain } from "./solanaConfirm.js";
 import { ensureSidecarTokenForPool, sweepNonSolTokensToSol } from "./lpRealSidecarSwap.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
@@ -73,6 +76,32 @@ function humanizeBrokerError(rawReason) {
     return "broker_pending_or_failed (policy requires user confirmation)";
   }
   const joined = Array.isArray(rawReason) ? rawReason.join(";") : String(rawReason);
+
+  const policyMatch = /policy_require_confirm(?::(.+))?/.exec(joined);
+  if (policyMatch || joined.startsWith("policy_require_confirm")) {
+    const detail = policyMatch?.[1] || joined.replace(/^policy_require_confirm:?/, "");
+    const codes = detail.split("|").filter(Boolean);
+    for (const code of codes) {
+      const base = code.split(":")[0];
+      if (base === "over_hourly_cap") {
+        return "Wallet hourly spend cap reached — LP cron will retry on the next tick";
+      }
+      if (base === "over_daily_cap") {
+        return "Wallet daily spend cap reached — LP cron will retry tomorrow or raise caps on enable";
+      }
+      if (base === "over_per_tx_cap") {
+        return "Single transaction exceeds wallet per-tx cap";
+      }
+      if (base === "velocity_high") {
+        return "Too many wallet signatures in the last minute — retry shortly";
+      }
+      if (base === "tool_not_allowed") {
+        return "LP tool not in wallet allowlist — turn the agent off and on again";
+      }
+    }
+    return detail ? `Policy held transaction: ${detail.replace(/_/g, " ")}` : "Policy requires confirmation (cron cannot auto-confirm)";
+  }
+
   const splTokenFailed =
     /Tokenkeg[A-Za-z0-9]{30,}\s+failed/i.test(joined) ||
     /insufficient funds/i.test(joined) ||
@@ -109,6 +138,32 @@ function humanizeBrokerError(rawReason) {
     return `dlmm_error:${code}`;
   }
   return joined;
+}
+
+/** Map walletBroker result to a raw reason string/list for humanizeBrokerError. */
+function brokerRawReasonFromResult(brokerResult, fallback = "broker_failed") {
+  if (brokerResult.status === "denied") {
+    return brokerResult.reasons?.length ? brokerResult.reasons : [fallback];
+  }
+  if (brokerResult.status === "pending_confirmation") {
+    const reasons = brokerResult.summary?.reasons || brokerResult.reasons || ["require_confirm"];
+    const joined = Array.isArray(reasons) ? reasons.join("|") : String(reasons);
+    return `policy_require_confirm:${joined}`;
+  }
+  return fallback;
+}
+
+/** @returns {{ errMsg: string, policyReasons: string[] }} */
+function formatBrokerFailure(brokerResult, fallback = "broker_failed") {
+  const raw = brokerRawReasonFromResult(brokerResult, fallback);
+  const joined = Array.isArray(raw) ? raw.join(";") : String(raw);
+  const policyReasons =
+    joined.includes("policy_require_confirm:")
+      ? joined.replace(/^policy_require_confirm:/, "").split("|").filter(Boolean)
+      : Array.isArray(raw)
+        ? raw
+        : [joined];
+  return { errMsg: humanizeBrokerError(raw), policyReasons };
 }
 
 let cachedSolPrice = { value: 150, ts: 0 };
@@ -325,84 +380,16 @@ export async function ensureLpRealBootstrapped() {
 }
 
 /**
- * Pick strategy with highest sumNetPnlSol in active sim cohort.
+ * Pick sim strategy with highest net PnL (avg on settled runs, then total PnL).
+ * Skips leaders with negative avg PnL once enough settled runs exist.
  */
 export async function pickBestStrategy() {
-  await ensureLpExperimentBootstrapped();
-  const simState = await LpExperimentState.findById("singleton").lean();
-  const experimentId = simState?.activeExperimentId;
-  if (!experimentId) return null;
+  const result = await pickBestNetPnlStrategy();
+  return result.strategy;
+}
 
-  const rows = await LpExperimentRun.aggregate([
-    {
-      $match: {
-        experimentId,
-        status: { $in: ["win", "loss", "expired", "open"] },
-      },
-    },
-    {
-      $group: {
-        _id: "$strategyId",
-        strategyName: { $last: "$strategyName" },
-        lpShape: { $last: "$lpShape" },
-        sumNetPnlSol: { $sum: { $ifNull: ["$simNetPnlSol", 0] } },
-        wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
-        decided: {
-          $sum: { $cond: [{ $in: ["$status", ["win", "loss", "expired"]] }, 1, 0] },
-        },
-      },
-    },
-    { $sort: { sumNetPnlSol: -1, wins: -1 } },
-    { $limit: 1 },
-  ]);
-
-  if (rows.length > 0 && toNum(rows[0].decided) > 0) {
-    const strategy = await resolveLpStrategyById(Number(rows[0]._id));
-    if (strategy) {
-      return {
-        strategyId: strategy.id,
-        strategyName: strategy.name,
-        lpShape: strategy.lpShape,
-        sumNetPnlSol: toNum(rows[0].sumNetPnlSol),
-        strategy,
-      };
-    }
-  }
-
-  // Fallback: highest win rate among decided runs
-  const fallback = await LpExperimentRun.aggregate([
-    {
-      $match: {
-        experimentId,
-        status: { $in: ["win", "loss", "expired"] },
-      },
-    },
-    {
-      $group: {
-        _id: "$strategyId",
-        wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
-        decided: { $sum: 1 },
-      },
-    },
-    {
-      $addFields: {
-        winRate: { $cond: [{ $gt: ["$decided", 0] }, { $divide: ["$wins", "$decided"] }, 0] },
-      },
-    },
-    { $sort: { winRate: -1, wins: -1 } },
-    { $limit: 1 },
-  ]);
-
-  if (fallback.length === 0) return null;
-  const strategy = await resolveLpStrategyById(Number(fallback[0]._id));
-  if (!strategy) return null;
-  return {
-    strategyId: strategy.id,
-    strategyName: strategy.name,
-    lpShape: strategy.lpShape,
-    sumNetPnlSol: 0,
-    strategy,
-  };
+export async function pickBestStrategyWithReason() {
+  return pickBestNetPnlStrategy();
 }
 
 async function hasRecentRealPosition(experimentId, poolAddress) {
@@ -428,6 +415,72 @@ async function brokerSignTx(anonymousId, toolId, serializedTxBase64, estimatedUs
       summary,
     },
   );
+}
+
+/**
+ * Sign and confirm every Meteora tx in sequence (open/close often needs >1 instruction bundle).
+ */
+async function submitLpRealTxSequence({
+  anonymousId,
+  toolId,
+  serializedTxBase64List,
+  lastValidBlockHeight,
+  estimatedUsd,
+  summaryBase,
+}) {
+  const txs =
+    Array.isArray(serializedTxBase64List) && serializedTxBase64List.length > 0
+      ? serializedTxBase64List
+      : [];
+  if (!txs.length) {
+    return { ok: false, brokerResult: { status: "denied", reasons: ["empty_transaction"] }, signatures: [] };
+  }
+
+  const signatures = [];
+  for (let i = 0; i < txs.length; i += 1) {
+    const brokerResult = await brokerSignTx(
+      anonymousId,
+      toolId,
+      txs[i],
+      toNum(estimatedUsd) / txs.length,
+      `${summaryBase}${txs.length > 1 ? ` (${i + 1}/${txs.length})` : ""}`,
+    );
+    if (brokerResult.status !== "ok" || !brokerResult.signature) {
+      return { ok: false, brokerResult, signatures };
+    }
+    signatures.push(brokerResult.signature);
+  }
+
+  return {
+    ok: true,
+    brokerResult: { status: "ok", signature: signatures[signatures.length - 1] },
+    signature: signatures[signatures.length - 1],
+    signatures,
+  };
+}
+
+/**
+ * Fix DB rows that show live/open tx links but never landed on-chain (or position missing).
+ * @returns {'open_tx_not_on_chain'|'promote_to_open'|null}
+ */
+async function reconcileOpenPositionOnChain(position) {
+  if (!position?.openTxSig) return null;
+  if (!["open", "opening"].includes(position.status)) return null;
+
+  const connection = getSolanaConnection();
+  const txOk = await isSolanaTxConfirmedOnChain(connection, position.openTxSig);
+
+  let positionOk = false;
+  try {
+    await fetchOnChainPosition(position.positionPubkey, position.poolAddress);
+    positionOk = true;
+  } catch {
+    positionOk = false;
+  }
+
+  if (!txOk && !positionOk) return "open_tx_not_on_chain";
+  if (position.status === "opening" && positionOk) return "promote_to_open";
+  return null;
 }
 
 function minBankSolForConfig(config) {
@@ -596,7 +649,20 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   if (config.currentStrategyId != null) {
     const s = await resolveLpStrategyById(config.currentStrategyId);
     if (s) {
-      currentStrategy = { id: s.id, name: s.name, lpShape: s.lpShape };
+      const simState = await LpExperimentState.findById("singleton").lean();
+      const ranked = simState?.activeExperimentId
+        ? await rankLpExperimentStrategiesByNetPnl(simState.activeExperimentId)
+        : [];
+      const simRow = ranked.find((row) => row.strategyId === s.id);
+      currentStrategy = {
+        id: s.id,
+        name: s.name,
+        lpShape: s.lpShape,
+        isSimLeader: ranked[0]?.strategyId === s.id,
+        simSumNetPnlSol: simRow?.sumNetPnlSol ?? null,
+        simAvgNetPnlSol: simRow?.avgDecidedNetPnlSol ?? null,
+        simDecidedRuns: simRow?.decided ?? 0,
+      };
     }
   }
 
@@ -747,6 +813,8 @@ export async function listLpRealPositions({ limit, offset, status, experimentId,
       openedAt: p.openedAt?.toISOString?.() ?? null,
       resolvedAt: p.resolvedAt?.toISOString?.() ?? null,
       errorMessage: p.errorMessage,
+      depositLocked: Boolean(p.depositLocked),
+      policyReasons: Array.isArray(p.policyReasons) ? p.policyReasons : [],
     })),
     total,
     limit: lim,
@@ -754,10 +822,14 @@ export async function listLpRealPositions({ limit, offset, status, experimentId,
   };
 }
 
-async function bumpWalletPolicyForLpReal(anonymousId) {
+async function bumpWalletPolicyForLpReal(anonymousId, lpConfig = {}) {
   const solPrice = await fetchSolPriceUsd();
-  const perTxCapUsd = Math.max(250, solPrice * 1.5);
-  const dailySpendCapUsd = Math.max(2500, solPrice * 12);
+  const maxPosSol = toNum(lpConfig.maxPositionSol, 1);
+  const maxConcurrent = toNum(lpConfig.maxConcurrentPositions, 10);
+  const notionalUsd = solPrice * maxPosSol * maxConcurrent;
+  const perTxCapUsd = Math.max(250, solPrice * maxPosSol * 1.5);
+  const dailySpendCapUsd = Math.max(2500, notionalUsd * 2);
+  const hourlySpendCapUsd = Math.max(400, notionalUsd * 1.5);
   const wallet = await AgentWallet.findOne({ anonymousId })
     .select("allowedTools perTxCapUsd dailySpendCapUsd hourlySpendCapUsd")
     .lean();
@@ -772,7 +844,7 @@ async function bumpWalletPolicyForLpReal(anonymousId) {
         allowedTools: [...tools],
         perTxCapUsd: Math.max(toNum(wallet.perTxCapUsd, 50), perTxCapUsd),
         dailySpendCapUsd: Math.max(toNum(wallet.dailySpendCapUsd, 250), dailySpendCapUsd),
-        hourlySpendCapUsd: Math.max(toNum(wallet.hourlySpendCapUsd, 100), solPrice * 5),
+        hourlySpendCapUsd: Math.max(toNum(wallet.hourlySpendCapUsd, 100), hourlySpendCapUsd),
       },
     },
   );
@@ -802,7 +874,7 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
     err.minWalletToStartSol = minStart;
     throw err;
   }
-  await bumpWalletPolicyForLpReal(anonymousId);
+  await bumpWalletPolicyForLpReal(anonymousId, config);
   await LpRealConfig.updateOne(configAgentFilter(config), {
     $set: {
       enabled: true,
@@ -868,12 +940,14 @@ async function runLpRealSignalCycleForConfig(config) {
   }
 
   try {
-    const best = await pickBestStrategy();
+    const pick = await pickBestStrategyWithReason();
+    const best = pick.strategy;
     if (!best?.strategy) {
-      skipped.push({ reason: "no_best_strategy" });
+      const reason = pick.failureReason || "no_best_strategy";
+      skipped.push({ reason });
       await LpRealConfig.updateOne(
         agentFilter,
-        { $set: { lastSignalAt: new Date(), lastError: "no_best_strategy" } },
+        { $set: { lastSignalAt: new Date(), lastError: reason } },
       );
       return {
         agentAddress: config.agentAddress,
@@ -974,6 +1048,23 @@ async function runLpRealSignalCycleForConfig(config) {
     }
 
     // Pre-clamp once for telemetry — buildOpenPositionTx clamps again defensively.
+    const rawBinsBelow = Math.max(0, Math.floor(toNum(strategy.binsBelow, 0)));
+    const rawBinsAbove = Math.max(0, Math.floor(toNum(strategy.binsAbove, 0)));
+    const rawWidth = rawBinsBelow + rawBinsAbove + 1;
+    if (rawWidth > 140) {
+      const errMsg = `strategy_too_wide (strategy:${strategy.id}, ${rawWidth} bins — max 70 per on-chain position)`;
+      errors.push(errMsg);
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 1,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
+    }
+
     const clampedRange = clampPositionBinRange(strategy.binsBelow, strategy.binsAbove);
     if (clampedRange.binsBelow === 0 && clampedRange.binsAbove === 0) {
       const errMsg = `strategy_bin_range_invalid (strategy:${strategy.id})`;
@@ -1065,26 +1156,64 @@ async function runLpRealSignalCycleForConfig(config) {
       signalSnapshot: poolCandidate.signalSnapshot,
       screeningSnapshot: { score: poolCandidate.score },
       status: "opening",
+      depositLocked: false,
       openedAt: new Date(),
     });
 
-    const brokerResult = await brokerSignTx(
-      config.anonymousId,
-      "lp_real_open",
-      txBuild.serializedTxBase64,
-      depositUsd,
-      `Open LP position ${poolCandidate.poolName} (${depositSol} SOL)`,
-    );
+    const openTxs =
+      txBuild.serializedTxBase64List?.length > 0
+        ? txBuild.serializedTxBase64List
+        : [txBuild.serializedTxBase64];
 
-    if (brokerResult.status !== "ok") {
-      const rawErrMsg =
-        brokerResult.status === "denied"
-          ? (brokerResult.reasons || []).join(";")
-          : "broker_pending_or_failed";
-      const errMsg = humanizeBrokerError(rawErrMsg);
+    const submit = await submitLpRealTxSequence({
+      anonymousId: config.anonymousId,
+      toolId: "lp_real_open",
+      serializedTxBase64List: openTxs,
+      lastValidBlockHeight: txBuild.lastValidBlockHeight,
+      estimatedUsd: depositUsd,
+      summaryBase: `Open LP position ${poolCandidate.poolName} (${depositSol} SOL)`,
+    });
+
+    if (!submit.ok) {
+      const { errMsg, policyReasons } = formatBrokerFailure(submit.brokerResult, "broker_pending_or_failed");
       await LpRealPosition.updateOne(
         { _id: pending._id },
-        { $set: { status: "error", errorMessage: errMsg, resolvedAt: new Date() } },
+        {
+          $set: {
+            status: "error",
+            errorMessage: errMsg,
+            policyReasons,
+            depositLocked: false,
+            resolvedAt: new Date(),
+          },
+        },
+      );
+      errors.push(errMsg);
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
+      return {
+        agentAddress: config.agentAddress,
+        opened: 0,
+        skipped: 0,
+        errors,
+        openedRows: opened,
+        skippedRows: skipped,
+      };
+    }
+
+    try {
+      await fetchOnChainPosition(pending.positionPubkey, poolCandidate.poolAddress);
+    } catch {
+      const errMsg = "position_not_on_chain_after_open";
+      await LpRealPosition.updateOne(
+        { _id: pending._id },
+        {
+          $set: {
+            status: "error",
+            errorMessage: errMsg,
+            depositLocked: false,
+            resolvedAt: new Date(),
+          },
+        },
       );
       errors.push(errMsg);
       await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
@@ -1100,13 +1229,20 @@ async function runLpRealSignalCycleForConfig(config) {
 
     await LpRealPosition.updateOne(
       { _id: pending._id },
-      { $set: { status: "open", openTxSig: brokerResult.signature } },
+      {
+        $set: {
+          status: "open",
+          openTxSig: submit.signature,
+          depositLocked: true,
+        },
+      },
     );
     opened.push({
       positionId: String(pending._id),
       poolAddress: poolCandidate.poolAddress,
       strategyId: strategy.id,
-      txSig: brokerResult.signature,
+      txSig: submit.signature,
+      txSigs: submit.signatures,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -1178,6 +1314,32 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
     if (!locked) continue;
 
     try {
+      const reconcile = await reconcileOpenPositionOnChain(position);
+      if (reconcile === "open_tx_not_on_chain") {
+        await LpRealPosition.updateOne(
+          { _id: position._id },
+          {
+            $set: {
+              status: "error",
+              errorMessage: "open_tx_not_on_chain",
+              depositLocked: false,
+              processing: false,
+              resolvedAt: new Date(),
+            },
+          },
+        );
+        errors.push(`reconcile:${String(position._id)}:open_tx_not_on_chain`);
+        continue;
+      }
+      if (reconcile === "promote_to_open") {
+        await LpRealPosition.updateOne(
+          { _id: position._id },
+          { $set: { status: "open", depositLocked: true } },
+        );
+        position.status = "open";
+        position.depositLocked = true;
+      }
+
       const poolDetail = await fetchMeteoraPoolDetail(position.poolAddress);
       const now = Date.now();
       const openedAt = new Date(position.openedAt || position.createdAt).getTime();
@@ -1267,30 +1429,24 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
           ? closeTx.serializedTxBase64List
           : [closeTx.serializedTxBase64];
 
-      let closeResult = { status: "denied", reasons: ["no_close_tx"] };
-      for (let i = 0; i < closeTxs.length; i += 1) {
-        closeResult = await brokerSignTx(
-          config.anonymousId,
-          "lp_real_close",
-          closeTxs[i],
-          position.depositUsd / closeTxs.length,
-          `Close LP position ${position.poolName}${closeTxs.length > 1 ? ` (${i + 1}/${closeTxs.length})` : ""}`,
-        );
-        if (closeResult.status !== "ok") break;
-      }
+      const closeSubmit = await submitLpRealTxSequence({
+        anonymousId: config.anonymousId,
+        toolId: "lp_real_close",
+        serializedTxBase64List: closeTxs,
+        lastValidBlockHeight: closeTx.lastValidBlockHeight,
+        estimatedUsd: position.depositUsd,
+        summaryBase: `Close LP position ${position.poolName}`,
+      });
 
-      if (closeResult.status !== "ok") {
-        const rawErrMsg =
-          closeResult.status === "denied"
-            ? (closeResult.reasons || []).join(";")
-            : "close_broker_failed";
-        const errMsg = humanizeBrokerError(rawErrMsg);
+      if (!closeSubmit.ok) {
+        const { errMsg, policyReasons } = formatBrokerFailure(closeSubmit.brokerResult, "close_broker_failed");
         await LpRealPosition.updateOne(
           { _id: position._id },
           {
             $set: {
               status: "error",
               errorMessage: errMsg,
+              policyReasons,
               processing: false,
               resolvedAt: new Date(),
             },
@@ -1343,7 +1499,7 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
           $set: {
             status: finalStatus,
             resolution: exitEval.resolution,
-            closeTxSig: closeResult.signature,
+            closeTxSig: closeSubmit.signature,
             realFinalSolOut: proceedsSol,
             realNetPnlSol,
             realNetPnlUsd,

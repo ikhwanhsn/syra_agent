@@ -30,6 +30,16 @@ export interface LpRealConfig {
   closeAllRequested: boolean;
 }
 
+export interface LpRealCurrentStrategy {
+  id: number;
+  name: string;
+  lpShape: string;
+  isSimLeader?: boolean;
+  simSumNetPnlSol?: number | null;
+  simAvgNetPnlSol?: number | null;
+  simDecidedRuns?: number;
+}
+
 export interface LpRealState {
   config: LpRealConfig | null;
   onChainBalanceSol: number;
@@ -38,7 +48,7 @@ export interface LpRealState {
   totalCapitalSol: number;
   availableSol: number;
   openPositionsCount: number;
-  currentStrategy: { id: number; name: string; lpShape: string } | null;
+  currentStrategy: LpRealCurrentStrategy | null;
   /** Scale target book (wallet + deployed); matches sim starting bank — not required to run. */
   minBankSol: number;
   /** Minimum wallet SOL to turn on with zero open positions (~1 slot + fees). */
@@ -96,6 +106,9 @@ export interface LpRealPosition {
   openedAt: string | null;
   resolvedAt: string | null;
   errorMessage: string | null;
+  /** True after open tx signature is recorded (SOL actually deployed). */
+  depositLocked?: boolean;
+  policyReasons?: string[];
 }
 
 export interface LpRealPositionsPage {

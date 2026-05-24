@@ -13,6 +13,8 @@ const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
 const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
 const CONFIRM_POLL_MS = 1500;
 const CONFIRM_TIMEOUT_MS = 90_000;
+/** Skip Jupiter sidecar when swap size is dust (saves failed Meteora opens). */
+const MIN_SIDECAR_SWAP_LAMPORTS = 5_000;
 /** Preserve USDC for agent tool payments when sweeping after close-all. */
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const DEFAULT_SWEEP_SKIP_MINTS = new Set([USDC_MINT, WRAPPED_SOL_MINT]);
@@ -228,7 +230,7 @@ export async function ensureSidecarTokenForPool({
 
   const swapFraction = Math.min(0.5, (otherBins / totalBins) * 1.05);
   const swapLamports = Math.floor(toNum(depositSol) * swapFraction * LAMPORTS_PER_SOL);
-  if (swapLamports <= 0) {
+  if (swapLamports < MIN_SIDECAR_SWAP_LAMPORTS) {
     return { swappedSol: 0, swappedSolLamports: 0, otherTokenRaw: new BN(0) };
   }
 
@@ -240,9 +242,13 @@ export async function ensureSidecarTokenForPool({
   quoteUrl.searchParams.append("slippageBps", "100");
 
   const quoteResponse = await axios.get(quoteUrl.toString(), { headers });
-  const targetOtherRaw = new BN(String(quoteResponse.data?.outAmount ?? "0"));
+  const outAmountStr = String(quoteResponse.data?.outAmount ?? "0");
+  if (outAmountStr === "0" || outAmountStr === "") {
+    throw new Error("jupiter_quote_zero");
+  }
+  const targetOtherRaw = new BN(outAmountStr);
   if (targetOtherRaw.isZero()) {
-    return { swappedSol: 0, swappedSolLamports: 0, otherTokenRaw: new BN(0) };
+    throw new Error("jupiter_quote_zero");
   }
 
   const existingRaw = await getMintBalanceRaw(connection, owner, otherMint);

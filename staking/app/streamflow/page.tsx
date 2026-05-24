@@ -193,7 +193,10 @@ export default function StreamflowStakingPage() {
     walletBalanceRaw,
     walletBalanceFormatted,
     lockTokens,
-    refreshBalance,
+    refreshMaxLockAmount,
+    maxLockableFormatted,
+    maxLockableRaw,
+    tokenDecimals: onChainDecimals,
     loading,
     actionLoading,
     error,
@@ -211,19 +214,19 @@ export default function StreamflowStakingPage() {
   const applyBalanceFraction = useCallback(
     async (numerator: bigint, denominator: bigint) => {
       if (denominator <= 0n) return;
-      const live = await refreshBalance();
-      if (live <= 0n) return;
-      const raw = (live * numerator) / denominator;
-      if (raw <= 0n) return;
-      setAmount(formatUnits(raw, tokenDecimals, tokenDecimals));
+      const maxLockable = await refreshMaxLockAmount();
+      if (maxLockable <= 0n) return;
+      const raw = (maxLockable * numerator) / denominator;
+      if (raw <= 2n) return;
+      setAmount(formatUnits(raw, onChainDecimals, onChainDecimals));
     },
-    [refreshBalance, tokenDecimals]
+    [refreshMaxLockAmount, onChainDecimals]
   );
 
   const sortedLocks = useMemo(() => locks, [locks]);
-  const walletBalanceCompact = useMemo(
-    () => formatCompactBalance(walletBalanceFormatted),
-    [walletBalanceFormatted]
+  const maxLockableCompact = useMemo(
+    () => formatCompactBalance(maxLockableFormatted),
+    [maxLockableFormatted]
   );
 
   const handleLock = async () => {
@@ -232,12 +235,20 @@ export default function StreamflowStakingPage() {
       return;
     }
     try {
-      const sig = await lockTokens(amount, STREAMFLOW_CONFIG.lockDurationSeconds);
+      const { txId, wasClamped, amountFormatted } = await lockTokens(
+        amount,
+        STREAMFLOW_CONFIG.lockDurationSeconds
+      );
+      if (wasClamped) {
+        toast.message(
+          `Adjusted to maximum lockable: ${amountFormatted} ${symbol}`
+        );
+      }
       toast.success(
         <>
           Lock created successfully.{" "}
           <a
-            href={EXPLORER_TX(sig)}
+            href={EXPLORER_TX(txId)}
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium underline underline-offset-2"
@@ -341,14 +352,14 @@ export default function StreamflowStakingPage() {
                       <button
                         type="button"
                         className="w-full text-left text-xs text-muted-foreground transition hover:text-foreground sm:w-auto sm:text-right"
-                        title={walletBalanceFormatted}
+                        title={maxLockableFormatted}
                         onClick={() => void applyBalanceFraction(1n, 1n)}
-                        disabled={!connected || walletBalanceRaw <= 0n}
+                        disabled={!connected || maxLockableRaw <= 0n}
                       >
                         <span className="font-medium text-foreground tabular-nums">
-                          {walletBalanceCompact}
+                          {maxLockableCompact}
                         </span>{" "}
-                        {symbol} available
+                        {symbol} available to lock
                       </button>
                     </div>
                     <div className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-background/60 shadow-sm transition focus-within:border-ring/60 focus-within:ring-2 focus-within:ring-ring/25 sm:flex-row sm:items-stretch">
@@ -368,7 +379,7 @@ export default function StreamflowStakingPage() {
                           type="button"
                           onClick={() => void applyBalanceFraction(1n, 2n)}
                           disabled={
-                            !connected || actionLoading || walletBalanceRaw <= 0n
+                            !connected || actionLoading || maxLockableRaw <= 0n
                           }
                           className="min-h-[44px] min-w-[3.25rem] touch-manipulation rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:min-w-0"
                         >
@@ -378,7 +389,7 @@ export default function StreamflowStakingPage() {
                           type="button"
                           onClick={() => void applyBalanceFraction(1n, 1n)}
                           disabled={
-                            !connected || actionLoading || walletBalanceRaw <= 0n
+                            !connected || actionLoading || maxLockableRaw <= 0n
                           }
                           className="min-h-[44px] min-w-[3.25rem] touch-manipulation rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:min-w-0"
                         >

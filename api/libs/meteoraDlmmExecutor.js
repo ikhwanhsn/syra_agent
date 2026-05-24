@@ -47,6 +47,20 @@ function getConnection() {
   return connectionSingleton;
 }
 
+export function getSolanaConnection() {
+  return getConnection();
+}
+
+/** Meteora docs: refetch on-chain pool state before deposit / withdraw / swap. */
+async function createDlmmPool(lbPairAddress) {
+  const connection = getConnection();
+  const dlmmPool = await DLMM.create(connection, new PublicKey(lbPairAddress));
+  if (typeof dlmmPool.refetchStates === "function") {
+    await dlmmPool.refetchStates();
+  }
+  return dlmmPool;
+}
+
 function toNum(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -213,10 +227,8 @@ export async function buildOpenPositionTx({
   slippageBps = 50,
   sidecar = {},
 }) {
-  const connection = getConnection();
-  const lbPair = new PublicKey(lbPairAddress);
   const user = new PublicKey(agentPubkey);
-  const dlmmPool = await DLMM.create(connection, lbPair);
+  const dlmmPool = await createDlmmPool(lbPairAddress);
 
   const activeBin = await dlmmPool.getActiveBin();
   const clampedRange = clampPositionBinRange(binsBelow, binsAbove);
@@ -256,7 +268,8 @@ export async function buildOpenPositionTx({
   });
 
   const txs = normalizeTxArray(rawTx);
-  const { serializedTxBase64, serializedTxBase64List } = await prepareSerializedTxs(txs, positionKeypair, user);
+  const { serializedTxBase64, serializedTxBase64List, blockhash, lastValidBlockHeight } =
+    await prepareSerializedTxs(txs, positionKeypair, user);
 
   const positionSecretPlain = bs58.encode(positionKeypair.secretKey);
   const positionSecretEnc = encryptAgentSecretForStorage(positionSecretPlain);
@@ -264,6 +277,8 @@ export async function buildOpenPositionTx({
   return {
     serializedTxBase64,
     serializedTxBase64List,
+    blockhash,
+    lastValidBlockHeight,
     positionPubkey: positionKeypair.publicKey.toBase58(),
     positionSecretEnc,
     activeBinAtOpen: activeBin.binId,
@@ -318,10 +333,9 @@ export async function buildClosePositionTx({
   binsAbove,
   slippageBps: _slippageBps = 50,
 }) {
-  const connection = getConnection();
   const user = new PublicKey(agentPubkey);
   const positionPk = new PublicKey(positionPubkey);
-  const dlmmPool = await DLMM.create(connection, new PublicKey(lbPairAddress));
+  const dlmmPool = await createDlmmPool(lbPairAddress);
 
   const positionKeypair = keypairFromEncryptedSecret(positionSecretEnc);
   const lbPosition = await dlmmPool.getPosition(positionPk);
@@ -352,12 +366,9 @@ export async function buildClosePositionTx({
   }
 
   const txs = normalizeTxArray(rawTx);
-  const { serializedTxBase64, serializedTxBase64List } = await prepareSerializedTxs(
-    txs,
-    positionKeypair,
-    user,
-  );
-  return { serializedTxBase64, serializedTxBase64List };
+  const { serializedTxBase64, serializedTxBase64List, blockhash, lastValidBlockHeight } =
+    await prepareSerializedTxs(txs, positionKeypair, user);
+  return { serializedTxBase64, serializedTxBase64List, blockhash, lastValidBlockHeight };
 }
 
 /**
@@ -368,10 +379,9 @@ export async function buildClosePositionTx({
  * @param {string} params.positionSecretEnc
  */
 export async function buildClaimFeesTx({ lbPairAddress, positionPubkey, agentPubkey, positionSecretEnc }) {
-  const connection = getConnection();
   const user = new PublicKey(agentPubkey);
   const position = new PublicKey(positionPubkey);
-  const dlmmPool = await DLMM.create(connection, new PublicKey(lbPairAddress));
+  const dlmmPool = await createDlmmPool(lbPairAddress);
   const positionKeypair = keypairFromEncryptedSecret(positionSecretEnc);
 
   const positionState = await dlmmPool.getPosition(position);
@@ -394,15 +404,15 @@ export async function buildClaimFeesTx({ lbPairAddress, positionPubkey, agentPub
  * @param {string} lbPairAddress
  */
 export async function fetchOnChainPosition(positionPubkey, lbPairAddress) {
-  const connection = getConnection();
-  const dlmmPool = await DLMM.create(connection, new PublicKey(lbPairAddress));
+  const dlmmPool = await createDlmmPool(lbPairAddress);
   const position = await dlmmPool.getPosition(new PublicKey(positionPubkey));
   const activeBin = await dlmmPool.getActiveBin();
 
   let unclaimedFeeSol = 0;
   try {
-    const feeX = toNum(position?.feeX?.toString?.() ?? position?.feeX, 0);
-    const feeY = toNum(position?.feeY?.toString?.() ?? position?.feeY, 0);
+    const data = position?.positionData || position || {};
+    const feeX = toNum(data.feeX?.toString?.() ?? data.feeX, 0);
+    const feeY = toNum(data.feeY?.toString?.() ?? data.feeY, 0);
     const solIsX = isSolMint(dlmmPool.tokenX.publicKey.toBase58());
     const solIsY = isSolMint(dlmmPool.tokenY.publicKey.toBase58());
     if (solIsX) unclaimedFeeSol += feeX / LAMPORTS_PER_SOL;
@@ -471,7 +481,7 @@ async function getOwnerMintAmountRaw(connection, owner, mintStr) {
 export async function snapshotAgentWalletForPool(agentAddress, lbPairAddress) {
   const connection = getConnection();
   const owner = new PublicKey(agentAddress);
-  const dlmmPool = await DLMM.create(connection, new PublicKey(lbPairAddress));
+  const dlmmPool = await createDlmmPool(lbPairAddress);
   const xMint = dlmmPool.tokenX.publicKey.toBase58();
   const yMint = dlmmPool.tokenY.publicKey.toBase58();
   const [xRaw, yRaw] = await Promise.all([

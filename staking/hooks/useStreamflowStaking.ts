@@ -7,7 +7,8 @@ import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { formatUnits, parseUnits } from "@/lib/format";
 import {
   createTokenLockStake,
-  fetchAtaBalance,
+  fetchMaxLockableRaw,
+  fetchWalletMintState,
   fetchUserTokenLocksAll,
   mapStreamflowError,
   type UserLockRow,
@@ -55,6 +56,12 @@ function mapRegistryItemToRow(item: StreamflowLockRegistryItem): UserLockRow {
   };
 }
 
+export interface LockTokensResult {
+  txId: string;
+  wasClamped: boolean;
+  amountFormatted: string;
+}
+
 export interface StreamflowStakingState {
   /** Open Streamflow locks for this wallet + mint. */
   locks: UserLockRow[];
@@ -62,10 +69,17 @@ export interface StreamflowStakingState {
   historyLocks: UserLockRow[];
   walletBalanceRaw: bigint;
   walletBalanceFormatted: string;
+  /** Max deposit allowed after fees + safety buffer (use for "available to lock"). */
+  maxLockableRaw: bigint;
+  maxLockableFormatted: string;
+  /** On-chain mint decimals (may differ from env). */
+  tokenDecimals: number;
   refetch: () => Promise<void>;
-  /** Refetch only the wallet's SPL balance (cheap; used by Max/50% buttons). */
+  /** Refetch only the wallet's SPL balance (cheap; used by balance display). */
   refreshBalance: () => Promise<bigint>;
-  lockTokens: (amount: string, lockDurationSeconds: number) => Promise<string>;
+  /** Max lockable amount after Streamflow fees (used by Max/50% buttons). */
+  refreshMaxLockAmount: () => Promise<bigint>;
+  lockTokens: (amount: string, lockDurationSeconds: number) => Promise<LockTokensResult>;
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
@@ -77,33 +91,61 @@ export function useStreamflowStaking(): StreamflowStakingState {
   const [locks, setLocks] = useState<UserLockRow[]>([]);
   const [historyLocks, setHistoryLocks] = useState<UserLockRow[]>([]);
   const [walletBalanceRaw, setWalletBalanceRaw] = useState<bigint>(BigInt(0));
+  const [maxLockableRaw, setMaxLockableRaw] = useState<bigint>(BigInt(0));
+  const [mintDecimals, setMintDecimals] = useState(STREAMFLOW_CONFIG.tokenDecimals);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fetchedWalletRef = useRef<string | null>(null);
 
-  const decimals = STREAMFLOW_CONFIG.tokenDecimals;
+  const decimals = mintDecimals;
   const mint = STREAMFLOW_CONFIG.tokenMint;
 
   const walletBalanceFormatted = useMemo(
-    () => formatUnits(walletBalanceRaw, decimals, 6),
-    [walletBalanceRaw, decimals]
+    () => formatUnits(walletBalanceRaw, mintDecimals, 6),
+    [walletBalanceRaw, mintDecimals]
+  );
+
+  const maxLockableFormatted = useMemo(
+    () => formatUnits(maxLockableRaw, mintDecimals, mintDecimals),
+    [maxLockableRaw, mintDecimals]
   );
 
   const fetchBalance = useCallback(async (): Promise<bigint> => {
     if (!publicKey) {
       setWalletBalanceRaw(BigInt(0));
+      setMaxLockableRaw(BigInt(0));
       return BigInt(0);
     }
     try {
-      const { balance } = await fetchAtaBalance(connection, mint, publicKey);
-      setWalletBalanceRaw(balance);
-      return balance;
+      const { maxLockable, walletState } = await fetchMaxLockableRaw(connection, publicKey);
+      setWalletBalanceRaw(walletState.balance);
+      setMaxLockableRaw(maxLockable);
+      setMintDecimals(walletState.decimals);
+      return walletState.balance;
     } catch {
       setWalletBalanceRaw(BigInt(0));
+      setMaxLockableRaw(BigInt(0));
       return BigInt(0);
     }
-  }, [connection, publicKey, mint]);
+  }, [connection, publicKey]);
+
+  const refreshMaxLockAmount = useCallback(async (): Promise<bigint> => {
+    if (!publicKey) {
+      setMaxLockableRaw(BigInt(0));
+      return BigInt(0);
+    }
+    try {
+      const { maxLockable, walletState } = await fetchMaxLockableRaw(connection, publicKey);
+      setWalletBalanceRaw(walletState.balance);
+      setMaxLockableRaw(maxLockable);
+      setMintDecimals(walletState.decimals);
+      return maxLockable;
+    } catch {
+      setMaxLockableRaw(BigInt(0));
+      return BigInt(0);
+    }
+  }, [connection, publicKey]);
 
   const fetchLocks = useCallback(async () => {
     if (!publicKey) {
@@ -182,6 +224,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
   const fetchData = useCallback(async () => {
     if (!publicKey) {
       setWalletBalanceRaw(BigInt(0));
+      setMaxLockableRaw(BigInt(0));
       setLocks([]);
       setHistoryLocks([]);
       setLoading(false);
@@ -236,12 +279,18 @@ export function useStreamflowStaking(): StreamflowStakingState {
   }, [publicKey, fetchBalance]);
 
   const lockTokens = useCallback(
-    async (amount: string, lockDurationSeconds: number): Promise<string> => {
+    async (amount: string, lockDurationSeconds: number): Promise<LockTokensResult> => {
       if (!connected || !wallet?.adapter) {
         throw new Error("Connect your wallet first");
       }
       const adapter = wallet.adapter as SignerWalletAdapter;
-      const raw = parseUnits(amount.trim(), decimals);
+      if (!publicKey) throw new Error("Wallet not connected");
+
+      const walletState = await fetchWalletMintState(connection, mint, publicKey);
+      const stakeDecimals = walletState.decimals;
+      setWalletBalanceRaw(walletState.balance);
+
+      const raw = parseUnits(amount.trim(), stakeDecimals);
       if (raw <= BigInt(0)) throw new Error("Enter a valid amount");
       if (raw <= BigInt(1)) {
         throw new Error("Amount too small for Streamflow (minimum 2 base units)");
@@ -249,20 +298,9 @@ export function useStreamflowStaking(): StreamflowStakingState {
       setActionLoading(true);
       setError(null);
       try {
-        const liveBalance = await fetchBalance();
-        if (raw > liveBalance) {
-          throw new Error(
-            `Insufficient ${STREAMFLOW_CONFIG.tokenSymbol} balance. You have ` +
-              `${formatUnits(liveBalance, decimals, decimals)} but tried to lock ` +
-              `${formatUnits(raw, decimals, decimals)}.`
-          );
-        }
-        const { txId, metadataId, unlockAtUnix } = await createTokenLockStake(
-          connection,
-          adapter,
-          raw,
-          lockDurationSeconds
-        );
+        const { txId, metadataId, unlockAtUnix, amountRaw, wasClamped } =
+          await createTokenLockStake(connection, adapter, raw, lockDurationSeconds);
+        const amountFormatted = formatUnits(amountRaw, stakeDecimals, 6);
         const walletStr = publicKey?.toBase58() ?? "";
         if (walletStr) {
           const lockPayload: StreamflowLockRegistryItem = {
@@ -273,9 +311,9 @@ export function useStreamflowStaking(): StreamflowStakingState {
             recipient: walletStr,
             mint: mint.toBase58(),
             tokenSymbol: STREAMFLOW_CONFIG.tokenSymbol,
-            decimals,
-            amountRaw: raw.toString(),
-            amountFormatted: formatUnits(raw, decimals, 6),
+            decimals: stakeDecimals,
+            amountRaw: amountRaw.toString(),
+            amountFormatted,
             unlockedRaw: "0",
             unlockedFormatted: "0",
             withdrawnRaw: "0",
@@ -295,7 +333,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
         }
         await new Promise((r) => setTimeout(r, 2000));
         await refetchAll();
-        return txId;
+        return { txId, wasClamped, amountFormatted };
       } catch (e) {
         const mapped = mapStreamflowError(e, STREAMFLOW_CONFIG.tokenSymbol);
         setError(mapped.message);
@@ -312,7 +350,6 @@ export function useStreamflowStaking(): StreamflowStakingState {
       refetchAll,
       publicKey,
       mint,
-      fetchBalance,
     ]
   );
 
@@ -321,8 +358,12 @@ export function useStreamflowStaking(): StreamflowStakingState {
     historyLocks,
     walletBalanceRaw,
     walletBalanceFormatted,
+    maxLockableRaw,
+    maxLockableFormatted,
+    tokenDecimals: mintDecimals,
     refetch: refetchAll,
     refreshBalance: fetchBalance,
+    refreshMaxLockAmount,
     lockTokens,
     loading,
     actionLoading,

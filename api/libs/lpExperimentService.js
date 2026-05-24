@@ -623,6 +623,134 @@ export async function resolveOpenLpRuns() {
   };
 }
 
+/** Min settled sim runs before real agent refuses a negative-PnL leader. */
+export const LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE = 2;
+
+/**
+ * Rank sim strategies for real-agent selection: avg net PnL on settled runs first,
+ * then total net PnL, win rate, and sample size.
+ */
+export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
+  if (!experimentId) return [];
+
+  const rows = await LpExperimentRun.aggregate([
+    {
+      $match: {
+        experimentId,
+        status: { $in: ["win", "loss", "expired", "open"] },
+      },
+    },
+    {
+      $group: {
+        _id: "$strategyId",
+        sumNetPnlSol: { $sum: { $ifNull: ["$simNetPnlSol", 0] } },
+        runCount: { $sum: 1 },
+        wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
+        decided: {
+          $sum: { $cond: [{ $in: ["$status", ["win", "loss", "expired"]] }, 1, 0] },
+        },
+        sumDecidedNetPnlSol: {
+          $sum: {
+            $cond: [
+              { $in: ["$status", ["win", "loss", "expired"]] },
+              { $ifNull: ["$simNetPnlSol", 0] },
+              0,
+            ],
+          },
+        },
+      },
+    },
+  ]);
+
+  return rows
+    .map((row) => {
+      const decided = toNum(row.decided);
+      const runCount = toNum(row.runCount);
+      const sumNetPnlSol = toNum(row.sumNetPnlSol);
+      const sumDecidedNetPnlSol = toNum(row.sumDecidedNetPnlSol);
+      const wins = toNum(row.wins);
+      const avgNetPnlSol = runCount > 0 ? sumNetPnlSol / runCount : 0;
+      const avgDecidedNetPnlSol = decided > 0 ? sumDecidedNetPnlSol / decided : avgNetPnlSol;
+      const winRate = decided > 0 ? wins / decided : null;
+      const rankScore = decided > 0 ? avgDecidedNetPnlSol : avgNetPnlSol;
+
+      return {
+        strategyId: Number(row._id),
+        sumNetPnlSol,
+        avgNetPnlSol,
+        avgDecidedNetPnlSol,
+        rankScore,
+        decided,
+        runCount,
+        wins,
+        winRate,
+      };
+    })
+    .filter((row) => row.runCount > 0)
+    .sort((a, b) => {
+      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+      if (b.sumNetPnlSol !== a.sumNetPnlSol) return b.sumNetPnlSol - a.sumNetPnlSol;
+      if ((b.winRate ?? -1) !== (a.winRate ?? -1)) return (b.winRate ?? -1) - (a.winRate ?? -1);
+      return b.decided - a.decided;
+    });
+}
+
+function selectProfitableStrategyLeader(ranked) {
+  if (ranked.length === 0) return null;
+  const best = ranked[0];
+  if (best.decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) return best;
+  if (best.rankScore > 0) return best;
+  const positive = ranked.find((row) => row.rankScore > 0 && row.decided >= 1);
+  if (positive) return positive;
+  return null;
+}
+
+/**
+ * Pick the sim strategy the real LP agent should follow (highest net-PnL leader).
+ * Returns { strategy, stats, failureReason } — failureReason is set when no pick is made.
+ */
+export async function pickBestNetPnlStrategy() {
+  await ensureLpExperimentBootstrapped();
+  const state = await getSingletonStateDoc();
+  const experimentId = state?.activeExperimentId;
+  if (!experimentId) {
+    return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked: [] };
+  }
+
+  const ranked = await rankLpExperimentStrategiesByNetPnl(experimentId);
+  if (ranked.length === 0) {
+    return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
+  }
+
+  const selected = selectProfitableStrategyLeader(ranked);
+  if (!selected) {
+    return { strategy: null, stats: null, failureReason: "no_profitable_strategy", ranked };
+  }
+
+  const strategy = await resolveLpStrategyById(selected.strategyId);
+  if (!strategy) {
+    return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
+  }
+
+  return {
+    strategy: {
+      strategyId: strategy.id,
+      strategyName: strategy.name,
+      lpShape: strategy.lpShape,
+      sumNetPnlSol: selected.sumNetPnlSol,
+      avgNetPnlSol: selected.avgDecidedNetPnlSol,
+      rankScore: selected.rankScore,
+      decided: selected.decided,
+      runCount: selected.runCount,
+      winRate: selected.winRate,
+      strategy,
+    },
+    stats: selected,
+    failureReason: null,
+    ranked,
+  };
+}
+
 export async function getLpExperimentStats() {
   await ensureLpExperimentBootstrapped();
   const state = await getSingletonStateDoc();
@@ -715,6 +843,8 @@ export async function getLpExperimentStats() {
   });
   return {
     agents: merged.sort((a, b) => {
+      if (b.sumNetPnlSol !== a.sumNetPnlSol) return b.sumNetPnlSol - a.sumNetPnlSol;
+      if (b.avgNetPnlSol !== a.avgNetPnlSol) return b.avgNetPnlSol - a.avgNetPnlSol;
       const ar = a.winRate ?? -1;
       const br = b.winRate ?? -1;
       if (br !== ar) return br - ar;

@@ -49,6 +49,10 @@ const lpRealPositionSchema = new mongoose.Schema(
     },
     resolution: { type: String, default: null },
     errorMessage: { type: String, default: null },
+    /** True only after open tx is confirmed on-chain and Meteora position exists. */
+    depositLocked: { type: Boolean, default: false },
+    /** Wallet policy reasons when broker denied or required confirmation. */
+    policyReasons: { type: [String], default: [] },
 
     openTxSig: { type: String, default: null },
     closeTxSig: { type: String, default: null },

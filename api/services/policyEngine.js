@@ -101,8 +101,8 @@ const VELOCITY_MAX = 10;
 const ANOMALY_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const ANOMALY_SPIKE_MULT = 3;
 
-/** LP real cron tools — skip volume-based soft rules; hard caps and simulation still apply. */
-const LP_REAL_AUTO_TOOLS = new Set([
+/** LP real cron tools — skip $-cap / velocity / anomaly soft rules; hard rules + sim still apply. */
+export const LP_REAL_AUTO_TOOLS = new Set([
   'lp_real_open',
   'lp_real_close',
   'lp_real_claim',
@@ -148,13 +148,15 @@ export function evaluate(intent, walletConfig, history) {
     return { outcome: 'deny', reasons, riskScore };
   }
 
-  // Velocity (too many signs in a short window) ----------------------------
+  const isLpAuto = intent.toolId && LP_REAL_AUTO_TOOLS.has(intent.toolId);
+
+  // Velocity (too many signs in a short window) — skipped for LP cron tools --
   const now = Date.now();
   const recent = (history || []).filter((h) => {
     const t = h.ts instanceof Date ? h.ts.getTime() : new Date(h.ts).getTime();
     return Number.isFinite(t) && now - t <= VELOCITY_WINDOW_MS && h.status !== 'rejected';
   });
-  if (recent.length >= VELOCITY_MAX) {
+  if (!isLpAuto && recent.length >= VELOCITY_MAX) {
     add('velocity_high', String(recent.length));
     return { outcome: 'deny', reasons, riskScore };
   }
@@ -169,14 +171,14 @@ export function evaluate(intent, walletConfig, history) {
   const dailyCap = numOr(walletConfig.dailySpendCapUsd, DEFAULT_DAILY_CAP);
   const hourlyCap = numOr(walletConfig.hourlySpendCapUsd, DEFAULT_HOURLY_CAP);
 
-  if (amount > perTxCap) add('over_per_tx_cap', `${amount.toFixed(2)}>${perTxCap}`);
-
   const sumLast24h = sumAmount(history, now - ANOMALY_LOOKBACK_MS);
   const sumLast1h = sumAmount(history, now - 60 * 60 * 1000);
-  if (sumLast24h + amount > dailyCap) add('over_daily_cap', `${(sumLast24h + amount).toFixed(2)}>${dailyCap}`);
-  if (sumLast1h + amount > hourlyCap) add('over_hourly_cap', `${(sumLast1h + amount).toFixed(2)}>${hourlyCap}`);
 
-  const isLpAuto = intent.toolId && LP_REAL_AUTO_TOOLS.has(intent.toolId);
+  if (!isLpAuto) {
+    if (amount > perTxCap) add('over_per_tx_cap', `${amount.toFixed(2)}>${perTxCap}`);
+    if (sumLast24h + amount > dailyCap) add('over_daily_cap', `${(sumLast24h + amount).toFixed(2)}>${dailyCap}`);
+    if (sumLast1h + amount > hourlyCap) add('over_hourly_cap', `${(sumLast1h + amount).toFixed(2)}>${hourlyCap}`);
+  }
 
   // Anomaly: spend > N x last-30-day median (rough proxy: average over lookback) within last 1h
   const median = approxMedianAmount(history);

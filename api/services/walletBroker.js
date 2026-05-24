@@ -34,6 +34,7 @@ import {
   hashSerializedTx,
   getDefaultCustodyMode,
 } from './privyServerWallet.js';
+import { confirmSolanaTransaction } from '../libs/solanaConfirm.js';
 
 const INTENT_TTL_MS = 90 * 1000; // 90s confirmation window
 const HISTORY_LOOKBACK_MS = 24 * 60 * 60 * 1000;
@@ -233,6 +234,13 @@ async function custodySignSolanaTx(cfg, serializedTxBase64) {
       submit: true,
     });
     if (!out.signature) throw new Error('privy_sign_no_signature');
+    const connection = new Connection(
+      process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
+        process.env.SOLANA_RPC_URL ||
+        'https://api.mainnet-beta.solana.com',
+      'confirmed',
+    );
+    await confirmSolanaTransaction(connection, out.signature);
     return { signature: out.signature };
   }
   // legacy: load encrypted key from MongoDB and sign in-process (kept for backward compat
@@ -262,6 +270,7 @@ async function custodySignSolanaTx(cfg, serializedTxBase64) {
     'confirmed'
   );
   const signature = await connection.sendRawTransaction(serialized, { skipPreflight: false, maxRetries: 3 });
+  await confirmSolanaTransaction(connection, signature);
   return { signature };
 }
 
