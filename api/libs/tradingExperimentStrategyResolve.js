@@ -32,6 +32,11 @@ function overrideToStrategy(o, suiteNorm) {
   if (suiteNorm === EXPERIMENT_SUITE_MULTI_RESOURCE && typeof o.source === "string" && o.source.trim()) {
     strategy.source = o.source.trim();
   }
+  if (Array.isArray(o.tokens) && o.tokens.length > 0) {
+    strategy.tokens = o.tokens.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
+  }
+  if (o.opportunityMode) strategy.opportunityMode = o.opportunityMode;
+  if (o.maxOpenPositions != null) strategy.maxOpenPositions = o.maxOpenPositions;
   return strategy;
 }
 
@@ -67,6 +72,11 @@ function mergeOverrideOntoBase(base, o, suiteNorm) {
   if (suiteNorm === EXPERIMENT_SUITE_MULTI_RESOURCE && typeof o.source === "string" && o.source.trim()) {
     merged.source = o.source.trim();
   }
+  if (Array.isArray(o.tokens) && o.tokens.length > 0) {
+    merged.tokens = o.tokens.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
+  }
+  if (o.opportunityMode) merged.opportunityMode = o.opportunityMode;
+  if (o.maxOpenPositions != null) merged.maxOpenPositions = o.maxOpenPositions;
   return merged;
 }
 

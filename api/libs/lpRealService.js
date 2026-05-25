@@ -23,12 +23,12 @@ import {
   computeCloseProceedsSol,
   fetchOnChainPosition,
   getAgentSolBalance,
-  getSolanaConnection,
   isSolMint,
   MAX_METEORA_POSITION_BINS,
   snapshotAgentWalletForPool,
 } from "./meteoraDlmmExecutor.js";
-import { isSolanaTxConfirmedOnChain } from "./solanaConfirm.js";
+import { isSolanaTxConfirmedOnAnyRpc } from "./solanaConfirm.js";
+import { refreshLpRealSerializedTx } from "./solanaTxUtils.js";
 import { ensureSidecarTokenForPool, sweepNonSolTokensToSol } from "./lpRealSidecarSwap.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
@@ -39,6 +39,8 @@ import {
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
+/** Grace period before declaring an opening position failed (RPC / Meteora index lag). */
+const OPEN_POSITION_RECONCILE_GRACE_MS = 10 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
 const LP_REAL_TOOL_IDS = ["lp_real_open", "lp_real_close", "lp_real_claim", "lp_real_swap"];
@@ -403,7 +405,14 @@ async function hasRecentRealPosition(experimentId, poolAddress) {
   return Date.now() - new Date(latest.createdAt).getTime() < OPEN_POSITION_COOLDOWN_MS;
 }
 
-async function brokerSignTx(anonymousId, toolId, serializedTxBase64, estimatedUsd, summary) {
+async function brokerSignTx(
+  anonymousId,
+  toolId,
+  serializedTxBase64,
+  estimatedUsd,
+  summary,
+  { lastValidBlockHeight } = {},
+) {
   return executeIntent(
     { anonymousId, guest: false },
     {
@@ -413,8 +422,27 @@ async function brokerSignTx(anonymousId, toolId, serializedTxBase64, estimatedUs
       serializedTxBase64,
       estimatedUsd,
       summary,
+      lastValidBlockHeight,
     },
   );
+}
+
+/**
+ * Poll on-chain position after open — RPC index lag can cause false "not on chain" errors.
+ */
+async function waitForPositionOnChain(positionPubkey, poolAddress, { attempts = 15, delayMs = 3000 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fetchOnChainPosition(positionPubkey, poolAddress);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("position_not_on_chain_after_open");
 }
 
 /**
@@ -424,7 +452,8 @@ async function submitLpRealTxSequence({
   anonymousId,
   toolId,
   serializedTxBase64List,
-  lastValidBlockHeight,
+  lastValidBlockHeight: _initialLastValidBlockHeight,
+  positionSecretEnc,
   estimatedUsd,
   summaryBase,
 }) {
@@ -438,13 +467,48 @@ async function submitLpRealTxSequence({
 
   const signatures = [];
   for (let i = 0; i < txs.length; i += 1) {
-    const brokerResult = await brokerSignTx(
+    let serializedTx = txs[i];
+    let txLastValidBlockHeight = _initialLastValidBlockHeight;
+
+    try {
+      const refreshed = await refreshLpRealSerializedTx(serializedTx, positionSecretEnc);
+      serializedTx = refreshed.serializedTxBase64;
+      txLastValidBlockHeight = refreshed.lastValidBlockHeight;
+    } catch (refreshErr) {
+      console.warn(
+        `[lpReal] blockhash refresh failed for ${toolId} tx ${i + 1}/${txs.length}:`,
+        refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
+      );
+    }
+
+    let brokerResult = await brokerSignTx(
       anonymousId,
       toolId,
-      txs[i],
+      serializedTx,
       toNum(estimatedUsd) / txs.length,
       `${summaryBase}${txs.length > 1 ? ` (${i + 1}/${txs.length})` : ""}`,
+      { lastValidBlockHeight: txLastValidBlockHeight },
     );
+
+    const shouldRetry =
+      brokerResult.status !== "ok" &&
+      brokerResult.reasons?.some((r) => {
+        const reason = String(r);
+        return reason.includes("tx_blockhash_expired") || reason.includes("tx_confirm_timeout");
+      });
+
+    if (shouldRetry) {
+      const refreshed = await refreshLpRealSerializedTx(serializedTx, positionSecretEnc);
+      brokerResult = await brokerSignTx(
+        anonymousId,
+        toolId,
+        refreshed.serializedTxBase64,
+        toNum(estimatedUsd) / txs.length,
+        `${summaryBase}${txs.length > 1 ? ` (${i + 1}/${txs.length}) retry` : ""}`,
+        { lastValidBlockHeight: refreshed.lastValidBlockHeight },
+      );
+    }
+
     if (brokerResult.status !== "ok" || !brokerResult.signature) {
       return { ok: false, brokerResult, signatures };
     }
@@ -461,14 +525,19 @@ async function submitLpRealTxSequence({
 
 /**
  * Fix DB rows that show live/open tx links but never landed on-chain (or position missing).
- * @returns {'open_tx_not_on_chain'|'promote_to_open'|null}
+ * @returns {'open_tx_not_on_chain'|'promote_to_open'|'recover_to_open'|null}
  */
 async function reconcileOpenPositionOnChain(position) {
-  if (!position?.openTxSig) return null;
-  if (!["open", "opening"].includes(position.status)) return null;
-
-  const connection = getSolanaConnection();
-  const txOk = await isSolanaTxConfirmedOnChain(connection, position.openTxSig);
+  if (!["open", "opening"].includes(position?.status)) {
+    if (position?.status !== "error" || position?.closeTxSig) return null;
+    if (!position?.positionPubkey || !position?.poolAddress) return null;
+    try {
+      await fetchOnChainPosition(position.positionPubkey, position.poolAddress);
+      return "recover_to_open";
+    } catch {
+      return null;
+    }
+  }
 
   let positionOk = false;
   try {
@@ -478,8 +547,29 @@ async function reconcileOpenPositionOnChain(position) {
     positionOk = false;
   }
 
-  if (!txOk && !positionOk) return "open_tx_not_on_chain";
-  if (position.status === "opening" && positionOk) return "promote_to_open";
+  if (positionOk) {
+    if (position.status === "opening") return "promote_to_open";
+    return null;
+  }
+
+  const openedAtMs = new Date(position.openedAt || position.createdAt).getTime();
+  const ageMs = Number.isFinite(openedAtMs) ? Date.now() - openedAtMs : 0;
+
+  if (!position.openTxSig) {
+    if (position.status === "opening" && ageMs < OPEN_POSITION_RECONCILE_GRACE_MS) return null;
+    return position.status === "opening" ? "open_tx_not_on_chain" : null;
+  }
+
+  const txOk = await isSolanaTxConfirmedOnAnyRpc(position.openTxSig);
+  if (txOk && position.status === "opening" && ageMs < OPEN_POSITION_RECONCILE_GRACE_MS) {
+    return null;
+  }
+
+  if (!txOk && !positionOk) {
+    if (position.status === "opening" && ageMs < OPEN_POSITION_RECONCILE_GRACE_MS) return null;
+    return "open_tx_not_on_chain";
+  }
+
   return null;
 }
 
@@ -1170,12 +1260,59 @@ async function runLpRealSignalCycleForConfig(config) {
       toolId: "lp_real_open",
       serializedTxBase64List: openTxs,
       lastValidBlockHeight: txBuild.lastValidBlockHeight,
+      positionSecretEnc: txBuild.positionSecretEnc,
       estimatedUsd: depositUsd,
       summaryBase: `Open LP position ${poolCandidate.poolName} (${depositSol} SOL)`,
     });
 
     if (!submit.ok) {
       const { errMsg, policyReasons } = formatBrokerFailure(submit.brokerResult, "broker_pending_or_failed");
+
+      let recoveredOnChain = false;
+      if (String(errMsg).includes("tx_confirm_timeout") || String(errMsg).includes("tx_blockhash_expired")) {
+        try {
+          await waitForPositionOnChain(pending.positionPubkey, poolCandidate.poolAddress, {
+            attempts: 4,
+            delayMs: 3000,
+          });
+          recoveredOnChain = true;
+        } catch {
+          recoveredOnChain = false;
+        }
+      }
+
+      if (recoveredOnChain) {
+        const recoveredSig = submit.signatures?.[submit.signatures.length - 1] || null;
+        await LpRealPosition.updateOne(
+          { _id: pending._id },
+          {
+            $set: {
+              status: "open",
+              openTxSig: recoveredSig,
+              depositLocked: true,
+              errorMessage: null,
+              policyReasons: [],
+            },
+          },
+        );
+        opened.push({
+          positionId: String(pending._id),
+          poolName: poolCandidate.poolName,
+          depositSol,
+          openTxSig: recoveredSig,
+          recoveredAfterTimeout: true,
+        });
+        await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
+        return {
+          agentAddress: config.agentAddress,
+          opened: 1,
+          skipped: 0,
+          errors,
+          openedRows: opened,
+          skippedRows: skipped,
+        };
+      }
+
       await LpRealPosition.updateOne(
         { _id: pending._id },
         {
@@ -1200,9 +1337,46 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
+    await LpRealPosition.updateOne(
+      { _id: pending._id },
+      { $set: { openTxSig: submit.signature } },
+    );
+
     try {
-      await fetchOnChainPosition(pending.positionPubkey, poolCandidate.poolAddress);
+      await waitForPositionOnChain(pending.positionPubkey, poolCandidate.poolAddress);
     } catch {
+      const txConfirmed = await isSolanaTxConfirmedOnAnyRpc(submit.signature);
+      if (txConfirmed) {
+        await LpRealPosition.updateOne(
+          { _id: pending._id },
+          {
+            $set: {
+              status: "opening",
+              openTxSig: submit.signature,
+              depositLocked: false,
+              errorMessage: null,
+              policyReasons: [],
+            },
+          },
+        );
+        opened.push({
+          positionId: String(pending._id),
+          poolName: poolCandidate.poolName,
+          depositSol,
+          openTxSig: submit.signature,
+          pendingPositionIndex: true,
+        });
+        await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
+        return {
+          agentAddress: config.agentAddress,
+          opened: 0,
+          skipped: 0,
+          errors,
+          openedRows: opened,
+          skippedRows: skipped,
+        };
+      }
+
       const errMsg = "position_not_on_chain_after_open";
       await LpRealPosition.updateOne(
         { _id: pending._id },
@@ -1210,6 +1384,7 @@ async function runLpRealSignalCycleForConfig(config) {
           $set: {
             status: "error",
             errorMessage: errMsg,
+            openTxSig: submit.signature,
             depositLocked: false,
             resolvedAt: new Date(),
           },
@@ -1234,6 +1409,8 @@ async function runLpRealSignalCycleForConfig(config) {
           status: "open",
           openTxSig: submit.signature,
           depositLocked: true,
+          errorMessage: null,
+          policyReasons: [],
         },
       },
     );
@@ -1287,10 +1464,15 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
   const openRuns = await LpRealPosition.find({
     experimentId: config.experimentId,
     $or: [
-      { status: { $in: ["open", "closing"] } },
+      { status: { $in: ["open", "opening", "closing"] } },
       {
         status: "error",
         openTxSig: { $ne: null },
+        $or: [{ closeTxSig: null }, { closeTxSig: "" }],
+      },
+      {
+        status: "error",
+        errorMessage: { $regex: /position_not_on_chain|open_tx_not_on_chain/i },
         $or: [{ closeTxSig: null }, { closeTxSig: "" }],
       },
     ],
@@ -1314,10 +1496,26 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
     if (!locked) continue;
 
     try {
-      const reconcile = await reconcileOpenPositionOnChain(position);
-      if (reconcile === "open_tx_not_on_chain") {
+      const reconcile = await reconcileOpenPositionOnChain(locked);
+      if (reconcile === "recover_to_open") {
         await LpRealPosition.updateOne(
-          { _id: position._id },
+          { _id: locked._id },
+          {
+            $set: {
+              status: "open",
+              depositLocked: true,
+              errorMessage: null,
+              policyReasons: [],
+              resolvedAt: null,
+            },
+          },
+        );
+        position.status = "open";
+        position.depositLocked = true;
+        locked.status = "open";
+      } else if (reconcile === "open_tx_not_on_chain") {
+        await LpRealPosition.updateOne(
+          { _id: locked._id },
           {
             $set: {
               status: "error",
@@ -1333,11 +1531,16 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
       }
       if (reconcile === "promote_to_open") {
         await LpRealPosition.updateOne(
-          { _id: position._id },
-          { $set: { status: "open", depositLocked: true } },
+          { _id: locked._id },
+          { $set: { status: "open", depositLocked: true, errorMessage: null, policyReasons: [] } },
         );
         position.status = "open";
         position.depositLocked = true;
+      }
+
+      if (position.status === "opening") {
+        await LpRealPosition.updateOne({ _id: locked._id }, { $set: { processing: false } });
+        continue;
       }
 
       const poolDetail = await fetchMeteoraPoolDetail(position.poolAddress);
@@ -1375,6 +1578,7 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
             claimTx.serializedTxBase64,
             unclaimedFees * (await fetchSolPriceUsd()),
             `Claim LP fees for ${position.poolName}`,
+            { lastValidBlockHeight: claimTx.lastValidBlockHeight },
           );
           if (claimResult.status === "ok") {
             await LpRealPosition.updateOne(
@@ -1434,6 +1638,7 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
         toolId: "lp_real_close",
         serializedTxBase64List: closeTxs,
         lastValidBlockHeight: closeTx.lastValidBlockHeight,
+        positionSecretEnc: position.positionSecretEnc,
         estimatedUsd: position.depositUsd,
         summaryBase: `Close LP position ${position.poolName}`,
       });

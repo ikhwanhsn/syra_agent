@@ -35,14 +35,7 @@ import { fetchLpStats } from "@/lib/lpAgentExperimentApi";
 import { fetchXProjectsAnalyze } from "@/lib/xProjectsAnalyzeApi";
 import { fetchPumpfunAlphaTrend } from "@/lib/pumpfunAlphaTrendApi";
 import { fetchRiseAlphaMarketsBundle } from "@/lib/riseMarketsApi";
-import {
-  fetchAgentTeamLatest,
-  fetchGrowthSectorNarrativeLatest,
-  fetchGrowthSyraMarketLatest,
-  fetchGrowthSyraSocialLatest,
-  fetchHrCoachLatest,
-  fetchX402XTrendsLatest,
-} from "@/lib/internalTeamAgentsApi";
+import { fetchPartnershipScoutLatest, fetchTrendScoutLatest } from "@/lib/internalTeamAgentsApi";
 import {
   aggregateLpAgents,
   aggregatePumpfunExperiment,
@@ -147,38 +140,14 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         staleTime: STALE_MS,
       },
       {
-        queryKey: ["dashboard-overview", "internal-agent-team"],
-        queryFn: () => fetchAgentTeamLatest(),
+        queryKey: ["dashboard-overview", "internal-trend-scout"],
+        queryFn: () => fetchTrendScoutLatest(),
         staleTime: 45_000,
         enabled: showInternal,
       },
       {
-        queryKey: ["dashboard-overview", "internal-x402"],
-        queryFn: () => fetchX402XTrendsLatest(),
-        staleTime: 45_000,
-        enabled: showInternal,
-      },
-      {
-        queryKey: ["dashboard-overview", "internal-growth-market"],
-        queryFn: () => fetchGrowthSyraMarketLatest(),
-        staleTime: 45_000,
-        enabled: showInternal,
-      },
-      {
-        queryKey: ["dashboard-overview", "internal-growth-social"],
-        queryFn: () => fetchGrowthSyraSocialLatest(),
-        staleTime: 45_000,
-        enabled: showInternal,
-      },
-      {
-        queryKey: ["dashboard-overview", "internal-growth-sector"],
-        queryFn: () => fetchGrowthSectorNarrativeLatest(),
-        staleTime: 45_000,
-        enabled: showInternal,
-      },
-      {
-        queryKey: ["dashboard-overview", "internal-hr-coach"],
-        queryFn: () => fetchHrCoachLatest(),
+        queryKey: ["dashboard-overview", "internal-partnership-scout"],
+        queryFn: () => fetchPartnershipScoutLatest(),
         staleTime: 45_000,
         enabled: showInternal,
       },
@@ -195,12 +164,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     lpStatsQ,
     pumpfunLedgerQ,
     riseLedgerQ,
-    agentTeamQ,
-    x402InternalQ,
-    growthMarketQ,
-    growthSocialQ,
-    growthSectorQ,
-    hrCoachQ,
+    trendScoutQ,
+    partnershipScoutQ,
   ] = queries;
 
   const tradingAgents = tradeQ.data?.agents ?? [];
@@ -272,23 +237,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
 
   const internalPipelineCount = useMemo(() => {
     if (!showInternal) return 0;
-    return [
-      agentTeamQ.data?.data,
-      x402InternalQ.data?.data,
-      growthMarketQ.data?.data,
-      growthSocialQ.data?.data,
-      growthSectorQ.data?.data,
-      hrCoachQ.data?.data,
-    ].filter(Boolean).length;
-  }, [
-    showInternal,
-    agentTeamQ.data,
-    x402InternalQ.data,
-    growthMarketQ.data,
-    growthSocialQ.data,
-    growthSectorQ.data,
-    hrCoachQ.data,
-  ]);
+    return [trendScoutQ.data?.data, partnershipScoutQ.data?.data].filter(Boolean).length;
+  }, [showInternal, trendScoutQ.data, partnershipScoutQ.data]);
 
   return (
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1 min-h-0" : "min-h-screen")}>
@@ -693,7 +643,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 label="Pipelines with data"
                 accent="internal"
                 value={`${internalPipelineCount} / ${INTERNAL_AGENTS.length}`}
-                hint="Latest saved runs across internal growth agents"
+                hint="Trend scout + partnership scout (on-chain AI utility)"
                 href="/dashboard/internal-team-agents"
               />
               <OverviewStatCard
@@ -712,22 +662,23 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
 
             <Card className={cn(overviewCardShell, 'divide-y divide-border/60')}>
               {INTERNAL_AGENTS.map((agent) => {
-                const qMap = {
-                  "agent-team": agentTeamQ,
-                  "x402-pulse": x402InternalQ,
-                  "growth-syra-market": growthMarketQ,
-                  "growth-syra-social": growthSocialQ,
-                  "growth-sector-narrative": growthSectorQ,
-                  "hr-coach": hrCoachQ,
-                } as const;
-                const q = qMap[agent.slug];
-                const hasData = Boolean(q.data?.data);
-                const savedAt = q.data?.savedAt;
+                const href =
+                  agent.slug === "hackathon-scout"
+                    ? "/dashboard/internal-hackathons"
+                    : `/dashboard/internal-team-agents/${agent.slug}`;
+                const q =
+                  agent.slug === "trend-scout"
+                    ? trendScoutQ
+                    : agent.slug === "partnership-scout"
+                      ? partnershipScoutQ
+                      : null;
+                const hasData = q ? Boolean(q.data?.data) : true;
+                const savedAt = q?.data?.savedAt;
 
                 return (
                   <Link
                     key={agent.slug}
-                    to={`/dashboard/internal-team-agents/${agent.slug}`}
+                    to={href}
                     className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3.5 transition-colors hover:bg-muted/25"
                   >
                     <div className="min-w-0">
@@ -735,16 +686,20 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                       <p className="text-xs text-muted-foreground truncate">{agent.subtitle}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      {q.isLoading ? (
-                        <Badge variant="secondary">Loading</Badge>
-                      ) : q.isError ? (
-                        <Badge variant="destructive">Error</Badge>
-                      ) : hasData ? (
-                        <Badge className="bg-emerald-600/90">Has data</Badge>
+                      {q ? (
+                        q.isLoading ? (
+                          <Badge variant="secondary">Loading</Badge>
+                        ) : q.isError ? (
+                          <Badge variant="destructive">Error</Badge>
+                        ) : hasData ? (
+                          <Badge className="bg-emerald-600/90">Has data</Badge>
+                        ) : (
+                          <Badge variant="outline">No run yet</Badge>
+                        )
                       ) : (
-                        <Badge variant="outline">No run yet</Badge>
+                        <Badge variant="secondary">Board</Badge>
                       )}
-                      {savedAt ? (
+                      {q && savedAt ? (
                         <span className="text-[11px] font-mono text-muted-foreground">
                           {new Date(savedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>

@@ -31,6 +31,7 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
+import { createInternalHackathonScoutRouter } from "./routes/internalHackathonScout.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
   SYRA_PROBE_BASE_URL,
@@ -629,10 +630,9 @@ app.use(
         p === "/agent/wallet/connect" ||
         isX402Route(p) ||
         p.startsWith("/internal/tester-agent") ||
-        p.startsWith("/internal/agent-team/run") ||
-        p.startsWith("/internal/uponly-fund-dev-team/run") ||
-        p.startsWith("/internal/x402-x-trends/run") ||
-        p.startsWith("/internal/growth-") ||
+        p.startsWith("/internal/trend-scout/run") ||
+        p.startsWith("/internal/partnership-scout/run") ||
+        p.startsWith("/internal/hackathon-scout/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
         p.startsWith("/uponly-rise-create")
@@ -668,32 +668,32 @@ app.use(
       }
     }
     if (
-      p === "/internal/agent-team/run" &&
+      p === "/internal/trend-scout/run" &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
-      const secret = (process.env.AGENT_TEAM_CRON_SECRET || "").trim();
+      const secret = (process.env.SYRA_TREND_SCOUT_CRON_SECRET || "").trim();
       if (secret) {
-        const got = (req.get("x-agent-team-cron-secret") || "").trim();
+        const got = (req.get("x-syra-trend-scout-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
     if (
-      p === "/internal/uponly-fund-dev-team/run" &&
+      p === "/internal/partnership-scout/run" &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
-      const secret = (process.env.UPONLY_FUND_DEV_TEAM_CRON_SECRET || "").trim();
+      const secret = (process.env.SYRA_PARTNERSHIP_SCOUT_CRON_SECRET || "").trim();
       if (secret) {
-        const got = (req.get("x-uponly-fund-dev-team-cron-secret") || "").trim();
+        const got = (req.get("x-syra-partnership-scout-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
     if (
-      p === "/internal/x402-x-trends/run" &&
+      p === "/internal/hackathon-scout/run" &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
-      const secret = (process.env.X402_X_TRENDS_CRON_SECRET || "").trim();
+      const secret = (process.env.SYRA_HACKATHON_SCOUT_CRON_SECRET || "").trim();
       if (secret) {
-        const got = (req.get("x-x402-x-trends-cron-secret") || "").trim();
+        const got = (req.get("x-syra-hackathon-scout-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
@@ -705,20 +705,6 @@ app.use(
       if (secret) {
         const got = (req.get("x-alpha-x-batch-cron-secret") || "").trim();
         if (got === secret) return true;
-      }
-    }
-    if (String(req.method || "").toUpperCase() === "POST") {
-      if (
-        p === "/internal/growth-syra-market/run" ||
-        p === "/internal/growth-syra-social/run" ||
-        p === "/internal/growth-sector-narrative/run" ||
-        p === "/internal/growth-internal-agents/run-all"
-      ) {
-        const secret = (process.env.GROWTH_INTERNAL_AGENTS_CRON_SECRET || "").trim();
-        if (secret) {
-          const got = (req.get("x-growth-internal-agents-cron-secret") || "").trim();
-          if (got === secret) return true;
-        }
       }
     }
     return (
@@ -1051,7 +1037,8 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Tester agent (cron smoke); mount before /internal so paths are not swallowed by research router
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
-// Internal dashboard: research-store, research-resume (API key auth, no x402)
+// Internal dashboard: hackathon scout + research-store (API key auth, no x402)
+app.use("/internal", createInternalHackathonScoutRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
@@ -1387,40 +1374,63 @@ app.listen(PORT, () => {
     .catch(() => {});
 
   import("./libs/tradingExperimentEvolution.js")
-    .then(({ evolutionConfigFromEnv, runTradingExperimentEvolution }) => {
+    .then(
+      ({
+        evolutionConfigFromEnv,
+        runAllTradingExperimentEvolution,
+        maybeBootstrapMultiTokenEvolution,
+      }) => {
       const evo = evolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
+      const logEvolution = (outs) => {
+        for (const out of outs) {
+          if (!out.ok) {
+            console.warn("[Trading experiment evolution]", out.skipped || out);
+            continue;
+          }
+          console.info(
+            "[Trading experiment evolution]",
+            out.suite,
+            "culled",
+            out.culled?.length ?? 0,
+            "spawned",
+            out.spawned?.length ?? 0,
+            "daily",
+            out.dailySpawned?.length ?? 0,
+          );
+        }
+      };
       const tick = runIfMongoConnected(() =>
-        Promise.all([
-          runTradingExperimentEvolution({ suite: "primary" }),
-          runTradingExperimentEvolution({ suite: "secondary" }),
-        ])
-          .then((outs) => {
-            for (const out of outs) {
-              if (!out.ok) {
-                console.warn("[Trading experiment evolution]", out.skipped || out);
-                continue;
-              }
-              console.info(
-                "[Trading experiment evolution]",
-                out.suite,
-                "culled",
-                out.culled?.length ?? 0,
-                "spawned",
-                out.spawned?.length ?? 0,
-                "daily",
-                out.dailySpawned?.length ?? 0,
-              );
-            }
-          })
+        runAllTradingExperimentEvolution()
+          .then(({ results }) => logEvolution(results))
           .catch((err) =>
             console.warn(
               "[Trading experiment evolution failed]",
               err?.message || err,
             ),
-          ));
+          ),
+      );
+      runIfMongoConnected(() =>
+        maybeBootstrapMultiTokenEvolution()
+          .then((boot) => {
+            if (boot.dailySpawned?.length) {
+              console.info(
+                "[Trading experiment evolution]",
+                "multi_token bootstrap daily spawned",
+                boot.dailySpawned.length,
+              );
+            }
+          })
+          .catch((err) =>
+            console.warn(
+              "[Trading experiment multi_token bootstrap]",
+              err?.message || err,
+            ),
+          ),
+      );
       setInterval(tick, evo.ms);
-    })
+    },
+    )
     .catch(() => {});
 
   const testerSchedule = TESTER_AGENT_CONFIG.inProcessScheduleEnabled === true;
@@ -1472,46 +1482,35 @@ app.listen(PORT, () => {
       ),
     );
 
-  import("./libs/agentTeamScheduler.js")
-    .then(({ startAgentTeamScheduler }) => {
-      startAgentTeamScheduler();
+  import("./libs/syraTrendScoutScheduler.js")
+    .then(({ startSyraTrendScoutScheduler }) => {
+      startSyraTrendScoutScheduler();
     })
     .catch((e) =>
       console.warn(
-        "[agent-team] load failed:",
+        "[syra-trend-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
 
-  import("./libs/x402XTrendsScheduler.js")
-    .then(({ startX402XTrendsScheduler }) => {
-      startX402XTrendsScheduler();
+  import("./libs/syraPartnershipScoutScheduler.js")
+    .then(({ startSyraPartnershipScoutScheduler }) => {
+      startSyraPartnershipScoutScheduler();
     })
     .catch((e) =>
       console.warn(
-        "[x402-x-trends] load failed:",
+        "[syra-partnership-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
 
-  import("./libs/growthInternalAgentsScheduler.js")
-    .then(({ startGrowthInternalAgentsScheduler }) => {
-      startGrowthInternalAgentsScheduler();
+  import("./libs/syraHackathonScoutScheduler.js")
+    .then(({ startSyraHackathonScoutScheduler }) => {
+      startSyraHackathonScoutScheduler();
     })
     .catch((e) =>
       console.warn(
-        "[growth-internal] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/internalHrCoachScheduler.js")
-    .then(({ startInternalHrCoachScheduler }) => {
-      startInternalHrCoachScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[internal-hr-coach] load failed:",
+        "[syra-hackathon-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
@@ -1523,17 +1522,6 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[internal-news] sentiment scheduler load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/uponlyFundDevAgentScheduler.js")
-    .then(({ startUponlyFundDevAgentScheduler }) => {
-      startUponlyFundDevAgentScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[uponly-fund-dev-team] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

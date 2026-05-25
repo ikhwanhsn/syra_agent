@@ -11,8 +11,6 @@ import { getConnection, isSolMint, WRAPPED_SOL_MINT } from "./meteoraDlmmExecuto
 const JUPITER_API_BASE = "https://api.jup.ag";
 const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
 const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
-const CONFIRM_POLL_MS = 1500;
-const CONFIRM_TIMEOUT_MS = 90_000;
 /** Skip Jupiter sidecar when swap size is dust (saves failed Meteora opens). */
 const MIN_SIDECAR_SWAP_LAMPORTS = 5_000;
 /** Preserve USDC for agent tool payments when sweeping after close-all. */
@@ -30,30 +28,6 @@ function jupiterHeaders() {
     headers["x-api-key"] = process.env.JUPITER_API_KEY;
   }
   return headers;
-}
-
-async function waitForSignature(connection, signature, lastValidBlockHeight) {
-  const start = Date.now();
-  while (Date.now() - start < CONFIRM_TIMEOUT_MS) {
-    const currentHeight = await connection.getBlockHeight("confirmed");
-    if (currentHeight > lastValidBlockHeight) {
-      throw new Error("sidecar_swap_expired");
-    }
-    const { value } = await connection.getSignatureStatuses([signature]);
-    const status = value?.[0];
-    if (status?.err) {
-      throw new Error(`sidecar_swap_failed_onchain:${JSON.stringify(status.err)}`);
-    }
-    if (
-      status?.confirmationStatus === "confirmed" ||
-      status?.confirmationStatus === "finalized" ||
-      status?.confirmationStatus === "processed"
-    ) {
-      return;
-    }
-    await new Promise((r) => setTimeout(r, CONFIRM_POLL_MS));
-  }
-  throw new Error("sidecar_swap_confirm_timeout");
 }
 
 async function getMintBalanceRaw(connection, owner, mintStr) {
@@ -160,10 +134,6 @@ async function executeJupiterSwap({
     const reasons = brokerResult.reasons || [];
     throw new Error(`sidecar_swap_broker_failed:${reasons.join(";")}`);
   }
-
-  const connection = getConnection();
-  const { lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-  await waitForSignature(connection, brokerResult.signature, lastValidBlockHeight);
 
   return {
     signature: brokerResult.signature,

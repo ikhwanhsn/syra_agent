@@ -1,0 +1,31 @@
+# Syra Hackathon Scout — 06:30 WIB (23:30 UTC previous day). One X search per run (12h cache).
+name: Syra hackathon scout daily (06:30 WIB)
+
+on:
+  schedule:
+    - cron: "30 23 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-hackathon-scout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/hackathon-scout/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_HACKATHON_SCOUT_BASE_URL }}
+          SYRA_HACKATHON_SCOUT_CRON_SECRET: ${{ secrets.SYRA_HACKATHON_SCOUT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${SYRA_HACKATHON_SCOUT_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_HACKATHON_SCOUT_BASE_URL and SYRA_HACKATHON_SCOUT_CRON_SECRET."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          HTTP_CODE=$(curl -sS -o /tmp/hackathon-scout.json -w "%{http_code}" -X POST "${ORIGIN}/internal/hackathon-scout/run" \
+            -H "x-syra-hackathon-scout-cron-secret: ${SYRA_HACKATHON_SCOUT_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/hackathon-scout.json
+          test "$HTTP_CODE" = "200"

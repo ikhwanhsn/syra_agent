@@ -37,6 +37,11 @@ import {
   fetchTradingExperimentRuns,
   normalizeExperimentSuite,
   experimentAgentFilterBadges,
+  experimentPnlVisualClass,
+  experimentReturnVisualClass,
+  formatExperimentPnlUsd,
+  formatExperimentReturnPct,
+  formatExperimentWatchlist,
   TRADING_EXPERIMENT_RUN_STATUSES,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
@@ -207,12 +212,11 @@ function labAgentRowKey(a: TradingExperimentAgentStats): string {
   return a.experimentSuite != null ? `${a.experimentSuite}-${a.agentId}` : String(a.agentId);
 }
 
-function formatPairLabel(token: string): string {
-  if (!token) return "—";
-  return token
-    .split(/[\s_-]+/)
-    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
-    .join(" ");
+function formatPairLabel(
+  token: string,
+  watchTokens?: string[] | null,
+): string {
+  return formatExperimentWatchlist(token, watchTokens);
 }
 
 function winRateVisualClass(pct: number | null | undefined): string {
@@ -249,6 +253,11 @@ type LeaderboardViewRow = {
   ledgerRank: number;
   /** Paper equity (global lab only). */
   equityUsd?: number | null;
+  realizedPnlUsd?: number | null;
+  returnPct?: number | null;
+  closedTrades?: number;
+  watchTokens?: string[];
+  opportunityMode?: string | null;
   /** Present for global lab agents (profile links + search). */
   experimentSuite?: TradingExperimentSuiteId;
 };
@@ -301,7 +310,10 @@ type LabSortKey =
   | "open"
   | "cash"
   | "deployed"
-  | "equity";
+  | "equity"
+  | "closed"
+  | "pnl"
+  | "return";
 
 type LeaderboardSortKey =
   | "rank"
@@ -314,6 +326,9 @@ type LeaderboardSortKey =
   | "winRate"
   | "open"
   | "equity"
+  | "closed"
+  | "pnl"
+  | "return"
   | "sample";
 
 type MyAgentsWinSortKey = "name" | "pair" | "bar" | "wins" | "losses" | "winRate" | "open";
@@ -406,6 +421,21 @@ function sortLabAgents(
         cmp = ex - ey;
         break;
       }
+      case "closed":
+        cmp = (x.closedTrades ?? 0) - (y.closedTrades ?? 0);
+        break;
+      case "pnl": {
+        const px = x.realizedPnlUsd ?? -Infinity;
+        const py = y.realizedPnlUsd ?? -Infinity;
+        cmp = px - py;
+        break;
+      }
+      case "return": {
+        const rx = x.returnPct ?? -Infinity;
+        const ry = y.returnPct ?? -Infinity;
+        cmp = rx - ry;
+        break;
+      }
       default:
         cmp = 0;
     }
@@ -468,6 +498,21 @@ function sortLeaderboardRows(
         const ea = a.equityUsd ?? -1;
         const eb = b.equityUsd ?? -1;
         cmp = ea - eb;
+        break;
+      }
+      case "closed":
+        cmp = (a.closedTrades ?? 0) - (b.closedTrades ?? 0);
+        break;
+      case "pnl": {
+        const pa = a.realizedPnlUsd ?? -Infinity;
+        const pb = b.realizedPnlUsd ?? -Infinity;
+        cmp = pa - pb;
+        break;
+      }
+      case "return": {
+        const ra = a.returnPct ?? -Infinity;
+        const rb = b.returnPct ?? -Infinity;
+        cmp = ra - rb;
         break;
       }
       case "sample":
@@ -931,6 +976,11 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
         profileHref: labAgentProfileHref(a),
         ledgerRank: ledgerRank(a.experimentSuite),
         equityUsd: a.equityUsd ?? null,
+        realizedPnlUsd: a.realizedPnlUsd ?? null,
+        returnPct: a.returnPct ?? null,
+        closedTrades: a.closedTrades ?? 0,
+        watchTokens: a.watchTokens,
+        opportunityMode: a.opportunityMode ?? null,
         experimentSuite: a.experimentSuite ?? "primary",
       }));
     }
@@ -980,7 +1030,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     [agents],
   );
   const showLabCexUi = labCexOptions.length > 1;
-  const labTableColSpan = 11 + (showLabCexUi ? 1 : 0);
+  const labTableColSpan = 14 + (showLabCexUi ? 1 : 0);
 
   const filteredLabAgents = useMemo(() => {
     const q = normalizeTableSearch(labFilterSearch);
@@ -1594,8 +1644,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 <div className="relative mb-4 space-y-1">
                   <h3 className="text-base font-semibold tracking-tight text-foreground">Roster filters</h3>
                   <p className="text-xs text-foreground/75 sm:text-sm">
-                    Public lab runs two ledgers (algorithm + scalper). Each day, agents at or below $900 equity
-                    (–10% from $1,000) are culled and replaced; 15 new agents spawn per ledger (up to 1,000 per ledger).
+                    Public lab runs three ledgers (algorithm, scalper, opportunity hunters)—each expands on its own. Every
+                    day, agents at or below $900 equity (–10% from $1,000) are culled and replaced, and 15 new agents
+                    spawn per ledger (up to 1,000 agents per ledger). Opportunity hunters are included: new scouts get
+                    random watchlists and pick modes after spawn.
                     Search by name or ID, then slice by market, timeframe, and open exposure.
                   </p>
                 </div>
@@ -1770,7 +1822,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
             </div>
             <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-md shadow-black/[0.04] backdrop-blur-sm dark:shadow-black/25">
               <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                <Table className="min-w-[980px] w-full">
+                <Table className="min-w-[1180px] w-full">
                   <TableHeader className="sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-border/80 [&_tr]:bg-card [&_tr]:backdrop-blur-md [&_tr:hover]:bg-card">
                     <TableRow className="border-0 hover:bg-transparent">
                       <SortableTableHead label="#" sortKey="id" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
@@ -1783,9 +1835,12 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       <SortableTableHead label="W" sortKey="wins" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                       <SortableTableHead label="L" sortKey="losses" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                       <SortableTableHead label="Win %" sortKey="winRate" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                      <SortableTableHead label="Closed" sortKey="closed" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                      <SortableTableHead label="P/L" sortKey="pnl" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                      <SortableTableHead label="Return" sortKey="return" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
+                      <SortableTableHead label="Equity" sortKey="equity" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                       <SortableTableHead label="Free" sortKey="cash" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                       <SortableTableHead label="In trade" sortKey="deployed" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Equity" sortKey="equity" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                       <SortableTableHead label="Open" sortKey="open" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
                     </TableRow>
                   </TableHeader>
@@ -1879,8 +1934,15 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         <TableCell>
                           <span className="inline-flex min-w-0 items-center gap-2.5">
                             <CoinLogo symbol={a.token} size="md" fallbackSeed={a.token} />
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {formatPairLabel(a.token)}
+                            <span
+                              className="truncate text-sm font-medium text-foreground"
+                              title={
+                                a.watchTokens?.length
+                                  ? a.watchTokens.join(", ")
+                                  : undefined
+                              }
+                            >
+                              {formatPairLabel(a.token, a.watchTokens)}
                             </span>
                           </span>
                         </TableCell>
@@ -1908,13 +1970,47 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           )}
                         </TableCell>
                         <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                          {(a.closedTrades ?? 0) > 0 ? (
+                            <span title={`${a.decided} win/loss · ${(a.closedTrades ?? 0) - a.decided} other closes`}>
+                              {a.closedTrades}
+                            </span>
+                          ) : (
+                            "0"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              "text-sm font-semibold tabular-nums",
+                              experimentPnlVisualClass(a.realizedPnlUsd),
+                            )}
+                          >
+                            {formatExperimentPnlUsd(a.realizedPnlUsd)}
+                          </span>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">vs $1k start</p>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              "text-sm font-semibold tabular-nums",
+                              experimentReturnVisualClass(a.returnPct),
+                            )}
+                          >
+                            {formatExperimentReturnPct(a.returnPct)}
+                          </span>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">total return</p>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-semibold tabular-nums text-foreground">
+                            {formatUsd(a.equityUsd)}
+                          </span>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">bank value</p>
+                        </TableCell>
+                        <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
                           {formatUsd(a.cashUsd)}
                         </TableCell>
                         <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
                           {formatUsd(a.deployedUsd)}
-                        </TableCell>
-                        <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
-                          {formatUsd(a.equityUsd)}
                         </TableCell>
                         <TableCell className="text-right">
                           {a.openPositions > 0 ? (
@@ -2092,7 +2188,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       aria-hidden
                     />
                     <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                    <Table className="min-w-[960px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
+                    <Table className="min-w-[1120px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
                       <TableHeader>
                         <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30 [&>th]:align-middle">
                           <SortableTableHead
@@ -2109,6 +2205,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                           <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                           <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                           <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Closed" sortKey="closed" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="P/L" sortKey="pnl" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Return" sortKey="return" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                           <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                           <SortableTableHead label="Equity" sortKey="equity" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
                           <SortableTableHead
@@ -2125,7 +2224,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       <TableBody>
                         {filteredLeaderboardRows.length === 0 ? (
                           <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={10} className="py-16 text-center">
+                            <TableCell colSpan={13} className="py-16 text-center">
                               <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
                                 <Trophy className="h-10 w-10 text-muted-foreground/35" aria-hidden />
                                 <p className="text-sm font-medium text-foreground">No matches</p>
@@ -2200,8 +2299,15 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                                 <TableCell>
                                   <span className="inline-flex min-w-0 max-w-[11rem] items-center gap-2.5">
                                     <CoinLogo symbol={row.token} size="sm" fallbackSeed={row.token} />
-                                    <span className="truncate text-sm font-medium text-foreground/90">
-                                      {formatPairLabel(row.token)}
+                                    <span
+                                      className="truncate text-sm font-medium text-foreground/90"
+                                      title={
+                                        row.experimentSuite === "multi_token" && row.watchTokens?.length
+                                          ? row.watchTokens.join(", ")
+                                          : undefined
+                                      }
+                                    >
+                                      {formatPairLabel(row.token, row.watchTokens)}
                                     </span>
                                   </span>
                                 </TableCell>
@@ -2230,6 +2336,37 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                                     <span className="text-sm text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
+                                <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                                  {leaderboardScope === "global" ? (row.closedTrades ?? 0) : "—"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {leaderboardScope === "global" ? (
+                                    <span
+                                      className={cn(
+                                        "text-sm font-semibold tabular-nums",
+                                        experimentPnlVisualClass(row.realizedPnlUsd),
+                                      )}
+                                    >
+                                      {formatExperimentPnlUsd(row.realizedPnlUsd)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {leaderboardScope === "global" ? (
+                                    <span
+                                      className={cn(
+                                        "text-sm font-semibold tabular-nums",
+                                        experimentReturnVisualClass(row.returnPct),
+                                      )}
+                                    >
+                                      {formatExperimentReturnPct(row.returnPct)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-right">
                                   {row.openPositions > 0 ? (
                                     <Badge
@@ -2242,8 +2379,14 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                                     <span className="tabular-nums text-sm text-muted-foreground">0</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right text-sm font-semibold tabular-nums text-foreground">
-                                  {formatUsd(row.equityUsd)}
+                                <TableCell className="text-right">
+                                  {leaderboardScope === "global" ? (
+                                    <span className="text-sm font-semibold tabular-nums text-foreground">
+                                      {formatUsd(row.equityUsd)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )}
                                 </TableCell>
                                 <TableCell className="pr-5 text-right sm:pr-6">
                                   <Badge
@@ -2285,40 +2428,43 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     aria-hidden
                   />
                   <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                  <Table className="min-w-[960px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
-                    <TableHeader>
-                      <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30">
-                        <SortableTableHead
-                          className="w-[4.5rem] pl-5 sm:pl-6"
-                          label="Rank"
-                          sortKey="rank"
-                          activeKey={lbSortKey}
-                          order={lbSortOrder}
-                          onSort={onLbSort}
-                        />
-                        <SortableTableHead label="Agent" sortKey="agent" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                        <SortableTableHead label="Pair" sortKey="pair" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                        <SortableTableHead label="Bar" sortKey="bar" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                        <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                        <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                        <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                        <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                        <SortableTableHead label="Equity" sortKey="equity" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                        <SortableTableHead
-                          className="pr-5 sm:pr-6"
-                          label="Sample"
-                          sortKey="sample"
-                          activeKey={lbSortKey}
-                          order={lbSortOrder}
-                          onSort={onLbSort}
-                          align="right"
-                        />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={10} className="py-16 text-center">
-                          {loading ? (
+                    <Table className="min-w-[1120px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
+                      <TableHeader>
+                        <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30">
+                          <SortableTableHead
+                            className="w-[4.5rem] pl-5 sm:pl-6"
+                            label="Rank"
+                            sortKey="rank"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                          />
+                          <SortableTableHead label="Agent" sortKey="agent" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                          <SortableTableHead label="Pair" sortKey="pair" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                          <SortableTableHead label="Bar" sortKey="bar" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
+                          <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Closed" sortKey="closed" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="P/L" sortKey="pnl" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Return" sortKey="return" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead label="Equity" sortKey="equity" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead
+                            className="pr-5 sm:pr-6"
+                            label="Sample"
+                            sortKey="sample"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell colSpan={13} className="py-16 text-center">
+                            {loading ? (
                             <span className="inline-flex items-center justify-center gap-2 text-sm text-muted-foreground">
                               <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
                               Loading…

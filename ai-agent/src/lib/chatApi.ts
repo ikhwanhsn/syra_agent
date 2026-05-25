@@ -280,7 +280,7 @@ export const chatApi = {
       headers["X-Payment"] = params.paymentHeader;
       headers["PAYMENT-SIGNATURE"] = params.paymentHeader;
     }
-    const res = await fetch(getApiBaseUrl() + "/agent/chat/completion", {
+    const res = await syraFetch(getApiBaseUrl() + "/agent/chat/completion", {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -338,10 +338,14 @@ export const chatApi = {
     const data = await handleRes<{
       success: boolean;
       response: string;
+      error?: string;
       amountChargedUsd?: number;
       toolUsages?: ApiToolUsageEntry[];
       inlineUi?: AgentInlineUiPayload;
     }>(res);
+    if (data.success === false) {
+      throw new Error(data.error || "Completion failed");
+    }
     return {
       response: data.response ?? "",
       ...(typeof data.amountChargedUsd === "number" && data.amountChargedUsd > 0

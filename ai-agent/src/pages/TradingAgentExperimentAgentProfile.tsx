@@ -19,6 +19,10 @@ import {
   fetchTradingExperimentSuites,
   normalizeExperimentSuite,
   experimentAgentFilterBadges,
+  experimentPnlVisualClass,
+  experimentReturnVisualClass,
+  formatExperimentPnlUsd,
+  formatExperimentReturnPct,
   type TradingExperimentAgentStats,
   type TradingExperimentRunRow,
   type TradingExperimentStrategy,
@@ -294,6 +298,34 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                 <p className="text-xs text-muted-foreground mt-1">Capital at risk in open positions</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total return</p>
+                <p
+                  className={cn(
+                    "text-2xl font-semibold tabular-nums mt-1",
+                    experimentReturnVisualClass(agent.returnPct),
+                  )}
+                >
+                  {formatExperimentReturnPct(agent.returnPct)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">vs {formatUsd(agent.startingBankUsd ?? 1000)} starting bank</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Realized P/L</p>
+                <p
+                  className={cn(
+                    "text-2xl font-semibold tabular-nums mt-1",
+                    experimentPnlVisualClass(agent.realizedPnlUsd),
+                  )}
+                >
+                  {formatExperimentPnlUsd(agent.realizedPnlUsd)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(agent.closedTrades ?? 0) > 0
+                    ? `${agent.closedTrades} closed trade${agent.closedTrades === 1 ? "" : "s"}`
+                    : "No closed trades yet"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Equity</p>
                 <p className="text-2xl font-semibold tabular-nums mt-1">{formatUsd(agent.equityUsd)}</p>
                 <p className="text-xs text-muted-foreground mt-1">Free cash + capital in open trades</p>
@@ -311,9 +343,21 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
                   <dd className="font-medium">{strategy.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Token key</dt>
-                  <dd className="font-mono">{strategy.token}</dd>
+                  <dt className="text-muted-foreground">
+                    {agent.watchTokens?.length ? "Watchlist" : "Token key"}
+                  </dt>
+                  <dd className="font-mono">
+                    {agent.watchTokens?.length
+                      ? agent.watchTokens.join(", ")
+                      : strategy.token}
+                  </dd>
                 </div>
+                {agent.opportunityMode ? (
+                  <div>
+                    <dt className="text-muted-foreground">Pick mode</dt>
+                    <dd className="font-mono">{agent.opportunityMode}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt className="text-muted-foreground">Bar interval</dt>
                   <dd className="font-mono">{strategy.bar}</dd>

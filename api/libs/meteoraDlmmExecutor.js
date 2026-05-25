@@ -17,6 +17,11 @@ import {
   decryptAgentSecretFromStorage,
   encryptAgentSecretForStorage,
 } from "./agentWalletSecretCrypto.js";
+import { createSolanaConnection, getSolanaRpcUrlCandidates } from "./solanaServerRpc.js";
+import {
+  getBlockchainSolanaConnection,
+  injectPriorityFeeInstructions,
+} from "./solanaTxUtils.js";
 
 const require = createRequire(import.meta.url);
 const DLMM = require("@meteora-ag/dlmm");
@@ -34,17 +39,8 @@ const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
  */
 export const MAX_METEORA_POSITION_BINS = 70;
 
-let connectionSingleton = null;
-
 function getConnection() {
-  if (!connectionSingleton) {
-    const url =
-      process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
-      process.env.SOLANA_RPC_URL ||
-      "https://api.mainnet-beta.solana.com";
-    connectionSingleton = new Connection(url, "confirmed");
-  }
-  return connectionSingleton;
+  return getBlockchainSolanaConnection();
 }
 
 export function getSolanaConnection() {
@@ -52,8 +48,7 @@ export function getSolanaConnection() {
 }
 
 /** Meteora docs: refetch on-chain pool state before deposit / withdraw / swap. */
-async function createDlmmPool(lbPairAddress) {
-  const connection = getConnection();
+async function createDlmmPool(lbPairAddress, connection = getConnection()) {
   const dlmmPool = await DLMM.create(connection, new PublicKey(lbPairAddress));
   if (typeof dlmmPool.refetchStates === "function") {
     await dlmmPool.refetchStates();
@@ -190,6 +185,7 @@ async function prepareSerializedTxs(txs, positionKeypair, feePayer) {
     tx.recentBlockhash = blockhash;
     tx.lastValidBlockHeight = lastValidBlockHeight;
     tx.feePayer = feePayer;
+    injectPriorityFeeInstructions(tx);
     const requiresPositionSig = tx.signatures.some((sig) =>
       sig.publicKey?.equals?.(positionKeypair.publicKey),
     );
@@ -391,20 +387,18 @@ export async function buildClaimFeesTx({ lbPairAddress, positionPubkey, agentPub
   });
 
   const txs = normalizeTxArray(rawTx);
-  const { serializedTxBase64, serializedTxBase64List } = await prepareSerializedTxs(
-    txs,
-    positionKeypair,
-    user,
-  );
-  return { serializedTxBase64, serializedTxBase64List };
+  const { serializedTxBase64, serializedTxBase64List, blockhash, lastValidBlockHeight } =
+    await prepareSerializedTxs(txs, positionKeypair, user);
+  return { serializedTxBase64, serializedTxBase64List, blockhash, lastValidBlockHeight };
 }
 
 /**
+ * @param {import("@solana/web3.js").Connection} connection
  * @param {string} positionPubkey
  * @param {string} lbPairAddress
  */
-export async function fetchOnChainPosition(positionPubkey, lbPairAddress) {
-  const dlmmPool = await createDlmmPool(lbPairAddress);
+async function fetchOnChainPositionWithConnection(connection, positionPubkey, lbPairAddress) {
+  const dlmmPool = await createDlmmPool(lbPairAddress, connection);
   const position = await dlmmPool.getPosition(new PublicKey(positionPubkey));
   const activeBin = await dlmmPool.getActiveBin();
 
@@ -427,6 +421,24 @@ export async function fetchOnChainPosition(positionPubkey, lbPairAddress) {
     unclaimedFeeSol,
     lbPairAddress,
   };
+}
+
+/**
+ * @param {string} positionPubkey
+ * @param {string} lbPairAddress
+ */
+export async function fetchOnChainPosition(positionPubkey, lbPairAddress) {
+  const candidates = getSolanaRpcUrlCandidates();
+  let lastErr;
+  for (const rpcUrl of candidates) {
+    try {
+      const connection = createSolanaConnection(rpcUrl);
+      return await fetchOnChainPositionWithConnection(connection, positionPubkey, lbPairAddress);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("position_not_on_chain");
 }
 
 /** @param {string} agentAddress */

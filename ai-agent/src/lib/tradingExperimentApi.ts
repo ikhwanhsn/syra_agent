@@ -3,19 +3,21 @@ import { experimentIndicatorFilterBadgeLabels } from "@/lib/indicatorFilterLabel
 
 const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/trading-agent`;
 
-export type TradingExperimentSuiteId = "primary" | "secondary" | "multi_resource";
+export type TradingExperimentSuiteId = "primary" | "secondary" | "multi_resource" | "multi_token";
 
 /** Lab ledgers merged into one UI list (order used for sort + encoded bubble ids). */
 export const TRADING_EXPERIMENT_LAB_SUITES: readonly TradingExperimentSuiteId[] = [
   "primary",
   "secondary",
+  "multi_token",
 ];
 
 /** Unified lab label (suites still differ in API `?suite=` but UI presents one experiment). */
 export const EXPERIMENT_LEDGER_LABEL: Record<TradingExperimentSuiteId, string> = {
-  primary: "Experiment",
-  secondary: "Experiment",
+  primary: "Algorithm",
+  secondary: "Scalper",
   multi_resource: "Experiment",
+  multi_token: "Opportunity",
 };
 
 const ENCODED_LAB_AGENT_STRIDE = 10_000;
@@ -46,7 +48,7 @@ export function normalizeExperimentSuite(raw: string | null | undefined): Tradin
   const s = String(raw || "primary")
     .trim()
     .toLowerCase();
-  if (s === "secondary" || s === "primary") return s;
+  if (s === "secondary" || s === "primary" || s === "multi_token") return s;
   if (s === "multi_resource") return "primary";
   return "primary";
 }
@@ -87,12 +89,41 @@ export interface TradingExperimentStrategy {
 
 export { experimentIndicatorFilterBadgeLabels, indicatorFilterBadgeLabels } from "@/lib/indicatorFilterLabels";
 
+const OPPORTUNITY_MODE_LABELS: Record<string, string> = {
+  best_confidence: "Best conf",
+  best_risk_reward: "Best R:R",
+  best_composite: "Composite",
+};
+
+export function formatExperimentWatchlist(
+  token: string,
+  watchTokens?: string[] | null,
+): string {
+  if (watchTokens && watchTokens.length > 0) {
+    return `${watchTokens.length} tokens`;
+  }
+  if (token === "multi") return "Multi-token";
+  return token
+    .split(/[\s_-]+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
+    .join(" ");
+}
+
 export function experimentAgentFilterBadges(
-  a: Pick<TradingExperimentAgentStats, "experimentGate" | "indicatorFilter">,
+  a: Pick<
+    TradingExperimentAgentStats,
+    "experimentGate" | "indicatorFilter" | "opportunityMode" | "watchTokens"
+  >,
 ): string[] {
   const ind = experimentIndicatorFilterBadgeLabels(a.indicatorFilter);
   const g = a.experimentGate?.minConfidence;
   if (g) ind.push(`Conf≥${g}`);
+  if (a.opportunityMode) {
+    ind.push(OPPORTUNITY_MODE_LABELS[a.opportunityMode] ?? a.opportunityMode);
+  }
+  if (a.watchTokens && a.watchTokens.length > 0) {
+    ind.push(`${a.watchTokens.length} assets`);
+  }
   return ind;
 }
 
@@ -117,12 +148,23 @@ export interface TradingExperimentAgentStats {
   cashUsd?: number;
   /** Capital currently in open positions: openPositions × tradeNotionalUsd. */
   deployedUsd?: number;
-  /** cashUsd + deployedUsd (USD). */
+  /** startingBankUsd + realized P/L from closed runs (USD); open notional is cost-basis in deployedUsd. */
   equityUsd?: number;
+  /** Sum of closed-trade P/L (USD). */
+  realizedPnlUsd?: number;
+  /** Total return vs starting bank (%). */
+  returnPct?: number | null;
+  /** Closed runs (win, loss, expired, error). */
+  closedTrades?: number;
   experimentGate?: { minConfidence: ExperimentConfidenceFloor } | null;
   indicatorFilter?: TradingExperimentIndicatorFilter | null;
   /** Multi-resource suite: CEX key. */
   cexSource?: string | null;
+  /** multi_token suite: assets scanned each cycle. */
+  watchTokens?: string[];
+  /** How the scout ranks candidates: best_confidence | best_risk_reward | best_composite. */
+  opportunityMode?: string | null;
+  maxOpenPositions?: number;
   /**
    * When stats are merged across lab ledgers, identifies which suite this row’s runs belong to.
    * Profile and runs APIs still use `?suite=` for this value.
@@ -133,6 +175,42 @@ export interface TradingExperimentAgentStats {
 export interface TradingExperimentSimConfig {
   startingBankUsd: number;
   tradeNotionalUsd: number;
+}
+
+/** Format signed paper P/L for tables (e.g. +$12.50, −$8.00). */
+export function formatExperimentPnlUsd(pnl: number | null | undefined): string {
+  if (pnl == null || !Number.isFinite(pnl)) return "—";
+  const abs = Math.abs(pnl);
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(abs);
+  if (pnl > 0) return `+${formatted}`;
+  if (pnl < 0) return `−${formatted}`;
+  return formatted;
+}
+
+/** Format signed return vs starting bank (e.g. +1.2%, −10.0%). */
+export function formatExperimentReturnPct(pct: number | null | undefined): string {
+  if (pct == null || !Number.isFinite(pct)) return "—";
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
+export function experimentPnlVisualClass(pnl: number | null | undefined): string {
+  if (pnl == null || !Number.isFinite(pnl) || Math.abs(pnl) < 0.005) {
+    return "text-muted-foreground";
+  }
+  return pnl > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
+}
+
+export function experimentReturnVisualClass(pct: number | null | undefined): string {
+  if (pct == null || !Number.isFinite(pct) || Math.abs(pct) < 0.05) {
+    return "text-muted-foreground";
+  }
+  return pct > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
 }
 
 export interface TradingExperimentRunRow {

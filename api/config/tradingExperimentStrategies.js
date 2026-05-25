@@ -10,12 +10,18 @@
  * indicatorFilter (optional): extra BUY filters using engine technicalIndicators — rsiBand,
  * macd mode, emaStack (golden/death cross), priceVsMa vs SMA20/SMA50.
  */
+import { TRADING_EXPERIMENT_STRATEGIES_MULTI_TOKEN } from "./tradingExperimentMultiToken.js";
+
+export { TRADING_EXPERIMENT_STRATEGIES_MULTI_TOKEN } from "./tradingExperimentMultiToken.js";
+
 export const EXPERIMENT_SUITE_PRIMARY = "primary";
 export const EXPERIMENT_SUITE_SECONDARY = "secondary";
 /** Binance-only multi-timeframe BTC (1m–1d); same engine as primary; isolated ledger. */
 export const EXPERIMENT_SUITE_MULTI_RESOURCE = "multi_resource";
 /** Wallet-owned custom strategies; isolated ledger + runs reference {@link UserCustomStrategy}. */
 export const EXPERIMENT_SUITE_USER_CUSTOM = "user_custom";
+/** Scans many tokens per cycle and opens the best spot-long setup (isolated ledger). */
+export const EXPERIMENT_SUITE_MULTI_TOKEN = "multi_token";
 
 export const TRADING_EXPERIMENT_STRATEGIES = Object.freeze([
   { id: 0, name: "BTC swing 1h", token: "bitcoin", bar: "1h", limit: 200, lookAheadBars: 48 },
@@ -204,12 +210,22 @@ export const TRADING_EXPERIMENT_STRATEGIES_MULTI_RESOURCE = Object.freeze([]);
 
 /**
  * @param {string | undefined | null} input
- * @returns {typeof EXPERIMENT_SUITE_PRIMARY | typeof EXPERIMENT_SUITE_SECONDARY | typeof EXPERIMENT_SUITE_MULTI_RESOURCE}
+ * @returns {typeof EXPERIMENT_SUITE_PRIMARY | typeof EXPERIMENT_SUITE_SECONDARY | typeof EXPERIMENT_SUITE_MULTI_RESOURCE | typeof EXPERIMENT_SUITE_MULTI_TOKEN}
  */
 export function normalizeSuite(input) {
   const x = String(input ?? EXPERIMENT_SUITE_PRIMARY)
     .trim()
     .toLowerCase();
+  if (
+    x === EXPERIMENT_SUITE_MULTI_TOKEN ||
+    x === "multi-token" ||
+    x === "multitoken" ||
+    x === "opportunity" ||
+    x === "opportunities" ||
+    x === "scout"
+  ) {
+    return EXPERIMENT_SUITE_MULTI_TOKEN;
+  }
   if (
     x === EXPERIMENT_SUITE_MULTI_RESOURCE ||
     x === "3" ||
@@ -241,6 +257,7 @@ export function getStrategiesForSuite(suite) {
   const s = normalizeSuite(suite);
   if (s === EXPERIMENT_SUITE_SECONDARY) return TRADING_EXPERIMENT_STRATEGIES_SECONDARY;
   if (s === EXPERIMENT_SUITE_MULTI_RESOURCE) return TRADING_EXPERIMENT_STRATEGIES_MULTI_RESOURCE;
+  if (s === EXPERIMENT_SUITE_MULTI_TOKEN) return TRADING_EXPERIMENT_STRATEGIES_MULTI_TOKEN;
   return TRADING_EXPERIMENT_STRATEGIES;
 }
 
@@ -256,5 +273,11 @@ export const EXPERIMENT_SUITES_META = Object.freeze([
     title: "Scalper agents",
     description:
       "Short-bar agents (1m–15m) for higher trade frequency. Isolated ledger; same –10% equity cull and daily spawn rules as the primary roster.",
+  },
+  {
+    id: EXPERIMENT_SUITE_MULTI_TOKEN,
+    title: "Opportunity hunters",
+    description:
+      "Multi-token scouts: 15 core slots (ids 0–14) plus up to 985 spawned variants. Each cycle scans a watchlist (5–13 assets) and opens the single best BUY. Agents below $900 equity are culled daily; 15 new scouts spawn per day (max 1000 per ledger).",
   },
 ]);

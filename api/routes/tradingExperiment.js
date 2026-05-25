@@ -22,7 +22,10 @@ import {
 } from "../libs/tradingExperimentService.js";
 import { normalizeSuite, EXPERIMENT_SUITES_META } from "../config/tradingExperimentStrategies.js";
 import { resolveStrategiesForSuite } from "../libs/tradingExperimentStrategyResolve.js";
-import { runTradingExperimentEvolution } from "../libs/tradingExperimentEvolution.js";
+import {
+  runTradingExperimentEvolution,
+  runAllTradingExperimentEvolution,
+} from "../libs/tradingExperimentEvolution.js";
 import {
   createUserCustomStrategy,
   listUserCustomStrategies,
@@ -296,11 +299,15 @@ export function createTradingExperimentRouter() {
       }
       const common = { cullEquityUsd, dailySpawnCount, maxAgents, pinned };
       if (suiteRaw === "all" || suiteRaw === "both") {
-        const [primary, secondary] = await Promise.all([
-          runTradingExperimentEvolution({ ...common, suite: "primary" }),
-          runTradingExperimentEvolution({ ...common, suite: "secondary" }),
-        ]);
-        res.json({ success: true, data: { primary, secondary } });
+        const { bySuite } = await runAllTradingExperimentEvolution(common);
+        res.json({
+          success: true,
+          data: {
+            primary: bySuite.primary,
+            secondary: bySuite.secondary,
+            multi_token: bySuite.multi_token,
+          },
+        });
         return;
       }
       const suite = typeof body.suite === "string" ? body.suite : undefined;

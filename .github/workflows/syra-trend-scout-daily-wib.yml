@@ -1,0 +1,43 @@
+# Daily Syra Trend Scout at 06:00 WIB (Asia/Jakarta, UTC+7).
+# That wall-clock time is 23:00 UTC on the previous calendar date (GitHub cron uses UTC).
+#
+# Repository secrets:
+#   SYRA_TREND_SCOUT_BASE_URL — e.g. https://api.syraa.fun (no trailing slash)
+#   SYRA_TREND_SCOUT_CRON_SECRET — must match SYRA_TREND_SCOUT_CRON_SECRET on the API host
+#
+# On the API: set SYRA_DEV_BOT_TOKEN + SYRA_DEV_BOT_CHAT_ID so Telegram digests send.
+name: Syra trend scout daily (06:00 WIB)
+
+on:
+  schedule:
+    - cron: "0 23 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-trend-scout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/trend-scout/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_TREND_SCOUT_BASE_URL }}
+          SYRA_TREND_SCOUT_CRON_SECRET: ${{ secrets.SYRA_TREND_SCOUT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${SYRA_TREND_SCOUT_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_TREND_SCOUT_BASE_URL and SYRA_TREND_SCOUT_CRON_SECRET in repo secrets to enable this job."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          echo "Running trend scout at ${ORIGIN}/internal/trend-scout/run"
+          HTTP_CODE=$(curl -sS -o /tmp/trend-scout.json -w "%{http_code}" -X POST "${ORIGIN}/internal/trend-scout/run" \
+            -H "x-syra-trend-scout-cron-secret: ${SYRA_TREND_SCOUT_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/trend-scout.json
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Trend scout returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/trend-scout.json'); if(!r.success){console.error(r); process.exit(1)}"

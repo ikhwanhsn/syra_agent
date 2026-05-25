@@ -1,0 +1,38 @@
+# Daily Syra Partnership Scout at 06:15 WIB (15 min after Trend Scout).
+# 06:15 WIB = 23:15 UTC on the previous calendar date.
+#
+# Secrets: SYRA_PARTNERSHIP_SCOUT_BASE_URL, SYRA_PARTNERSHIP_SCOUT_CRON_SECRET
+name: Syra partnership scout daily (06:15 WIB)
+
+on:
+  schedule:
+    - cron: "15 23 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-partnership-scout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/partnership-scout/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_PARTNERSHIP_SCOUT_BASE_URL }}
+          SYRA_PARTNERSHIP_SCOUT_CRON_SECRET: ${{ secrets.SYRA_PARTNERSHIP_SCOUT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${SYRA_PARTNERSHIP_SCOUT_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_PARTNERSHIP_SCOUT_BASE_URL and SYRA_PARTNERSHIP_SCOUT_CRON_SECRET in repo secrets."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          HTTP_CODE=$(curl -sS -o /tmp/partnership-scout.json -w "%{http_code}" -X POST "${ORIGIN}/internal/partnership-scout/run" \
+            -H "x-syra-partnership-scout-cron-secret: ${SYRA_PARTNERSHIP_SCOUT_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/partnership-scout.json
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Partnership scout returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/partnership-scout.json'); if(!r.success){console.error(r); process.exit(1)}"

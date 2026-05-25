@@ -155,6 +155,9 @@ export function formatLpPositionError(
     return formatLpLastError(message) || "Close pending — position is live on Meteora";
   }
   if (!message) return "Open failed";
+  if (row?.status === "opening" && row.openTxSig) {
+    return "Open transaction confirmed — waiting for Meteora position index";
+  }
   if (message.includes("open_tx_not_on_chain") || message.includes("position_not_on_chain")) {
     return "Open transaction never confirmed on Solana — no liquidity was deployed";
   }
@@ -238,8 +241,10 @@ export function lpPositionStatusTooltip(row: LpRealPosition): { title: string; b
   switch (row.status) {
     case "opening":
       return {
-        title: "Opening",
-        body: "The agent is building and signing the Meteora open transaction. SOL is not locked in the pool until the tx confirms on-chain.",
+        title: row.openTxSig ? "Confirming" : "Opening",
+        body: row.openTxSig
+          ? "Open transaction confirmed on Solana. Waiting for Meteora to index the position (resolve cron checks every ~30s)."
+          : "The agent is building and signing the Meteora open transaction. SOL is not locked in the pool until the tx confirms on-chain.",
       };
     case "open":
       return {

@@ -25,6 +25,14 @@ const tradingExperimentLabAgentOverrideSchema = new mongoose.Schema(
     indicatorFilter: { type: mongoose.Schema.Types.Mixed, default: null },
     /** When suite is multi_resource: CEX source key (e.g. binance). */
     source: { type: String, default: null },
+    /** multi_token suite: Binance slugs to scan each signal cycle. */
+    tokens: { type: [String], default: null },
+    opportunityMode: {
+      type: String,
+      enum: ["best_confidence", "best_risk_reward", "best_composite"],
+      default: null,
+    },
+    maxOpenPositions: { type: Number, default: null, min: 1, max: 5 },
   },
   { timestamps: true },
 );

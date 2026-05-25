@@ -15,8 +15,8 @@ import {
   TRADING_EXPERIMENT_MAX_AGENTS,
   TRADING_EXPERIMENT_MAX_AGENT_ID,
   TRADING_EXPERIMENT_STATIC_AGENT_COUNT,
-  computeAgentEquityUsd,
 } from "../config/tradingExperimentSim.js";
+import { buildLabLedgerMapsForSuite, labLedgerSnapshotFromMaps } from "./tradingExperimentService.js";
 import {
   TRADING_EXPERIMENT_STRATEGIES,
   TRADING_EXPERIMENT_STRATEGIES_SECONDARY,
@@ -25,13 +25,19 @@ import {
   EXPERIMENT_SUITE_SECONDARY,
   EXPERIMENT_SUITE_USER_CUSTOM,
   EXPERIMENT_SUITE_MULTI_RESOURCE,
+  EXPERIMENT_SUITE_MULTI_TOKEN,
 } from "../config/tradingExperimentStrategies.js";
+import {
+  MULTI_TOKEN_FULL_LAB,
+  MULTI_TOKEN_DISPLAY_SLUG,
+  EXPERIMENT_OPPORTUNITY_MODES,
+} from "../config/tradingExperimentMultiToken.js";
 import { resolveStrategiesForSuite } from "./tradingExperimentStrategyResolve.js";
 import { randomIndicatorFilter } from "./indicatorFilters.js";
 
 /** @returns {string[]} */
 function collectTokenUniverse() {
-  const set = new Set();
+  const set = new Set(MULTI_TOKEN_FULL_LAB);
   for (const s of TRADING_EXPERIMENT_STRATEGIES) {
     if (typeof s.token === "string" && s.token.trim()) set.add(s.token.trim().toLowerCase());
   }
@@ -136,6 +142,34 @@ function randomLookAheadBarsScalp(bar) {
  *   indicatorFilter: Record<string, unknown> | null;
  * }}
  */
+/**
+ * @param {number} agentId
+ */
+export function buildRandomMultiTokenStrategy(agentId) {
+  const universe = TOKEN_SLUGS.length ? TOKEN_SLUGS : [...MULTI_TOKEN_FULL_LAB];
+  const count = Math.min(universe.length, 4 + Math.floor(Math.random() * 6));
+  const shuffled = [...universe].sort(() => Math.random() - 0.5);
+  const tokens = shuffled.slice(0, count);
+  const bar = pick(BARS);
+  const gate = pick(GATE_LEVELS);
+  const mode = pick(EXPERIMENT_OPPORTUNITY_MODES);
+  const limit = randomLimitForBar(bar);
+  const lookAheadBars = randomLookAheadBars(bar);
+  const indicatorFilter = randomIndicatorFilter({ min: 0, max: 2 });
+  return {
+    name: `Scout ${count}× ${bar} evo ${agentId}`,
+    token: MULTI_TOKEN_DISPLAY_SLUG,
+    tokens,
+    bar,
+    limit,
+    lookAheadBars,
+    opportunityMode: mode,
+    maxOpenPositions: 1,
+    experimentGate: gate ? { minConfidence: gate } : null,
+    indicatorFilter,
+  };
+}
+
 export function buildRandomLabStrategy(agentId) {
   const token = pick(TOKEN_SLUGS.length ? TOKEN_SLUGS : ["bitcoin"]);
   const bar = pick(BARS);
@@ -202,11 +236,18 @@ export function parsePinnedAgentIds(raw) {
   return set;
 }
 
-/** In-process evolution: on by default; 24h tick while the API is running (primary + secondary each). */
+/** Lab ledgers that cull weak agents and spawn new ones daily (isolated per suite). */
+export const TRADING_EXPERIMENT_EVOLUTION_SUITES = Object.freeze([
+  EXPERIMENT_SUITE_PRIMARY,
+  EXPERIMENT_SUITE_SECONDARY,
+  EXPERIMENT_SUITE_MULTI_TOKEN,
+]);
+
+/** In-process evolution: on by default; 24h tick while the API is running (all lab ledgers). */
 export const TRADING_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   enabled: true,
   intervalMs: 86_400_000,
-  /** Default suite when calling evolution without args (cron still runs both ledgers). */
+  /** Default suite when calling evolution without args (cron still runs every ledger in {@link TRADING_EXPERIMENT_EVOLUTION_SUITES}). */
   suite: "primary",
   cullEquityUsd: TRADING_EXPERIMENT_CULL_EQUITY_USD,
   dailySpawnCount: TRADING_EXPERIMENT_DAILY_SPAWN_COUNT,
@@ -263,7 +304,9 @@ function matchRunsForEvolutionSuite(suiteNorm) {
  * @returns {(agentId: number) => ReturnType<typeof buildRandomLabStrategy>}
  */
 function strategyBuilderForSuite(suiteNorm) {
-  return suiteNorm === EXPERIMENT_SUITE_SECONDARY ? buildRandomScalperStrategy : buildRandomLabStrategy;
+  if (suiteNorm === EXPERIMENT_SUITE_SECONDARY) return buildRandomScalperStrategy;
+  if (suiteNorm === EXPERIMENT_SUITE_MULTI_TOKEN) return buildRandomMultiTokenStrategy;
+  return buildRandomLabStrategy;
 }
 
 /**
@@ -271,7 +314,8 @@ function strategyBuilderForSuite(suiteNorm) {
  * @returns {Record<string, unknown>}
  */
 function overridePayloadFromStrategy(strat) {
-  return {
+  /** @type {Record<string, unknown>} */
+  const payload = {
     name: strat.name,
     token: strat.token,
     bar: strat.bar,
@@ -281,6 +325,12 @@ function overridePayloadFromStrategy(strat) {
     indicatorFilter: strat.indicatorFilter ?? null,
     source: null,
   };
+  if (Array.isArray(strat.tokens) && strat.tokens.length > 0) {
+    payload.tokens = strat.tokens;
+  }
+  if (strat.opportunityMode) payload.opportunityMode = strat.opportunityMode;
+  if (strat.maxOpenPositions != null) payload.maxOpenPositions = strat.maxOpenPositions;
+  return payload;
 }
 
 /**
@@ -377,7 +427,7 @@ export async function runTradingExperimentEvolution(opts = {}) {
       culled: [],
       spawned: [],
       dailySpawned: [],
-      skipped: "Evolution runs only on primary or secondary suite",
+      skipped: "Evolution runs only on standard lab ledgers (primary, secondary, multi_token)",
     };
   }
 
@@ -389,8 +439,7 @@ export async function runTradingExperimentEvolution(opts = {}) {
   const suiteMatch = matchRunsForEvolutionSuite(suiteNorm);
 
   const strategies = await resolveStrategiesForSuite(suiteNorm);
-  const states = await TradingExperimentAgentState.find({ suite: suiteNorm }).lean();
-  const stateByAgent = new Map(states.map((x) => [x.agentId, x]));
+  const ledgerMaps = await buildLabLedgerMapsForSuite(suiteNorm);
 
   /** @type {{ agentId: number; equityUsd: number }[]} */
   const victims = [];
@@ -398,16 +447,9 @@ export async function runTradingExperimentEvolution(opts = {}) {
   for (const s of strategies) {
     if (pinned.has(s.id)) continue;
 
-    const openPositions = await TradingExperimentRun.countDocuments({
-      agentId: s.id,
-      status: "open",
-      ...suiteMatch,
-    });
-    if (openPositions > 0) continue;
+    const { openCount, equityUsd } = labLedgerSnapshotFromMaps(s.id, ledgerMaps);
+    if (openCount > 0) continue;
 
-    const st = stateByAgent.get(s.id);
-    const cashUsd = st?.cashUsd ?? TRADING_EXPERIMENT_STARTING_USD;
-    const equityUsd = computeAgentEquityUsd(cashUsd, openPositions);
     if (equityUsd <= cullEquityUsd) {
       victims.push({ agentId: s.id, equityUsd });
     }
@@ -472,4 +514,37 @@ export async function runTradingExperimentEvolution(opts = {}) {
     dailySpawned,
     skipped: null,
   };
+}
+
+/**
+ * Run evolution for every standard lab ledger (primary, secondary, multi_token).
+ * @param {{ cullEquityUsd?: number; dailySpawnCount?: number; maxAgents?: number; pinned?: Set<number> }} [opts]
+ */
+export async function runAllTradingExperimentEvolution(opts = {}) {
+  /** @type {Record<string, Awaited<ReturnType<typeof runTradingExperimentEvolution>>>} */
+  const bySuite = {};
+  const results = await Promise.all(
+    TRADING_EXPERIMENT_EVOLUTION_SUITES.map(async (suite) => {
+      const out = await runTradingExperimentEvolution({ ...opts, suite });
+      bySuite[suite] = out;
+      return out;
+    }),
+  );
+  return { bySuite, results };
+}
+
+/**
+ * One-time catch-up: if multi_token has only the 15 static agents, run one evolution tick
+ * (daily spawn + any eligible culls) so it can expand like older ledgers.
+ */
+export async function maybeBootstrapMultiTokenEvolution() {
+  const suiteNorm = EXPERIMENT_SUITE_MULTI_TOKEN;
+  const spawned = await TradingExperimentLabAgentOverride.countDocuments({
+    suite: suiteNorm,
+    agentId: { $gte: TRADING_EXPERIMENT_STATIC_AGENT_COUNT },
+  });
+  if (spawned > 0) {
+    return { ok: true, suite: suiteNorm, skipped: "multi_token already has spawned agents" };
+  }
+  return runTradingExperimentEvolution({ suite: suiteNorm });
 }

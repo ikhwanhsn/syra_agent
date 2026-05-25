@@ -21,6 +21,7 @@ import DashboardAgentDetail from "./pages/DashboardAgentDetail";
 import DashboardSettings from "./pages/DashboardSettings";
 import InternalTeamAgentsMonitor from "./pages/InternalTeamAgentsMonitor";
 import InternalAgentDetailPage from "./pages/InternalAgentDetailPage";
+import InternalHackathonsPage from "./pages/InternalHackathonsPage";
 import LpAgentExperiment from "./pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "./pages/LpAgentExperimentAgentProfile";
 import PumpfunExperiment from "./pages/PumpfunExperiment";
@@ -73,6 +74,7 @@ const App = () => (
                   <Route path="rise-experiment" element={<RiseExperiment embedded />} />
                   <Route path="internal-team-agents" element={<InternalTeamAgentsMonitor />} />
                   <Route path="internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
+                  <Route path="internal-hackathons" element={<InternalHackathonsPage />} />
                 </Route>
                 <Route path="/leaderboard" element={<Navigate to="/dashboard/overview" replace />} />
                 <Route path="/experiment/trading-agent" element={<LegacyTradingExperimentPageRedirect />} />

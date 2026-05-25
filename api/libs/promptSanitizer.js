@@ -13,7 +13,8 @@
  * the noise that reaches the broker.
  */
 
-const HIDDEN_UNICODE = /[\u202A-\u202E\u2066-\u2069\uE0000-\uE007F]/gu;
+/** Unicode tag characters (U+E0000–U+E007F) must use \u{...} — \uE0000 is parsed as \uE000 + "0" and wrongly strips ASCII. */
+const HIDDEN_UNICODE = /[\u202A-\u202E\u2066-\u2069\u{E0000}-\u{E007F}]/gu;
 const ROLE_CLAIM_RE = /^(?:\s*)(system|assistant|tool|developer)\s*[:>]/i;
 const INJECTION_HINTS = [
   /\bignore (?:all )?(?:previous|prior|above) (?:instructions|messages|prompts)\b/i,

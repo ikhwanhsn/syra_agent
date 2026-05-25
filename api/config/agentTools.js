@@ -1719,10 +1719,19 @@ export function matchToolFromUserMessage(userMessage) {
 
   // Extract ticker for news: "news about BTC", "BTC news", "latest ETH news", etc.
   const tickerMatch = text.match(
-    /\b(?:news|latest|get)\s*(?:about|for|on)?\s*([a-z0-9]{2,10})\b|\b([a-z0-9]{2,10})\s*news\b/i
+    /\b(?:news|latest|get|give|show|fetch)\s*(?:me\s+)?(?:about|for|on)?\s*([a-z0-9]{2,10})\b|\b([a-z0-9]{2,10})\s*news\b/i
   );
-  const ticker = tickerMatch
-    ? (tickerMatch[1] || tickerMatch[2] || '').toUpperCase()
+  const rawTicker = tickerMatch ? (tickerMatch[1] || tickerMatch[2] || '').toUpperCase() : '';
+  const NEWS_TICKER_ALIASES = {
+    BITCOIN: 'BTC',
+    BTC: 'BTC',
+    ETHEREUM: 'ETH',
+    ETH: 'ETH',
+    SOLANA: 'SOL',
+    SOL: 'SOL',
+  };
+  const ticker = rawTicker
+    ? NEWS_TICKER_ALIASES[rawTicker] || (rawTicker.length <= 5 ? rawTicker : 'general')
     : 'general';
 
   // Extract token for signal: "bitcoin signal", "give me BTC signal", "signal for ethereum", etc.
@@ -2203,7 +2212,7 @@ export function matchToolFromUserMessage(userMessage) {
         /(latest|recent|crypto|get|fetch|show)\s*news|news\s*(about|for|on)?|what\'?s\s*the\s*news|news\s*(please|now)/i.test(
           text
         ),
-      params: () => (ticker && ticker !== 'GENERAL' ? { ticker } : {}),
+      params: () => (ticker && ticker !== 'GENERAL' ? { ticker } : { ticker: 'general' }),
     },
     {
       toolId: 'health',

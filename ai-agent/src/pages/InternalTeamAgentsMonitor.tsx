@@ -1,13 +1,7 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
-  Activity,
-  AlertTriangle,
   ChevronRight,
-  Clock,
-  FileStack,
-  Inbox,
-  Layers,
   Loader2,
   Lock,
   RefreshCw,
@@ -19,22 +13,12 @@ import {
   INTERNAL_TEAM_MONITOR_SOLANA_WALLET,
   isInternalTeamMonitorWallet,
 } from "@/constants/internalTeamMonitorWallet";
-import { requireInternalAgentMeta, type InternalAgentSlug } from "@/lib/internalAgentsCatalog";
+import { requireInternalAgentMeta } from "@/lib/internalAgentsCatalog";
 import {
-  fetchAgentTeamLatest,
-  fetchGrowthSectorNarrativeLatest,
-  fetchGrowthSyraMarketLatest,
-  fetchGrowthSyraSocialLatest,
-  fetchHrCoachLatest,
-  fetchX402XTrendsLatest,
-} from "@/lib/internalTeamAgentsApi";
-import type {
-  AgentTeamLatestPayload,
-  GrowthSectorNarrativePayload,
-  GrowthSyraMarketPayload,
-  GrowthSyraSocialPayload,
-  HrCoachPayload,
-  X402XTrendsLatestPayload,
+  fetchPartnershipScoutLatest,
+  fetchTrendScoutLatest,
+  type PartnershipScoutPayload,
+  type TrendScoutPayload,
 } from "@/lib/internalTeamAgentsApi";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -58,197 +42,43 @@ function formatShortDate(iso: string | undefined): string {
   }
 }
 
-function formatCompactUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `$${Math.round(n / 1_000)}k`;
-  return `$${Math.round(n)}`;
-}
-
-function agentTeamStats(payload: AgentTeamLatestPayload | null | undefined) {
+function trendScoutStats(payload: TrendScoutPayload | null | undefined) {
   if (!payload) return [];
-  const internal = payload.internal;
-  const business = payload.business;
-  const surfaces = payload.surfaces?.length ?? 0;
-  const recs = internal?.recommendations?.length ?? 0;
-  const risks = internal?.risks?.length ?? 0;
-  const gtm = business?.gtmRecommendations?.length ?? 0;
-  const monet = business?.monetizationIdeas?.length ?? 0;
-  const comp = business?.competitiveRisks?.length ?? 0;
   const stats: { label: string; value: string | number }[] = [];
-  if (surfaces > 0) stats.push({ label: "Pages crawled", value: surfaces });
-  if (recs > 0) stats.push({ label: "Recommendations", value: recs });
-  if (risks > 0) stats.push({ label: "Risks", value: risks });
-  if (gtm > 0) stats.push({ label: "GTM ideas", value: gtm });
-  if (monet > 0) stats.push({ label: "Monetization", value: monet });
-  if (comp > 0) stats.push({ label: "Competitive risks", value: comp });
-  return stats;
-}
-
-function x402Stats(payload: X402XTrendsLatestPayload | null | undefined) {
-  if (!payload) return [];
-  const bullets = payload.bullets?.length ?? 0;
-  const watch = payload.watchlist?.length ?? 0;
-  const caveats = payload.noiseOrCaveats?.length ?? 0;
-  const tweets = payload.tweetsSampled;
-  const stats: { label: string; value: string | number }[] = [];
-  if (tweets != null) stats.push({ label: "Posts sampled", value: tweets });
-  if (bullets > 0) stats.push({ label: "Trend bullets", value: bullets });
-  if (watch > 0) stats.push({ label: "Watchlist", value: watch });
+  const topics = payload.trendingTopics?.length ?? 0;
+  const content = payload.contentSuggestions?.length ?? 0;
+  const features = payload.featureSuggestions?.length ?? 0;
+  const caveats = payload.risksOrCaveats?.length ?? 0;
+  if (topics > 0) stats.push({ label: "Trending themes", value: topics });
+  if (content > 0) stats.push({ label: "Post ideas", value: content });
+  if (features > 0) stats.push({ label: "Feature ideas", value: features });
   if (caveats > 0) stats.push({ label: "Caveats", value: caveats });
-  return stats;
-}
-
-function growthMarketStats(payload: GrowthSyraMarketPayload | null | undefined) {
-  if (!payload) return [];
   const s = payload.sourceStats;
-  const stats: { label: string; value: string | number }[] = [];
-  if (s?.dexPairCount != null && s.dexPairCount > 0) {
-    stats.push({ label: "DEX pairs", value: s.dexPairCount });
-  }
-  if (s?.bestLiquidityUsd != null) {
-    stats.push({ label: "Top liq", value: formatCompactUsd(s.bestLiquidityUsd) });
-  }
-  if (s?.bestVolumeH24 != null) {
-    stats.push({ label: "Vol 24h", value: formatCompactUsd(s.bestVolumeH24) });
-  }
-  if (s?.bestFdv != null) {
-    stats.push({ label: "FDV (top)", value: formatCompactUsd(s.bestFdv) });
-  }
-  const actions = payload.growthActions?.length ?? 0;
-  if (actions > 0) stats.push({ label: "Growth actions", value: actions });
-  if (payload.liquidityAssessment) {
-    stats.push({ label: "Liq health", value: payload.liquidityAssessment });
-  }
-  if (payload.volumeAssessment) {
-    stats.push({ label: "Volume", value: payload.volumeAssessment });
-  }
+  if (s?.headlineCount != null) stats.push({ label: "Headlines", value: s.headlineCount });
+  if (s?.articleCount != null) stats.push({ label: "Articles", value: s.articleCount });
   return stats;
 }
 
-function growthSocialStats(payload: GrowthSyraSocialPayload | null | undefined) {
+function partnershipScoutStats(payload: PartnershipScoutPayload | null | undefined) {
   if (!payload) return [];
   const stats: { label: string; value: string | number }[] = [];
-  if (payload.tweetsSampled != null) stats.push({ label: "Posts sampled", value: payload.tweetsSampled });
-  if (payload.sentiment) stats.push({ label: "Sentiment", value: payload.sentiment });
-  const themes = payload.topThemes?.length ?? 0;
-  if (themes > 0) stats.push({ label: "Themes", value: themes });
-  const actions = payload.recommendedActions?.length ?? 0;
-  if (actions > 0) stats.push({ label: "Actions", value: actions });
-  const bullets = payload.bullets?.length ?? 0;
-  if (bullets > 0) stats.push({ label: "Bullets", value: bullets });
+  const themes = payload.onchainThemes?.length ?? 0;
+  const targets = payload.partnershipTargets?.length ?? 0;
+  const quick = payload.quickIntegrations?.length ?? 0;
+  if (themes > 0) stats.push({ label: "On-chain themes", value: themes });
+  if (targets > 0) stats.push({ label: "Partnership targets", value: targets });
+  if (quick > 0) stats.push({ label: "Quick integrations", value: quick });
+  const candidates = payload.sourceStats?.candidates;
+  if (candidates != null) stats.push({ label: "Candidates scanned", value: candidates });
   return stats;
 }
 
-function growthSectorStats(payload: GrowthSectorNarrativePayload | null | undefined) {
-  if (!payload) return [];
-  const stats: { label: string; value: string | number }[] = [];
-  if (payload.tweetsSampled != null) stats.push({ label: "Posts sampled", value: payload.tweetsSampled });
-  const tw = payload.tailwindThemes?.length ?? 0;
-  const hw = payload.headwindThemes?.length ?? 0;
-  if (tw > 0) stats.push({ label: "Tailwinds", value: tw });
-  if (hw > 0) stats.push({ label: "Headwinds", value: hw });
-  const pos = payload.positioningIdeasForSyra?.length ?? 0;
-  if (pos > 0) stats.push({ label: "Positioning ideas", value: pos });
-  return stats;
-}
-
-type RowStatus = "loading" | "error" | "empty" | "ok";
-
-function statusBadge(status: RowStatus, message?: string) {
-  if (status === "loading") {
-    return (
-      <Badge variant="secondary" className="gap-1 font-normal">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Loading
-      </Badge>
-    );
-  }
-  if (status === "error") {
-    return (
-      <Badge variant="destructive" className="max-w-[200px] truncate font-normal" title={message}>
-        Error
-      </Badge>
-    );
-  }
-  if (status === "empty") {
-    return (
-      <Badge variant="outline" className="font-normal text-muted-foreground">
-        No run yet
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="default" className="bg-emerald-600/90 hover:bg-emerald-600 font-normal dark:bg-emerald-700">
-      Has data
-    </Badge>
-  );
-}
-
-interface AgentRowProps {
-  name: string;
-  subtitle: string;
-  status: RowStatus;
-  lastRun?: string;
-  stats: { label: string; value: string | number }[];
-  errorMessage?: string;
-  detailSlug?: InternalAgentSlug;
-}
-
-function AgentRow({ name, subtitle, status, lastRun, stats, errorMessage, detailSlug }: AgentRowProps) {
-  const inner = (
-    <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[15px] font-semibold tracking-tight text-foreground">{name}</h2>
-            {statusBadge(status, errorMessage)}
-            {detailSlug ? (
-              <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:inline" aria-hidden />
-            ) : null}
-          </div>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
-          <p className="text-[11px] font-mono text-muted-foreground/90">
-            Last saved: {formatShortDate(lastRun)}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-x-5 gap-y-2 sm:justify-end">
-          {status === "error" && errorMessage ? (
-            <p className="max-w-xs text-xs text-destructive">{errorMessage}</p>
-          ) : stats.length > 0 ? (
-            stats.map((s) => (
-              <div key={s.label} className="text-right">
-                <div className="text-lg font-semibold tabular-nums text-foreground">{s.value}</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.label}</div>
-              </div>
-            ))
-          ) : status === "ok" ? (
-            <span className="text-xs text-muted-foreground">No breakdown</span>
-          ) : null}
-        </div>
-      </div>
-      {detailSlug ? <p className="mt-2 text-xs text-primary sm:hidden">Tap row for full details</p> : null}
-    </>
-  );
-
-  if (detailSlug) {
-    return (
-      <Link
-        to={`/dashboard/internal-team-agents/${detailSlug}`}
-        className="block border-b border-border/60 py-4 last:border-b-0 rounded-lg -mx-1 px-1 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {inner}
-      </Link>
-    );
-  }
-
-  return <div className="border-b border-border/60 py-4 last:border-b-0">{inner}</div>;
-}
+type RowStatus = "ok" | "empty" | "error" | "loading";
 
 function queryRowStatus(q: {
   isLoading: boolean;
   isError: boolean;
-  data?: { data?: unknown } | null;
+  data?: { data?: unknown | null };
 }): RowStatus {
   if (q.isLoading) return "loading";
   if (q.isError) return "error";
@@ -256,128 +86,65 @@ function queryRowStatus(q: {
   return "ok";
 }
 
-function maxIsoDate(isos: string[]): string | undefined {
-  if (isos.length === 0) return undefined;
-  let best = isos[0];
-  let t = Date.parse(best);
-  for (let i = 1; i < isos.length; i++) {
-    const ti = Date.parse(isos[i]);
-    if (ti > t) {
-      best = isos[i];
-      t = ti;
-    }
+function statusBadge(status: RowStatus) {
+  switch (status) {
+    case "ok":
+      return <Badge variant="secondary">OK</Badge>;
+    case "empty":
+      return <Badge variant="outline">No run yet</Badge>;
+    case "error":
+      return <Badge variant="destructive">Error</Badge>;
+    case "loading":
+      return <Badge variant="outline">Loading…</Badge>;
   }
-  return best;
 }
 
-function hrCoachStats(payload: HrCoachPayload | null | undefined) {
-  if (!payload?.coaching) return [];
-  const n = payload.coaching
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean).length;
-  const stats: { label: string; value: string | number }[] = [];
-  if (n > 0) stats.push({ label: "Coaching lines", value: n });
-  return stats;
-}
-
-type FleetQueryRow = {
-  isLoading: boolean;
-  isError: boolean;
-  data?: { savedAt?: string; data?: unknown } | null;
-};
-
-function aggregateFleetMetrics(
-  agentTeamQ: FleetQueryRow,
-  x402Q: FleetQueryRow,
-  growthMarketQ: FleetQueryRow,
-  growthSocialQ: FleetQueryRow,
-  growthSectorQ: FleetQueryRow,
-  hrCoachQ: FleetQueryRow,
-) {
-  const qs = [agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ, hrCoachQ];
-  const rowStatuses = qs.map((r) => queryRowStatus(r));
-  const ok = rowStatuses.filter((s) => s === "ok").length;
-  const err = rowStatuses.filter((s) => s === "error").length;
-  const empty = rowStatuses.filter((s) => s === "empty").length;
-  const loading = rowStatuses.filter((s) => s === "loading").length;
-
-  const savedAtList = qs
-    .map((r) => r.data?.savedAt)
-    .filter((s): s is string => typeof s === "string" && s.length > 0);
-  const latestSavedAt = maxIsoDate(savedAtList);
-
-  const at = agentTeamQ.data?.data as AgentTeamLatestPayload | null | undefined;
-  const x4 = x402Q.data?.data as X402XTrendsLatestPayload | null | undefined;
-  const gm = growthMarketQ.data?.data as GrowthSyraMarketPayload | null | undefined;
-  const gs = growthSocialQ.data?.data as GrowthSyraSocialPayload | null | undefined;
-  const gsec = growthSectorQ.data?.data as GrowthSectorNarrativePayload | null | undefined;
-  const hr = hrCoachQ.data?.data as HrCoachPayload | null | undefined;
-
-  const socialBulletsCount = Array.isArray(gs?.bullets) ? gs.bullets.length : 0;
-
-  const hrLines = hr?.coaching
-    ? hr.coaching
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean).length
-    : 0;
-
-  const postsSampledTotal =
-    (x4?.tweetsSampled ?? 0) + (gs?.tweetsSampled ?? 0) + (gsec?.tweetsSampled ?? 0);
-
-  const pagesCrawled = at?.surfaces?.length ?? 0;
-
-  const insightItemsTotal =
-    (at?.internal?.recommendations?.length ?? 0) +
-    (at?.internal?.risks?.length ?? 0) +
-    (x4?.bullets?.length ?? 0) +
-    (gm?.growthActions?.length ?? 0) +
-    (gs?.recommendedActions?.length ?? 0) +
-    socialBulletsCount +
-    (gsec?.positioningIdeasForSyra?.length ?? 0) +
-    (gsec?.bullets?.length ?? 0) +
-    hrLines;
-
-  return {
-    ok,
-    err,
-    empty,
-    loading,
-    latestSavedAt,
-    postsSampledTotal,
-    pagesCrawled,
-    insightItemsTotal,
-    anyStillLoading: loading > 0,
-  };
-}
-
-function FleetOverviewStat({
-  label,
-  value,
-  icon: Icon,
-  variant = "default",
+function AgentRow({
+  name,
+  subtitle,
+  status,
+  lastRun,
+  stats,
+  errorMessage,
+  detailSlug,
 }: {
-  label: string;
-  value: string | number;
-  icon: typeof Activity;
-  variant?: "default" | "destructive" | "muted";
+  name: string;
+  subtitle: string;
+  status: RowStatus;
+  lastRun?: string;
+  stats: { label: string; value: string | number }[];
+  errorMessage?: string;
+  detailSlug: string;
 }) {
-  const valueClass =
-    variant === "destructive"
-      ? "text-destructive"
-      : variant === "muted"
-        ? "text-muted-foreground"
-        : "text-foreground";
   return (
-    <div className="flex gap-3 rounded-lg border border-border/50 bg-muted/15 px-3 py-3 sm:flex-col sm:gap-1 sm:px-4 sm:py-4">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-background/80 text-muted-foreground sm:h-10 sm:w-10">
-        <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden />
+    <div className="flex flex-col gap-3 border-b border-border/50 py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold text-foreground">{name}</h2>
+          {statusBadge(status)}
+        </div>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+        <p className="text-xs text-muted-foreground">
+          Last run: <span className="font-medium text-foreground">{formatShortDate(lastRun)}</span>
+        </p>
+        {errorMessage ? (
+          <p className="text-xs text-destructive">{errorMessage}</p>
+        ) : stats.length > 0 ? (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+            {stats.map((s) => (
+              <span key={s.label} className="text-xs text-muted-foreground">
+                {s.label}: <span className="font-medium text-foreground">{s.value}</span>
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
-      <div className="min-w-0 flex-1 sm:flex-none">
-        <p className={`text-2xl font-semibold tabular-nums tracking-tight ${valueClass}`}>{value}</p>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      </div>
+      <Button variant="outline" size="sm" className="shrink-0 gap-1" asChild>
+        <Link to={`/dashboard/internal-team-agents/${detailSlug}`}>
+          View detail
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+      </Button>
     </div>
   );
 }
@@ -386,48 +153,19 @@ export default function InternalTeamAgentsMonitor() {
   const { address, connected, connectSolana } = useWalletContext();
   const allowed = isInternalTeamMonitorWallet(address);
 
-  const q = useQueries({
-    queries: [
-      {
-        queryKey: ["internal-team-agents", "agent-team"],
-        queryFn: fetchAgentTeamLatest,
-        enabled: allowed,
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["internal-team-agents", "x402"],
-        queryFn: fetchX402XTrendsLatest,
-        enabled: allowed,
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["internal-team-agents", "growth-market"],
-        queryFn: fetchGrowthSyraMarketLatest,
-        enabled: allowed,
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["internal-team-agents", "growth-social"],
-        queryFn: fetchGrowthSyraSocialLatest,
-        enabled: allowed,
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["internal-team-agents", "growth-sector"],
-        queryFn: fetchGrowthSectorNarrativeLatest,
-        enabled: allowed,
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["internal-team-agents", "hr-coach"],
-        queryFn: fetchHrCoachLatest,
-        enabled: allowed,
-        staleTime: STALE_MS,
-      },
-    ],
+  const trendQ = useQuery({
+    queryKey: ["internal-team-agents", "trend-scout"],
+    queryFn: fetchTrendScoutLatest,
+    enabled: allowed,
+    staleTime: STALE_MS,
   });
 
-  const [agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ, hrCoachQ] = q;
+  const partnershipQ = useQuery({
+    queryKey: ["internal-team-agents", "partnership-scout"],
+    queryFn: fetchPartnershipScoutLatest,
+    enabled: allowed,
+    staleTime: STALE_MS,
+  });
 
   if (!connected) {
     return (
@@ -475,13 +213,9 @@ export default function InternalTeamAgentsMonitor() {
     );
   }
 
-  const refetchAll = () => {
-    q.forEach((r) => void r.refetch());
-  };
-
-  const anyFetching = q.some((r) => r.isFetching);
-
-  const fleet = aggregateFleetMetrics(agentTeamQ, x402Q, growthMarketQ, growthSocialQ, growthSectorQ, hrCoachQ);
+  const trendStatus = queryRowStatus(trendQ);
+  const partnershipStatus = queryRowStatus(partnershipQ);
+  const anyFetching = trendQ.isFetching || partnershipQ.isFetching;
 
   return (
     <div className={DASHBOARD_CONTENT_SHELL}>
@@ -492,7 +226,7 @@ export default function InternalTeamAgentsMonitor() {
               Internal agents
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Scheduled pipelines · stats from last successful run
+              Trend Scout 06:00 WIB · Partnership Scout 06:15 WIB · Telegram dev digests
             </p>
           </div>
           <Button
@@ -500,7 +234,10 @@ export default function InternalTeamAgentsMonitor() {
             variant="outline"
             size="sm"
             className="gap-2"
-            onClick={() => refetchAll()}
+            onClick={() => {
+              void trendQ.refetch();
+              void partnershipQ.refetch();
+            }}
             disabled={anyFetching}
           >
             {anyFetching ? (
@@ -512,118 +249,63 @@ export default function InternalTeamAgentsMonitor() {
           </Button>
         </div>
 
-        <Card className="border-border/70">
+        <Card className="border-border/70 divide-y divide-border/60">
           <CardHeader className="space-y-1 pb-2 pt-4 sm:pt-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-base font-semibold">Fleet overview</CardTitle>
-              {anyFetching ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden />
-              ) : null}
-            </div>
+            <CardTitle className="text-base font-semibold">Internal scouts</CardTitle>
             <CardDescription>
-              Rolled up from all six scheduled pipelines (15-slot roster: multiple short Telegram digests per source;
-              HR runs after other saves).
+              Two daily pipelines — market narrative and on-chain partnership opportunities.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pb-4 pt-0 sm:pb-5">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              <FleetOverviewStat label="With data" value={`${fleet.ok}/6`} icon={Layers} />
-              <FleetOverviewStat
-                label="No run yet"
-                value={fleet.empty}
-                icon={Inbox}
-                variant={fleet.empty > 0 ? "default" : "muted"}
+          <CardContent className="px-4 pb-4 pt-0 sm:px-6">
+            <AgentRow
+              name={requireInternalAgentMeta("trend-scout").name}
+              subtitle={requireInternalAgentMeta("trend-scout").subtitle}
+              status={trendStatus}
+              lastRun={trendQ.data?.savedAt}
+              stats={trendScoutStats(trendQ.data?.data ?? undefined)}
+              errorMessage={trendQ.isError ? trendQ.error?.message : undefined}
+              detailSlug="trend-scout"
+            />
+            {trendQ.data?.data?.marketSummary ? (
+              <div className="mb-4 rounded-lg border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
+                <p className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-foreground">
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  Trend scout summary
+                </p>
+                <p className="leading-relaxed">{trendQ.data.data.marketSummary}</p>
+              </div>
+            ) : null}
+            <AgentRow
+              name={requireInternalAgentMeta("partnership-scout").name}
+              subtitle={requireInternalAgentMeta("partnership-scout").subtitle}
+              status={partnershipStatus}
+              lastRun={partnershipQ.data?.savedAt}
+              stats={partnershipScoutStats(partnershipQ.data?.data ?? undefined)}
+              errorMessage={partnershipQ.isError ? partnershipQ.error?.message : undefined}
+              detailSlug="partnership-scout"
+            />
+            <div className="py-3 border-b border-border/50 last:border-0">
+              <AgentRow
+                name={requireInternalAgentMeta("hackathon-scout").name}
+                subtitle={requireInternalAgentMeta("hackathon-scout").subtitle}
+                status="ok"
+                lastRun={undefined}
+                stats={[]}
+                detailSlug="hackathon-scout"
               />
-              <FleetOverviewStat
-                label="Errors"
-                value={fleet.err}
-                icon={AlertTriangle}
-                variant={fleet.err > 0 ? "destructive" : "muted"}
-              />
-              <FleetOverviewStat
-                label="Latest save"
-                value={fleet.latestSavedAt ? formatShortDate(fleet.latestSavedAt) : "—"}
-                icon={Clock}
-                variant={fleet.latestSavedAt ? "default" : "muted"}
-              />
-              <FleetOverviewStat
-                label="Posts sampled"
-                value={fleet.postsSampledTotal > 0 ? fleet.postsSampledTotal : "—"}
-                icon={Activity}
-                variant={fleet.postsSampledTotal > 0 ? "default" : "muted"}
-              />
-              <FleetOverviewStat
-                label="Pages crawled"
-                value={fleet.pagesCrawled > 0 ? fleet.pagesCrawled : "—"}
-                icon={FileStack}
-                variant={fleet.pagesCrawled > 0 ? "default" : "muted"}
-              />
-              <FleetOverviewStat
-                label="Insight lines"
-                value={fleet.insightItemsTotal > 0 ? fleet.insightItemsTotal : "—"}
-                icon={Sparkles}
-                variant={fleet.insightItemsTotal > 0 ? "default" : "muted"}
-              />
+              <Button variant="outline" size="sm" className="mt-2 w-full sm:w-auto" asChild>
+                <Link to="/dashboard/internal-hackathons">Open hackathon board →</Link>
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/70">
-          <CardContent className="px-4 pb-2 pt-1 sm:px-6">
-            <AgentRow
-              name={requireInternalAgentMeta("agent-team").name}
-              subtitle={requireInternalAgentMeta("agent-team").subtitle}
-              status={queryRowStatus(agentTeamQ)}
-              lastRun={agentTeamQ.data?.savedAt}
-              stats={agentTeamStats(agentTeamQ.data?.data ?? undefined)}
-              errorMessage={agentTeamQ.isError ? agentTeamQ.error?.message : undefined}
-              detailSlug="agent-team"
-            />
-            <AgentRow
-              name={requireInternalAgentMeta("x402-pulse").name}
-              subtitle={requireInternalAgentMeta("x402-pulse").subtitle}
-              status={queryRowStatus(x402Q)}
-              lastRun={x402Q.data?.savedAt}
-              stats={x402Stats(x402Q.data?.data ?? undefined)}
-              errorMessage={x402Q.isError ? x402Q.error?.message : undefined}
-              detailSlug="x402-pulse"
-            />
-            <AgentRow
-              name={requireInternalAgentMeta("growth-syra-market").name}
-              subtitle={requireInternalAgentMeta("growth-syra-market").subtitle}
-              status={queryRowStatus(growthMarketQ)}
-              lastRun={growthMarketQ.data?.savedAt}
-              stats={growthMarketStats(growthMarketQ.data?.data ?? undefined)}
-              errorMessage={growthMarketQ.isError ? growthMarketQ.error?.message : undefined}
-              detailSlug="growth-syra-market"
-            />
-            <AgentRow
-              name={requireInternalAgentMeta("growth-syra-social").name}
-              subtitle={requireInternalAgentMeta("growth-syra-social").subtitle}
-              status={queryRowStatus(growthSocialQ)}
-              lastRun={growthSocialQ.data?.savedAt}
-              stats={growthSocialStats(growthSocialQ.data?.data ?? undefined)}
-              errorMessage={growthSocialQ.isError ? growthSocialQ.error?.message : undefined}
-              detailSlug="growth-syra-social"
-            />
-            <AgentRow
-              name={requireInternalAgentMeta("growth-sector-narrative").name}
-              subtitle={requireInternalAgentMeta("growth-sector-narrative").subtitle}
-              status={queryRowStatus(growthSectorQ)}
-              lastRun={growthSectorQ.data?.savedAt}
-              stats={growthSectorStats(growthSectorQ.data?.data ?? undefined)}
-              errorMessage={growthSectorQ.isError ? growthSectorQ.error?.message : undefined}
-              detailSlug="growth-sector-narrative"
-            />
-            <AgentRow
-              name={requireInternalAgentMeta("hr-coach").name}
-              subtitle={requireInternalAgentMeta("hr-coach").subtitle}
-              status={queryRowStatus(hrCoachQ)}
-              lastRun={hrCoachQ.data?.savedAt}
-              stats={hrCoachStats(hrCoachQ.data?.data ?? undefined)}
-              errorMessage={hrCoachQ.isError ? hrCoachQ.error?.message : undefined}
-              detailSlug="hr-coach"
-            />
+            {partnershipQ.data?.data?.ecosystemSummary ? (
+              <div className="mt-2 rounded-lg border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
+                <p className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-foreground">
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  Partnership scout summary
+                </p>
+                <p className="leading-relaxed">{partnershipQ.data.data.ecosystemSummary}</p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>

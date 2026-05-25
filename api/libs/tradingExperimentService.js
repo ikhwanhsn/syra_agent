@@ -7,14 +7,19 @@ import TradingExperimentAgentState from "../models/TradingExperimentAgentState.j
 import {
   TRADING_EXPERIMENT_STARTING_USD,
   TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
-  computeAgentEquityUsd,
+  computeAgentCashFromEquity,
+  computeAgentEquityFromRealizedPnl,
+  computeAgentReturnPct,
+  roundUsd,
 } from "../config/tradingExperimentSim.js";
 import {
   EXPERIMENT_SUITE_PRIMARY,
   EXPERIMENT_SUITE_SECONDARY,
   EXPERIMENT_SUITE_MULTI_RESOURCE,
+  EXPERIMENT_SUITE_MULTI_TOKEN,
   normalizeSuite,
 } from "../config/tradingExperimentStrategies.js";
+import { runMultiTokenExperimentSignalCycle } from "./tradingExperimentOpportunity.js";
 import { resolveStrategiesForSuite } from "./tradingExperimentStrategyResolve.js";
 import UserCustomStrategy from "../models/UserCustomStrategy.js";
 import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSignalAnalysis.js";
@@ -42,6 +47,9 @@ function mongoMatchSuite(suite) {
   if (s === EXPERIMENT_SUITE_MULTI_RESOURCE) {
     return { suite: EXPERIMENT_SUITE_MULTI_RESOURCE };
   }
+  if (s === EXPERIMENT_SUITE_MULTI_TOKEN) {
+    return { suite: EXPERIMENT_SUITE_MULTI_TOKEN };
+  }
   return { suite: EXPERIMENT_SUITE_SECONDARY };
 }
 
@@ -57,6 +65,7 @@ function mongoMatchAllStandardLabSuites() {
       { suite: "" },
       { suite: EXPERIMENT_SUITE_SECONDARY },
       { suite: EXPERIMENT_SUITE_MULTI_RESOURCE },
+      { suite: EXPERIMENT_SUITE_MULTI_TOKEN },
     ],
   };
 }
@@ -91,6 +100,82 @@ function toNum(value, fallback = 0) {
 function labAgentRunBase(suiteNorm, agentId) {
   return { agentId, ...mongoMatchSuite(suiteNorm), ...LAB_RUN_USER_STRATEGY_CLAUSE };
 }
+
+/** Terminal run statuses that release or realize capital (lab ledger). */
+const LAB_SETTLED_STATUSES = ["win", "loss", "expired", "error"];
+
+/**
+ * Aggregate realized P/L, deployment, and W/L per agent from run history (source of truth for equity).
+ * @param {string} suiteNorm
+ */
+async function buildLabLedgerMapsForSuite(suiteNorm) {
+  const match = { ...mongoMatchSuite(suiteNorm), ...LAB_RUN_USER_STRATEGY_CLAUSE };
+
+  const [settledRows, openRows] = await Promise.all([
+    TradingExperimentRun.find({ ...match, status: { $in: LAB_SETTLED_STATUSES } })
+      .select(
+        "agentId status simPnlUsd notionalUsd entry simExitPrice firstTarget stopLoss priceAtSignal",
+      )
+      .lean(),
+    TradingExperimentRun.find({ ...match, status: "open" }).select("agentId notionalUsd").lean(),
+  ]);
+
+  /** @type {Map<number, number>} */
+  const realizedPnlByAgent = new Map();
+  /** @type {Map<number, number>} */
+  const winsByAgent = new Map();
+  /** @type {Map<number, number>} */
+  const lossesByAgent = new Map();
+  /** @type {Map<number, number>} */
+  const closedTradesByAgent = new Map();
+  /** @type {Map<number, number>} */
+  const deployedByAgent = new Map();
+  /** @type {Map<number, number>} */
+  const openCountByAgent = new Map();
+
+  for (const r of settledRows) {
+    const id = r.agentId;
+    const prev = realizedPnlByAgent.get(id) ?? 0;
+    realizedPnlByAgent.set(id, prev + estimateHistoricalSettledPnlUsd(r));
+    closedTradesByAgent.set(id, (closedTradesByAgent.get(id) ?? 0) + 1);
+    if (r.status === "win") winsByAgent.set(id, (winsByAgent.get(id) ?? 0) + 1);
+    if (r.status === "loss") lossesByAgent.set(id, (lossesByAgent.get(id) ?? 0) + 1);
+  }
+
+  for (const r of openRows) {
+    const id = r.agentId;
+    const n = toNum(r.notionalUsd, TRADING_EXPERIMENT_TRADE_NOTIONAL_USD);
+    deployedByAgent.set(id, (deployedByAgent.get(id) ?? 0) + n);
+    openCountByAgent.set(id, (openCountByAgent.get(id) ?? 0) + 1);
+  }
+
+  return {
+    realizedPnlByAgent,
+    winsByAgent,
+    lossesByAgent,
+    closedTradesByAgent,
+    deployedByAgent,
+    openCountByAgent,
+  };
+}
+
+/**
+ * Derive cash / deployed / equity from run history so UI matches compounded closes.
+ * @param {number} agentId
+ * @param {Awaited<ReturnType<typeof buildLabLedgerMapsForSuite>>} maps
+ */
+function labLedgerSnapshotFromMaps(agentId, maps) {
+  const realizedPnlUsd = roundUsd(maps.realizedPnlByAgent.get(agentId) ?? 0);
+  const deployedUsd = roundUsd(maps.deployedByAgent.get(agentId) ?? 0);
+  const openCount = maps.openCountByAgent.get(agentId) ?? 0;
+  const closedTrades = maps.closedTradesByAgent.get(agentId) ?? 0;
+  const equityUsd = computeAgentEquityFromRealizedPnl(realizedPnlUsd);
+  const cashUsd = computeAgentCashFromEquity(equityUsd, deployedUsd);
+  const returnPct = computeAgentReturnPct(equityUsd);
+  return { cashUsd, deployedUsd, equityUsd, openCount, realizedPnlUsd, returnPct, closedTrades };
+}
+
+export { buildLabLedgerMapsForSuite, labLedgerSnapshotFromMaps };
 
 /**
  * @param {import("mongoose").LeanDocument<any>} run
@@ -343,6 +428,9 @@ function evaluateLongForward(candles, stopLoss, firstTarget) {
 export async function runExperimentSignalCycle(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite);
   await ensureTradingExperimentLedgerBootstrapped(suiteNorm);
+  if (suiteNorm === EXPERIMENT_SUITE_MULTI_TOKEN) {
+    return runMultiTokenExperimentSignalCycle(opts);
+  }
   const strategies = await resolveStrategiesForSuite(suiteNorm);
   const errors = [];
   let created = 0;
@@ -489,7 +577,11 @@ export async function runAllExperimentSignalCycles() {
   /** @type {Record<string, number>} */
   const bySuite = {};
 
-  for (const suiteId of [EXPERIMENT_SUITE_PRIMARY, EXPERIMENT_SUITE_SECONDARY]) {
+  for (const suiteId of [
+    EXPERIMENT_SUITE_PRIMARY,
+    EXPERIMENT_SUITE_SECONDARY,
+    EXPERIMENT_SUITE_MULTI_TOKEN,
+  ]) {
     const out = await runExperimentSignalCycle({ suite: suiteId });
     errors.push(...out.errors);
     created += out.created;
@@ -773,36 +865,33 @@ export async function getExperimentStats(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite);
   await ensureTradingExperimentLedgerBootstrapped(suiteNorm);
   const strategies = await resolveStrategiesForSuite(suiteNorm);
-  const suiteQ = mongoMatchSuite(suiteNorm);
+  const ledgerMaps = await buildLabLedgerMapsForSuite(suiteNorm);
   const states = await TradingExperimentAgentState.find({ suite: suiteNorm }).lean();
   /** @type {Map<number, import("mongoose").LeanDocument<any>>} */
   const stateByAgent = new Map(states.map((x) => [x.agentId, x]));
+  /** @type {import("mongoose").AnyBulkWriteOperation<any>[]} */
+  const cashReconcileOps = [];
   const agents = [];
 
   for (const s of strategies) {
-    const settled = await TradingExperimentRun.find({
-      agentId: s.id,
-      status: { $in: ["win", "loss"] },
-      ...suiteQ,
-      ...LAB_RUN_USER_STRATEGY_CLAUSE,
-    }).lean();
-    const wins = settled.filter((r) => r.status === "win").length;
-    const losses = settled.filter((r) => r.status === "loss").length;
+    const wins = ledgerMaps.winsByAgent.get(s.id) ?? 0;
+    const losses = ledgerMaps.lossesByAgent.get(s.id) ?? 0;
     const decided = wins + losses;
     const winRate = decided > 0 ? wins / decided : null;
 
-    const openCount = await TradingExperimentRun.countDocuments({
-      agentId: s.id,
-      status: "open",
-      ...suiteQ,
-      ...LAB_RUN_USER_STRATEGY_CLAUSE,
-    });
+    const { cashUsd, deployedUsd, equityUsd, openCount, realizedPnlUsd, returnPct, closedTrades } =
+      labLedgerSnapshotFromMaps(s.id, ledgerMaps);
 
     const st = stateByAgent.get(s.id);
-    const cashUsd =
-      Math.round((toNum(st?.cashUsd, TRADING_EXPERIMENT_STARTING_USD) + Number.EPSILON) * 100) / 100;
-    const deployedUsd = openCount * TRADING_EXPERIMENT_TRADE_NOTIONAL_USD;
-    const equityUsd = computeAgentEquityUsd(cashUsd, openCount);
+    const storedCash = roundUsd(toNum(st?.cashUsd, TRADING_EXPERIMENT_STARTING_USD));
+    if (st && Math.abs(storedCash - cashUsd) > 0.01) {
+      cashReconcileOps.push({
+        updateOne: {
+          filter: { suite: suiteNorm, agentId: s.id },
+          update: { $set: { cashUsd } },
+        },
+      });
+    }
 
     agents.push({
       agentId: s.id,
@@ -814,6 +903,9 @@ export async function getExperimentStats(opts = {}) {
       experimentGate: "experimentGate" in s ? s.experimentGate ?? null : null,
       indicatorFilter: "indicatorFilter" in s ? s.indicatorFilter ?? null : null,
       cexSource: "source" in s ? /** @type {{ source: string }} */ (s).source : null,
+      watchTokens: "tokens" in s && Array.isArray(s.tokens) ? [...s.tokens] : undefined,
+      opportunityMode: "opportunityMode" in s ? s.opportunityMode : undefined,
+      maxOpenPositions: "maxOpenPositions" in s ? s.maxOpenPositions : undefined,
       wins,
       losses,
       decided,
@@ -825,7 +917,14 @@ export async function getExperimentStats(opts = {}) {
       cashUsd,
       deployedUsd,
       equityUsd,
+      realizedPnlUsd,
+      returnPct,
+      closedTrades,
     });
+  }
+
+  if (cashReconcileOps.length > 0) {
+    await TradingExperimentAgentState.bulkWrite(cashReconcileOps, { ordered: false });
   }
 
   return {

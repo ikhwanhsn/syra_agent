@@ -13,6 +13,7 @@ import {
   getToolsForLlmSelection,
   getToolGroupsSummaryForLlm,
   getSwapServiceClarificationNoteIfNeeded,
+  matchToolFromUserMessage,
   normalizeJupiterSwapParams,
   resolveAgentToolSelectionDisambiguation,
 } from '../../config/agentTools.js';
@@ -300,6 +301,29 @@ function enforceSyraBranding(text) {
     .replace(/\bopen\s*router\b/gi, 'Syra');
 }
 
+/** User-facing fallback when the LLM returns no text for casual / capability questions. */
+function buildConversationalCapabilitiesFallback() {
+  const sample = getCapabilitiesList().slice(0, 10).join(', ');
+  return (
+    "I'm **Syra**, your AI assistant for crypto, web3, and blockchain.\n\n" +
+    '**Without tools** I can explain concepts, discuss strategies, and answer general questions.\n\n' +
+    '**With your agent wallet** I can fetch live data and run paid tools, for example: ' +
+    `${sample}, and more.\n\n` +
+    'Ask for something specific (e.g. "SOL price", "trending tokens", "latest BTC news") or keep chatting — what would you like to do?'
+  );
+}
+
+/**
+ * @param {string | undefined} userMessage
+ * @returns {boolean}
+ */
+function isConversationalCapabilitiesQuestion(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') return false;
+  return /\b(what\s+(can|do)\s+you\s+do|what\s+are\s+you\s+capable|what\s+can\s+syra\s+do|help\s+me\s+with|your\s+capabilit)/i.test(
+    userMessage.trim()
+  );
+}
+
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 
 /**
@@ -570,6 +594,9 @@ PARAM RULES:
     );
 
     const raw = (response || '').trim();
+    if (!raw || raw === OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER) {
+      return { tools: [], usage: usage ?? null };
+    }
     let jsonStr = raw;
     const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlock) jsonStr = codeBlock[1].trim();
@@ -1254,6 +1281,23 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
       }
     }
 
+    // Deterministic routing for core data intents (news, signal, sentiment) — always prefer keyword match.
+    if (lastUserMessage) {
+      const heuristic = matchToolFromUserMessage(lastUserMessage);
+      if (heuristic?.toolId && getAgentTool(heuristic.toolId)) {
+        const forceHeuristic = ['news', 'signal', 'sentiment'].includes(heuristic.toolId);
+        if (forceHeuristic || !matchedTools?.length) {
+          matchedTools = [
+            {
+              toolId: heuristic.toolId,
+              params:
+                heuristic.params && typeof heuristic.params === 'object' ? heuristic.params : {},
+            },
+          ];
+        }
+      }
+    }
+
     let toolSelectionDisambiguationNote = '';
     const disamb = resolveAgentToolSelectionDisambiguation(
       lastUserMessage,
@@ -1292,6 +1336,9 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
     );
     systemParts.push(
       `When the user is just chatting—greetings (hi, hello), "what can you do", general crypto questions, or casual conversation—respond naturally and helpfully. Do not say "I don't have a tool for that" or list every capability in response to a simple greeting. Briefly mention what you can do only when it fits (e.g. if they ask "what can you do").`
+    );
+    systemParts.push(
+      `When the user asks for specific data (news, trading signal, sentiment, price, trending tokens, etc.), answer using tool results in this turn—never reply with only a generic greeting or re-introduction. If you already said hello earlier in the thread, skip hello and deliver the requested data.`
     );
     systemParts.push(
       `Multi-turn memory: You receive recent prior user and assistant messages from this chat when present. Use them for follow-ups ("same for ETH", "that wallet", "expand on that"), pronouns, and continuity. If a system or bracket note says earlier turns were omitted for length, do not invent omitted facts—ask briefly for anything essential you no longer see.`
@@ -1383,10 +1430,15 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     if (!matchedTools || matchedTools.length === 0) {
       // No tools matched — but if the user is asking for real-time data, inject a guardrail
       // so the LLM doesn't fabricate prices/data from training knowledge.
-      if (lastUserMessage && /\b(price|how much|market cap|volume|trending|latest news|current|live|real.?time|what('?s| is) .{0,30} (price|worth|trading|at)|ticker|apy|apr|tvl|floor price)\b/i.test(lastUserMessage)) {
+      if (
+        lastUserMessage &&
+        /\b(price|how much|market cap|volume|trending|news|signal|sentiment|latest news|current|live|real.?time|what('?s| is) .{0,30} (price|worth|trading|at)|ticker|apy|apr|tvl|floor price|give\s+me\s+.*(news|signal))\b/i.test(
+          lastUserMessage
+        )
+      ) {
         apiMessages.push({
           role: 'user',
-          content: `[SYSTEM NOTE: The user appears to be asking for real-time market data, but no tool was called for this request. You MUST NOT answer with any specific numbers, prices, or data from your training knowledge. Instead, tell the user you'll fetch the data using your tools, or ask them to rephrase their question so the right tool can be selected. If they need a price, suggest they ask like "What's the price of BTC?" or "Show me SOL price". Do NOT make up any numbers.]`,
+          content: `[SYSTEM NOTE: The user is asking for real-time data (news, signal, price, sentiment, etc.) but no tool was called for this request. You MUST NOT answer with a greeting, introduction, or made-up headlines/numbers. Say briefly that Syra could not run the data tool for this turn and suggest they try again, or ask them to rephrase (e.g. "SOL news", "bitcoin signal"). Do NOT invent news or signals.]`,
         });
       }
     } else if (walletConnected === false) {
@@ -1876,6 +1928,10 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           const presentInstruction =
             tool.id === 'trending-jupiter'
               ? 'Present this Jupiter trending data in a clear list or table. Use ONLY the data below—do not invent token names, prices, or percentages.'
+              : tool.id === 'news'
+                ? 'The user asked for crypto news. Summarize headlines and sources from the data below. Do NOT greet or re-introduce Syra—lead with the news.'
+              : tool.id === 'signal'
+                ? 'The user asked for a trading signal. Present the signal, key levels, and recommendation from the data below. Do NOT greet or re-introduce Syra—lead with the signal.'
               : tool.id === 'pumpfun-agents-swap' || tool.id === 'jupiter-swap-order'
                 ? 'The user ran a Solana swap via Syra. You MUST write a visible reply (never empty): state success or failure, and include the transaction signature (submittedSignature) or submitError from the JSON verbatim. Link solscan.io/tx/<signature> when a signature is present.'
                 : 'Present this to the user in clear, human-readable form. Use headings, short paragraphs, bullet points or markdown tables. Do not include raw JSON or any {"tool"/"params"} blocks.';
@@ -1891,7 +1947,10 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       if (silentSwapUiOnly) {
         skipFinalLlmForSilentSwapUi = true;
       } else if (toolErrors.length > 0 && toolResults.length === 0) {
-        apiMessages.push({ role: 'user', content: toolErrors[0] });
+        const llmFacingErrors = toolErrors.filter((e) => e !== SWAP_UI_EMPTY_LLM_REPLY);
+        if (llmFacingErrors.length > 0) {
+          apiMessages.push({ role: 'user', content: llmFacingErrors.join('\n\n') });
+        }
       } else if (toolResults.length > 0) {
         hadToolResults = true;
         const combined = toolResults.join('\n\n---\n\n');
@@ -1994,6 +2053,55 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       } else {
         response =
           'The swap transaction was built but Syra did not receive a signature from the network. Check your agent wallet balance (SOL for fees) and try again.';
+      }
+    }
+
+    if (
+      typeof response === 'string' &&
+      (response === OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER || !response.trim())
+    ) {
+      if (skipFinalLlmForSilentSwapUi && (offerPumpfunSwapUi || offerPumpfunCreateUi)) {
+        response = '';
+      } else if (
+        !hadToolResults &&
+        isConversationalCapabilitiesQuestion(lastUserMessage)
+      ) {
+        response = buildConversationalCapabilitiesFallback();
+      } else if (!hadToolResults && (!matchedTools || matchedTools.length === 0)) {
+        try {
+          const retryMessages = withLlmIdentitySystemNote(
+            [
+              apiMessages[0],
+              { role: 'user', content: lastUserMessage || 'Hello' },
+            ],
+            OPENROUTER_DEFAULT_MODEL
+          );
+          const retry = await callOpenRouter(retryMessages, {
+            ...llmOptions,
+            model: OPENROUTER_DEFAULT_MODEL,
+            max_tokens: Math.max(adaptive.maxTokensDefault, 800),
+            _retryAttempt: 1,
+          });
+          if (
+            retry.response &&
+            retry.response !== OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER &&
+            retry.response.trim()
+          ) {
+            response = retry.response;
+            mainCompletionUsage = retry.usage;
+          }
+        } catch (retryErr) {
+          console.warn(
+            '[agent/chat/completion] empty-response retry failed:',
+            retryErr?.message || retryErr
+          );
+        }
+        if (
+          (response === OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER || !String(response).trim()) &&
+          isConversationalCapabilitiesQuestion(lastUserMessage)
+        ) {
+          response = buildConversationalCapabilitiesFallback();
+        }
       }
     }
 

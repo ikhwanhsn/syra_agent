@@ -15,181 +15,86 @@ async function fetchInternalJson<T>(path: string): Promise<T> {
   return body as T;
 }
 
-export interface AgentTeamLatestPayload {
-  internal?: {
-    summary?: string;
-    generatedAt?: string;
-    recommendations?: Array<{
-      title?: string;
-      why?: string;
-      surface?: string;
-      category?: string;
-    }>;
-    risks?: string[];
-  };
-  business?: {
-    marketPosition?: string;
-    generatedAt?: string;
-    gtmRecommendations?: Array<{ title?: string; horizon?: string; channel?: string }>;
-    monetizationIdeas?: Array<{ title?: string }>;
-    competitiveRisks?: string[];
-  };
-  /** Crawled page URLs from last run */
-  surfaces?: string[];
-  baseUrls?: string[];
-  crawledAt?: string;
-  savedAt?: string;
-}
-
-export interface AgentTeamLatestResponse {
-  success: boolean;
-  data: AgentTeamLatestPayload | null;
-  savedAt?: string;
-}
-
-export async function fetchAgentTeamLatest(): Promise<AgentTeamLatestResponse> {
-  return fetchInternalJson<AgentTeamLatestResponse>("/internal/agent-team/latest");
-}
-
-export interface X402TrendBullet {
+export interface TrendScoutContentSuggestion {
   title: string;
-  detail: string;
-  evidenceTweetIds: string[];
+  angle: string;
+  platforms: string[];
+  hook: string;
+  priority: "high" | "medium" | "low";
 }
 
-export interface X402XTrendsLatestPayload {
-  summary?: string;
-  bullets?: X402TrendBullet[];
-  watchlist?: string[];
-  noiseOrCaveats?: string[];
-  generatedAt?: string;
-  tweetsSampled?: number;
+export interface TrendScoutFeatureSuggestion {
+  title: string;
+  why: string;
+  surface: string;
+  priority: "high" | "medium" | "low";
 }
 
-export interface X402XTrendsLatestResponse {
-  success: boolean;
-  data: X402XTrendsLatestPayload | null;
-  savedAt?: string;
-}
-
-export async function fetchX402XTrendsLatest(): Promise<X402XTrendsLatestResponse> {
-  return fetchInternalJson<X402XTrendsLatestResponse>("/internal/x402-x-trends/latest");
-}
-
-/** DexScreener / Jupiter / LLM growth digest */
-export interface GrowthSyraMarketPayload {
-  summary?: string;
-  liquidityAssessment?: string;
-  volumeAssessment?: string;
-  bullSignals?: string[];
-  riskSignals?: string[];
-  growthActions?: string[];
-  oneLineNorthStar?: string;
+export interface TrendScoutPayload {
+  marketSummary?: string;
+  trendingTopics?: string[];
+  contentSuggestions?: TrendScoutContentSuggestion[];
+  featureSuggestions?: TrendScoutFeatureSuggestion[];
+  risksOrCaveats?: string[];
   generatedAt?: string;
   sourceStats?: {
-    dexPairCount?: number;
-    bestLiquidityUsd?: number | null;
-    bestVolumeH24?: number | null;
-    bestFdv?: number | null;
+    headlineCount?: number;
+    articleCount?: number;
+    eventDayCount?: number;
   };
 }
 
-export interface GrowthSyraMarketLatestResponse {
+export interface TrendScoutLatestResponse {
   success: boolean;
-  data: GrowthSyraMarketPayload | null;
+  data: TrendScoutPayload | null;
   savedAt?: string;
 }
 
-export async function fetchGrowthSyraMarketLatest(): Promise<GrowthSyraMarketLatestResponse> {
-  return fetchInternalJson<GrowthSyraMarketLatestResponse>("/internal/growth-syra-market/latest");
+export async function fetchTrendScoutLatest(): Promise<TrendScoutLatestResponse> {
+  return fetchInternalJson<TrendScoutLatestResponse>("/internal/trend-scout/latest");
 }
 
-export interface GrowthSocialBullet {
-  title: string;
-  detail: string;
-  evidenceTweetIds: string[];
+export interface PartnershipTarget {
+  name: string;
+  projectType: string;
+  utility: string;
+  whyFitForSyra: string;
+  collaborationIdea: string;
+  onchainSignals: string[];
+  priority: "high" | "medium" | "low";
+  link?: string | null;
 }
 
-export interface GrowthSyraSocialPayload {
-  summary?: string;
-  sentiment?: string;
-  tweetsSampled?: number;
-  topThemes?: string[];
-  communitySignals?: string[];
-  risks?: string[];
-  recommendedActions?: string[];
-  bullets?: GrowthSocialBullet[];
+export interface PartnershipScoutPayload {
+  ecosystemSummary?: string;
+  onchainThemes?: string[];
+  partnershipTargets?: PartnershipTarget[];
+  quickIntegrations?: string[];
+  risksOrCaveats?: string[];
   generatedAt?: string;
+  sourceStats?: Record<string, number>;
 }
 
-export interface GrowthSyraSocialLatestResponse {
+export interface PartnershipScoutLatestResponse {
   success: boolean;
-  data: GrowthSyraSocialPayload | null;
+  data: PartnershipScoutPayload | null;
   savedAt?: string;
 }
 
-export async function fetchGrowthSyraSocialLatest(): Promise<GrowthSyraSocialLatestResponse> {
-  return fetchInternalJson<GrowthSyraSocialLatestResponse>("/internal/growth-syra-social/latest");
+export async function fetchPartnershipScoutLatest(): Promise<PartnershipScoutLatestResponse> {
+  return fetchInternalJson<PartnershipScoutLatestResponse>("/internal/partnership-scout/latest");
 }
 
-export interface GrowthSectorNarrativePayload {
-  summary?: string;
-  tweetsSampled?: number;
-  tailwindThemes?: string[];
-  headwindThemes?: string[];
-  positioningIdeasForSyra?: string[];
-  macroHeadline?: string;
-  bullets?: X402TrendBullet[];
-  generatedAt?: string;
-}
+export type InternalAgentLatestResponse = TrendScoutLatestResponse | PartnershipScoutLatestResponse;
 
-export interface GrowthSectorNarrativeLatestResponse {
-  success: boolean;
-  data: GrowthSectorNarrativePayload | null;
-  savedAt?: string;
-}
-
-export async function fetchGrowthSectorNarrativeLatest(): Promise<GrowthSectorNarrativeLatestResponse> {
-  return fetchInternalJson<GrowthSectorNarrativeLatestResponse>("/internal/growth-sector-narrative/latest");
-}
-
-export interface HrCoachPayload {
-  coaching?: string;
-  generatedAt?: string;
-}
-
-export interface HrCoachLatestResponse {
-  success: boolean;
-  data: HrCoachPayload | null;
-  savedAt?: string;
-}
-
-export async function fetchHrCoachLatest(): Promise<HrCoachLatestResponse> {
-  return fetchInternalJson<HrCoachLatestResponse>("/internal/hr-coach/latest");
-}
-
-export type InternalAgentLatestResponse =
-  | AgentTeamLatestResponse
-  | X402XTrendsLatestResponse
-  | GrowthSyraMarketLatestResponse
-  | GrowthSyraSocialLatestResponse
-  | GrowthSectorNarrativeLatestResponse
-  | HrCoachLatestResponse;
-
-export async function fetchInternalAgentLatest(slug: InternalAgentSlug): Promise<InternalAgentLatestResponse> {
+export async function fetchInternalAgentLatest(
+  slug: InternalAgentSlug,
+): Promise<InternalAgentLatestResponse> {
   switch (slug) {
-    case "agent-team":
-      return fetchAgentTeamLatest();
-    case "x402-pulse":
-      return fetchX402XTrendsLatest();
-    case "growth-syra-market":
-      return fetchGrowthSyraMarketLatest();
-    case "growth-syra-social":
-      return fetchGrowthSyraSocialLatest();
-    case "growth-sector-narrative":
-      return fetchGrowthSectorNarrativeLatest();
-    case "hr-coach":
-      return fetchHrCoachLatest();
+    case "trend-scout":
+      return fetchTrendScoutLatest();
+    case "partnership-scout":
+      return fetchPartnershipScoutLatest();
     default: {
       const _exhaustive: never = slug;
       return _exhaustive;

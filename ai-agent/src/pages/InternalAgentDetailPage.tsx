@@ -14,19 +14,14 @@ import {
 } from "@/lib/internalAgentsCatalog";
 import {
   fetchInternalAgentLatest,
-  type AgentTeamLatestPayload,
-  type GrowthSectorNarrativePayload,
-  type GrowthSyraMarketPayload,
-  type GrowthSyraSocialPayload,
-  type HrCoachPayload,
-  type X402XTrendsLatestPayload,
+  type PartnershipScoutPayload,
+  type TrendScoutPayload,
 } from "@/lib/internalTeamAgentsApi";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 const STALE_MS = 45_000;
 
@@ -44,13 +39,6 @@ function formatShortDate(iso: string | undefined): string {
   }
 }
 
-function formatUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    n,
-  );
-}
-
 function SectionCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card className="border-border/70">
@@ -62,430 +50,190 @@ function SectionCard({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function BulletList({ items, ordered = false }: { items: string[]; ordered?: boolean }) {
+function BulletList({ items }: { items: string[] }) {
   if (items.length === 0) return <p className="text-muted-foreground">—</p>;
-  const ListTag = ordered ? "ol" : "ul";
   return (
-    <ListTag className={ordered ? "list-decimal space-y-2 pl-5" : "list-disc space-y-2 pl-5"}>
+    <ul className="list-disc space-y-2 pl-5">
       {items.map((t, i) => (
         <li key={`${i}-${t.slice(0, 64)}`} className="leading-relaxed">
           {t}
         </li>
       ))}
-    </ListTag>
+    </ul>
   );
 }
 
-function AgentTeamDetail({ data, savedAt }: { data: AgentTeamLatestPayload; savedAt?: string }) {
-  const internal = data.internal;
-  const business = data.business;
+function TrendScoutDetail({ data, savedAt }: { data: TrendScoutPayload; savedAt?: string }) {
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        {data.savedAt || savedAt ? (
-          <span>
-            Last saved: <span className="font-mono text-foreground">{formatShortDate(data.savedAt ?? savedAt)}</span>
-          </span>
+      <p className="text-xs text-muted-foreground">
+        Last saved: <span className="font-medium text-foreground">{formatShortDate(savedAt)}</span>
+        {data.generatedAt ? (
+          <>
+            {" "}
+            · Generated {formatShortDate(data.generatedAt)}
+          </>
         ) : null}
-        {data.crawledAt ? (
-          <span>
-            Crawled: <span className="font-mono text-foreground">{formatShortDate(data.crawledAt)}</span>
-          </span>
-        ) : null}
-      </div>
+      </p>
 
-      <SectionCard title="Internal research">
-        {internal?.summary ? <p className="leading-relaxed whitespace-pre-wrap">{internal.summary}</p> : null}
-        {internal?.generatedAt ? (
-          <p className="text-xs text-muted-foreground">Generated: {formatShortDate(internal.generatedAt)}</p>
-        ) : null}
-        {internal?.recommendations && internal.recommendations.length > 0 ? (
-          <>
-            <Separator />
-            <p className="font-medium text-foreground">Recommendations</p>
-            <ul className="space-y-4">
-              {internal.recommendations.map((r, i) => (
-                <li key={`${r.title ?? i}-${i}`} className="rounded-md border border-border/60 bg-muted/20 p-3">
-                  <p className="font-medium">{r.title ?? "Untitled"}</p>
-                  {r.category ? (
-                    <Badge variant="outline" className="mt-1 font-normal">
-                      {r.category}
-                    </Badge>
-                  ) : null}
-                  {r.why ? <p className="mt-2 text-muted-foreground leading-relaxed">{r.why}</p> : null}
-                  {r.surface ? (
-                    <p className="mt-2 text-xs font-mono break-all text-muted-foreground">{r.surface}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-        {internal?.risks && internal.risks.length > 0 ? (
-          <>
-            <Separator />
-            <p className="font-medium text-foreground">Risks</p>
-            <BulletList items={internal.risks} />
-          </>
-        ) : null}
+      <SectionCard title="Market summary">
+        <p className="leading-relaxed">{data.marketSummary || "—"}</p>
       </SectionCard>
 
-      <SectionCard title="Business strategy">
-        {business?.marketPosition ? (
-          <p className="leading-relaxed whitespace-pre-wrap">{business.marketPosition}</p>
-        ) : null}
-        {business?.generatedAt ? (
-          <p className="text-xs text-muted-foreground">Generated: {formatShortDate(business.generatedAt)}</p>
-        ) : null}
-        {business?.gtmRecommendations && business.gtmRecommendations.length > 0 ? (
-          <>
-            <Separator />
-            <p className="font-medium">GTM recommendations</p>
-            <ul className="space-y-3">
-              {business.gtmRecommendations.map((g, i) => (
-                <li key={`${g.title ?? i}`} className="rounded-md border border-border/50 p-3">
-                  <p className="font-medium">{g.title}</p>
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    {g.horizon ? <span>Horizon: {g.horizon}</span> : null}
-                    {g.channel ? <span>Channel: {g.channel}</span> : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-        {business?.monetizationIdeas && business.monetizationIdeas.length > 0 ? (
-          <>
-            <Separator />
-            <p className="font-medium">Monetization ideas</p>
-            <ul className="list-disc space-y-2 pl-5">
-              {business.monetizationIdeas.map((m) => (
-                <li key={m.title}>{m.title}</li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-        {business?.competitiveRisks && business.competitiveRisks.length > 0 ? (
-          <>
-            <Separator />
-            <p className="font-medium">Competitive risks</p>
-            <BulletList items={business.competitiveRisks} />
-          </>
-        ) : null}
+      <SectionCard title="Trending themes">
+        <BulletList items={data.trendingTopics ?? []} />
       </SectionCard>
 
-      {data.surfaces && data.surfaces.length > 0 ? (
-        <SectionCard title="Surfaces crawled">
-          <ul className="space-y-2 font-mono text-xs break-all">
-            {data.surfaces.map((u) => (
-              <li key={u}>
-                <a href={u} className="text-primary underline-offset-4 hover:underline" target="_blank" rel="noreferrer">
-                  {u}
-                </a>
+      <SectionCard title="Content to post">
+        {(data.contentSuggestions ?? []).length === 0 ? (
+          <p className="text-muted-foreground">—</p>
+        ) : (
+          <ul className="space-y-4">
+            {(data.contentSuggestions ?? []).map((c, i) => (
+              <li key={`${i}-${c.title}`} className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{c.title}</span>
+                  <Badge variant="outline">{c.priority}</Badge>
+                </div>
+                <p className="text-muted-foreground">
+                  <span className="font-medium text-foreground">Angle:</span> {c.angle}
+                </p>
+                {c.hook ? (
+                  <p className="mt-1 text-muted-foreground">
+                    <span className="font-medium text-foreground">Hook:</span> {c.hook}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Platforms: {(c.platforms ?? []).join(", ") || "X"}
+                </p>
               </li>
             ))}
           </ul>
-        </SectionCard>
-      ) : null}
+        )}
+      </SectionCard>
 
-      {data.baseUrls && data.baseUrls.length > 0 ? (
-        <SectionCard title="Base URLs">
-          <BulletList items={data.baseUrls} />
-        </SectionCard>
+      <SectionCard title="Features to build">
+        {(data.featureSuggestions ?? []).length === 0 ? (
+          <p className="text-muted-foreground">—</p>
+        ) : (
+          <ul className="space-y-4">
+            {(data.featureSuggestions ?? []).map((f, i) => (
+              <li key={`${i}-${f.title}`} className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{f.title}</span>
+                  <Badge variant="outline">{f.priority}</Badge>
+                  <Badge variant="secondary">{f.surface}</Badge>
+                </div>
+                {f.why ? <p className="text-muted-foreground leading-relaxed">{f.why}</p> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Caveats">
+        <BulletList items={data.risksOrCaveats ?? []} />
+      </SectionCard>
+
+      {data.sourceStats ? (
+        <p className="text-xs text-muted-foreground">
+          Sources: {data.sourceStats.headlineCount ?? 0} headlines · {data.sourceStats.articleCount ?? 0}{" "}
+          articles · {data.sourceStats.eventDayCount ?? 0} event days
+        </p>
       ) : null}
     </div>
   );
 }
 
-function X402Detail({ data, savedAt }: { data: X402XTrendsLatestPayload; savedAt?: string }) {
+function PartnershipScoutDetail({ data, savedAt }: { data: PartnershipScoutPayload; savedAt?: string }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        Last saved: <span className="font-mono text-foreground">{formatShortDate(savedAt ?? data.generatedAt)}</span>
-        {data.tweetsSampled != null ? (
-          <>
-            {" "}
-            · Posts sampled: <span className="tabular-nums text-foreground">{data.tweetsSampled}</span>
-          </>
-        ) : null}
+        Last saved: <span className="font-medium text-foreground">{formatShortDate(savedAt)}</span>
+        {data.generatedAt ? <> · Generated {formatShortDate(data.generatedAt)}</> : null}
       </p>
-      {data.summary ? (
-        <SectionCard title="Summary">
-          <p className="leading-relaxed whitespace-pre-wrap">{data.summary}</p>
-        </SectionCard>
-      ) : null}
-      {data.bullets && data.bullets.length > 0 ? (
-        <SectionCard title="Trend bullets">
+
+      <SectionCard title="Ecosystem summary">
+        <p className="leading-relaxed">{data.ecosystemSummary || "—"}</p>
+      </SectionCard>
+
+      <SectionCard title="On-chain themes">
+        <BulletList items={data.onchainThemes ?? []} />
+      </SectionCard>
+
+      <SectionCard title="Partnership targets">
+        {(data.partnershipTargets ?? []).length === 0 ? (
+          <p className="text-muted-foreground">—</p>
+        ) : (
           <ul className="space-y-4">
-            {data.bullets.map((b) => (
-              <li key={b.title} className="rounded-md border border-border/60 bg-muted/15 p-3">
-                <p className="font-medium">{b.title}</p>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{b.detail}</p>
-                {b.evidenceTweetIds?.length ? (
-                  <p className="mt-2 text-xs font-mono text-muted-foreground">
-                    Evidence: {b.evidenceTweetIds.join(", ")}
+            {(data.partnershipTargets ?? []).map((p, i) => (
+              <li key={`${i}-${p.name}`} className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{p.name}</span>
+                  <Badge variant="outline">{p.priority}</Badge>
+                  <Badge variant="secondary">{p.projectType}</Badge>
+                </div>
+                {p.utility ? <p className="text-muted-foreground">{p.utility}</p> : null}
+                {p.whyFitForSyra ? (
+                  <p className="mt-2 text-muted-foreground">
+                    <span className="font-medium text-foreground">Fit for Syra:</span> {p.whyFitForSyra}
                   </p>
+                ) : null}
+                {p.collaborationIdea ? (
+                  <p className="mt-1 text-muted-foreground">
+                    <span className="font-medium text-foreground">Collaboration:</span> {p.collaborationIdea}
+                  </p>
+                ) : null}
+                {p.onchainSignals?.length ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Signals: {p.onchainSignals.join(" · ")}
+                  </p>
+                ) : null}
+                {p.link ? (
+                  <a
+                    href={p.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-xs text-primary hover:underline"
+                  >
+                    {p.link}
+                  </a>
                 ) : null}
               </li>
             ))}
           </ul>
-        </SectionCard>
-      ) : null}
-      {data.watchlist && data.watchlist.length > 0 ? (
-        <SectionCard title="Watchlist">
-          <BulletList items={data.watchlist} />
-        </SectionCard>
-      ) : null}
-      {data.noiseOrCaveats && data.noiseOrCaveats.length > 0 ? (
-        <SectionCard title="Noise & caveats">
-          <BulletList items={data.noiseOrCaveats} />
-        </SectionCard>
-      ) : null}
-    </div>
-  );
-}
-
-function GrowthMarketDetail({ data, savedAt }: { data: GrowthSyraMarketPayload; savedAt?: string }) {
-  const s = data.sourceStats;
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Last saved: <span className="font-mono text-foreground">{formatShortDate(savedAt ?? data.generatedAt)}</span>
-      </p>
-      {data.summary ? (
-        <SectionCard title="Summary">
-          <p className="leading-relaxed whitespace-pre-wrap">{data.summary}</p>
-        </SectionCard>
-      ) : null}
-      <SectionCard title="Assessments">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <div>
-            <span className="text-muted-foreground">Liquidity</span>
-            <p className="font-medium capitalize">{data.liquidityAssessment ?? "—"}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Volume</span>
-            <p className="font-medium capitalize">{data.volumeAssessment ?? "—"}</p>
-          </div>
-        </div>
-        {s ? (
-          <>
-            <Separator />
-            <p className="font-medium">Source stats</p>
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground">DEX pairs</dt>
-                <dd className="font-mono tabular-nums">{s.dexPairCount ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Best liquidity (USD)</dt>
-                <dd className="font-mono">{formatUsd(s.bestLiquidityUsd ?? undefined)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Best volume 24h</dt>
-                <dd className="font-mono">{formatUsd(s.bestVolumeH24 ?? undefined)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Best FDV</dt>
-                <dd className="font-mono">{formatUsd(s.bestFdv ?? undefined)}</dd>
-              </div>
-            </dl>
-          </>
-        ) : null}
+        )}
       </SectionCard>
-      {data.bullSignals && data.bullSignals.length > 0 ? (
-        <SectionCard title="Bull signals">
-          <BulletList items={data.bullSignals} ordered />
-        </SectionCard>
-      ) : null}
-      {data.riskSignals && data.riskSignals.length > 0 ? (
-        <SectionCard title="Risk signals">
-          <BulletList items={data.riskSignals} ordered />
-        </SectionCard>
-      ) : null}
-      {data.growthActions && data.growthActions.length > 0 ? (
-        <SectionCard title="Growth actions">
-          <BulletList items={data.growthActions} ordered />
-        </SectionCard>
-      ) : null}
-      {data.oneLineNorthStar ? (
-        <SectionCard title="North star">
-          <p className="font-medium leading-relaxed">{data.oneLineNorthStar}</p>
-        </SectionCard>
-      ) : null}
-    </div>
-  );
-}
 
-function GrowthSocialDetail({ data, savedAt }: { data: GrowthSyraSocialPayload; savedAt?: string }) {
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Last saved: <span className="font-mono text-foreground">{formatShortDate(savedAt ?? data.generatedAt)}</span>
-        {data.tweetsSampled != null ? (
-          <>
-            {" "}
-            · Posts sampled: <span className="tabular-nums text-foreground">{data.tweetsSampled}</span>
-          </>
-        ) : null}
-        {data.sentiment ? (
-          <>
-            {" "}
-            · Sentiment:{" "}
-            <Badge variant="secondary" className="align-middle font-normal">
-              {data.sentiment}
-            </Badge>
-          </>
-        ) : null}
-      </p>
-      {data.summary ? (
-        <SectionCard title="Summary">
-          <p className="leading-relaxed whitespace-pre-wrap">{data.summary}</p>
-        </SectionCard>
-      ) : null}
-      {data.topThemes && data.topThemes.length > 0 ? (
-        <SectionCard title="Top themes">
-          <BulletList items={data.topThemes} />
-        </SectionCard>
-      ) : null}
-      {data.communitySignals && data.communitySignals.length > 0 ? (
-        <SectionCard title="Community signals">
-          <BulletList items={data.communitySignals} ordered />
-        </SectionCard>
-      ) : null}
-      {data.risks && data.risks.length > 0 ? (
-        <SectionCard title="Risks">
-          <BulletList items={data.risks} ordered />
-        </SectionCard>
-      ) : null}
-      {data.bullets && data.bullets.length > 0 ? (
-        <SectionCard title="Evidence bullets">
-          <ul className="space-y-4">
-            {data.bullets.map((b) => (
-              <li key={b.title} className="rounded-md border border-border/60 bg-muted/15 p-3">
-                <p className="font-medium">{b.title}</p>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{b.detail}</p>
-                {b.evidenceTweetIds?.length ? (
-                  <p className="mt-2 text-xs font-mono text-muted-foreground">
-                    Evidence: {b.evidenceTweetIds.join(", ")}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      ) : null}
-      {data.recommendedActions && data.recommendedActions.length > 0 ? (
-        <SectionCard title="Recommended actions">
-          <BulletList items={data.recommendedActions} ordered />
-        </SectionCard>
-      ) : null}
-    </div>
-  );
-}
+      <SectionCard title="Quick integrations">
+        <BulletList items={data.quickIntegrations ?? []} />
+      </SectionCard>
 
-function GrowthSectorDetail({ data, savedAt }: { data: GrowthSectorNarrativePayload; savedAt?: string }) {
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Last saved: <span className="font-mono text-foreground">{formatShortDate(savedAt ?? data.generatedAt)}</span>
-        {data.tweetsSampled != null ? (
-          <>
-            {" "}
-            · Posts sampled: <span className="tabular-nums text-foreground">{data.tweetsSampled}</span>
-          </>
-        ) : null}
-      </p>
-      {data.macroHeadline ? (
-        <Card className="border-primary/25 bg-primary/5">
-          <CardContent className="pt-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Macro</p>
-            <p className="mt-1 text-sm font-semibold leading-relaxed">{data.macroHeadline}</p>
-          </CardContent>
-        </Card>
-      ) : null}
-      {data.summary ? (
-        <SectionCard title="Summary">
-          <p className="leading-relaxed whitespace-pre-wrap">{data.summary}</p>
-        </SectionCard>
-      ) : null}
-      {data.tailwindThemes && data.tailwindThemes.length > 0 ? (
-        <SectionCard title="Tailwind themes">
-          <BulletList items={data.tailwindThemes} />
-        </SectionCard>
-      ) : null}
-      {data.headwindThemes && data.headwindThemes.length > 0 ? (
-        <SectionCard title="Headwind themes">
-          <BulletList items={data.headwindThemes} />
-        </SectionCard>
-      ) : null}
-      {data.positioningIdeasForSyra && data.positioningIdeasForSyra.length > 0 ? (
-        <SectionCard title="Positioning ideas for Syra">
-          <BulletList items={data.positioningIdeasForSyra} ordered />
-        </SectionCard>
-      ) : null}
-      {data.bullets && data.bullets.length > 0 ? (
-        <SectionCard title="Bullets">
-          <ul className="space-y-4">
-            {data.bullets.map((b) => (
-              <li key={b.title} className="rounded-md border border-border/60 bg-muted/15 p-3">
-                <p className="font-medium">{b.title}</p>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{b.detail}</p>
-                {b.evidenceTweetIds?.length ? (
-                  <p className="mt-2 text-xs font-mono text-muted-foreground">
-                    Evidence: {b.evidenceTweetIds.join(", ")}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      ) : null}
-    </div>
-  );
-}
-
-function HrCoachDetail({ data, savedAt }: { data: HrCoachPayload; savedAt?: string }) {
-  const lines = (data.coaching || "")
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Model run: {data.generatedAt ? formatShortDate(data.generatedAt) : "—"}
-        {savedAt ? ` · Saved ${formatShortDate(savedAt)}` : ""}
-      </p>
-      <SectionCard title="HR coaching (plain text)">
-        {lines.length ? <BulletList items={lines} /> : <p className="text-muted-foreground">—</p>}
+      <SectionCard title="Caveats">
+        <BulletList items={data.risksOrCaveats ?? []} />
       </SectionCard>
     </div>
   );
 }
 
-function renderPayload(slug: InternalAgentSlug, res: Awaited<ReturnType<typeof fetchInternalAgentLatest>>) {
+function renderPayload(slug: InternalAgentSlug, res: { data?: unknown; savedAt?: string }) {
   const savedAt = res.savedAt;
-  const payload = res.data;
-  if (!payload) return <p className="text-sm text-muted-foreground">No run data yet.</p>;
-
-  switch (slug) {
-    case "agent-team":
-      return <AgentTeamDetail data={payload as AgentTeamLatestPayload} savedAt={savedAt} />;
-    case "x402-pulse":
-      return <X402Detail data={payload as X402XTrendsLatestPayload} savedAt={savedAt} />;
-    case "growth-syra-market":
-      return <GrowthMarketDetail data={payload as GrowthSyraMarketPayload} savedAt={savedAt} />;
-    case "growth-syra-social":
-      return <GrowthSocialDetail data={payload as GrowthSyraSocialPayload} savedAt={savedAt} />;
-    case "growth-sector-narrative":
-      return <GrowthSectorDetail data={payload as GrowthSectorNarrativePayload} savedAt={savedAt} />;
-    case "hr-coach":
-      return <HrCoachDetail data={payload as HrCoachPayload} savedAt={savedAt} />;
-    default: {
-      const _never: never = slug;
-      return _never;
-    }
+  if (!res.data) {
+    return (
+      <Alert>
+        <AlertTitle>No data yet</AlertTitle>
+        <AlertDescription>Run the pipeline or wait for the daily schedule.</AlertDescription>
+      </Alert>
+    );
   }
+  if (slug === "trend-scout") {
+    return <TrendScoutDetail data={res.data as TrendScoutPayload} savedAt={savedAt} />;
+  }
+  if (slug === "partnership-scout") {
+    return <PartnershipScoutDetail data={res.data as PartnershipScoutPayload} savedAt={savedAt} />;
+  }
+  const _never: never = slug;
+  return _never;
 }
 
 export default function InternalAgentDetailPage() {
@@ -544,6 +292,10 @@ export default function InternalAgentDetailPage() {
         </div>
       </div>
     );
+  }
+
+  if (slug === "hackathon-scout") {
+    return <Navigate to="/dashboard/internal-hackathons" replace />;
   }
 
   if (!slug || !meta) {

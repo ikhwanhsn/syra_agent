@@ -17,6 +17,7 @@ import {
   Mail,
   Send,
   UsersRound,
+  Trophy,
   Droplets,
   Rocket,
   Crosshair,
@@ -123,6 +124,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[1] === "trading-experiment") return "Trading experiment";
   if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[1] === "lp-experiment") return "LP agent experiment";
+  if (parts[1] === "internal-hackathons") return "Hackathons";
   if (parts[1] === "internal-team-agents") {
     if (parts[2]) {
       const slug = parts[2];
@@ -191,9 +193,14 @@ function DashboardSidebarContent({
           <div className="space-y-1">
             <SidebarExperimentsNav items={EXPERIMENT_NAV_ITEMS} />
             {showInternalTeamMonitor ? (
-              <SidebarNavLink to="/dashboard/internal-team-agents" icon={UsersRound}>
-                Internal agents
-              </SidebarNavLink>
+              <>
+                <SidebarNavLink to="/dashboard/internal-team-agents" icon={UsersRound}>
+                  Internal agents
+                </SidebarNavLink>
+                <SidebarNavLink to="/dashboard/internal-hackathons" icon={Trophy}>
+                  Hackathons
+                </SidebarNavLink>
+              </>
             ) : null}
           </div>
         </div>

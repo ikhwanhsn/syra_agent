@@ -37,8 +37,44 @@ function resolveOpenRouterModelId(modelId) {
 }
 
 /**
+ * Normalize OpenRouter choice payload to user-visible assistant text.
+ * Some providers return empty `content` with text in legacy `text` or multipart shapes.
+ * @param {object | undefined} choice
+ * @returns {string}
+ */
+function extractAssistantTextFromChoice(choice) {
+  const message = choice?.message;
+  if (!message || typeof message !== 'object') {
+    const legacy = choice?.text;
+    return typeof legacy === 'string' ? legacy : '';
+  }
+
+  const rawContent = message.content;
+  if (typeof rawContent === 'string') {
+    return rawContent;
+  }
+  if (Array.isArray(rawContent)) {
+    return rawContent
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (part?.type === 'text' && typeof part.text === 'string') return part.text;
+        if (part?.type === 'output_text' && typeof part.text === 'string') return part.text;
+        return '';
+      })
+      .join('');
+  }
+
+  if (typeof message.refusal === 'string' && message.refusal.trim()) {
+    return message.refusal;
+  }
+
+  const legacy = choice?.text;
+  return typeof legacy === 'string' ? legacy : '';
+}
+
+/**
  * @param {Array<{ role: string; content: string }>} messages
- * @param {{ max_tokens?: number; temperature?: number; model?: string }} [options]
+ * @param {{ max_tokens?: number; temperature?: number; model?: string; _retryAttempt?: number }} [options]
  * @returns {Promise<{ response: string; raw: object; truncated: boolean; finishReason: string | null; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
 export async function callOpenRouter(messages, options = {}) {
@@ -92,25 +128,22 @@ export async function callOpenRouter(messages, options = {}) {
   }
 
   const choice = data?.choices?.[0];
-  const rawContent = choice?.message?.content;
-  let textOut = '';
-  if (typeof rawContent === 'string') {
-    textOut = rawContent;
-  } else if (Array.isArray(rawContent)) {
-    textOut = rawContent
-      .map((part) => {
-        if (typeof part === 'string') return part;
-        if (part?.type === 'text' && typeof part.text === 'string') return part.text;
-        return '';
-      })
-      .join('');
-  }
-  const content =
-    typeof textOut === 'string' && textOut.trim().length > 0
-      ? textOut
-      : OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER;
-  const finishReason = choice?.finish_reason;
+  const textOut = extractAssistantTextFromChoice(choice);
+  const finishReason = choice?.finish_reason ?? choice?.finishReason ?? null;
+  const trimmed = typeof textOut === 'string' ? textOut.trim() : '';
   const truncated = finishReason === 'length';
+
+  if (!trimmed.length) {
+    const retryAttempt = Number(options._retryAttempt) || 0;
+    console.warn(
+      `[openrouter] empty assistant content (model=${model}, finish=${finishReason ?? 'unknown'}, attempt=${retryAttempt})`
+    );
+    if (retryAttempt < 1) {
+      return callOpenRouter(messages, { ...options, _retryAttempt: retryAttempt + 1 });
+    }
+  }
+
+  const content = trimmed.length > 0 ? textOut : OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER;
 
   const u = data?.usage;
   const usage =

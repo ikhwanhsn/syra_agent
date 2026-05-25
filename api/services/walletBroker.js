@@ -17,7 +17,7 @@
  * SYRA_CUSTODY_MODE=privy and Privy creds are present.
  */
 import crypto from 'node:crypto';
-import { Keypair, VersionedTransaction, Transaction, Connection } from '@solana/web3.js';
+import { Keypair, VersionedTransaction, Transaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 
 import AgentWallet from '../models/agent/AgentWallet.js';
@@ -35,6 +35,7 @@ import {
   getDefaultCustodyMode,
 } from './privyServerWallet.js';
 import { confirmSolanaTransaction } from '../libs/solanaConfirm.js';
+import { getBlockchainSolanaConnection } from '../libs/solanaTxUtils.js';
 
 const INTENT_TTL_MS = 90 * 1000; // 90s confirmation window
 const HISTORY_LOOKBACK_MS = 24 * 60 * 60 * 1000;
@@ -61,6 +62,8 @@ const HISTORY_LIMIT = 200;
  * @property {string=} serializedTxBase64   For tx_sign / withdraw / x402_pay
  * @property {string=} summary              Human-readable description for confirmation card
  * @property {Object=} params
+ * @property {number=} lastValidBlockHeight   Solana confirmation: fail fast when blockhash expires
+ * @property {number=} confirmTimeoutMs       Override default 90s confirm poll window
  */
 
 /**
@@ -222,9 +225,16 @@ function redactParams(params) {
  *
  * @param {ReturnType<typeof toWalletConfig>} cfg
  * @param {string} serializedTxBase64
+ * @param {{ lastValidBlockHeight?: number; confirmTimeoutMs?: number }} [confirmOptions]
  * @returns {Promise<{ signature: string }>}
  */
-async function custodySignSolanaTx(cfg, serializedTxBase64) {
+async function custodySignSolanaTx(cfg, serializedTxBase64, confirmOptions = {}) {
+  const connection = getBlockchainSolanaConnection();
+  const confirmOpts = {
+    lastValidBlockHeight: confirmOptions.lastValidBlockHeight,
+    timeoutMs: confirmOptions.confirmTimeoutMs,
+  };
+
   if (cfg.custody === 'privy') {
     if (!isPrivyConfigured()) throw new Error('privy_not_configured');
     if (!cfg.privyWalletId) throw new Error('missing_privy_wallet_id');
@@ -234,13 +244,7 @@ async function custodySignSolanaTx(cfg, serializedTxBase64) {
       submit: true,
     });
     if (!out.signature) throw new Error('privy_sign_no_signature');
-    const connection = new Connection(
-      process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
-        process.env.SOLANA_RPC_URL ||
-        'https://api.mainnet-beta.solana.com',
-      'confirmed',
-    );
-    await confirmSolanaTransaction(connection, out.signature);
+    await confirmSolanaTransaction(connection, out.signature, confirmOpts);
     return { signature: out.signature };
   }
   // legacy: load encrypted key from MongoDB and sign in-process (kept for backward compat
@@ -263,14 +267,12 @@ async function custodySignSolanaTx(cfg, serializedTxBase64) {
     legacy.partialSign(keypair);
     serialized = legacy.serialize({ requireAllSignatures: false });
   }
-  const connection = new Connection(
-    process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
-      process.env.SOLANA_RPC_URL ||
-      'https://api.mainnet-beta.solana.com',
-    'confirmed'
-  );
-  const signature = await connection.sendRawTransaction(serialized, { skipPreflight: false, maxRetries: 3 });
-  await confirmSolanaTransaction(connection, signature);
+  const signature = await connection.sendRawTransaction(serialized, {
+    skipPreflight: false,
+    maxRetries: 5,
+    preflightCommitment: 'confirmed',
+  });
+  await confirmSolanaTransaction(connection, signature, confirmOpts);
   return { signature };
 }
 
@@ -369,7 +371,10 @@ export async function executeIntent(ctx, intent) {
       }
     } else if (intent.serializedTxBase64) {
       if (intent.chain !== 'solana') throw new Error('only_solana_signing_supported_in_p0');
-      const out = await custodySignSolanaTx(cfg, intent.serializedTxBase64);
+      const out = await custodySignSolanaTx(cfg, intent.serializedTxBase64, {
+        lastValidBlockHeight: intent.lastValidBlockHeight,
+        confirmTimeoutMs: intent.confirmTimeoutMs,
+      });
       signature = out.signature;
     } else {
       throw new Error('missing_payload');
