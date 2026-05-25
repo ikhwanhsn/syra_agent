@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Activity,
   ArrowUpRight,
   Copy,
   ExternalLink,
@@ -32,7 +33,9 @@ import {
 } from "@/components/ui/table";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { LpRealAgentToggle } from "@/components/experiment/LpRealAgentToggle";
+import { LpExperimentNotice } from "@/components/experiment/lp/LpExperimentNotice";
 import { LpStatTile } from "@/components/experiment/lp/LpStatTile";
+import { lpMetaPanel, lpTabsList, lpTabsTrigger, lpTableHead, lpVioletBadge } from "@/components/experiment/lp/lpExperimentStyles";
 import { SolAmount } from "@/components/experiment/lp/SolAmount";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
@@ -214,8 +217,11 @@ export function LpRealSection() {
     stateQ.data?.minWalletToStartSol ??
     (config?.maxPositionSol ?? 1) + (config?.reserveSolForFees ?? 0.05) + 0.15;
   const onChainBalanceSol = Math.max(stateQ.data?.onChainBalanceSol ?? 0, agentSolBalance ?? 0);
+  const walletEquitySol = stateQ.data?.walletEquitySol ?? onChainBalanceSol;
   const deployedSol = stateQ.data?.deployedSol ?? 0;
-  const totalCapitalSol = stateQ.data?.totalCapitalSol ?? onChainBalanceSol + deployedSol;
+  const totalCapitalSol = stateQ.data?.totalCapitalSol ?? walletEquitySol + deployedSol;
+  const capitalBaselineSol = stateQ.data?.capitalBaselineSol ?? minBank;
+  const totalReturnSol = stateQ.data?.totalReturnSol ?? summaryQ.data?.totalReturnSol ?? 0;
   const openPositionsCount = stateQ.data?.openPositionsCount ?? 0;
   const canOpenNewPositions = stateQ.data?.canOpenNewPositions ?? stateQ.data?.canEnable ?? false;
   const canTurnOn = stateQ.data?.canTurnOn ?? (canOpenNewPositions || openPositionsCount > 0);
@@ -237,8 +243,11 @@ export function LpRealSection() {
     return {
       config: buildPreviewConfig(agentAddr, minBank),
       onChainBalanceSol,
+      walletEquitySol: onChainBalanceSol,
       deployedSol: 0,
       totalCapitalSol: onChainBalanceSol,
+      capitalBaselineSol: minBank,
+      totalReturnSol: 0,
       availableSol: Math.max(0, onChainBalanceSol - 0.05),
       openPositionsCount: 0,
       currentStrategy: null,
@@ -253,8 +262,11 @@ export function LpRealSection() {
 
   const live = Boolean(enabled && openPositionsCount > 0);
   const monitoringOnly = enabled && openPositionsCount > 0 && !canOpenNewPositions;
-  const bankProgressPct = minBank > 0 ? Math.min(100, (totalCapitalSol / minBank) * 100) : 0;
+  const bankProgressPct =
+    capitalBaselineSol > 0 ? Math.min(100, (totalCapitalSol / capitalBaselineSol) * 100) : 0;
   const realizedPnl = summaryQ.data?.realizedNetPnlSol ?? 0;
+  const unrealizedPnl = summaryQ.data?.unrealizedPnlSol ?? totalReturnSol - realizedPnl;
+  const stablecoinSolExtra = Math.max(0, walletEquitySol - onChainBalanceSol);
   const entryShortfall = Math.max(0, minEntry - onChainBalanceSol);
 
   const { active: activePositions, failed: failedPositions, other: closedPositions } = useMemo(
@@ -289,7 +301,7 @@ export function LpRealSection() {
   const statusBadge = enabled && live ? (
     <AgentBackgroundLiveIndicator openPositions={openPositionsCount} />
   ) : enabled && monitoringOnly ? (
-    <Badge variant="outline" className="border-amber-500/40 text-[10px] text-amber-800 dark:text-amber-300">
+    <Badge variant="outline" className="border-border/55 bg-muted/40 text-[10px] text-muted-foreground">
       Monitoring — no new opens
     </Badge>
   ) : enabled ? (
@@ -326,10 +338,7 @@ export function LpRealSection() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1 space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="rounded-lg border-violet-500/35 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-800 dark:text-violet-200"
-                >
+                <Badge variant="outline" className={lpVioletBadge}>
                   On-chain · Meteora DLMM
                 </Badge>
                 {hasAgentWallet ? statusBadge : null}
@@ -345,20 +354,20 @@ export function LpRealSection() {
               {hasAgentWallet && !loading ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <span className="font-medium text-muted-foreground">Scale target (optional)</span>
+                    <span className="font-medium text-muted-foreground">Book vs baseline</span>
                     <span className="font-mono tabular-nums text-foreground">
-                      {formatSolWithUsd(totalCapitalSol, refSolUsd)} / {formatSolWithUsd(minBank, refSolUsd)}
+                      {formatSolWithUsd(totalCapitalSol, refSolUsd)} / {formatSolWithUsd(capitalBaselineSol, refSolUsd)}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted/60">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
-                        totalCapitalSol >= minBank - 1e-9
+                        totalReturnSol >= 0
                           ? "bg-gradient-to-r from-violet-600 to-emerald-500"
-                          : "bg-amber-500/80",
+                          : "bg-gradient-to-r from-red-500/90 to-red-600/80",
                       )}
-                      style={{ width: `${bankProgressPct}%` }}
+                      style={{ width: `${Math.min(100, Math.max(0, bankProgressPct))}%` }}
                     />
                   </div>
                 </div>
@@ -413,36 +422,59 @@ export function LpRealSection() {
 
         {hasAgentWallet && agentAddr && !loading ? (
           <div className="relative space-y-6 px-5 py-6 sm:px-8 sm:py-7">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <LpStatTile
                 label="Total capital"
                 {...lpStatFromSol(
                   totalCapitalSol,
                   refSolUsd,
-                  `Scale ${formatSolWithUsd(minBank, refSolUsd)}`,
+                  `Baseline ${formatSol(capitalBaselineSol)} SOL`,
                 )}
                 icon={Layers}
                 tone={canTurnOn || enabled ? "default" : "warning"}
                 highlight={!canTurnOn && !enabled}
               />
-              <LpStatTile label="Wallet SOL" {...lpStatFromSol(onChainBalanceSol, refSolUsd)} icon={Wallet} />
-              <LpStatTile label="Deployed" {...lpStatFromSol(deployedSol, refSolUsd)} icon={Waves} tone="accent" />
+              <LpStatTile
+                label="Wallet"
+                {...lpStatFromSol(
+                  walletEquitySol,
+                  refSolUsd,
+                  stablecoinSolExtra > 0.001
+                    ? `${formatSol(onChainBalanceSol)} native + ${formatSol(stablecoinSolExtra)} stables`
+                    : `${formatSol(onChainBalanceSol)} native`,
+                )}
+                icon={Wallet}
+              />
+              <LpStatTile
+                label="Deployed"
+                {...lpStatFromSol(deployedSol, refSolUsd, "Open slots (at open)")}
+                icon={Waves}
+                tone="accent"
+              />
               <LpStatTile
                 label="Available"
                 {...lpStatFromSol(
                   stateQ.data?.availableSol ??
                     Math.max(0, onChainBalanceSol - (config?.reserveSolForFees ?? 0.05)),
                   refSolUsd,
+                  `Native after ${formatSol(config?.reserveSolForFees ?? 0.05)} reserve`,
                 )}
               />
               <LpStatTile
+                label="Total return"
+                value={`${totalReturnSol >= 0 ? "+" : ""}${formatSol(totalReturnSol)} SOL`}
+                subValue={formatSolUsdSub(totalReturnSol, refSolUsd)}
+                icon={TrendingUp}
+                tone={totalReturnSol > 0 ? "positive" : totalReturnSol < 0 ? "negative" : "default"}
+              />
+              <LpStatTile
                 label="Realized PnL"
-                value={`${formatSol(realizedPnl)} SOL`}
+                value={`${realizedPnl >= 0 ? "+" : ""}${formatSol(realizedPnl)} SOL`}
                 subValue={
                   summaryQ.data?.realizedNetPnlUsd != null &&
                   Number.isFinite(Number(summaryQ.data.realizedNetPnlUsd))
-                    ? formatLpUsd(summaryQ.data.realizedNetPnlUsd)
-                    : formatSolUsdSub(realizedPnl, refSolUsd)
+                    ? `${formatLpUsd(summaryQ.data.realizedNetPnlUsd)} · unreal ${formatSol(unrealizedPnl)}`
+                    : `${formatSolUsdSub(realizedPnl, refSolUsd) ?? ""} · unreal ${formatSol(unrealizedPnl)}`
                 }
                 icon={TrendingUp}
                 tone={realizedPnl > 0 ? "positive" : realizedPnl < 0 ? "negative" : "default"}
@@ -450,7 +482,7 @@ export function LpRealSection() {
               />
             </div>
 
-            <div className="grid gap-4 rounded-2xl border border-border/45 bg-background/25 p-4 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div className={cn(lpMetaPanel, "grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
               <div>
                 <p className={overviewKickerClass}>Agent address</p>
                 <p className="mt-1.5 truncate font-mono text-xs text-foreground">{agentAddr}</p>
@@ -500,71 +532,71 @@ export function LpRealSection() {
             </div>
 
             {!canTurnOn && !enabled ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              <LpExperimentNotice variant="caution" icon={Wallet}>
                 Need ~{formatSolWithUsd(minEntry, refSolUsd)} in the agent wallet to turn on — currently{" "}
-                {formatSolWithUsd(onChainBalanceSol, refSolUsd)} ({formatSolWithUsd(entryShortfall, refSolUsd)} short).
-              </div>
+                <span className="font-medium text-foreground">{formatSolWithUsd(onChainBalanceSol, refSolUsd)}</span> (
+                {formatSolWithUsd(entryShortfall, refSolUsd)} short).
+              </LpExperimentNotice>
             ) : !enabled && canTurnOn ? (
-              <div className="rounded-xl border border-violet-500/25 bg-violet-500/[0.06] px-4 py-3 text-sm text-violet-900 dark:text-violet-100">
+              <LpExperimentNotice variant="info" icon={Waves}>
                 Wallet funded for entry. Turn on the agent to start real Meteora LP.
-              </div>
+              </LpExperimentNotice>
             ) : monitoringOnly ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              <LpExperimentNotice variant="caution" icon={Activity}>
                 Monitoring {openPositionsCount} open position{openPositionsCount === 1 ? "" : "s"} — no new slots until
-                wallet has room ({formatSolWithUsd(stateQ.data?.availableSol ?? 0, refSolUsd)} available).
-              </div>
+                the wallet has{" "}
+                <span className="font-medium text-foreground">
+                  {formatSolWithUsd(stateQ.data?.availableSol ?? 0, refSolUsd)} available
+                </span>
+                .
+              </LpExperimentNotice>
             ) : enabled && !canOpenNewPositions ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              <LpExperimentNotice variant="caution" icon={Wallet}>
                 Agent is on but will not open new pools until the wallet has ~
                 {formatSolWithUsd(minEntry, refSolUsd)} for the next slot (
-                {formatSolWithUsd(stateQ.data?.availableSol ?? 0, refSolUsd)} available now).
-              </div>
+                <span className="font-medium text-foreground">
+                  {formatSolWithUsd(stateQ.data?.availableSol ?? 0, refSolUsd)} available
+                </span>
+                ).
+              </LpExperimentNotice>
             ) : null}
 
             {failedPositions.length > 0 && activePositions.length === 0 ? (
-              <div className="rounded-xl border border-destructive/25 bg-destructive/[0.06] px-4 py-3 text-sm text-destructive/90 dark:text-red-200">
-                The <strong className="font-medium">Failed</strong> tab lists open attempts that did not land on Meteora — that is why Deployed shows {formatSolWithUsd(0, refSolUsd)}. SOL was not locked in those
-                pools (or the tx did not complete). Fund the wallet with ~{formatSolWithUsd(minEntry, refSolUsd)} and the
-                agent can try again.
-              </div>
+              <LpExperimentNotice variant="danger" icon={ShieldAlert}>
+                Check the <strong className="font-medium text-foreground">Failed</strong> tab — open attempts that did
+                not land on Meteora. Fund the wallet with ~{formatSolWithUsd(minEntry, refSolUsd)} and the agent can
+                retry on the next tick.
+              </LpExperimentNotice>
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <code className="rounded-lg border border-border/50 bg-muted/40 px-2 py-1 font-mono text-[11px]">
-                {shorten(agentAddr, 6, 6)}
-              </code>
+            <LpExperimentNotice variant="info" icon={ShieldAlert}>
+              Real SOL is deployed on-chain while positions are open. Sidecar tokens are swapped back to SOL after each
+              close. Opens ~every 2 minutes; monitoring and exits ~every 30 seconds while the agent is on.
+            </LpExperimentNotice>
+
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 rounded-lg border-border/50 bg-background/40 text-xs"
                 aria-label="Copy agent address"
                 onClick={() => onCopy(agentAddr)}
               >
                 <Copy className="h-3.5 w-3.5" />
+                {shorten(agentAddr, 8, 8)}
               </Button>
-              <a
-                href={solscanAccountUrl(agentAddr)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-lg border border-border/45 bg-background/40 px-2.5 py-1.5 font-medium text-violet-700 transition-colors hover:bg-background/60 dark:text-violet-300"
-              >
-                Solscan
-                <ExternalLink className="h-3 w-3" />
-              </a>
+              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg text-xs" asChild>
+                <a href={solscanAccountUrl(agentAddr)} target="_blank" rel="noopener noreferrer">
+                  Solscan
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </Button>
               {lastErrorLabel ? (
-                <span className="text-destructive" title={config?.lastError ?? undefined}>
-                  · {lastErrorLabel}
+                <span className="text-xs text-destructive" title={config?.lastError ?? undefined}>
+                  {lastErrorLabel}
                 </span>
               ) : null}
-            </div>
-
-            <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] to-transparent px-4 py-3.5">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-              <p className="text-xs leading-relaxed text-amber-950/90 dark:text-amber-100/90">
-                Real SOL leaves your agent wallet. Opens ~every 2 minutes; positions are monitored and closed ~every 30
-                seconds while the agent is on.
-              </p>
             </div>
 
             {openPositionsCount > 0 ? (
@@ -702,23 +734,14 @@ function LpRealPositionsTabbedTable({
         </p>
       </div>
 
-      <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border/50 bg-background/35 p-1 backdrop-blur-md">
-        <TabsTrigger
-          value="live"
-          className="h-9 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
-        >
+      <TabsList className={cn(lpTabsList, "grid-cols-3")}>
+        <TabsTrigger value="live" className={lpTabsTrigger}>
           Live ({tabCounts.live})
         </TabsTrigger>
-        <TabsTrigger
-          value="closed"
-          className="h-9 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
-        >
+        <TabsTrigger value="closed" className={lpTabsTrigger}>
           Closed ({tabCounts.closed})
         </TabsTrigger>
-        <TabsTrigger
-          value="failed"
-          className="h-9 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
-        >
+        <TabsTrigger value="failed" className={lpTabsTrigger}>
           Failed ({tabCounts.failed})
         </TabsTrigger>
       </TabsList>
@@ -836,7 +859,7 @@ function LpPositionStatusBadge({
         "text-[10px] capitalize",
         row.status === "error" &&
           row.openTxSig &&
-          "border-amber-500/40 text-amber-800 dark:text-amber-300",
+          "border-violet-500/35 bg-violet-500/10 text-violet-800 dark:text-violet-200",
       )}
     />
   );
@@ -857,17 +880,17 @@ function LpRealPositionTable({
 }) {
   return (
     <div>
-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-background/30">
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-background/35">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="text-xs uppercase tracking-wide">Pool</TableHead>
-              <TableHead className="text-xs uppercase tracking-wide">Status</TableHead>
-              <TableHead className="text-right text-xs uppercase tracking-wide">Deposit</TableHead>
-              <TableHead className="text-right text-xs uppercase tracking-wide">PnL</TableHead>
-              <TableHead className="text-right text-xs uppercase tracking-wide">LP fees</TableHead>
-              <TableHead className="text-xs uppercase tracking-wide">Duration</TableHead>
-              <TableHead className="text-xs uppercase tracking-wide">Tx</TableHead>
+            <TableRow className="border-border/40 hover:bg-transparent">
+              <TableHead className={lpTableHead}>Pool</TableHead>
+              <TableHead className={lpTableHead}>Status</TableHead>
+              <TableHead className={cn(lpTableHead, "text-right")}>Deposit</TableHead>
+              <TableHead className={cn(lpTableHead, "text-right")}>PnL</TableHead>
+              <TableHead className={cn(lpTableHead, "text-right")}>LP fees</TableHead>
+              <TableHead className={lpTableHead}>Duration</TableHead>
+              <TableHead className={lpTableHead}>Tx</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

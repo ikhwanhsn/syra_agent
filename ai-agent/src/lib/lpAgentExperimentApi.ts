@@ -114,6 +114,44 @@ export interface LpExperimentLabState {
   agents: LpExperimentLabAgentRow[];
 }
 
+export interface LpGlobalOverview {
+  solPriceUsd: number;
+  meteora: {
+    poolsScanned: number;
+    scanTvlUsd: number;
+    scanVolume24hUsd: number;
+  };
+  candidates: {
+    poolCount: number;
+    trackedTvlUsd: number;
+  };
+  simulation: {
+    activeExperimentId: string | null;
+    strategyCount: number;
+    settledRuns: number;
+    openPositions: number;
+    sumNetPnlSol: number;
+    sumEquitySol: number;
+    sumDeployedSol: number;
+    leaderStrategyId: number | null;
+    leaderAvgNetPnlSol: number | null;
+    leaderWinRate: number | null;
+    topWinRateStrategyId: number | null;
+    topWinRatePct: number | null;
+  };
+  realAgent: {
+    enabledAgents: number;
+    openPositions: number;
+    deployedSol: number;
+    realizedNetPnlSol: number;
+    realWinRate: number | null;
+    realWins: number;
+    realLosses: number;
+    totalFeesClaimedSol: number;
+    totalPositions: number;
+  };
+}
+
 export interface LpRunRow {
   _id: string;
   strategyId: number;
@@ -179,6 +217,19 @@ export async function fetchLpStats(): Promise<{ agents: LpAgentStats[]; experime
     throw new Error(body.error || "Failed to load LP stats");
   }
   return { agents: body.data.agents, experimentId: body.data.experimentId ?? null };
+}
+
+export async function fetchLpGlobalOverview(): Promise<LpGlobalOverview> {
+  const res = await fetch(`${base()}/overview`, { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: LpGlobalOverview;
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data) {
+    throw new Error(body.error || "Failed to load LP overview");
+  }
+  return body.data;
 }
 
 export async function fetchLpLabState(): Promise<LpExperimentLabState> {

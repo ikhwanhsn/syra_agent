@@ -27,6 +27,8 @@ const lpRealConfigSchema = new mongoose.Schema(
     lastError: { type: String, default: null },
     lastEnabledBy: { type: String, default: null },
     closeAllRequested: { type: Boolean, default: false },
+    /** Wallet equity + deployed at first enable — used for total return / unrealized PnL. */
+    capitalBaselineSol: { type: Number, default: null, min: 0 },
   },
   { collection: "lp_real_config", timestamps: true },
 );

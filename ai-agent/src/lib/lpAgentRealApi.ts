@@ -42,10 +42,17 @@ export interface LpRealCurrentStrategy {
 
 export interface LpRealState {
   config: LpRealConfig | null;
+  /** Native + wSOL only (used for tx fee gates). */
   onChainBalanceSol: number;
+  /** Native SOL + USDC/USDT valued in SOL — use for total capital. */
+  walletEquitySol: number;
   deployedSol: number;
-  /** Wallet SOL + open position deposits (economic book). */
+  /** walletEquitySol + open position deposits (cost basis at open). */
   totalCapitalSol: number;
+  /** Book at enable (or inferred from total − realized). */
+  capitalBaselineSol: number;
+  /** totalCapitalSol − capitalBaselineSol. */
+  totalReturnSol: number;
   availableSol: number;
   openPositionsCount: number;
   currentStrategy: LpRealCurrentStrategy | null;
@@ -66,11 +73,15 @@ export interface LpRealState {
 export interface LpRealSummary {
   realizedNetPnlSol: number;
   realizedNetPnlUsd: number;
+  /** totalReturnSol − realizedNetPnlSol (open slots + wallet vs baseline). */
+  unrealizedPnlSol: number;
+  totalReturnSol: number;
   wins: number;
   losses: number;
   openCount: number;
   totalFeesClaimedSol: number;
   deployedSol: number;
+  solPriceUsd?: number;
 }
 
 export type LpRealPositionStatus =

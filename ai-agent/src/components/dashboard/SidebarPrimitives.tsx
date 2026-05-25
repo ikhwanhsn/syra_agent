@@ -8,7 +8,6 @@ import {
   PanelLeftClose,
   Telescope,
   UsersRound,
-  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import type { LucideProps } from "lucide-react";
@@ -201,7 +200,6 @@ export function SidebarIconRail({
             <>
               <SidebarDivider className="my-2 w-8" />
               <SidebarIconNavLink to="/dashboard/internal-team-agents" icon={UsersRound} label="Internal agents" />
-              <SidebarIconNavLink to="/dashboard/internal-hackathons" icon={Trophy} label="Hackathons" />
             </>
           ) : null}
         </nav>

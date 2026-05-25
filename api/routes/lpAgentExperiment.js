@@ -10,6 +10,7 @@ import {
   runLpExperimentSignalCycle,
 } from "../libs/lpExperimentService.js";
 import { runLpExperimentEvolution } from "../libs/lpExperimentEvolution.js";
+import { getLpGlobalOverview } from "../libs/lpGlobalOverview.js";
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.LP_AGENT_EXPERIMENT_CRON_SECRET || "").trim();
@@ -69,6 +70,18 @@ export function createLpAgentExperimentRouter() {
   router.get("/stats", async (_req, res) => {
     try {
       const data = await getLpExperimentStats();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.get("/overview", async (_req, res) => {
+    try {
+      const data = await getLpGlobalOverview();
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({

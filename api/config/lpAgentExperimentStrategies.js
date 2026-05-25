@@ -19,7 +19,7 @@ export const LP_AGENT_EXPERIMENT_DEFAULTS = Object.freeze({
   /** @deprecated use maxPositionSol — kept for one-off scripts */
   depositSol: 1,
   maxRunAgeHours: 36,
-  winThresholdPct: 1,
+  winThresholdPct: 0.5,
   minCandidateCount: 24,
   /** Simulated bank (SOL) per agent at cohort start */
   startingBankSol: 10,
@@ -68,7 +68,7 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
       minPasses: 1,
     },
     signalWeights: { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS, volume: 1.3, fee_tvl_ratio: 1.35 },
-    exit: { stopLossPct: -12, takeProfitPct: 10, oorWaitMin: 15, trailingTriggerPct: 6 },
+    exit: { stopLossPct: -12, takeProfitPct: 10, oorWaitMin: 45, minHoldMin: 30, trailingTriggerPct: 6 },
     notes: "Fast rotation strategy that prioritizes velocity + fees.",
   },
   {
@@ -242,7 +242,7 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
       minPasses: 1,
     },
     signalWeights: { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS, fee_tvl_ratio: 1.45, organic_score: 1.12 },
-    exit: { stopLossPct: -11, takeProfitPct: 11, oorWaitMin: 18, trailingTriggerPct: 5 },
+    exit: { stopLossPct: -11, takeProfitPct: 11, oorWaitMin: 40, minHoldMin: 30, trailingTriggerPct: 5 },
     notes: "Concentrated fee capture on high fee/TVL pools.",
   },
   {

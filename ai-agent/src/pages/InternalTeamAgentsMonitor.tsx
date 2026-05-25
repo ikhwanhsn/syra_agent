@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   ChevronRight,
   Loader2,
@@ -14,6 +15,8 @@ import {
   isInternalTeamMonitorWallet,
 } from "@/constants/internalTeamMonitorWallet";
 import { requireInternalAgentMeta } from "@/lib/internalAgentsCatalog";
+import { InternalHackathonBoard } from "@/components/internal/InternalHackathonBoard";
+import { fetchHackathonLatestRun } from "@/lib/hackathonScoutApi";
 import {
   fetchPartnershipScoutLatest,
   fetchTrendScoutLatest,
@@ -107,6 +110,7 @@ function AgentRow({
   stats,
   errorMessage,
   detailSlug,
+  detailTo,
 }: {
   name: string;
   subtitle: string;
@@ -115,6 +119,7 @@ function AgentRow({
   stats: { label: string; value: string | number }[];
   errorMessage?: string;
   detailSlug: string;
+  detailTo?: string;
 }) {
   return (
     <div className="flex flex-col gap-3 border-b border-border/50 py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
@@ -140,7 +145,7 @@ function AgentRow({
         ) : null}
       </div>
       <Button variant="outline" size="sm" className="shrink-0 gap-1" asChild>
-        <Link to={`/dashboard/internal-team-agents/${detailSlug}`}>
+        <Link to={detailTo ?? `/dashboard/internal-team-agents/${detailSlug}`}>
           View detail
           <ChevronRight className="h-4 w-4" />
         </Link>
@@ -151,7 +156,14 @@ function AgentRow({
 
 export default function InternalTeamAgentsMonitor() {
   const { address, connected, connectSolana } = useWalletContext();
+  const { hash } = useLocation();
   const allowed = isInternalTeamMonitorWallet(address);
+
+  useEffect(() => {
+    if (hash === "#hackathon-board") {
+      document.getElementById("hackathon-board")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [hash]);
 
   const trendQ = useQuery({
     queryKey: ["internal-team-agents", "trend-scout"],
@@ -163,6 +175,13 @@ export default function InternalTeamAgentsMonitor() {
   const partnershipQ = useQuery({
     queryKey: ["internal-team-agents", "partnership-scout"],
     queryFn: fetchPartnershipScoutLatest,
+    enabled: allowed,
+    staleTime: STALE_MS,
+  });
+
+  const hackathonRunQ = useQuery({
+    queryKey: ["hackathon-scout", "latest-run"],
+    queryFn: fetchHackathonLatestRun,
     enabled: allowed,
     staleTime: STALE_MS,
   });
@@ -215,7 +234,7 @@ export default function InternalTeamAgentsMonitor() {
 
   const trendStatus = queryRowStatus(trendQ);
   const partnershipStatus = queryRowStatus(partnershipQ);
-  const anyFetching = trendQ.isFetching || partnershipQ.isFetching;
+  const anyFetching = trendQ.isFetching || partnershipQ.isFetching || hackathonRunQ.isFetching;
 
   return (
     <div className={DASHBOARD_CONTENT_SHELL}>
@@ -226,7 +245,8 @@ export default function InternalTeamAgentsMonitor() {
               Internal agents
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Trend Scout 06:00 WIB · Partnership Scout 06:15 WIB · Telegram dev digests
+              Trend Scout 06:00 WIB · Partnership Scout 06:15 WIB · Hackathon Scout 06:30 WIB · Telegram
+              digests
             </p>
           </div>
           <Button
@@ -237,6 +257,7 @@ export default function InternalTeamAgentsMonitor() {
             onClick={() => {
               void trendQ.refetch();
               void partnershipQ.refetch();
+              void hackathonRunQ.refetch();
             }}
             disabled={anyFetching}
           >
@@ -253,7 +274,7 @@ export default function InternalTeamAgentsMonitor() {
           <CardHeader className="space-y-1 pb-2 pt-4 sm:pt-5">
             <CardTitle className="text-base font-semibold">Internal scouts</CardTitle>
             <CardDescription>
-              Two daily pipelines — market narrative and on-chain partnership opportunities.
+              Daily pipelines for market narrative, partnerships, and hackathon discovery on X.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0 sm:px-6">
@@ -284,19 +305,23 @@ export default function InternalTeamAgentsMonitor() {
               errorMessage={partnershipQ.isError ? partnershipQ.error?.message : undefined}
               detailSlug="partnership-scout"
             />
-            <div className="py-3 border-b border-border/50 last:border-0">
-              <AgentRow
-                name={requireInternalAgentMeta("hackathon-scout").name}
-                subtitle={requireInternalAgentMeta("hackathon-scout").subtitle}
-                status="ok"
-                lastRun={undefined}
-                stats={[]}
-                detailSlug="hackathon-scout"
-              />
-              <Button variant="outline" size="sm" className="mt-2 w-full sm:w-auto" asChild>
-                <Link to="/dashboard/internal-hackathons">Open hackathon board →</Link>
-              </Button>
-            </div>
+            <AgentRow
+              name={requireInternalAgentMeta("hackathon-scout").name}
+              subtitle={requireInternalAgentMeta("hackathon-scout").subtitle}
+              status={hackathonRunQ.isLoading ? "loading" : hackathonRunQ.isError ? "error" : hackathonRunQ.data?.data ? "ok" : "empty"}
+              lastRun={hackathonRunQ.data?.data?.ranAt}
+              stats={
+                hackathonRunQ.data?.data
+                  ? [
+                      { label: "Tweets sampled", value: hackathonRunQ.data.data.tweetsSampled },
+                      { label: "New saved", value: hackathonRunQ.data.data.newSaved },
+                    ]
+                  : []
+              }
+              errorMessage={hackathonRunQ.isError ? hackathonRunQ.error?.message : undefined}
+              detailSlug="hackathon-scout"
+              detailTo="#hackathon-board"
+            />
             {partnershipQ.data?.data?.ecosystemSummary ? (
               <div className="mt-2 rounded-lg border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
                 <p className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-foreground">
@@ -308,6 +333,8 @@ export default function InternalTeamAgentsMonitor() {
             ) : null}
           </CardContent>
         </Card>
+
+        <InternalHackathonBoard />
       </div>
     </div>
   );

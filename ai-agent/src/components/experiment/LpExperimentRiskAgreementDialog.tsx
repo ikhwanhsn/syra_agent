@@ -44,10 +44,10 @@ export function LpExperimentRiskAgreementDialog({ blockUntilAccepted = true }: P
       }}
     >
       <AlertDialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-xl">
-        <div className="border-b border-amber-500/25 bg-amber-500/[0.08] px-6 py-4">
+        <div className="border-b border-violet-500/25 bg-violet-500/[0.08] px-6 py-4">
           <AlertDialogHeader className="space-y-2 text-left">
             <div className="flex items-center gap-2">
-              <span className="rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+              <span className="rounded-md border border-violet-500/35 bg-violet-500/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-800 dark:text-violet-200">
                 Beta
               </span>
               <AlertDialogTitle className="text-lg">Experimental LP desk — full risk</AlertDialogTitle>
@@ -64,28 +64,28 @@ export function LpExperimentRiskAgreementDialog({ blockUntilAccepted = true }: P
         <div className="space-y-4 px-6 py-5">
           <ul className="space-y-2.5 text-sm text-muted-foreground">
             <li className="flex gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
               <span>
                 <strong className="font-medium text-foreground">Simulation</strong> uses modeled PnL — results may not
                 match live markets.
               </span>
             </li>
             <li className="flex gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
               <span>
                 <strong className="font-medium text-foreground">LP Real Agent</strong> spends real SOL from your
                 custodied wallet on Meteora DLMM. You can lose part or all of deposited funds.
               </span>
             </li>
             <li className="flex gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
               <span>
                 Strategies, pool selection, and automation may fail due to chain congestion, slippage, exploits, or
                 bugs.
               </span>
             </li>
             <li className="flex gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
               <span>Only use capital you can afford to lose. You are solely responsible for enabling the real agent.</span>
             </li>
           </ul>

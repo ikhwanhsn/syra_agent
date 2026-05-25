@@ -1,5 +1,5 @@
 /**
- * Jupiter sidecar swaps for LP Real: SOL→pool token on open, token→SOL on close-all.
+ * Jupiter sidecar swaps for LP Real: SOL→pool token on open, token→SOL on every close.
  */
 import axios from "axios";
 import BN from "bn.js";
@@ -13,9 +13,10 @@ const JUPITER_QUOTE_API = `${JUPITER_API_BASE}/swap/v1/quote`;
 const JUPITER_SWAP_API = `${JUPITER_API_BASE}/swap/v1/swap`;
 /** Skip Jupiter sidecar when swap size is dust (saves failed Meteora opens). */
 const MIN_SIDECAR_SWAP_LAMPORTS = 5_000;
-/** Preserve USDC for agent tool payments when sweeping after close-all. */
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const DEFAULT_SWEEP_SKIP_MINTS = new Set([USDC_MINT, WRAPPED_SOL_MINT]);
+/** Min raw token amount to swap on close (≈0.01 USDC at 6 decimals). */
+const MIN_TOKEN_SWEEP_RAW = 10_000n;
 
 function toNum(value, fallback = 0) {
   const n = Number(value);
@@ -198,7 +199,13 @@ export async function ensureSidecarTokenForPool({
   const connection = getConnection();
   const owner = new PublicKey(agentAddress);
 
-  const swapFraction = Math.min(0.5, (otherBins / totalBins) * 1.05);
+  const isStableQuote =
+    /usdc|usdt|usd1/i.test(String(otherSymbol || "")) ||
+    otherMint === USDC_MINT;
+  const baseFraction = (otherBins / totalBins) * 1.02;
+  const swapFraction = isStableQuote
+    ? Math.min(0.18, baseFraction)
+    : Math.min(0.32, baseFraction);
   const swapLamports = Math.floor(toNum(depositSol) * swapFraction * LAMPORTS_PER_SOL);
   if (swapLamports < MIN_SIDECAR_SWAP_LAMPORTS) {
     return { swappedSol: 0, swappedSolLamports: 0, otherTokenRaw: new BN(0) };
@@ -252,13 +259,78 @@ export async function ensureSidecarTokenForPool({
 }
 
 /**
- * After close-all, swap every non-SOL SPL balance back to SOL (keeps USDC for agent payments).
+ * After a position closes, swap the pool's non-SOL leg (e.g. USDC from open sidecar) back to SOL.
+ *
+ * @param {object} params
+ * @param {string} params.anonymousId
+ * @param {string} params.agentAddress
+ * @param {string} params.baseMint
+ * @param {string} params.quoteMint
+ * @param {string} [params.otherSymbol]
+ * @param {number} params.solPriceUsd
+ */
+export async function sweepPoolTokensToSolAfterClose({
+  anonymousId,
+  agentAddress,
+  baseMint,
+  quoteMint,
+  otherSymbol = "token",
+  solPriceUsd,
+}) {
+  const connection = getConnection();
+  const owner = new PublicKey(agentAddress);
+  const mints = [];
+  if (baseMint && !isSolMint(baseMint)) mints.push({ mint: baseMint, label: otherSymbol });
+  if (quoteMint && !isSolMint(quoteMint)) {
+    const label =
+      quoteMint === USDC_MINT ? "USDC" : otherSymbol !== "token" ? otherSymbol : "quote";
+    if (!mints.some((m) => m.mint === quoteMint)) mints.push({ mint: quoteMint, label });
+  }
+
+  const swapped = [];
+  const errors = [];
+
+  for (const { mint, label } of mints) {
+    const raw = await getMintBalanceRaw(connection, owner, mint);
+    if (raw < MIN_TOKEN_SWEEP_RAW) continue;
+
+    try {
+      const decimals = mint === USDC_MINT ? 6 : 9;
+      const uiAmount = Number(raw) / 10 ** decimals;
+      const estimatedUsd =
+        mint === USDC_MINT
+          ? Math.max(0.5, uiAmount)
+          : Math.max(0.5, uiAmount * toNum(solPriceUsd, 150) * 0.01);
+      const result = await executeJupiterSwap({
+        anonymousId,
+        agentAddress,
+        inputMint: mint,
+        outputMint: WRAPPED_SOL_MINT,
+        amountRaw: raw.toString(),
+        estimatedUsd,
+        summary: `LP close: ${label}→SOL`,
+        solPriceUsd,
+        slippageBps: 100,
+      });
+      swapped.push({ mint, amountRaw: raw.toString(), signature: result.signature });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${mint.slice(0, 8)}:${msg}`);
+    }
+  }
+
+  return { swapped, errors };
+}
+
+/**
+ * Swap wallet SPL balances back to SOL. Used when no LP slots are open.
  *
  * @param {object} params
  * @param {string} params.anonymousId
  * @param {string} params.agentAddress
  * @param {number} params.solPriceUsd
  * @param {string[]} [params.skipMints]
+ * @param {boolean} [params.preserveUsdc] — when true, keeps USDC for non-LP agent tool payments
  * @returns {Promise<{ swapped: Array<{ mint: string, amountRaw: string, signature: string | null }>, errors: string[] }>}
  */
 export async function sweepNonSolTokensToSol({
@@ -266,10 +338,12 @@ export async function sweepNonSolTokensToSol({
   agentAddress,
   solPriceUsd,
   skipMints = [],
+  preserveUsdc = true,
 }) {
   const connection = getConnection();
   const owner = new PublicKey(agentAddress);
-  const skip = new Set([...DEFAULT_SWEEP_SKIP_MINTS, ...skipMints.map(String)]);
+  const skip = new Set([WRAPPED_SOL_MINT, ...skipMints.map(String)]);
+  if (preserveUsdc) skip.add(USDC_MINT);
 
   const resp = await connection.getParsedTokenAccountsByOwner(owner, {
     programId: TOKEN_PROGRAM_ID,
@@ -297,7 +371,7 @@ export async function sweepNonSolTokensToSol({
         outputMint: WRAPPED_SOL_MINT,
         amountRaw: amountStr,
         estimatedUsd: 1,
-        summary: `Close-all: swap token→SOL`,
+        summary: `LP idle: swap token→SOL`,
         solPriceUsd,
       });
       swapped.push({ mint, amountRaw: amountStr, signature: result.signature });

@@ -664,7 +664,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               {INTERNAL_AGENTS.map((agent) => {
                 const href =
                   agent.slug === "hackathon-scout"
-                    ? "/dashboard/internal-hackathons"
+                    ? "/dashboard/internal-team-agents#hackathon-board"
                     : `/dashboard/internal-team-agents/${agent.slug}`;
                 const q =
                   agent.slug === "trend-scout"

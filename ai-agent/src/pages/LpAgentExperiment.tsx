@@ -5,7 +5,6 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  FlaskConical,
   ListOrdered,
   Trophy,
   Waves,
@@ -24,6 +23,7 @@ import {
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExperimentRiskAgreementDialog";
 import { LpExperimentBackdrop } from "@/components/experiment/lp/LpExperimentBackdrop";
+import { LpExperimentGlobalStats } from "@/components/experiment/lp/LpExperimentGlobalStats";
 import { LpExperimentHero } from "@/components/experiment/lp/LpExperimentHero";
 import { LpRealSection } from "@/components/experiment/LpRealSection";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ import {
   overviewCardShell,
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
+import { lpTableShell, lpTabsList, lpTabsTrigger, lpTableHead } from "@/components/experiment/lp/lpExperimentStyles";
 import {
   DASHBOARD_CONTENT_SHELL,
   PAGE_PADDING_TOP_STANDARD,
@@ -38,6 +39,7 @@ import {
 } from "@/lib/layoutConstants";
 import {
   fetchLpCandidatePools,
+  fetchLpGlobalOverview,
   fetchLpLabState,
   fetchLpRuns,
   fetchLpStats,
@@ -53,16 +55,12 @@ const RUN_STATUSES: LpRunStatus[] = ["open", "win", "loss", "expired", "skipped"
 type SortDirection = "asc" | "desc";
 type LeaderboardSortKey =
   | "strategyName"
-  | "lpShape"
   | "wins"
   | "losses"
   | "openPositions"
   | "winRatePct"
   | "avgPnlPct"
-  | "avgFeesSol"
-  | "cashSol"
-  | "sumNetPnlSol"
-  | "sumChainFeesSol";
+  | "sumNetPnlSol";
 type CandidateSortKey = "strategyName" | "poolName" | "score" | "tvlUsd" | "volume24hUsd" | "feeTvlRatio";
 type RunSortKey =
   | "strategyName"
@@ -157,7 +155,7 @@ function RunStatusBadge({ status }: { status: LpRunStatus }) {
         ? "bg-destructive/15 text-destructive"
         : status === "open"
           ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
-          : "bg-amber-500/15 text-amber-700 dark:text-amber-300";
+          : "bg-violet-500/12 text-violet-800 dark:text-violet-200";
   return (
     <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize", tone)}>{status}</span>
   );
@@ -184,6 +182,11 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
   const strategiesQ = useQuery({
     queryKey: ["lp-agent", "strategies"],
     queryFn: fetchLpStrategies,
+  });
+  const overviewQ = useQuery({
+    queryKey: ["lp-agent", "overview"],
+    queryFn: fetchLpGlobalOverview,
+    refetchInterval: 60_000,
   });
   const labStateQ = useQuery({
     queryKey: ["lp-agent", "lab-state"],
@@ -271,18 +274,30 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
   }, [runPage, runTotalPages]);
 
   const loading =
-    strategiesQ.isLoading || statsQ.isLoading || candidatesQ.isLoading || runsQ.isLoading || labStateQ.isLoading;
-  const failed = strategiesQ.isError || statsQ.isError || candidatesQ.isError || runsQ.isError || labStateQ.isError;
+    overviewQ.isLoading ||
+    strategiesQ.isLoading ||
+    statsQ.isLoading ||
+    candidatesQ.isLoading ||
+    runsQ.isLoading ||
+    labStateQ.isLoading;
+  const failed =
+    overviewQ.isError ||
+    strategiesQ.isError ||
+    statsQ.isError ||
+    candidatesQ.isError ||
+    runsQ.isError ||
+    labStateQ.isError;
 
   const refreshAll = useCallback(() => {
+    void overviewQ.refetch();
     void strategiesQ.refetch();
     void statsQ.refetch();
     void candidatesQ.refetch();
     void runsQ.refetch();
     void labStateQ.refetch();
-  }, [strategiesQ, statsQ, candidatesQ, runsQ, labStateQ]);
+  }, [overviewQ, strategiesQ, statsQ, candidatesQ, runsQ, labStateQ]);
 
-  const tableShell = cn(overviewCardShell, "overflow-hidden rounded-3xl ring-1 ring-border/25");
+  const tableShell = lpTableShell;
 
   return (
     <>
@@ -305,32 +320,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           onRefresh={refreshAll}
         />
 
-        {labStateQ.data?.activeExperimentId ? (
-          <article className={cn(tableShell, "px-5 py-5 sm:px-7 sm:py-6")}>
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border/45 bg-background/40">
-                <FlaskConical className="h-4 w-4 text-muted-foreground" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className={overviewKickerClass}>Active cohort</p>
-                <p className="mt-1 text-base font-semibold tracking-tight text-foreground">
-                  {labStateQ.data.title || "Simulation cohort"}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-mono text-foreground/90">{labStateQ.data.activeExperimentId}</span>
-                  {" · "}
-                  {labStateQ.data.simConfig.startingBankSol} SOL bank · max{" "}
-                  {labStateQ.data.simConfig.maxConcurrentPositions} × {labStateQ.data.simConfig.maxPositionSol} SOL ·
-                  fees {labStateQ.data.simConfig.openFeeBps}+{labStateQ.data.simConfig.closeFeeBps} bps per leg
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground/90">
-                  Profits compound in cash until the next full slot opens. Path to ~100 SOL depends on drift, fee yield,
-                  and chain costs — not guaranteed.
-                </p>
-              </div>
-            </div>
-          </article>
-        ) : null}
+        <LpExperimentGlobalStats overview={overviewQ.data} loading={overviewQ.isLoading} />
 
         <LpRealSection />
 
@@ -339,97 +329,68 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             <p className={overviewKickerClass}>Benchmark</p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Simulation lab</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Strategy cohorts compete on live Meteora pools. The real agent above follows the sim strategy with the highest net PnL.
+              {overviewQ.data?.simulation.leaderStrategyId != null
+                ? `Real agent follows sim leader #${overviewQ.data.simulation.leaderStrategyId}. `
+                : ""}
+              {labStateQ.data?.activeExperimentId
+                ? `${labStateQ.data.simConfig.maxConcurrentPositions} slots × ${labStateQ.data.simConfig.maxPositionSol} SOL`
+                : "Waiting for cohort"}
             </p>
           </div>
 
           <Tabs defaultValue="leaderboard" className="w-full space-y-4">
-            <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border/50 bg-background/35 p-1 backdrop-blur-md">
-              <TabsTrigger
-                value="leaderboard"
-                className="h-10 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
-              >
+            <TabsList className={cn(lpTabsList, "grid-cols-3")}>
+              <TabsTrigger value="leaderboard" className={cn(lpTabsTrigger, "gap-1.5")}>
                 <Trophy className="h-3.5 w-3.5" />
                 Leaderboard
               </TabsTrigger>
-              <TabsTrigger
-                value="candidates"
-                className="h-10 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
-              >
+              <TabsTrigger value="candidates" className={cn(lpTabsTrigger, "gap-1.5")}>
                 <Waves className="h-3.5 w-3.5" />
                 Candidates
               </TabsTrigger>
-              <TabsTrigger
-                value="runs"
-                className="h-10 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background/80 data-[state=active]:shadow-sm sm:text-sm"
-              >
+              <TabsTrigger value="runs" className={cn(lpTabsTrigger, "gap-1.5")}>
                 <ListOrdered className="h-3.5 w-3.5" />
                 Runs
               </TabsTrigger>
             </TabsList>
 
         <TabsContent value="leaderboard" className="mt-0 space-y-3">
-          <div className="mb-2 flex items-center justify-between gap-2 px-1">
-            <p className="text-sm font-medium">Strategy performance board</p>
-            <p className="text-xs text-muted-foreground">
-              Wins / losses / open are for the active cohort id in the banner above. Net PnL / tx fee USD lines use each
-              run’s SOL/USD snapshot at open; cash USD uses the lab reference SOL price.
-            </p>
-          </div>
+          <p className="px-1 text-sm font-medium text-muted-foreground">Active cohort — sorted by net PnL</p>
           <div className={tableShell}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "strategyName", dir: prev.key === "strategyName" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Strategy <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "lpShape", dir: prev.key === "lpShape" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      LP shape <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "wins", dir: prev.key === "wins" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Wins <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "losses", dir: prev.key === "losses" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Losses <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "openPositions", dir: prev.key === "openPositions" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Open <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "winRatePct", dir: prev.key === "winRatePct" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Win % <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "avgPnlPct", dir: prev.key === "avgPnlPct" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Avg PnL % <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
-                    <button
-                      type="button"
-                      className="ml-auto inline-flex items-center gap-1"
-                      onClick={() =>
-                        setLeaderboardSort((prev) => ({
-                          key: "cashSol",
-                          dir: prev.key === "cashSol" && prev.dir === "asc" ? "desc" : "asc",
-                        }))
-                      }
-                    >
-                      Cash (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button
                       type="button"
                       className="ml-auto inline-flex items-center gap-1"
@@ -440,26 +401,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                         }))
                       }
                     >
-                      Net PnL Σ <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <button
-                      type="button"
-                      className="ml-auto inline-flex items-center gap-1"
-                      onClick={() =>
-                        setLeaderboardSort((prev) => ({
-                          key: "sumChainFeesSol",
-                          dir: prev.key === "sumChainFeesSol" && prev.dir === "asc" ? "desc" : "asc",
-                        }))
-                      }
-                    >
-                      Tx fees Σ <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "avgFeesSol", dir: prev.key === "avgFeesSol" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      LP fees (avg) <ArrowUpDown className="h-3.5 w-3.5" />
+                      Net PnL <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
                 </TableRow>
@@ -478,7 +420,6 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                         <AgentBackgroundLiveIndicator openPositions={row.openPositions} />
                       </div>
                     </TableCell>
-                    <TableCell className="capitalize">{row.lpShape}</TableCell>
                     <TableCell className="text-right">{row.wins}</TableCell>
                     <TableCell className="text-right">{row.losses}</TableCell>
                     <TableCell className="text-right">{row.openPositions}</TableCell>
@@ -488,32 +429,23 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     <TableCell className={cn("text-right font-medium", pnlNumberClass(row.avgPnlPct))}>
                       {row.avgPnlPct.toFixed(2)}%
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <div>{(row.cashSol ?? 0).toFixed(3)}</div>
-                      {refSolUsd != null && refSolUsd > 0 ? (
-                        <div className="text-xs text-muted-foreground">{formatLpUsd((row.cashSol ?? 0) * refSolUsd)}</div>
-                      ) : null}
-                    </TableCell>
                     <TableCell className={cn("text-right font-medium tabular-nums", pnlNumberClass(row.sumNetPnlSol ?? 0))}>
-                      <div>{(row.sumNetPnlSol ?? 0).toFixed(4)}</div>
+                      <div>{(row.sumNetPnlSol ?? 0).toFixed(4)} SOL</div>
                       {row.sumNetPnlUsd != null && Number.isFinite(row.sumNetPnlUsd) ? (
                         <div className={cn("text-xs text-muted-foreground", pnlNumberClass(row.sumNetPnlUsd))}>
                           {formatLpUsd(row.sumNetPnlUsd)}
                         </div>
+                      ) : refSolUsd != null && refSolUsd > 0 ? (
+                        <div className="text-xs text-muted-foreground">
+                          {formatLpUsd((row.sumNetPnlSol ?? 0) * refSolUsd)}
+                        </div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <div>{(row.sumChainFeesSol ?? 0).toFixed(4)}</div>
-                      {row.sumChainFeesUsd != null && Number.isFinite(row.sumChainFeesUsd) ? (
-                        <div className="text-xs text-muted-foreground">{formatLpUsd(row.sumChainFeesUsd)}</div>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="text-right">{row.avgFeesSol.toFixed(4)}</TableCell>
                   </TableRow>
                 ))}
                 {!loading && (statsQ.data?.agents || []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No runs yet.
                     </TableCell>
                   </TableRow>
@@ -524,40 +456,37 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         </TabsContent>
 
         <TabsContent value="candidates" className="mt-0 space-y-3">
-          <div className="mb-2 flex items-center justify-between gap-2 px-1">
-            <p className="text-sm font-medium">Top candidate pools</p>
-            <p className="text-xs text-muted-foreground">Highest score pools passing all strategy gates</p>
-          </div>
+          <p className="px-1 text-sm font-medium text-muted-foreground">Top pools by strategy score</p>
           <div className={tableShell}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "strategyName", dir: prev.key === "strategyName" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Strategy <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "poolName", dir: prev.key === "poolName" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Pool <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "score", dir: prev.key === "score" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Score <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "tvlUsd", dir: prev.key === "tvlUsd" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       TVL <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "volume24hUsd", dir: prev.key === "volume24hUsd" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       24h Vol <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "feeTvlRatio", dir: prev.key === "feeTvlRatio" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Fee/TVL <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
@@ -647,27 +576,27 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "strategyName", dir: prev.key === "strategyName" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Strategy <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "poolName", dir: prev.key === "poolName" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Pool <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "status", dir: prev.key === "status" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Status <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "simPnlPct", dir: prev.key === "simPnlPct" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       PnL % <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button
                       type="button"
                       className="ml-auto inline-flex items-center gap-1"
@@ -676,12 +605,12 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                       Net PnL (SOL + USD) <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className={cn(lpTableHead, "text-right")}>
                     <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "simFeesEarnedSol", dir: prev.key === "simFeesEarnedSol" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       LP fees (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className={lpTableHead}>
                     <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "createdAt", dir: prev.key === "createdAt" && prev.dir === "asc" ? "desc" : "asc" }))}>
                       Created <ArrowUpDown className="h-3.5 w-3.5" />
                     </button>

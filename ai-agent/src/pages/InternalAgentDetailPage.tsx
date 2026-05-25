@@ -295,7 +295,7 @@ export default function InternalAgentDetailPage() {
   }
 
   if (slug === "hackathon-scout") {
-    return <Navigate to="/dashboard/internal-hackathons" replace />;
+    return <Navigate to="/dashboard/internal-team-agents#hackathon-board" replace />;
   }
 
   if (!slug || !meta) {

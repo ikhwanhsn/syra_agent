@@ -289,7 +289,7 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
 
       {!enabled && !canTurnOn ? (
 
-        <p className="text-center text-xs text-amber-700 dark:text-amber-300">
+        <p className="text-center text-xs text-muted-foreground">
 
           Need ~{formatSolWithUsd(minEntry, solUsd)} · current {formatSolWithUsd(balance, solUsd)}
 
@@ -297,7 +297,7 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
 
       ) : !enabled && canTurnOn && !canOpenNew ? (
 
-        <p className="text-center text-xs text-amber-700 dark:text-amber-300">
+        <p className="text-center text-xs text-muted-foreground">
 
           {openCount > 0
 

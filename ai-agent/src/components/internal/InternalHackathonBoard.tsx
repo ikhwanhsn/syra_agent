@@ -1,24 +1,16 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
   Calendar,
   Check,
   ExternalLink,
   Loader2,
-  Lock,
   RefreshCw,
-  ShieldAlert,
   SkipForward,
   Sparkles,
   Trophy,
 } from "lucide-react";
-import { useWalletContext } from "@/contexts/WalletContext";
-import {
-  INTERNAL_TEAM_MONITOR_SOLANA_WALLET,
-  isInternalTeamMonitorWallet,
-} from "@/constants/internalTeamMonitorWallet";
 import {
   fetchHackathonLatestRun,
   fetchHackathonLeads,
@@ -27,7 +19,6 @@ import {
   type HackathonLead,
   type HackathonLeadStatus,
 } from "@/lib/hackathonScoutApi";
-import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -234,23 +225,20 @@ function HackathonLeadCard({
   );
 }
 
-export default function InternalHackathonsPage() {
-  const { address, connected, connectSolana } = useWalletContext();
-  const allowed = isInternalTeamMonitorWallet(address);
+/** Hackathon Scout lead board — rendered inside Internal agents page. */
+export function InternalHackathonBoard() {
   const [tab, setTab] = useState("all");
   const queryClient = useQueryClient();
 
   const leadsQ = useQuery({
     queryKey: ["hackathon-scout", "leads", tab],
     queryFn: () => fetchHackathonLeads(tab),
-    enabled: allowed,
     staleTime: STALE_MS,
   });
 
   const runQ = useQuery({
     queryKey: ["hackathon-scout", "latest-run"],
     queryFn: fetchHackathonLatestRun,
-    enabled: allowed,
     staleTime: STALE_MS,
   });
 
@@ -282,168 +270,124 @@ export default function InternalHackathonsPage() {
     [counts],
   );
 
-  if (!connected) {
-    return (
-      <div className={DASHBOARD_CONTENT_SHELL}>
-        <div className={PAGE_PADDING_TOP_MEDIUM}>
-          <Alert>
-            <Lock className="h-4 w-4" />
-            <AlertTitle>Connect wallet</AlertTitle>
-            <AlertDescription className="pt-1">
-              <Button size="sm" className="mt-2" onClick={() => void connectSolana()}>
-                Connect Solana wallet
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <div className={DASHBOARD_CONTENT_SHELL}>
-        <div className={PAGE_PADDING_TOP_MEDIUM}>
-          <Alert variant="destructive">
-            <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Access denied</AlertTitle>
-            <AlertDescription>
-              Authorized wallet only: {INTERNAL_TEAM_MONITOR_SOLANA_WALLET}
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
   const runMeta = runQ.data?.data;
   const busy = patchMutation.isPending || scanMutation.isPending;
 
   return (
-    <div className={DASHBOARD_CONTENT_SHELL}>
-      <div className={`${PAGE_PADDING_TOP_MEDIUM} space-y-6`}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <Button variant="ghost" size="sm" className="-ml-2 mb-1 text-muted-foreground" asChild>
-              <Link to="/dashboard/internal-team-agents">← Internal agents</Link>
-            </Button>
-            <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-              <Trophy className="h-6 w-6 text-primary" />
-              Hackathon Scout
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Discovers Solana / AI / web3 hackathons on X (one search per day, 12h cache). New leads save to DB
-              and notify Telegram. Mark participate, skip, or add notes.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              disabled={leadsQ.isFetching || busy}
-              onClick={() => void leadsQ.refetch()}
-            >
-              {leadsQ.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Refresh
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              disabled={busy}
-              onClick={() => scanMutation.mutate()}
-            >
-              {scanMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              Scan X now
-            </Button>
-          </div>
+    <section id="hackathon-board" className="scroll-mt-6 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight sm:text-xl">
+            <Trophy className="h-5 w-5 text-primary" />
+            Hackathon Scout
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Discovers Solana / AI / web3 hackathons on X (one search per day, 12h cache). New leads save to DB
+            and notify Telegram.
+          </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={leadsQ.isFetching || busy}
+            onClick={() => void leadsQ.refetch()}
+          >
+            {leadsQ.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button size="sm" className="gap-2" disabled={busy} onClick={() => scanMutation.mutate()}>
+            {scanMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            Scan X now
+          </Button>
+        </div>
+      </div>
 
-        {scanMutation.isSuccess && scanMutation.data?.data ? (
-          <Alert className="border-primary/30 bg-primary/5">
-            <AlertTitle>Scan complete</AlertTitle>
-            <AlertDescription>
-              Tweets sampled: {scanMutation.data.data.tweetsSampled} · Extracted:{" "}
-              {scanMutation.data.data.extracted} · New saved: {scanMutation.data.data.newSaved}
-              {scanMutation.data.data.fromCache ? " (X cache)" : ""}
-            </AlertDescription>
-          </Alert>
-        ) : null}
+      {scanMutation.isSuccess && scanMutation.data?.data ? (
+        <Alert className="border-primary/30 bg-primary/5">
+          <AlertTitle>Scan complete</AlertTitle>
+          <AlertDescription>
+            Tweets sampled: {scanMutation.data.data.tweetsSampled} · Extracted:{" "}
+            {scanMutation.data.data.extracted} · New saved: {scanMutation.data.data.newSaved}
+            {scanMutation.data.data.fromCache ? " (X cache)" : ""}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-        {scanMutation.isError ? (
-          <Alert variant="destructive">
-            <AlertTitle>Scan failed</AlertTitle>
-            <AlertDescription>
-              {scanMutation.error instanceof Error ? scanMutation.error.message : "Unknown error"}
-            </AlertDescription>
-          </Alert>
-        ) : null}
+      {scanMutation.isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Scan failed</AlertTitle>
+          <AlertDescription>
+            {scanMutation.error instanceof Error ? scanMutation.error.message : "Unknown error"}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {kpis.map((k) => (
-            <KpiTile key={k.label} label={k.label} value={k.value} hint={k.hint} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {kpis.map((k) => (
+          <KpiTile key={k.label} label={k.label} value={k.value} hint={k.hint} />
+        ))}
+      </div>
+
+      {runMeta ? (
+        <p className="text-xs text-muted-foreground">
+          Last pipeline: {formatShortDate(runMeta.ranAt)} · {runMeta.tweetsSampled} tweets ·{" "}
+          {runMeta.newSaved} new · X {runMeta.xConfigured ? "on" : "off"}
+          {runMeta.fromCache ? " · cached search" : ""}
+        </p>
+      ) : null}
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1">
+          {STATUS_TABS.map((t) => (
+            <TabsTrigger key={t.id} value={t.id} className="text-xs sm:text-sm">
+              {t.label}
+              {counts[t.id] != null ? (
+                <span className="ml-1.5 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">
+                  {counts[t.id]}
+                </span>
+              ) : null}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {leadsQ.isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-12 justify-center">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Loading hackathons…
+        </div>
+      ) : leadsQ.isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not load leads</AlertTitle>
+          <AlertDescription>
+            {leadsQ.error instanceof Error ? leadsQ.error.message : "Error"}
+          </AlertDescription>
+        </Alert>
+      ) : items.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            No hackathons in this bucket. Run &quot;Scan X now&quot; or wait for the daily 06:30 WIB job.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {items.map((lead) => (
+            <HackathonLeadCard
+              key={lead._id}
+              lead={lead}
+              busy={busy}
+              onStatus={(id, status) => patchMutation.mutate({ id, status })}
+              onSaveNotes={(id, notes) => patchMutation.mutate({ id, notes })}
+            />
           ))}
         </div>
-
-        {runMeta ? (
-          <p className="text-xs text-muted-foreground">
-            Last pipeline: {formatShortDate(runMeta.ranAt)} · {runMeta.tweetsSampled} tweets ·{" "}
-            {runMeta.newSaved} new · X {runMeta.xConfigured ? "on" : "off"}
-            {runMeta.fromCache ? " · cached search" : ""}
-          </p>
-        ) : null}
-
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1">
-            {STATUS_TABS.map((t) => (
-              <TabsTrigger key={t.id} value={t.id} className="text-xs sm:text-sm">
-                {t.label}
-                {counts[t.id] != null ? (
-                  <span className="ml-1.5 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">
-                    {counts[t.id]}
-                  </span>
-                ) : null}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        {leadsQ.isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-12 justify-center">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Loading hackathons…
-          </div>
-        ) : leadsQ.isError ? (
-          <Alert variant="destructive">
-            <AlertTitle>Could not load leads</AlertTitle>
-            <AlertDescription>
-              {leadsQ.error instanceof Error ? leadsQ.error.message : "Error"}
-            </AlertDescription>
-          </Alert>
-        ) : items.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              No hackathons in this bucket. Run &quot;Scan X now&quot; or wait for the daily 06:30 WIB job.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {items.map((lead) => (
-              <HackathonLeadCard
-                key={lead._id}
-                lead={lead}
-                busy={busy}
-                onStatus={(id, status) => patchMutation.mutate({ id, status })}
-                onSaveNotes={(id, notes) => patchMutation.mutate({ id, notes })}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </section>
   );
 }

@@ -68,7 +68,7 @@ function feeSolFromBps(depositSol, bps) {
   return (toNum(depositSol) * toNum(bps)) / 10_000;
 }
 
-async function fetchSolPriceUsd() {
+export async function fetchSolPriceUsd() {
   const now = Date.now();
   if (now - cachedSolPrice.ts <= 20_000 && Number.isFinite(cachedSolPrice.value)) {
     return cachedSolPrice.value;
@@ -88,22 +88,42 @@ async function fetchSolPriceUsd() {
   return cachedSolPrice.value || 150;
 }
 
-function deriveSyntheticSignals(pool) {
-  const volatilityScore = Math.max(
-    0,
-    Math.min(1, toNum(pool.feeTvlRatio) * 8 + Math.random() * 0.12),
-  );
+/** Deterministic pool fingerprint — avoids random sim boosts that mislead real strategy selection. */
+function poolFingerprint(pool) {
+  const key = String(pool.poolAddress || pool.poolName || "");
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return (h % 10_000) / 10_000;
+}
+
+/**
+ * Pool-derived signals only (no Math.random). Shared by sim lab and real agent scoring.
+ */
+export function derivePoolSignals(pool) {
+  const feeTvl = toNum(pool.feeTvlRatio);
+  const tvl = toNum(pool.tvlUsd);
+  const vol = toNum(pool.volume24hUsd);
+  const fp = poolFingerprint(pool);
+  const volatilityScore = Math.max(0, Math.min(1, feeTvl * 6 + vol / 400_000));
+  const organicBase = 42 + feeTvl * 280 + Math.min(28, tvl / 12_000);
   return {
-    organicScore: Math.max(0, Math.min(100, 50 + toNum(pool.feeTvlRatio) * 320 + Math.random() * 25)),
-    holderCount: Math.floor(500 + toNum(pool.tvlUsd) / 250 + Math.random() * 1500),
-    mcapUsd: Math.floor(Math.max(150_000, toNum(pool.tvlUsd) * (6 + Math.random() * 12))),
-    smartWalletsPresent: toNum(pool.feeTvlRatio) > 0.045 || toNum(pool.volume24hUsd) > 140_000,
-    narrativeScore: Math.max(1, Math.min(10, 4.5 + Math.random() * 4.5)),
-    studyWinRate: Math.max(0.35, Math.min(0.8, 0.42 + toNum(pool.feeTvlRatio) * 2 + Math.random() * 0.2)),
-    hiveConsensus: Math.max(0.2, Math.min(1, 0.3 + Math.random() * 0.6)),
+    organicScore: Math.max(0, Math.min(100, organicBase + fp * 8)),
+    holderCount: Math.floor(400 + tvl / 200 + vol / 500),
+    mcapUsd: Math.floor(Math.max(120_000, tvl * (5 + fp * 4))),
+    smartWalletsPresent: feeTvl > 0.05 && vol > 100_000,
+    narrativeScore: Math.max(1, Math.min(10, 4 + feeTvl * 12 + fp * 2)),
+    studyWinRate: Math.max(0.32, Math.min(0.72, 0.38 + feeTvl * 1.6 + fp * 0.12)),
+    hiveConsensus: Math.max(0.25, Math.min(0.95, 0.35 + feeTvl * 2.5 + fp * 0.2)),
     volatilityScore,
-    priceVsAthPct: Math.max(20, Math.min(100, 35 + volatilityScore * 55 + Math.random() * 20)),
+    priceVsAthPct: Math.max(22, Math.min(92, 38 + volatilityScore * 48 + fp * 14)),
   };
+}
+
+/** @deprecated use derivePoolSignals */
+function deriveSyntheticSignals(pool) {
+  return derivePoolSignals(pool);
 }
 
 function computePriceDriftPct(entry, current) {
@@ -117,14 +137,31 @@ function computeFeeYieldPct(feeTvlRatio, hoursElapsed) {
   return f * (hoursElapsed / 24) * 100;
 }
 
+export function isPositionOutOfRange(activeAtOpen, activeNow, binsBelow, binsAbove) {
+  const delta = toNum(activeNow, activeAtOpen) - toNum(activeAtOpen, activeNow);
+  const overBelow = Math.abs(Math.min(0, delta)) > toNum(binsBelow);
+  const overAbove = Math.max(0, delta) > toNum(binsAbove);
+  return overBelow || overAbove;
+}
+
 function shouldCloseByOor(run, detail, strategyExit, hoursElapsed) {
   const activeNow = toNum(detail.activeBinId, run.activeBinAtOpen);
   const activeAtOpen = toNum(run.activeBinAtOpen, activeNow);
-  const delta = activeNow - activeAtOpen;
-  const overBelow = Math.abs(Math.min(0, delta)) > toNum(run.binsBelow);
-  const overAbove = Math.max(0, delta) > toNum(run.binsAbove);
-  if (!overBelow && !overAbove) return false;
+  if (!isPositionOutOfRange(activeAtOpen, activeNow, run.binsBelow, run.binsAbove)) return false;
+  const minHoldMin = toNum(strategyExit.minHoldMin, 30);
+  if (hoursElapsed * 60 < minHoldMin) return false;
   return hoursElapsed * 60 >= toNum(strategyExit.oorWaitMin, 30);
+}
+
+/**
+ * LP economics: fees accrue in-range; OOR exits realize impermanent loss from price drift.
+ */
+export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange) {
+  if (inRange) {
+    return priceDriftPct * 0.15 + feeYieldPct;
+  }
+  const ilPenalty = -Math.abs(priceDriftPct) * 0.55 - Math.max(0, -priceDriftPct) * 0.2;
+  return ilPenalty + feeYieldPct * 0.35;
 }
 
 /**
@@ -137,8 +174,16 @@ function shouldCloseByOor(run, detail, strategyExit, hoursElapsed) {
  */
 function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults, feeCfg) {
   const priceDriftPct = computePriceDriftPct(toNum(run.entryPriceUsd), toNum(detail.currentPrice));
-  const feeYieldPct = computeFeeYieldPct(toNum(detail.feeTvlRatio, run.feeTvlRatio), hoursElapsed);
-  const netPnlPct = priceDriftPct + feeYieldPct;
+  const inRange = !isPositionOutOfRange(
+    run.activeBinAtOpen,
+    detail.activeBinId,
+    run.binsBelow,
+    run.binsAbove,
+  );
+  const feeYieldPct = inRange
+    ? computeFeeYieldPct(toNum(detail.feeTvlRatio, run.feeTvlRatio), hoursElapsed)
+    : computeFeeYieldPct(toNum(detail.feeTvlRatio, run.feeTvlRatio), hoursElapsed) * 0.25;
+  const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange);
   const simFeesEarnedSol = toNum(run.depositSol) * (feeYieldPct / 100);
 
   const exit = strategyExit || {};
@@ -354,7 +399,17 @@ export async function resetLpExperimentFromScratch(opts = {}) {
   return { nextExperimentId: nextId };
 }
 
-export async function getLpCandidatePools() {
+/** Stricter pool filters for on-chain LP (reduces IL-heavy memecoin / thin pools). */
+export function passesRealPoolScreen(pool) {
+  const feeTvl = toNum(pool.feeTvlRatio);
+  const tvl = toNum(pool.tvlUsd);
+  const vol = toNum(pool.volume24hUsd);
+  if (tvl < 40_000 || vol < 60_000) return false;
+  if (feeTvl < 0.035) return false;
+  return true;
+}
+
+export async function getLpCandidatePools({ realMode = false } = {}) {
   await ensureLpExperimentBootstrapped();
   const strategies = await resolveLpExperimentStrategies();
   const pools = await fetchMeteoraPools({
@@ -364,10 +419,11 @@ export async function getLpCandidatePools() {
     order: "desc",
     hideLowTvl: true,
   });
+  const poolList = realMode ? pools.filter(passesRealPoolScreen) : pools;
   const candidates = [];
   for (const strategy of strategies) {
-    const scored = pools.map((pool) => {
-      const synthetic = deriveSyntheticSignals(pool);
+    const scored = poolList.map((pool) => {
+      const synthetic = derivePoolSignals(pool);
       const scoredRow = scorePool(strategy, { ...pool, ...synthetic });
       return {
         strategyId: strategy.id,
@@ -440,7 +496,7 @@ export async function runLpExperimentSignalCycle() {
 
       const scored = pools
         .map((pool) => {
-          const synthetic = deriveSyntheticSignals(pool);
+          const synthetic = derivePoolSignals(pool);
           const scoredRow = scorePool(strategy, { ...pool, ...synthetic });
           const compoundBoost = 1 + Math.log1p(Math.max(0, cashSol - simCfg.startingBankSol)) / 25;
           return { pool, synthetic, ...scoredRow, score: scoredRow.score * compoundBoost };
@@ -624,7 +680,7 @@ export async function resolveOpenLpRuns() {
 }
 
 /** Min settled sim runs before real agent refuses a negative-PnL leader. */
-export const LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE = 2;
+export const LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE = 6;
 
 /**
  * Rank sim strategies for real-agent selection: avg net PnL on settled runs first,
@@ -697,10 +753,15 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
 
 function selectProfitableStrategyLeader(ranked) {
   if (ranked.length === 0) return null;
-  const best = ranked[0];
-  if (best.decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) return best;
-  if (best.rankScore > 0) return best;
-  const positive = ranked.find((row) => row.rankScore > 0 && row.decided >= 1);
+  const qualified = ranked.filter(
+    (row) =>
+      row.decided >= LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
+      row.rankScore > 0 &&
+      (row.winRate ?? 0) >= 0.45,
+  );
+  if (qualified.length > 0) return qualified[0];
+  if (ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) return ranked[0];
+  const positive = ranked.find((row) => row.rankScore > 0 && row.decided >= 3);
   if (positive) return positive;
   return null;
 }

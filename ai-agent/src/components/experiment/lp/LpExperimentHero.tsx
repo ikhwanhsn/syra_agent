@@ -1,12 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  ArrowLeft,
-  Droplets,
-  FlaskConical,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, Droplets, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
@@ -81,7 +74,7 @@ export function LpExperimentHero({
               </div>
               <Badge
                 variant="outline"
-                className="rounded-lg border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300"
+                className="rounded-lg border-violet-500/35 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-800 dark:text-violet-200"
               >
                 Beta
               </Badge>
@@ -145,33 +138,6 @@ export function LpExperimentHero({
         </div>
       </div>
 
-      <div className="relative border-t border-border/45 bg-background/[0.02]">
-        <div className="grid grid-cols-1 divide-y divide-border/40 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
-            <FlaskConical className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <div className="min-w-0">
-              <p className={overviewKickerClass}>Simulation</p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">10 SOL bank · 10 × 1 SOL slots</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
-            <Droplets className="h-4 w-4 shrink-0 text-violet-500" aria-hidden />
-            <div className="min-w-0">
-              <p className={overviewKickerClass}>Real agent</p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">Your custodied wallet on Meteora</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/45 bg-background/40 font-mono text-[11px] font-semibold text-muted-foreground">
-              2m
-            </span>
-            <div className="min-w-0">
-              <p className={overviewKickerClass}>Cadence</p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">Signal ~2m · resolve ~30s</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </header>
   );
 }

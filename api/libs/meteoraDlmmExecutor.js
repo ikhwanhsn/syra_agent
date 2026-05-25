@@ -27,6 +27,8 @@ const require = createRequire(import.meta.url);
 const DLMM = require("@meteora-ag/dlmm");
 
 const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 /**
  * Meteora DLMM legacy `Position` accounts encode at most 70 bins
@@ -446,6 +448,34 @@ export async function getAgentSolBalance(agentAddress) {
   const connection = getConnection();
   const lamports = await connection.getBalance(new PublicKey(agentAddress), "confirmed");
   return lamports / LAMPORTS_PER_SOL;
+}
+
+/**
+ * SOL-equivalent wallet book: native + wSOL + major stables (USD-pegged) at spot SOL/USD.
+ * Sidecar swaps leave USDC in the wallet; native-only balance understates total capital.
+ *
+ * @param {string} agentAddress
+ * @param {number} [solPriceUsd]
+ */
+export async function getAgentWalletEquitySol(agentAddress, solPriceUsd = 150) {
+  const px = toNum(solPriceUsd, 0);
+  const connection = getConnection();
+  const owner = new PublicKey(agentAddress);
+  const solRaw = await getOwnerMintAmountRaw(connection, owner, WRAPPED_SOL_MINT);
+  let equity = Number(solRaw) / LAMPORTS_PER_SOL;
+
+  if (px > 0) {
+    for (const { mint, decimals } of [
+      { mint: USDC_MINT, decimals: 6 },
+      { mint: USDT_MINT, decimals: 6 },
+    ]) {
+      const raw = await getOwnerMintAmountRaw(connection, owner, mint);
+      const human = Number(raw) / 10 ** decimals;
+      if (human > 0) equity += human / px;
+    }
+  }
+
+  return equity;
 }
 
 /**
