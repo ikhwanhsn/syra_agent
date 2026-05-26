@@ -20,7 +20,7 @@ export const EXPERIMENT_SUITE_USER_CUSTOM = "user_custom";
 /** Scans many tokens per cycle and opens the best spot-long setup (isolated ledger). */
 export const EXPERIMENT_SUITE_MULTI_TOKEN = "multi_token";
 
-/** High-conviction trend-following templates (target ≥20% annual via 2.5R wins + 20% equity sizing). */
+/** High-conviction trend-following templates (target ≥20% annual via 2.5R wins + full-capital compounding). */
 const TREND_HIGH = Object.freeze({
   experimentGate: {
     minConfidence: "HIGH",
@@ -394,7 +394,7 @@ export const EXPERIMENT_SUITES_META = Object.freeze([
     id: EXPERIMENT_SUITE_PRIMARY,
     title: "Algorithm agents",
     description:
-      "Trend-following agents (4h/1h) with min 2:1 R:R, ADX + momentum alignment, and ~20% equity per trade. Agents below $900 equity (–10%) are culled daily; 15 new agents spawn per day (max 1000 per ledger).",
+      "Trend-following agents (4h/1h) with min 2:1 R:R, ADX + momentum alignment, and full-capital spot-long entries (bank + compounded P/L). Agents below $900 equity (–10%) are culled daily; 15 new agents spawn per day (max 1000 per ledger).",
   },
   {
     id: EXPERIMENT_SUITE_SECONDARY,
@@ -406,6 +406,6 @@ export const EXPERIMENT_SUITES_META = Object.freeze([
     id: EXPERIMENT_SUITE_MULTI_TOKEN,
     title: "Opportunity hunters",
     description:
-      "Multi-token scouts with composite scoring, min 2:1 R:R, and dynamic position sizing. Agents below $900 equity are culled daily; 15 new scouts spawn per day (max 1000 per ledger).",
+      "Multi-token scouts with composite scoring, min 2:1 R:R, and full-capital entries. Agents below $900 equity are culled daily; 15 new scouts spawn per day (max 1000 per ledger).",
   },
 ]);

@@ -67,7 +67,7 @@ async function processMultiTokenAgent(strat, suiteNorm, ledgerMaps) {
   });
   if (openCount >= maxOpen) return { created: 0, errors: [] };
 
-  const { equityUsd } = labLedgerSnapshotFromMaps(strat.id, ledgerMaps);
+  const { cashUsd } = labLedgerSnapshotFromMaps(strat.id, ledgerMaps);
 
   const tokens = /** @type {string[]} */ (strat.tokens);
   const mode = strat.opportunityMode ?? "best_composite";
@@ -109,7 +109,8 @@ async function processMultiTokenAgent(strat, suiteNorm, ledgerMaps) {
 
   candidates.sort((a, b) => b.score - a.score);
   const best = candidates[0];
-  const notionalUsd = computeExperimentNotionalUsd(equityUsd, best.ex.confidence);
+  const notionalUsd = computeExperimentNotionalUsd(cashUsd);
+  if (!(notionalUsd > 0)) return { created: 0, errors };
 
   const reserved = await TradingExperimentAgentState.findOneAndUpdate(
     {

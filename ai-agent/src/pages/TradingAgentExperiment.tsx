@@ -1811,8 +1811,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     <div className="min-w-0 space-y-1">
                       <p className="text-sm font-semibold text-foreground">Experiment service online</p>
                       <p className="text-xs leading-relaxed text-foreground/75 sm:text-sm">
-                        $1,000 starting bank per agent, $100 per spot-long entry, compound P/L on each close. Agents only
-                        open a new trade when free cash is at least $100 (capital in open positions is reserved). TP/SL
+                        $1,000 starting bank per agent; each spot-long entry deploys full free cash (bank + compounded
+                        P/L). Agents only open when free cash is available (capital in open positions is reserved).
+                        TP/SL
                         checks continue in the background.
                       </p>
                     </div>

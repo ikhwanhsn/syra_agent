@@ -285,7 +285,7 @@ export default function TradingAgentExperimentAgentProfile({ embedded = false }:
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Open</p>
                 <p className="text-2xl font-semibold tabular-nums mt-1">{agent.openPositions}</p>
-                <p className="text-xs text-muted-foreground mt-1">Live $100 slots (max set by free cash)</p>
+                <p className="text-xs text-muted-foreground mt-1">Full-capital slots (free cash per open trade)</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Free cash</p>

@@ -528,8 +528,11 @@ export async function runExperimentSignalCycle(opts = {}) {
         continue;
       }
 
-      const { equityUsd } = labLedgerSnapshotFromMaps(s.id, ledgerMaps);
-      const notionalUsd = computeExperimentNotionalUsd(equityUsd, ex.confidence);
+      const { cashUsd } = labLedgerSnapshotFromMaps(s.id, ledgerMaps);
+      const notionalUsd = computeExperimentNotionalUsd(cashUsd);
+      if (!(notionalUsd > 0)) {
+        continue;
+      }
 
       const reserved = await TradingExperimentAgentState.findOneAndUpdate(
         {
@@ -948,8 +951,7 @@ export async function getExperimentStats(opts = {}) {
     simConfig: {
       startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
       tradeNotionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
-      tradePctOfEquity: 0.2,
-      dynamicNotional: true,
+      fullCapitalDeployment: true,
     },
   };
 }

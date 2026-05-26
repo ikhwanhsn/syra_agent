@@ -142,11 +142,11 @@ export interface TradingExperimentAgentStats {
   openPositions: number;
   /** Paper ledger: starting bank per agent (USD). */
   startingBankUsd?: number;
-  /** Notional locked per open trade (USD). */
+  /** Legacy fallback notional for runs missing per-trade notionalUsd. */
   tradeNotionalUsd?: number;
   /** Free cash not in open trades (USD). */
   cashUsd?: number;
-  /** Capital currently in open positions: openPositions × tradeNotionalUsd. */
+  /** Capital currently locked in open positions (sum of open run notionals). */
   deployedUsd?: number;
   /** startingBankUsd + realized P/L from closed runs (USD); open notional is cost-basis in deployedUsd. */
   equityUsd?: number;
@@ -174,7 +174,10 @@ export interface TradingExperimentAgentStats {
 
 export interface TradingExperimentSimConfig {
   startingBankUsd: number;
+  /** Legacy fallback for historical runs without per-trade notionalUsd. */
   tradeNotionalUsd: number;
+  /** When true, new entries size to all free cash (bank + realized P/L). */
+  fullCapitalDeployment?: boolean;
 }
 
 /** Format signed paper P/L for tables (e.g. +$12.50, −$8.00). */
