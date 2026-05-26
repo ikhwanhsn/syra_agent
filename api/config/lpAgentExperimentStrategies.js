@@ -297,7 +297,23 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
     exit: { stopLossPct: -8, takeProfitPct: 8, oorWaitMin: 32, trailingTriggerPct: 3.5 },
     notes: "Composite shape with quality and smart-wallet tilt.",
   },
+  {
+    id: 98,
+    name: "Real mirror (sim)",
+    lpShape: "spot",
+    binsBelow: 30,
+    binsAbove: 30,
+    screeningOverrides: { minOrganic: 60, minFeeTvlRatio: 0.035, minVolume24hUsd: 60_000 },
+    signalGate: { minPasses: 0 },
+    signalWeights: { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS },
+    exit: { stopLossPct: -8, takeProfitPct: 8, oorWaitMin: 45 },
+    notes:
+      "Dry-run mirror of the live LP agent: follows the sim PnL leader, real pool screen, SOL pairs only. No wallet balance gate.",
+  },
 ]);
+
+/** Sim agent that mirrors on-chain LP selection (excluded from leader ranking). */
+export const LP_REAL_MIRROR_STRATEGY_ID = 98;
 
 export function getDefaultSignalWeights() {
   return { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS };

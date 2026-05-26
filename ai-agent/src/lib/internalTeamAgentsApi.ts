@@ -1,9 +1,9 @@
 import { getApiBaseUrl } from "@/lib/chatApi";
 import type { InternalAgentSlug } from "@/lib/internalAgentsCatalog";
 
-async function fetchInternalJson<T>(path: string): Promise<T> {
+async function fetchInternalJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path}`;
-  const res = await fetch(url, { credentials: "include" });
+  const res = await fetch(url, { ...init, credentials: "include" });
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     const msg =
@@ -66,6 +66,7 @@ export interface PartnershipTarget {
 }
 
 export interface PartnershipScoutPayload {
+  ranAt?: string;
   ecosystemSummary?: string;
   onchainThemes?: string[];
   partnershipTargets?: PartnershipTarget[];
@@ -73,6 +74,12 @@ export interface PartnershipScoutPayload {
   risksOrCaveats?: string[];
   generatedAt?: string;
   sourceStats?: Record<string, number>;
+  candidatesScanned?: number;
+  candidatesFresh?: number;
+  extractedTargets?: number;
+  extractedIntegrations?: number;
+  newSaved?: number;
+  skippedExisting?: number;
 }
 
 export interface PartnershipScoutLatestResponse {
@@ -82,8 +89,9 @@ export interface PartnershipScoutLatestResponse {
 }
 
 export async function fetchPartnershipScoutLatest(): Promise<PartnershipScoutLatestResponse> {
-  return fetchInternalJson<PartnershipScoutLatestResponse>("/internal/partnership-scout/latest");
+  return fetchInternalJson<PartnershipScoutLatestResponse>("/internal/partnership-scout/latest-run");
 }
+
 
 export type InternalAgentLatestResponse = TrendScoutLatestResponse | PartnershipScoutLatestResponse;
 

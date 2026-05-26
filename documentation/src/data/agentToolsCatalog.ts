@@ -9,7 +9,7 @@ export interface AgentToolCatalogEntry {
   description: string;
   priceUsd: number;
   examplePrompt: string;
-  category: "core" | "partner" | "memecoin";
+  category: "core" | "partner" | "memecoin" | "market-data" | "social-data" | "enrichment-data";
 }
 
 /** Prices in USD (aligned with api/config/x402Pricing.js) */
@@ -31,6 +31,19 @@ const PRICE = {
   siwa: 0.01,
   purchVault: 0.01,
   arbitrage: 0.04,
+  stablecrypto: 0.01,
+  stablesocial: 0.06,
+  stableenrich01: 0.01,
+  stableenrich0002: 0.002,
+  stableenrich0126: 0.0126,
+  stableenrich02: 0.02,
+  stableenrich0252: 0.0252,
+  stableenrich03: 0.03,
+  stableenrich04: 0.04,
+  stableenrich0495: 0.0495,
+  stableenrich05: 0.05,
+  stableenrich10: 0.1,
+  birdeye: 0.003,
 } as const;
 
 export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
@@ -139,6 +152,358 @@ export const AGENT_TOOLS_CATALOG: AgentToolCatalogEntry[] = [
     priceUsd: PRICE.analyticsSummary,
     examplePrompt: "Full analytics summary / Analytics dashboard",
     category: "core",
+  },
+  // StableCrypto — CoinGecko + DefiLlama via stablecrypto.dev (x402 POST, $0.01/call)
+  {
+    id: "stablecrypto-coingecko-price",
+    name: "StableCrypto: CoinGecko price",
+    description:
+      "Live spot prices for CoinGecko ids (bitcoin, ethereum, solana, etc.). Params: ids (required, comma-separated); optional vs_currencies (default usd). Paid via agent wallet x402 to stablecrypto.dev.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "What is the Bitcoin price right now? / BTC and ETH price in USD",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-coingecko-global",
+    name: "StableCrypto: global market",
+    description: "CoinGecko global snapshot: total market cap, BTC dominance, 24h volume. No params.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "Global crypto market cap / Total market overview",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-coingecko-trending",
+    name: "StableCrypto: CoinGecko trending",
+    description: "Currently trending coins on CoinGecko. No params.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "CoinGecko trending coins / What's trending on CoinGecko?",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-coingecko-markets",
+    name: "StableCrypto: CoinGecko markets",
+    description: "Top markets list. Optional: ids, vs_currency, order, per_page, page, or body JSON.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "Top crypto markets by market cap",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-coingecko-ohlc",
+    name: "StableCrypto: CoinGecko OHLC",
+    description: "OHLC candles for a CoinGecko id. Params: id (e.g. bitcoin); optional vs_currency, days.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "OHLC for Bitcoin last 7 days / Candle data for ethereum",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-defillama-protocols",
+    name: "StableCrypto: DeFi protocols",
+    description: "List DeFi protocols with TVL from DefiLlama. No params.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "List top DeFi protocols / DefiLlama protocols",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-defillama-chains",
+    name: "StableCrypto: chain TVL",
+    description: "TVL breakdown by chain from DefiLlama. No params.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "TVL by chain / Which chains have the most DeFi TVL?",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-defillama-tvl",
+    name: "StableCrypto: protocol TVL",
+    description: "Historical TVL for one protocol. Params: protocol (required, DefiLlama slug e.g. aave, uniswap).",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "DefiLlama TVL for aave / Protocol TVL for uniswap",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-defillama-coins-prices",
+    name: "StableCrypto: DefiLlama coin prices",
+    description: "Current prices for DefiLlama coin ids. Params: coins (required, comma-separated coin:chain ids).",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "DefiLlama price for coingecko:ethereum",
+    category: "market-data",
+  },
+  {
+    id: "stablecrypto-defillama-yields-pools",
+    name: "StableCrypto: yield pools",
+    description: "DefiLlama yield pool snapshot. No params.",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "DefiLlama yield pools / Top DeFi yields",
+    category: "market-data",
+  },
+  // pay.sh — catalog gateway to ~75 x402 providers (includes StableCrypto FQN)
+  {
+    id: "paysh-discover",
+    name: "pay.sh discover providers",
+    description:
+      "Search the pay.sh catalog of x402 API providers (~75). Optional: q, category, freeOnly, limit. No USDC charge.",
+    priceUsd: 0,
+    examplePrompt: "Search pay.sh for market data providers",
+    category: "market-data",
+  },
+  {
+    id: "paysh-endpoints",
+    name: "pay.sh list endpoints",
+    description:
+      "List HTTP methods and paths from a provider OpenAPI skill. Params: fqn (required). No USDC charge.",
+    priceUsd: 0,
+    examplePrompt: "List endpoints for merit-systems/stablecrypto/market-data",
+    category: "market-data",
+  },
+  {
+    id: "paysh-call",
+    name: "pay.sh call provider",
+    description:
+      "Call any pay.sh-listed gateway via x402. Params: fqn, path (required), method (POST for StableCrypto), query/body JSON strings. Use fqn merit-systems/stablecrypto/market-data for full StableCrypto surface (Alchemy, Etherscan, on-chain CoinGecko).",
+    priceUsd: PRICE.stablecrypto,
+    examplePrompt: "Call StableCrypto global endpoint via pay.sh",
+    category: "market-data",
+  },
+  // StableSocial — TikTok, Instagram, Facebook, Reddit (async x402 + SIWX poll, $0.06/trigger)
+  {
+    id: "stablesocial-tiktok-profile",
+    name: "StableSocial: TikTok profile",
+    description:
+      "TikTok user profile by handle. Params: handle (required). Async job (~5–60s); agent wallet pays x402 then polls with SIWX.",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "TikTok profile for @charlidamelio / Look up TikTok user nike",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-tiktok-posts",
+    name: "StableSocial: TikTok posts",
+    description: "Recent TikTok videos for a user. Params: handle (required). Optional max_posts, cursor.",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Latest TikTok posts from @tiktok",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-tiktok-search",
+    name: "StableSocial: TikTok search",
+    description: "Search TikTok by keyword. Params: keyword or q (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Search TikTok for solana crypto",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-instagram-profile",
+    name: "StableSocial: Instagram profile",
+    description: "Instagram profile by handle. Params: handle (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Instagram profile for nike",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-instagram-posts",
+    name: "StableSocial: Instagram posts",
+    description: "Instagram posts for a user. Params: handle (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Recent Instagram posts from @nike",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-instagram-search",
+    name: "StableSocial: Instagram search",
+    description: "Search Instagram posts by keyword. Params: keyword or q (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Search Instagram for web3",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-facebook-profile",
+    name: "StableSocial: Facebook profile",
+    description: "Facebook page or user profile. Params: handle (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Facebook profile for Meta",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-facebook-posts",
+    name: "StableSocial: Facebook posts",
+    description: "Facebook posts for a page/user. Params: handle (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Latest Facebook posts from Meta",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-reddit-post",
+    name: "StableSocial: Reddit post",
+    description: "Reddit post details. Params: post_id (required) or body JSON with post URL/id.",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Get this Reddit post details (with post id)",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-reddit-search",
+    name: "StableSocial: Reddit search",
+    description: "Search Reddit posts by keyword. Params: keyword or q (required).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Search Reddit for solana hackathon",
+    category: "social-data",
+  },
+  {
+    id: "stablesocial-reddit-subreddit",
+    name: "StableSocial: Reddit subreddit",
+    description: "Posts from a subreddit. Params: subreddit (required, without r/).",
+    priceUsd: PRICE.stablesocial,
+    examplePrompt: "Top posts on r/solana / Subreddit solana feed",
+    category: "social-data",
+  },
+  {
+    id: "stableenrich-exa-search",
+    name: "StableEnrich: Exa search",
+    description: "Semantic web search; optional category people, company, news, linkedin profile.",
+    priceUsd: PRICE.stableenrich01,
+    examplePrompt: "Exa search for hedge fund analysts in New York / Find LinkedIn profiles for …",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-exa-contents",
+    name: "StableEnrich: Exa contents",
+    description: "Extract content from URLs (bulk-friendly). Params: urls required.",
+    priceUsd: PRICE.stableenrich0002,
+    examplePrompt: "Extract content from these URLs …",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-exa-answer",
+    name: "StableEnrich: Exa answer",
+    description: "AI-grounded answer to a question. Params: query required.",
+    priceUsd: PRICE.stableenrich01,
+    examplePrompt: "What is the latest on Solana Firedancer?",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-exa-find-similar",
+    name: "StableEnrich: Exa find similar",
+    description: "Pages similar to a URL. Params: url required.",
+    priceUsd: PRICE.stableenrich01,
+    examplePrompt: "Find sites similar to openai.com",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-firecrawl-scrape",
+    name: "StableEnrich: Firecrawl scrape",
+    description: "Scrape one URL to markdown. Params: url required.",
+    priceUsd: PRICE.stableenrich0126,
+    examplePrompt: "Scrape https://example.com/docs",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-firecrawl-search",
+    name: "StableEnrich: Firecrawl search",
+    description: "Search web with scraped results. Params: query required.",
+    priceUsd: PRICE.stableenrich0252,
+    examplePrompt: "Firecrawl search best coffee shops SF",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-apollo-people-search",
+    name: "StableEnrich: Apollo people search",
+    description: "B2B people search. Optional q_keywords; enrich results for full names.",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Apollo search software engineers in San Francisco",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-apollo-org-search",
+    name: "StableEnrich: Apollo org search",
+    description: "Company search — verify org before people search by org.",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Apollo find SaaS companies in the US",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-apollo-people-enrich",
+    name: "StableEnrich: Apollo people enrich",
+    description: "Enrich person by email or Apollo id.",
+    priceUsd: PRICE.stableenrich0495,
+    examplePrompt: "Apollo enrich tim@apple.com",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-apollo-org-enrich",
+    name: "StableEnrich: Apollo org enrich",
+    description: "Enrich company by domain.",
+    priceUsd: PRICE.stableenrich0495,
+    examplePrompt: "Apollo enrich domain stripe.com",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-google-maps-text-search",
+    name: "StableEnrich: Google Maps search",
+    description: "Text search for places (partial fields). Params: textQuery required.",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Google Maps coffee shops in San Francisco",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-google-maps-place-details",
+    name: "StableEnrich: Google Maps place details",
+    description: "Place details by placeId (GET).",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Google Maps details for place ID ChIJ…",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-reddit-search",
+    name: "StableEnrich: Reddit search",
+    description: "Search Reddit (preview). Params: query required.",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Search Reddit for AI agents",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-reddit-post-comments",
+    name: "StableEnrich: Reddit post comments",
+    description: "Full post + comments. Params: url (Reddit permalink).",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Get full Reddit thread for this post URL",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-serper-news",
+    name: "StableEnrich: Serper news",
+    description: "Google News via Serper. Params: q required.",
+    priceUsd: PRICE.stableenrich04,
+    examplePrompt: "Google news about OpenAI funding",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-hunter-email-verifier",
+    name: "StableEnrich: Hunter email verify",
+    description: "Verify email deliverability.",
+    priceUsd: PRICE.stableenrich03,
+    examplePrompt: "Verify email test@stripe.com",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-minerva-resolve",
+    name: "StableEnrich: Minerva resolve",
+    description: "Resolve person to Minerva PID. Params: body JSON with records.",
+    priceUsd: PRICE.stableenrich02,
+    examplePrompt: "Minerva resolve this person's email …",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-minerva-enrich",
+    name: "StableEnrich: Minerva enrich",
+    description: "Enrich person demographics/contacts. Params: body JSON.",
+    priceUsd: PRICE.stableenrich05,
+    examplePrompt: "Minerva enrich LinkedIn profile …",
+    category: "enrichment-data",
+  },
+  {
+    id: "stableenrich-cloudflare-crawl",
+    name: "StableEnrich: Cloudflare crawl",
+    description: "Multi-page site crawl (async). Params: url; optional limit, depth.",
+    priceUsd: PRICE.stableenrich10,
+    examplePrompt: "Crawl https://docs.example.com",
+    category: "enrichment-data",
   },
   {
     id: "arbitrage",
@@ -621,9 +986,12 @@ function formatPrice(usd: number): string {
 
 export function getToolsByCategory() {
   const core = AGENT_TOOLS_CATALOG.filter((t) => t.category === "core");
+  const marketData = AGENT_TOOLS_CATALOG.filter((t) => t.category === "market-data");
+  const socialData = AGENT_TOOLS_CATALOG.filter((t) => t.category === "social-data");
+  const enrichmentData = AGENT_TOOLS_CATALOG.filter((t) => t.category === "enrichment-data");
   const partner = AGENT_TOOLS_CATALOG.filter((t) => t.category === "partner");
   const memecoin = AGENT_TOOLS_CATALOG.filter((t) => t.category === "memecoin");
-  return { core, partner, memecoin };
+  return { core, marketData, socialData, enrichmentData, partner, memecoin };
 }
 
 export { formatPrice };

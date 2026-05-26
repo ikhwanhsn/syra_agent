@@ -110,13 +110,21 @@ export default function AgentHowItWorks() {
           The same chat flow works for all agent capabilities. After you're comfortable with signals, try:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-4">
+          <li><em>&quot;What is the Bitcoin price?&quot;</em> or <em>&quot;Global crypto market cap&quot;</em> — Live data via StableCrypto (CoinGecko/DefiLlama).</li>
+          <li><em>&quot;TikTok profile for nike&quot;</em> or <em>&quot;Top posts on r/solana&quot;</em> — Social profiles and feeds via StableSocial.</li>
+          <li><em>&quot;Scrape https://example.com&quot;</em> or <em>&quot;Apollo search engineers at Stripe&quot;</em> — Web scrape and B2B enrichment via StableEnrich.</li>
           <li><em>&quot;Latest crypto news&quot;</em> or <em>&quot;News about ETH&quot;</em> — Headlines and updates.</li>
           <li><em>&quot;What's the market sentiment?&quot;</em> — Sentiment analysis.</li>
           <li><em>&quot;Run deep research on [topic]&quot;</em> — Structured research reports.</li>
           <li><em>&quot;Trending on Jupiter&quot;</em> or <em>&quot;Memecoins with fastest holder growth&quot;</em> — Discovery and memecoin screens.</li>
         </ul>
         <p className="text-muted-foreground">
-          Each of these uses a specific tool under the hood; the agent chooses the right one from your message. For a complete list of tools, prices, and example prompts, see <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link> and <Link to="/docs/agent/features" className="text-primary hover:underline">Agent Features</Link>.
+          Each of these uses a specific tool under the hood; the agent chooses the right one from your message. Provider guides:{" "}
+          <Link to="/docs/agent/market-data" className="text-primary hover:underline">StableCrypto (market data)</Link>,{" "}
+          <Link to="/docs/agent/social-data" className="text-primary hover:underline">StableSocial (social)</Link>,{" "}
+          <Link to="/docs/agent/enrichment-data" className="text-primary hover:underline">StableEnrich (enrichment)</Link>. For a complete list of tools, prices, and example prompts, see{" "}
+          <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link> and{" "}
+          <Link to="/docs/agent/features" className="text-primary hover:underline">Agent Features</Link>.
         </p>
       </section>
 

@@ -11,3 +11,13 @@ export const SYRA_PARTNERSHIP_SCOUT_WIB_HOUR = 6;
 export const SYRA_PARTNERSHIP_SCOUT_WIB_MINUTE = 15;
 
 export const PARTNERSHIP_SCOUT_MAX_CANDIDATES = 45;
+
+/** Lead workflow statuses (persisted in InternalPartnershipLead). */
+export const PARTNERSHIP_SCOUT_STATUSES = Object.freeze([
+  "new",
+  "interested",
+  "participate",
+  "applied",
+  "skip",
+  "archived",
+]);

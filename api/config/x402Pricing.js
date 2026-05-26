@@ -72,6 +72,24 @@ export const X402_API_PRICE_ZERION_USD = price(0.01);
 /** Birdeye Data public API via x402 (~$0.003 upstream per call; Syra catalog uses margin) */
 export const X402_API_PRICE_BIRDEYE_USD = price(0.003);
 
+/** StableCrypto market data (CoinGecko, DefiLlama, Alchemy, Etherscan) via x402 — $0.01/call upstream */
+export const X402_API_PRICE_STABLECRYPTO_USD = price(0.01);
+
+/** StableSocial social media data (TikTok, Instagram, Facebook, Reddit) via x402 — $0.06/trigger upstream */
+export const X402_API_PRICE_STABLESOCIAL_USD = price(0.06);
+
+/** StableEnrich tiers (people/org search, scrape, maps, etc.) — upstream USD per call */
+export const X402_API_PRICE_STABLEENRICH_0002_USD = price(0.002);
+export const X402_API_PRICE_STABLEENRICH_01_USD = price(0.01);
+export const X402_API_PRICE_STABLEENRICH_0126_USD = price(0.0126);
+export const X402_API_PRICE_STABLEENRICH_02_USD = price(0.02);
+export const X402_API_PRICE_STABLEENRICH_0252_USD = price(0.0252);
+export const X402_API_PRICE_STABLEENRICH_03_USD = price(0.03);
+export const X402_API_PRICE_STABLEENRICH_04_USD = price(0.04);
+export const X402_API_PRICE_STABLEENRICH_0495_USD = price(0.0495);
+export const X402_API_PRICE_STABLEENRICH_05_USD = price(0.05);
+export const X402_API_PRICE_STABLEENRICH_10_USD = price(0.1);
+
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
@@ -155,6 +173,18 @@ export const X402_DISPLAY_PRICE_NANSEN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ZERION_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BIRDEYE_USD = 0.003 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLECRYPTO_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLESOCIAL_USD = 0.06 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_0002_USD = 0.002 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_01_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_0126_USD = 0.0126 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_02_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_0252_USD = 0.0252 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_03_USD = 0.03 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_04_USD = 0.04 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_0495_USD = 0.0495 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_05_USD = 0.05 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_STABLEENRICH_10_USD = 0.1 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = 0.01 * PRODUCTION_MULT;

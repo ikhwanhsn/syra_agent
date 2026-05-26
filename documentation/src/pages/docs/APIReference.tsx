@@ -50,7 +50,7 @@ const API_CATEGORIES: { title: string; slugs: string[] }[] = [
   },
   {
     title: "Partner: Agent-only tools",
-    slugs: ["agent-tools-partners"],
+    slugs: ["agent-tools-market-data", "agent-tools-social-data", "agent-tools-enrichment-data", "agent-tools-partners"],
   },
   {
     title: "8004 Agent Registry",

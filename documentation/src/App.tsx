@@ -15,6 +15,9 @@ import Community from "./pages/docs/Community";
 import AgentGettingStarted from "./pages/docs/AgentGettingStarted";
 import AgentHowItWorks from "./pages/docs/AgentHowItWorks";
 import AgentFeatures from "./pages/docs/AgentFeatures";
+import AgentMarketData from "./pages/docs/AgentMarketData";
+import AgentSocialData from "./pages/docs/AgentSocialData";
+import AgentEnrichmentData from "./pages/docs/AgentEnrichmentData";
 import AgentSupportedTokens from "./pages/docs/AgentSupportedTokens";
 import AgentTradingGuidance from "./pages/docs/AgentTradingGuidance";
 import AgentSystemPrompt from "./pages/docs/AgentSystemPrompt";
@@ -47,6 +50,9 @@ const App = () => (
           <Route path="/docs/agent/getting-started" element={<AgentGettingStarted />} />
           <Route path="/docs/agent/how-it-works" element={<AgentHowItWorks />} />
           <Route path="/docs/agent/features" element={<AgentFeatures />} />
+          <Route path="/docs/agent/market-data" element={<AgentMarketData />} />
+          <Route path="/docs/agent/social-data" element={<AgentSocialData />} />
+          <Route path="/docs/agent/enrichment-data" element={<AgentEnrichmentData />} />
           <Route path="/docs/agent/supported-tokens" element={<AgentSupportedTokens />} />
           <Route path="/docs/agent/trading-guidance" element={<AgentTradingGuidance />} />
           <Route path="/docs/agent/agent-catalog" element={<SyraAgentCatalog />} />

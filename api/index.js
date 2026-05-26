@@ -32,6 +32,7 @@ import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createInternalHackathonScoutRouter } from "./routes/internalHackathonScout.js";
+import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
   SYRA_PROBE_BASE_URL,
@@ -1039,6 +1040,7 @@ app.use("/internal/sentinel", await createSentinelDashboardRouter());
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 // Internal dashboard: hackathon scout + research-store (API key auth, no x402)
 app.use("/internal", createInternalHackathonScoutRouter());
+app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());

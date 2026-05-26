@@ -6,6 +6,9 @@
 
 import { getAgentTool } from '../config/agentTools.js';
 import { getBirdeyeGateMissing } from '../config/birdeyeAgentTools.js';
+import { getStablecryptoGateMissing } from '../config/stablecryptoAgentTools.js';
+import { getStablesocialGateMissing } from '../config/stablesocialAgentTools.js';
+import { getStableenrichGateMissing } from '../config/stableenrichAgentTools.js';
 
 /**
  * @param {unknown} v
@@ -311,6 +314,15 @@ export function getAgentToolParamGateMessage(toolId, method, params) {
 
   const birdeyeMissing = getBirdeyeGateMissing(id, p);
   if (birdeyeMissing?.length) return skipMsg(toolName, birdeyeMissing);
+
+  const stablecryptoMissing = getStablecryptoGateMissing(id, p);
+  if (stablecryptoMissing?.length) return skipMsg(toolName, stablecryptoMissing);
+
+  const stablesocialMissing = getStablesocialGateMissing(id, p);
+  if (stablesocialMissing?.length) return skipMsg(toolName, stablesocialMissing);
+
+  const stableenrichMissing = getStableenrichGateMissing(id, p);
+  if (stableenrichMissing?.length) return skipMsg(toolName, stableenrichMissing);
 
   const allKeys = REQUIRE_ALL_KEYS[id];
   if (allKeys) {

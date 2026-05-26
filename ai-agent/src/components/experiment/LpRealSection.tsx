@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   ArrowUpRight,
+  Clock,
   Copy,
   ExternalLink,
   Layers,
@@ -52,13 +53,17 @@ import {
   solscanAccountUrl,
   solscanTxUrl,
 } from "@/lib/lpAgentRealApi";
+import { formatRelativeTime, formatTimestamp } from "@/lib/agentWalletUi";
 import {
+  buildLpPositionTimeline,
   formatLpLastError,
   formatLpPositionError,
   formatLpResolutionLabel,
-  formatPositionDuration,
+  formatPoolPairLabel,
+  formatScreeningAtOpen,
   formatSolUsdSub,
   formatSolWithUsd,
+  formatStrategyCompact,
   lpPositionStatusLabel,
   lpPositionStatusTooltip,
   lpResolutionTooltip,
@@ -482,7 +487,7 @@ export function LpRealSection() {
               />
             </div>
 
-            <div className={cn(lpMetaPanel, "grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
+            <div className={cn(lpMetaPanel, "grid gap-4 sm:grid-cols-2 lg:grid-cols-4")}>
               <div>
                 <p className={overviewKickerClass}>Agent address</p>
                 <p className="mt-1.5 truncate font-mono text-xs text-foreground">{agentAddr}</p>
@@ -495,41 +500,85 @@ export function LpRealSection() {
                   {config?.maxConcurrentPositions ?? 10} max
                 </p>
               </div>
-              <div className="sm:col-span-2 lg:col-span-1">
+              <div>
                 <p className={overviewKickerClass}>Strategy</p>
                 {stateQ.data?.currentStrategy ? (
                   <div className="mt-1.5 space-y-1">
                     <Badge variant="secondary" className="font-normal">
                       #{stateQ.data.currentStrategy.id} {stateQ.data.currentStrategy.name}
-                      {stateQ.data.currentStrategy.isSimLeader ? " · sim leader" : ""}
+                      {stateQ.data.currentStrategy.isSimLeader ? " · cohort leader" : ""}
                     </Badge>
-                    {stateQ.data.currentStrategy.simAvgNetPnlSol != null ? (
+                    {stateQ.data.currentStrategy.simSumNetPnlSol != null ? (
                       <p className="text-xs text-muted-foreground">
-                        Sim avg net PnL{" "}
+                        Sim net PnL{" "}
                         <span
                           className={cn(
                             "font-medium tabular-nums",
-                            (stateQ.data.currentStrategy.simAvgNetPnlSol ?? 0) >= 0
+                            (stateQ.data.currentStrategy.simSumNetPnlSol ?? 0) >= 0
                               ? "text-emerald-600 dark:text-emerald-400"
                               : "text-red-600 dark:text-red-400",
                           )}
                         >
-                          {stateQ.data.currentStrategy.simAvgNetPnlSol >= 0 ? "+" : ""}
-                          {stateQ.data.currentStrategy.simAvgNetPnlSol.toFixed(4)} SOL
+                          {(stateQ.data.currentStrategy.simSumNetPnlSol ?? 0) >= 0 ? "+" : ""}
+                          {stateQ.data.currentStrategy.simSumNetPnlSol.toFixed(4)} SOL
                         </span>
                         {stateQ.data.currentStrategy.simDecidedRuns
-                          ? ` · ${stateQ.data.currentStrategy.simDecidedRuns} settled runs`
+                          ? ` · ${stateQ.data.currentStrategy.simDecidedRuns} settled`
                           : ""}
                       </p>
+                    ) : stateQ.data.currentStrategy.simAvgNetPnlSol != null ? (
+                      <p className="text-xs text-muted-foreground">
+                        Sim avg{" "}
+                        <span className="font-medium tabular-nums">
+                          {stateQ.data.currentStrategy.simAvgNetPnlSol.toFixed(4)} SOL / run
+                        </span>
+                      </p>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Highest net-PnL sim strategy each signal tick</p>
+                      <p className="text-xs text-muted-foreground">Follows highest net-PnL sim leader each tick</p>
                     )}
                   </div>
                 ) : (
                   <p className="mt-1.5 text-sm text-muted-foreground">Waiting for a profitable sim leader</p>
                 )}
               </div>
+              <div>
+                <p className={overviewKickerClass}>Agent timing</p>
+                <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+                  <li>
+                    <span className="text-foreground/80">Last open tick</span>{" "}
+                    {config?.lastSignalAt ? (
+                      <>
+                        <span className="font-medium text-foreground">{formatRelativeTime(config.lastSignalAt)}</span>
+                        <span className="block font-mono text-[10px] opacity-80">{formatTimestamp(config.lastSignalAt)}</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </li>
+                  <li>
+                    <span className="text-foreground/80">Last monitor</span>{" "}
+                    {config?.lastResolveAt ? (
+                      <>
+                        <span className="font-medium text-foreground">{formatRelativeTime(config.lastResolveAt)}</span>
+                        <span className="block font-mono text-[10px] opacity-80">{formatTimestamp(config.lastResolveAt)}</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </li>
+                  {config?.startedAt ? (
+                    <li>
+                      <span className="text-foreground/80">Config since</span>{" "}
+                      <span className="font-medium text-foreground">{formatRelativeTime(config.startedAt)}</span>
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
             </div>
+
+            {activePositions.length > 0 ? (
+              <LpRealLivePositionSummary rows={activePositions} solUsd={refSolUsd} enabled={enabled} />
+            ) : null}
 
             {!canTurnOn && !enabled ? (
               <LpExperimentNotice variant="caution" icon={Wallet}>
@@ -795,6 +844,85 @@ function LpRealPositionsTabbedTable({
   );
 }
 
+function LpRealLivePositionSummary({
+  rows,
+  solUsd,
+  enabled,
+}: {
+  rows: LpRealPosition[];
+  solUsd?: number;
+  enabled: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+        <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+        Live positions ({rows.length})
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {rows.map((row) => {
+          const timeline = buildLpPositionTimeline(row);
+          const screening = formatScreeningAtOpen(row);
+          return (
+            <div
+              key={row.id}
+              className="rounded-xl border border-border/50 bg-background/40 px-3 py-2.5 text-xs"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-medium text-foreground">{formatPoolPairLabel(row)}</p>
+                <span className="shrink-0 font-medium tabular-nums text-violet-700 dark:text-violet-300">
+                  {timeline.holdLabel}
+                </span>
+              </div>
+              <p className="mt-0.5 text-muted-foreground">{formatStrategyCompact(row)}</p>
+              <p className="mt-1 text-muted-foreground">
+                Opened {timeline.openedRelative}
+                <span className="text-foreground/70"> · {timeline.openedAbsolute}</span>
+              </p>
+              {timeline.lastCheckedRelative ? (
+                <p className="mt-0.5 text-muted-foreground">
+                  Last checked {timeline.lastCheckedRelative}
+                  {enabled ? " · exits ~every 30s" : ""}
+                </p>
+              ) : null}
+              <p className="mt-1 tabular-nums text-muted-foreground">
+                <SolAmount sol={row.depositSol} solUsd={solUsd} usdOverride={row.depositUsd} inline className="text-xs" />
+                {screening ? ` · ${screening}` : ""}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LpPositionTimelineCell({ row, variant }: { row: LpRealPosition; variant: "live" | "closed" | "failed" }) {
+  if (variant === "failed" && !row.openedAt) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const timeline = buildLpPositionTimeline(row);
+  return (
+    <div className="min-w-[7.5rem] space-y-0.5">
+      <p className="font-medium tabular-nums text-foreground">{timeline.holdLabel}</p>
+      <p className="text-[10px] leading-snug text-muted-foreground">
+        Open {timeline.openedRelative}
+      </p>
+      <p className="font-mono text-[10px] leading-snug text-muted-foreground/90">{timeline.openedAbsolute}</p>
+      {timeline.closedAbsolute ? (
+        <>
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            Closed {timeline.closedRelative}
+          </p>
+          <p className="font-mono text-[10px] leading-snug text-muted-foreground/90">{timeline.closedAbsolute}</p>
+        </>
+      ) : timeline.isLive && timeline.lastCheckedRelative ? (
+        <p className="text-[10px] leading-snug text-muted-foreground">Checked {timeline.lastCheckedRelative}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function LpBadgeTooltip({
   label,
   title,
@@ -884,13 +1012,13 @@ function LpRealPositionTable({
         <Table>
           <TableHeader>
             <TableRow className="border-border/40 hover:bg-transparent">
-              <TableHead className={lpTableHead}>Pool</TableHead>
+              <TableHead className={lpTableHead}>Pool · strategy</TableHead>
               <TableHead className={lpTableHead}>Status</TableHead>
+              <TableHead className={lpTableHead}>Timeline</TableHead>
               <TableHead className={cn(lpTableHead, "text-right")}>Deposit</TableHead>
               <TableHead className={cn(lpTableHead, "text-right")}>PnL</TableHead>
               <TableHead className={cn(lpTableHead, "text-right")}>LP fees</TableHead>
-              <TableHead className={lpTableHead}>Duration</TableHead>
-              <TableHead className={lpTableHead}>Tx</TableHead>
+              <TableHead className={lpTableHead}>On-chain</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -900,11 +1028,24 @@ function LpRealPositionTable({
               const errorTitle = [row.errorMessage, ...(row.policyReasons ?? [])].filter(Boolean).join(" · ");
               const feesSol = row.realFeesClaimedSol ?? 0;
               const showFees = variant === "closed" || (variant === "live" && feesSol > 0);
-              const showDuration = variant !== "failed" && row.openedAt;
+              const screening = formatScreeningAtOpen(row);
+              const entryPx =
+                row.entryPriceUsd != null && Number.isFinite(row.entryPriceUsd)
+                  ? formatLpUsd(row.entryPriceUsd)
+                  : null;
               return (
               <TableRow key={row.id} className="border-border/40">
-                <TableCell className="max-w-[160px] truncate text-sm font-medium">
-                  {row.poolName || row.poolAddress.slice(0, 8)}
+                <TableCell className="max-w-[200px]">
+                  <p className="truncate text-sm font-medium text-foreground">{formatPoolPairLabel(row)}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{formatStrategyCompact(row)}</p>
+                  {screening ? (
+                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={screening}>
+                      {screening}
+                    </p>
+                  ) : null}
+                  {entryPx ? (
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">Entry {entryPx}</p>
+                  ) : null}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col items-start gap-0.5">
@@ -918,6 +1059,9 @@ function LpRealPositionTable({
                       </span>
                     ) : null}
                   </div>
+                </TableCell>
+                <TableCell>
+                  <LpPositionTimelineCell row={row} variant={variant} />
                 </TableCell>
                 <TableCell className="text-right">
                   {locked ? (
@@ -944,31 +1088,43 @@ function LpRealPositionTable({
                 <TableCell className="text-right text-sm tabular-nums">
                   {showFees ? `${feesSol.toFixed(4)} SOL` : "—"}
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {showDuration ? formatPositionDuration(row.openedAt, row.resolvedAt) : "—"}
-                </TableCell>
-                <TableCell className="space-x-2 text-xs">
-                  {row.openTxSig && locked ? (
-                    <a
-                      href={solscanTxUrl(row.openTxSig)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-violet-600 hover:underline dark:text-violet-400"
-                      title="Open transaction on Solscan"
-                    >
-                      open tx
-                    </a>
-                  ) : null}
-                  {row.closeTxSig ? (
-                    <a
-                      href={solscanTxUrl(row.closeTxSig)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-violet-600 hover:underline dark:text-violet-400"
-                    >
-                      close
-                    </a>
-                  ) : null}
+                <TableCell className="text-xs">
+                  <div className="flex flex-col gap-1">
+                    {row.openTxSig && locked ? (
+                      <a
+                        href={solscanTxUrl(row.openTxSig)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-violet-600 hover:underline dark:text-violet-400"
+                        title="Open transaction on Solscan"
+                      >
+                        Open tx
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                    {row.closeTxSig ? (
+                      <a
+                        href={solscanTxUrl(row.closeTxSig)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-violet-600 hover:underline dark:text-violet-400"
+                      >
+                        Close tx
+                      </a>
+                    ) : null}
+                    {row.positionPubkey ? (
+                      <a
+                        href={solscanAccountUrl(row.positionPubkey)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate font-mono text-[10px] text-muted-foreground hover:text-foreground"
+                        title={row.positionPubkey}
+                      >
+                        {shorten(row.positionPubkey, 4, 4)}
+                      </a>
+                    ) : null}
+                  </div>
                 </TableCell>
               </TableRow>
             );})}

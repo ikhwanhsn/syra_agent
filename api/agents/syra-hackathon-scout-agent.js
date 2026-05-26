@@ -91,15 +91,18 @@ const SYSTEM = `You are **Syra Hackathon Scout**. Extract real hackathon / build
 - One row per distinct hackathon tweet (use exact tweetId from input).
 - Skip pure commentary with no event CTA.
 - Max 6 hackathons per run.
+- Do NOT output hackathons that match **alreadyKnown** (same event title/organizer or same application URL host), even if the tweetId is new.
 - Valid JSON only.`;
 
 /**
- * @param {{ tweets: HackathonTweetSample[]; model?: string | null }} input
+ * @param {{ tweets: HackathonTweetSample[]; knownHackathons?: { title: string; organizer?: string }[]; model?: string | null }} input
  * @returns {Promise<ExtractedHackathon[]>}
  */
 export async function runSyraHackathonScoutAgent(input) {
   const tweets = input.tweets.slice(0, HACKATHON_SCOUT_MAX_TWEETS_LLM);
   if (tweets.length === 0) return [];
+
+  const known = Array.isArray(input.knownHackathons) ? input.knownHackathons.slice(0, 60) : [];
 
   if (!process.env.OPENROUTER_API_KEY) {
     return tweets.slice(0, 3).map((t) => ({
@@ -130,7 +133,7 @@ export async function runSyraHackathonScoutAgent(input) {
       { role: "system", content: SYSTEM },
       {
         role: "user",
-        content: `Extract hackathons from these tweets:\n${JSON.stringify({ tweets: compact })}`,
+        content: `Extract hackathons from these tweets.\n\nAlready in Syra database (skip duplicates):\n${JSON.stringify({ alreadyKnown: known })}\n\nTweets:\n${JSON.stringify({ tweets: compact })}`,
       },
     ],
     model,

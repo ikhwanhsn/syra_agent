@@ -44,7 +44,7 @@ export default function AgentSupportedTokens() {
           {exampleTokens}
         </pre>
         <p className="text-muted-foreground mt-4">
-          If you request a signal for an unsupported token, the agent will typically suggest supported alternatives or explain that signals are available only for the listed assets. For discovery beyond this set (e.g. memecoins, trending on Jupiter), use the other tools described in <Link to="/docs/agent/features" className="text-primary hover:underline">Agent Features</Link> and the <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link>.
+          If you request a signal for an unsupported token, the agent will typically suggest supported alternatives or explain that signals are available only for the listed assets. For a <strong className="text-foreground">live spot price only</strong> (no full TA), ask e.g. &quot;Bitcoin price&quot; — the agent uses StableCrypto CoinGecko tools, which accept any CoinGecko id, not only this signal list. For discovery beyond this set (e.g. memecoins, trending on Jupiter), use the other tools in <Link to="/docs/agent/features" className="text-primary hover:underline">Agent Features</Link>, <Link to="/docs/agent/market-data" className="text-primary hover:underline">Market data</Link>, and the <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link>.
         </p>
       </section>
 

@@ -48,10 +48,10 @@ function collectTokenUniverse() {
 }
 
 const TOKEN_SLUGS = collectTokenUniverse();
-const BARS = Object.freeze(["15m", "30m", "1h", "2h", "4h", "1d"]);
-const SCALP_BARS = Object.freeze(["1m", "3m", "5m", "15m"]);
-const GATE_LEVELS = Object.freeze([null, "LOW", "MEDIUM", "HIGH"]);
-const SCALP_GATE_LEVELS = Object.freeze([null, "LOW", "LOW", "MEDIUM"]);
+const BARS = Object.freeze(["4h", "4h", "2h", "1h", "1h", "30m", "4h", "1d"]);
+const SCALP_BARS = Object.freeze(["15m", "15m", "30m", "5m", "15m", "30m"]);
+const GATE_LEVELS = Object.freeze(["MEDIUM", "HIGH", "HIGH", "MEDIUM", null]);
+const SCALP_GATE_LEVELS = Object.freeze(["MEDIUM", "HIGH", "MEDIUM", "HIGH"]);
 
 /** @template T @param {readonly T[]} arr @returns {T} */
 function pick(arr) {
@@ -125,9 +125,9 @@ function randomLimitForScalpBar(bar) {
 function randomLookAheadBarsScalp(bar) {
   const b = String(bar).toLowerCase();
   const center =
-    b === "1m" ? 200 : b === "3m" ? 120 : b === "5m" ? 100 : b === "15m" ? 88 : 100;
+    b === "5m" ? 130 : b === "15m" ? 110 : b === "30m" ? 92 : b === "3m" ? 100 : 120;
   const jitter = Math.floor(Math.random() * 41) - 20;
-  return Math.max(48, Math.min(320, center + jitter));
+  return Math.max(64, Math.min(320, center + jitter));
 }
 
 /**
@@ -155,7 +155,7 @@ export function buildRandomMultiTokenStrategy(agentId) {
   const mode = pick(EXPERIMENT_OPPORTUNITY_MODES);
   const limit = randomLimitForBar(bar);
   const lookAheadBars = randomLookAheadBars(bar);
-  const indicatorFilter = randomIndicatorFilter({ min: 0, max: 2 });
+  const indicatorFilter = randomIndicatorFilter({ min: 1, max: 2 });
   return {
     name: `Scout ${count}× ${bar} evo ${agentId}`,
     token: MULTI_TOKEN_DISPLAY_SLUG,
@@ -165,7 +165,14 @@ export function buildRandomMultiTokenStrategy(agentId) {
     lookAheadBars,
     opportunityMode: mode,
     maxOpenPositions: 1,
-    experimentGate: gate ? { minConfidence: gate } : null,
+    experimentGate: gate
+      ? {
+          minConfidence: gate,
+          minRiskReward: 2,
+          minAdx: 18,
+          requireTrendMomentumAlign: true,
+        }
+      : { minRiskReward: 2, minAdx: 16 },
     indicatorFilter,
   };
 }
@@ -176,7 +183,7 @@ export function buildRandomLabStrategy(agentId) {
   const gate = pick(GATE_LEVELS);
   const limit = randomLimitForBar(bar);
   const lookAheadBars = randomLookAheadBars(bar);
-  const indicatorFilter = randomIndicatorFilter({ min: 0, max: 3 });
+  const indicatorFilter = randomIndicatorFilter({ min: 1, max: 3 });
   const name = `${String(token).toUpperCase()} ${bar} evo ${agentId}`;
   return {
     name,
@@ -184,7 +191,14 @@ export function buildRandomLabStrategy(agentId) {
     bar,
     limit,
     lookAheadBars,
-    experimentGate: gate ? { minConfidence: gate } : null,
+    experimentGate: gate
+      ? {
+          minConfidence: gate,
+          minRiskReward: gate === "HIGH" ? 2.2 : 2,
+          minAdx: gate === "HIGH" ? 22 : 18,
+          requireTrendMomentumAlign: Math.random() < 0.7,
+        }
+      : { minRiskReward: 2, minAdx: 16 },
     indicatorFilter,
   };
 }
@@ -208,7 +222,7 @@ export function buildRandomScalperStrategy(agentId) {
   const gate = pick(SCALP_GATE_LEVELS);
   const limit = randomLimitForScalpBar(bar);
   const lookAheadBars = randomLookAheadBarsScalp(bar);
-  const indicatorFilter = randomIndicatorFilter({ min: 0, max: 2 });
+  const indicatorFilter = randomIndicatorFilter({ min: 1, max: 2 });
   const name = `${String(token).toUpperCase()} ${bar} scalp-evo ${agentId}`;
   return {
     name,
@@ -216,7 +230,11 @@ export function buildRandomScalperStrategy(agentId) {
     bar,
     limit,
     lookAheadBars,
-    experimentGate: gate ? { minConfidence: gate } : null,
+    experimentGate: {
+      minConfidence: gate,
+      minRiskReward: 2,
+      minAdx: gate === "HIGH" ? 22 : 18,
+    },
     indicatorFilter,
   };
 }

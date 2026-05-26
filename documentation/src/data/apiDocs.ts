@@ -1625,6 +1625,190 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     ],
   }),
 
+  "agent-tools-market-data": doc({
+    title: "Syra Agent tools: StableCrypto & pay.sh market data",
+    overview:
+      "StableCrypto (stablecrypto.dev) provides CoinGecko, DefiLlama, Alchemy, and Etherscan data as **POST** endpoints at **~$0.01/call** via x402. Syra exposes ten curated **stablecrypto-*** agent tools plus **paysh-discover**, **paysh-endpoints**, and **paysh-call** for the pay.sh catalog (FQN `merit-systems/stablecrypto/market-data` for the full StableCrypto OpenAPI). These run through **POST /agent/chat/completion** (natural language) and **POST /agent/tools/call** (programmatic). The agent wallet pays upstream x402 to StableCrypto; Syra does not host duplicate HTTP routes for these paths.",
+    price: "$0.01 USD per stablecrypto-* call (and per paysh-call, subject to provider min_price_usd). paysh-discover and paysh-endpoints are free.",
+    authNote:
+      "Requires a Syra Agent session (**anonymousId**) and sufficient agent USDC for paid tools. Optional server env: STABLECRYPTO_API_BASE_URL (default https://stablecrypto.dev).",
+    paymentFlow: {
+      step1: "User connects wallet and funds agent USDC on agent.syraa.fun.",
+      step2: "Chat: ask e.g. \"Bitcoin price\" or \"Global market cap\" — tool router selects stablecrypto-coingecko-price or stablecrypto-coingecko-global.",
+      step3: "API: GET /agent/tools lists tool ids; POST /agent/tools/call with toolId and string params (see body examples below).",
+      response402:
+        "/agent/tools/call validates balance server-side (JSON error, not HTTP 402). Upstream StableCrypto returns 402 if x402 payment fails during the gateway call.",
+    },
+    endpoints: [
+      {
+        method: "GET",
+        path: "/agent/tools",
+        description:
+          "List all tools. Filter client-side for ids starting with stablecrypto- or paysh-. Each entry includes priceUsd, name, description.",
+        requestExample: `curl ${BASE_URL}/agent/tools`,
+        responseExample: `{ "success": true, "tools": [ { "id": "stablecrypto-coingecko-price", "name": "StableCrypto: CoinGecko price", "priceUsd": 0.01, ... } ] }`,
+      },
+      {
+        method: "POST",
+        path: "/agent/tools/call",
+        description:
+          "Execute one tool. StableCrypto tools use POST upstream; pass flat string params (ids, protocol, id, coins) or body as JSON string for advanced payloads.",
+        bodyExample: `{ "anonymousId": "<session-id>", "toolId": "stablecrypto-coingecko-price", "params": { "ids": "bitcoin,ethereum", "vs_currencies": "usd" } }`,
+        requestExample: `curl -X POST ${BASE_URL}/agent/tools/call \\
+  -H "Content-Type: application/json" \\
+  -d '{"anonymousId":"<session-id>","toolId":"stablecrypto-coingecko-global","params":{}}'`,
+        responseExample: `{ "success": true, "toolId": "stablecrypto-coingecko-global", "data": { ... CoinGecko global payload ... } }`,
+      },
+      {
+        method: "POST",
+        path: "/agent/chat/completion",
+        description:
+          "Agent chat (same tool execution as /agent/tools/call). Send messages array + anonymousId; tool router may select stablecrypto-* or paysh-call automatically.",
+        bodyExample: `{ "anonymousId": "<session-id>", "messages": [ { "role": "user", "content": "What is the Bitcoin price?" } ] }`,
+        requestExample: `curl -X POST ${BASE_URL}/agent/chat/completion \\
+  -H "Content-Type: application/json" \\
+  -d '{"anonymousId":"<session-id>","messages":[{"role":"user","content":"Global crypto market cap"}]}'`,
+        responseExample: `{ "success": true, "response": "...", "toolUsages": [ { "name": "StableCrypto: global crypto market", "status": "ok", "costUsd": 0.01 } ] }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "StableCrypto tool IDs (curated)",
+        content:
+          "**stablecrypto-coingecko-price** — params: ids (required), vs_currencies optional. **stablecrypto-coingecko-global**, **stablecrypto-coingecko-trending**, **stablecrypto-defillama-protocols**, **stablecrypto-defillama-chains**, **stablecrypto-defillama-yields-pools** — no required params. **stablecrypto-coingecko-ohlc** — id required. **stablecrypto-defillama-tvl** — protocol required (e.g. aave). **stablecrypto-defillama-coins-prices** — coins required. Full upstream paths: https://stablecrypto.dev/llms.txt",
+      },
+      {
+        title: "pay.sh call (extended StableCrypto)",
+        content:
+          '**paysh-call** params: fqn `merit-systems/stablecrypto/market-data`, path e.g. `/api/coingecko/global`, method `POST`, body `{}` or JSON string. Use **paysh-endpoints** with the same fqn to list all routes (Alchemy, Etherscan, on-chain CoinGecko). **paysh-discover** with q=stablecrypto finds the provider.',
+      },
+      {
+        title: "Documentation",
+        content:
+          "User guide: /docs/agent/market-data. API: /docs/api/agent-tools-market-data. Catalog: /docs/agent/agent-catalog (Market data section). Related: /docs/agent/social-data, /docs/agent/enrichment-data.",
+      },
+    ],
+  }),
+
+  "agent-tools-social-data": doc({
+    title: "Syra Agent tools: StableSocial social data",
+    overview:
+      "StableSocial (stablesocial.dev) provides TikTok, Instagram, Facebook, and Reddit data via an **async two-step flow**: paid **POST** trigger (~$0.06 USDC x402) returns a job `token`, then **GET /api/jobs?token=...** with **SIWX** wallet auth (free) until `status: finished`. Syra exposes eleven curated **stablesocial-*** agent tools that run trigger + poll server-side using the same agent wallet for payment and SIWX. Use **POST /agent/chat/completion** or **POST /agent/tools/call**.",
+    price: "$0.06 USD per stablesocial-* call (one paid trigger per tool invocation; polling is free upstream).",
+    authNote:
+      "Requires a Syra Agent session (**anonymousId**) and sufficient agent USDC. Optional env: STABLESOCIAL_API_BASE_URL (default https://stablesocial.dev), STABLESOCIAL_POLL_INTERVAL_MS, STABLESOCIAL_POLL_MAX_ATTEMPTS.",
+    paymentFlow: {
+      step1: "User funds agent USDC on agent.syraa.fun.",
+      step2: 'Chat: e.g. "TikTok profile for nike" — router selects stablesocial-tiktok-profile with handle=nike.',
+      step3: "API: POST /agent/tools/call with toolId and params; server triggers StableSocial, polls with SIWX, returns finished data.",
+      response402:
+        "/agent/tools/call validates balance server-side. Upstream trigger returns 402 if x402 payment fails.",
+    },
+    endpoints: [
+      {
+        method: "GET",
+        path: "/agent/tools",
+        description: "List tools. Filter ids starting with stablesocial-.",
+        requestExample: `curl ${BASE_URL}/agent/tools`,
+        responseExample: `{ "success": true, "tools": [ { "id": "stablesocial-tiktok-profile", "priceUsd": 0.06, ... } ] }`,
+      },
+      {
+        method: "POST",
+        path: "/agent/tools/call",
+        description: "Execute one StableSocial tool (trigger + poll). Response data includes status finished and collected payload.",
+        bodyExample: `{ "anonymousId": "<session-id>", "toolId": "stablesocial-tiktok-profile", "params": { "handle": "tiktok" } }`,
+        requestExample: `curl -X POST ${BASE_URL}/agent/tools/call \\
+  -H "Content-Type: application/json" \\
+  -d '{"anonymousId":"<session-id>","toolId":"stablesocial-reddit-subreddit","params":{"subreddit":"solana"}}'`,
+        responseExample: `{ "success": true, "toolId": "stablesocial-reddit-subreddit", "data": { "status": "finished", "token": "...", "data": { ... } } }`,
+      },
+      {
+        method: "POST",
+        path: "/agent/chat/completion",
+        description: "Natural-language chat; same execution path as /agent/tools/call for stablesocial-* tools.",
+        bodyExample: `{ "anonymousId": "<session-id>", "messages": [ { "role": "user", "content": "Instagram profile for nike" } ] }`,
+        requestExample: `curl -X POST ${BASE_URL}/agent/chat/completion \\
+  -H "Content-Type: application/json" \\
+  -d '{"anonymousId":"<session-id>","messages":[{"role":"user","content":"Top posts on r/solana"}]}'`,
+        responseExample: `{ "success": true, "response": "...", "toolUsages": [ { "name": "StableSocial: Reddit subreddit", "status": "ok" } ] }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Tool IDs",
+        content:
+          "**stablesocial-tiktok-profile**, **stablesocial-tiktok-posts**, **stablesocial-tiktok-search** — handle or keyword. **stablesocial-instagram-profile**, **stablesocial-instagram-posts**, **stablesocial-instagram-search**. **stablesocial-facebook-profile**, **stablesocial-facebook-posts**. **stablesocial-reddit-post** (post_id), **stablesocial-reddit-search** (keyword), **stablesocial-reddit-subreddit** (subreddit). Full API: https://stablesocial.dev/llms.txt",
+      },
+      {
+        title: "pay.sh (extended surface)",
+        content:
+          "FQN `merit-systems/stablesocial/social-data` via **paysh-call** if you need endpoints not wrapped as stablesocial-* tools; you must implement trigger + SIWX poll yourself.",
+      },
+      {
+        title: "Documentation",
+        content:
+          "User guide: /docs/agent/social-data. API: /docs/api/agent-tools-social-data. Catalog: /docs/agent/agent-catalog (Social data section). Related: /docs/agent/market-data, /docs/agent/enrichment-data.",
+      },
+    ],
+  }),
+
+  "agent-tools-enrichment-data": doc({
+    title: "Syra Agent tools: StableEnrich enrichment & research",
+    overview:
+      "StableEnrich (stableenrich.dev) provides Exa search, Firecrawl scrape, Apollo people/org search, Google Maps, Reddit, Serper news, Hunter email verification, Minerva identity, and Cloudflare multi-page crawl — all via x402 micropayment. Syra exposes **19 curated stableenrich-*** tools with per-endpoint pricing. Most calls are sync POST/GET; **stableenrich-cloudflare-crawl** is async (POST trigger + SIWX poll on GET /api/cloudflare/jobs).",
+    price: "$0.002–$0.10 USD per stableenrich-* call depending on tool (see GET /agent/tools).",
+    authNote:
+      "Requires Syra Agent **anonymousId** and agent USDC. Optional: STABLEENRICH_API_BASE_URL, STABLEENRICH_CF_POLL_INTERVAL_MS.",
+    paymentFlow: {
+      step1: "Fund agent USDC on agent.syraa.fun.",
+      step2: 'Chat: e.g. "Scrape https://example.com" → stableenrich-firecrawl-scrape; "Apollo people search …" → stableenrich-apollo-people-search.',
+      step3: "API: POST /agent/tools/call with toolId and params.",
+      response402: "Balance checked server-side; upstream 402 if x402 settlement fails.",
+    },
+    endpoints: [
+      {
+        method: "GET",
+        path: "/agent/tools",
+        description: "List tools; filter ids starting with stableenrich-.",
+        requestExample: `curl ${BASE_URL}/agent/tools`,
+        responseExample: `{ "success": true, "tools": [ { "id": "stableenrich-exa-search", "priceUsd": 0.01, ... } ] }`,
+      },
+      {
+        method: "POST",
+        path: "/agent/tools/call",
+        description: "Execute StableEnrich tool (sync or async crawl).",
+        bodyExample: `{ "anonymousId": "<session-id>", "toolId": "stableenrich-firecrawl-scrape", "params": { "url": "https://example.com" } }`,
+        requestExample: `curl -X POST ${BASE_URL}/agent/tools/call -H "Content-Type: application/json" -d '{"anonymousId":"<id>","toolId":"stableenrich-apollo-org-search","params":{"q":"saas"}}'`,
+        responseExample: `{ "success": true, "toolId": "stableenrich-apollo-org-search", "data": { ... } }`,
+      },
+      {
+        method: "POST",
+        path: "/agent/chat/completion",
+        description: "Natural-language; tool router may select stableenrich-* automatically.",
+        bodyExample: `{ "anonymousId": "<session-id>", "messages": [ { "role": "user", "content": "Verify email hello@company.com" } ] }`,
+        requestExample: `curl -X POST ${BASE_URL}/agent/chat/completion -H "Content-Type: application/json" -d '{"anonymousId":"<id>","messages":[{"role":"user","content":"Google Maps coffee in SF"}]}'`,
+        responseExample: `{ "success": true, "response": "...", "toolUsages": [ ... ] }`,
+      },
+    ],
+    extraSections: [
+      {
+        title: "Tool IDs (curated)",
+        content:
+          "Exa: stableenrich-exa-search, exa-contents, exa-answer, exa-find-similar. Firecrawl: firecrawl-scrape, firecrawl-search. Apollo: apollo-people-search, apollo-org-search, apollo-people-enrich, apollo-org-enrich. Maps: google-maps-text-search, google-maps-place-details. Reddit: reddit-search, reddit-post-comments. Serper: serper-news. Hunter: hunter-email-verifier. Minerva: minerva-resolve, minerva-enrich (body JSON). Crawl: cloudflare-crawl (async). Full API: https://stableenrich.dev/llms.txt",
+      },
+      {
+        title: "pay.sh (extended StableEnrich)",
+        content:
+          "Use **paysh-call** with FQN from **paysh-discover** (q=stableenrich or provider name) for endpoints not wrapped as stableenrich-* tools (Whitepages, Clado, Serper images, full Google Maps solar, etc.).",
+      },
+      {
+        title: "Documentation",
+        content:
+          "User guide: /docs/agent/enrichment-data. API: /docs/api/agent-tools-enrichment-data. Catalog: /docs/agent/agent-catalog (Enrichment section). Related: /docs/agent/market-data, /docs/agent/social-data.",
+      },
+    ],
+  }),
+
   "agent-tools-partners": doc({
     title: "Syra Agent tools: Binance, Giza, Bankr, Neynar & SIWA",
     overview:
@@ -1668,6 +1852,11 @@ curl "${BASE_URL}/event?ticker=BTC"`,
       {
         title: "Agent catalog",
         content: "Human-readable tool list with example prompts: /docs/agent/agent-catalog (Syra Agent documentation).",
+      },
+      {
+        title: "Market data (StableCrypto)",
+        content:
+          "StableCrypto: /docs/agent/market-data. StableSocial: /docs/agent/social-data. StableEnrich: /docs/agent/enrichment-data.",
       },
     ],
   }),

@@ -8,10 +8,15 @@ import {
   normalizeSuite,
 } from "../config/tradingExperimentStrategies.js";
 import { isMultiTokenStrategy } from "../config/tradingExperimentMultiToken.js";
-import { TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } from "../config/tradingExperimentSim.js";
+import { computeExperimentNotionalUsd } from "../config/tradingExperimentSim.js";
 import { buildBinanceSignalReport } from "./binanceSignalAnalysis.js";
 import { extractSignalFields } from "./experimentSignalExtract.js";
-import { experimentBuyPassesAllGates } from "./experimentSignalGate.js";
+import { computeLongRiskReward } from "./experimentSignalGate.js";
+import { prepareExperimentBuy } from "./experimentTradeEnhance.js";
+import {
+  buildLabLedgerMapsForSuite,
+  labLedgerSnapshotFromMaps,
+} from "./tradingExperimentService.js";
 import { resolveStrategiesForSuite } from "./tradingExperimentStrategyResolve.js";
 
 const CONFIDENCE_RANK = Object.freeze({ LOW: 0, MEDIUM: 1, HIGH: 2 });
@@ -30,13 +35,7 @@ function confidenceRank(c) {
  */
 export function scoreTradingOpportunity(ex, mode = "best_composite") {
   const conf = confidenceRank(ex.confidence);
-  const entry = ex.entry;
-  const sl = ex.stopLoss;
-  const tp = ex.firstTarget;
-  let rr = 1;
-  if (entry > 0 && sl > 0 && tp > entry) {
-    rr = (tp - entry) / (entry - sl);
-  }
+  const rr = computeLongRiskReward(ex) ?? 1;
   const rrCap = Math.min(Math.max(rr, 0.25), 5);
 
   if (mode === "best_confidence") return conf * 1000 + rrCap * 25;
@@ -60,7 +59,7 @@ function labAgentRunFilter(suiteNorm, agentId) {
  * @param {object} strat
  * @param {string} suiteNorm
  */
-async function processMultiTokenAgent(strat, suiteNorm) {
+async function processMultiTokenAgent(strat, suiteNorm, ledgerMaps) {
   const maxOpen = Math.max(1, Number(strat.maxOpenPositions) || 1);
   const openCount = await TradingExperimentRun.countDocuments({
     ...labAgentRunFilter(suiteNorm, strat.id),
@@ -68,16 +67,7 @@ async function processMultiTokenAgent(strat, suiteNorm) {
   });
   if (openCount >= maxOpen) return { created: 0, errors: [] };
 
-  const reserved = await TradingExperimentAgentState.findOneAndUpdate(
-    {
-      suite: suiteNorm,
-      agentId: strat.id,
-      cashUsd: { $gte: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD },
-    },
-    { $inc: { cashUsd: -TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
-    { new: true },
-  );
-  if (!reserved) return { created: 0, errors: [] };
+  const { equityUsd } = labLedgerSnapshotFromMaps(strat.id, ledgerMaps);
 
   const tokens = /** @type {string[]} */ (strat.tokens);
   const mode = strat.opportunityMode ?? "best_composite";
@@ -93,17 +83,10 @@ async function processMultiTokenAgent(strat, suiteNorm) {
           bar: strat.bar,
           limit: strat.limit,
         });
-        const ex = extractSignalFields(bin.report);
-        if (!experimentBuyPassesAllGates(ex, strat.experimentGate, strat.indicatorFilter)) return;
-        if (ex.clearSignal === "HOLD" || ex.clearSignal !== "BUY") return;
-        if (
-          ex.entry == null ||
-          ex.stopLoss == null ||
-          ex.firstTarget == null ||
-          !(ex.firstTarget > ex.entry && ex.stopLoss < ex.entry)
-        ) {
-          return;
-        }
+        const rawEx = extractSignalFields(bin.report);
+        if (rawEx.clearSignal === "HOLD" || rawEx.clearSignal !== "BUY") return;
+        const ex = prepareExperimentBuy(rawEx, strat.experimentGate, strat.indicatorFilter);
+        if (!ex) return;
         const score = scoreTradingOpportunity(ex, mode);
         candidates.push({
           token,
@@ -121,15 +104,24 @@ async function processMultiTokenAgent(strat, suiteNorm) {
   );
 
   if (candidates.length === 0) {
-    await TradingExperimentAgentState.updateOne(
-      { suite: suiteNorm, agentId: strat.id },
-      { $inc: { cashUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
-    );
     return { created: 0, errors };
   }
 
   candidates.sort((a, b) => b.score - a.score);
   const best = candidates[0];
+  const notionalUsd = computeExperimentNotionalUsd(equityUsd, best.ex.confidence);
+
+  const reserved = await TradingExperimentAgentState.findOneAndUpdate(
+    {
+      suite: suiteNorm,
+      agentId: strat.id,
+      cashUsd: { $gte: notionalUsd },
+    },
+    { $inc: { cashUsd: -notionalUsd } },
+    { new: true },
+  );
+  if (!reserved) return { created: 0, errors };
+
   const summary = {
     signal: best.ex.clearSignal,
     opportunityMode: mode,
@@ -159,13 +151,13 @@ async function processMultiTokenAgent(strat, suiteNorm) {
       confidence: best.ex.confidence,
       status: "open",
       summary,
-      notionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+      notionalUsd,
     });
     return { created: 1, errors };
   } catch (createErr) {
     await TradingExperimentAgentState.updateOne(
       { suite: suiteNorm, agentId: strat.id },
-      { $inc: { cashUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
+      { $inc: { cashUsd: notionalUsd } },
     );
     throw createErr;
   }
@@ -177,13 +169,14 @@ async function processMultiTokenAgent(strat, suiteNorm) {
 export async function runMultiTokenExperimentSignalCycle(opts = {}) {
   const suiteNorm = normalizeSuite(opts.suite ?? EXPERIMENT_SUITE_MULTI_TOKEN);
   const strategies = await resolveStrategiesForSuite(suiteNorm);
+  const ledgerMaps = await buildLabLedgerMapsForSuite(suiteNorm);
   const errors = [];
   let created = 0;
 
   for (const s of strategies) {
     if (!isMultiTokenStrategy(s)) continue;
     try {
-      const out = await processMultiTokenAgent(s, suiteNorm);
+      const out = await processMultiTokenAgent(s, suiteNorm, ledgerMaps);
       created += out.created;
       errors.push(...out.errors);
     } catch (e) {

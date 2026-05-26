@@ -20,8 +20,8 @@ function overrideToStrategy(o, suiteNorm) {
     limit: o.limit,
     lookAheadBars: o.lookAheadBars,
   };
-  if (o.experimentGate?.minConfidence) {
-    strategy.experimentGate = { minConfidence: o.experimentGate.minConfidence };
+  if (o.experimentGate != null && typeof o.experimentGate === "object") {
+    strategy.experimentGate = { ...o.experimentGate };
   }
   if (o.indicatorFilter != null && typeof o.indicatorFilter === "object") {
     const keys = Object.keys(o.indicatorFilter);
@@ -56,9 +56,9 @@ function mergeOverrideOntoBase(base, o, suiteNorm) {
     limit: o.limit,
     lookAheadBars: o.lookAheadBars,
   };
-  if (o.experimentGate?.minConfidence) {
-    merged.experimentGate = { minConfidence: o.experimentGate.minConfidence };
-  } else {
+  if (o.experimentGate != null && typeof o.experimentGate === "object") {
+    merged.experimentGate = { ...o.experimentGate };
+  } else if (o.experimentGate === null) {
     delete merged.experimentGate;
   }
   if (o.indicatorFilter != null && typeof o.indicatorFilter === "object") {

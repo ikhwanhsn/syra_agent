@@ -57,8 +57,20 @@ import {
   X402_DISPLAY_PRICE_SIWA_USD,
 } from './x402Pricing.js';
 import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
+import {
+  STABLECRYPTO_AGENT_TOOLS,
+  getStablecryptoParamsHintForLlm,
+} from './stablecryptoAgentTools.js';
+import {
+  STABLESOCIAL_AGENT_TOOLS,
+  getStablesocialParamsHintForLlm,
+} from './stablesocialAgentTools.js';
+import {
+  STABLEENRICH_AGENT_TOOLS,
+  getStableenrichParamsHintForLlm,
+} from './stableenrichAgentTools.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -1430,8 +1442,11 @@ export const AGENT_TOOLS = [
     displayPriceUsd: 0.01,
     name: 'pay.sh call provider',
     description:
-      'Call a pay.sh-listed provider gateway via x402 (agent wallet pays upstream). Params: fqn (required), path (required, e.g. /civicinfo/v2/elections or for quicknode/rpc: /solana-mainnet/), method (omit or POST for JSON-RPC; GET only if the OpenAPI route is GET), query (JSON object string), body (JSON object string for POST/JSON-RPC). Optional forceRefresh true — refresh catalog/skills before resolving route.',
+      'Call a pay.sh-listed provider gateway via x402 (agent wallet pays upstream). Params: fqn (required), path (required, e.g. /civicinfo/v2/elections or for quicknode/rpc: /solana-mainnet/), method (omit or POST for JSON-RPC; GET only if the OpenAPI route is GET), query (JSON object string), body (JSON object string for POST/JSON-RPC). Optional forceRefresh true — refresh catalog/skills before resolving route. For StableCrypto use fqn merit-systems/stablecrypto/market-data and POST paths like /api/coingecko/global.',
   },
+  ...STABLECRYPTO_AGENT_TOOLS,
+  ...STABLESOCIAL_AGENT_TOOLS,
+  ...STABLEENRICH_AGENT_TOOLS,
   ...BIRDEYE_AGENT_TOOLS,
 ];
 
@@ -2167,6 +2182,130 @@ export function matchToolFromUserMessage(userMessage) {
     },
     // Core: signal, event, digest, headline
     {
+      toolId: 'stablecrypto-coingecko-global',
+      test: () =>
+        /global\s*(crypto\s*)?market|total\s*market\s*cap|btc\s*dominance|crypto\s*market\s*cap|market\s*overview/i.test(
+          text
+        ),
+    },
+    {
+      toolId: 'stablecrypto-coingecko-trending',
+      test: () =>
+        /coingecko\s*trending|trending\s*on\s*coingecko|trending\s*coins?\s*(on\s*)?coingecko/i.test(text),
+    },
+    {
+      toolId: 'stablecrypto-coingecko-price',
+      test: () =>
+        /\b(price|how much|worth)\b.*\b(bitcoin|btc|ethereum|eth|solana|sol)\b|\b(bitcoin|btc|ethereum|eth|solana|sol)\b.*\b(price|worth)\b/i.test(
+          text
+        ),
+      params: () => {
+        if (/\b(solana|sol)\b/i.test(text)) return { ids: 'solana' };
+        if (/\b(ethereum|eth)\b/i.test(text)) return { ids: 'ethereum' };
+        if (/\b(bitcoin|btc)\b/i.test(text)) return { ids: 'bitcoin' };
+        return { ids: 'bitcoin' };
+      },
+    },
+    {
+      toolId: 'stablecrypto-defillama-protocols',
+      test: () => /defillama\s*protocols?|list\s*defi\s*protocols?|top\s*defi\s*protocols?/i.test(text),
+    },
+    {
+      toolId: 'stablecrypto-defillama-tvl',
+      test: () => /defillama\s*tvl|protocol\s*tvl|tvl\s*(for|of)\s+[a-z0-9_-]+/i.test(text),
+      params: () => {
+        const m = text.match(/tvl\s*(?:for|of)\s+([a-z0-9_-]+)/i);
+        return m?.[1] ? { protocol: m[1] } : {};
+      },
+    },
+    {
+      toolId: 'stablesocial-tiktok-profile',
+      test: () =>
+        /\btiktok\b.*\b(profile|user|account)\b|\b(profile|user)\b.*\btiktok\b|tiktok\s*@?\w+/i.test(text),
+      params: () => {
+        const m = text.match(/(?:tiktok|@)\s*@?([a-zA-Z0-9._]+)/i);
+        return m?.[1] ? { handle: m[1] } : {};
+      },
+    },
+    {
+      toolId: 'stablesocial-instagram-profile',
+      test: () =>
+        /\binstagram\b.*\b(profile|user|account)\b|\b(profile|user)\b.*\binstagram\b|instagram\s*@?\w+/i.test(
+          text
+        ),
+      params: () => {
+        const m = text.match(/(?:instagram|@)\s*@?([a-zA-Z0-9._]+)/i);
+        return m?.[1] ? { handle: m[1] } : {};
+      },
+    },
+    {
+      toolId: 'stablesocial-reddit-subreddit',
+      test: () => /\br\/([a-zA-Z0-9_]+)\b|subreddit\s+([a-zA-Z0-9_]+)/i.test(text),
+      params: () => {
+        const m = text.match(/\br\/([a-zA-Z0-9_]+)\b/i) || text.match(/subreddit\s+([a-zA-Z0-9_]+)/i);
+        return m?.[1] ? { subreddit: m[1] } : {};
+      },
+    },
+    {
+      toolId: 'stablesocial-reddit-search',
+      test: () => /\breddit\b.*\b(search|find)\b/i.test(text),
+      params: () => {
+        const m = text.match(/search\s+(?:reddit\s+)?(?:for\s+)?["']?([^"']+)["']?/i);
+        return m?.[1] ? { keyword: m[1].trim() } : {};
+      },
+    },
+    {
+      toolId: 'stableenrich-firecrawl-scrape',
+      test: () =>
+        /\b(scrape|extract)\b.*\b(url|page|website|site)\b|firecrawl\b.*\bscrape\b/i.test(text) &&
+        /https?:\/\//i.test(text),
+      params: () => {
+        const m = text.match(/(https?:\/\/[^\s]+)/i);
+        return m?.[1] ? { url: m[1] } : {};
+      },
+    },
+    {
+      toolId: 'stableenrich-exa-search',
+      test: () =>
+        /\b(exa|semantic)\b.*\b(search|find)\b|\bfind\b.*\b(people|linkedin|profiles)\b.*\b(exa|stableenrich)\b/i.test(
+          text
+        ),
+      params: () => {
+        const m = text.match(/search\s+(?:for\s+)?["']?([^"']+)["']?/i);
+        const q = m?.[1]?.trim() || text.slice(0, 120);
+        return { query: q, category: /\bpeople|linkedin|profile\b/i.test(text) ? 'people' : '' };
+      },
+    },
+    {
+      toolId: 'stableenrich-apollo-people-search',
+      test: () => /\bapollo\b.*\b(people|contacts?|leads?)\b|\bfind\b.*\b(people|contacts?)\b.*\b(at|from)\b/i.test(text),
+    },
+    {
+      toolId: 'stableenrich-apollo-org-search',
+      test: () => /\bapollo\b.*\b(org|company|companies)\b|\bcompany\s+search\b/i.test(text),
+    },
+    {
+      toolId: 'stableenrich-google-maps-text-search',
+      test: () => /\bgoogle\s*maps\b|\bfind\b.*\b(near|in)\b.*\b(coffee|restaurant|shop|store)\b/i.test(text),
+      params: () => ({ textQuery: text.replace(/google\s*maps\s*/i, '').trim().slice(0, 200) }),
+    },
+    {
+      toolId: 'stableenrich-serper-news',
+      test: () => /\bgoogle\s*news\b|\bnews\s+about\b/i.test(text),
+      params: () => {
+        const m = text.match(/news\s+(?:about\s+)?["']?([^"']+)["']?/i);
+        return m?.[1] ? { q: m[1].trim() } : {};
+      },
+    },
+    {
+      toolId: 'stableenrich-hunter-email-verifier',
+      test: () => /\b(verify|check)\b.*\bemail\b|hunter\b.*\bemail\b/i.test(text),
+      params: () => {
+        const m = text.match(/[\w.+-]+@[\w.-]+\.\w+/);
+        return m?.[0] ? { email: m[0] } : {};
+      },
+    },
+    {
       toolId: 'signal',
       test: () =>
         /trading\s*signal|create\s*signal|signal\s*data|get\s*signal|give\s*(me\s*)?(a\s*)?(solana|btc|eth|bitcoin|ethereum|crypto)?\s*signal|(solana|btc|eth|bitcoin|ethereum|crypto|token)\s*signal|signal\s*(for|on)?\s*(solana|btc|eth|bitcoin|ethereum|crypto)?/i.test(
@@ -2357,10 +2496,34 @@ export function getCapabilitiesList() {
       ''
     );
   }
+  const stablecryptoTools = AGENT_TOOLS.filter((t) => t.stablecryptoPath).map((t) => t.id);
+  if (stablecryptoTools.length) {
+    lines.push(
+      'StableCrypto (CoinGecko + DefiLlama via stablecrypto.dev x402; prefer over paysh-call for BTC/ETH/SOL price, global market, trending, protocol TVL):',
+      ...fmt(stablecryptoTools),
+      ''
+    );
+  }
+  const stablesocialTools = AGENT_TOOLS.filter((t) => t.stablesocialPath).map((t) => t.id);
+  if (stablesocialTools.length) {
+    lines.push(
+      'StableSocial (TikTok, Instagram, Facebook, Reddit via stablesocial.dev x402; async job — needs handle/keyword/subreddit; ~$0.06/call):',
+      ...fmt(stablesocialTools),
+      ''
+    );
+  }
+  const stableenrichTools = AGENT_TOOLS.filter((t) => t.stableenrichPath).map((t) => t.id);
+  if (stableenrichTools.length) {
+    lines.push(
+      'StableEnrich (Exa, Firecrawl, Apollo, Google Maps, Reddit, Serper, Hunter, Minerva, Cloudflare crawl via stableenrich.dev x402; per-endpoint pricing):',
+      ...fmt(stableenrichTools),
+      ''
+    );
+  }
   const birdeyeX402 = AGENT_TOOLS.filter((t) => t.birdeyePath).map((t) => t.id);
   if (birdeyeX402.length) {
     lines.push(
-      'Birdeye Data (x402 USDC; token prices, security, OHLCV, trending, meme, smart money — pass address or mint + Birdeye query keys):',
+      'Birdeye Data (x402 USDC; Solana token prices, security, OHLCV, trending, meme, smart money — pass address or mint + Birdeye query keys):',
       ...fmt(birdeyeX402),
       ''
     );
@@ -2454,7 +2617,19 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'paysh-call') {
       out.paramsHint =
-        'Params: fqn (required), path (required — OpenAPI path from paysh-endpoints e.g. QuickNode quicknode/rpc: /solana-mainnet/), method POST for JSON-RPC chains (default is GET unless body is set, then POST); query/body JSON strings. forceRefresh optional. Agent USDC balance must cover provider min_price_usd (see discover).';
+        'Params: fqn (required), path (required — OpenAPI path from paysh-endpoints e.g. QuickNode quicknode/rpc: /solana-mainnet/), method POST for JSON-RPC chains (default is GET unless body is set, then POST); query/body JSON strings. forceRefresh optional. Agent USDC balance must cover provider min_price_usd (see discover). StableCrypto: fqn merit-systems/stablecrypto/market-data, path /api/coingecko/price with body {"ids":["bitcoin"],"vs_currencies":["usd"]}.';
+    }
+    if (t.stablecryptoPath) {
+      const hint = getStablecryptoParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
+    }
+    if (t.stablesocialPath) {
+      const hint = getStablesocialParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
+    }
+    if (t.stableenrichPath) {
+      const hint = getStableenrichParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
     }
     if (t.id === 'tempo-token-list') {
       out.paramsHint =

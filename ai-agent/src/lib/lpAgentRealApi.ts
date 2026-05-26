@@ -28,6 +28,16 @@ export interface LpRealConfig {
   lastError: string | null;
   experimentId: string;
   closeAllRequested: boolean;
+  /** When this agent config was first created. */
+  startedAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface LpRealScreeningSnapshot {
+  score?: number;
+  tvlUsd?: number;
+  volume24hUsd?: number;
+  feeTvlRatio?: number;
 }
 
 export interface LpRealCurrentStrategy {
@@ -104,6 +114,10 @@ export interface LpRealPosition {
   poolName: string | null;
   baseSymbol: string | null;
   quoteSymbol: string | null;
+  binStep?: number | null;
+  binsBelow?: number;
+  binsAbove?: number;
+  entryPriceUsd?: number | null;
   status: LpRealPositionStatus;
   resolution: string | null;
   depositSol: number;
@@ -116,7 +130,12 @@ export interface LpRealPosition {
   positionPubkey: string;
   openedAt: string | null;
   resolvedAt: string | null;
+  /** Record created (may differ slightly from openedAt during opening). */
+  createdAt?: string | null;
+  /** Last resolve-tick evaluation while open. */
+  lastEvaluatedAt?: string | null;
   errorMessage: string | null;
+  screeningSnapshot?: LpRealScreeningSnapshot | null;
   /** True after open tx signature is recorded (SOL actually deployed). */
   depositLocked?: boolean;
   policyReasons?: string[];

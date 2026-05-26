@@ -11,10 +11,10 @@ import { resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import {
   computeLpNetPnlPct,
   ensureLpExperimentBootstrapped,
-  getLpCandidatePools,
   isPositionOutOfRange,
   pickBestNetPnlStrategy,
   rankLpExperimentStrategiesByNetPnl,
+  selectRealStylePoolCandidate,
 } from "./lpExperimentService.js";
 import { executeIntent } from "../services/walletBroker.js";
 import {
@@ -850,6 +850,8 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
       lastError: config.lastError,
       experimentId: config.experimentId,
       closeAllRequested: config.closeAllRequested,
+      startedAt: config.startedAt?.toISOString?.() ?? null,
+      updatedAt: config.updatedAt?.toISOString?.() ?? null,
     },
     onChainBalanceSol: nativeSolBalanceSol,
     walletEquitySol,
@@ -991,6 +993,10 @@ export async function listLpRealPositions({ limit, offset, status, experimentId,
       poolName: p.poolName,
       baseSymbol: p.baseSymbol,
       quoteSymbol: p.quoteSymbol,
+      binStep: p.binStep ?? null,
+      binsBelow: p.binsBelow,
+      binsAbove: p.binsAbove,
+      entryPriceUsd: p.entryPriceUsd ?? null,
       status: p.status,
       resolution: p.resolution,
       depositSol: p.depositSol,
@@ -1003,9 +1009,15 @@ export async function listLpRealPositions({ limit, offset, status, experimentId,
       positionPubkey: p.positionPubkey,
       openedAt: p.openedAt?.toISOString?.() ?? null,
       resolvedAt: p.resolvedAt?.toISOString?.() ?? null,
+      createdAt: p.createdAt?.toISOString?.() ?? null,
+      lastEvaluatedAt: p.lastEvaluatedAt?.toISOString?.() ?? null,
       errorMessage: p.errorMessage,
       depositLocked: Boolean(p.depositLocked),
       policyReasons: Array.isArray(p.policyReasons) ? p.policyReasons : [],
+      screeningSnapshot:
+        p.screeningSnapshot != null && typeof p.screeningSnapshot === "object"
+          ? p.screeningSnapshot
+          : null,
     })),
     total,
     limit: lim,
@@ -1191,14 +1203,12 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
-    const candidates = await getLpCandidatePools({ realMode: true });
-    const solCandidates = candidates.filter(
-      (c) =>
-        c.strategyId === best.strategyId &&
-        c.gatePassed &&
-        (isSolMint(c.baseMint) || isSolMint(c.quoteMint)),
-    );
-    const poolCandidate = solCandidates.sort((a, b) => b.score - a.score)[0];
+    const poolCandidate = await selectRealStylePoolCandidate({
+      leaderStrategyId: best.strategyId,
+      experimentId: config.experimentId,
+      hasRecentPositionFn: (_expId, _strategyId, poolAddress) =>
+        hasRecentRealPosition(config.experimentId, poolAddress),
+    });
 
     if (!poolCandidate) {
       skipped.push({ reason: "no_candidate", strategyId: best.strategyId });
@@ -1333,7 +1343,12 @@ async function runLpRealSignalCycleForConfig(config) {
       depositUsd,
       exitRules: mergeRealExitRules(strategy.exit),
       signalSnapshot: poolCandidate.signalSnapshot,
-      screeningSnapshot: { score: poolCandidate.score },
+      screeningSnapshot: {
+        score: poolCandidate.score,
+        tvlUsd: poolCandidate.tvlUsd ?? poolDetail.tvlUsd,
+        volume24hUsd: poolCandidate.volume24hUsd ?? poolDetail.volume24hUsd,
+        feeTvlRatio: poolCandidate.feeTvlRatio ?? poolDetail.feeTvlRatio,
+      },
       status: "opening",
       depositLocked: false,
       openedAt: new Date(),

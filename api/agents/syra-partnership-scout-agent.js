@@ -139,6 +139,7 @@ const SYSTEM = `You are **Syra Partnership Scout**, an internal BD analyst for S
 **Rules:**
 - Only recommend projects grounded in the candidate list. Prefer AI agents, x402, trading data, and real utility over pure meme tokens.
 - Do NOT recommend partnering with direct Syra clones; prefer complementary stacks.
+- Do NOT output projects listed in **alreadyKnown** (same name or same link host) — they are already saved in Syra's database.
 - Valid JSON only, no markdown.`;
 
 /**
@@ -146,12 +147,14 @@ const SYSTEM = `You are **Syra Partnership Scout**, an internal BD analyst for S
  *   candidates: PartnershipCandidate[];
  *   ecosystemNotes: string[];
  *   sourceStats: Record<string, number>;
+ *   knownProjects?: { name: string; projectType?: string }[];
  *   model?: string | null;
  * }} input
  * @returns {Promise<SyraPartnershipScoutOutput>}
  */
 export async function runSyraPartnershipScoutAgent(input) {
   const stats = { ...input.sourceStats, candidates: input.candidates.length };
+  const known = Array.isArray(input.knownProjects) ? input.knownProjects.slice(0, 80) : [];
 
   if (!process.env.OPENROUTER_API_KEY) {
     return {
@@ -182,7 +185,7 @@ export async function runSyraPartnershipScoutAgent(input) {
       { role: "system", content: SYSTEM },
       {
         role: "user",
-        content: `Analyze these on-chain/registry candidates for Syra partnerships.\n\nNotes: ${JSON.stringify(input.ecosystemNotes)}\n\nCandidates:\n${JSON.stringify(compactCandidates).slice(0, 95_000)}`,
+        content: `Analyze these on-chain/registry candidates for Syra partnerships.\n\nAlready in Syra database (skip duplicates):\n${JSON.stringify({ alreadyKnown: known })}\n\nNotes: ${JSON.stringify(input.ecosystemNotes)}\n\nCandidates:\n${JSON.stringify(compactCandidates).slice(0, 95_000)}`,
       },
     ],
     model,

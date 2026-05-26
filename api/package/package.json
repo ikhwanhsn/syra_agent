@@ -1,0 +1,93 @@
+{
+  "name": "agentcash",
+  "version": "0.14.4",
+  "mcpName": "io.github.Merit-Systems/agentcash",
+  "description": "Generic MCP server for calling x402-protected APIs with automatic payment handling",
+  "type": "module",
+  "main": "dist/esm/lib.js",
+  "types": "dist/esm/lib.d.ts",
+  "bin": {
+    "agentcash": "dist/esm/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@agentcash/discovery": "1.6.3",
+    "@clack/prompts": "^0.11.0",
+    "@iarna/toml": "^2.2.5",
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "@relayprotocol/relay-sdk": "^5.2.1",
+    "@scure/base": "^2.0.0",
+    "@solana-program/compute-budget": "^0.11.0",
+    "@solana-program/token": "^0.9.0",
+    "@solana-program/token-2022": "^0.6.1",
+    "@solana/kit": "^5.5.1",
+    "@x402/core": "2.9.0",
+    "@x402/evm": "2.9.0",
+    "@x402/extensions": "2.9.0",
+    "@x402/svm": "2.9.0",
+    "chalk": "^5.6.2",
+    "content-type": "^1.0.5",
+    "js-yaml": "^4.1.1",
+    "jsonc-parser": "^3.3.1",
+    "mppx": "^0.5.10",
+    "open": "^11.0.0",
+    "viem": "^2.47.6",
+    "yargs": "^18.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/content-type": "^1.1.9",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.19.33",
+    "@types/yargs": "^17.0.35",
+    "eslint": "^9.39.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "@agentcash/balance": "0.0.3",
+    "@agentcash/eslint-config": "0.0.1",
+    "@agentcash/bridge": "0.0.2",
+    "@agentcash/neverthrow": "1.0.1",
+    "@agentcash/networks": "0.0.3",
+    "@agentcash/typescript-config": "0.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "mcp",
+    "x402",
+    "payments",
+    "ai",
+    "claude",
+    "model-context-protocol"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Merit-Systems/agent-cash.git",
+    "directory": "packages/external/mcp"
+  },
+  "homepage": "https://github.com/Merit-Systems/agent-cash/tree/master/packages/external/mcp",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "dev:onboard": "tsx src/index.ts onboard",
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "build:mcpb": "tsx scripts/build-mcpb.ts",
+    "types:check": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "knip": "pnpm -w knip --workspace ./packages/external/mcp",
+    "format": "pnpm -w format:dir ./packages/external/mcp",
+    "format:check": "pnpm -w format:check:dir ./packages/external/mcp",
+    "publish:check": "pnpm pack --dry-run"
+  }
+}

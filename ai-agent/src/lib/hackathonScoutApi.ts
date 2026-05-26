@@ -33,8 +33,10 @@ export interface HackathonScoutRunMeta {
   ranAt: string;
   query: string;
   tweetsSampled: number;
+  tweetsSentToLlm?: number;
   extracted: number;
   newSaved: number;
+  skippedExisting?: number;
   fromCache: boolean;
   xConfigured: boolean;
 }
@@ -53,13 +55,27 @@ async function fetchInternalJson<T>(path: string, init?: RequestInit): Promise<T
   return body as T;
 }
 
-export async function fetchHackathonLeads(status: string = "all") {
+export type FetchHackathonLeadsParams = {
+  status?: string;
+  limit?: number;
+  skip?: number;
+};
+
+export async function fetchHackathonLeads(params: FetchHackathonLeadsParams = {}) {
+  const status = params.status ?? "all";
+  const limit = params.limit ?? 100;
+  const skip = params.skip ?? 0;
+  const qs = new URLSearchParams({
+    status,
+    limit: String(limit),
+    skip: String(skip),
+  });
   return fetchInternalJson<{
     success: boolean;
     items: HackathonLead[];
     total: number;
     counts: Record<string, number>;
-  }>(`/internal/hackathon-scout/leads?status=${encodeURIComponent(status)}&limit=80`);
+  }>(`/internal/hackathon-scout/leads?${qs.toString()}`);
 }
 
 export async function fetchHackathonLatestRun() {

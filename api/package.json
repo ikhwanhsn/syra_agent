@@ -20,10 +20,13 @@
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
     "openapi": "node scripts/export-openapi.mjs",
     "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js",
-    "test-paysh": "node -r dotenv/config scripts/testPayshFlows.js"
+    "test-paysh": "node -r dotenv/config scripts/testPayshFlows.js",
+    "test-stablesocial": "node -r dotenv/config scripts/testStablesocialFlow.js",
+    "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
+    "@didtools/siwx": "^2.0.0",
     "@faremeter/info": "^0.14.0",
     "@faremeter/middleware": "^0.14.0",
     "@faremeter/rides": "^0.14.0",
@@ -38,7 +41,7 @@
     "@x402/core": "^2.2.0",
     "@x402/evm": "^2.2.0",
     "@x402/express": "^2.2.0",
-    "@x402/extensions": "^2.2.0",
+    "@x402/extensions": "^2.13.0",
     "@x402/fetch": "^2.3.0",
     "@x402/svm": "^2.2.0",
     "@x402sentinel/x402": "^0.2.0",

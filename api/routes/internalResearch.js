@@ -12,10 +12,6 @@ import {
   SYRA_TREND_SCOUT_DB_ID,
 } from "../libs/syraTrendScoutPipeline.js";
 import {
-  runSyraPartnershipScoutPipeline,
-  SYRA_PARTNERSHIP_SCOUT_DB_ID,
-} from "../libs/syraPartnershipScoutPipeline.js";
-import {
   ALPHA_X_BATCH_CANONICAL_DB_ID,
   loadAlphaXBatchSnapshot,
   runAlphaXBatchPipeline,
@@ -124,36 +120,6 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "Syra trend scout pipeline failed",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  router.get("/partnership-scout/latest", async (_req, res) => {
-    try {
-      const doc = await DashboardResearch.findOne({ id: SYRA_PARTNERSHIP_SCOUT_DB_ID }).lean();
-      if (!doc?.payload) {
-        return res.json({ success: true, data: null, savedAt: undefined });
-      }
-      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
-      return res.json({ success: true, data: doc.payload, savedAt });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  router.post("/partnership-scout/run", async (_req, res) => {
-    try {
-      const out = await runSyraPartnershipScoutPipeline();
-      return res.json(out);
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: "Syra partnership scout pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

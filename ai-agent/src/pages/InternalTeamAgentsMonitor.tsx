@@ -16,6 +16,7 @@ import {
 } from "@/constants/internalTeamMonitorWallet";
 import { requireInternalAgentMeta } from "@/lib/internalAgentsCatalog";
 import { InternalHackathonBoard } from "@/components/internal/InternalHackathonBoard";
+import { InternalPartnershipBoard } from "@/components/internal/InternalPartnershipBoard";
 import { fetchHackathonLatestRun } from "@/lib/hackathonScoutApi";
 import {
   fetchPartnershipScoutLatest,
@@ -65,13 +66,9 @@ function trendScoutStats(payload: TrendScoutPayload | null | undefined) {
 function partnershipScoutStats(payload: PartnershipScoutPayload | null | undefined) {
   if (!payload) return [];
   const stats: { label: string; value: string | number }[] = [];
-  const themes = payload.onchainThemes?.length ?? 0;
-  const targets = payload.partnershipTargets?.length ?? 0;
-  const quick = payload.quickIntegrations?.length ?? 0;
-  if (themes > 0) stats.push({ label: "On-chain themes", value: themes });
-  if (targets > 0) stats.push({ label: "Partnership targets", value: targets });
-  if (quick > 0) stats.push({ label: "Quick integrations", value: quick });
-  const candidates = payload.sourceStats?.candidates;
+  if (payload.newSaved != null) stats.push({ label: "Last new saved", value: payload.newSaved });
+  if (payload.skippedExisting != null) stats.push({ label: "Skipped (in DB)", value: payload.skippedExisting });
+  const candidates = payload.candidatesScanned ?? payload.sourceStats?.candidates;
   if (candidates != null) stats.push({ label: "Candidates scanned", value: candidates });
   return stats;
 }
@@ -304,6 +301,7 @@ export default function InternalTeamAgentsMonitor() {
               stats={partnershipScoutStats(partnershipQ.data?.data ?? undefined)}
               errorMessage={partnershipQ.isError ? partnershipQ.error?.message : undefined}
               detailSlug="partnership-scout"
+              detailTo="#partnership-board"
             />
             <AgentRow
               name={requireInternalAgentMeta("hackathon-scout").name}
@@ -322,18 +320,10 @@ export default function InternalTeamAgentsMonitor() {
               detailSlug="hackathon-scout"
               detailTo="#hackathon-board"
             />
-            {partnershipQ.data?.data?.ecosystemSummary ? (
-              <div className="mt-2 rounded-lg border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
-                <p className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-foreground">
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                  Partnership scout summary
-                </p>
-                <p className="leading-relaxed">{partnershipQ.data.data.ecosystemSummary}</p>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
 
+        <InternalPartnershipBoard />
         <InternalHackathonBoard />
       </div>
     </div>

@@ -23,6 +23,9 @@ import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
+import { callStablecryptoWithAgent } from '../../libs/agentStablecryptoClient.js';
+import { callStablesocialWithAgent } from '../../libs/agentStablesocialClient.js';
+import { callStableenrichWithAgent } from '../../libs/agentStableenrichClient.js';
 import {
   purchVaultSearch,
   purchVaultBuy,
@@ -428,6 +431,77 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
         tool.birdeyePath,
         tool.method || 'GET',
         params,
+        connectedWallet || undefined
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return res.status(status).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.stablecryptoPath) {
+      const result = await callStablecryptoWithAgent(
+        anonymousId,
+        tool.stablecryptoPath,
+        params,
+        connectedWallet || undefined
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return res.status(status).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.stablesocialPath) {
+      const result = await callStablesocialWithAgent(
+        anonymousId,
+        tool.stablesocialPath,
+        params,
+        connectedWallet || undefined
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return res.status(status).json({
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.stableenrichPath) {
+      const result = await callStableenrichWithAgent(
+        anonymousId,
+        tool.stableenrichPath,
+        tool.stableenrichMethod || 'POST',
+        params,
+        tool.stableenrichAsync,
         connectedWallet || undefined
       );
       if (!result.success) {

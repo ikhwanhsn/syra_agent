@@ -9,6 +9,9 @@ const changelogEntries: { period: string; items: string[] }[] = [
   {
     period: "March 2026",
     items: [
+      "Syra Agent: StableCrypto market data (10 curated stablecrypto-* tools + pay.sh catalog in chat and POST /agent/tools/call)",
+      "Syra Agent: StableSocial social data (11 stablesocial-* tools — TikTok, Instagram, Facebook, Reddit via x402 + SIWX poll)",
+      "Syra Agent: StableEnrich enrichment (19 stableenrich-* tools — Exa, Firecrawl, Apollo, Maps, Reddit, Serper, Hunter, Minerva, Cloudflare crawl)",
       "Trading agent experiment: API, run model, and UI for strategy experiments and OKX-oriented signal analysis",
       "Signal pipeline: source-aware technical signals and validation improvements",
       "x402 API refactor and API playground reliability fixes",

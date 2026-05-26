@@ -9,8 +9,42 @@ import { fetchHackathonTweetsFromX } from "./syraHackathonScoutXFetch.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "./devTelegramNotifier.js";
 import { formatHackathonScoutNewLeadsTelegram } from "./syraHackathonScoutDigests.js";
 import { SYRA_HACKATHON_SCOUT_DB_ID } from "../config/syraHackathonScoutConfig.js";
+import {
+  hackathonDedupeKey,
+  isKnownHackathon,
+} from "./internalScoutDedupe.js";
 
 export { SYRA_HACKATHON_SCOUT_DB_ID };
+
+/**
+ * @returns {Promise<{ tweetIds: Set<string>; keys: Set<string>; brief: { title: string; organizer: string }[] }>}
+ */
+async function loadHackathonDedupeIndex() {
+  const rows = await InternalHackathonLead.find({})
+    .select("tweetId title organizer applicationUrl")
+    .sort({ discoveredAt: -1 })
+    .limit(500)
+    .lean();
+
+  const tweetIds = new Set();
+  const keys = new Set();
+  /** @type {{ title: string; organizer: string }[]} */
+  const brief = [];
+
+  for (const row of rows) {
+    if (row.tweetId) tweetIds.add(row.tweetId);
+    const key = hackathonDedupeKey(row);
+    if (key) keys.add(key);
+    if (brief.length < 60 && row.title) {
+      brief.push({
+        title: String(row.title).slice(0, 120),
+        organizer: String(row.organizer || "").slice(0, 80),
+      });
+    }
+  }
+
+  return { tweetIds, keys, brief };
+}
 
 /**
  * @typedef {{
@@ -19,6 +53,7 @@ export { SYRA_HACKATHON_SCOUT_DB_ID };
  *   tweetsSampled: number;
  *   extracted: number;
  *   newSaved: number;
+ *   skippedExisting: number;
  *   fromCache: boolean;
  *   xConfigured: boolean;
  * }} HackathonScoutRunMeta
@@ -29,18 +64,39 @@ export { SYRA_HACKATHON_SCOUT_DB_ID };
  */
 export async function runSyraHackathonScoutPipeline() {
   const ranAt = new Date().toISOString();
+  const dedupe = await loadHackathonDedupeIndex();
   const { query, tweets, fromCache, xConfigured } = await fetchHackathonTweetsFromX();
 
+  const tweetsForLlm = tweets.filter((t) => !dedupe.tweetIds.has(t.id));
+
   let extracted = [];
-  if (tweets.length > 0) {
-    extracted = await runSyraHackathonScoutAgent({ tweets, model: null });
+  if (tweetsForLlm.length > 0) {
+    extracted = await runSyraHackathonScoutAgent({
+      tweets: tweetsForLlm,
+      knownHackathons: dedupe.brief,
+      model: null,
+    });
   }
+
+  let skippedExisting = tweets.length - tweetsForLlm.length;
 
   /** @type {object[]} */
   const newLeads = [];
   for (const h of extracted) {
-    const existing = await InternalHackathonLead.findOne({ tweetId: h.tweetId }).lean();
-    if (existing) continue;
+    if (
+      isKnownHackathon(h.tweetId, dedupe.tweetIds, dedupe.keys, {
+        title: h.title,
+        organizer: h.organizer,
+        applicationUrl: h.applicationUrl,
+      })
+    ) {
+      skippedExisting += 1;
+      continue;
+    }
+
+    const key = hackathonDedupeKey(h);
+    if (key) dedupe.keys.add(key);
+    if (h.tweetId) dedupe.tweetIds.add(h.tweetId);
 
     const tweet = tweets.find((t) => t.id === h.tweetId);
     const doc = await InternalHackathonLead.create({
@@ -69,8 +125,10 @@ export async function runSyraHackathonScoutPipeline() {
     ranAt,
     query,
     tweetsSampled: tweets.length,
+    tweetsSentToLlm: tweetsForLlm.length,
     extracted: extracted.length,
     newSaved: newLeads.length,
+    skippedExisting,
     fromCache,
     xConfigured,
   };

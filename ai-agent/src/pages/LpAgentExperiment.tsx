@@ -330,11 +330,12 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Simulation lab</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               {overviewQ.data?.simulation.leaderStrategyId != null
-                ? `Real agent follows sim leader #${overviewQ.data.simulation.leaderStrategyId}. `
+                ? `Live agent and Real mirror (sim) follow cohort leader #${overviewQ.data.simulation.leaderStrategyId} (highest net PnL). `
                 : ""}
+              Fifteen strategies still compete for the leaderboard; Real mirror uses the same pool rules as live (SOL pairs, real screen) without wallet balance.
               {labStateQ.data?.activeExperimentId
-                ? `${labStateQ.data.simConfig.maxConcurrentPositions} slots × ${labStateQ.data.simConfig.maxPositionSol} SOL`
-                : "Waiting for cohort"}
+                ? ` ${labStateQ.data.simConfig.maxConcurrentPositions} slots × ${labStateQ.data.simConfig.maxPositionSol} SOL per position.`
+                : " Waiting for cohort."}
             </p>
           </div>
 
@@ -417,6 +418,11 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                         >
                           {row.strategyName}
                         </Link>
+                        {row.strategyId === 98 ? (
+                          <span className="shrink-0 rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-violet-700 dark:text-violet-300">
+                            Live mirror
+                          </span>
+                        ) : null}
                         <AgentBackgroundLiveIndicator openPositions={row.openPositions} />
                       </div>
                     </TableCell>

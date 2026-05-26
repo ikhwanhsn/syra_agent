@@ -2,9 +2,13 @@ import mongoose from "mongoose";
 import LpExperimentRun from "../models/LpExperimentRun.js";
 import LpExperimentState from "../models/LpExperimentState.js";
 import LpExperimentAgentState from "../models/LpExperimentAgentState.js";
-import { LP_AGENT_EXPERIMENT_DEFAULTS } from "../config/lpAgentExperimentStrategies.js";
+import {
+  LP_AGENT_EXPERIMENT_DEFAULTS,
+  LP_REAL_MIRROR_STRATEGY_ID,
+} from "../config/lpAgentExperimentStrategies.js";
 import { resolveLpExperimentStrategies, resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import { fetchMeteoraPoolDetail, fetchMeteoraPools } from "./meteoraDlmmClient.js";
+import { isSolMint } from "./meteoraDlmmExecutor.js";
 import { scorePool } from "./lpExperimentScoring.js";
 
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
@@ -276,6 +280,8 @@ export async function ensureLpExperimentBootstrapped() {
     for (const s of strategies) {
       const exists = await LpExperimentAgentState.findOne({ experimentId: activeId, strategyId: s.id }).lean();
       if (exists) continue;
+      const startingBank =
+        s.id === LP_REAL_MIRROR_STRATEGY_ID ? REAL_MIRROR_VIRTUAL_BANK_SOL : cfg.startingBankSol;
       const settled = await LpExperimentRun.find({
         experimentId: activeId,
         strategyId: s.id,
@@ -286,7 +292,7 @@ export async function ensureLpExperimentBootstrapped() {
         strategyId: s.id,
         status: "open",
       }).lean();
-      let cash = cfg.startingBankSol;
+      let cash = startingBank;
       for (const r of settled) {
         const openFee = toNum(r.simOpenFeeSol, feeSolFromBps(r.depositSol, cfg.openFeeBps));
         const closeFee = toNum(r.simCloseFeeSol, feeSolFromBps(r.depositSol, cfg.closeFeeBps));
@@ -303,8 +309,8 @@ export async function ensureLpExperimentBootstrapped() {
       await LpExperimentAgentState.create({
         experimentId: activeId,
         strategyId: s.id,
-        cashSol: Math.max(0, cash),
-        startingBankSol: cfg.startingBankSol,
+        cashSol: s.id === LP_REAL_MIRROR_STRATEGY_ID ? REAL_MIRROR_VIRTUAL_BANK_SOL : Math.max(0, cash),
+        startingBankSol: startingBank,
       });
     }
   })().finally(() => {
@@ -399,6 +405,54 @@ export async function resetLpExperimentFromScratch(opts = {}) {
   return { nextExperimentId: nextId };
 }
 
+const REAL_MIRROR_VIRTUAL_BANK_SOL = 1000;
+
+/**
+ * Pick the next SOL pool for real / mirror agents: real screen, leader strategy gates,
+ * prefer the leader's open sim pool when still eligible, then walk top scores (avoids one-pool churn).
+ */
+export async function selectRealStylePoolCandidate({
+  leaderStrategyId,
+  experimentId,
+  hasRecentPositionFn,
+  maxCandidates = 8,
+}) {
+  const leaderId = Number(leaderStrategyId);
+  if (!Number.isInteger(leaderId)) return null;
+
+  const candidates = await getLpCandidatePools({ realMode: true });
+  const solCandidates = candidates
+    .filter(
+      (c) =>
+        c.strategyId === leaderId &&
+        c.gatePassed &&
+        (isSolMint(c.baseMint) || isSolMint(c.quoteMint)),
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxCandidates);
+
+  const leaderOpen = await LpExperimentRun.findOne({
+    experimentId,
+    strategyId: leaderId,
+    status: "open",
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+  if (leaderOpen?.poolAddress) {
+    const idx = solCandidates.findIndex((c) => c.poolAddress === leaderOpen.poolAddress);
+    if (idx > 0) {
+      const [match] = solCandidates.splice(idx, 1);
+      solCandidates.unshift(match);
+    }
+  }
+
+  for (const c of solCandidates) {
+    const recent = await hasRecentPositionFn(experimentId, leaderId, c.poolAddress);
+    if (!recent) return c;
+  }
+  return null;
+}
+
 /** Stricter pool filters for on-chain LP (reduces IL-heavy memecoin / thin pools). */
 export function passesRealPoolScreen(pool) {
   const feeTvl = toNum(pool.feeTvlRatio);
@@ -452,6 +506,157 @@ export async function getLpCandidatePools({ realMode = false } = {}) {
   return candidates.sort((a, b) => b.score - a.score);
 }
 
+/**
+ * Sim agent that mirrors the live LP agent: follows PnL leader, real pool screen, SOL pairs.
+ * Skips wallet / cash gates (virtual bank only).
+ */
+export async function runLpRealMirrorSignalCycle() {
+  await ensureLpExperimentBootstrapped();
+  const state = await getSingletonStateDoc();
+  const experimentId = state?.activeExperimentId;
+  if (!experimentId) {
+    return { opened: 0, skipped: 1, errors: ["no_experiment_state"], openedRuns: [], skippedRows: [] };
+  }
+
+  const simCfg = mergedSimConfig(state);
+  const pick = await pickBestNetPnlStrategy();
+  const leader = pick.strategy?.strategy;
+  if (!leader) {
+    return {
+      opened: 0,
+      skipped: 1,
+      errors: [],
+      openedRuns: [],
+      skippedRows: [{ strategyId: LP_REAL_MIRROR_STRATEGY_ID, reason: pick.failureReason || "no_leader" }],
+    };
+  }
+
+  const mirrorId = LP_REAL_MIRROR_STRATEGY_ID;
+  const openCount = await LpExperimentRun.countDocuments({
+    experimentId,
+    strategyId: mirrorId,
+    status: "open",
+  });
+  if (openCount >= simCfg.maxConcurrentPositions) {
+    return {
+      opened: 0,
+      skipped: 1,
+      errors: [],
+      openedRuns: [],
+      skippedRows: [{ strategyId: mirrorId, reason: "max_positions", leaderStrategyId: leader.id }],
+    };
+  }
+
+  const poolCandidate = await selectRealStylePoolCandidate({
+    leaderStrategyId: leader.id,
+    experimentId,
+    hasRecentPositionFn: hasRecentPosition,
+  });
+  if (!poolCandidate) {
+    return {
+      opened: 0,
+      skipped: 1,
+      errors: [],
+      openedRuns: [],
+      skippedRows: [{ strategyId: mirrorId, reason: "no_candidate", leaderStrategyId: leader.id }],
+    };
+  }
+
+  const recent = await hasRecentPosition(experimentId, mirrorId, poolCandidate.poolAddress);
+  if (recent) {
+    return {
+      opened: 0,
+      skipped: 1,
+      errors: [],
+      openedRuns: [],
+      skippedRows: [{ strategyId: mirrorId, reason: "cooldown_or_open", leaderStrategyId: leader.id }],
+    };
+  }
+
+  const solPrice = await fetchSolPriceUsd();
+  const depositSol = simCfg.maxPositionSol;
+  const depositUsd = depositSol * solPrice;
+  const openFeeSol = feeSolFromBps(depositSol, simCfg.openFeeBps);
+  const mirrorStrategy = await resolveLpStrategyById(mirrorId);
+  const poolDetail = await fetchMeteoraPoolDetail(poolCandidate.poolAddress);
+  const pool = {
+    poolAddress: poolCandidate.poolAddress,
+    poolName: poolDetail.poolName || poolCandidate.poolName,
+    baseSymbol: poolDetail.baseSymbol || poolCandidate.baseSymbol,
+    quoteSymbol: poolDetail.quoteSymbol || poolCandidate.quoteSymbol,
+    binStep: poolDetail.binStep,
+    tvlUsd: poolDetail.tvlUsd ?? poolCandidate.tvlUsd,
+    volume24hUsd: poolDetail.volume24hUsd ?? poolCandidate.volume24hUsd,
+    feeTvlRatio: poolDetail.feeTvlRatio ?? poolCandidate.feeTvlRatio,
+    activeBinId: poolDetail.activeBinId,
+    currentPrice: poolDetail.currentPrice,
+  };
+  const synthetic = derivePoolSignals(pool);
+
+  try {
+    const created = await LpExperimentRun.create({
+      experimentId,
+      strategyId: mirrorId,
+      strategyName: mirrorStrategy?.name || "Real mirror (sim)",
+      lpShape: leader.lpShape,
+      poolAddress: poolCandidate.poolAddress,
+      poolName: poolCandidate.poolName,
+      baseSymbol: poolCandidate.baseSymbol,
+      quoteSymbol: poolCandidate.quoteSymbol,
+      binStep: pool.binStep,
+      tvlUsd: pool.tvlUsd,
+      volume24hUsd: pool.volume24hUsd,
+      organicScore: synthetic.organicScore,
+      holderCount: synthetic.holderCount,
+      mcapUsd: synthetic.mcapUsd,
+      feeTvlRatio: pool.feeTvlRatio,
+      binsBelow: leader.binsBelow,
+      binsAbove: leader.binsAbove,
+      activeBinAtOpen: pool.activeBinId,
+      entryPriceUsd: pool.currentPrice,
+      depositSol,
+      depositUsd,
+      signalSnapshot: poolCandidate.signalSnapshot,
+      screeningSnapshot: {
+        ...synthetic,
+        score: poolCandidate.score,
+        leaderStrategyId: leader.id,
+        leaderStrategyName: leader.name,
+        followMode: "real_mirror",
+      },
+      status: "open",
+      openedAt: new Date(),
+      simOpenFeeSol: openFeeSol,
+      simCloseFeeSol: 0,
+      simNetPnlSol: 0,
+    });
+    return {
+      opened: 1,
+      skipped: 0,
+      errors: [],
+      openedRuns: [
+        {
+          runId: String(created._id),
+          strategyId: mirrorId,
+          strategyName: created.strategyName,
+          poolAddress: created.poolAddress,
+          poolName: created.poolName,
+          leaderStrategyId: leader.id,
+        },
+      ],
+      skippedRows: [],
+    };
+  } catch (err) {
+    return {
+      opened: 0,
+      skipped: 0,
+      errors: [`mirror:${err instanceof Error ? err.message : String(err)}`],
+      openedRuns: [],
+      skippedRows: [],
+    };
+  }
+}
+
 export async function runLpExperimentSignalCycle() {
   await ensureLpExperimentBootstrapped();
   const state = await getSingletonStateDoc();
@@ -474,6 +679,7 @@ export async function runLpExperimentSignalCycle() {
   const errors = [];
 
   for (const strategy of strategies) {
+    if (strategy.id === LP_REAL_MIRROR_STRATEGY_ID) continue;
     try {
       const openCount = await LpExperimentRun.countDocuments({
         experimentId,
@@ -576,12 +782,15 @@ export async function runLpExperimentSignalCycle() {
     }
   }
 
+  const mirror = await runLpRealMirrorSignalCycle();
+
   return {
-    opened: opened.length,
-    skipped: skipped.length,
-    errors,
-    openedRuns: opened,
-    skippedRows: skipped,
+    opened: opened.length + mirror.opened,
+    skipped: skipped.length + mirror.skipped,
+    errors: [...errors, ...(mirror.errors || [])],
+    openedRuns: [...opened, ...(mirror.openedRuns || [])],
+    skippedRows: [...skipped, ...(mirror.skippedRows || [])],
+    mirror,
   };
 }
 
@@ -600,7 +809,17 @@ export async function resolveOpenLpRuns() {
 
   for (const run of openRuns) {
     try {
-      const strategy = await resolveLpStrategyById(run.strategyId);
+      const leaderFromSnapshot =
+        run.strategyId === LP_REAL_MIRROR_STRATEGY_ID &&
+        run.screeningSnapshot != null &&
+        typeof run.screeningSnapshot === "object"
+          ? Number(run.screeningSnapshot.leaderStrategyId)
+          : NaN;
+      const exitStrategyId =
+        run.strategyId === LP_REAL_MIRROR_STRATEGY_ID && Number.isInteger(leaderFromSnapshot)
+          ? leaderFromSnapshot
+          : run.strategyId;
+      const strategy = await resolveLpStrategyById(exitStrategyId);
       if (!strategy) {
         await LpExperimentRun.updateOne(
           { _id: run._id },
@@ -623,7 +842,7 @@ export async function resolveOpenLpRuns() {
       const fields = evaluateRunResolution(run, detail, strategy.exit, hoursElapsed, LP_AGENT_EXPERIMENT_DEFAULTS, feeCfg);
 
       const expId = run.experimentId || experimentId;
-      if (fields.status !== "open" && expId) {
+      if (fields.status !== "open" && expId && run.strategyId !== LP_REAL_MIRROR_STRATEGY_ID) {
         const retSol =
           toNum(run.depositSol) + toNum(run.depositSol) * (toNum(fields.simPnlPct) / 100) - toNum(fields.simCloseFeeSol);
         await LpExperimentAgentState.updateOne(
@@ -719,6 +938,7 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
   ]);
 
   return rows
+    .filter((row) => Number(row._id) !== LP_REAL_MIRROR_STRATEGY_ID)
     .map((row) => {
       const decided = toNum(row.decided);
       const runCount = toNum(row.runCount);
@@ -744,8 +964,8 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
     })
     .filter((row) => row.runCount > 0)
     .sort((a, b) => {
-      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
       if (b.sumNetPnlSol !== a.sumNetPnlSol) return b.sumNetPnlSol - a.sumNetPnlSol;
+      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
       if ((b.winRate ?? -1) !== (a.winRate ?? -1)) return (b.winRate ?? -1) - (a.winRate ?? -1);
       return b.decided - a.decided;
     });
@@ -756,12 +976,12 @@ function selectProfitableStrategyLeader(ranked) {
   const qualified = ranked.filter(
     (row) =>
       row.decided >= LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
-      row.rankScore > 0 &&
+      row.sumNetPnlSol > 0 &&
       (row.winRate ?? 0) >= 0.45,
   );
   if (qualified.length > 0) return qualified[0];
   if (ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) return ranked[0];
-  const positive = ranked.find((row) => row.rankScore > 0 && row.decided >= 3);
+  const positive = ranked.find((row) => row.sumNetPnlSol > 0 && row.decided >= 3);
   if (positive) return positive;
   return null;
 }

@@ -108,6 +108,18 @@ export const navigation: NavItem[] = [
         defaultCollapsed: false,
         items: [
           {
+            title: "Agent tools: StableCrypto & pay.sh",
+            href: api("agent-tools-market-data"),
+          },
+          {
+            title: "Agent tools: StableSocial",
+            href: api("agent-tools-social-data"),
+          },
+          {
+            title: "Agent tools: StableEnrich",
+            href: api("agent-tools-enrichment-data"),
+          },
+          {
             title: "Agent tools: Binance, Giza, Bankr, Neynar, SIWA",
             href: api("agent-tools-partners"),
           },
@@ -126,6 +138,9 @@ export const navigation: NavItem[] = [
       { title: "Getting Started", href: "/docs/agent/getting-started" },
       { title: "How It Works", href: "/docs/agent/how-it-works" },
       { title: "Agent Features", href: "/docs/agent/features" },
+      { title: "Market Data (StableCrypto)", href: "/docs/agent/market-data" },
+      { title: "Social Data (StableSocial)", href: "/docs/agent/social-data" },
+      { title: "Enrichment (StableEnrich)", href: "/docs/agent/enrichment-data" },
       { title: "Supported Tokens", href: "/docs/agent/supported-tokens" },
       { title: "Trading Guidance", href: "/docs/agent/trading-guidance" },
       { title: "Agent Catalog", href: "/docs/agent/agent-catalog" },

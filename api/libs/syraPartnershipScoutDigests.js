@@ -70,3 +70,28 @@ export function formatSyraPartnershipScoutTelegram(data) {
 
   return lines.join("\n").trim();
 }
+
+/**
+ * @param {object[]} newLeads
+ * @param {{ newSaved?: number; skippedExisting?: number; candidatesScanned?: number }} meta
+ * @returns {string}
+ */
+export function formatSyraPartnershipScoutNewLeadsTelegram(newLeads, meta) {
+  const lines = [
+    `Syra · Partnership Scout — ${meta.newSaved ?? newLeads.length} new lead${(meta.newSaved ?? newLeads.length) === 1 ? "" : "s"}`,
+    meta.skippedExisting != null ? `Skipped (already in DB): ${meta.skippedExisting}` : "",
+    "",
+  ].filter(Boolean);
+
+  for (const lead of newLeads.slice(0, 10)) {
+    if (lead.kind === "integration") {
+      lines.push(`• [integration] ${lead.integrationText || lead.name}`);
+      continue;
+    }
+    lines.push(`• [${lead.priority || "medium"}] ${lead.name} (${lead.projectType || "utility"})`);
+    if (lead.collaborationIdea) lines.push(`  Idea: ${String(lead.collaborationIdea).slice(0, 200)}`);
+    if (lead.link) lines.push(`  Link: ${lead.link}`);
+  }
+
+  return lines.join("\n").trim();
+}

@@ -32,7 +32,7 @@ export default function AgentGettingStarted() {
       <section id="what-is-syra-agent" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">What is the Syra Agent?</h2>
         <p className="text-muted-foreground mb-4">
-          The Syra Agent is an AI-powered assistant built for traders, analysts, and builders. It combines natural-language chat with on-demand access to real-time data: trading signals, crypto news, market sentiment, deep research, X (Twitter) search, memecoin screens, and partner tools (e.g. Nansen—calling the real Nansen API with your agent wallet—DexScreener, Jupiter, Squid Router for cross-chain routes). You ask in plain English; the agent chooses the right tool and returns structured, actionable insights.
+          The Syra Agent is an AI-powered assistant built for traders, analysts, and builders. It combines natural-language chat with on-demand access to real-time data: trading signals, crypto news, market sentiment, deep research, X (Twitter) search, memecoin screens, and partner tools (e.g. Nansen—calling the real Nansen API with your agent wallet—DexScreener, Jupiter, Squid Router for cross-chain routes). It also integrates x402 providers <strong className="text-foreground">StableCrypto</strong> (market data), <strong className="text-foreground">StableSocial</strong> (TikTok, Instagram, Facebook, Reddit), and <strong className="text-foreground">StableEnrich</strong> (Exa, Firecrawl, Apollo, maps, enrichment). You ask in plain English; the agent chooses the right tool and returns structured, actionable insights.
         </p>
         <p className="text-muted-foreground">
           Syra is designed to <strong className="text-foreground">enhance your decision-making</strong>, not replace it. Use the agent to understand context, levels, and narratives—then apply your own strategy and risk management.
@@ -92,6 +92,9 @@ export default function AgentGettingStarted() {
           <li><Link to="/docs/agent/how-it-works" className="text-primary hover:underline">How It Works</Link> — Step-by-step: open the agent, explore tokens, request a signal.</li>
           <li><Link to="/docs/agent/features" className="text-primary hover:underline">Agent Features</Link> — Trading signals, news, sentiment, research, and more.</li>
           <li><Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link> — Full list of tools with names, descriptions, prices, and example prompts.</li>
+          <li><Link to="/docs/agent/market-data" className="text-primary hover:underline">Market data (StableCrypto)</Link> — Live CoinGecko/DefiLlama prices, global market, TVL, and pay.sh gateway.</li>
+          <li><Link to="/docs/agent/social-data" className="text-primary hover:underline">Social data (StableSocial)</Link> — TikTok, Instagram, Facebook, and Reddit profiles, posts, and search.</li>
+          <li><Link to="/docs/agent/enrichment-data" className="text-primary hover:underline">Enrichment (StableEnrich)</Link> — Exa, Firecrawl, Apollo, maps, Reddit, Serper, Hunter, Minerva.</li>
         </ul>
       </section>
 

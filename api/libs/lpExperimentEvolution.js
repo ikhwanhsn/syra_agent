@@ -5,7 +5,10 @@
 import LpExperimentRun from "../models/LpExperimentRun.js";
 import LpExperimentState from "../models/LpExperimentState.js";
 import LpExperimentStrategyOverride from "../models/LpExperimentStrategyOverride.js";
-import { LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS } from "../config/lpAgentExperimentStrategies.js";
+import {
+  LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+  LP_REAL_MIRROR_STRATEGY_ID,
+} from "../config/lpAgentExperimentStrategies.js";
 import { resolveLpExperimentStrategies } from "./lpExperimentStrategyResolve.js";
 
 /** @template T @param {readonly T[]} arr @returns {T} */
@@ -20,7 +23,7 @@ export const LP_AGENT_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   removeCount: 5,
   minDecided: 5,
   /** Strategy ids never culled (comma-separated env override). */
-  pinnedStrategyIds: Object.freeze([]),
+  pinnedStrategyIds: Object.freeze([LP_REAL_MIRROR_STRATEGY_ID]),
 });
 
 /**

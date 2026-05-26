@@ -10,8 +10,10 @@ import {
   computeAgentCashFromEquity,
   computeAgentEquityFromRealizedPnl,
   computeAgentReturnPct,
+  computeExperimentNotionalUsd,
   roundUsd,
 } from "../config/tradingExperimentSim.js";
+import { prepareExperimentBuy } from "./experimentTradeEnhance.js";
 import {
   EXPERIMENT_SUITE_PRIMARY,
   EXPERIMENT_SUITE_SECONDARY,
@@ -25,7 +27,6 @@ import UserCustomStrategy from "../models/UserCustomStrategy.js";
 import { buildBinanceSignalReport, fetchBinanceKlinesJson } from "./binanceSignalAnalysis.js";
 import { buildCexSignalReport, normalizeSignalCexSource } from "./cexSignalAnalysis.js";
 import { extractSignalFields } from "./experimentSignalExtract.js";
-import { experimentBuyPassesAllGates } from "./experimentSignalGate.js";
 import { runUserCustomSignalCycle } from "./userCustomStrategyService.js";
 
 /**
@@ -218,12 +219,14 @@ async function computeSyntheticCashUsd(suiteNorm, agentId) {
   }).lean();
   let pnl = 0;
   for (const r of settled) pnl += estimateHistoricalSettledPnlUsd(r);
-  const opens = await TradingExperimentRun.countDocuments({ ...base, status: "open" });
-  return (
-    TRADING_EXPERIMENT_STARTING_USD +
-    pnl -
-    TRADING_EXPERIMENT_TRADE_NOTIONAL_USD * opens
-  );
+  const openRuns = await TradingExperimentRun.find({ ...base, status: "open" })
+    .select("notionalUsd")
+    .lean();
+  let deployed = 0;
+  for (const r of openRuns) {
+    deployed += toNum(r.notionalUsd, TRADING_EXPERIMENT_TRADE_NOTIONAL_USD);
+  }
+  return TRADING_EXPERIMENT_STARTING_USD + pnl - deployed;
 }
 
 /**
@@ -397,7 +400,15 @@ function scanCandlesForTpSl(candles, stopLoss, firstTarget) {
     const hitSl = low <= stopLoss;
     const hitTp = high >= firstTarget;
     if (hitSl && hitTp) {
-      return { hit: "loss", resolution: "same_bar_both_touched_stop_first_assumption", bars };
+      const open = parseFloat(String(k[1]));
+      const close = parseFloat(String(k[4]));
+      if (Number.isFinite(open) && Number.isFinite(close) && close > open) {
+        return { hit: "win", resolution: "same_bar_both_touched_bullish_close_first", bars };
+      }
+      if (Number.isFinite(open) && Number.isFinite(close) && close < open) {
+        return { hit: "loss", resolution: "same_bar_both_touched_bearish_close_first", bars };
+      }
+      return { hit: "loss", resolution: "same_bar_both_touched_doji_stop_first", bars };
     }
     if (hitSl) return { hit: "loss", resolution: "stop_loss", bars };
     if (hitTp) return { hit: "win", resolution: "first_target", bars };
@@ -432,6 +443,7 @@ export async function runExperimentSignalCycle(opts = {}) {
     return runMultiTokenExperimentSignalCycle(opts);
   }
   const strategies = await resolveStrategiesForSuite(suiteNorm);
+  const ledgerMaps = await buildLabLedgerMapsForSuite(suiteNorm);
   const errors = [];
   let created = 0;
 
@@ -468,24 +480,23 @@ export async function runExperimentSignalCycle(opts = {}) {
         anchorCloseMs = bin.anchorCloseMs;
       }
 
-      const ex = extractSignalFields(report);
+      const rawEx = extractSignalFields(report);
       const summary = {
-        signal: ex.clearSignal,
+        signal: rawEx.clearSignal,
         reasoning: report?.tradingRecommendation?.reasoning,
         action: report?.tradingRecommendation?.action,
       };
 
-      if (!experimentBuyPassesAllGates(ex, s.experimentGate, s.indicatorFilter)) {
+      if (rawEx.clearSignal === "HOLD") {
         continue;
       }
 
-      if (ex.clearSignal === "HOLD") {
-        // HOLD means no actionable position; skip persistence to keep experiment ledger focused.
+      if (rawEx.clearSignal !== "BUY") {
         continue;
       }
 
-      if (ex.clearSignal !== "BUY") {
-        // Spot-long experiment: do not record SELL or other non-BUY signals.
+      const ex = prepareExperimentBuy(rawEx, s.experimentGate, s.indicatorFilter);
+      if (!ex) {
         continue;
       }
 
@@ -517,13 +528,16 @@ export async function runExperimentSignalCycle(opts = {}) {
         continue;
       }
 
+      const { equityUsd } = labLedgerSnapshotFromMaps(s.id, ledgerMaps);
+      const notionalUsd = computeExperimentNotionalUsd(equityUsd, ex.confidence);
+
       const reserved = await TradingExperimentAgentState.findOneAndUpdate(
         {
           suite: suiteNorm,
           agentId: s.id,
-          cashUsd: { $gte: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD },
+          cashUsd: { $gte: notionalUsd },
         },
-        { $inc: { cashUsd: -TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
+        { $inc: { cashUsd: -notionalUsd } },
         { new: true },
       );
       if (!reserved) {
@@ -548,13 +562,13 @@ export async function runExperimentSignalCycle(opts = {}) {
           confidence: ex.confidence,
           status: "open",
           summary,
-          notionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+          notionalUsd,
         });
         created += 1;
       } catch (createErr) {
         await TradingExperimentAgentState.updateOne(
           { suite: suiteNorm, agentId: s.id },
-          { $inc: { cashUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD } },
+          { $inc: { cashUsd: notionalUsd } },
         );
         throw createErr;
       }
@@ -934,6 +948,8 @@ export async function getExperimentStats(opts = {}) {
     simConfig: {
       startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
       tradeNotionalUsd: TRADING_EXPERIMENT_TRADE_NOTIONAL_USD,
+      tradePctOfEquity: 0.2,
+      dynamicNotional: true,
     },
   };
 }

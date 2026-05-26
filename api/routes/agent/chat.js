@@ -41,6 +41,15 @@ import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
+import { callStablecryptoWithAgent } from '../../libs/agentStablecryptoClient.js';
+import { callStablesocialWithAgent } from '../../libs/agentStablesocialClient.js';
+import { callStableenrichWithAgent } from '../../libs/agentStableenrichClient.js';
+import {
+  fetchCatalog,
+  findProvider,
+  parsePayshForceRefresh,
+  runPayshToolForAgent,
+} from '../../libs/payshClient.js';
 import {
   purchVaultSearch,
   purchVaultBuy,
@@ -525,8 +534,11 @@ CRITICAL RULES — READ CAREFULLY:
 4. MULTI-TURN CONTEXT: The user message may include a short transcript of earlier User/Assistant turns. The CURRENT request is always the last "User:" line. Use earlier turns to resolve pronouns, "same", "that token/wallet", "now do X instead", and to fill tool params when the last message alone is incomplete but the thread makes them clear. If required params are still ambiguous, return {"tools": []}.
 
 QUICK ROUTING GUIDE (use this to pick the right tool fast):
-— Live Solana (or multi-chain) token price, OHLCV, liquidity, security, trending, new listings, meme detail, holder stats, Birdeye smart-money list → use the matching **birdeye-*** tool when the user gives a **mint/address** (or the endpoint needs no address). Pass **address** or **mint** plus optional Birdeye query keys (chain, type, time_from, time_to, offset, limit) as flat strings. For Birdeye POST tools pass **body** as a JSON string. Docs: https://docs.birdeye.so/reference/x402
-— If the user asks for price or token metrics but did **not** provide a mint/contract, return {"tools": []} so the assistant asks for it (do not guess).
+— BTC/ETH/SOL or CoinGecko id spot price, global market cap, CoinGecko trending, DefiLlama protocol/chain TVL, yield pools → **stablecrypto-*** tools (e.g. stablecrypto-coingecko-price with ids=bitcoin; stablecrypto-coingecko-global; stablecrypto-defillama-tvl with protocol=aave). Prefer these over signal for simple major-coin USD price.
+— TikTok/Instagram/Facebook profile or posts, Reddit subreddit or search → **stablesocial-*** tools (e.g. stablesocial-tiktok-profile with handle=username; stablesocial-reddit-subreddit with subreddit=solana). Requires handle/keyword/subreddit; async (~5–60s).
+— Scrape one URL (Firecrawl), Exa semantic/people search, Apollo people/org search, Google Maps places, Serper news, Hunter email verify, Minerva resolve/enrich, multi-page site crawl → **stableenrich-*** tools. Prefer built-in **exa-search** / **website-crawl** for generic Syra web search/crawl unless user asks for Firecrawl, Apollo, or StableEnrich specifically.
+— Live **Solana** token price, OHLCV, liquidity, security, trending, new listings, meme detail, holder stats, Birdeye smart-money list → use the matching **birdeye-*** tool when the user gives a **mint/address** (or the endpoint needs no address). Pass **address** or **mint** plus optional Birdeye query keys (chain, type, time_from, time_to, offset, limit) as flat strings. For Birdeye POST tools pass **body** as a JSON string. Docs: https://docs.birdeye.so/reference/x402
+— If the user asks for Solana on-chain token metrics but did **not** provide a mint/contract, return {"tools": []} so the assistant asks for it (do not guess).
 — Trending Solana tokens / momentum → trending-jupiter
 — Bundled dashboard (trending + Nansen smart money + Binance correlation) → analytics-summary
 — Cross-venue CEX arbitrage / ranked USDT spreads on top caps (same bundle as the arbitrage experiment UI) → arbitrage
@@ -1772,6 +1784,99 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           } else {
             result = { status: 502, error: `Unknown Tempo public tool: ${tool.id}` };
           }
+        } else if (tool.paysh === 'discover' || tool.paysh === 'endpoints') {
+          const payshOut = await runPayshToolForAgent(tool.paysh, params, {
+            anonymousId,
+            connectedWalletAddress: connectedWalletFromDb || undefined,
+          });
+          result = payshOut.success
+            ? { status: 200, data: payshOut.data }
+            : {
+                status: payshOut.status ?? 502,
+                error: payshOut.error,
+                budgetExceeded: payshOut.budgetExceeded,
+              };
+        } else if (tool.paysh === 'call') {
+          let providerMinUsd = tool.priceUsd;
+          try {
+            const catalog = await fetchCatalog({ forceRefresh: parsePayshForceRefresh(params) });
+            const prov = findProvider(catalog.providers, params.fqn || '');
+            if (!prov) {
+              result = { status: 404, error: `Unknown pay.sh provider fqn: ${params.fqn}` };
+            } else {
+              const m = Number(prov.min_price_usd);
+              providerMinUsd = Math.max(tool.priceUsd, Number.isFinite(m) ? m : 0);
+            }
+          } catch (e) {
+            result = { status: 400, error: e instanceof Error ? e.message : String(e) };
+          }
+          if (!result) {
+            const payshRequired = getEffectivePriceUsd(providerMinUsd, connectedWalletFromDb) ?? providerMinUsd;
+            if (!useTreasury && payshRequired > 0 && (usdcBalance <= 0 || usdcBalance < payshRequired)) {
+              const msg =
+                usdcBalance <= 0
+                  ? `Agent wallet has 0 USDC. pay.sh call needs $${payshRequired.toFixed(4)} for this provider.`
+                  : `Insufficient USDC ($${usdcBalance.toFixed(4)}; need $${payshRequired.toFixed(4)}).`;
+              toolErrors.push(msg);
+              toolUsages.push({ name: tool.name, status: 'skipped', costUsd: 0 });
+              continue;
+            }
+            const payshCallOut = await runPayshToolForAgent('call', params, {
+              anonymousId,
+              connectedWalletAddress: connectedWalletFromDb || undefined,
+            });
+            result = payshCallOut.success
+              ? { status: 200, data: payshCallOut.data }
+              : {
+                  status: payshCallOut.status ?? 502,
+                  error: payshCallOut.error,
+                  budgetExceeded: payshCallOut.budgetExceeded,
+                };
+          }
+        } else if (tool.stablecryptoPath) {
+          const stablecryptoResult = await callStablecryptoWithAgent(
+            anonymousId,
+            tool.stablecryptoPath,
+            params,
+            connectedWalletFromDb || undefined
+          );
+          result = stablecryptoResult.success
+            ? { status: 200, data: stablecryptoResult.data }
+            : {
+                status: stablecryptoResult.budgetExceeded ? 402 : 502,
+                error: stablecryptoResult.error,
+                budgetExceeded: stablecryptoResult.budgetExceeded,
+              };
+        } else if (tool.stablesocialPath) {
+          const stablesocialResult = await callStablesocialWithAgent(
+            anonymousId,
+            tool.stablesocialPath,
+            params,
+            connectedWalletFromDb || undefined
+          );
+          result = stablesocialResult.success
+            ? { status: 200, data: stablesocialResult.data }
+            : {
+                status: stablesocialResult.budgetExceeded ? 402 : 502,
+                error: stablesocialResult.error,
+                budgetExceeded: stablesocialResult.budgetExceeded,
+              };
+        } else if (tool.stableenrichPath) {
+          const stableenrichResult = await callStableenrichWithAgent(
+            anonymousId,
+            tool.stableenrichPath,
+            tool.stableenrichMethod || 'POST',
+            params,
+            tool.stableenrichAsync,
+            connectedWalletFromDb || undefined
+          );
+          result = stableenrichResult.success
+            ? { status: 200, data: stableenrichResult.data }
+            : {
+                status: stableenrichResult.budgetExceeded ? 402 : 502,
+                error: stableenrichResult.error,
+                budgetExceeded: stableenrichResult.budgetExceeded,
+              };
         } else if (tool.agentDirect) {
           const out = await runAgentPartnerDirectTool(tool.id, params, { host: req.get('host') });
           if (!out.ok) {

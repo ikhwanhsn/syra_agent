@@ -1,4 +1,5 @@
 import type { LpRealPosition, LpRealPositionStatus } from "@/lib/lpAgentRealApi";
+import { formatRelativeTime, formatTimestamp } from "@/lib/agentWalletUi";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { formatLpUsd } from "@/lib/lpAgentExperimentApi";
 
@@ -303,6 +304,84 @@ export function formatPositionDuration(openedAt: string | null, resolvedAt: stri
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   if (hours < 48) return `${hours.toFixed(1)}h`;
   return `${(hours / 24).toFixed(1)}d`;
+}
+
+export function formatPositionDurationLong(openedAt: string | null, resolvedAt: string | null): string {
+  if (!openedAt) return "—";
+  const start = new Date(openedAt).getTime();
+  const end = resolvedAt ? new Date(resolvedAt).getTime() : Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "—";
+  const totalMin = Math.max(0, Math.round((end - start) / 60_000));
+  if (totalMin < 60) return `${totalMin} min`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h < 48) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  const d = Math.floor(h / 24);
+  const rh = h % 24;
+  return rh > 0 ? `${d}d ${rh}h` : `${d}d`;
+}
+
+export interface LpPositionTimeline {
+  holdLabel: string;
+  openedRelative: string;
+  openedAbsolute: string;
+  closedRelative?: string;
+  closedAbsolute?: string;
+  lastCheckedRelative?: string;
+  isLive: boolean;
+}
+
+export function buildLpPositionTimeline(row: LpRealPosition): LpPositionTimeline {
+  const isLive = isActiveLpRealPosition(row.status) || isOrphanedLiveLpRealPosition(row);
+  const holdLabel = isLive
+    ? `Open ${formatPositionDurationLong(row.openedAt, null)}`
+    : `Held ${formatPositionDurationLong(row.openedAt, row.resolvedAt)}`;
+
+  const timeline: LpPositionTimeline = {
+    holdLabel,
+    openedRelative: formatRelativeTime(row.openedAt),
+    openedAbsolute: formatTimestamp(row.openedAt),
+    isLive,
+  };
+
+  if (row.resolvedAt) {
+    timeline.closedRelative = formatRelativeTime(row.resolvedAt);
+    timeline.closedAbsolute = formatTimestamp(row.resolvedAt);
+  }
+  if (isLive && row.lastEvaluatedAt) {
+    timeline.lastCheckedRelative = formatRelativeTime(row.lastEvaluatedAt);
+  }
+  return timeline;
+}
+
+export function formatPoolPairLabel(row: Pick<LpRealPosition, "poolName" | "baseSymbol" | "quoteSymbol" | "poolAddress">): string {
+  if (row.poolName?.trim()) return row.poolName.trim();
+  if (row.baseSymbol && row.quoteSymbol) return `${row.baseSymbol}-${row.quoteSymbol}`;
+  return row.poolAddress.slice(0, 8) + "…";
+}
+
+export function formatStrategyCompact(row: Pick<LpRealPosition, "strategyId" | "strategyName" | "lpShape" | "binsBelow" | "binsAbove">): string {
+  const bins =
+    row.binsBelow != null && row.binsAbove != null
+      ? ` · ${row.binsBelow}/${row.binsAbove} bins`
+      : "";
+  return `#${row.strategyId} ${row.lpShape}${bins}`;
+}
+
+export function formatScreeningAtOpen(row: LpRealPosition): string | null {
+  const s = row.screeningSnapshot;
+  if (!s || typeof s !== "object") return null;
+  const parts: string[] = [];
+  if (typeof s.score === "number" && Number.isFinite(s.score)) {
+    parts.push(`score ${s.score.toFixed(2)}`);
+  }
+  if (typeof s.feeTvlRatio === "number" && Number.isFinite(s.feeTvlRatio)) {
+    parts.push(`fee/TVL ${(s.feeTvlRatio * 100).toFixed(2)}%`);
+  }
+  if (typeof s.tvlUsd === "number" && Number.isFinite(s.tvlUsd) && s.tvlUsd > 0) {
+    parts.push(`TVL ${formatLpUsd(s.tvlUsd)}`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 export function positionDepositLocked(row: Pick<LpRealPosition, "depositLocked" | "openTxSig" | "status">): boolean {

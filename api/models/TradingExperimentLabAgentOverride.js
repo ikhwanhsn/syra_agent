@@ -6,7 +6,10 @@ import mongoose from "mongoose";
 
 const experimentGateSchema = new mongoose.Schema(
   {
-    minConfidence: { type: String, enum: ["LOW", "MEDIUM", "HIGH"], required: true },
+    minConfidence: { type: String, enum: ["LOW", "MEDIUM", "HIGH"], default: null },
+    minRiskReward: { type: Number, default: null },
+    minAdx: { type: Number, default: null },
+    requireTrendMomentumAlign: { type: Boolean, default: null },
   },
   { _id: false },
 );
