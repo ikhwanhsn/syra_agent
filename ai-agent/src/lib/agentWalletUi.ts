@@ -1,4 +1,4 @@
-export type AgentChain = "solana" | "base";
+export type AgentChain = "solana" | "base" | "bsc";
 export type AgentSortKey = "agent" | "wallet" | "chain" | "updated";
 export type AgentSortOrder = "asc" | "desc";
 
@@ -23,6 +23,13 @@ export interface AgentWalletProfile {
   updatedAt: string | null;
 }
 
+export function normalizeAgentChain(raw?: string | null): AgentChain {
+  const c = String(raw || "solana").toLowerCase();
+  if (c === "base") return "base";
+  if (c === "bsc" || c === "bnb") return "bsc";
+  return "solana";
+}
+
 export function agentDetailPath(anonymousId: string): string {
   return `/dashboard/agents/${encodeURIComponent(anonymousId)}`;
 }
@@ -40,32 +47,44 @@ export function isSolanaAgent(agent: {
   agentAddress?: string;
   walletAddress?: string | null;
 }): boolean {
-  if (agent.chain === "base") return false;
+  if (agent.chain === "base" || agent.chain === "bsc") return false;
   if (agent.agentAddress?.startsWith("0x")) return false;
   if (agent.walletAddress?.startsWith("0x")) return false;
   return true;
 }
 
 export function chainLabel(chain: AgentChain): string {
-  return chain === "base" ? "Base" : "Solana";
+  if (chain === "base") return "Base";
+  if (chain === "bsc") return "BNB Chain";
+  return "Solana";
 }
 
 export function explorerUrl(chain: AgentChain, address: string): string | null {
   if (!address) return null;
   if (chain === "base") return `https://basescan.org/address/${address}`;
+  if (chain === "bsc") {
+    return `https://bscscan.com/address/${address}`;
+  }
   return `https://solscan.io/account/${address}`;
 }
 
-export function userWalletExplorerUrl(walletAddress: string): string | null {
+export function userWalletExplorerUrl(walletAddress: string, chain?: AgentChain): string | null {
   if (!walletAddress) return null;
-  if (walletAddress.startsWith("0x")) return `https://basescan.org/address/${walletAddress}`;
+  if (walletAddress.startsWith("0x")) {
+    if (chain === "bsc") return `https://bscscan.com/address/${walletAddress}`;
+    return `https://basescan.org/address/${walletAddress}`;
+  }
   return `https://solscan.io/account/${walletAddress}`;
 }
 
 export function chainBadgeClass(chain: AgentChain): string {
-  return chain === "base"
-    ? "border-blue-500/30 bg-blue-500/10 text-blue-200"
-    : "border-emerald-500/25 bg-emerald-500/10 text-emerald-200";
+  if (chain === "base") {
+    return "border-blue-500/30 bg-blue-500/10 text-blue-200";
+  }
+  if (chain === "bsc") {
+    return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+  }
+  return "border-emerald-500/25 bg-emerald-500/10 text-emerald-200";
 }
 
 export function formatRelativeTime(iso: string | null): string {

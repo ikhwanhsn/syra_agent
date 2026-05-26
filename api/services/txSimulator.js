@@ -142,14 +142,16 @@ export async function simulateBaseTx(_input) {
  * Dispatch helper. Chain-agnostic facade for the broker.
  *
  * @param {Object} input
- * @param {'solana'|'base'|'tempo'} input.chain
+ * @param {'solana'|'base'|'bsc'|'tempo'} input.chain
  * @param {string} input.serializedTxBase64
  * @param {string} input.agentAddress
  * @returns {Promise<SimulateResult>}
  */
 export async function simulate(input) {
   if (input.chain === 'solana') return simulateSolanaTx(input);
-  if (input.chain === 'base' || input.chain === 'tempo') return simulateBaseTx(input);
+  if (input.chain === 'base' || input.chain === 'bsc' || input.chain === 'tempo') {
+    return simulateBaseTx(input);
+  }
   return { ok: false, reasons: ['unsupported_chain'], preBalances: {}, postBalances: {} };
 }
 

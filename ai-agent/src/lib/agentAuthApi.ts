@@ -1,4 +1,5 @@
 import bs58 from "bs58";
+import { normalizeAgentChain, type AgentChain } from "@/lib/agentWalletUi";
 
 const getApiBaseUrl = () => {
   const env = import.meta.env?.VITE_API_URL;
@@ -22,7 +23,7 @@ export interface SyraSignInResult {
   expiresAt: number;
   anonymousId: string;
   agentAddress: string;
-  chain: "solana" | "base";
+  chain: AgentChain;
 }
 
 function readStoredAccessToken(): { token: string; expiresAt: number } | null {
@@ -38,7 +39,7 @@ function readStoredAccessToken(): { token: string; expiresAt: number } | null {
   }
 }
 
-function persistAccessToken(token: string, expiresAt: number, wallet?: { address: string; chain: "solana" | "base" }) {
+function persistAccessToken(token: string, expiresAt: number, wallet?: { address: string; chain: AgentChain }) {
   memoryAccessToken = token;
   memoryExpiresAt = expiresAt;
   if (typeof sessionStorage === "undefined") return;
@@ -69,13 +70,13 @@ export function clearSyraSession(): void {
   }
 }
 
-export function getSyraSessionWallet(): { address: string; chain: "solana" | "base" } | null {
+export function getSyraSessionWallet(): { address: string; chain: AgentChain } | null {
   if (typeof sessionStorage === "undefined") return null;
   try {
     const address = sessionStorage.getItem(SESSION_WALLET_KEY)?.trim();
     const chain = sessionStorage.getItem(SESSION_CHAIN_KEY);
     if (!address) return null;
-    return { address, chain: chain === "base" ? "base" : "solana" };
+    return { address, chain: normalizeAgentChain(chain) };
   } catch {
     return null;
   }
@@ -145,7 +146,7 @@ export async function ensureAccessToken(): Promise<string | null> {
 }
 
 export async function fetchAuthNonce(
-  chain: "solana" | "base",
+  chain: AgentChain,
   address: string,
 ): Promise<{ nonce: string; message: string }> {
   const res = await fetch(`${AUTH_BASE()}/nonce`, {
@@ -161,7 +162,7 @@ export async function fetchAuthNonce(
 }
 
 export async function signInWithWallet(params: {
-  chain: "solana" | "base";
+  chain: AgentChain;
   address: string;
   message: string;
   signature: string;
@@ -187,12 +188,12 @@ export async function signInWithWallet(params: {
     expiresAt?: number;
     anonymousId?: string;
     agentAddress?: string;
-    chain?: "solana" | "base";
+    chain?: AgentChain;
   };
   if (!data.accessToken || typeof data.expiresAt !== "number" || !data.anonymousId || !data.agentAddress) {
     throw new Error("Invalid sign-in response");
   }
-  const chain = data.chain === "base" ? "base" : params.chain;
+  const chain = normalizeAgentChain(data.chain ?? params.chain);
   persistAccessToken(data.accessToken, data.expiresAt, { address: params.address, chain });
   return {
     accessToken: data.accessToken,

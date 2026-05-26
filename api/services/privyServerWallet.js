@@ -81,13 +81,13 @@ async function privyFetch(path, options = {}) {
  * Provision a new Privy server wallet for a user.
  *
  * @param {Object} input
- * @param {'solana'|'base'} input.chain
+ * @param {'solana'|'base'|'bsc'} input.chain
  * @param {string} input.anonymousId
  * @returns {Promise<{ privyWalletId: string; agentAddress: string }>}
  */
 export async function createPrivyServerWallet({ chain, anonymousId }) {
   if (!isPrivyConfigured()) throw new Error('privy_not_configured');
-  const chainType = chain === 'base' ? 'ethereum' : 'solana';
+  const chainType = chain === 'base' || chain === 'bsc' ? 'ethereum' : 'solana';
   const body = {
     chain_type: chainType,
     ...(process.env.PRIVY_DEFAULT_POLICY
@@ -137,7 +137,7 @@ export async function privySignSolanaTx({ privyWalletId, serializedTxBase64, sub
  * @param {Object} input
  * @param {string} input.privyWalletId
  * @param {string} input.message
- * @param {'solana'|'base'} input.chain
+ * @param {'solana'|'base'|'bsc'} input.chain
  * @returns {Promise<{ signature: string }>}
  */
 export async function privySignMessage({ privyWalletId, message, chain }) {

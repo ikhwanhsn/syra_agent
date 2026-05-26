@@ -121,7 +121,7 @@ export async function verifyEvmSignature({ address, message, signature }) {
  * @param {Object} input
  * @param {string} input.message
  * @param {string} input.signature
- * @param {'solana'|'base'} input.chain
+ * @param {'solana'|'base'|'bsc'} input.chain
  * @param {string} input.expectedDomain
  * @param {string} input.expectedPurpose
  */
@@ -143,7 +143,7 @@ export async function verifySignInMessage(input) {
   let ok = false;
   if (input.chain === 'solana') {
     ok = verifySolanaSignature({ address, message: input.message, signature: input.signature });
-  } else if (input.chain === 'base') {
+  } else if (input.chain === 'base' || input.chain === 'bsc') {
     ok = await verifyEvmSignature({ address, message: input.message, signature: input.signature });
   }
   if (!ok) return { ok: false, reason: 'signature_invalid' };

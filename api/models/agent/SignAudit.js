@@ -21,7 +21,7 @@ const signAuditSchema = new mongoose.Schema(
     anonymousId: { type: String, required: true, index: true },
     walletAddress: { type: String, default: null },
     agentAddress: { type: String, default: null },
-    chain: { type: String, enum: ['solana', 'base', 'tempo', 'other'], default: 'solana' },
+    chain: { type: String, enum: ['solana', 'base', 'bsc', 'tempo', 'other'], default: 'solana' },
 
     /** Action */
     action: {

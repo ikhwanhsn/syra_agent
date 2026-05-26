@@ -54,7 +54,7 @@ const HISTORY_LIMIT = 200;
 /**
  * @typedef {Object} ExecuteIntent
  * @property {'x402_pay'|'tx_sign'|'withdraw'|'message_sign'} type
- * @property {'solana'|'base'|'tempo'} chain
+ * @property {'solana'|'base'|'bsc'|'tempo'} chain
  * @property {string=} toolId
  * @property {number=} estimatedUsd
  * @property {string=} toAddress

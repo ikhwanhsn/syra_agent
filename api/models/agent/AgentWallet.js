@@ -18,8 +18,8 @@ const agentWalletSchema = new mongoose.Schema(
     anonymousId: { type: String, required: true, unique: true },
     /** Connected wallet public key (Solana base58 or EVM 0x); when set, agent wallet is linked to this user wallet. */
     walletAddress: { type: String, required: false },
-    /** Chain for this agent wallet: "solana" | "base". One agent per chain per user. */
-    chain: { type: String, required: false, default: 'solana', enum: ['solana', 'base'] },
+    /** Chain for this agent wallet: "solana" | "base" | "bsc". One agent per chain per user. */
+    chain: { type: String, required: false, default: 'solana', enum: ['solana', 'base', 'bsc'] },
     /** Agent wallet public key. */
     agentAddress: { type: String, required: true },
 

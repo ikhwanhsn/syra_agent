@@ -34,7 +34,7 @@ const SOLANA_CHAIN_MATCH = {
 
 function isSolanaAgentDoc(doc) {
   if (!doc) return false;
-  if (doc.chain === 'base') return false;
+  if (doc.chain === 'base' || doc.chain === 'bsc') return false;
   if (typeof doc.agentAddress === 'string' && doc.agentAddress.startsWith('0x')) return false;
   if (typeof doc.walletAddress === 'string' && doc.walletAddress.startsWith('0x')) return false;
   return true;
@@ -78,11 +78,13 @@ async function listGlobalStats(match) {
   ]);
   let solanaCount = 0;
   let baseCount = 0;
+  let bscCount = 0;
   for (const row of chainCounts) {
     if (row._id === 'base') baseCount = row.count;
+    else if (row._id === 'bsc') bscCount = row.count;
     else solanaCount += row.count;
   }
-  return { totalAgents, totalUsers, solanaCount, baseCount };
+  return { totalAgents, totalUsers, solanaCount, baseCount, bscCount };
 }
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -127,7 +129,7 @@ function requireAdminWallet(req, res, next) {
 
 function walletAddressMatchesSession(sessionAddress, sessionChain, walletFilter) {
   if (!sessionAddress || !walletFilter) return false;
-  if (sessionChain === 'base') {
+  if (sessionChain === 'base' || sessionChain === 'bsc') {
     return walletFilter.toLowerCase() === sessionAddress.toLowerCase();
   }
   return walletFilter === sessionAddress;

@@ -10,6 +10,10 @@ import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import dotenv from "dotenv";
 import { createPayAiFacilitatorAuthHeaders } from "./payaiFacilitatorAuth.js";
+import {
+  getCorbitsEvmUsdcAsset,
+  getEnabledCorbitsNetworks,
+} from "../config/corbitsX402Networks.js";
 
 dotenv.config();
 
@@ -108,32 +112,52 @@ const corbitsFacilitatorUrl =
   env("CORBITS_FACILITATOR_URL") || "https://facilitator.corbits.dev";
 
 /** @param {import('@x402/core/server').x402ResourceServer} server */
-function buildResourceServerBundle(server) {
+function buildResourceServerBundle(server, { corbitsMultiNetwork = false } = {}) {
   server.registerExtension(bazaarResourceServerExtension);
 
   const svmScheme = new ExactSvmScheme().registerMoneyParser(async (amount, net) => {
     if (!String(net).startsWith("solana:")) return null;
+    if (corbitsMultiNetwork) {
+      const row = getEnabledCorbitsNetworks().find((n) => n.kind === "solana" && n.caip2 === net);
+      if (!row) return null;
+      return { asset: row.usdc, amount: atomicUsdcFromUsd(amount) };
+    }
     const mint = solanaUsdcMint || USDC_MAINNET;
     return { asset: mint, amount: atomicUsdcFromUsd(amount) };
   });
   server.register("solana:*", svmScheme);
 
-  if (basePayTo && baseUsdcAsset) {
+  const evmPayConfigured = Boolean(basePayTo || envAny(["EVM_PAYTO", "EVM_ADDRESS"]));
+  if (corbitsMultiNetwork ? evmPayConfigured : basePayTo && baseUsdcAsset) {
     const evmScheme = new ExactEvmScheme().registerMoneyParser(async (amount, net) => {
       if (!String(net).startsWith("eip155:")) return null;
+      if (corbitsMultiNetwork) {
+        const asset = getCorbitsEvmUsdcAsset(net);
+        if (!asset) return null;
+        return { asset, amount: atomicUsdcFromUsd(amount) };
+      }
       return { asset: baseUsdcAsset, amount: atomicUsdcFromUsd(amount) };
     });
     server.register("eip155:*", evmScheme);
   }
 
-  const config = {
-    solanaNetwork,
-    solanaPayTo: solanaPayTo || "",
-    ...(basePayTo && { baseNetwork, basePayTo }),
-  };
+  const config = corbitsMultiNetwork
+    ? {
+        corbitsMultiNetwork: true,
+        solanaNetwork,
+        solanaPayTo: solanaPayTo || "",
+        baseNetwork,
+        basePayTo: basePayTo || envAny(["EVM_PAYTO", "EVM_ADDRESS"]) || "",
+      }
+    : {
+        solanaNetwork,
+        solanaPayTo: solanaPayTo || "",
+        ...(basePayTo && { baseNetwork, basePayTo }),
+      };
   const assets = {
     solanaUsdcMint: solanaUsdcMint || USDC_MAINNET,
     ...(baseUsdcAsset && { baseUsdc: baseUsdcAsset }),
+    ...(corbitsMultiNetwork && { corbitsNetworks: getEnabledCorbitsNetworks() }),
   };
 
   return { resourceServer: server, config, assets };
@@ -183,7 +207,7 @@ export function getX402ResourceServerCorbits() {
   }
   const clients = [new HTTPFacilitatorClient({ url: corbitsFacilitatorUrl })];
   const server = new x402ResourceServer(clients);
-  resourceServerCorbitsInstance = buildResourceServerBundle(server);
+  resourceServerCorbitsInstance = buildResourceServerBundle(server, { corbitsMultiNetwork: true });
   return resourceServerCorbitsInstance;
 }
 
@@ -203,6 +227,12 @@ export async function ensureX402ResourceServerInitialized() {
 }
 
 /** Initialize Corbits-backed resource server (for route experiments such as GET /news). */
+export {
+  CORBITS_X402_NETWORKS,
+  getEnabledCorbitsNetworks,
+  getCorbitsPayToAddresses,
+} from "../config/corbitsX402Networks.js";
+
 export async function ensureX402CorbitsResourceServerInitialized() {
   const { resourceServer } = getX402ResourceServerCorbits();
   if (!initPromiseCorbits) {

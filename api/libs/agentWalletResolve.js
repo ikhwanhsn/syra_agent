@@ -1,12 +1,26 @@
 import AgentWallet from '../models/agent/AgentWallet.js';
+import { normalizeAgentChain } from './syraChains.js';
 
+/**
+ * @param {string} address
+ * @param {import('./syraChains.js').SyraAgentChain} chain
+ */
 function canonicalAnonymousId(address, chain) {
-  return chain === 'base' ? `wallet:${address}:base` : `wallet:${address}`;
+  if (chain === 'base') return `wallet:${address}:base`;
+  if (chain === 'bsc') return `wallet:${address}:bsc`;
+  return `wallet:${address}`;
 }
 
+/**
+ * @param {string} address
+ * @param {import('./syraChains.js').SyraAgentChain} chain
+ */
 function walletAddressQuery(address, chain) {
   if (chain === 'base') {
     return { walletAddress: address, chain: 'base' };
+  }
+  if (chain === 'bsc') {
+    return { walletAddress: address, chain: 'bsc' };
   }
   return {
     walletAddress: address,
@@ -24,13 +38,13 @@ function isUnlinkedGuest(doc) {
  *
  * Order (preserves funded legacy wallets):
  *  1. Row already linked to walletAddress + chain (any anonymousId)
- *  2. Row at canonical anonymousId (wallet:address)
+ *  2. Row at canonical anonymousId (wallet:address[:chain])
  *  3. Unlinked guest row from client localStorage (migrate on link)
  *
  * @returns {Promise<import('mongoose').LeanDocument|null>}
  */
 export async function resolveAgentWalletForUser({ address, chain = 'solana', guestAnonymousId = null }) {
-  const normalizedChain = chain === 'base' ? 'base' : 'solana';
+  const normalizedChain = normalizeAgentChain(chain);
   const canonicalId = canonicalAnonymousId(address, normalizedChain);
 
   const linked = await AgentWallet.findOne(walletAddressQuery(address, normalizedChain)).lean();

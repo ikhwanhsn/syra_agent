@@ -24,6 +24,10 @@ import {
   ensureX402CorbitsResourceServerInitialized,
 } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../config/x402Pricing.js";
+import {
+  getCorbitsPayToAddresses,
+  getEnabledCorbitsNetworks,
+} from "../config/corbitsX402Networks.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
@@ -148,6 +152,128 @@ function normalizeEvmAddress(a) {
 }
 
 /**
+ * Build x402 payment options for a request (Corbits multi-network or legacy Solana+Base).
+ * @param {object} bundle
+ * @param {string} microUnits
+ * @param {number} maxTimeout
+ */
+function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
+  const { config, assets } = bundle;
+  if (config.corbitsMultiNetwork) {
+    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getCorbitsPayToAddresses();
+    const solanaPayTo = config.solanaPayTo || solFromEnv;
+    const evmPayTo = config.basePayTo || evmFromEnv;
+    const options = [];
+    for (const net of getEnabledCorbitsNetworks()) {
+      if (net.kind === "solana" && solanaPayTo) {
+        options.push({
+          scheme: "exact",
+          price: { asset: net.usdc, amount: microUnits },
+          network: net.caip2,
+          payTo: solanaPayTo,
+          maxTimeoutSeconds: maxTimeout,
+        });
+      } else if (net.kind === "evm" && evmPayTo) {
+        options.push({
+          scheme: "exact",
+          price: { asset: net.usdc, amount: microUnits },
+          network: net.caip2,
+          payTo: evmPayTo,
+          maxTimeoutSeconds: maxTimeout,
+        });
+      }
+    }
+    return options;
+  }
+
+  const paymentOptions = [
+    {
+      scheme: "exact",
+      price: { asset: assets.solanaUsdcMint, amount: microUnits },
+      network: config.solanaNetwork,
+      payTo: config.solanaPayTo,
+      maxTimeoutSeconds: maxTimeout,
+    },
+  ];
+  if (config.basePayTo && assets.baseUsdc) {
+    paymentOptions.push({
+      scheme: "exact",
+      price: { asset: assets.baseUsdc, amount: microUnits },
+      network: config.baseNetwork,
+      payTo: config.basePayTo,
+      maxTimeoutSeconds: maxTimeout,
+    });
+  }
+  return paymentOptions;
+}
+
+/**
+ * Expected accepted options for payment validation (same networks as 402 offers).
+ * @param {object} bundle
+ * @param {string} expectedMicroUnits
+ */
+function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
+  const { config, assets } = bundle;
+  if (config.corbitsMultiNetwork) {
+    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getCorbitsPayToAddresses();
+    const solanaPayTo = config.solanaPayTo || solFromEnv;
+    const evmPayTo = config.basePayTo || evmFromEnv;
+    const out = [];
+    for (const net of getEnabledCorbitsNetworks()) {
+      if (net.kind === "solana" && solanaPayTo) {
+        out.push({
+          network: net.caip2,
+          payTo: solanaPayTo,
+          asset: net.usdc,
+          isEvm: false,
+        });
+      } else if (net.kind === "evm" && evmPayTo) {
+        out.push({
+          network: net.caip2,
+          payTo: evmPayTo,
+          asset: net.usdc,
+          isEvm: true,
+        });
+      }
+    }
+    return out.map((o) => ({ ...o, amount: expectedMicroUnits }));
+  }
+
+  const acceptedOptions = [
+    {
+      network: config.solanaNetwork,
+      payTo: config.solanaPayTo,
+      asset: assets.solanaUsdcMint,
+      isEvm: false,
+      amount: expectedMicroUnits,
+    },
+  ];
+  if (config.basePayTo && assets.baseUsdc) {
+    acceptedOptions.push({
+      network: config.baseNetwork,
+      payTo: config.basePayTo,
+      asset: assets.baseUsdc,
+      isEvm: true,
+      amount: expectedMicroUnits,
+    });
+  }
+  return acceptedOptions;
+}
+
+/** @param {object} acc - payload.accepted */
+function paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits) {
+  if (acc.scheme !== "exact" || acc.network !== opt.network) return false;
+  if (String(acc.amount) !== expectedMicroUnits) return false;
+  if (opt.isEvm) {
+    return (
+      normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(opt.payTo) &&
+      normalizeEvmAddress(acc.asset) === normalizeEvmAddress(opt.asset)
+    );
+  }
+  return String(acc.payTo) === String(opt.payTo) && String(acc.asset) === String(opt.asset);
+}
+
+/**
  * Build PaymentRequired response (same flow as payai_example_routes buildPaymentRequired).
  * Uses resourceServer.buildPaymentRequirementsFromOptions, createPaymentRequiredResponse,
  * declareDiscoveryExtension, enrichExtensions.
@@ -237,25 +363,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const resourceUrl = adapter.getUrl();
   const maxTimeout = options.maxTimeoutSeconds ?? 60;
 
-  // Offer both Solana and Base so clients can pay with either network
-  const paymentOptions = [
-    {
-      scheme: "exact",
-      price: { asset: assets.solanaUsdcMint, amount: microUnits },
-      network: config.solanaNetwork,
-      payTo: config.solanaPayTo,
-      maxTimeoutSeconds: maxTimeout,
-    },
-  ];
-  if (config.basePayTo && assets.baseUsdc) {
-    paymentOptions.push({
-      scheme: "exact",
-      price: { asset: assets.baseUsdc, amount: microUnits },
-      network: config.baseNetwork,
-      payTo: config.basePayTo,
-      maxTimeoutSeconds: maxTimeout,
-    });
-  }
+  const paymentOptions = buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout);
 
   const ctx = {
     adapter,
@@ -405,23 +513,9 @@ export function requirePayment(options) {
       const expectedMicroUnits = String(Math.round(priceUsd * 1_000_000));
       const acc = payload.accepted;
 
-      // Accept payment from either Solana or Base (must match one of our offered options)
-      const acceptedOptions = [
-        { network: config.solanaNetwork, payTo: config.solanaPayTo, asset: assets.solanaUsdcMint, isBase: false },
-      ];
-      if (config.basePayTo && assets.baseUsdc) {
-        acceptedOptions.push({ network: config.baseNetwork, payTo: config.basePayTo, asset: assets.baseUsdc, isBase: true });
-      }
-
-      const matchingOption = acceptedOptions.find(
-        (opt) =>
-          acc.scheme === "exact" &&
-          acc.network === opt.network &&
-          (opt.isBase
-            ? normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(opt.payTo) &&
-              normalizeEvmAddress(acc.asset) === normalizeEvmAddress(opt.asset)
-            : String(acc.payTo) === String(opt.payTo) && String(acc.asset) === String(opt.asset)) &&
-          String(acc.amount) === expectedMicroUnits
+      const acceptedOptions = buildAcceptedOptionsForBundle(bundle, expectedMicroUnits);
+      const matchingOption = acceptedOptions.find((opt) =>
+        paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits)
       );
 
       if (!matchingOption) {

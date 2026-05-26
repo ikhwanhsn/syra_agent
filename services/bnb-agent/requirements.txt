@@ -1,0 +1,4 @@
+bnbagent[server,ipfs]>=0.3.3
+httpx>=0.27.0
+python-dotenv>=1.0.0
+uvicorn[standard]>=0.30.0

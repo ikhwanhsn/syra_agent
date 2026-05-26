@@ -5,7 +5,7 @@
  *    -> { nonce, message }                       Frontend signs `message` with the user's wallet
  *
  *  POST /agent/auth/sign-in
- *    body: { chain: 'solana'|'base', address, message, signature, anonymousId? }
+ *    body: { chain: 'solana'|'base'|'bsc', address, message, signature, anonymousId? }
  *    -> { accessToken, expiresAt, anonymousId, agentAddress }
  *    also sets httpOnly cookie `syra_refresh`
  *
@@ -41,6 +41,7 @@ import {
   getDefaultCustodyMode,
 } from '../../services/privyServerWallet.js';
 import { canonicalAnonymousId, resolveAgentWalletForUser } from '../../libs/agentWalletResolve.js';
+import { normalizeAgentChain } from '../../libs/syraChains.js';
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ function familyRevoked(fid) {
 }
 
 router.post('/nonce', (req, res) => {
-  const chain = req.body?.chain === 'base' ? 'base' : 'solana';
+  const chain = normalizeAgentChain(req.body?.chain);
   const address = String(req.body?.address || '').trim();
   if (!address) return res.status(400).json({ success: false, error: 'address required' });
   const nonce = issueNonce();
@@ -78,7 +79,7 @@ router.post('/nonce', (req, res) => {
 
 router.post('/sign-in', async (req, res) => {
   try {
-    const chain = req.body?.chain === 'base' ? 'base' : 'solana';
+    const chain = normalizeAgentChain(req.body?.chain);
     const address = String(req.body?.address || '').trim();
     const message = String(req.body?.message || '');
     const signature = String(req.body?.signature || '');
@@ -105,24 +106,30 @@ router.post('/sign-in', async (req, res) => {
       if (chain === 'base') {
         return res.status(410).json({
           success: false,
-          error: 'Base agent wallets are temporarily disabled; sign in with Solana.',
+          error: 'Base agent wallets are temporarily disabled; sign in with Solana or BNB Chain.',
         });
       }
       const custody = getDefaultCustodyMode();
       if (custody === 'privy' && isPrivyConfigured()) {
         const { privyWalletId, agentAddress } = await createPrivyServerWallet({
-          chain: 'solana',
+          chain,
           anonymousId,
         });
         wallet = await AgentWallet.create({
           anonymousId,
           walletAddress: address,
-          chain: 'solana',
+          chain,
           agentAddress,
           privyWalletId,
           custody: 'privy',
           status: 'active',
           destinationAllowlist: [address],
+        });
+      } else if (chain === 'bsc') {
+        return res.status(503).json({
+          success: false,
+          error: 'bsc_requires_privy',
+          message: 'BNB Chain agent wallets require Privy custody (SYRA_CUSTODY_MODE=privy).',
         });
       } else {
         const kp = Keypair.generate();

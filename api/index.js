@@ -24,6 +24,8 @@ import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
 import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
+import { createBnb8183Router } from "./routes/agent/bnb8183.js";
+import { createAgentChainsRouter } from "./routes/agent/chains.js";
 import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
 import { createInfoRouter } from "./routes/info.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
@@ -708,6 +710,16 @@ app.use(
         if (got === secret) return true;
       }
     }
+    if (
+      p === "/agent/bnb8183/execute" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.ERC8183_INTERNAL_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-erc8183-internal-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
     return (
       isX402Route(p) ||
       p === "/" ||
@@ -1031,6 +1043,8 @@ app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
 app.use("/agent/marketplace", await createAgentMarketplaceRouter());
 app.use("/agent/leaderboard", await createAgentLeaderboardRouter());
+app.use("/agent/bnb8183", createBnb8183Router());
+app.use("/agent/chains", createAgentChainsRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());

@@ -54,6 +54,7 @@ import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageConte
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
 import { OverviewHero } from "@/components/dashboard/overview/OverviewHero";
+import { SyraChainsBar } from "@/components/dashboard/SyraChainsBar";
 import { OverviewGroupLabel } from "@/components/dashboard/overview/OverviewGroupLabel";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
@@ -261,6 +262,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             </>
           }
         />
+        <SyraChainsBar />
         <OverviewGroupLabel icon={Telescope}>Alpha intelligence</OverviewGroupLabel>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <OverviewStatCard

@@ -1,4 +1,6 @@
 import { syraFetch } from "@/lib/agentAuthApi";
+import type { AgentChain } from "@/lib/agentWalletUi";
+import { normalizeAgentChain } from "@/lib/agentWalletUi";
 
 export const getApiBaseUrl = () => {
   const env = import.meta.env?.VITE_API_URL;
@@ -364,13 +366,13 @@ export const agentWalletApi = {
   /** Get or create agent wallet by connected wallet address and chain (checks database first). */
   async getOrCreateByWallet(
     walletAddress: string,
-    chain: "solana" | "base" = "solana"
+    chain: AgentChain = "solana"
   ): Promise<{
     anonymousId: string;
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
-    chain?: "solana" | "base";
+    chain?: AgentChain;
   }> {
     const res = await syraFetch(`${agentWalletBase()}/connect`, {
       method: "POST",
@@ -383,14 +385,14 @@ export const agentWalletApi = {
       agentAddress: string;
       avatarUrl?: string | null;
       isNewWallet?: boolean;
-      chain?: "solana" | "base";
+      chain?: AgentChain;
     }>(res);
     return {
       anonymousId: data.anonymousId,
       agentAddress: data.agentAddress,
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
-      chain: data.chain,
+      chain: data.chain ? normalizeAgentChain(data.chain) : chain,
     };
   },
 
@@ -427,7 +429,7 @@ export const agentWalletApi = {
     offset?: number;
     walletAddress?: string;
     q?: string;
-    chain?: "solana" | "base";
+    chain?: AgentChain;
     sort?: "updated" | "wallet" | "chain" | "agent";
     order?: "asc" | "desc";
   }): Promise<{
@@ -442,7 +444,7 @@ export const agentWalletApi = {
     agents: Array<{
       anonymousId: string;
       walletAddress: string;
-      chain: "solana" | "base";
+      chain: AgentChain;
       agentAddress: string;
       avatarUrl: string | null;
       createdAt: string | null;
@@ -475,7 +477,7 @@ export const agentWalletApi = {
       agents: Array<{
         anonymousId: string;
         walletAddress: string;
-        chain: "solana" | "base";
+        chain: AgentChain;
         agentAddress: string;
         avatarUrl: string | null;
         createdAt: string | null;
@@ -514,7 +516,7 @@ export const agentWalletApi = {
       agents: Array<{
         anonymousId: string;
         walletAddress: string;
-        chain: "solana" | "base";
+        chain: AgentChain;
         agentAddress: string;
         avatarUrl: string | null;
         createdAt: string | null;
@@ -544,7 +546,7 @@ export const agentWalletApi = {
         agents: Array<{
           anonymousId: string;
           walletAddress: string;
-          chain: "solana" | "base";
+          chain: AgentChain;
           agentAddress: string;
           avatarUrl: string | null;
           createdAt: string | null;
@@ -573,7 +575,7 @@ export const agentWalletApi = {
   async getProfile(anonymousId: string): Promise<{
     anonymousId: string;
     walletAddress: string | null;
-    chain: "solana" | "base";
+    chain: AgentChain;
     agentAddress: string;
     avatarUrl: string | null;
     solanaAgentAddress: string | null;
@@ -585,7 +587,7 @@ export const agentWalletApi = {
       success: boolean;
       anonymousId: string;
       walletAddress: string | null;
-      chain: "solana" | "base";
+      chain: AgentChain;
       agentAddress: string;
       avatarUrl: string | null;
       solanaAgentAddress: string | null;
@@ -595,7 +597,7 @@ export const agentWalletApi = {
     return {
       anonymousId: data.anonymousId,
       walletAddress: data.walletAddress,
-      chain: data.chain === "base" ? "base" : "solana",
+      chain: normalizeAgentChain(data.chain),
       agentAddress: data.agentAddress,
       avatarUrl: data.avatarUrl ?? null,
       solanaAgentAddress: data.solanaAgentAddress ?? null,
@@ -701,7 +703,7 @@ export const agentWalletApi = {
     exportable: boolean;
     reason?: string;
     custody: string;
-    chain: "solana" | "base";
+    chain: AgentChain;
     requiresWalletAuth?: boolean;
     agentAddress?: string;
   }> {
@@ -714,7 +716,7 @@ export const agentWalletApi = {
       exportable: boolean;
       reason?: string;
       custody: string;
-      chain: "solana" | "base";
+      chain: AgentChain;
       requiresWalletAuth?: boolean;
       agentAddress?: string;
     }>(res);
@@ -722,7 +724,7 @@ export const agentWalletApi = {
       exportable: data.exportable,
       reason: data.reason,
       custody: data.custody,
-      chain: data.chain === "base" ? "base" : "solana",
+      chain: normalizeAgentChain(data.chain),
       requiresWalletAuth: data.requiresWalletAuth,
       agentAddress: data.agentAddress,
     };
