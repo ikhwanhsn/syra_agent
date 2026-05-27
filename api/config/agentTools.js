@@ -57,6 +57,7 @@ import {
   X402_DISPLAY_PRICE_SIWA_USD,
 } from './x402Pricing.js';
 import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
+import { TOKENS_AGENT_TOOLS, getTokensParamsHintForLlm } from './tokensAgentTools.js';
 import {
   STABLECRYPTO_AGENT_TOOLS,
   getStablecryptoParamsHintForLlm,
@@ -1448,6 +1449,7 @@ export const AGENT_TOOLS = [
   ...STABLESOCIAL_AGENT_TOOLS,
   ...STABLEENRICH_AGENT_TOOLS,
   ...BIRDEYE_AGENT_TOOLS,
+  ...TOKENS_AGENT_TOOLS,
 ];
 
 /** Legacy LLM/frontend ids for generic Solana swap — routed to pump.fun fun-block swap. */
@@ -2449,6 +2451,19 @@ export function getCapabilitiesList() {
     'gmgn-track-kol',
     'gmgn-track-smartmoney',
     'gmgn-track-follow-wallet',
+    'tokens-assets-search',
+    'tokens-assets-resolve',
+    'tokens-asset-detail',
+    'tokens-asset-variants',
+    'tokens-asset-markets',
+    'tokens-asset-ohlcv',
+    'tokens-asset-price-chart',
+    'tokens-asset-risk-summary',
+    'tokens-asset-risk-details',
+    'tokens-risk-summary-mint',
+    'tokens-assets-curated',
+    'tokens-market-snapshots',
+    'tokens-variant-markets',
   ];
   const eight004scan = ['8004scan-stats', '8004scan-chains', '8004scan-agents', '8004scan-agents-search', '8004scan-agent', '8004scan-account-agents', '8004scan-feedbacks'];
   const purchVault = ['purch-vault-search', 'purch-vault-buy'];
@@ -2525,6 +2540,14 @@ export function getCapabilitiesList() {
     lines.push(
       'Birdeye Data (x402 USDC; Solana token prices, security, OHLCV, trending, meme, smart money — pass address or mint + Birdeye query keys):',
       ...fmt(birdeyeX402),
+      ''
+    );
+  }
+  const tokensTools = AGENT_TOOLS.filter((t) => t.id.startsWith('tokens-')).map((t) => t.id);
+  if (tokensTools.length) {
+    lines.push(
+      'Tokens.xyz (canonical assets, Solana variants, OHLCV, risk, curated lists — use tokens-assets-resolve then tokens-asset-detail; pass assetId or mint per docs.tokens.xyz):',
+      ...fmt(tokensTools),
       ''
     );
   }
@@ -2802,6 +2825,10 @@ export function getToolsForLlmSelection() {
     }
     if (t.id === 'gmgn-track-follow-wallet') {
       out.paramsHint = 'chain; optional wallet, limit, min_amount_usd, max_amount_usd, side, filters. Server needs GMGN_PRIVATE_KEY.';
+    }
+    if (t.id.startsWith('tokens-')) {
+      const hint = getTokensParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
     }
     return out;
   });

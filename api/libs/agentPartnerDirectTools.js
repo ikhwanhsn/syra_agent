@@ -41,6 +41,7 @@ import {
 } from "./riseClient.js";
 import { MIGRATED_TOOL_IDS, runMigratedTool } from "./agentMigratedTools.js";
 import { runGmgnAgentTool } from "./gmgnAgentService.js";
+import { runTokensAgentTool } from "./tokensAgentService.js";
 
 function binanceCreds(params) {
   const fromEnv =
@@ -108,6 +109,10 @@ export async function runAgentPartnerDirectTool(toolId, params, opts = {}) {
 
   if (typeof toolId === "string" && toolId.startsWith("gmgn-")) {
     return runGmgnAgentTool(toolId, params);
+  }
+
+  if (typeof toolId === "string" && toolId.startsWith("tokens-")) {
+    return runTokensAgentTool(toolId, params);
   }
 
   try {

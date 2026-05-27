@@ -20,6 +20,7 @@ import {
   Droplets,
   Rocket,
   Crosshair,
+  FileSearch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletNav } from "@/components/chat/WalletNav";
@@ -118,6 +119,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[1] === "settings" || parts[1] === "agent-setup") return "Agent setup";
   if (parts[1] === "alpha" && parts[2] === "x" && parts[3]) return "Alpha · Intel";
   if (parts[1] === "alpha") return "Alpha";
+  if (parts[1] === "token-check") return "Token check";
   if (parts[1] === "pumpfun-experiment") return "Pumpfun experiment";
   if (parts[1] === "rise-experiment") return "Rise experiment";
   if (parts[1] === "trading-experiment") return "Trading experiment";
@@ -184,6 +186,14 @@ function DashboardSidebarContent({
           <div className="space-y-1">
             <SidebarNavLink to="/dashboard/alpha" icon={Telescope} end matchActive={isAlphaIntelActive}>
               Alpha
+            </SidebarNavLink>
+            <SidebarNavLink
+              to="/dashboard/token-check"
+              icon={FileSearch}
+              end
+              matchActive={(pathname) => pathname.startsWith("/dashboard/token-check")}
+            >
+              Token check
             </SidebarNavLink>
           </div>
 

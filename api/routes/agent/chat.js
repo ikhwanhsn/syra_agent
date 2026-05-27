@@ -538,6 +538,7 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — TikTok/Instagram/Facebook profile or posts, Reddit subreddit or search → **stablesocial-*** tools (e.g. stablesocial-tiktok-profile with handle=username; stablesocial-reddit-subreddit with subreddit=solana). Requires handle/keyword/subreddit; async (~5–60s).
 — Scrape one URL (Firecrawl), Exa semantic/people search, Apollo people/org search, Google Maps places, Serper news, Hunter email verify, Minerva resolve/enrich, multi-page site crawl → **stableenrich-*** tools. Prefer built-in **exa-search** / **website-crawl** for generic Syra web search/crawl unless user asks for Firecrawl, Apollo, or StableEnrich specifically.
 — Live **Solana** token price, OHLCV, liquidity, security, trending, new listings, meme detail, holder stats, Birdeye smart-money list → use the matching **birdeye-*** tool when the user gives a **mint/address** (or the endpoint needs no address). Pass **address** or **mint** plus optional Birdeye query keys (chain, type, time_from, time_to, offset, limit) as flat strings. For Birdeye POST tools pass **body** as a JSON string. Docs: https://docs.birdeye.so/reference/x402
+— **Canonical assets** (BTC, majors, LSTs, RWAs, ETFs), resolve ticker/mint → assetId, curated lists, Tokens.xyz risk/OHLCV/markets → **tokens-*** tools. Flow: **tokens-assets-resolve** (ref or mint) then **tokens-asset-detail** / risk / OHLCV with **assetId**. Mint-only risk → **tokens-risk-summary-mint**. Batch mint snapshots → **tokens-market-snapshots** or **tokens-variant-markets**. Docs: https://docs.tokens.xyz/v1/quickstart
 — If the user asks for Solana on-chain token metrics but did **not** provide a mint/contract, return {"tools": []} so the assistant asks for it (do not guess).
 — Trending Solana tokens / momentum → trending-jupiter
 — Bundled dashboard (trending + Nansen smart money + Binance correlation) → analytics-summary
@@ -587,6 +588,13 @@ PARAM RULES:
 - For tokenized agent invoice payment tx use "pumpfun-agent-payments-build" with agentMint, currencyMint, amount, memo, startTime, endTime (strings), optional user.
 - For verify agent invoice use "pumpfun-agent-payments-verify" with agentMint, currencyMint, amount, memo, startTime, endTime as numbers, optional user.
 - For **birdeye-*** tools: use **address** or **mint** (Solana token mint base58) when the tool requires a token; optional **chain**, **type**, **time_from**, **time_to**, **offset**, **limit**, and other Birdeye query parameters as flat string keys matching the Birdeye REST API. For **birdeye-defi-ohlcv-base-quote** use **base_address** and **quote_address**. For POST tools (**birdeye-token-v1-holder-batch**, **birdeye-token-v1-transfer**, **birdeye-token-v1-transfer-total**) set **params**: {"body": "<JSON string of the request body>"}.
+- For **tokens-assets-search** set **params**: {"q": "<search text>", "limit": "5"} when the user searches assets by name/ticker.
+- For **tokens-assets-resolve** set **params**: {"ref": "btc"} or {"mint": "<solana mint>"} to get canonical **assetId**.
+- For **tokens-asset-detail**, **tokens-asset-variants**, **tokens-asset-markets**, **tokens-asset-ohlcv**, **tokens-asset-price-chart**, **tokens-asset-risk-summary**, **tokens-asset-risk-details** set **assetId** (e.g. bitcoin, solana, solana-<mint>) from resolve or user; optional **include**, **mint**, **interval**, **from**, **to**, **limit**, **offset**.
+- For **tokens-risk-summary-mint** set **params**: {"mint": "<solana mint>"}.
+- For **tokens-assets-curated** set **params**: {"list": "majors"} or **list** lsts|currencies|rwas|etfs|metals|stocks|all; optional **groupBy** asset|mint.
+- For **tokens-market-snapshots** set **params**: {"mints": "mint1,mint2,..."} (max 250) or **body** JSON string.
+- For **tokens-variant-markets** set **params**: {"mints": "mint1,mint2,..."} (max 50).
 - For all other tools use "params": {}.
 - Do not duplicate the same toolId in the array. Maximum ${MAX_TOOLS_PER_REQUEST} tools.`;
 

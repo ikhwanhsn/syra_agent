@@ -25,6 +25,7 @@ import LpAgentExperiment from "./pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "./pages/LpAgentExperimentAgentProfile";
 import PumpfunExperiment from "./pages/PumpfunExperiment";
 import RiseExperiment from "./pages/RiseExperiment";
+import MintDossier from "./pages/MintDossier";
 import {
   LegacyMarketplaceRedirect,
   LegacyTradingExperimentAgentRedirect,
@@ -69,6 +70,8 @@ const App = () => (
                   <Route path="lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile embedded />} />
                   <Route path="alpha/x/:username" element={<AlphaAccountDetail />} />
                   <Route path="alpha" element={<Alpha />} />
+                  <Route path="token-check" element={<MintDossier embedded />} />
+                  <Route path="dossier" element={<Navigate to="/dashboard/token-check" replace />} />
                   <Route path="pumpfun-experiment" element={<PumpfunExperiment embedded />} />
                   <Route path="rise-experiment" element={<RiseExperiment embedded />} />
                   <Route path="internal-team-agents" element={<InternalTeamAgentsMonitor />} />

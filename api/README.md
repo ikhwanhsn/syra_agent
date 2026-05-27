@@ -55,6 +55,21 @@ See the [root README](../README.md) and [Syra docs](https://docs.syraa.fun) for 
 
 ---
 
+## Tokens.xyz (canonical assets API)
+
+The AI agent can call [Tokens Assets API v1](https://docs.tokens.xyz/v1/quickstart) via **`tokens-*`** tools on **`POST /agent/tools/call`** (same flow as GMGN: server API key, user pays Syra USDC per call).
+
+**Env:**
+
+- `TOKENS_API_KEY` — required (`x-api-key` header; keep server-side only)
+- `TOKENS_API_BASE_URL` — optional (default `https://api.tokens.xyz`)
+
+**Examples:** `tokens-assets-search` (q=bitcoin), `tokens-assets-resolve` (ref or mint), `tokens-asset-detail` (assetId + optional include), `tokens-asset-ohlcv`, `tokens-asset-risk-summary`, `tokens-assets-curated`, `tokens-market-snapshots`.
+
+**Dashboard Token check (free aggregate, no per-tool USDC):** `GET /agent/tokens/dossier?q=btc` or `?mint=<solana>` or `?assetId=bitcoin` — powers **`/dashboard/token-check`** in the agent app.
+
+---
+
 ## Tempo wallet (EVM keypair)
 
 Tempo uses **EVM-style** accounts (same as Ethereum): a **0x address** and a **hex private key**. Generate one locally:
