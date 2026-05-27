@@ -336,6 +336,59 @@ export function isRealCronEnabled() {
   return raw !== "false" && raw !== "0";
 }
 
+/** If last signal tick is older than this, treat the agent as stale (cron may not be running). */
+const LP_REAL_STALE_TICK_MS = 10 * 60 * 1000;
+/** Min gap between self-heal kicks triggered from GET /state (per agent). */
+const LP_REAL_KICK_DEBOUNCE_MS = 90 * 1000;
+
+const lpRealKickDebounce = new Map();
+
+async function repairCloseAllIfIdle(config, agentFilter) {
+  if (!config?.closeAllRequested || !agentFilter) return;
+  const openCount = await LpRealPosition.countDocuments({
+    experimentId: config.experimentId,
+    status: { $in: ["open", "opening", "closing"] },
+  });
+  if (openCount === 0) {
+    await LpRealConfig.updateOne(agentFilter, { $set: { closeAllRequested: false } });
+    config.closeAllRequested = false;
+  }
+}
+
+/**
+ * Run one signal + resolve pass for a single enabled agent (enable hook, stale recovery, manual kick).
+ */
+export async function kickLpRealAgentTicks(config) {
+  if (!config?.agentAddress) {
+    return { skipped: true, reason: "no_config" };
+  }
+  if (!isRealCronEnabled()) {
+    return { skipped: true, reason: "env_disabled" };
+  }
+  const agentFilter = configAgentFilter(config);
+  await repairCloseAllIfIdle(config, agentFilter);
+  const [signal, resolve] = await Promise.all([
+    runLpRealSignalCycleForConfig(config),
+    resolveLpRealPositionsForConfig(config),
+  ]);
+  return { signal, resolve };
+}
+
+/** Wake a enabled agent when in-process cron has not ticked recently (e.g. API cold start). */
+export function maybeKickStaleLpRealAgent(config) {
+  if (!config?.enabled || !config?.agentAddress || !isRealCronEnabled()) return;
+  const lastMs = config.lastSignalAt ? new Date(config.lastSignalAt).getTime() : 0;
+  const stale = !lastMs || Date.now() - lastMs > LP_REAL_STALE_TICK_MS;
+  if (!stale) return;
+  const addr = String(config.agentAddress);
+  const debouncedAt = lpRealKickDebounce.get(addr) || 0;
+  if (Date.now() - debouncedAt < LP_REAL_KICK_DEBOUNCE_MS) return;
+  lpRealKickDebounce.set(addr, Date.now());
+  void kickLpRealAgentTicks(config).catch((err) => {
+    console.warn("[LP real] stale agent kick failed:", addr, err?.message || err);
+  });
+}
+
 async function fetchSolPriceUsd() {
   const now = Date.now();
   if (now - cachedSolPrice.ts <= 20_000 && Number.isFinite(cachedSolPrice.value)) {
@@ -815,6 +868,10 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   const canEnable = canOpenNewPositions;
   const canTurnOn = canTurnOnAgent({ onChainBalanceSol: nativeSolBalanceSol, openPositions, config });
 
+  if (config.enabled) {
+    maybeKickStaleLpRealAgent(config);
+  }
+
   let currentStrategy = null;
   if (config.currentStrategyId != null) {
     const s = await resolveLpStrategyById(config.currentStrategyId);
@@ -1090,6 +1147,16 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
     enableSet.capitalBaselineSol = totalCapitalSol;
   }
   await LpRealConfig.updateOne(configAgentFilter(config), { $set: enableSet });
+  const fresh = await LpRealConfig.findOne({ agentAddress: config.agentAddress }).lean();
+  if (fresh?.enabled && isRealCronEnabled()) {
+    void kickLpRealAgentTicks(fresh).catch((err) => {
+      console.warn(
+        "[LP real] enable kick failed:",
+        fresh.agentAddress,
+        err?.message || err,
+      );
+    });
+  }
   return getLpRealState({ viewerAnonymousId: anonymousId });
 }
 
@@ -1113,6 +1180,9 @@ async function runLpRealSignalCycleForConfig(config) {
   const opened = [];
   const skipped = [];
 
+  await repairCloseAllIfIdle(config, agentFilter);
+
+  try {
   const onChainBalance = await getAgentSolBalance(config.agentAddress);
   const openPositionsEarly = await LpRealPosition.find({
     experimentId: config.experimentId,
@@ -1539,6 +1609,11 @@ async function runLpRealSignalCycleForConfig(config) {
     openedRows: opened,
     skippedRows: skipped,
   };
+  } finally {
+    if (agentFilter) {
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastSignalAt: new Date() } }).catch(() => {});
+    }
+  }
 }
 
 export async function runLpRealSignalCycle() {
@@ -1569,6 +1644,10 @@ function lpSweepPreserveUsdc() {
 
 async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false } = {}) {
   const agentFilter = configAgentFilter(config);
+  await repairCloseAllIfIdle(config, agentFilter);
+  if (agentFilter) {
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastResolveAt: new Date() } }).catch(() => {});
+  }
   const openRuns = await LpRealPosition.find({
     experimentId: config.experimentId,
     $or: [

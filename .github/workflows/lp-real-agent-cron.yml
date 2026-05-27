@@ -1,0 +1,47 @@
+# Keeps LP Real agent ticks running when the API process has no persistent setInterval
+# (serverless, restarts, or scaled workers). Matches in-process intervals: signal ~2m, resolve ~30s.
+#
+# Repository secrets (same as other Syra cron jobs):
+#   SYRA_API_BASE_URL — e.g. https://api.syraa.fun
+#   LP_AGENT_EXPERIMENT_CRON_SECRET — must match API LP_AGENT_EXPERIMENT_CRON_SECRET when set
+name: LP real agent cron
+
+on:
+  schedule:
+    # GitHub minimum schedule interval is 5 minutes
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  lp-real-ticks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST signal-tick + resolve-tick
+        env:
+          BASE_URL: ${{ secrets.SYRA_API_BASE_URL }}
+          CRON_SECRET: ${{ secrets.LP_AGENT_EXPERIMENT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ]; then
+            echo "::warning::Set SYRA_API_BASE_URL in repo secrets to enable LP real cron."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          HDR=()
+          if [ -n "${CRON_SECRET:-}" ]; then
+            HDR=(-H "x-lp-experiment-secret: ${CRON_SECRET}")
+          fi
+          for PATH_SUFFIX in signal-tick resolve-tick; do
+            URL="${ORIGIN}/experiment/lp-agent-real/${PATH_SUFFIX}"
+            echo "POST ${URL}"
+            HTTP_CODE=$(curl -sS -o /tmp/lp-real.json -w "%{http_code}" -X POST "${URL}" \
+              "${HDR[@]}" \
+              -H "Accept: application/json")
+            echo "HTTP ${HTTP_CODE}"
+            cat /tmp/lp-real.json
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "::error::LP real ${PATH_SUFFIX} returned HTTP ${HTTP_CODE}"
+              exit 1
+            fi
+            node -e "const r=require('/tmp/lp-real.json'); if(r.success!==true){console.error(r);process.exit(1)}"
+          done

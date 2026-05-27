@@ -1358,6 +1358,17 @@ app.listen(PORT, () => {
     setInterval(runLpRealResolve, LP_AGENT_REAL_RESOLVE_INTERVAL_MS);
   }
 
+  const bootLpRealCrons = runIfMongoConnected(() =>
+    import("./libs/lpRealService.js")
+      .then(({ isRealCronEnabled, runLpRealSignalCycle, resolveLpRealPositions }) => {
+        if (!isRealCronEnabled()) return null;
+        console.info("[LP real] boot signal+resolve tick");
+        return Promise.all([runLpRealSignalCycle(), resolveLpRealPositions()]);
+      })
+      .catch((err) => console.warn("[LP real] boot tick failed:", err?.message || err)),
+  );
+  setTimeout(bootLpRealCrons, 20_000);
+
   import("./libs/lpExperimentEvolution.js")
     .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {
       const evo = lpEvolutionConfigFromEnv();
