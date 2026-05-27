@@ -33,6 +33,22 @@ function mergeBaseWithOverride(base, o) {
   };
 }
 
+/** @param {import("mongoose").LeanDocument<any>} o */
+function overrideRowToStrategy(o) {
+  return {
+    id: o.strategyId,
+    name: o.name,
+    lpShape: o.lpShape,
+    binsBelow: o.binsBelow,
+    binsAbove: o.binsAbove,
+    screeningOverrides: o.screeningOverrides ?? {},
+    signalGate: o.signalGate ?? { minPasses: 0 },
+    signalWeights: o.signalWeights ?? {},
+    exit: o.exit ?? {},
+    notes: o.notes ?? "",
+  };
+}
+
 /** @returns {Promise<object[]>} */
 export async function resolveLpExperimentStrategies() {
   /** @type {import("mongoose").LeanDocument<any>[]} */
@@ -43,7 +59,14 @@ export async function resolveLpExperimentStrategies() {
     return LP_AGENT_EXPERIMENT_STRATEGIES.map((b) => ({ ...b }));
   }
   const map = new Map(overrides.map((row) => [row.strategyId, row]));
-  return LP_AGENT_EXPERIMENT_STRATEGIES.map((b) => mergeBaseWithOverride({ ...b }, map.get(b.id)));
+  const staticIds = new Set(LP_AGENT_EXPERIMENT_STRATEGIES.map((b) => b.id));
+  const staticMerged = LP_AGENT_EXPERIMENT_STRATEGIES.map((b) =>
+    mergeBaseWithOverride({ ...b }, map.get(b.id)),
+  );
+  const dynamicOnly = overrides
+    .filter((row) => !staticIds.has(row.strategyId))
+    .map(overrideRowToStrategy);
+  return [...staticMerged, ...dynamicOnly].sort((a, b) => a.id - b.id);
 }
 
 /** @param {number} strategyId */

@@ -171,8 +171,9 @@ export function createLpAgentExperimentRouter() {
   });
 
   /**
-   * Cull worst LP strategies by win rate (requires min settled runs), wipe their runs, spawn random replacements.
-   * Body optional: { removeCount?, minDecided?, pinnedStrategyIds?: number[] }
+   * Cull worst LP strategies, wipe their runs, spawn elite-mutated replacements.
+   * Also spawns new daily agents (ids 20–97) mutated from sim leaders.
+   * Body optional: { removeCount?, minDecided?, dailySpawnCount?, maxStrategies?, pinnedStrategyIds?: number[] }
    */
   router.post("/evolution-tick", requireCronSecret, async (req, res) => {
     try {
@@ -185,6 +186,14 @@ export function createLpAgentExperimentRouter() {
         body.minDecided != null && Number.isFinite(Number(body.minDecided))
           ? Number(body.minDecided)
           : undefined;
+      const dailySpawnCount =
+        body.dailySpawnCount != null && Number.isFinite(Number(body.dailySpawnCount))
+          ? Number(body.dailySpawnCount)
+          : undefined;
+      const maxStrategies =
+        body.maxStrategies != null && Number.isFinite(Number(body.maxStrategies))
+          ? Number(body.maxStrategies)
+          : undefined;
       let pinned = undefined;
       if (Array.isArray(body.pinnedStrategyIds)) {
         pinned = new Set(
@@ -193,7 +202,13 @@ export function createLpAgentExperimentRouter() {
             .filter((n) => Number.isInteger(n) && n >= 0 && n <= 99),
         );
       }
-      const data = await runLpExperimentEvolution({ removeCount, minDecided, pinned });
+      const data = await runLpExperimentEvolution({
+        removeCount,
+        minDecided,
+        dailySpawnCount,
+        maxStrategies,
+        pinned,
+      });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({

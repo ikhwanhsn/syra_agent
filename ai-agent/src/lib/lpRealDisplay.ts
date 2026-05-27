@@ -90,6 +90,12 @@ export function formatLpLastError(
       return "No sim strategy ready yet — waiting for cohort data";
     case "no_profitable_strategy":
       return "No sim strategy with positive net PnL yet — waiting for a profitable leader";
+    case "no_candidate":
+      return "Agent is ticking but no Meteora pool passed screening (or all pools on 90m cooldown) — retrying every ~2 min";
+    case "cooldown_or_open":
+      return "Same pool was used recently — waiting for 90m cooldown before re-entry";
+    case "max_positions":
+      return "Max concurrent positions reached — monitoring open slots only";
     default:
       break;
   }
@@ -384,7 +390,12 @@ export function formatScreeningAtOpen(row: LpRealPosition): string | null {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-export function positionDepositLocked(row: Pick<LpRealPosition, "depositLocked" | "openTxSig" | "status">): boolean {
+export function positionDepositLocked(
+  row: Pick<LpRealPosition, "depositLocked" | "openTxSig" | "status" | "closeTxSig">,
+): boolean {
   if (row.depositLocked === true) return true;
-  return Boolean(row.openTxSig) && row.status !== "error";
+  if (!row.openTxSig) return false;
+  if (row.status === "opening") return true;
+  if (row.status === "error" && !row.closeTxSig) return true;
+  return row.status !== "error";
 }

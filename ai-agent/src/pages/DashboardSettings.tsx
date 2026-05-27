@@ -63,6 +63,8 @@ import {
   writeAgentSetupBool,
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
+import { useLpExperimentUiMode } from "@/hooks/useLpExperimentUiMode";
+import { LpUiModePicker } from "@/components/settings/LpUiModePicker";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
 const STALE_MS = 45_000;
 
@@ -238,6 +240,7 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
   const [productUpdates, setProductUpdates] = useState(() => readAgentSetupBool(LS_PREF_PRODUCT_UPDATES, true));
   const [usageInsights, setUsageInsights] = useState(() => readAgentSetupBool(LS_PREF_USAGE_INSIGHTS, false));
   const [compactDensity, setCompactDensity] = useState(() => readAgentSetupBool(LS_PREF_COMPACT, false));
+  const { mode: lpUiMode, setMode: setLpUiMode } = useLpExperimentUiMode();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [refreshingBalances, setRefreshingBalances] = useState(false);
@@ -432,6 +435,8 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
                     writeAgentSetupBool(LS_PREF_COMPACT, v);
                   }}
                 />
+                <Separator className="bg-border/40" />
+                <LpUiModePicker value={lpUiMode} onChange={setLpUiMode} />
               </CardContent>
             </Card>
           </>

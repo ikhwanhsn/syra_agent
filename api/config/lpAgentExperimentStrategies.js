@@ -13,7 +13,17 @@ export const LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS = Object.freeze({
   study_win_rate: 1.1,
   hive_consensus: 0.95,
   volatility: 0.9,
+  /** High volume relative to TVL — proxy for fresh / hot pools */
+  freshness_score: 1.0,
 });
+
+/** Static roster: ids 0–19 (+ mirror 98). Dynamic evo agents use ids 20–97 via overrides. */
+export const LP_AGENT_STATIC_STRATEGY_COUNT = 20;
+export const LP_AGENT_EVOLVABLE_MIN_ID = 20;
+export const LP_AGENT_EVOLVABLE_MAX_ID = 97;
+/** New evo agents spawned per daily tick (mutated from sim leaders). */
+export const LP_AGENT_DAILY_SPAWN_COUNT = 3;
+export const LP_AGENT_MAX_STRATEGIES = 78;
 
 export const LP_AGENT_EXPERIMENT_DEFAULTS = Object.freeze({
   /** @deprecated use maxPositionSol — kept for one-off scripts */
@@ -296,6 +306,157 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
     signalWeights: { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS, smart_wallets_present: 1.22, organic_score: 1.2 },
     exit: { stopLossPct: -8, takeProfitPct: 8, oorWaitMin: 32, trailingTriggerPct: 3.5 },
     notes: "Composite shape with quality and smart-wallet tilt.",
+  },
+  {
+    id: 15,
+    name: "Fresh Token Volume Sniper",
+    lpShape: "bid_ask",
+    binsBelow: 72,
+    binsAbove: 8,
+    screeningOverrides: {
+      minOrganic: 48,
+      minFeeTvlRatio: 0.04,
+      minVolume24hUsd: 180_000,
+      maxTvlUsd: 420_000,
+      minVolTvlRatio: 1.4,
+    },
+    signalGate: {
+      any: [
+        { field: "volume", op: "gte", value: 0.62 },
+        { field: "freshness_score", op: "gte", value: 0.55 },
+        { field: "volatility", op: "gte", value: 0.48 },
+      ],
+      minPasses: 2,
+    },
+    signalWeights: {
+      ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+      volume: 1.45,
+      freshness_score: 1.4,
+      volatility: 1.25,
+      organic_score: 0.75,
+    },
+    exit: { stopLossPct: -20, takeProfitPct: 14, oorWaitMin: 12, minHoldMin: 10, trailingTriggerPct: 7 },
+    notes: "Aggressive: young/hot pools with high 24h volume vs TVL. High risk, fast rotation.",
+  },
+  {
+    id: 16,
+    name: "Meme Launch Hunter",
+    lpShape: "bid_ask",
+    binsBelow: 85,
+    binsAbove: 0,
+    screeningOverrides: {
+      minOrganic: 45,
+      minFeeTvlRatio: 0.035,
+      minVolume24hUsd: 220_000,
+      maxTvlUsd: 280_000,
+      minVolTvlRatio: 2.2,
+    },
+    signalGate: {
+      any: [
+        { field: "freshness_score", op: "gte", value: 0.65 },
+        { field: "fee_tvl_ratio", op: "gte", value: 0.45 },
+      ],
+      minPasses: 1,
+    },
+    signalWeights: {
+      ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+      freshness_score: 1.55,
+      volume: 1.35,
+      fee_tvl_ratio: 1.3,
+      organic_score: 0.65,
+      study_win_rate: 0.85,
+    },
+    exit: { stopLossPct: -22, takeProfitPct: 16, oorWaitMin: 10, minHoldMin: 8, reseedMaxCount: 2 },
+    notes: "Single-sided degen entry on new meme pairs with extreme volume velocity.",
+  },
+  {
+    id: 17,
+    name: "High Volatility YOLO Spot",
+    lpShape: "spot",
+    binsBelow: 48,
+    binsAbove: 48,
+    screeningOverrides: {
+      minOrganic: 50,
+      minFeeTvlRatio: 0.042,
+      minVolume24hUsd: 160_000,
+      maxTvlUsd: 500_000,
+      minVolatilityScore: 0.55,
+    },
+    signalGate: {
+      all: [{ field: "volatility", op: "gte", value: 0.52 }],
+      any: [{ field: "volume", op: "gte", value: 0.58 }, { field: "freshness_score", op: "gte", value: 0.5 }],
+      minPasses: 1,
+    },
+    signalWeights: {
+      ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+      volatility: 1.45,
+      volume: 1.28,
+      freshness_score: 1.15,
+      organic_score: 0.8,
+    },
+    exit: { stopLossPct: -20, takeProfitPct: 15, oorWaitMin: 15, minHoldMin: 12, trailingTriggerPct: 8 },
+    notes: "Wide spot on choppy new tokens; accepts IL for fee bursts.",
+  },
+  {
+    id: 18,
+    name: "Fee Velocity Ape",
+    lpShape: "bid_ask",
+    binsBelow: 55,
+    binsAbove: 18,
+    screeningOverrides: {
+      minOrganic: 52,
+      minFeeTvlRatio: 0.07,
+      minVolume24hUsd: 250_000,
+      maxTvlUsd: 650_000,
+      minVolTvlRatio: 1.1,
+    },
+    signalGate: {
+      all: [
+        { field: "fee_tvl_ratio", op: "gte", value: 0.55 },
+        { field: "volume", op: "gte", value: 0.55 },
+      ],
+      minPasses: 2,
+    },
+    signalWeights: {
+      ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+      fee_tvl_ratio: 1.5,
+      volume: 1.38,
+      freshness_score: 1.2,
+      volatility: 1.1,
+    },
+    exit: { stopLossPct: -18, takeProfitPct: 13, oorWaitMin: 14, minHoldMin: 10, trailingTriggerPct: 6 },
+    notes: "Apes into high fee/TVL + volume spikes on newer listings.",
+  },
+  {
+    id: 19,
+    name: "New Pool Degen Curve",
+    lpShape: "curve",
+    binsBelow: 18,
+    binsAbove: 18,
+    screeningOverrides: {
+      minOrganic: 46,
+      minFeeTvlRatio: 0.038,
+      minVolume24hUsd: 200_000,
+      maxTvlUsd: 350_000,
+      minVolTvlRatio: 1.8,
+    },
+    signalGate: {
+      any: [
+        { field: "freshness_score", op: "gte", value: 0.6 },
+        { field: "volume", op: "gte", value: 0.68 },
+      ],
+      minPasses: 1,
+    },
+    signalWeights: {
+      ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+      freshness_score: 1.48,
+      volume: 1.32,
+      fee_tvl_ratio: 1.22,
+      organic_score: 0.7,
+      holder_count: 0.85,
+    },
+    exit: { stopLossPct: -21, takeProfitPct: 17, oorWaitMin: 11, minHoldMin: 9 },
+    notes: "Tight curve on small TVL pools with outsized 24h flow — highest sim risk tier.",
   },
   {
     id: 98,

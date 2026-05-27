@@ -110,8 +110,13 @@ export function derivePoolSignals(pool) {
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
   const fp = poolFingerprint(pool);
-  const volatilityScore = Math.max(0, Math.min(1, feeTvl * 6 + vol / 400_000));
+  const volTvlRatio = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
+  const volatilityScore = Math.max(0, Math.min(1, feeTvl * 6 + vol / 400_000 + volTvlRatio * 0.08));
   const organicBase = 42 + feeTvl * 280 + Math.min(28, tvl / 12_000);
+  const freshnessScore = Math.max(
+    0,
+    Math.min(1, Math.min(1, volTvlRatio / 6) * 0.65 + Math.max(0, 1 - tvl / 550_000) * 0.35),
+  );
   return {
     organicScore: Math.max(0, Math.min(100, organicBase + fp * 8)),
     holderCount: Math.floor(400 + tvl / 200 + vol / 500),
@@ -121,6 +126,8 @@ export function derivePoolSignals(pool) {
     studyWinRate: Math.max(0.32, Math.min(0.72, 0.38 + feeTvl * 1.6 + fp * 0.12)),
     hiveConsensus: Math.max(0.25, Math.min(0.95, 0.35 + feeTvl * 2.5 + fp * 0.2)),
     volatilityScore,
+    freshnessScore,
+    volTvlRatio,
     priceVsAthPct: Math.max(22, Math.min(92, 38 + volatilityScore * 48 + fp * 14)),
   };
 }
@@ -407,6 +414,91 @@ export async function resetLpExperimentFromScratch(opts = {}) {
 
 const REAL_MIRROR_VIRTUAL_BANK_SOL = 1000;
 
+function isSolPairCandidate(c) {
+  return isSolPairPool(c);
+}
+
+/**
+ * Pick the next SOL pool for one strategy (internal).
+ * @param {string} realExperimentId — lp_real_config.experimentId (cooldown / recent positions)
+ * @param {string|null} simExperimentId — sim lab cohort id (leader open run lookup)
+ */
+async function pickPoolForLeaderStrategy({
+  strategyId,
+  realExperimentId,
+  simExperimentId,
+  hasRecentPositionFn,
+  allCandidates,
+  maxCandidates,
+}) {
+  const leaderId = Number(strategyId);
+  if (!Number.isInteger(leaderId)) return null;
+
+  const solCandidates = allCandidates
+    .filter((c) => c.strategyId === leaderId && c.gatePassed && isSolPairCandidate(c))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxCandidates);
+
+  if (simExperimentId) {
+    const leaderOpen = await LpExperimentRun.findOne({
+      experimentId: simExperimentId,
+      strategyId: leaderId,
+      status: "open",
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (leaderOpen?.poolAddress) {
+      const idx = solCandidates.findIndex((c) => c.poolAddress === leaderOpen.poolAddress);
+      if (idx > 0) {
+        const [match] = solCandidates.splice(idx, 1);
+        solCandidates.unshift(match);
+      } else if (idx < 0) {
+        try {
+          const detail = await fetchMeteoraPoolDetail(leaderOpen.poolAddress);
+          if (
+            passesRealPoolScreen(detail) &&
+            (isSolMint(detail.baseMint) || isSolMint(detail.quoteMint))
+          ) {
+            const recent = await hasRecentPositionFn(
+              realExperimentId,
+              leaderId,
+              leaderOpen.poolAddress,
+            );
+            if (!recent) {
+              return {
+                strategyId: leaderId,
+                strategyName: leaderOpen.strategyName || `Strategy ${leaderId}`,
+                poolAddress: leaderOpen.poolAddress,
+                poolName: leaderOpen.poolName || detail.poolName,
+                baseSymbol: leaderOpen.baseSymbol,
+                quoteSymbol: leaderOpen.quoteSymbol,
+                baseMint: detail.baseMint,
+                quoteMint: detail.quoteMint,
+                score: 0,
+                gatePassed: true,
+                gateReasons: [],
+                signalSnapshot: leaderOpen.signalSnapshot || {},
+                tvlUsd: detail.tvlUsd,
+                volume24hUsd: detail.volume24hUsd,
+                feeTvlRatio: detail.feeTvlRatio,
+                fromSimOpenPool: true,
+              };
+            }
+          }
+        } catch {
+          // Meteora detail fetch failed — continue with scored candidates
+        }
+      }
+    }
+  }
+
+  for (const c of solCandidates) {
+    const recent = await hasRecentPositionFn(realExperimentId, leaderId, c.poolAddress);
+    if (!recent) return c;
+  }
+  return null;
+}
+
 /**
  * Pick the next SOL pool for real / mirror agents: real screen, leader strategy gates,
  * prefer the leader's open sim pool when still eligible, then walk top scores (avoids one-pool churn).
@@ -415,41 +507,40 @@ export async function selectRealStylePoolCandidate({
   leaderStrategyId,
   experimentId,
   hasRecentPositionFn,
-  maxCandidates = 8,
+  maxCandidates = 24,
+  rankedStrategyIds = [],
 }) {
-  const leaderId = Number(leaderStrategyId);
-  if (!Number.isInteger(leaderId)) return null;
+  const simState = await getSingletonStateDoc();
+  const simExperimentId = simState?.activeExperimentId ?? null;
+  const allCandidates = await getLpCandidatePools({ realMode: true });
 
-  const candidates = await getLpCandidatePools({ realMode: true });
-  const solCandidates = candidates
-    .filter(
-      (c) =>
-        c.strategyId === leaderId &&
-        c.gatePassed &&
-        (isSolMint(c.baseMint) || isSolMint(c.quoteMint)),
-    )
+  const tryIds = [
+    Number(leaderStrategyId),
+    ...rankedStrategyIds.map((id) => Number(id)),
+  ].filter((id, idx, arr) => Number.isInteger(id) && arr.indexOf(id) === idx);
+
+  for (const strategyId of tryIds) {
+    const picked = await pickPoolForLeaderStrategy({
+      strategyId,
+      realExperimentId: experimentId,
+      simExperimentId,
+      hasRecentPositionFn,
+      allCandidates,
+      maxCandidates,
+    });
+    if (picked) return picked;
+  }
+
+  // Last resort: best gate-passed SOL pool from any strategy (still real-screened).
+  const anySol = allCandidates
+    .filter((c) => c.gatePassed && isSolPairCandidate(c))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxCandidates);
-
-  const leaderOpen = await LpExperimentRun.findOne({
-    experimentId,
-    strategyId: leaderId,
-    status: "open",
-  })
-    .sort({ createdAt: -1 })
-    .lean();
-  if (leaderOpen?.poolAddress) {
-    const idx = solCandidates.findIndex((c) => c.poolAddress === leaderOpen.poolAddress);
-    if (idx > 0) {
-      const [match] = solCandidates.splice(idx, 1);
-      solCandidates.unshift(match);
-    }
-  }
-
-  for (const c of solCandidates) {
-    const recent = await hasRecentPositionFn(experimentId, leaderId, c.poolAddress);
+  for (const c of anySol) {
+    const recent = await hasRecentPositionFn(experimentId, c.strategyId, c.poolAddress);
     if (!recent) return c;
   }
+
   return null;
 }
 
@@ -463,17 +554,26 @@ export function passesRealPoolScreen(pool) {
   return true;
 }
 
+/** Real LP txs require a SOL leg (USDC-only pairs are sim-only). */
+export function isSolPairPool(pool) {
+  return isSolMint(pool?.baseMint) || isSolMint(pool?.quoteMint);
+}
+
 export async function getLpCandidatePools({ realMode = false } = {}) {
   await ensureLpExperimentBootstrapped();
   const strategies = await resolveLpExperimentStrategies();
   const pools = await fetchMeteoraPools({
     page: 1,
-    limit: Math.max(30, LP_AGENT_EXPERIMENT_DEFAULTS.minCandidateCount),
+    limit: realMode
+      ? 120
+      : Math.max(30, LP_AGENT_EXPERIMENT_DEFAULTS.minCandidateCount),
     sortKey: "fee",
     order: "desc",
     hideLowTvl: true,
   });
-  const poolList = realMode ? pools.filter(passesRealPoolScreen) : pools;
+  const poolList = realMode
+    ? pools.filter((p) => passesRealPoolScreen(p) && isSolPairPool(p))
+    : pools;
   const candidates = [];
   for (const strategy of strategies) {
     const scored = poolList.map((pool) => {
@@ -900,6 +1000,24 @@ export async function resolveOpenLpRuns() {
 
 /** Min settled sim runs before real agent refuses a negative-PnL leader. */
 export const LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE = 6;
+/** Real LP requires this win rate when enough sim history exists. */
+export const LP_REAL_MIN_WIN_RATE = 0.52;
+
+/**
+ * Composite score for real-agent leader: rewards high net PnL and high win rate together.
+ * @param {ReturnType<typeof rankLpExperimentStrategiesByNetPnl>[number]} row
+ */
+export function computeRealLeaderScore(row) {
+  const decided = toNum(row.decided);
+  const winRate = row.winRate ?? 0;
+  const sumPnl = toNum(row.sumNetPnlSol);
+  if (sumPnl <= 0 || decided <= 0) return -999;
+
+  const sampleFactor = Math.min(1, decided / LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE);
+  const winFactor = Math.max(0, Math.min(1, (winRate - 0.4) / 0.55));
+  const pnlFactor = Math.log1p(Math.max(0, sumPnl) * 12);
+  return pnlFactor * (0.5 + winFactor * 0.5) * (0.3 + sampleFactor * 0.7);
+}
 
 /**
  * Rank sim strategies for real-agent selection: avg net PnL on settled runs first,
@@ -949,6 +1067,11 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
       const avgDecidedNetPnlSol = decided > 0 ? sumDecidedNetPnlSol / decided : avgNetPnlSol;
       const winRate = decided > 0 ? wins / decided : null;
       const rankScore = decided > 0 ? avgDecidedNetPnlSol : avgNetPnlSol;
+      const realLeaderScore = computeRealLeaderScore({
+        decided,
+        winRate,
+        sumNetPnlSol,
+      });
 
       return {
         strategyId: Number(row._id),
@@ -956,6 +1079,7 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
         avgNetPnlSol,
         avgDecidedNetPnlSol,
         rankScore,
+        realLeaderScore,
         decided,
         runCount,
         wins,
@@ -964,8 +1088,8 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
     })
     .filter((row) => row.runCount > 0)
     .sort((a, b) => {
+      if (b.realLeaderScore !== a.realLeaderScore) return b.realLeaderScore - a.realLeaderScore;
       if (b.sumNetPnlSol !== a.sumNetPnlSol) return b.sumNetPnlSol - a.sumNetPnlSol;
-      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
       if ((b.winRate ?? -1) !== (a.winRate ?? -1)) return (b.winRate ?? -1) - (a.winRate ?? -1);
       return b.decided - a.decided;
     });
@@ -973,16 +1097,25 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
 
 function selectProfitableStrategyLeader(ranked) {
   if (ranked.length === 0) return null;
+
   const qualified = ranked.filter(
     (row) =>
       row.decided >= LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
       row.sumNetPnlSol > 0 &&
-      (row.winRate ?? 0) >= 0.45,
+      (row.winRate ?? 0) >= LP_REAL_MIN_WIN_RATE,
   );
-  if (qualified.length > 0) return qualified[0];
+  if (qualified.length > 0) {
+    qualified.sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+    return qualified[0];
+  }
+
   if (ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) return ranked[0];
-  const positive = ranked.find((row) => row.sumNetPnlSol > 0 && row.decided >= 3);
-  if (positive) return positive;
+
+  const warming = ranked.find(
+    (row) => row.sumNetPnlSol > 0 && row.decided >= 3 && (row.winRate ?? 0) >= 0.48,
+  );
+  if (warming) return warming;
+
   return null;
 }
 
@@ -1024,6 +1157,7 @@ export async function pickBestNetPnlStrategy() {
       decided: selected.decided,
       runCount: selected.runCount,
       winRate: selected.winRate,
+      realLeaderScore: selected.realLeaderScore,
       strategy,
     },
     stats: selected,

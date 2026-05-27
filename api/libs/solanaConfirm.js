@@ -20,10 +20,24 @@ export async function confirmSolanaTransaction(connection, signature, options = 
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
+    if (await isSolanaTxConfirmedOnAnyRpc(sig)) {
+      return;
+    }
+
     if (lastValidBlockHeight != null && Number.isFinite(lastValidBlockHeight)) {
-      const currentHeight = await connection.getBlockHeight("confirmed");
-      if (currentHeight > lastValidBlockHeight) {
-        throw new Error("tx_blockhash_expired");
+      try {
+        const currentHeight = await connection.getBlockHeight("confirmed");
+        if (currentHeight > lastValidBlockHeight) {
+          if (await isSolanaTxConfirmedOnAnyRpc(sig)) {
+            return;
+          }
+          throw new Error("tx_blockhash_expired");
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message === "tx_blockhash_expired") {
+          throw err;
+        }
+        // RPC read failed — keep polling signature status on other endpoints
       }
     }
 
@@ -44,6 +58,10 @@ export async function confirmSolanaTransaction(connection, signature, options = 
     }
 
     await new Promise((r) => setTimeout(r, CONFIRM_POLL_MS));
+  }
+
+  if (await isSolanaTxConfirmedOnAnyRpc(sig)) {
+    return;
   }
 
   if (await isSolanaTxConfirmedOnChain(connection, sig)) {

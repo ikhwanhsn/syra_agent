@@ -48,6 +48,14 @@ const LAMPORTS_PER_SOL = 1_000_000_000;
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
 /** Grace period before declaring an opening position failed (RPC / Meteora index lag). */
 const OPEN_POSITION_RECONCILE_GRACE_MS = 10 * 60 * 1000;
+/** Per-tx broker confirm window for Meteora multi-tx opens (env override). */
+const LP_REAL_TX_CONFIRM_TIMEOUT_MS = (() => {
+  const raw = Number(process.env.LP_REAL_TX_CONFIRM_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw >= 60_000 ? raw : 180_000;
+})();
+/** Poll Meteora position index after broker timeout / RPC lag. */
+const LP_REAL_POSITION_RECOVERY = { attempts: 20, delayMs: 3000 };
+const LP_REAL_TX_CONFIRM_POLL = { attempts: 20, delayMs: 3000 };
 /** Real LP: minimum minutes in-range before OOR exit is allowed (collect fees first). */
 const REAL_MIN_HOLD_MINUTES = 45;
 /** Real LP: floor on strategy oorWaitMin — avoids 15–20m churn seen in production. */
@@ -495,8 +503,17 @@ async function hasRecentRealPosition(experimentId, poolAddress) {
     .lean();
   if (open) return true;
   const latest = await LpRealPosition.findOne(q).sort({ createdAt: -1 }).lean();
-  if (!latest?.createdAt) return false;
-  return Date.now() - new Date(latest.createdAt).getTime() < OPEN_POSITION_COOLDOWN_MS;
+  if (!latest) return false;
+  const anchorMs = new Date(latest.resolvedAt || latest.openedAt || latest.createdAt).getTime();
+  if (!Number.isFinite(anchorMs)) return false;
+  return Date.now() - anchorMs < OPEN_POSITION_COOLDOWN_MS;
+}
+
+async function noteLpRealSignalSkip(agentFilter, reason) {
+  if (!agentFilter || !reason) return;
+  await LpRealConfig.updateOne(agentFilter, {
+    $set: { lastError: reason, lastSignalAt: new Date() },
+  });
 }
 
 async function brokerSignTx(
@@ -505,7 +522,7 @@ async function brokerSignTx(
   serializedTxBase64,
   estimatedUsd,
   summary,
-  { lastValidBlockHeight } = {},
+  { lastValidBlockHeight, confirmTimeoutMs } = {},
 ) {
   return executeIntent(
     { anonymousId, guest: false },
@@ -517,8 +534,51 @@ async function brokerSignTx(
       estimatedUsd,
       summary,
       lastValidBlockHeight,
+      confirmTimeoutMs: confirmTimeoutMs ?? LP_REAL_TX_CONFIRM_TIMEOUT_MS,
     },
   );
+}
+
+async function pollTxConfirmedOnAnyRpc(signature, { attempts = LP_REAL_TX_CONFIRM_POLL.attempts, delayMs = LP_REAL_TX_CONFIRM_POLL.delayMs } = {}) {
+  const sig = String(signature || "").trim();
+  if (!sig) return false;
+  if (await isSolanaTxConfirmedOnAnyRpc(sig)) return true;
+  for (let i = 0; i < attempts; i += 1) {
+    await new Promise((r) => setTimeout(r, delayMs));
+    if (await isSolanaTxConfirmedOnAnyRpc(sig)) return true;
+  }
+  return false;
+}
+
+/**
+ * After broker deny/timeout, check partial multi-tx sigs and Meteora index before marking error.
+ * @returns {Promise<{ status: 'open'|'opening'|'failed'; openTxSig?: string|null }>}
+ */
+async function tryRecoverLpRealOpenAfterFailure({ positionPubkey, poolAddress, submit }) {
+  const signatures = (submit?.signatures || []).filter(Boolean);
+  let confirmedSig = null;
+  for (const sig of signatures) {
+    if (await isSolanaTxConfirmedOnAnyRpc(sig)) {
+      confirmedSig = sig;
+      break;
+    }
+  }
+  const fallbackSig = signatures[signatures.length - 1] || null;
+  if (!confirmedSig && fallbackSig) {
+    if (await pollTxConfirmedOnAnyRpc(fallbackSig)) {
+      confirmedSig = fallbackSig;
+    }
+  }
+
+  try {
+    await waitForPositionOnChain(positionPubkey, poolAddress, LP_REAL_POSITION_RECOVERY);
+    return { status: "open", openTxSig: confirmedSig || fallbackSig };
+  } catch {
+    if (confirmedSig) {
+      return { status: "opening", openTxSig: confirmedSig };
+    }
+    return { status: "failed" };
+  }
 }
 
 /**
@@ -575,13 +635,14 @@ async function submitLpRealTxSequence({
       );
     }
 
+    const brokerOpts = { lastValidBlockHeight: txLastValidBlockHeight };
     let brokerResult = await brokerSignTx(
       anonymousId,
       toolId,
       serializedTx,
       toNum(estimatedUsd) / txs.length,
       `${summaryBase}${txs.length > 1 ? ` (${i + 1}/${txs.length})` : ""}`,
-      { lastValidBlockHeight: txLastValidBlockHeight },
+      brokerOpts,
     );
 
     const shouldRetry =
@@ -601,6 +662,18 @@ async function submitLpRealTxSequence({
         `${summaryBase}${txs.length > 1 ? ` (${i + 1}/${txs.length}) retry` : ""}`,
         { lastValidBlockHeight: refreshed.lastValidBlockHeight },
       );
+    }
+
+    if (brokerResult.status !== "ok" && signatures.length > 0) {
+      const lastSubmitted = signatures[signatures.length - 1];
+      if (lastSubmitted && (await pollTxConfirmedOnAnyRpc(lastSubmitted))) {
+        return {
+          ok: false,
+          brokerResult,
+          signatures,
+          partialConfirmed: true,
+        };
+      }
     }
 
     if (brokerResult.status !== "ok" || !brokerResult.signature) {
@@ -656,6 +729,12 @@ async function reconcileOpenPositionOnChain(position) {
 
   const txOk = await isSolanaTxConfirmedOnAnyRpc(position.openTxSig);
   if (txOk && position.status === "opening" && ageMs < OPEN_POSITION_RECONCILE_GRACE_MS) {
+    return null;
+  }
+
+  if (txOk && !positionOk) {
+    if (position.status === "opening" && ageMs < OPEN_POSITION_RECONCILE_GRACE_MS) return null;
+    if (position.status === "opening") return "open_tx_not_on_chain";
     return null;
   }
 
@@ -1247,6 +1326,7 @@ async function runLpRealSignalCycleForConfig(config) {
     });
     if (openCount >= config.maxConcurrentPositions) {
       skipped.push({ reason: "max_positions" });
+      await noteLpRealSignalSkip(agentFilter, "max_positions");
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1263,6 +1343,7 @@ async function runLpRealSignalCycleForConfig(config) {
 
     if (availableSol < config.maxPositionSol) {
       skipped.push({ reason: "insufficient_available_sol", availableSol });
+      await noteLpRealSignalSkip(agentFilter, "insufficient_available_sol");
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1273,15 +1354,19 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
+    const rankedIds = (pick.ranked || []).map((row) => row.strategyId);
     const poolCandidate = await selectRealStylePoolCandidate({
       leaderStrategyId: best.strategyId,
       experimentId: config.experimentId,
+      rankedStrategyIds: rankedIds,
       hasRecentPositionFn: (_expId, _strategyId, poolAddress) =>
         hasRecentRealPosition(config.experimentId, poolAddress),
     });
 
     if (!poolCandidate) {
-      skipped.push({ reason: "no_candidate", strategyId: best.strategyId });
+      const reason = "no_candidate";
+      skipped.push({ reason, strategyId: best.strategyId, rankedTried: rankedIds.length });
+      await noteLpRealSignalSkip(agentFilter, reason);
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1292,8 +1377,18 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
+    if (
+      poolCandidate.strategyId != null &&
+      poolCandidate.strategyId !== best.strategyId
+    ) {
+      await LpRealConfig.updateOne(agentFilter, {
+        $set: { currentStrategyId: poolCandidate.strategyId, lastError: null },
+      });
+    }
+
     if (await hasRecentRealPosition(config.experimentId, poolCandidate.poolAddress)) {
       skipped.push({ reason: "cooldown_or_open", pool: poolCandidate.poolAddress });
+      await noteLpRealSignalSkip(agentFilter, "cooldown_or_open");
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1441,22 +1536,22 @@ async function runLpRealSignalCycleForConfig(config) {
 
     if (!submit.ok) {
       const { errMsg, policyReasons } = formatBrokerFailure(submit.brokerResult, "broker_pending_or_failed");
+      const isTransientConfirm =
+        String(errMsg).includes("tx_confirm_timeout") ||
+        String(errMsg).includes("tx_blockhash_expired") ||
+        submit.partialConfirmed === true;
 
-      let recoveredOnChain = false;
-      if (String(errMsg).includes("tx_confirm_timeout") || String(errMsg).includes("tx_blockhash_expired")) {
-        try {
-          await waitForPositionOnChain(pending.positionPubkey, poolCandidate.poolAddress, {
-            attempts: 4,
-            delayMs: 3000,
-          });
-          recoveredOnChain = true;
-        } catch {
-          recoveredOnChain = false;
-        }
+      let recovery = { status: "failed" };
+      if (isTransientConfirm || (submit.signatures?.length ?? 0) > 0) {
+        recovery = await tryRecoverLpRealOpenAfterFailure({
+          positionPubkey: pending.positionPubkey,
+          poolAddress: poolCandidate.poolAddress,
+          submit,
+        });
       }
 
-      if (recoveredOnChain) {
-        const recoveredSig = submit.signatures?.[submit.signatures.length - 1] || null;
+      if (recovery.status === "open") {
+        const recoveredSig = recovery.openTxSig || submit.signatures?.[submit.signatures.length - 1] || null;
         await LpRealPosition.updateOne(
           { _id: pending._id },
           {
@@ -1480,6 +1575,37 @@ async function runLpRealSignalCycleForConfig(config) {
         return {
           agentAddress: config.agentAddress,
           opened: 1,
+          skipped: 0,
+          errors,
+          openedRows: opened,
+          skippedRows: skipped,
+        };
+      }
+
+      if (recovery.status === "opening" && recovery.openTxSig) {
+        await LpRealPosition.updateOne(
+          { _id: pending._id },
+          {
+            $set: {
+              status: "opening",
+              openTxSig: recovery.openTxSig,
+              depositLocked: false,
+              errorMessage: null,
+              policyReasons: [],
+            },
+          },
+        );
+        opened.push({
+          positionId: String(pending._id),
+          poolName: poolCandidate.poolName,
+          depositSol,
+          openTxSig: recovery.openTxSig,
+          pendingPositionIndex: true,
+        });
+        await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
+        return {
+          agentAddress: config.agentAddress,
+          opened: 0,
           skipped: 0,
           errors,
           openedRows: opened,
@@ -1519,7 +1645,7 @@ async function runLpRealSignalCycleForConfig(config) {
     try {
       await waitForPositionOnChain(pending.positionPubkey, poolCandidate.poolAddress);
     } catch {
-      const txConfirmed = await isSolanaTxConfirmedOnAnyRpc(submit.signature);
+      const txConfirmed = await pollTxConfirmedOnAnyRpc(submit.signature);
       if (txConfirmed) {
         await LpRealPosition.updateOne(
           { _id: pending._id },

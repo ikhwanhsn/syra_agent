@@ -25,12 +25,13 @@ import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExper
 import { LpExperimentBackdrop } from "@/components/experiment/lp/LpExperimentBackdrop";
 import { LpExperimentGlobalStats } from "@/components/experiment/lp/LpExperimentGlobalStats";
 import { LpExperimentHero } from "@/components/experiment/lp/LpExperimentHero";
+import { LpExperimentModeBanner } from "@/components/experiment/lp/LpExperimentModeBanner";
+import { LpExperimentSimpleLab } from "@/components/experiment/lp/LpExperimentSimpleLab";
+import { LpExperimentSimpleOverview } from "@/components/experiment/lp/LpExperimentSimpleOverview";
 import { LpRealSection } from "@/components/experiment/LpRealSection";
+import { useLpExperimentUiMode } from "@/hooks/useLpExperimentUiMode";
 import { cn } from "@/lib/utils";
-import {
-  overviewCardShell,
-  overviewKickerClass,
-} from "@/components/dashboard/overview/overviewStyles";
+import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { lpTableShell, lpTabsList, lpTabsTrigger, lpTableHead } from "@/components/experiment/lp/lpExperimentStyles";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -162,6 +163,7 @@ function RunStatusBadge({ status }: { status: LpRunStatus }) {
 }
 
 export default function LpAgentExperiment({ embedded = false }: { embedded?: boolean }) {
+  const { mode: uiMode, isSimple } = useLpExperimentUiMode();
   const [leaderboardSort, setLeaderboardSort] = useState<{ key: LeaderboardSortKey; dir: SortDirection }>({
     key: "sumNetPnlSol",
     dir: "desc",
@@ -318,12 +320,29 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           failed={failed}
           openPositions={openPositions}
           onRefresh={refreshAll}
+          uiMode={uiMode}
         />
 
-        <LpExperimentGlobalStats overview={overviewQ.data} loading={overviewQ.isLoading} />
+        {isSimple ? <LpExperimentModeBanner /> : null}
 
-        <LpRealSection />
+        {isSimple ? (
+          <LpExperimentSimpleOverview overview={overviewQ.data} loading={overviewQ.isLoading} />
+        ) : (
+          <LpExperimentGlobalStats overview={overviewQ.data} loading={overviewQ.isLoading} />
+        )}
 
+        <LpRealSection uiMode={uiMode} />
+
+        {isSimple ? (
+          <LpExperimentSimpleLab
+            agents={statsQ.data?.agents ?? []}
+            recentRuns={runsQ.data?.runs ?? []}
+            refSolUsd={refSolUsd}
+            loading={loading}
+          />
+        ) : null}
+
+        {!isSimple ? (
         <section className="space-y-4">
           <div>
             <p className={overviewKickerClass}>Benchmark</p>
@@ -686,6 +705,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         </TabsContent>
       </Tabs>
         </section>
+        ) : null}
       </div>
     </>
   );

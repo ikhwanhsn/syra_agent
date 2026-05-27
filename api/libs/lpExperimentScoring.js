@@ -91,19 +91,39 @@ function passesScreeningOverrides(strategy, pool) {
   if (s.minStudyWinRate != null && toNum(pool.studyWinRate) < Number(s.minStudyWinRate)) {
     return { pass: false, reason: "studyWinRate" };
   }
+  if (s.maxTvlUsd != null && toNum(pool.tvlUsd) > Number(s.maxTvlUsd)) {
+    return { pass: false, reason: "maxTvlUsd" };
+  }
+  if (s.minVolTvlRatio != null) {
+    const tvl = toNum(pool.tvlUsd);
+    const vol = toNum(pool.volume24hUsd);
+    const ratio = tvl > 0 ? vol / tvl : 0;
+    if (ratio < Number(s.minVolTvlRatio)) {
+      return { pass: false, reason: "minVolTvlRatio" };
+    }
+  }
+  if (s.minVolatilityScore != null && toNum(pool.volatilityScore) < Number(s.minVolatilityScore)) {
+    return { pass: false, reason: "minVolatilityScore" };
+  }
   return { pass: true, reason: null };
 }
 
 export function buildLpSignals(pool) {
+  const tvl = toNum(pool.tvlUsd);
+  const vol = toNum(pool.volume24hUsd);
+  const volTvlRatio = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
   const organic = normalizeLinear(toNum(pool.organicScore), 0, 100);
   const feeTvl = normalizeLinear(toNum(pool.feeTvlRatio), 0, 0.15);
-  const volume = normalizeLinear(toNum(pool.volume24hUsd), 0, 300_000);
+  const volume = normalizeLinear(vol, 0, 300_000);
   const holders = normalizeLinear(toNum(pool.holderCount), 0, 10_000);
   const studyWinRate = normalizeLinear(toNum(pool.studyWinRate), 0, 1);
   const narrative = normalizeLinear(toNum(pool.narrativeScore), 0, 10);
   const volatility = normalizeLinear(toNum(pool.volatilityScore), 0, 1);
   const hiveConsensus = normalizeLinear(toNum(pool.hiveConsensus), 0, 1);
   const smartMoney = Boolean(pool.smartWalletsPresent);
+  const freshnessScore = clamp01(
+    normalizeLinear(volTvlRatio, 0.8, 6) * 0.65 + normalizeInverse(tvl, 60_000, 550_000) * 0.35,
+  );
   return {
     organic_score: organic,
     fee_tvl_ratio: feeTvl,
@@ -114,6 +134,7 @@ export function buildLpSignals(pool) {
     study_win_rate: studyWinRate,
     hive_consensus: hiveConsensus,
     volatility,
+    freshness_score: freshnessScore,
     // Raw helpers for rule gates
     narrative_quality_raw: toNum(pool.narrativeScore),
     study_win_rate_raw: toNum(pool.studyWinRate),
@@ -163,6 +184,7 @@ export function scorePool(strategy, pool, externalSignals = {}) {
     study_win_rate: toNum(signalSnapshot.study_win_rate),
     hive_consensus: toNum(signalSnapshot.hive_consensus),
     volatility: toNum(signalSnapshot.volatility),
+    freshness_score: toNum(signalSnapshot.freshness_score),
     directional_penalty: directionalPenalty,
   };
 

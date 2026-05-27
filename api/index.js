@@ -1377,6 +1377,8 @@ app.listen(PORT, () => {
         runLpExperimentEvolution({
           removeCount: evo.removeCount,
           minDecided: evo.minDecided,
+          dailySpawnCount: evo.dailySpawnCount,
+          maxStrategies: evo.maxStrategies,
           pinned: evo.pinned,
         })
           .then((out) => {
@@ -1391,6 +1393,8 @@ app.listen(PORT, () => {
               out.culled?.length ?? 0,
               "spawned",
               out.spawned?.length ?? 0,
+              "daily",
+              out.dailySpawned?.length ?? 0,
             );
           })
           .catch((err) =>
