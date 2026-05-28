@@ -179,7 +179,7 @@ export function RiseAlphaTabPanel() {
                   {aggregate?.degraded ? " · partial upstream" : ""}
                 </p>
                 <Button variant="secondary" size="sm" className="h-8 rounded-lg px-3 text-xs font-semibold" asChild>
-                  <Link to="/dashboard/rise-experiment">Rise experiment</Link>
+                  <Link to="/rise-experiment">Rise experiment</Link>
                 </Button>
               </div>
             </div>

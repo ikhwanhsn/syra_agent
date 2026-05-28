@@ -155,7 +155,7 @@ export function SidebarIconRail({
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                to="/dashboard/overview"
+                to="/overview"
                 className="group/logo relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-[14px] border border-border/60 bg-gradient-to-br from-card via-card/90 to-muted/40 shadow-md ring-1 ring-white/[0.06] transition-all duration-300 hover:scale-[1.02] hover:border-primary/30 hover:shadow-lg hover:ring-primary/20"
               >
                 <img
@@ -173,10 +173,10 @@ export function SidebarIconRail({
         </div>
 
         <nav className="relative z-10 flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin">
-          <SidebarIconNavLink to="/dashboard/overview" icon={LayoutDashboard} label="Overview" end />
-          <SidebarIconNavLink to="/dashboard/agents" icon={Bot} label="Agents" end />
+          <SidebarIconNavLink to="/overview" icon={LayoutDashboard} label="Overview" end />
+          <SidebarIconNavLink to="/agents" icon={Bot} label="Agents" end />
           <SidebarDivider className="my-2 w-8" />
-          <SidebarIconNavLink to="/dashboard/alpha" icon={Telescope} label="Alpha" end matchActive={matchAlphaIntel} />
+          <SidebarIconNavLink to="/alpha" icon={Telescope} label="Alpha" end matchActive={matchAlphaIntel} />
           <SidebarDivider className="my-2 w-8" />
           <div
             className={cn(
@@ -199,7 +199,7 @@ export function SidebarIconRail({
           {showInternalTeamMonitor ? (
             <>
               <SidebarDivider className="my-2 w-8" />
-              <SidebarIconNavLink to="/dashboard/internal-team-agents" icon={UsersRound} label="Internal agents" />
+              <SidebarIconNavLink to="/internal-team-agents" icon={UsersRound} label="Internal agents" />
             </>
           ) : null}
         </nav>
@@ -402,7 +402,7 @@ export function SidebarBrandHeader({
   return (
     <div className="relative z-10 flex shrink-0 items-center gap-2 border-b border-sidebar-border/60 px-3 py-3.5 sm:px-4">
       <Link
-        to="/dashboard/overview"
+        to="/overview"
         className="group/brand flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5 no-underline text-inherit transition-colors hover:bg-muted/35"
       >
         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[12px] border border-border/55 bg-gradient-to-br from-card to-muted/35 shadow-md ring-1 ring-white/[0.05] transition-all duration-300 group-hover/brand:border-primary/25 group-hover/brand:shadow-lg">

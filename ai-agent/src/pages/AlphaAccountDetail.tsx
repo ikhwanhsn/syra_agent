@@ -98,7 +98,7 @@ export default function AlphaAccountDetail() {
       >
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-2 text-muted-foreground hover:text-foreground" asChild>
-            <Link to="/dashboard/alpha">
+            <Link to="/alpha">
               <ArrowLeft className="h-4 w-4" aria-hidden />
               Alpha
             </Link>
@@ -136,7 +136,7 @@ export default function AlphaAccountDetail() {
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" className="rounded-xl" asChild>
-                <Link to="/dashboard/alpha">Back to watchlist</Link>
+                <Link to="/alpha">Back to watchlist</Link>
               </Button>
               <Button type="button" variant="outline" className="rounded-xl gap-2" onClick={() => void detailQ.refetch()}>
                 <RefreshCw className="h-4 w-4" aria-hidden />

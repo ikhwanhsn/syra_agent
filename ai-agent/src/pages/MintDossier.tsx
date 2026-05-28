@@ -181,7 +181,7 @@ export default function MintDossier({ embedded }: { embedded?: boolean }) {
                 variant="outline"
                 size="sm"
                 className="mt-4"
-                onClick={() => navigate("/dashboard/token-check")}
+                onClick={() => navigate("/token-check")}
               >
                 Clear search
               </Button>

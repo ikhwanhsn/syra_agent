@@ -142,7 +142,7 @@ function AgentRow({
         ) : null}
       </div>
       <Button variant="outline" size="sm" className="shrink-0 gap-1" asChild>
-        <Link to={detailTo ?? `/dashboard/internal-team-agents/${detailSlug}`}>
+        <Link to={detailTo ?? `/internal-team-agents/${detailSlug}`}>
           View detail
           <ChevronRight className="h-4 w-4" />
         </Link>
@@ -220,7 +220,7 @@ export default function InternalTeamAgentsMonitor() {
                 {INTERNAL_TEAM_MONITOR_SOLANA_WALLET}
               </p>
               <Button variant="outline" size="sm" className="mt-2" asChild>
-                <Link to="/dashboard/overview">Back to overview</Link>
+                <Link to="/overview">Back to overview</Link>
               </Button>
             </AlertDescription>
           </Alert>

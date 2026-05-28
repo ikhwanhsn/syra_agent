@@ -10,15 +10,12 @@ import {
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
 
-import type { LpExperimentUiMode } from "@/lib/lpExperimentUiMode";
-
 export interface LpExperimentHeroProps {
   embedded?: boolean;
   loading?: boolean;
   failed?: boolean;
   openPositions?: number;
   onRefresh: () => void;
-  uiMode?: LpExperimentUiMode;
 }
 
 export function LpExperimentHero({
@@ -27,9 +24,7 @@ export function LpExperimentHero({
   failed = false,
   openPositions = 0,
   onRefresh,
-  uiMode = "pro",
 }: LpExperimentHeroProps) {
-  const simple = uiMode === "simple";
   const live = !failed && !loading;
 
   return (
@@ -58,7 +53,7 @@ export function LpExperimentHero({
           <div className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               {!embedded ? (
-                <Link to="/dashboard/overview" aria-label="Back to dashboard overview">
+                <Link to="/overview" aria-label="Back to dashboard overview">
                   <Button
                     variant="outline"
                     size="icon"
@@ -75,7 +70,7 @@ export function LpExperimentHero({
                 )}
               >
                 <Sparkles className="h-3.5 w-3.5 text-violet-500" aria-hidden />
-                {simple ? "Liquidity agents" : "Meteora DLMM lab"}
+                Meteora DLMM lab
               </div>
               <Badge
                 variant="outline"
@@ -83,14 +78,6 @@ export function LpExperimentHero({
               >
                 Beta
               </Badge>
-              {simple ? (
-                <Badge
-                  variant="outline"
-                  className="rounded-lg border-border/50 bg-background/40 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                >
-                  Simple view
-                </Badge>
-              ) : null}
               {live && openPositions > 0 ? (
                 <AgentBackgroundLiveIndicator openPositions={openPositions} />
               ) : null}
@@ -102,20 +89,11 @@ export function LpExperimentHero({
               </div>
               <div className="min-w-0 pt-0.5">
                 <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-[1.85rem] lg:text-3xl">
-                  {simple ? "Liquidity pool agents" : "LP agent experiment"}
+                  Liquidity pool agents
                 </h1>
                 <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-relaxed text-muted-foreground sm:text-[15px]">
-                  {simple ? (
-                    <>
-                      AI bots add liquidity to token pools and earn trading fees. We test strategies in a safe
-                      simulation first — you can turn on a real agent with your wallet when you are ready.
-                    </>
-                  ) : (
-                    <>
-                      Simulation cohorts benchmark DLMM strategies on live Meteora pools. Deploy your own agent wallet
-                      for real on-chain liquidity below.
-                    </>
-                  )}
+                  AI strategies compete on live Meteora pools in simulation — no wallet risk. Fund your Syra agent
+                  wallet below when you are ready to deploy real on-chain liquidity and earn trading fees.
                 </p>
               </div>
             </div>

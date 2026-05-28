@@ -75,6 +75,8 @@ export function userReadableAlphaDataError(raw: string | undefined | null): stri
   if (
     lower.includes("not ready yet") ||
     lower.includes("refreshes this feed") ||
+    lower.includes("daily screen is not ready") ||
+    lower.includes("daily screen is warming") ||
     lower.includes("warming up")
   ) {
     return "The watchlist is still being prepared. Scores update about once every 24 hours — check back soon.";

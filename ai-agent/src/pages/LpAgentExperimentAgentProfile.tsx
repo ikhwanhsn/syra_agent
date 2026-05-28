@@ -155,7 +155,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             {!embedded && (
-              <Link to="/dashboard/lp-experiment" aria-label="Back to LP experiment">
+              <Link to="/lp-experiment" aria-label="Back to LP experiment">
                 <Button variant="outline" size="icon" className="h-8 w-8">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -291,7 +291,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
-                  <Link to="/dashboard/lp-experiment" className="text-xs font-medium text-primary hover:underline">
+                  <Link to="/lp-experiment" className="text-xs font-medium text-primary hover:underline">
                     Open desk
                   </Link>
                 </div>

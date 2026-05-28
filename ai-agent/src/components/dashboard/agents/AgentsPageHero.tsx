@@ -143,7 +143,7 @@ export function AgentsPageHero({ stats, isLoading, isFetching, className }: Agen
                 )}
                 asChild
               >
-                <Link to="/dashboard/settings">
+                <Link to="/agent-setup">
                   <Settings2 className="h-4 w-4" aria-hidden />
                   Setup agent
                   <ArrowRight className="h-4 w-4 opacity-80" aria-hidden />

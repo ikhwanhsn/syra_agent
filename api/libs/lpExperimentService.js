@@ -1095,9 +1095,7 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
     });
 }
 
-function selectProfitableStrategyLeader(ranked) {
-  if (ranked.length === 0) return null;
-
+function filterQualifiedRealStrategyRows(ranked) {
   const qualified = ranked.filter(
     (row) =>
       row.decided >= LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
@@ -1105,18 +1103,54 @@ function selectProfitableStrategyLeader(ranked) {
       (row.winRate ?? 0) >= LP_REAL_MIN_WIN_RATE,
   );
   if (qualified.length > 0) {
-    qualified.sort((a, b) => b.realLeaderScore - a.realLeaderScore);
-    return qualified[0];
+    return [...qualified].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
   }
 
-  if (ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) return ranked[0];
+  if (ranked.length > 0 && ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) {
+    return [ranked[0]];
+  }
 
-  const warming = ranked.find(
+  const warming = ranked.filter(
     (row) => row.sumNetPnlSol > 0 && row.decided >= 3 && (row.winRate ?? 0) >= 0.48,
   );
-  if (warming) return warming;
+  if (warming.length > 0) {
+    return [...warming].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+  }
 
-  return null;
+  return [];
+}
+
+function selectProfitableStrategyLeader(ranked) {
+  const qualified = filterQualifiedRealStrategyRows(ranked);
+  return qualified[0] ?? null;
+}
+
+/**
+ * Top sim strategies for simultaneous real LP slots (win rate + net PnL composite).
+ * @param {Awaited<ReturnType<typeof rankLpExperimentStrategiesByNetPnl>>} ranked
+ * @param {{ maxCount?: number }} [opts]
+ */
+export async function selectQualifiedStrategiesForReal(ranked, { maxCount = 8 } = {}) {
+  const rows = filterQualifiedRealStrategyRows(ranked).slice(0, Math.max(1, maxCount));
+  const out = [];
+  for (const stats of rows) {
+    const strategy = await resolveLpStrategyById(stats.strategyId);
+    if (!strategy) continue;
+    out.push({
+      strategyId: strategy.id,
+      strategyName: strategy.name,
+      lpShape: strategy.lpShape,
+      sumNetPnlSol: stats.sumNetPnlSol,
+      avgNetPnlSol: stats.avgDecidedNetPnlSol,
+      rankScore: stats.rankScore,
+      decided: stats.decided,
+      runCount: stats.runCount,
+      winRate: stats.winRate,
+      realLeaderScore: stats.realLeaderScore,
+      strategy,
+    });
+  }
+  return out;
 }
 
 /**

@@ -18,8 +18,8 @@ const lpRealConfigSchema = new mongoose.Schema(
     reserveSolForFees: { type: Number, default: 0.05, min: 0 },
     strategySelectionMode: {
       type: String,
-      enum: ["dynamic_best_net_pnl"],
-      default: "dynamic_best_net_pnl",
+      enum: ["dynamic_best_net_pnl", "multi_strategy_capital_optimized"],
+      default: "multi_strategy_capital_optimized",
     },
     currentStrategyId: { type: Number, default: null, min: 0, max: 99 },
     lastSignalAt: { type: Date, default: null },

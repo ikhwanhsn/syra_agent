@@ -31,7 +31,7 @@ export function normalizeAgentChain(raw?: string | null): AgentChain {
 }
 
 export function agentDetailPath(anonymousId: string): string {
-  return `/dashboard/agents/${encodeURIComponent(anonymousId)}`;
+  return `/agents/${encodeURIComponent(anonymousId)}`;
 }
 
 export function shortenAddress(addr: string, isEvm = false): string {

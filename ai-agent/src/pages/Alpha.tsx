@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Twitter,
   Landmark,
+  Coins,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -37,12 +38,13 @@ import { fetchXProjectsAnalyze, type XProjectsBatchItem } from "@/lib/xProjectsA
 import { formatFollowers, gradeBadgeClass, userReadableAlphaDataError } from "@/lib/alphaIntelUi";
 import { fetchPumpfunAlphaTrend, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
 import { RiseAlphaTabPanel } from "@/components/alpha/RiseAlphaTabPanel";
+import { CoinGeckoAlphaTabPanel } from "@/components/alpha/CoinGeckoAlphaTabPanel";
 
-const ALPHA_TABS = ["x", "pumpfun", "rise"] as const;
+const ALPHA_TABS = ["x", "pumpfun", "rise", "coingecko"] as const;
 type AlphaTab = (typeof ALPHA_TABS)[number];
 
 function parseAlphaTab(raw: string | null): AlphaTab {
-  if (raw === "pumpfun" || raw === "rise") return raw;
+  if (raw === "pumpfun" || raw === "rise" || raw === "coingecko") return raw;
   return "x";
 }
 
@@ -251,7 +253,7 @@ function AlphaXTabPanel() {
                         "hover:bg-muted/30 data-[state=selected]:bg-muted/40",
                       )}
                       onClick={() =>
-                        navigate(`/dashboard/alpha/x/${encodeURIComponent(item.username)}`)
+                        navigate(`/alpha/x/${encodeURIComponent(item.username)}`)
                       }
                       tabIndex={0}
                       role="link"
@@ -259,7 +261,7 @@ function AlphaXTabPanel() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          navigate(`/dashboard/alpha/x/${encodeURIComponent(item.username)}`);
+                          navigate(`/alpha/x/${encodeURIComponent(item.username)}`);
                         }
                       }}
                     >
@@ -644,9 +646,9 @@ export default function Alpha() {
     if (searchParams.get("sub") !== "experiment") return;
     const tab = searchParams.get("tab");
     if (tab === "pumpfun") {
-      navigate("/dashboard/pumpfun-experiment", { replace: true });
+      navigate("/pumpfun-experiment", { replace: true });
     } else if (tab === "rise") {
-      navigate("/dashboard/rise-experiment", { replace: true });
+      navigate("/rise-experiment", { replace: true });
     } else {
       const next = new URLSearchParams(searchParams);
       next.delete("sub");
@@ -733,6 +735,13 @@ export default function Alpha() {
                 <Landmark className="mr-2 h-4 w-4 opacity-80" aria-hidden />
                 Rise
               </TabsTrigger>
+              <TabsTrigger
+                value="coingecko"
+                className="rounded-xl px-5 py-2.5 text-[13px] font-semibold tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-md"
+              >
+                <Coins className="mr-2 h-4 w-4 opacity-80" aria-hidden />
+                CoinGecko
+              </TabsTrigger>
             </TabsList>
             <p className="text-[12px] font-medium text-muted-foreground/75 sm:text-right">
               More institutional feeds are queued — this workspace grows with your roadmap.
@@ -747,6 +756,9 @@ export default function Alpha() {
           </TabsContent>
           <TabsContent value="rise" className="mt-0 outline-none focus-visible:outline-none">
             <RiseAlphaTabPanel />
+          </TabsContent>
+          <TabsContent value="coingecko" className="mt-0 outline-none focus-visible:outline-none">
+            <CoinGeckoAlphaTabPanel />
           </TabsContent>
         </Tabs>
       </div>

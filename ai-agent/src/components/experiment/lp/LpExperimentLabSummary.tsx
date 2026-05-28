@@ -25,26 +25,27 @@ function runOutcomeLabel(status: string): { label: string; tone: string } {
   return { label: status, tone: "bg-muted text-muted-foreground" };
 }
 
-export interface LpExperimentSimpleLabProps {
+export interface LpExperimentLabSummaryProps {
   agents: LpAgentStats[];
   recentRuns: LpRunRow[];
   refSolUsd?: number | null;
   loading?: boolean;
 }
 
-export function LpExperimentSimpleLab({ agents, recentRuns, refSolUsd, loading }: LpExperimentSimpleLabProps) {
+export function LpExperimentLabSummary({ agents, recentRuns, refSolUsd, loading }: LpExperimentLabSummaryProps) {
   const topAgents = [...agents]
     .sort((a, b) => (b.sumNetPnlSol ?? 0) - (a.sumNetPnlSol ?? 0))
     .slice(0, 5);
   const recent = recentRuns.slice(0, 6);
 
   return (
-    <section className="space-y-6">
+    <div className="space-y-6">
       <div>
-        <p className={overviewKickerClass}>Paper trading</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Top strategies</h2>
-        <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Fifteen AI strategies compete on live pool data — no real funds. The leader may guide your live agent.
+        <p className={overviewKickerClass}>Quick read</p>
+        <h3 className="mt-1 text-base font-semibold tracking-tight text-foreground">Top strategies right now</h3>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Fifteen strategies compete on live pool data with no wallet risk. The leader can guide your live agent below.
+          Use the detailed tables for full metrics.
         </p>
       </div>
 
@@ -70,7 +71,7 @@ export function LpExperimentSimpleLab({ agents, recentRuns, refSolUsd, loading }
           return (
             <Link
               key={row.strategyId}
-              to={`/dashboard/lp-experiment/agent/${row.strategyId}`}
+              to={`/lp-experiment/agent/${row.strategyId}`}
               className={cn(
                 overviewCardShell,
                 "group flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-[border-color,transform,box-shadow] duration-200",
@@ -120,7 +121,7 @@ export function LpExperimentSimpleLab({ agents, recentRuns, refSolUsd, loading }
 
       <div className="space-y-3">
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-foreground">Recent activity</h3>
+          <h3 className="text-base font-semibold tracking-tight text-foreground">Recent simulation runs</h3>
           <p className="mt-1 text-sm text-muted-foreground">Latest paper trades across all strategies.</p>
         </div>
         <div className={cn(overviewCardShell, "divide-y divide-border/40 overflow-hidden rounded-2xl")}>
@@ -153,6 +154,6 @@ export function LpExperimentSimpleLab({ agents, recentRuns, refSolUsd, loading }
           })}
         </div>
       </div>
-    </section>
+    </div>
   );
 }

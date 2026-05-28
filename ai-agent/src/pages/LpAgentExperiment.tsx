@@ -25,11 +25,8 @@ import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExper
 import { LpExperimentBackdrop } from "@/components/experiment/lp/LpExperimentBackdrop";
 import { LpExperimentGlobalStats } from "@/components/experiment/lp/LpExperimentGlobalStats";
 import { LpExperimentHero } from "@/components/experiment/lp/LpExperimentHero";
-import { LpExperimentModeBanner } from "@/components/experiment/lp/LpExperimentModeBanner";
-import { LpExperimentSimpleLab } from "@/components/experiment/lp/LpExperimentSimpleLab";
-import { LpExperimentSimpleOverview } from "@/components/experiment/lp/LpExperimentSimpleOverview";
+import { LpExperimentLabSummary } from "@/components/experiment/lp/LpExperimentLabSummary";
 import { LpRealSection } from "@/components/experiment/LpRealSection";
-import { useLpExperimentUiMode } from "@/hooks/useLpExperimentUiMode";
 import { cn } from "@/lib/utils";
 import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { lpTableShell, lpTabsList, lpTabsTrigger, lpTableHead } from "@/components/experiment/lp/lpExperimentStyles";
@@ -163,7 +160,6 @@ function RunStatusBadge({ status }: { status: LpRunStatus }) {
 }
 
 export default function LpAgentExperiment({ embedded = false }: { embedded?: boolean }) {
-  const { mode: uiMode, isSimple } = useLpExperimentUiMode();
   const [leaderboardSort, setLeaderboardSort] = useState<{ key: LeaderboardSortKey; dir: SortDirection }>({
     key: "sumNetPnlSol",
     dir: "desc",
@@ -320,41 +316,39 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           failed={failed}
           openPositions={openPositions}
           onRefresh={refreshAll}
-          uiMode={uiMode}
         />
 
-        {isSimple ? <LpExperimentModeBanner /> : null}
+        <LpExperimentGlobalStats overview={overviewQ.data} loading={overviewQ.isLoading} />
 
-        {isSimple ? (
-          <LpExperimentSimpleOverview overview={overviewQ.data} loading={overviewQ.isLoading} />
-        ) : (
-          <LpExperimentGlobalStats overview={overviewQ.data} loading={overviewQ.isLoading} />
-        )}
+        <LpRealSection />
 
-        <LpRealSection uiMode={uiMode} />
+        <section className="space-y-6">
+          <div>
+            <p className={overviewKickerClass}>Simulation</p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Paper trading lab</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {overviewQ.data?.simulation.leaderStrategyId != null
+                ? `The live agent follows cohort leader #${overviewQ.data.simulation.leaderStrategyId} (highest net PnL). `
+                : ""}
+              Fifteen strategies compete on live Meteora data with no wallet risk.
+              {labStateQ.data?.activeExperimentId
+                ? ` Active cohort: ${labStateQ.data.simConfig.maxConcurrentPositions} slots × ${labStateQ.data.simConfig.maxPositionSol} SOL each.`
+                : " Waiting for the next cohort."}
+            </p>
+          </div>
 
-        {isSimple ? (
-          <LpExperimentSimpleLab
+          <LpExperimentLabSummary
             agents={statsQ.data?.agents ?? []}
             recentRuns={runsQ.data?.runs ?? []}
             refSolUsd={refSolUsd}
             loading={loading}
           />
-        ) : null}
 
-        {!isSimple ? (
-        <section className="space-y-4">
           <div>
-            <p className={overviewKickerClass}>Benchmark</p>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Simulation lab</h2>
+            <p className={overviewKickerClass}>Full data</p>
+            <h3 className="mt-1 text-base font-semibold tracking-tight text-foreground">Detailed tables</h3>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              {overviewQ.data?.simulation.leaderStrategyId != null
-                ? `Live agent and Real mirror (sim) follow cohort leader #${overviewQ.data.simulation.leaderStrategyId} (highest net PnL). `
-                : ""}
-              Fifteen strategies still compete for the leaderboard; Real mirror uses the same pool rules as live (SOL pairs, real screen) without wallet balance.
-              {labStateQ.data?.activeExperimentId
-                ? ` ${labStateQ.data.simConfig.maxConcurrentPositions} slots × ${labStateQ.data.simConfig.maxPositionSol} SOL per position.`
-                : " Waiting for cohort."}
+              Sort and filter leaderboard, candidate pools, and run history.
             </p>
           </div>
 
@@ -432,7 +426,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     <TableCell className="font-medium">
                       <div className="flex min-w-0 items-center gap-2">
                         <Link
-                          to={`/dashboard/lp-experiment/agent/${row.strategyId}`}
+                          to={`/lp-experiment/agent/${row.strategyId}`}
                           className="truncate text-primary hover:underline"
                         >
                           {row.strategyName}
@@ -523,7 +517,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                   <TableRow key={`${row.strategyId}:${row.poolAddress}`}>
                     <TableCell className="font-medium">
                       <Link
-                        to={`/dashboard/lp-experiment/agent/${row.strategyId}`}
+                        to={`/lp-experiment/agent/${row.strategyId}`}
                         className="text-primary hover:underline"
                       >
                         {row.strategyName}
@@ -648,7 +642,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     <TableCell className="font-medium">
                       <div className="flex min-w-0 items-center gap-2">
                         <Link
-                          to={`/dashboard/lp-experiment/agent/${run.strategyId}`}
+                          to={`/lp-experiment/agent/${run.strategyId}`}
                           className="truncate text-primary hover:underline"
                         >
                           {run.strategyName}
@@ -705,7 +699,6 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         </TabsContent>
       </Tabs>
         </section>
-        ) : null}
       </div>
     </>
   );

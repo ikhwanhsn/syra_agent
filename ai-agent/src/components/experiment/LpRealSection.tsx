@@ -79,8 +79,6 @@ import {
 } from "@/components/dashboard/overview/overviewStyles";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { LpExperimentUiMode } from "@/lib/lpExperimentUiMode";
-import { LpRealSimplePositions } from "@/components/experiment/lp/LpRealSimplePositions";
 
 type PositionsTab = "live" | "closed" | "failed";
 
@@ -162,8 +160,7 @@ function HistoryPagination({
   );
 }
 
-export function LpRealSection({ uiMode = "pro" }: { uiMode?: LpExperimentUiMode }) {
-  const simple = uiMode === "simple";
+export function LpRealSection() {
   const { anonymousId, agentAddress, agentSolBalance } = useAgentWallet();
   const { requestSyraAuth } = useSyraAuth();
   const { toast } = useToast();
@@ -329,15 +326,12 @@ export function LpRealSection({ uiMode = "pro" }: { uiMode?: LpExperimentUiMode 
   return (
     <section id="real-agent" className="scroll-mt-8 space-y-4">
       <div>
-        <p className={overviewKickerClass}>{simple ? "Your wallet" : "Your deployment"}</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-          {simple ? "Live liquidity bot" : "Live LP agent"}
-        </h2>
-        {simple ? (
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Turn this on to let Syra manage liquidity with SOL from your agent wallet. Real funds are used on-chain.
-          </p>
-        ) : null}
+        <p className={overviewKickerClass}>Your wallet</p>
+        <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Live LP agent</h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Turn this on to let Syra add liquidity on Meteora using SOL from your agent wallet. Real funds are deployed
+          on-chain — only use amounts you can afford to lose.
+        </p>
       </div>
 
       <article className={cn(overviewCardShell, "overflow-hidden rounded-3xl ring-1 ring-violet-500/15")}>
@@ -359,21 +353,11 @@ export function LpRealSection({ uiMode = "pro" }: { uiMode?: LpExperimentUiMode 
                 {hasAgentWallet ? statusBadge : null}
               </div>
 
-              <p className="max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">
-                {simple ? (
-                  <>
-                    Uses SOL from your Syra agent wallet. Needs about {formatSolWithUsd(minEntry, refSolUsd)} to start.
-                    The bot copies the best-performing paper strategy. Turning off stops new pools; open ones finish on
-                    their own.
-                  </>
-                ) : (
-                  <>
-                    Autonomous liquidity on your Syra agent wallet — ~{formatSolWithUsd(minEntry, refSolUsd)} to enter a
-                    pool, {config?.maxPositionSol ?? 1} SOL per slot, up to {config?.maxConcurrentPositions ?? 10}{" "}
-                    concurrent. Strategy follows the highest net-PnL sim leader each tick (avg on settled runs). Turning
-                    off stops new opens; open positions keep running.
-                  </>
-                )}
+              <p className="max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">
+                Needs about {formatSolWithUsd(minEntry, refSolUsd)} in your agent wallet to start. Capital is split across
+                up to {config?.maxConcurrentPositions ?? 10} pools at once, each led by a top simulation strategy (high
+                win rate and net PnL). Available SOL is deployed into LP slots on each signal tick — only a small reserve
+                stays liquid for fees. Turning off stops new pools; open positions finish on their own.
               </p>
 
               {hasAgentWallet && !loading ? (
@@ -436,7 +420,7 @@ export function LpRealSection({ uiMode = "pro" }: { uiMode?: LpExperimentUiMode 
                 {formatSolWithUsd(minEntry, refSolUsd)} to enter your first pool.
               </p>
               <Button type="button" variant="outline" size="sm" className="mt-5 rounded-xl" asChild>
-                <Link to="/dashboard/agents">
+                <Link to="/agents">
                   Create agent wallet
                   <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" aria-hidden />
                 </Link>
@@ -445,62 +429,7 @@ export function LpRealSection({ uiMode = "pro" }: { uiMode?: LpExperimentUiMode 
           </div>
         ) : null}
 
-        {hasAgentWallet && agentAddr && !loading && simple ? (
-          <div className="relative space-y-5 px-5 py-6 sm:px-8 sm:py-7">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <LpStatTile
-                label="Wallet balance"
-                {...lpStatFromSol(walletEquitySol, refSolUsd, `${formatSol(onChainBalanceSol)} SOL in wallet`)}
-                icon={Wallet}
-              />
-              <LpStatTile
-                label="Total return"
-                value={`${totalReturnSol >= 0 ? "+" : ""}${formatSol(totalReturnSol)} SOL`}
-                subValue={formatSolUsdSub(totalReturnSol, refSolUsd)}
-                icon={TrendingUp}
-                tone={totalReturnSol > 0 ? "positive" : totalReturnSol < 0 ? "negative" : "default"}
-              />
-              <LpStatTile
-                label="Active pools"
-                value={String(openPositionsCount)}
-                subValue={enabled ? "Bot is running" : "Bot is off"}
-                icon={Waves}
-                tone={openPositionsCount > 0 ? "accent" : "default"}
-              />
-            </div>
-
-            {!canTurnOn && !enabled ? (
-              <LpExperimentNotice variant="caution" icon={Wallet}>
-                Add about {formatSolWithUsd(entryShortfall, refSolUsd)} more to your agent wallet to turn the bot on.
-              </LpExperimentNotice>
-            ) : !enabled && canTurnOn ? (
-              <LpExperimentNotice variant="info" icon={Waves}>
-                Wallet is funded. Flip the switch above to start.
-              </LpExperimentNotice>
-            ) : null}
-
-            <LpRealSimplePositions positions={activePositions} solUsd={refSolUsd} />
-
-            {openPositionsCount > 0 ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="rounded-xl"
-                disabled={stopAllMutation.isPending}
-                onClick={() => setStopAllOpen(true)}
-              >
-                Stop bot and close all pools
-              </Button>
-            ) : null}
-
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Real SOL is locked while pools are open. This is experimental — only use funds you can afford to lose.
-            </p>
-          </div>
-        ) : null}
-
-        {hasAgentWallet && agentAddr && !loading && !simple ? (
+        {hasAgentWallet && agentAddr && !loading ? (
           <div className="relative space-y-6 px-5 py-6 sm:px-8 sm:py-7">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <LpStatTile

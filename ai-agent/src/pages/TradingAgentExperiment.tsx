@@ -170,7 +170,7 @@ function MobileCollapsibleFilters({
 const LEADERBOARD_MIN_DECIDED = 5;
 
 /** Client route for trading experiment (under dashboard). */
-const TRADING_EXPERIMENT_ROUTE_BASE = "/dashboard/trading-experiment";
+const TRADING_EXPERIMENT_ROUTE_BASE = "/trading-experiment";
 
 const TABLE_PAGE_SIZE = 10;
 

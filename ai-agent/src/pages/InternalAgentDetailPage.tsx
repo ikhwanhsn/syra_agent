@@ -285,7 +285,7 @@ export default function InternalAgentDetailPage() {
               </p>
               <p className="font-mono text-xs opacity-90 break-all">{INTERNAL_TEAM_MONITOR_SOLANA_WALLET}</p>
               <Button variant="outline" size="sm" className="mt-2" asChild>
-                <Link to="/dashboard/overview">Back to overview</Link>
+                <Link to="/overview">Back to overview</Link>
               </Button>
             </AlertDescription>
           </Alert>
@@ -295,15 +295,15 @@ export default function InternalAgentDetailPage() {
   }
 
   if (slug === "hackathon-scout") {
-    return <Navigate to="/dashboard/internal-team-agents#hackathon-board" replace />;
+    return <Navigate to="/internal-team-agents#hackathon-board" replace />;
   }
 
   if (slug === "partnership-scout") {
-    return <Navigate to="/dashboard/internal-team-agents#partnership-board" replace />;
+    return <Navigate to="/internal-team-agents#partnership-board" replace />;
   }
 
   if (!slug || !meta) {
-    return <Navigate to="/dashboard/internal-team-agents" replace />;
+    return <Navigate to="/internal-team-agents" replace />;
   }
 
   return (
@@ -312,7 +312,7 @@ export default function InternalAgentDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <Button variant="ghost" size="sm" className="-ml-2 gap-1 text-muted-foreground" asChild>
-              <Link to="/dashboard/internal-team-agents">
+              <Link to="/internal-team-agents">
                 <ArrowLeft className="h-4 w-4" />
                 Internal agents
               </Link>

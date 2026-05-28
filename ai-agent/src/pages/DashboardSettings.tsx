@@ -63,8 +63,6 @@ import {
   writeAgentSetupBool,
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
-import { useLpExperimentUiMode } from "@/hooks/useLpExperimentUiMode";
-import { LpUiModePicker } from "@/components/settings/LpUiModePicker";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
 const STALE_MS = 45_000;
 
@@ -240,7 +238,6 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
   const [productUpdates, setProductUpdates] = useState(() => readAgentSetupBool(LS_PREF_PRODUCT_UPDATES, true));
   const [usageInsights, setUsageInsights] = useState(() => readAgentSetupBool(LS_PREF_USAGE_INSIGHTS, false));
   const [compactDensity, setCompactDensity] = useState(() => readAgentSetupBool(LS_PREF_COMPACT, false));
-  const { mode: lpUiMode, setMode: setLpUiMode } = useLpExperimentUiMode();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [refreshingBalances, setRefreshingBalances] = useState(false);
@@ -435,8 +432,6 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
                     writeAgentSetupBool(LS_PREF_COMPACT, v);
                   }}
                 />
-                <Separator className="bg-border/40" />
-                <LpUiModePicker value={lpUiMode} onChange={setLpUiMode} />
               </CardContent>
             </Card>
           </>
@@ -711,8 +706,8 @@ function AgentSetupSections({
           </CardHeader>
           <CardContent className="grid gap-2 pt-5">
             {[
-              { to: "/dashboard/trading-experiment", label: "Trading agents", icon: FlaskConical },
-              { to: "/dashboard/lp-experiment#real-agent", label: "LP agents (sim + real)", icon: Droplets },
+              { to: "/trading-experiment", label: "Trading agents", icon: FlaskConical },
+              { to: "/lp-experiment#real-agent", label: "LP agents (sim + real)", icon: Droplets },
             ].map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}

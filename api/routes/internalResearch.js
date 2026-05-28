@@ -16,6 +16,8 @@ import {
   loadAlphaXBatchSnapshot,
   runAlphaXBatchPipeline,
 } from "../libs/alphaXBatchPipeline.js";
+import { runCoingeckoAlphaPipeline } from "../libs/coingeckoAlphaPipeline.js";
+import { COINGECKO_ALPHA_DB_ID } from "../config/coingeckoAlphaConfig.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -149,6 +151,36 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "alpha-x-batch pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/coingecko-alpha/brief", async (_req, res) => {
+    try {
+      const { loadAlphaXBatchSnapshot } = await import("../libs/alphaXBatchPipeline.js");
+      const doc = await loadAlphaXBatchSnapshot(COINGECKO_ALPHA_DB_ID);
+      if (!doc) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      return res.json({ success: true, data: doc.data, savedAt: doc.savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "coingecko-alpha read failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/coingecko-alpha/run", async (_req, res) => {
+    try {
+      const out = await runCoingeckoAlphaPipeline({ force: true });
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "coingecko-alpha pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

@@ -49,24 +49,24 @@ const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
     label: "Trading agents",
     description: "Multi-agent spot trading",
     icon: FlaskConical,
-    to: "/dashboard/trading-experiment",
-    isActive: (pathname) => pathname.startsWith("/dashboard/trading-experiment"),
+    to: "/trading-experiment",
+    isActive: (pathname) => pathname.startsWith("/trading-experiment"),
   },
   {
     id: "arbitrage",
     label: "Arbitrage",
     description: "Cross-venue spread scanner",
     icon: Scale,
-    to: "/dashboard/arbitrage-experiment",
-    isActive: (pathname) => pathname.startsWith("/dashboard/arbitrage-experiment"),
+    to: "/arbitrage-experiment",
+    isActive: (pathname) => pathname.startsWith("/arbitrage-experiment"),
   },
   {
     id: "lp",
     label: "LP agents",
     description: "Meteora DLMM agents",
     icon: Droplets,
-    to: "/dashboard/lp-experiment",
-    isActive: (pathname) => pathname.startsWith("/dashboard/lp-experiment"),
+    to: "/lp-experiment",
+    isActive: (pathname) => pathname.startsWith("/lp-experiment"),
     badge: { label: "Beta" },
   },
   {
@@ -74,21 +74,21 @@ const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
     label: "Pumpfun",
     description: "225-cell graduate sniper",
     icon: Rocket,
-    to: "/dashboard/pumpfun-experiment",
-    isActive: (pathname) => pathname.startsWith("/dashboard/pumpfun-experiment"),
+    to: "/pumpfun-experiment",
+    isActive: (pathname) => pathname.startsWith("/pumpfun-experiment"),
   },
   {
     id: "rise",
     label: "Rise",
     description: "Vault borrow + dual sniper",
     icon: Crosshair,
-    to: "/dashboard/rise-experiment",
-    isActive: (pathname) => pathname.startsWith("/dashboard/rise-experiment"),
+    to: "/rise-experiment",
+    isActive: (pathname) => pathname.startsWith("/rise-experiment"),
   },
 ];
 
 function isAlphaIntelActive(pathname: string, _search: string): boolean {
-  return pathname.startsWith("/dashboard/alpha");
+  return pathname.startsWith("/alpha");
 }
 
 /** Same community links as chat `Sidebar.tsx` footer. */
@@ -111,23 +111,23 @@ const CONNECT_LINKS: SidebarConnectLink[] = [
 
 function dashboardPageTitle(pathname: string, search: string): string {
   const parts = pathname.split("/").filter(Boolean);
-  if (parts[0] !== "dashboard") return "Overview";
-  if (parts[1] === "trading-experiment" && parts[2] === "agent") return "Agent profile";
-  if (parts[1] === "overview") return "Overview";
-  if (parts[1] === "agents" && parts[2]) return "Agent detail";
-  if (parts[1] === "agents") return "Agents";
-  if (parts[1] === "settings" || parts[1] === "agent-setup") return "Agent setup";
-  if (parts[1] === "alpha" && parts[2] === "x" && parts[3]) return "Alpha · Intel";
-  if (parts[1] === "alpha") return "Alpha";
-  if (parts[1] === "token-check") return "Token check";
-  if (parts[1] === "pumpfun-experiment") return "Pumpfun experiment";
-  if (parts[1] === "rise-experiment") return "Rise experiment";
-  if (parts[1] === "trading-experiment") return "Trading experiment";
-  if (parts[1] === "arbitrage-experiment") return "Arbitrage experiment";
-  if (parts[1] === "lp-experiment") return "LP agent experiment";
-  if (parts[1] === "internal-team-agents") {
-    if (parts[2]) {
-      const slug = parts[2];
+  if (parts[0] === "trading-experiment" && parts[1] === "agent") return "Agent profile";
+  if (parts[0] === "overview") return "Overview";
+  if (parts[0] === "agents" && parts[1]) return "Agent detail";
+  if (parts[0] === "agents") return "Agents";
+  if (parts[0] === "agent-setup") return "Agent setup";
+  if (parts[0] === "alpha" && parts[1] === "x" && parts[2]) return "Alpha · Intel";
+  if (parts[0] === "alpha") return "Alpha";
+  if (parts[0] === "assets" && parts[1]) return "Asset detail";
+  if (parts[0] === "assets") return "Assets";
+  if (parts[0] === "pumpfun-experiment") return "Pumpfun experiment";
+  if (parts[0] === "rise-experiment") return "Rise experiment";
+  if (parts[0] === "trading-experiment") return "Trading experiment";
+  if (parts[0] === "arbitrage-experiment") return "Arbitrage experiment";
+  if (parts[0] === "lp-experiment") return "LP agent experiment";
+  if (parts[0] === "internal-team-agents") {
+    if (parts[1]) {
+      const slug = parts[1];
       if (isInternalAgentSlug(slug)) {
         const meta = getInternalAgentMeta(slug);
         if (meta) return meta.name;
@@ -174,26 +174,26 @@ function DashboardSidebarContent({
         <div className="space-y-0.5 px-1 pb-3 pt-2 sm:px-1.5">
           <SidebarSectionLabel>Workspace</SidebarSectionLabel>
           <div className="space-y-1">
-            <SidebarNavLink to="/dashboard/overview" icon={LayoutDashboard} end>
+            <SidebarNavLink to="/overview" icon={LayoutDashboard} end>
               Overview
             </SidebarNavLink>
-            <SidebarNavLink to="/dashboard/agents" icon={Bot} end>
+            <SidebarNavLink to="/agents" icon={Bot} end>
               Agents
             </SidebarNavLink>
           </div>
 
           <SidebarSectionLabel>Intelligence</SidebarSectionLabel>
           <div className="space-y-1">
-            <SidebarNavLink to="/dashboard/alpha" icon={Telescope} end matchActive={isAlphaIntelActive}>
+            <SidebarNavLink to="/alpha" icon={Telescope} end matchActive={isAlphaIntelActive}>
               Alpha
             </SidebarNavLink>
             <SidebarNavLink
-              to="/dashboard/token-check"
+              to="/assets"
               icon={FileSearch}
               end
-              matchActive={(pathname) => pathname.startsWith("/dashboard/token-check")}
+              matchActive={(pathname) => pathname.startsWith("/assets")}
             >
-              Token check
+              Assets
             </SidebarNavLink>
           </div>
 
@@ -202,7 +202,7 @@ function DashboardSidebarContent({
             <SidebarExperimentsNav items={EXPERIMENT_NAV_ITEMS} />
             {showInternalTeamMonitor ? (
               <>
-                <SidebarNavLink to="/dashboard/internal-team-agents" icon={UsersRound}>
+                <SidebarNavLink to="/internal-team-agents" icon={UsersRound}>
                   Internal agents
                 </SidebarNavLink>
               </>

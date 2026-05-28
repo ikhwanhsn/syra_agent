@@ -25,8 +25,10 @@ import LpAgentExperiment from "./pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "./pages/LpAgentExperimentAgentProfile";
 import PumpfunExperiment from "./pages/PumpfunExperiment";
 import RiseExperiment from "./pages/RiseExperiment";
-import MintDossier from "./pages/MintDossier";
+import AssetsPage from "./pages/AssetsPage";
+import AssetDetailPage from "./pages/AssetDetailPage";
 import {
+  LegacyDashboardPrefixRedirect,
   LegacyMarketplaceRedirect,
   LegacyTradingExperimentAgentRedirect,
   LegacyTradingExperimentPageRedirect,
@@ -50,38 +52,36 @@ const App = () => (
                 <Route path="/settings" element={<Index />} />
                 <Route path="/marketplace/*" element={<LegacyMarketplaceRedirect />} />
                 <Route path="/c/:shareId" element={<ShareableChatRoute />} />
-                <Route path="/dashboard" element={<DashboardLayout />}>
-                  <Route index element={<Navigate to="overview" replace />} />
-                  <Route path="overview" element={<DashboardOverview embedded />} />
-                  <Route path="agents" element={<DashboardAgents embedded />} />
-                  <Route path="agents/:anonymousId" element={<DashboardAgentDetail embedded />} />
-                  <Route path="settings" element={<DashboardSettings embedded />} />
-                  <Route path="agent-setup" element={<Navigate to="/dashboard/settings" replace />} />
-                  <Route path="marketplace/*" element={<Navigate to="/dashboard/overview" replace />} />
-                  <Route path="trading-experiment" element={<TradingAgentExperiment embedded />} />
+                <Route element={<DashboardLayout />}>
+                  <Route path="/overview" element={<DashboardOverview embedded />} />
+                  <Route path="/agents" element={<DashboardAgents embedded />} />
+                  <Route path="/agents/:anonymousId" element={<DashboardAgentDetail embedded />} />
+                  <Route path="/agent-setup" element={<DashboardSettings embedded />} />
+                  <Route path="/marketplace/*" element={<Navigate to="/overview" replace />} />
+                  <Route path="/trading-experiment" element={<TradingAgentExperiment embedded />} />
                   <Route
-                    path="trading-experiment/agent/:agentId"
+                    path="/trading-experiment/agent/:agentId"
                     element={<TradingAgentExperimentAgentProfile embedded />}
                   />
-                  <Route path="arbitrage-experiment" element={<ArbitrageExperiment embedded />} />
-                  <Route path="lp-experiment/history/:experimentId" element={<Navigate to="/dashboard/lp-experiment" replace />} />
-                  <Route path="lp-experiment/history" element={<Navigate to="/dashboard/lp-experiment" replace />} />
-                  <Route path="lp-experiment" element={<LpAgentExperiment embedded />} />
-                  <Route path="lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile embedded />} />
-                  <Route path="alpha/x/:username" element={<AlphaAccountDetail />} />
-                  <Route path="alpha" element={<Alpha />} />
-                  <Route path="token-check" element={<MintDossier embedded />} />
-                  <Route path="dossier" element={<Navigate to="/dashboard/token-check" replace />} />
-                  <Route path="pumpfun-experiment" element={<PumpfunExperiment embedded />} />
-                  <Route path="rise-experiment" element={<RiseExperiment embedded />} />
-                  <Route path="internal-team-agents" element={<InternalTeamAgentsMonitor />} />
-                  <Route path="internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
-                  <Route
-                    path="internal-hackathons"
-                    element={<Navigate to="/dashboard/internal-team-agents#hackathon-board" replace />}
-                  />
+                  <Route path="/arbitrage-experiment" element={<ArbitrageExperiment embedded />} />
+                  <Route path="/lp-experiment/history/:experimentId" element={<Navigate to="/lp-experiment" replace />} />
+                  <Route path="/lp-experiment/history" element={<Navigate to="/lp-experiment" replace />} />
+                  <Route path="/lp-experiment" element={<LpAgentExperiment embedded />} />
+                  <Route path="/lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile embedded />} />
+                  <Route path="/alpha/x/:username" element={<AlphaAccountDetail />} />
+                  <Route path="/alpha" element={<Alpha />} />
+                  <Route path="/assets" element={<AssetsPage embedded />} />
+                  <Route path="/assets/:assetKey" element={<AssetDetailPage embedded />} />
+                  <Route path="/token-check" element={<Navigate to="/assets" replace />} />
+                  <Route path="/dossier" element={<Navigate to="/assets" replace />} />
+                  <Route path="/pumpfun-experiment" element={<PumpfunExperiment embedded />} />
+                  <Route path="/rise-experiment" element={<RiseExperiment embedded />} />
+                  <Route path="/internal-team-agents" element={<InternalTeamAgentsMonitor />} />
+                  <Route path="/internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
+                  <Route path="/internal-hackathons" element={<Navigate to="/internal-team-agents#hackathon-board" replace />} />
                 </Route>
-                <Route path="/leaderboard" element={<Navigate to="/dashboard/overview" replace />} />
+                <Route path="/dashboard/*" element={<LegacyDashboardPrefixRedirect />} />
+                <Route path="/leaderboard" element={<Navigate to="/overview" replace />} />
                 <Route path="/experiment/trading-agent" element={<LegacyTradingExperimentPageRedirect />} />
                 <Route
                   path="/experiment/trading-agent/agent/:agentId"

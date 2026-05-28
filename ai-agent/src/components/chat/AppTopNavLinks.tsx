@@ -15,12 +15,28 @@ const linkBase =
 
 const sections = [
   { id: "agent" as const, label: "Agent", to: "/", icon: Bot },
-  { id: "dashboard" as const, label: "Dashboard", to: "/dashboard/overview", icon: LayoutDashboard },
+  { id: "dashboard" as const, label: "Dashboard", to: "/overview", icon: LayoutDashboard },
 ] as const;
 
+function isDashboardRoute(pathname: string): boolean {
+  return [
+    "/overview",
+    "/agents",
+    "/agent-setup",
+    "/trading-experiment",
+    "/arbitrage-experiment",
+    "/lp-experiment",
+    "/alpha",
+    "/assets",
+    "/pumpfun-experiment",
+    "/rise-experiment",
+    "/internal-team-agents",
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
 function sectionActive(pathname: string, id: (typeof sections)[number]["id"]): boolean {
-  if (id === "dashboard") return pathname.startsWith("/dashboard");
-  return !pathname.startsWith("/dashboard");
+  if (id === "dashboard") return isDashboardRoute(pathname);
+  return !isDashboardRoute(pathname);
 }
 
 /**
@@ -29,7 +45,7 @@ function sectionActive(pathname: string, id: (typeof sections)[number]["id"]): b
 export function AppTopNavLinks() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const isDashboard = pathname.startsWith("/dashboard");
+  const isDashboard = isDashboardRoute(pathname);
   const isAgent = !isDashboard;
   const currentLabel = isDashboard ? "Dashboard" : "Agent";
 
@@ -99,7 +115,7 @@ export function AppTopNavLinks() {
           Agent
         </Link>
         <Link
-          to="/dashboard/overview"
+          to="/overview"
           className={cn(
             linkBase,
             "no-underline",

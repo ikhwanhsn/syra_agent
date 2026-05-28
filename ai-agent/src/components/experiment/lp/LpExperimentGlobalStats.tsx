@@ -46,12 +46,13 @@ export function LpExperimentGlobalStats({ overview, loading, className }: LpExpe
   return (
     <section className={cn("space-y-3", className)}>
       <div>
-        <p className={overviewKickerClass}>Network</p>
+        <p className={overviewKickerClass}>At a glance</p>
         <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-          LP agent overview
+          How the lab is doing
         </h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Live Meteora market depth, simulation cohort health, and platform-wide real agent activity.
+          Market depth on Meteora, paper-trading cohort performance, and real agents deployed by users — all in one
+          place.
         </p>
       </div>
 

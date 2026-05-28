@@ -1,6 +1,6 @@
 /**
  * LP Real Agent — on-chain Meteora DLMM execution from a backend-custodied agent wallet.
- * Dynamically follows the sim cohort strategy with the highest net PnL each signal tick.
+ * Deploys capital across multiple concurrent positions led by top sim strategies (win rate + net PnL).
  */
 import LpRealConfig from "../models/LpRealConfig.js";
 import LpRealPosition from "../models/LpRealPosition.js";
@@ -14,6 +14,7 @@ import {
   isPositionOutOfRange,
   pickBestNetPnlStrategy,
   rankLpExperimentStrategiesByNetPnl,
+  selectQualifiedStrategiesForReal,
   selectRealStylePoolCandidate,
 } from "./lpExperimentService.js";
 import { executeIntent } from "../services/walletBroker.js";
@@ -39,8 +40,12 @@ import {
 } from "./lpRealSidecarSwap.js";
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
+  getLpRealCapitalUtilization,
   getLpRealDefaultTargetBankSol,
   getLpRealFeeBufferSol,
+  getLpRealMaxOpensPerTick,
+  getLpRealMaxPositionCapSol,
+  getLpRealMinDepositSol,
   getLpRealMinWalletWhileLiveSol,
 } from "../config/lpRealAgentAccess.js";
 
@@ -796,10 +801,10 @@ function buildCapitalMetrics({ config, walletEquitySol, nativeSolBalanceSol, dep
   };
 }
 
-/** Liquid wallet SOL required to deposit one maxPositionSol slot (reserve kept in wallet). */
+/** Liquid wallet SOL required to fund at least one dynamically sized slot. */
 function canAffordPoolEntry({ onChainBalanceSol, config }) {
   const availableSol = computeAvailableSol(onChainBalanceSol, config?.reserveSolForFees);
-  return availableSol >= toNum(config?.maxPositionSol, 1) - 1e-9;
+  return availableSol >= getLpRealMinDepositSol() - 1e-9;
 }
 
 function canOpenNewPosition({ onChainBalanceSol, config }) {
@@ -809,6 +814,58 @@ function canOpenNewPosition({ onChainBalanceSol, config }) {
 function canTurnOnAgent({ onChainBalanceSol, openPositions, config }) {
   if ((openPositions || []).length > 0) return true;
   return onChainBalanceSol >= minWalletToStartSol(config) - 1e-9;
+}
+
+/** How many concurrent slots deployable capital can support (schema max 20). */
+function computeEffectiveMaxConcurrent(_config, availableSol) {
+  const minDeposit = getLpRealMinDepositSol();
+  return Math.min(20, Math.max(1, Math.floor(toNum(availableSol) / minDeposit)));
+}
+
+/**
+ * Split remaining deployable SOL across open slots — targets full utilization up to per-slot cap.
+ */
+function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) {
+  const slots = Math.max(0, Math.floor(remainingSlots));
+  const minDeposit = getLpRealMinDepositSol();
+  const configuredMax = toNum(config?.maxPositionSol, 1);
+  const slotCap = Math.max(configuredMax, getLpRealMaxPositionCapSol());
+  const util = getLpRealCapitalUtilization();
+  const deployableSol = Math.max(0, toNum(availableSol) * util);
+
+  if (slots <= 0 || deployableSol < minDeposit - 1e-9) {
+    return { depositSol: 0, affordableSlots: 0, deployableSol };
+  }
+
+  const affordableSlots = Math.min(slots, Math.max(1, Math.floor(deployableSol / minDeposit)));
+  const depositSol = Math.min(
+    slotCap,
+    Math.max(minDeposit, deployableSol / affordableSlots),
+  );
+
+  return { depositSol, affordableSlots, deployableSol };
+}
+
+async function alignConfigMaxConcurrentToCapital(config, nativeSolBalanceSol) {
+  const availableSol = computeAvailableSol(nativeSolBalanceSol, config?.reserveSolForFees);
+  const effective = computeEffectiveMaxConcurrent(config, availableSol);
+  const current = Math.max(1, Math.floor(toNum(config.maxConcurrentPositions, 10)));
+  const target = Math.max(current, effective);
+  if (target === current) return current;
+  const agentFilter = configAgentFilter(config);
+  if (agentFilter) {
+    await LpRealConfig.updateOne(agentFilter, { $set: { maxConcurrentPositions: target } });
+  }
+  config.maxConcurrentPositions = target;
+  return target;
+}
+
+function pickStrategyForSlot(qualified, openPositions, slotIndex) {
+  if (!qualified.length) return null;
+  const used = new Set((openPositions || []).map((p) => toNum(p.strategyId)));
+  const unused = qualified.find((row) => !used.has(row.strategyId));
+  if (unused) return unused;
+  return qualified[slotIndex % qualified.length];
 }
 
 /** Configs that need resolve ticks: enabled agents + any agent with open Meteora positions. */
@@ -1215,6 +1272,7 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
     err.minWalletToStartSol = minStart;
     throw err;
   }
+  await alignConfigMaxConcurrentToCapital(config, nativeSolBalanceSol);
   await bumpWalletPolicyForLpReal(anonymousId, config);
   const enableSet = {
     enabled: true,
@@ -1251,6 +1309,314 @@ export async function disableLpReal({ anonymousId, closeAll = false }) {
     await resolveLpRealPositions({ forceCloseAll: true, agentAddress: config.agentAddress });
   }
   return getLpRealState({ viewerAnonymousId: anonymousId });
+}
+
+/**
+ * Open one Meteora LP position for a chosen sim strategy leader and deposit size.
+ * @returns {Promise<{ opened: boolean; stop: boolean }>}
+ */
+async function attemptOpenLpRealPosition({
+  config,
+  agentFilter,
+  strategyLeader,
+  rankedIds,
+  depositSol,
+  opened,
+  skipped,
+  errors,
+}) {
+  const strategy = strategyLeader.strategy;
+  const leaderId = strategyLeader.strategyId;
+
+  const poolCandidate = await selectRealStylePoolCandidate({
+    leaderStrategyId: leaderId,
+    experimentId: config.experimentId,
+    rankedStrategyIds: rankedIds,
+    hasRecentPositionFn: (_expId, _strategyId, poolAddress) =>
+      hasRecentRealPosition(config.experimentId, poolAddress),
+  });
+
+  if (!poolCandidate) {
+    skipped.push({ reason: "no_candidate", strategyId: leaderId, rankedTried: rankedIds.length });
+    return { opened: false, stop: false };
+  }
+
+  if (poolCandidate.strategyId != null && poolCandidate.strategyId !== leaderId) {
+    await LpRealConfig.updateOne(agentFilter, {
+      $set: { currentStrategyId: poolCandidate.strategyId, lastError: null },
+    });
+  }
+
+  if (await hasRecentRealPosition(config.experimentId, poolCandidate.poolAddress)) {
+    skipped.push({ reason: "cooldown_or_open", pool: poolCandidate.poolAddress, strategyId: leaderId });
+    return { opened: false, stop: false };
+  }
+
+  const solPrice = await fetchSolPriceUsd();
+  const depositUsd = depositSol * solPrice;
+
+  const poolDetail = await fetchMeteoraPoolDetail(poolCandidate.poolAddress);
+  if (!isSolMint(poolDetail.baseMint) && !isSolMint(poolDetail.quoteMint)) {
+    skipped.push({ reason: "non_sol_pool", pool: poolCandidate.poolAddress });
+    return { opened: false, stop: false };
+  }
+
+  const realBins = applyRealBinOverrides(strategy.binsBelow, strategy.binsAbove);
+  const clampedRange = clampPositionBinRange(realBins.binsBelow, realBins.binsAbove);
+  if (clampedRange.binsBelow === 0 && clampedRange.binsAbove === 0) {
+    const errMsg = `strategy_bin_range_invalid (strategy:${strategy.id})`;
+    errors.push(errMsg);
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
+    return { opened: false, stop: true };
+  }
+
+  let sidecar = {};
+  try {
+    const sidecarResult = await ensureSidecarTokenForPool({
+      anonymousId: config.anonymousId,
+      agentAddress: config.agentAddress,
+      baseMint: poolDetail.baseMint,
+      quoteMint: poolDetail.quoteMint,
+      otherSymbol: isSolMint(poolDetail.baseMint)
+        ? poolCandidate.quoteSymbol
+        : poolCandidate.baseSymbol,
+      depositSol,
+      binsBelow: clampedRange.binsBelow,
+      binsAbove: clampedRange.binsAbove,
+      solPriceUsd: solPrice,
+    });
+    sidecar = {
+      swappedSolLamports: sidecarResult.swappedSolLamports,
+      otherTokenRaw: sidecarResult.otherTokenRaw,
+    };
+  } catch (sidecarErr) {
+    const msg = sidecarErr instanceof Error ? sidecarErr.message : String(sidecarErr);
+    errors.push(`sidecar_swap:${msg}`);
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastError: msg, lastSignalAt: new Date() } });
+    return { opened: false, stop: true };
+  }
+
+  const txBuild = await buildOpenPositionTx({
+    lbPairAddress: poolCandidate.poolAddress,
+    binsBelow: clampedRange.binsBelow,
+    binsAbove: clampedRange.binsAbove,
+    lpShape: strategy.lpShape,
+    depositSol,
+    agentPubkey: config.agentAddress,
+    slippageBps: envSlippageBps(),
+    sidecar,
+  });
+
+  if (clampedRange.clamped) {
+    console.info(
+      `[lpReal] clamped position width for strategy ${strategy.id} (${strategy.name}): ` +
+        `${strategy.binsBelow}/${strategy.binsAbove} -> ${txBuild.effectiveBinsBelow}/${txBuild.effectiveBinsAbove} ` +
+        `(max ${MAX_METEORA_POSITION_BINS} bins)`,
+    );
+  }
+
+  const pending = await LpRealPosition.create({
+    experimentId: config.experimentId,
+    strategyId: strategy.id,
+    strategyName: strategy.name,
+    lpShape: strategy.lpShape,
+    poolAddress: poolCandidate.poolAddress,
+    poolName: poolCandidate.poolName || poolDetail.poolName,
+    baseSymbol: poolCandidate.baseSymbol,
+    quoteSymbol: poolCandidate.quoteSymbol,
+    baseMint: poolDetail.baseMint,
+    quoteMint: poolDetail.quoteMint,
+    binStep: poolDetail.binStep,
+    binsBelow: txBuild.effectiveBinsBelow,
+    binsAbove: txBuild.effectiveBinsAbove,
+    activeBinAtOpen: txBuild.activeBinAtOpen,
+    entryPriceUsd: poolDetail.currentPrice,
+    positionPubkey: txBuild.positionPubkey,
+    positionSecretEnc: txBuild.positionSecretEnc,
+    depositSol,
+    depositUsd,
+    exitRules: mergeRealExitRules(strategy.exit),
+    signalSnapshot: poolCandidate.signalSnapshot,
+    screeningSnapshot: {
+      score: poolCandidate.score,
+      tvlUsd: poolCandidate.tvlUsd ?? poolDetail.tvlUsd,
+      volume24hUsd: poolCandidate.volume24hUsd ?? poolDetail.volume24hUsd,
+      feeTvlRatio: poolCandidate.feeTvlRatio ?? poolDetail.feeTvlRatio,
+    },
+    status: "opening",
+    depositLocked: false,
+    openedAt: new Date(),
+  });
+
+  const openTxs =
+    txBuild.serializedTxBase64List?.length > 0
+      ? txBuild.serializedTxBase64List
+      : [txBuild.serializedTxBase64];
+
+  const submit = await submitLpRealTxSequence({
+    anonymousId: config.anonymousId,
+    toolId: "lp_real_open",
+    serializedTxBase64List: openTxs,
+    lastValidBlockHeight: txBuild.lastValidBlockHeight,
+    positionSecretEnc: txBuild.positionSecretEnc,
+    estimatedUsd: depositUsd,
+    summaryBase: `Open LP position ${poolCandidate.poolName} (${depositSol.toFixed(4)} SOL)`,
+  });
+
+  if (!submit.ok) {
+    const { errMsg, policyReasons } = formatBrokerFailure(submit.brokerResult, "broker_pending_or_failed");
+    const isTransientConfirm =
+      String(errMsg).includes("tx_confirm_timeout") ||
+      String(errMsg).includes("tx_blockhash_expired") ||
+      submit.partialConfirmed === true;
+
+    let recovery = { status: "failed" };
+    if (isTransientConfirm || (submit.signatures?.length ?? 0) > 0) {
+      recovery = await tryRecoverLpRealOpenAfterFailure({
+        positionPubkey: pending.positionPubkey,
+        poolAddress: poolCandidate.poolAddress,
+        submit,
+      });
+    }
+
+    if (recovery.status === "open") {
+      const recoveredSig = recovery.openTxSig || submit.signatures?.[submit.signatures.length - 1] || null;
+      await LpRealPosition.updateOne(
+        { _id: pending._id },
+        {
+          $set: {
+            status: "open",
+            openTxSig: recoveredSig,
+            depositLocked: true,
+            errorMessage: null,
+            policyReasons: [],
+          },
+        },
+      );
+      opened.push({
+        positionId: String(pending._id),
+        poolName: poolCandidate.poolName,
+        depositSol,
+        strategyId: strategy.id,
+        openTxSig: recoveredSig,
+        recoveredAfterTimeout: true,
+      });
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
+      return { opened: true, stop: false };
+    }
+
+    if (recovery.status === "opening" && recovery.openTxSig) {
+      await LpRealPosition.updateOne(
+        { _id: pending._id },
+        {
+          $set: {
+            status: "opening",
+            openTxSig: recovery.openTxSig,
+            depositLocked: false,
+            errorMessage: null,
+            policyReasons: [],
+          },
+        },
+      );
+      opened.push({
+        positionId: String(pending._id),
+        poolName: poolCandidate.poolName,
+        depositSol,
+        strategyId: strategy.id,
+        openTxSig: recovery.openTxSig,
+        pendingPositionIndex: true,
+      });
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
+      return { opened: true, stop: false };
+    }
+
+    await LpRealPosition.updateOne(
+      { _id: pending._id },
+      {
+        $set: {
+          status: "error",
+          errorMessage: errMsg,
+          policyReasons,
+          depositLocked: false,
+          resolvedAt: new Date(),
+        },
+      },
+    );
+    errors.push(errMsg);
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
+    return { opened: false, stop: true };
+  }
+
+  await LpRealPosition.updateOne({ _id: pending._id }, { $set: { openTxSig: submit.signature } });
+
+  try {
+    await waitForPositionOnChain(pending.positionPubkey, poolCandidate.poolAddress);
+  } catch {
+    const txConfirmed = await pollTxConfirmedOnAnyRpc(submit.signature);
+    if (txConfirmed) {
+      await LpRealPosition.updateOne(
+        { _id: pending._id },
+        {
+          $set: {
+            status: "opening",
+            openTxSig: submit.signature,
+            depositLocked: false,
+            errorMessage: null,
+            policyReasons: [],
+          },
+        },
+      );
+      opened.push({
+        positionId: String(pending._id),
+        poolName: poolCandidate.poolName,
+        depositSol,
+        strategyId: strategy.id,
+        openTxSig: submit.signature,
+        pendingPositionIndex: true,
+      });
+      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
+      return { opened: true, stop: false };
+    }
+
+    const errMsg = "position_not_on_chain_after_open";
+    await LpRealPosition.updateOne(
+      { _id: pending._id },
+      {
+        $set: {
+          status: "error",
+          errorMessage: errMsg,
+          openTxSig: submit.signature,
+          depositLocked: false,
+          resolvedAt: new Date(),
+        },
+      },
+    );
+    errors.push(errMsg);
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
+    return { opened: false, stop: true };
+  }
+
+  await LpRealPosition.updateOne(
+    { _id: pending._id },
+    {
+      $set: {
+        status: "open",
+        openTxSig: submit.signature,
+        depositLocked: true,
+        errorMessage: null,
+        policyReasons: [],
+      },
+    },
+  );
+  opened.push({
+    positionId: String(pending._id),
+    poolAddress: poolCandidate.poolAddress,
+    strategyId: strategy.id,
+    depositSol,
+    txSig: submit.signature,
+    txSigs: submit.signatures,
+  });
+  return { opened: true, stop: false };
 }
 
 async function runLpRealSignalCycleForConfig(config) {
@@ -1296,15 +1662,19 @@ async function runLpRealSignalCycleForConfig(config) {
   }
 
   try {
+    await alignConfigMaxConcurrentToCapital(config, onChainBalance);
+
     const pick = await pickBestStrategyWithReason();
-    const best = pick.strategy;
-    if (!best?.strategy) {
-      const reason = pick.failureReason || "no_best_strategy";
+    const qualified = await selectQualifiedStrategiesForReal(pick.ranked || [], {
+      maxCount: Math.min(10, toNum(config.maxConcurrentPositions, 10)),
+    });
+
+    if (qualified.length === 0) {
+      const reason = pick.failureReason || "no_profitable_strategy";
       skipped.push({ reason });
-      await LpRealConfig.updateOne(
-        agentFilter,
-        { $set: { lastSignalAt: new Date(), lastError: reason } },
-      );
+      await LpRealConfig.updateOne(agentFilter, {
+        $set: { lastSignalAt: new Date(), lastError: reason },
+      });
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1315,412 +1685,68 @@ async function runLpRealSignalCycleForConfig(config) {
       };
     }
 
-    await LpRealConfig.updateOne(
-      agentFilter,
-      { $set: { currentStrategyId: best.strategyId, lastSignalAt: new Date(), lastError: null } },
-    );
-
-    const openCount = await LpRealPosition.countDocuments({
-      experimentId: config.experimentId,
-      status: { $in: ["open", "opening", "closing"] },
+    await LpRealConfig.updateOne(agentFilter, {
+      $set: { currentStrategyId: qualified[0].strategyId, lastSignalAt: new Date(), lastError: null },
     });
-    if (openCount >= config.maxConcurrentPositions) {
-      skipped.push({ reason: "max_positions" });
-      await noteLpRealSignalSkip(agentFilter, "max_positions");
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 1,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    const openPositions = openPositionsEarly;
-    const deployedSol = deployedEarly;
-    const availableSol = availableEarly;
-
-    if (availableSol < config.maxPositionSol) {
-      skipped.push({ reason: "insufficient_available_sol", availableSol });
-      await noteLpRealSignalSkip(agentFilter, "insufficient_available_sol");
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 1,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
 
     const rankedIds = (pick.ranked || []).map((row) => row.strategyId);
-    const poolCandidate = await selectRealStylePoolCandidate({
-      leaderStrategyId: best.strategyId,
-      experimentId: config.experimentId,
-      rankedStrategyIds: rankedIds,
-      hasRecentPositionFn: (_expId, _strategyId, poolAddress) =>
-        hasRecentRealPosition(config.experimentId, poolAddress),
-    });
+    const maxOpensThisTick = getLpRealMaxOpensPerTick();
+    let opensThisTick = 0;
+    let consecutiveSkips = 0;
 
-    if (!poolCandidate) {
-      const reason = "no_candidate";
-      skipped.push({ reason, strategyId: best.strategyId, rankedTried: rankedIds.length });
-      await noteLpRealSignalSkip(agentFilter, reason);
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 1,
+    while (opensThisTick < maxOpensThisTick && consecutiveSkips < qualified.length * 2) {
+      const openPositions = await LpRealPosition.find({
+        experimentId: config.experimentId,
+        status: { $in: ["open", "opening", "closing"] },
+      }).lean();
+
+      if (openPositions.length >= config.maxConcurrentPositions) {
+        if (opensThisTick === 0) {
+          skipped.push({ reason: "max_positions" });
+          await noteLpRealSignalSkip(agentFilter, "max_positions");
+        }
+        break;
+      }
+
+      const balance = await getAgentSolBalance(config.agentAddress);
+      const availableSol = computeAvailableSol(balance, config.reserveSolForFees);
+      const remainingSlots = config.maxConcurrentPositions - openPositions.length;
+      const plan = computeCapitalDeploymentPlan({ config, availableSol, remainingSlots });
+
+      if (plan.depositSol < getLpRealMinDepositSol() - 1e-9) {
+        if (opensThisTick === 0) {
+          skipped.push({ reason: "insufficient_available_sol", availableSol, deployableSol: plan.deployableSol });
+          await noteLpRealSignalSkip(agentFilter, "insufficient_available_sol");
+        }
+        break;
+      }
+
+      const strategyLeader = pickStrategyForSlot(qualified, openPositions, opensThisTick);
+      if (!strategyLeader) break;
+
+      const result = await attemptOpenLpRealPosition({
+        config,
+        agentFilter,
+        strategyLeader,
+        rankedIds,
+        depositSol: plan.depositSol,
+        opened,
+        skipped,
         errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    if (
-      poolCandidate.strategyId != null &&
-      poolCandidate.strategyId !== best.strategyId
-    ) {
-      await LpRealConfig.updateOne(agentFilter, {
-        $set: { currentStrategyId: poolCandidate.strategyId, lastError: null },
       });
-    }
 
-    if (await hasRecentRealPosition(config.experimentId, poolCandidate.poolAddress)) {
-      skipped.push({ reason: "cooldown_or_open", pool: poolCandidate.poolAddress });
-      await noteLpRealSignalSkip(agentFilter, "cooldown_or_open");
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 1,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    const solPrice = await fetchSolPriceUsd();
-    const depositSol = config.maxPositionSol;
-    const depositUsd = depositSol * solPrice;
-    const strategy = best.strategy;
-
-    const poolDetail = await fetchMeteoraPoolDetail(poolCandidate.poolAddress);
-    if (!isSolMint(poolDetail.baseMint) && !isSolMint(poolDetail.quoteMint)) {
-      skipped.push({ reason: "non_sol_pool", pool: poolCandidate.poolAddress });
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 1,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    // Pre-clamp once for telemetry — buildOpenPositionTx clamps again defensively.
-    const realBins = applyRealBinOverrides(strategy.binsBelow, strategy.binsAbove);
-    const clampedRange = clampPositionBinRange(realBins.binsBelow, realBins.binsAbove);
-    if (clampedRange.binsBelow === 0 && clampedRange.binsAbove === 0) {
-      const errMsg = `strategy_bin_range_invalid (strategy:${strategy.id})`;
-      errors.push(errMsg);
-      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 0,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    let sidecar = {};
-    try {
-      const sidecarResult = await ensureSidecarTokenForPool({
-        anonymousId: config.anonymousId,
-        agentAddress: config.agentAddress,
-        baseMint: poolDetail.baseMint,
-        quoteMint: poolDetail.quoteMint,
-        otherSymbol: isSolMint(poolDetail.baseMint)
-          ? poolCandidate.quoteSymbol
-          : poolCandidate.baseSymbol,
-        depositSol,
-        binsBelow: clampedRange.binsBelow,
-        binsAbove: clampedRange.binsAbove,
-        solPriceUsd: solPrice,
-      });
-      sidecar = {
-        swappedSolLamports: sidecarResult.swappedSolLamports,
-        otherTokenRaw: sidecarResult.otherTokenRaw,
-      };
-    } catch (sidecarErr) {
-      const msg = sidecarErr instanceof Error ? sidecarErr.message : String(sidecarErr);
-      errors.push(`sidecar_swap:${msg}`);
-      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: msg, lastSignalAt: new Date() } });
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 1,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    const txBuild = await buildOpenPositionTx({
-      lbPairAddress: poolCandidate.poolAddress,
-      binsBelow: clampedRange.binsBelow,
-      binsAbove: clampedRange.binsAbove,
-      lpShape: strategy.lpShape,
-      depositSol,
-      agentPubkey: config.agentAddress,
-      slippageBps: envSlippageBps(),
-      sidecar,
-    });
-
-    if (clampedRange.clamped) {
-      console.info(
-        `[lpReal] clamped position width for strategy ${strategy.id} (${strategy.name}): ` +
-          `${strategy.binsBelow}/${strategy.binsAbove} -> ${txBuild.effectiveBinsBelow}/${txBuild.effectiveBinsAbove} ` +
-          `(max ${MAX_METEORA_POSITION_BINS} bins)`,
-      );
-    }
-
-    const pending = await LpRealPosition.create({
-      experimentId: config.experimentId,
-      strategyId: strategy.id,
-      strategyName: strategy.name,
-      lpShape: strategy.lpShape,
-      poolAddress: poolCandidate.poolAddress,
-      poolName: poolCandidate.poolName || poolDetail.poolName,
-      baseSymbol: poolCandidate.baseSymbol,
-      quoteSymbol: poolCandidate.quoteSymbol,
-      baseMint: poolDetail.baseMint,
-      quoteMint: poolDetail.quoteMint,
-      binStep: poolDetail.binStep,
-      binsBelow: txBuild.effectiveBinsBelow,
-      binsAbove: txBuild.effectiveBinsAbove,
-      activeBinAtOpen: txBuild.activeBinAtOpen,
-      entryPriceUsd: poolDetail.currentPrice,
-      positionPubkey: txBuild.positionPubkey,
-      positionSecretEnc: txBuild.positionSecretEnc,
-      depositSol,
-      depositUsd,
-      exitRules: mergeRealExitRules(strategy.exit),
-      signalSnapshot: poolCandidate.signalSnapshot,
-      screeningSnapshot: {
-        score: poolCandidate.score,
-        tvlUsd: poolCandidate.tvlUsd ?? poolDetail.tvlUsd,
-        volume24hUsd: poolCandidate.volume24hUsd ?? poolDetail.volume24hUsd,
-        feeTvlRatio: poolCandidate.feeTvlRatio ?? poolDetail.feeTvlRatio,
-      },
-      status: "opening",
-      depositLocked: false,
-      openedAt: new Date(),
-    });
-
-    const openTxs =
-      txBuild.serializedTxBase64List?.length > 0
-        ? txBuild.serializedTxBase64List
-        : [txBuild.serializedTxBase64];
-
-    const submit = await submitLpRealTxSequence({
-      anonymousId: config.anonymousId,
-      toolId: "lp_real_open",
-      serializedTxBase64List: openTxs,
-      lastValidBlockHeight: txBuild.lastValidBlockHeight,
-      positionSecretEnc: txBuild.positionSecretEnc,
-      estimatedUsd: depositUsd,
-      summaryBase: `Open LP position ${poolCandidate.poolName} (${depositSol} SOL)`,
-    });
-
-    if (!submit.ok) {
-      const { errMsg, policyReasons } = formatBrokerFailure(submit.brokerResult, "broker_pending_or_failed");
-      const isTransientConfirm =
-        String(errMsg).includes("tx_confirm_timeout") ||
-        String(errMsg).includes("tx_blockhash_expired") ||
-        submit.partialConfirmed === true;
-
-      let recovery = { status: "failed" };
-      if (isTransientConfirm || (submit.signatures?.length ?? 0) > 0) {
-        recovery = await tryRecoverLpRealOpenAfterFailure({
-          positionPubkey: pending.positionPubkey,
-          poolAddress: poolCandidate.poolAddress,
-          submit,
+      if (result.opened) {
+        opensThisTick += 1;
+        consecutiveSkips = 0;
+        await LpRealConfig.updateOne(agentFilter, {
+          $set: { currentStrategyId: strategyLeader.strategyId, lastError: null },
         });
+        continue;
       }
 
-      if (recovery.status === "open") {
-        const recoveredSig = recovery.openTxSig || submit.signatures?.[submit.signatures.length - 1] || null;
-        await LpRealPosition.updateOne(
-          { _id: pending._id },
-          {
-            $set: {
-              status: "open",
-              openTxSig: recoveredSig,
-              depositLocked: true,
-              errorMessage: null,
-              policyReasons: [],
-            },
-          },
-        );
-        opened.push({
-          positionId: String(pending._id),
-          poolName: poolCandidate.poolName,
-          depositSol,
-          openTxSig: recoveredSig,
-          recoveredAfterTimeout: true,
-        });
-        await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
-        return {
-          agentAddress: config.agentAddress,
-          opened: 1,
-          skipped: 0,
-          errors,
-          openedRows: opened,
-          skippedRows: skipped,
-        };
-      }
-
-      if (recovery.status === "opening" && recovery.openTxSig) {
-        await LpRealPosition.updateOne(
-          { _id: pending._id },
-          {
-            $set: {
-              status: "opening",
-              openTxSig: recovery.openTxSig,
-              depositLocked: false,
-              errorMessage: null,
-              policyReasons: [],
-            },
-          },
-        );
-        opened.push({
-          positionId: String(pending._id),
-          poolName: poolCandidate.poolName,
-          depositSol,
-          openTxSig: recovery.openTxSig,
-          pendingPositionIndex: true,
-        });
-        await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
-        return {
-          agentAddress: config.agentAddress,
-          opened: 0,
-          skipped: 0,
-          errors,
-          openedRows: opened,
-          skippedRows: skipped,
-        };
-      }
-
-      await LpRealPosition.updateOne(
-        { _id: pending._id },
-        {
-          $set: {
-            status: "error",
-            errorMessage: errMsg,
-            policyReasons,
-            depositLocked: false,
-            resolvedAt: new Date(),
-          },
-        },
-      );
-      errors.push(errMsg);
-      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 0,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
+      consecutiveSkips += 1;
+      if (result.stop) break;
     }
-
-    await LpRealPosition.updateOne(
-      { _id: pending._id },
-      { $set: { openTxSig: submit.signature } },
-    );
-
-    try {
-      await waitForPositionOnChain(pending.positionPubkey, poolCandidate.poolAddress);
-    } catch {
-      const txConfirmed = await pollTxConfirmedOnAnyRpc(submit.signature);
-      if (txConfirmed) {
-        await LpRealPosition.updateOne(
-          { _id: pending._id },
-          {
-            $set: {
-              status: "opening",
-              openTxSig: submit.signature,
-              depositLocked: false,
-              errorMessage: null,
-              policyReasons: [],
-            },
-          },
-        );
-        opened.push({
-          positionId: String(pending._id),
-          poolName: poolCandidate.poolName,
-          depositSol,
-          openTxSig: submit.signature,
-          pendingPositionIndex: true,
-        });
-        await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
-        return {
-          agentAddress: config.agentAddress,
-          opened: 0,
-          skipped: 0,
-          errors,
-          openedRows: opened,
-          skippedRows: skipped,
-        };
-      }
-
-      const errMsg = "position_not_on_chain_after_open";
-      await LpRealPosition.updateOne(
-        { _id: pending._id },
-        {
-          $set: {
-            status: "error",
-            errorMessage: errMsg,
-            openTxSig: submit.signature,
-            depositLocked: false,
-            resolvedAt: new Date(),
-          },
-        },
-      );
-      errors.push(errMsg);
-      await LpRealConfig.updateOne(agentFilter, { $set: { lastError: errMsg } });
-      return {
-        agentAddress: config.agentAddress,
-        opened: 0,
-        skipped: 0,
-        errors,
-        openedRows: opened,
-        skippedRows: skipped,
-      };
-    }
-
-    await LpRealPosition.updateOne(
-      { _id: pending._id },
-      {
-        $set: {
-          status: "open",
-          openTxSig: submit.signature,
-          depositLocked: true,
-          errorMessage: null,
-          policyReasons: [],
-        },
-      },
-    );
-    opened.push({
-      positionId: String(pending._id),
-      poolAddress: poolCandidate.poolAddress,
-      strategyId: strategy.id,
-      txSig: submit.signature,
-      txSigs: submit.signatures,
-    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     errors.push(msg);

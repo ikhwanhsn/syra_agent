@@ -54,9 +54,11 @@ function truncateMint(mint: string, head = 6, tail = 4): string {
 export interface MintDossierViewProps {
   data: TokensDossierPayload;
   className?: string;
+  /** Hides redundant kicker when parent page already shows breadcrumb nav. */
+  embeddedInDetail?: boolean;
 }
 
-export function MintDossierView({ data, className }: MintDossierViewProps) {
+export function MintDossierView({ data, className, embeddedInDetail = false }: MintDossierViewProps) {
   const asset = data.asset;
   const stats = asset?.stats;
   const canonical = asset?.canonicalMarket;
@@ -100,18 +102,27 @@ export function MintDossierView({ data, className }: MintDossierViewProps) {
                 <div className="h-14 w-14 rounded-2xl border border-border/60 bg-muted/40 shrink-0" />
               )}
               <div className="min-w-0">
-                <p className={overviewKickerClass}>Token check</p>
-                <CardTitle className="text-2xl sm:text-3xl font-semibold tracking-tight truncate">
+                {!embeddedInDetail ? (
+                  <p className={overviewKickerClass}>Asset dossier</p>
+                ) : null}
+                <CardTitle
+                  className={cn(
+                    "font-semibold tracking-tight truncate",
+                    embeddedInDetail ? "text-2xl sm:text-[1.75rem]" : "text-2xl sm:text-3xl",
+                  )}
+                >
                   {asset?.name ?? data.assetId}
                 </CardTitle>
-                <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="font-mono text-foreground/80">{asset?.symbol ?? "—"}</span>
+                <CardDescription className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm text-foreground/85">{asset?.symbol ?? "—"}</span>
                   {asset?.category ? (
                     <Badge variant="secondary" className="font-normal capitalize">
                       {asset.category}
                     </Badge>
                   ) : null}
-                  <span className="font-mono text-xs text-muted-foreground">{data.assetId}</span>
+                  {!embeddedInDetail ? (
+                    <span className="font-mono text-xs text-muted-foreground">{data.assetId}</span>
+                  ) : null}
                 </CardDescription>
               </div>
             </div>
@@ -299,7 +310,7 @@ export function MintDossierView({ data, className }: MintDossierViewProps) {
             <CardTitle className="text-lg">About</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">{asset.description}</p>
+            <p className="w-full text-sm leading-relaxed text-muted-foreground">{asset.description}</p>
           </CardContent>
         </Card>
       ) : null}

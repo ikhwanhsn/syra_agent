@@ -272,7 +272,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               isLoading={alphaXQ.isLoading}
               value={alphaXQ.isError ? "—" : alphaXQ.data?.summary.averageScore ?? "—"}
               hint={alphaXBatchHint}
-              href="/dashboard/alpha?tab=x"
+              href="/alpha?tab=x"
               error={alphaXQ.isError}
             />
             <OverviewStatCard
@@ -286,7 +286,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   ? `${pumpfunTrendQ.data.tokens.length} tokens · ${pumpfunTrendQ.data.analysis.watchlist.length} watchlist`
                   : "Graduate candidates (today)"
               }
-              href="/dashboard/alpha"
+              href="/alpha"
               error={pumpfunTrendQ.isError}
             />
             <OverviewStatCard
@@ -296,7 +296,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               isLoading={riseMarketsQ.isLoading}
               value={riseMarketsQ.isError ? "—" : String(riseMarketsQ.data?.markets.length ?? "—")}
               hint="Listed Rise alpha markets (deduped)"
-              href="/dashboard/alpha"
+              href="/alpha"
               error={riseMarketsQ.isError}
             />
           </div>
@@ -314,7 +314,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                     </CardDescription>
                   </div>
                   <Link
-                    to="/dashboard/alpha?tab=x"
+                    to="/alpha?tab=x"
                     className="shrink-0 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
                     View all
@@ -357,7 +357,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                           <TableRow key={item.username}>
                             <TableCell>
                               <Link
-                                to={`/dashboard/alpha/x/${encodeURIComponent(item.username)}`}
+                                to={`/alpha/x/${encodeURIComponent(item.username)}`}
                                 className="font-medium hover:underline"
                               >
                                 @{item.username}
@@ -465,7 +465,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               isLoading={tradeQ.isLoading}
               value={tradeQ.isError ? "—" : tradingTotals.agentCount.toLocaleString()}
               hint={`${tradingStrategies.length} strategies · ${tradingTotals.wins}W / ${tradingTotals.losses}L · ${tradingTotals.open} open`}
-              href="/dashboard/trading-experiment"
+              href="/trading-experiment"
               error={tradeQ.isError}
             />
             <OverviewStatCard
@@ -481,7 +481,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                     : "—"
               }
               hint={`${venueStats.ok} live / ${venueStats.err} down · ${venueStats.token}`}
-              href="/dashboard/arbitrage-experiment"
+              href="/arbitrage-experiment"
               error={arbQ.isError}
             />
             <OverviewStatCard
@@ -491,7 +491,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               isLoading={lpStatsQ.isLoading}
               value={lpStatsQ.isError ? "—" : String(lpTotals.agentCount)}
               hint={`${lpTotals.wins}W / ${lpTotals.losses}L · ${lpTotals.open} open · ${lpTotals.expired} expired`}
-              href="/dashboard/lp-experiment"
+              href="/lp-experiment"
               error={lpStatsQ.isError}
             />
             <OverviewStatCard
@@ -505,7 +505,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   ? `${pumpfunPaper.activeCells} desks · ${pumpfunPaper.openPositions} open · avg ${formatPct(pumpfunPaper.avgReturnPct)}`
                   : "Paper sim ledger"
               }
-              href="/dashboard/pumpfun-experiment"
+              href="/pumpfun-experiment"
               error={pumpfunLedgerQ.isError}
             />
             <OverviewStatCard
@@ -519,7 +519,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   ? `${risePaper.openPositions} open across 2 agents · ${risePaper.discoveries} discoveries`
                   : "Paper sim ledger"
               }
-              href="/dashboard/rise-experiment"
+              href="/rise-experiment"
               error={riseLedgerQ.isError}
             />
             <OverviewStatCard
@@ -529,7 +529,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               isLoading={cmcQ.isLoading}
               value={cmcQ.isError ? "—" : String(cmcBarData.length)}
               hint={cmcQ.data?.source === "coinmarketcap" ? "Live CoinMarketCap ranks" : "Cached fallback list"}
-              href="/dashboard/arbitrage-experiment"
+              href="/arbitrage-experiment"
               error={cmcQ.isError}
             />
           </div>
@@ -646,7 +646,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 accent="internal"
                 value={`${internalPipelineCount} / ${INTERNAL_AGENTS.length}`}
                 hint="Trend scout + partnership scout (on-chain AI utility)"
-                href="/dashboard/internal-team-agents"
+                href="/internal-team-agents"
               />
               <OverviewStatCard
                 label="Access"
@@ -658,7 +658,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   </span>
                 }
                 hint="Your wallet is on the internal monitor allowlist"
-                href="/dashboard/internal-team-agents"
+                href="/internal-team-agents"
               />
             </div>
 
@@ -666,8 +666,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               {INTERNAL_AGENTS.map((agent) => {
                 const href =
                   agent.slug === "hackathon-scout"
-                    ? "/dashboard/internal-team-agents#hackathon-board"
-                    : `/dashboard/internal-team-agents/${agent.slug}`;
+                    ? "/internal-team-agents#hackathon-board"
+                    : `/internal-team-agents/${agent.slug}`;
                 const q =
                   agent.slug === "trend-scout"
                     ? trendScoutQ

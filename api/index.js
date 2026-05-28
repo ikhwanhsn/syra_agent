@@ -20,6 +20,7 @@ import { createAgentWalletIntentRouter } from "./routes/agent/walletIntent.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
 import { createAgentPumpfunCoinRouter } from "./routes/agent/pumpfunCoin.js";
 import { createPumpfunAlphaTrendRouter } from "./routes/agent/pumpfunAlphaTrend.js";
+import { createCoingeckoAlphaRouter } from "./routes/agent/coingeckoAlpha.js";
 import { createTokensDossierRouter } from "./routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
@@ -1039,6 +1040,7 @@ app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/chart", createAgentChartRouter());
 app.use("/agent/pumpfun", createAgentPumpfunCoinRouter());
 app.use("/agent/pumpfun-alpha", createPumpfunAlphaTrendRouter());
+app.use("/agent/coingecko-alpha", createCoingeckoAlphaRouter());
 app.use("/agent/tokens", createTokensDossierRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
@@ -1566,6 +1568,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[alpha-x-batch] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/coingeckoAlphaScheduler.js")
+    .then(({ startCoingeckoAlphaScheduler }) => {
+      startCoingeckoAlphaScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[coingecko-alpha] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

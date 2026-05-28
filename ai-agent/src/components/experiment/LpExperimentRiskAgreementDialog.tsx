@@ -31,7 +31,7 @@ export function LpExperimentRiskAgreementDialog({ blockUntilAccepted = true }: P
   };
 
   const handleLeave = () => {
-    navigate("/dashboard/overview", { replace: true });
+    navigate("/overview", { replace: true });
   };
 
   if (!open) return null;

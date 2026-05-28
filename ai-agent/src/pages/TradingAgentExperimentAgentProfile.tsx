@@ -51,7 +51,7 @@ import { Badge } from "@/components/ui/badge";
 
 const RUNS_PAGE_SIZE = 15;
 
-const TRADING_EXPERIMENT_ROUTE_BASE = "/dashboard/trading-experiment";
+const TRADING_EXPERIMENT_ROUTE_BASE = "/trading-experiment";
 
 function formatTime(iso: string | undefined) {
   if (!iso) return "—";

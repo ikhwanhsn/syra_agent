@@ -188,7 +188,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
       >
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-2 text-muted-foreground hover:text-foreground" asChild>
-            <Link to="/dashboard/agents">
+            <Link to="/agents">
               <ArrowLeft className="h-4 w-4" aria-hidden />
               Agents
             </Link>
@@ -219,7 +219,7 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
               <p className="font-medium text-foreground">Agent not found</p>
               <p className="text-sm text-muted-foreground">This wallet may not exist or the link is invalid.</p>
               <Button variant="outline" className="rounded-xl" asChild>
-                <Link to="/dashboard/agents">Back to agents</Link>
+                <Link to="/agents">Back to agents</Link>
               </Button>
             </CardContent>
           </Card>
@@ -367,9 +367,9 @@ export default function DashboardAgentDetail({ embedded = false }: DashboardAgen
                 </CardHeader>
                 <CardContent className="grid gap-2 pt-5 sm:grid-cols-2">
                   {[
-                    { to: "/dashboard/trading-experiment", label: "Trading agents", icon: FlaskConical },
-                    { to: "/dashboard/lp-experiment", label: "LP agents", icon: Droplets },
-                    { to: "/dashboard/arbitrage-experiment", label: "Arbitrage", icon: TrendingUp },
+                    { to: "/trading-experiment", label: "Trading agents", icon: FlaskConical },
+                    { to: "/lp-experiment", label: "LP agents", icon: Droplets },
+                    { to: "/arbitrage-experiment", label: "Arbitrage", icon: TrendingUp },
                   ].map(({ to, label, icon: Icon }) => (
                     <Link
                       key={to}

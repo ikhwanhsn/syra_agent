@@ -91,6 +91,40 @@ export interface TokensDossierQuery {
   q?: string;
 }
 
+export function parseAssetLookupInput(raw: string): TokensDossierQuery | null {
+  const q = raw.trim();
+  if (!q) return null;
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q)) return { mint: q };
+  if (q.startsWith("solana-") && q.includes("-")) return { assetId: q };
+  if (q.includes("/") || q.includes(".")) return { q };
+  return { ref: q };
+}
+
+export function dossierQueryToSearchParams(params: TokensDossierQuery): URLSearchParams {
+  const sp = new URLSearchParams();
+  if (params.q?.trim()) sp.set("q", params.q.trim());
+  if (params.ref?.trim()) sp.set("ref", params.ref.trim());
+  if (params.mint?.trim()) sp.set("mint", params.mint.trim());
+  if (params.assetId?.trim()) sp.set("assetId", params.assetId.trim());
+  return sp;
+}
+
+export function parseDossierQueryParams(searchParams: URLSearchParams): TokensDossierQuery | null {
+  const ref = searchParams.get("ref")?.trim();
+  const mint = searchParams.get("mint")?.trim();
+  const assetId = searchParams.get("assetId")?.trim();
+  const q = searchParams.get("q")?.trim();
+  if (ref || mint || assetId || q) {
+    return {
+      ...(ref && { ref }),
+      ...(mint && { mint }),
+      ...(assetId && { assetId }),
+      ...(q && { q }),
+    };
+  }
+  return null;
+}
+
 function buildDossierUrl(params: TokensDossierQuery): string {
   const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/tokens/dossier`;
   const sp = new URLSearchParams();
@@ -117,15 +151,15 @@ export async function fetchMintDossier(params: TokensDossierQuery): Promise<Toke
   return body.data;
 }
 
-/** Shareable dashboard URL for a token check result. */
-export const TOKEN_CHECK_PATH = "/dashboard/token-check";
+/** Shareable dashboard URL for an asset dossier result. */
+export const ASSETS_PATH = "/assets";
 
 export function dossierSharePath(data: TokensDossierPayload): string {
   const q = data.query;
-  if (q.mint) return `${TOKEN_CHECK_PATH}?mint=${encodeURIComponent(q.mint)}`;
-  if (q.assetId) return `${TOKEN_CHECK_PATH}?assetId=${encodeURIComponent(q.assetId)}`;
-  if (q.ref) return `${TOKEN_CHECK_PATH}?ref=${encodeURIComponent(q.ref)}`;
-  return `${TOKEN_CHECK_PATH}?assetId=${encodeURIComponent(data.assetId)}`;
+  if (q.mint) return `${ASSETS_PATH}?mint=${encodeURIComponent(q.mint)}`;
+  if (q.assetId) return `${ASSETS_PATH}?assetId=${encodeURIComponent(q.assetId)}`;
+  if (q.ref) return `${ASSETS_PATH}?ref=${encodeURIComponent(q.ref)}`;
+  return `${ASSETS_PATH}?assetId=${encodeURIComponent(data.assetId)}`;
 }
 
 export function askSyraPrompt(data: TokensDossierPayload): string {
