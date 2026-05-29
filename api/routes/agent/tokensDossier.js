@@ -1,5 +1,56 @@
 import express from 'express';
 import { buildMintDossier } from '../../libs/tokensDossierService.js';
+import { runTokensAgentTool } from '../../libs/tokensAgentService.js';
+
+/** @param {unknown} raw */
+function normalizeSearchHit(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = /** @type {Record<string, unknown>} */ (raw);
+  const assetId = String(row.assetId ?? row.id ?? row.asset_id ?? '').trim();
+  const name = String(row.name ?? row.label ?? '').trim();
+  const symbol = String(row.symbol ?? row.ticker ?? name ?? assetId).trim();
+  if (!assetId && !symbol) return null;
+  return {
+    assetId: assetId || symbol.toLowerCase(),
+    name: name || symbol,
+    symbol: symbol || assetId,
+    ref: typeof row.ref === 'string' ? row.ref : undefined,
+    imageUrl: typeof row.imageUrl === 'string' ? row.imageUrl : undefined,
+    category: typeof row.category === 'string' ? row.category : undefined,
+  };
+}
+
+/** @param {unknown} body */
+function extractSearchHits(body) {
+  if (!body || typeof body !== 'object') return [];
+  const root = /** @type {Record<string, unknown>} */ (body);
+  const data = root.data;
+  /** @type {unknown[]} */
+  const candidates = [];
+
+  if (Array.isArray(data)) candidates.push(...data);
+  else if (data && typeof data === 'object') {
+    const d = /** @type {Record<string, unknown>} */ (data);
+    if (Array.isArray(d.assets)) candidates.push(...d.assets);
+    else if (Array.isArray(d.items)) candidates.push(...d.items);
+    else if (Array.isArray(d.results)) candidates.push(...d.results);
+  }
+  if (Array.isArray(root.assets)) candidates.push(...root.assets);
+  if (Array.isArray(root.items)) candidates.push(...root.items);
+
+  const seen = new Set();
+  /** @type {ReturnType<typeof normalizeSearchHit>[]} */
+  const hits = [];
+  for (const c of candidates) {
+    const hit = normalizeSearchHit(c);
+    if (!hit) continue;
+    const key = hit.assetId.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    hits.push(hit);
+  }
+  return hits;
+}
 
 /**
  * Dashboard Mint Dossier — free aggregated Tokens.xyz read (server API key).
@@ -7,6 +58,37 @@ import { buildMintDossier } from '../../libs/tokensDossierService.js';
  */
 export function createTokensDossierRouter() {
   const router = express.Router();
+
+  router.get('/search', async (req, res) => {
+    try {
+      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+      const limitRaw = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 8;
+      const limit = Number.isFinite(limitRaw) ? Math.min(20, Math.max(1, limitRaw)) : 8;
+
+      if (!q || q.length < 2) {
+        return res.json({ success: true, data: { items: [] } });
+      }
+
+      const result = await runTokensAgentTool('tokens-assets-search', {
+        q,
+        limit: String(limit),
+      });
+
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Asset search failed',
+          ...(result.requestId && { requestId: result.requestId }),
+        });
+      }
+
+      const items = extractSearchHits(result.data).slice(0, limit);
+      return res.json({ success: true, data: { items } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Asset search failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
 
   router.get('/dossier', async (req, res) => {
     try {

@@ -9,7 +9,7 @@ import { useStreamflowStaking } from "@/hooks/useStreamflowStaking";
 import type { UserLockRow } from "@/lib/streamflowStaking";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { CONFIG } from "@/constants/config";
-import { formatUnits } from "@/lib/format";
+import { formatCompactAmount, formatUnits, parseUnits } from "@/lib/format";
 import { toast } from "sonner";
 
 const EXPLORER_TX = (sig: string) =>
@@ -21,15 +21,6 @@ const lockExplorerUrl = (streamId: string) =>
   CONFIG.IS_DEVNET
     ? `https://explorer.solana.com/address/${streamId}?cluster=devnet`
     : `https://explorer.solana.com/address/${streamId}`;
-
-function formatCompactBalance(value: string): string {
-  const num = Number.parseFloat(value);
-  if (!Number.isFinite(num) || num <= 0) return "0";
-  if (num >= 1_000_000_000) return `${Math.floor(num / 1_000_000_000)}B`;
-  if (num >= 1_000_000) return `${Math.floor(num / 1_000_000)}M`;
-  if (num >= 1_000) return `${Math.floor(num / 1_000)}K`;
-  return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
 
 function truncateMiddle(s: string, head = 6, tail = 4): string {
   if (s.length <= head + tail + 1) return s;
@@ -202,7 +193,6 @@ export default function StreamflowStakingPage() {
     error,
   } = useStreamflowStaking();
 
-  const tokenDecimals = STREAMFLOW_CONFIG.tokenDecimals;
   const symbol = STREAMFLOW_CONFIG.tokenSymbol;
   const networkLabel = CONFIG.IS_DEVNET ? "Devnet" : "Mainnet";
 
@@ -214,20 +204,25 @@ export default function StreamflowStakingPage() {
   const applyBalanceFraction = useCallback(
     async (numerator: bigint, denominator: bigint) => {
       if (denominator <= 0n) return;
-      const maxLockable = await refreshMaxLockAmount();
+      const { maxLockable, decimals } = await refreshMaxLockAmount();
       if (maxLockable <= 0n) return;
       const raw = (maxLockable * numerator) / denominator;
       if (raw <= 2n) return;
-      setAmount(formatUnits(raw, onChainDecimals, onChainDecimals));
+      setAmount(formatUnits(raw, decimals, decimals));
     },
-    [refreshMaxLockAmount, onChainDecimals]
+    [refreshMaxLockAmount]
   );
 
   const sortedLocks = useMemo(() => locks, [locks]);
   const maxLockableCompact = useMemo(
-    () => formatCompactBalance(maxLockableFormatted),
+    () => formatCompactAmount(maxLockableFormatted),
     [maxLockableFormatted]
   );
+
+  const walletBalanceExceedsMax = useMemo(() => {
+    if (!connected || maxLockableRaw <= 0n) return false;
+    return walletBalanceRaw > maxLockableRaw;
+  }, [connected, walletBalanceRaw, maxLockableRaw]);
 
   const handleLock = async () => {
     if (!connected) {
@@ -235,8 +230,20 @@ export default function StreamflowStakingPage() {
       return;
     }
     try {
+      let amountToLock = amount;
+      const { maxLockable, decimals } = await refreshMaxLockAmount();
+      if (maxLockable > 0n && amount.trim()) {
+        const requested = parseUnits(amount.trim(), decimals);
+        if (requested > maxLockable) {
+          amountToLock = formatUnits(maxLockable, decimals, decimals);
+          setAmount(amountToLock);
+          toast.message(
+            `Adjusted to max lockable (${amountToLock} ${symbol}) after Streamflow fees`
+          );
+        }
+      }
       const { txId, wasClamped, amountFormatted } = await lockTokens(
-        amount,
+        amountToLock,
         STREAMFLOW_CONFIG.lockDurationSeconds
       );
       if (wasClamped) {
@@ -311,11 +318,12 @@ export default function StreamflowStakingPage() {
 
           <StakingStatsStrip
             symbol={symbol}
-            tokenDecimals={tokenDecimals}
+            tokenDecimals={onChainDecimals}
             connected={connected}
             portfolioLoading={loading}
             openLocks={sortedLocks}
             walletBalanceFormatted={walletBalanceFormatted}
+            maxLockableFormatted={maxLockableFormatted}
             refreshNonce={statsRefreshNonce}
           />
 
@@ -360,8 +368,19 @@ export default function StreamflowStakingPage() {
                           {maxLockableCompact}
                         </span>{" "}
                         {symbol} available to lock
+                        <span className="block text-[10px] font-normal text-muted-foreground/90">
+                          after Streamflow fees · tap for Max
+                        </span>
                       </button>
                     </div>
+                    {walletBalanceExceedsMax ? (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        Wallet balance is higher than the lockable max because Streamflow
+                        charges a small {symbol} fee on deposit. Use{" "}
+                        <span className="font-medium text-foreground">Max</span> to avoid
+                        insufficient-balance errors.
+                      </p>
+                    ) : null}
                     <div className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-background/60 shadow-sm transition focus-within:border-ring/60 focus-within:ring-2 focus-within:ring-ring/25 sm:flex-row sm:items-stretch">
                       <input
                         id="streamflow-amount"
@@ -400,9 +419,13 @@ export default function StreamflowStakingPage() {
                   </div>
 
                   <div className="rounded-xl border border-border/50 bg-muted/25 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                    Streamflow charges a small{" "}
-                    <span className="font-medium text-foreground">SOL</span> network fee when
-                    creating a contract. Keep spare SOL in this wallet.
+                    Streamflow adds a small{" "}
+                    <span className="font-medium text-foreground">{symbol}</span> fee on top of
+                    your lock amount, plus a{" "}
+                    <span className="font-medium text-foreground">SOL</span> network fee for the
+                    contract. Keep spare SOL in this wallet and prefer{" "}
+                    <span className="font-medium text-foreground">Max</span> for the exact
+                    lockable amount.
                   </div>
 
                   <div className="mt-auto space-y-3 pt-2">

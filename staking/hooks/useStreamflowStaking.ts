@@ -8,7 +8,6 @@ import { formatUnits, parseUnits } from "@/lib/format";
 import {
   createTokenLockStake,
   fetchMaxLockableRaw,
-  fetchWalletMintState,
   fetchUserTokenLocksAll,
   mapStreamflowError,
   type UserLockRow,
@@ -78,7 +77,7 @@ export interface StreamflowStakingState {
   /** Refetch only the wallet's SPL balance (cheap; used by balance display). */
   refreshBalance: () => Promise<bigint>;
   /** Max lockable amount after Streamflow fees (used by Max/50% buttons). */
-  refreshMaxLockAmount: () => Promise<bigint>;
+  refreshMaxLockAmount: () => Promise<{ maxLockable: bigint; decimals: number }>;
   lockTokens: (amount: string, lockDurationSeconds: number) => Promise<LockTokensResult>;
   loading: boolean;
   actionLoading: boolean;
@@ -130,22 +129,25 @@ export function useStreamflowStaking(): StreamflowStakingState {
     }
   }, [connection, publicKey]);
 
-  const refreshMaxLockAmount = useCallback(async (): Promise<bigint> => {
+  const refreshMaxLockAmount = useCallback(async (): Promise<{
+    maxLockable: bigint;
+    decimals: number;
+  }> => {
     if (!publicKey) {
       setMaxLockableRaw(BigInt(0));
-      return BigInt(0);
+      return { maxLockable: BigInt(0), decimals: mintDecimals };
     }
     try {
       const { maxLockable, walletState } = await fetchMaxLockableRaw(connection, publicKey);
       setWalletBalanceRaw(walletState.balance);
       setMaxLockableRaw(maxLockable);
       setMintDecimals(walletState.decimals);
-      return maxLockable;
+      return { maxLockable, decimals: walletState.decimals };
     } catch {
       setMaxLockableRaw(BigInt(0));
-      return BigInt(0);
+      return { maxLockable: BigInt(0), decimals: mintDecimals };
     }
-  }, [connection, publicKey]);
+  }, [connection, publicKey, mintDecimals]);
 
   const fetchLocks = useCallback(async () => {
     if (!publicKey) {
@@ -286,14 +288,21 @@ export function useStreamflowStaking(): StreamflowStakingState {
       const adapter = wallet.adapter as SignerWalletAdapter;
       if (!publicKey) throw new Error("Wallet not connected");
 
-      const walletState = await fetchWalletMintState(connection, mint, publicKey);
+      const { maxLockable, walletState } = await fetchMaxLockableRaw(connection, publicKey);
       const stakeDecimals = walletState.decimals;
       setWalletBalanceRaw(walletState.balance);
+      setMaxLockableRaw(maxLockable);
+      setMintDecimals(stakeDecimals);
 
-      const raw = parseUnits(amount.trim(), stakeDecimals);
+      let raw = parseUnits(amount.trim(), stakeDecimals);
       if (raw <= BigInt(0)) throw new Error("Enter a valid amount");
       if (raw <= BigInt(1)) {
         throw new Error("Amount too small for Streamflow (minimum 2 base units)");
+      }
+      let preClamped = false;
+      if (raw > maxLockable) {
+        raw = maxLockable;
+        preClamped = true;
       }
       setActionLoading(true);
       setError(null);
@@ -333,7 +342,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
         }
         await new Promise((r) => setTimeout(r, 2000));
         await refetchAll();
-        return { txId, wasClamped, amountFormatted };
+        return { txId, wasClamped: wasClamped || preClamped, amountFormatted };
       } catch (e) {
         const mapped = mapStreamflowError(e, STREAMFLOW_CONFIG.tokenSymbol);
         setError(mapped.message);
