@@ -11,11 +11,6 @@ import {
   runSyraTrendScoutPipeline,
   SYRA_TREND_SCOUT_DB_ID,
 } from "../libs/syraTrendScoutPipeline.js";
-import {
-  ALPHA_X_BATCH_CANONICAL_DB_ID,
-  loadAlphaXBatchSnapshot,
-  runAlphaXBatchPipeline,
-} from "../libs/alphaXBatchPipeline.js";
 import { runCoingeckoAlphaPipeline } from "../libs/coingeckoAlphaPipeline.js";
 import { COINGECKO_ALPHA_DB_ID } from "../config/coingeckoAlphaConfig.js";
 
@@ -122,35 +117,6 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "Syra trend scout pipeline failed",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  router.get("/alpha-x-batch/latest", async (_req, res) => {
-    try {
-      const doc = await loadAlphaXBatchSnapshot(ALPHA_X_BATCH_CANONICAL_DB_ID);
-      if (!doc) {
-        return res.json({ success: true, data: null, savedAt: undefined });
-      }
-      return res.json({ success: true, data: doc.data, savedAt: doc.savedAt });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  router.post("/alpha-x-batch/run", async (_req, res) => {
-    try {
-      const out = await runAlphaXBatchPipeline();
-      return res.json(out);
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: "alpha-x-batch pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

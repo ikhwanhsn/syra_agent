@@ -4,6 +4,7 @@ import { Loader2, Power, PowerOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +39,7 @@ type Props = {
 
 
 export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout = "default" }: Props) {
-
+  const { lpAnonymousId } = useAgentWallet();
   const { ensureSyraAuth, requestSyraAuth } = useSyraAuth();
 
   const { toast } = useToast();
@@ -84,18 +85,15 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
     mutationFn: async (nextEnabled: boolean) => {
 
       const auth = await resolveAuth();
-
-      if (!auth?.anonymousId) {
-
+      if (!auth?.anonymousId && !lpAnonymousId) {
         throw new Error("wallet_sign_in_required");
-
       }
 
-      const anonymousId = auth.anonymousId;
+      const lpId = lpAnonymousId ?? `${auth!.anonymousId}:lp`;
 
-      if (nextEnabled) return enableLpReal(anonymousId);
+      if (nextEnabled) return enableLpReal(lpId);
 
-      return disableLpReal({ closeAll: false, anonymousId });
+      return disableLpReal({ closeAll: false, anonymousId: lpId });
 
     },
 

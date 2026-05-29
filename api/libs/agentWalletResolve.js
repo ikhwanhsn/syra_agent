@@ -1,29 +1,41 @@
 import AgentWallet from '../models/agent/AgentWallet.js';
 import { normalizeAgentChain } from './syraChains.js';
+import {
+  lpAnonymousIdFromChat,
+  normalizeAgentWalletPurpose,
+  purposeQuery,
+} from './agentWalletPurpose.js';
 
 /**
  * @param {string} address
  * @param {import('./syraChains.js').SyraAgentChain} chain
+ * @param {import('./agentWalletPurpose.js').AgentWalletPurpose} purpose
  */
-function canonicalAnonymousId(address, chain) {
-  if (chain === 'base') return `wallet:${address}:base`;
-  if (chain === 'bsc') return `wallet:${address}:bsc`;
-  return `wallet:${address}`;
+function canonicalAnonymousId(address, chain, purpose = 'chat') {
+  const normalizedPurpose = normalizeAgentWalletPurpose(purpose);
+  let base;
+  if (chain === 'base') base = `wallet:${address}:base`;
+  else if (chain === 'bsc') base = `wallet:${address}:bsc`;
+  else base = `wallet:${address}`;
+  return normalizedPurpose === 'lp' ? `${base}:lp` : base;
 }
 
 /**
  * @param {string} address
  * @param {import('./syraChains.js').SyraAgentChain} chain
+ * @param {import('./agentWalletPurpose.js').AgentWalletPurpose} purpose
  */
-function walletAddressQuery(address, chain) {
+function walletAddressQuery(address, chain, purpose = 'chat') {
+  const purposeClause = purposeQuery(purpose);
   if (chain === 'base') {
-    return { walletAddress: address, chain: 'base' };
+    return { walletAddress: address, chain: 'base', ...purposeClause };
   }
   if (chain === 'bsc') {
-    return { walletAddress: address, chain: 'bsc' };
+    return { walletAddress: address, chain: 'bsc', ...purposeClause };
   }
   return {
     walletAddress: address,
+    ...purposeClause,
     $or: [{ chain: 'solana' }, { chain: { $exists: false } }, { chain: null }],
   };
 }
@@ -36,53 +48,72 @@ function isUnlinkedGuest(doc) {
 /**
  * Resolve the agent wallet for a signed-in user.
  *
- * Order (preserves funded legacy wallets):
- *  1. Row already linked to walletAddress + chain (any anonymousId)
- *  2. Row at canonical anonymousId (wallet:address[:chain])
- *  3. Unlinked guest row from client localStorage (migrate on link)
- *
+ * @param {{
+ *   address: string;
+ *   chain?: import('./syraChains.js').SyraAgentChain;
+ *   guestAnonymousId?: string | null;
+ *   purpose?: import('./agentWalletPurpose.js').AgentWalletPurpose;
+ * }} params
  * @returns {Promise<import('mongoose').LeanDocument|null>}
  */
-export async function resolveAgentWalletForUser({ address, chain = 'solana', guestAnonymousId = null }) {
+export async function resolveAgentWalletForUser({
+  address,
+  chain = 'solana',
+  guestAnonymousId = null,
+  purpose = 'chat',
+}) {
   const normalizedChain = normalizeAgentChain(chain);
-  const canonicalId = canonicalAnonymousId(address, normalizedChain);
+  const normalizedPurpose = normalizeAgentWalletPurpose(purpose);
+  const canonicalId = canonicalAnonymousId(address, normalizedChain, normalizedPurpose);
 
-  const linked = await AgentWallet.findOne(walletAddressQuery(address, normalizedChain)).lean();
+  const linked = await AgentWallet.findOne({
+    ...walletAddressQuery(address, normalizedChain, normalizedPurpose),
+    status: { $ne: 'retired' },
+  }).lean();
   if (linked) return linked;
 
-  const byCanonical = await AgentWallet.findOne({ anonymousId: canonicalId }).lean();
+  const byCanonical = await AgentWallet.findOne({ anonymousId: canonicalId, status: { $ne: 'retired' } }).lean();
   if (byCanonical) {
     if (isUnlinkedGuest(byCanonical)) {
       await AgentWallet.updateOne(
         { _id: byCanonical._id },
-        { $set: { walletAddress: address, chain: normalizedChain } },
+        { $set: { walletAddress: address, chain: normalizedChain, purpose: normalizedPurpose } },
       );
       return AgentWallet.findOne({ _id: byCanonical._id }).lean();
     }
     return byCanonical;
   }
 
-  const guestId =
+  const guestIdRaw =
     typeof guestAnonymousId === 'string' && guestAnonymousId.trim() && guestAnonymousId.trim() !== canonicalId
       ? guestAnonymousId.trim()
       : null;
+  const guestId =
+    guestIdRaw && normalizedPurpose === 'lp' ? lpAnonymousIdFromChat(guestIdRaw) : guestIdRaw;
   if (!guestId) return null;
 
-  const guest = await AgentWallet.findOne({ anonymousId: guestId }).lean();
+  const guest = await AgentWallet.findOne({ anonymousId: guestId, status: { $ne: 'retired' } }).lean();
   if (!guest || !isUnlinkedGuest(guest)) return null;
 
   const canonicalFree = !(await AgentWallet.findOne({ anonymousId: canonicalId }).select('_id').lean());
   if (canonicalFree) {
     await AgentWallet.updateOne(
       { _id: guest._id },
-      { $set: { anonymousId: canonicalId, walletAddress: address, chain: normalizedChain } },
+      {
+        $set: {
+          anonymousId: canonicalId,
+          walletAddress: address,
+          chain: normalizedChain,
+          purpose: normalizedPurpose,
+        },
+      },
     );
     return AgentWallet.findOne({ anonymousId: canonicalId }).lean();
   }
 
   await AgentWallet.updateOne(
     { _id: guest._id },
-    { $set: { walletAddress: address, chain: normalizedChain } },
+    { $set: { walletAddress: address, chain: normalizedChain, purpose: normalizedPurpose } },
   );
   return AgentWallet.findOne({ _id: guest._id }).lean();
 }

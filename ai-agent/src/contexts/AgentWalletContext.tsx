@@ -11,7 +11,7 @@ import {
 import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
-import { agentWalletApi } from "@/lib/chatApi";
+import { agentWalletApi, type AgentWalletLpFields } from "@/lib/chatApi";
 
 const STORAGE_KEY = "syra_agent_anonymous_id";
 const AGENT_WALLET_CACHE_KEY = "syra_agent_wallet_cache_v1";
@@ -136,6 +136,32 @@ async function fetchAgentBalanceFromChain(
   return { solBalance, usdcBalance };
 }
 
+async function hydrateLpWalletFromFields(
+  connection: import("@solana/web3.js").Connection,
+  lp: AgentWalletLpFields,
+  setters: {
+    setLpAnonymousId: (v: string | null) => void;
+    setLpAgentAddress: (v: string | null) => void;
+    setLpAgentSolBalance: (v: number | null) => void;
+    setLpAgentUsdcBalance: (v: number | null) => void;
+    setLpReady: (v: boolean) => void;
+  },
+): Promise<boolean> {
+  if (!lp.lpAnonymousId?.trim() || !lp.lpAgentAddress?.trim()) return false;
+  setters.setLpAnonymousId(lp.lpAnonymousId);
+  setters.setLpAgentAddress(lp.lpAgentAddress);
+  setters.setLpReady(true);
+  try {
+    const bal = await fetchAgentBalanceFromChain(connection, lp.lpAgentAddress);
+    setters.setLpAgentSolBalance(bal.solBalance);
+    setters.setLpAgentUsdcBalance(bal.usdcBalance);
+  } catch {
+    setters.setLpAgentSolBalance(null);
+    setters.setLpAgentUsdcBalance(null);
+  }
+  return true;
+}
+
 export interface AgentWalletState {
   ready: boolean;
   anonymousId: string | null;
@@ -144,11 +170,19 @@ export interface AgentWalletState {
   agentSolBalance: number | null;
   agentUsdcBalance: number | null;
   avatarUrl: string | null;
+  /** LP experiment wallet — separate treasury from chat agent. */
+  lpReady: boolean;
+  lpAnonymousId: string | null;
+  lpAgentAddress: string | null;
+  lpAgentShortAddress: string | null;
+  lpAgentSolBalance: number | null;
+  lpAgentUsdcBalance: number | null;
   connectedWalletAddress: string | null;
   connectedWalletShort: string | null;
   connectedChain: "solana" | null;
   lastDebitUsd: number | null;
   refetchBalance: () => Promise<void>;
+  refetchLpBalance: () => Promise<void>;
   getAgentWalletBalances: () => Promise<{ usdcBalance: number; solBalance: number } | null>;
   reportDebit: (amountUsd: number) => void;
   reportNativeDebit: (amountSol: number) => void;
@@ -170,6 +204,11 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
   const [agentSolBalance, setAgentSolBalance] = useState<number | null>(null);
   const [agentUsdcBalance, setAgentUsdcBalance] = useState<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [lpReady, setLpReady] = useState(false);
+  const [lpAnonymousId, setLpAnonymousId] = useState<string | null>(null);
+  const [lpAgentAddress, setLpAgentAddress] = useState<string | null>(null);
+  const [lpAgentSolBalance, setLpAgentSolBalance] = useState<number | null>(null);
+  const [lpAgentUsdcBalance, setLpAgentUsdcBalance] = useState<number | null>(null);
   const [lastDebitUsd, setLastDebitUsd] = useState<number | null>(null);
   const initRef = useRef(false);
   const debitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,6 +222,14 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     setAvatarUrl,
     setAgentSolBalance,
     setAgentUsdcBalance,
+  };
+
+  const lpSetters = {
+    setLpAnonymousId,
+    setLpAgentAddress,
+    setLpAgentSolBalance,
+    setLpAgentUsdcBalance,
+    setLpReady,
   };
 
   useEffect(() => {
@@ -220,6 +267,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
         setAnonymousId(id);
         setAgentAddress(addr);
         setAvatarUrl(avatar || null);
+        await hydrateLpWalletFromFields(connection, res, lpSetters);
         if (typeof localStorage !== "undefined") {
           try {
             localStorage.setItem(STORAGE_KEY, id);
@@ -331,6 +379,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           const { agentAddress: addr, avatarUrl: avatar } = res;
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          await hydrateLpWalletFromFields(connection, res, lpSetters);
           let sol: number | null = null;
           let usdc: number | null = null;
           try {
@@ -394,6 +443,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           setAnonymousId(newId);
           setAgentAddress(addr);
           setAvatarUrl(avatar || null);
+          await hydrateLpWalletFromFields(connection, res, lpSetters);
           let sol: number | null = null;
           let usdc: number | null = null;
           try {
@@ -449,6 +499,98 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       return null;
     }
   }, [agentAddress, connection]);
+
+  const refetchLpBalance = useCallback(async () => {
+    if (!lpAgentAddress) return;
+    try {
+      const { solBalance: sol, usdcBalance: usdc } = await fetchAgentBalanceFromChain(connection, lpAgentAddress);
+      setLpAgentSolBalance(sol);
+      setLpAgentUsdcBalance(usdc);
+    } catch {
+      setLpAgentSolBalance((prev) => prev);
+      setLpAgentUsdcBalance((prev) => prev);
+    }
+  }, [lpAgentAddress, connection]);
+
+  useEffect(() => {
+    if (!anonymousId) {
+      setLpReady(false);
+      setLpAnonymousId(null);
+      setLpAgentAddress(null);
+      setLpAgentSolBalance(null);
+      setLpAgentUsdcBalance(null);
+      return;
+    }
+
+    if (lpAnonymousId && lpAgentAddress) {
+      setLpReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    const loadLpWallet = async () => {
+      try {
+        const res =
+          connectedWalletAddress && syraAuthenticated
+            ? await agentWalletApi.getOrCreateLpByWallet(connectedWalletAddress)
+            : await agentWalletApi.getOrCreateLp(anonymousId);
+        if (cancelled) return;
+        setLpAnonymousId(res.anonymousId);
+        setLpAgentAddress(res.agentAddress);
+        try {
+          const bal = await fetchAgentBalanceFromChain(connection, res.agentAddress);
+          if (!cancelled) {
+            setLpAgentSolBalance(bal.solBalance);
+            setLpAgentUsdcBalance(bal.usdcBalance);
+          }
+        } catch {
+          if (!cancelled) {
+            setLpAgentSolBalance(null);
+            setLpAgentUsdcBalance(null);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setLpAnonymousId(null);
+          setLpAgentAddress(null);
+          setLpAgentSolBalance(null);
+          setLpAgentUsdcBalance(null);
+        }
+      } finally {
+        if (!cancelled) setLpReady(true);
+      }
+    };
+
+    setLpReady(false);
+    void loadLpWallet();
+    return () => {
+      cancelled = true;
+    };
+  }, [anonymousId, connectedWalletAddress, syraAuthenticated, connection, lpAnonymousId, lpAgentAddress]);
+
+  useEffect(() => {
+    if (!lpAgentAddress) return;
+    let cancelled = false;
+    const pollMs = 30000;
+    function fetchBalance() {
+      fetchAgentBalanceFromChain(connection, lpAgentAddress!)
+        .then(({ solBalance: sol, usdcBalance: usdc }) => {
+          if (!cancelled) {
+            setLpAgentSolBalance(sol);
+            setLpAgentUsdcBalance(usdc);
+          }
+        })
+        .catch(() => {
+          /* keep prior */
+        });
+    }
+    fetchBalance();
+    const interval = setInterval(fetchBalance, pollMs);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [lpAgentAddress, connection]);
 
   useEffect(() => {
     if (!agentAddress) return;
@@ -527,6 +669,10 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     ? `${agentAddress.slice(0, 4)}...${agentAddress.slice(-4)}`
     : null;
 
+  const lpAgentShortAddress = lpAgentAddress
+    ? `${lpAgentAddress.slice(0, 4)}...${lpAgentAddress.slice(-4)}`
+    : null;
+
   const connectedWalletShort = connectedWalletAddress
     ? `${connectedWalletAddress.slice(0, 4)}...${connectedWalletAddress.slice(-4)}`
     : null;
@@ -556,11 +702,18 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentSolBalance,
       agentUsdcBalance,
       avatarUrl,
+      lpReady,
+      lpAnonymousId,
+      lpAgentAddress,
+      lpAgentShortAddress,
+      lpAgentSolBalance,
+      lpAgentUsdcBalance,
       connectedWalletAddress,
       connectedWalletShort,
       connectedChain,
       lastDebitUsd,
       refetchBalance,
+      refetchLpBalance,
       getAgentWalletBalances,
       reportDebit,
       reportNativeDebit,
@@ -574,11 +727,18 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       agentSolBalance,
       agentUsdcBalance,
       avatarUrl,
+      lpReady,
+      lpAnonymousId,
+      lpAgentAddress,
+      lpAgentShortAddress,
+      lpAgentSolBalance,
+      lpAgentUsdcBalance,
       connectedWalletAddress,
       connectedWalletShort,
       connectedChain,
       lastDebitUsd,
       refetchBalance,
+      refetchLpBalance,
       getAgentWalletBalances,
       reportDebit,
       reportNativeDebit,

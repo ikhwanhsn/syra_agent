@@ -13,9 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ArrowDownToLine,
   ArrowLeftRight,
-  ArrowUpFromLine,
   Copy,
   ChevronDown,
   Loader2,
@@ -34,10 +32,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AgentTreasuryNavCard } from "@/components/chat/AgentTreasuryNavCard";
 import { FuelAgentModal } from "./FuelAgentModal";
 import { FeedbackModal } from "./FeedbackModal";
 import { cn } from "@/lib/utils";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
+import { shortenAgentAddress, type AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
@@ -69,8 +69,13 @@ export function WalletNav(props: WalletNavProps = {}) {
     connectedWalletShort,
     agentUsdcBalance,
     agentSolBalance,
+    lpAgentAddress,
+    lpAgentShortAddress,
+    lpAgentUsdcBalance,
+    lpAgentSolBalance,
     lastDebitUsd,
     refetchBalance,
+    refetchLpBalance,
   } = useAgentWallet();
   const hasAnyWallet = connected && !!publicKey;
   const { toast } = useToast();
@@ -79,6 +84,7 @@ export function WalletNav(props: WalletNavProps = {}) {
   const [open, setOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
   const [fuelInitialTab, setFuelInitialTab] = useState<"deposit" | "withdraw">("deposit");
+  const [fuelInitialWallet, setFuelInitialWallet] = useState<AgentWalletPurpose>("chat");
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
@@ -116,10 +122,16 @@ export function WalletNav(props: WalletNavProps = {}) {
     fetchUserBalance();
   }, [open, publicKey, fetchUserBalance]);
 
+  const openFuelModal = useCallback((tab: "deposit" | "withdraw", wallet: AgentWalletPurpose = "chat") => {
+    setFuelInitialWallet(wallet);
+    setFuelInitialTab(tab);
+    setFuelModalOpen(true);
+  }, []);
+
   const handleRefreshBalances = useCallback(async () => {
     setBalanceRefreshing(true);
     try {
-      const tasks = [refetchBalance()];
+      const tasks = [refetchBalance(), refetchLpBalance()];
       if (publicKey) tasks.push(fetchUserBalance());
       await Promise.all(tasks);
       toast({ title: "Balances updated", description: "Latest balances loaded." });
@@ -128,7 +140,7 @@ export function WalletNav(props: WalletNavProps = {}) {
     } finally {
       setBalanceRefreshing(false);
     }
-  }, [refetchBalance, fetchUserBalance, publicKey, toast]);
+  }, [refetchBalance, refetchLpBalance, fetchUserBalance, publicKey, toast]);
 
   const copyToClipboard = useCallback(
     (text: string, label: string) => {
@@ -252,8 +264,7 @@ export function WalletNav(props: WalletNavProps = {}) {
               "hidden lg:inline-flex",
             )}
             onClick={() => {
-              setFuelInitialTab("deposit");
-              setFuelModalOpen(true);
+              openFuelModal("deposit", "chat");
             }}
             title="Add USDC and SOL to your agent wallet"
             aria-label="Open add funds for agent wallet on Solana"
@@ -323,9 +334,11 @@ export function WalletNav(props: WalletNavProps = {}) {
               </DropdownMenuItem>
             </div>
           )}
-          {/* Header — same horizontal inset as cards + actions */}
           <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
-            <span className="text-sm font-semibold tracking-tight text-foreground">Wallets</span>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/75">Treasury</p>
+              <span className="text-sm font-semibold tracking-tight text-foreground">Agent wallets</span>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -344,108 +357,57 @@ export function WalletNav(props: WalletNavProps = {}) {
           </div>
 
           <div className="space-y-3 px-4 py-3">
-            {/* Agent wallet */}
-            <div
-              className={cn(
-                "rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.06] via-card/90 to-muted/20 p-3.5 shadow-sm ring-1 ring-white/[0.03] dark:from-emerald-500/[0.08]",
-                "space-y-2.5 min-w-0",
-              )}
-            >
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
-                Agent wallet (Solana)
-              </p>
-              {agentLoading ? (
-                <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                  Creating…
-                </div>
-              ) : agentAddress ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyAgent()}
-                    className="group flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border/60 hover:bg-muted/40"
-                  >
-                    <span className="min-w-0 truncate font-mono text-[13px] text-foreground sm:text-sm" title={agentAddress}>
-                      {agentShortAddress ?? agentAddress}
-                    </span>
-                    <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
-                  </button>
-                  <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2.5 text-xs tabular-nums">
-                    {agentUsdcBalance != null && (
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                          <CoinLogo symbol="USDC" size="xs" />
-                          USDC
-                        </span>
-                        <span className={hasUsdc ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
-                          ${formatUsdc(agentUsdcBalance)}
-                        </span>
-                      </div>
-                    )}
-                    {agentSolBalance != null && (
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                          <CoinLogo symbol="SOL" size="xs" />
-                          SOL
-                        </span>
-                        <span className="text-muted-foreground">{agentSolBalance.toFixed(4)}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 border-t border-border/40 pt-2.5 lg:hidden">
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      className="h-9 min-h-0 flex-1 gap-1.5 text-xs font-semibold touch-manipulation"
-                      onClick={() => {
-                        setOpen(false);
-                        setFuelInitialTab("deposit");
-                        setFuelModalOpen(true);
-                      }}
-                    >
-                      <ArrowDownToLine className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      Deposit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 min-h-0 flex-1 gap-1.5 text-xs font-semibold touch-manipulation"
-                      onClick={() => {
-                        setOpen(false);
-                        setFuelInitialTab("withdraw");
-                        setFuelModalOpen(true);
-                      }}
-                    >
-                      <ArrowUpFromLine className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      Withdraw
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className="py-1 text-xs text-muted-foreground">Failed to load</p>
-              )}
-            </div>
+            <AgentTreasuryNavCard
+              purpose="chat"
+              address={agentAddress}
+              shortAddress={agentShortAddress}
+              usdc={agentUsdcBalance}
+              sol={agentSolBalance}
+              loading={agentLoading}
+              formatUsdc={formatUsdc}
+              showActions
+              onCopy={() => handleCopyAgent()}
+              onDeposit={() => {
+                setOpen(false);
+                openFuelModal("deposit", "chat");
+              }}
+              onWithdraw={() => {
+                setOpen(false);
+                openFuelModal("withdraw", "chat");
+              }}
+            />
 
-            {/* Connected wallet */}
-            <div className="min-w-0 space-y-2.5 rounded-xl border border-border/70 bg-gradient-to-br from-card to-muted/25 p-3.5 shadow-sm ring-1 ring-white/[0.03]">
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
-                Connected wallet (Solana)
+            {lpAgentAddress ? (
+              <AgentTreasuryNavCard
+                purpose="lp"
+                address={lpAgentAddress}
+                shortAddress={lpAgentShortAddress}
+                usdc={lpAgentUsdcBalance}
+                sol={lpAgentSolBalance}
+                formatUsdc={formatUsdc}
+                onCopy={() => copyToClipboard(lpAgentAddress, "LP agent address")}
+                onDeposit={() => {
+                  setOpen(false);
+                  openFuelModal("deposit", "lp");
+                }}
+                onWithdraw={() => {
+                  setOpen(false);
+                  openFuelModal("withdraw", "lp");
+                }}
+              />
+            ) : null}
+
+            <div className="min-w-0 space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3.5 shadow-sm ring-1 ring-inset ring-white/[0.04]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+                Connected wallet
               </p>
               <button
                 type="button"
                 onClick={() => handleCopyWallet()}
                 className="group flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border/60 hover:bg-muted/40"
               >
-                <span
-                  className="min-w-0 truncate font-mono text-[13px] text-foreground sm:text-sm"
-                  title={publicKey?.toBase58()}
-                >
-                  {publicKey
-                    ? (connectedWalletShort ?? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`)
-                    : "…"}
+                <span className="min-w-0 truncate font-mono text-[13px] text-foreground sm:text-sm" title={publicKey?.toBase58()}>
+                  {publicKey ? (connectedWalletShort ?? shortenAgentAddress(publicKey.toBase58())) : "…"}
                 </span>
                 <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
               </button>
@@ -533,7 +495,12 @@ export function WalletNav(props: WalletNavProps = {}) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <FuelAgentModal open={fuelModalOpen} onOpenChange={setFuelModalOpen} initialFlowTab={fuelInitialTab} />
+      <FuelAgentModal
+        open={fuelModalOpen}
+        onOpenChange={setFuelModalOpen}
+        initialFlowTab={fuelInitialTab}
+        initialAgentWallet={fuelInitialWallet}
+      />
       <FeedbackModal open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen} />
     </div>
   );

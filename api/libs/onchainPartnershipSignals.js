@@ -5,10 +5,6 @@
 
 import { fetchTrendingJupiter } from "./analyticsFetchers.js";
 import { run8004Leaderboard, run8004AgentsSearch } from "./8004ReadApi.js";
-import {
-  loadAlphaXBatchSnapshot,
-  ALPHA_X_BATCH_CANONICAL_DB_ID,
-} from "./alphaXBatchPipeline.js";
 import { searchAgents as search8004scanAgents, getStats as get8004scanStats } from "./8004scanClient.js";
 import { fetchCatalog as fetchPayshCatalog } from "./payshClient.js";
 import { PARTNERSHIP_SCOUT_MAX_CANDIDATES } from "../config/syraPartnershipScoutConfig.js";
@@ -74,44 +70,6 @@ function addCandidate(c, byId) {
     utility: c.utility || prev.utility,
     score: c.score ?? prev.score,
   });
-}
-
-/**
- * @returns {Promise<PartnershipCandidate[]>}
- */
-async function collectAlphaXBatch() {
-  const snap = await loadAlphaXBatchSnapshot(ALPHA_X_BATCH_CANONICAL_DB_ID);
-  if (!snap?.data || typeof snap.data !== "object") return [];
-  const items = Array.isArray(snap.data.items) ? snap.data.items : [];
-  /** @type {PartnershipCandidate[]} */
-  const out = [];
-  for (const item of items) {
-    if (!item?.ok || !item.analysis) continue;
-    const a = item.analysis;
-    const username = String(item.username || a.username || "").trim();
-    if (!username) continue;
-    const score = typeof a.score === "number" ? a.score : null;
-    const grade = a.grade ? String(a.grade) : "";
-    const signals = Array.isArray(a.signals)
-      ? a.signals.map((s) => String(s)).filter(Boolean).slice(0, 4)
-      : [];
-    out.push({
-      id: `alpha-x:${username.toLowerCase()}`,
-      name: username,
-      source: "alpha-x-batch",
-      category: "x402-ecosystem",
-      utility: String(a.aiSummary || a.summary || "Curated x402 / agent ecosystem project on X").slice(0, 400),
-      signals: [
-        grade ? `grade:${grade}` : "",
-        score != null ? `x-score:${score}` : "",
-        ...signals,
-      ].filter(Boolean),
-      score,
-      handle: `@${username}`,
-      link: `https://x.com/${username}`,
-    });
-  }
-  return out;
 }
 
 /**
@@ -271,7 +229,6 @@ export async function collectOnchainPartnershipSignals() {
   const ecosystemNotes = [];
 
   const tasks = [
-    { key: "alphaX", fn: collectAlphaXBatch },
     { key: "solana8004", fn: collect8004Solana },
     { key: "scanAi", fn: () => collect8004scanSearch("AI agent trading") },
     { key: "scanX402", fn: () => collect8004scanSearch("x402 micropayments") },

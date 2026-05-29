@@ -13,6 +13,7 @@
  * cross-user access.
  */
 import { verifyToken } from './jwt.js';
+import { ownsAgentWalletSibling } from '../libs/agentWalletPurpose.js';
 
 const BEARER_RE = /^Bearer\s+/i;
 
@@ -142,7 +143,8 @@ function ownsAnonymousId(req, claimAid) {
   if (!claimAid) return false;
   const requested = pickAnonymousId(req);
   if (!requested) return true; // route doesn't carry an aid; ownership inferred from session
-  return requested === claimAid;
+  if (requested === claimAid) return true;
+  return ownsAgentWalletSibling(claimAid, requested);
 }
 
 export { extractBearer, extractCookie };

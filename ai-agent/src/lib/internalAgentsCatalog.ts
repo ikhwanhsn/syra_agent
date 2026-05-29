@@ -1,9 +1,8 @@
-export type InternalAgentSlug = "trend-scout" | "partnership-scout" | "hackathon-scout";
+export type InternalAgentSlug = "trend-scout" | "partnership-scout";
 
 export const INTERNAL_AGENT_SLUGS: readonly InternalAgentSlug[] = [
   "trend-scout",
   "partnership-scout",
-  "hackathon-scout",
 ] as const;
 
 export function isInternalAgentSlug(value: string): value is InternalAgentSlug {
@@ -26,12 +25,6 @@ export const INTERNAL_AGENTS: readonly {
     name: "Partnership Scout",
     subtitle:
       "On-chain AI & utility projects (8004, x402, Jupiter) → collaboration & integration ideas for Syra",
-  },
-  {
-    slug: "hackathon-scout",
-    name: "Hackathon Scout",
-    subtitle:
-      "X hackathon discovery (1 search/day) → saved leads with participate / skip workflow",
   },
 ] as const;
 

@@ -61,12 +61,24 @@ const agentWalletSchema = new mongoose.Schema(
 
     /** Avatar URL. */
     avatarUrl: { type: String, required: false },
+
+    /**
+     * Wallet role: chat (default) pays for agent chat/tools; lp funds on-chain LP experiments.
+     * Future agent types can add more enum values.
+     */
+    purpose: {
+      type: String,
+      enum: ['chat', 'lp'],
+      default: 'chat',
+      required: true,
+      index: true,
+    },
   },
   { timestamps: true }
 );
 
-// One agent wallet per (walletAddress + chain)
-agentWalletSchema.index({ walletAddress: 1, chain: 1 }, { unique: true, sparse: true });
+// One agent wallet per (walletAddress + chain + purpose)
+agentWalletSchema.index({ walletAddress: 1, chain: 1, purpose: 1 }, { unique: true, sparse: true });
 agentWalletSchema.index({ custody: 1, status: 1 });
 
 agentWalletSchema.pre('validate', function (next) {

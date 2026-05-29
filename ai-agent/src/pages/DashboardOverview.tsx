@@ -11,7 +11,6 @@ import {
   Telescope,
   Rocket,
   Scale,
-  Twitter,
   UsersRound,
   Wifi,
 } from "lucide-react";
@@ -32,7 +31,6 @@ import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM
 import { fetchTradingExperimentStats } from "@/lib/tradingExperimentApi";
 import { fetchArbitrageSnapshot, fetchCmcTop } from "@/lib/arbitrageExperimentApi";
 import { fetchLpStats } from "@/lib/lpAgentExperimentApi";
-import { fetchXProjectsAnalyze } from "@/lib/xProjectsAnalyzeApi";
 import { fetchPumpfunAlphaTrend } from "@/lib/pumpfunAlphaTrendApi";
 import { fetchRiseAlphaMarketsBundle } from "@/lib/riseMarketsApi";
 import { fetchPartnershipScoutLatest, fetchTrendScoutLatest } from "@/lib/internalTeamAgentsApi";
@@ -44,12 +42,9 @@ import {
   formatCompactUsd,
   formatPct,
   formatSol,
-  sortXBatchByScore,
 } from "@/lib/dashboardOverviewAggregates";
 import { fetchPumpfunExperimentLedger } from "@/lib/pumpfunExperimentApi";
 import { fetchRiseExperimentLedger } from "@/lib/riseExperimentApi";
-import { gradeBadgeClass, formatFollowers, userReadableAlphaDataError } from "@/lib/alphaIntelUi";
-import { Skeleton } from "@/components/ui/skeleton";
 import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
@@ -63,8 +58,6 @@ import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWall
 import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
 
 const STALE_MS = 60_000;
-/** Alpha X batch is DB-backed; server agent refreshes ~every 24h. */
-const ALPHA_STALE_MS = 24 * 60 * 60 * 1000;
 
 const wlChartConfig = {
   wins: { label: "Wins", color: "hsl(var(--foreground))" },
@@ -75,15 +68,6 @@ const venueChartConfig = {
   ok: { label: "Live", color: "hsl(var(--foreground))" },
   err: { label: "Unavailable", color: "hsl(var(--destructive))" },
 } satisfies ChartConfig;
-
-function formatAlphaXBatchUpdatedAt(iso: string | undefined): string | null {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-  } catch {
-    return null;
-  }
-}
 
 export interface DashboardOverviewProps {
   embedded?: boolean;
@@ -109,11 +93,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         queryKey: ["dashboard-overview", "cmc-top"],
         queryFn: () => fetchCmcTop({ limit: 12 }),
         staleTime: 120_000,
-      },
-      {
-        queryKey: ["dashboard-overview", "alpha-x"],
-        queryFn: () => fetchXProjectsAnalyze({ type: "x402", max_results: 20, includeAiSummary: false }),
-        staleTime: ALPHA_STALE_MS,
       },
       {
         queryKey: ["dashboard-overview", "pumpfun-trend"],
@@ -159,7 +138,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     tradeQ,
     arbQ,
     cmcQ,
-    alphaXQ,
     pumpfunTrendQ,
     riseMarketsQ,
     lpStatsQ,
@@ -193,22 +171,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
       })),
     [cmcQ.data?.assets],
   );
-
-  const sortedXItems = useMemo(
-    () => sortXBatchByScore(alphaXQ.data?.items ?? []).slice(0, 6),
-    [alphaXQ.data?.items],
-  );
-
-  const alphaXUpdatedLabel = useMemo(
-    () => formatAlphaXBatchUpdatedAt(alphaXQ.data?.updatedAt),
-    [alphaXQ.data?.updatedAt],
-  );
-
-  const alphaXBatchHint = useMemo(() => {
-    if (!alphaXQ.data) return "x402 watchlist · refreshes ~every 24h";
-    const scored = `${alphaXQ.data.summary.succeeded}/${alphaXQ.data.summary.total} scored · ${alphaXQ.data.summary.failed} failed`;
-    return alphaXUpdatedLabel ? `${scored} · updated ${alphaXUpdatedLabel}` : scored;
-  }, [alphaXQ.data, alphaXUpdatedLabel]);
 
   const topPumpTokens = useMemo(
     () =>
@@ -264,17 +226,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         />
         <SyraChainsBar />
         <OverviewGroupLabel icon={Telescope}>Alpha intelligence</OverviewGroupLabel>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <OverviewStatCard
-              label="X · x402 batch"
-              icon={Twitter}
-              accent="alpha"
-              isLoading={alphaXQ.isLoading}
-              value={alphaXQ.isError ? "—" : alphaXQ.data?.summary.averageScore ?? "—"}
-              hint={alphaXBatchHint}
-              href="/alpha?tab=x"
-              error={alphaXQ.isError}
-            />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <OverviewStatCard
               label="Pump.fun trend"
               icon={Rocket}
@@ -301,91 +253,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <Card className={cn(overviewCardShell, 'overflow-hidden')}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <CardTitle className="text-[13px] font-semibold tracking-tight">Top X accounts</CardTitle>
-                    <CardDescription>
-                      {alphaXUpdatedLabel
-                        ? `By intelligence score · updated ${alphaXUpdatedLabel} · ~24h refresh`
-                        : "By intelligence score · curated x402 watchlist (~24h refresh)"}
-                    </CardDescription>
-                  </div>
-                  <Link
-                    to="/alpha?tab=x"
-                    className="shrink-0 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    View all
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {alphaXQ.isLoading ? (
-                  <div className="space-y-0 divide-y divide-border/40 px-4 pb-4">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 py-3">
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <Skeleton className="h-4 w-28" />
-                          <Skeleton className="h-3 w-36" />
-                        </div>
-                        <Skeleton className="h-5 w-10" />
-                      </div>
-                    ))}
-                  </div>
-                ) : alphaXQ.isError ? (
-                  <p className="px-4 pb-4 text-sm text-muted-foreground">
-                    {userReadableAlphaDataError((alphaXQ.error as Error)?.message) ||
-                      "Could not load the x402 watchlist."}
-                  </p>
-                ) : sortedXItems.length === 0 ? (
-                  <p className="px-4 pb-4 text-sm text-muted-foreground">
-                    Watchlist is warming up — scores update about once every 24 hours.
-                  </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Account</TableHead>
-                        <TableHead className="text-right">Score</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedXItems.map((item) =>
-                        item.ok ? (
-                          <TableRow key={item.username}>
-                            <TableCell>
-                              <Link
-                                to={`/alpha/x/${encodeURIComponent(item.username)}`}
-                                className="font-medium hover:underline"
-                              >
-                                @{item.username}
-                              </Link>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <Badge variant="outline" className={cn("text-[10px] px-1.5", gradeBadgeClass(item.analysis.grade))}>
-                                  {item.analysis.grade}
-                                </Badge>
-                                <span className="text-[11px] text-muted-foreground">
-                                  {formatFollowers(item.analysis.user?.public_metrics?.followers_count)} followers
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-mono tabular-nums">{item.analysis.score}</TableCell>
-                          </TableRow>
-                        ) : (
-                          <TableRow key={item.username}>
-                            <TableCell className="text-muted-foreground">@{item.username}</TableCell>
-                            <TableCell className="text-right text-destructive text-xs">Failed</TableCell>
-                          </TableRow>
-                        ),
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className={cn(overviewCardShell, 'overflow-hidden')}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-[13px] font-semibold tracking-tight">Top pump.fun tokens</CardTitle>
@@ -665,8 +533,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             <Card className={cn(overviewCardShell, 'divide-y divide-border/60')}>
               {INTERNAL_AGENTS.map((agent) => {
                 const href =
-                  agent.slug === "hackathon-scout"
-                    ? "/internal-team-agents#hackathon-board"
+                  agent.slug === "partnership-scout"
+                    ? "/internal-team-agents#partnership-board"
                     : `/internal-team-agents/${agent.slug}`;
                 const q =
                   agent.slug === "trend-scout"
@@ -674,7 +542,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                     : agent.slug === "partnership-scout"
                       ? partnershipScoutQ
                       : null;
-                const hasData = q ? Boolean(q.data?.data) : true;
+                const hasData = q ? Boolean(q.data?.data) : false;
                 const savedAt = q?.data?.savedAt;
 
                 return (
@@ -698,9 +566,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                         ) : (
                           <Badge variant="outline">No run yet</Badge>
                         )
-                      ) : (
-                        <Badge variant="secondary">Board</Badge>
-                      )}
+                      ) : null}
                       {q && savedAt ? (
                         <span className="text-[11px] font-mono text-muted-foreground">
                           {new Date(savedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}

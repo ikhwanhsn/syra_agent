@@ -35,7 +35,6 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
-import { createInternalHackathonScoutRouter } from "./routes/internalHackathonScout.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
@@ -637,7 +636,6 @@ app.use(
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/trend-scout/run") ||
         p.startsWith("/internal/partnership-scout/run") ||
-        p.startsWith("/internal/hackathon-scout/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
         p.startsWith("/uponly-rise-create")
@@ -689,26 +687,6 @@ app.use(
       const secret = (process.env.SYRA_PARTNERSHIP_SCOUT_CRON_SECRET || "").trim();
       if (secret) {
         const got = (req.get("x-syra-partnership-scout-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p === "/internal/hackathon-scout/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.SYRA_HACKATHON_SCOUT_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-syra-hackathon-scout-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p === "/internal/alpha-x-batch/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.ALPHA_X_BATCH_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-alpha-x-batch-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
@@ -1056,8 +1034,7 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Tester agent (cron smoke); mount before /internal so paths are not swallowed by research router
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
-// Internal dashboard: hackathon scout + research-store (API key auth, no x402)
-app.use("/internal", createInternalHackathonScoutRouter());
+// Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
@@ -1539,17 +1516,6 @@ app.listen(PORT, () => {
       ),
     );
 
-  import("./libs/syraHackathonScoutScheduler.js")
-    .then(({ startSyraHackathonScoutScheduler }) => {
-      startSyraHackathonScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[syra-hackathon-scout] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
   import("./libs/sentimentDailyPipeline.js")
     .then(({ startSentimentDailyScheduler }) => {
       startSentimentDailyScheduler();
@@ -1557,17 +1523,6 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[internal-news] sentiment scheduler load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/alphaXBatchScheduler.js")
-    .then(({ startAlphaXBatchScheduler }) => {
-      startAlphaXBatchScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[alpha-x-batch] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

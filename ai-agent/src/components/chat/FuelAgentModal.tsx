@@ -25,20 +25,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ArrowDownToLine,
-  ChevronsDown,
-  ChevronsLeft,
-  ChevronsRight,
-  ChevronsUp,
-  Loader2,
-  Zap,
-} from "lucide-react";
+import { ArrowDownToLine, Check, Copy, Loader2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
+import { AgentTreasuryBalanceRail } from "@/components/chat/AgentTreasuryBalanceRail";
+import { AgentWalletSwitcher } from "@/components/chat/AgentWalletSwitcher";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
+import {
+  AGENT_WALLET_ACCENT,
+  getAgentWalletSlot,
+  shortenAgentAddress,
+  type AgentWalletPurpose,
+} from "@/lib/agentWalletCatalog";
 
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
@@ -116,9 +116,30 @@ export interface FuelAgentModalProps {
   onOpenChange: (open: boolean) => void;
   /** Which flow to show when the dialog opens (e.g. from wallet menu shortcuts). */
   initialFlowTab?: "deposit" | "withdraw";
+  /** Which agent treasury to focus when opened (chat, LP, …). */
+  initialAgentWallet?: AgentWalletPurpose;
+  /**
+   * @deprecated Prefer `initialAgentWallet`. Locks deposit target to a specific address.
+   */
+  depositAgentAddress?: string | null;
+  /** @deprecated Prefer `initialAgentWallet`. */
+  depositAnonymousId?: string | null;
+  /** @deprecated Called after deposit when using legacy LP override props. */
+  onDepositComplete?: () => void;
+  /** @deprecated Prefer switching wallets in-modal. */
+  walletLabel?: string;
 }
 
-export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" }: FuelAgentModalProps) {
+export function FuelAgentModal({
+  open,
+  onOpenChange,
+  initialFlowTab = "deposit",
+  initialAgentWallet = "chat",
+  depositAgentAddress,
+  depositAnonymousId,
+  onDepositComplete,
+  walletLabel,
+}: FuelAgentModalProps) {
   const {
     connection,
     publicKey,
@@ -130,13 +151,76 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   const {
     agentAddress,
     anonymousId,
-    refetchBalance,
     agentSolBalance,
     agentUsdcBalance,
+    lpAgentAddress,
+    lpAnonymousId,
+    lpAgentSolBalance,
+    lpAgentUsdcBalance,
+    refetchBalance,
+    refetchLpBalance,
     reportDebit,
     reportNativeDebit,
   } = useAgentWallet();
+
+  const [selectedWallet, setSelectedWallet] = useState<AgentWalletPurpose>(initialAgentWallet);
+
+  const lockedPurpose = useMemo((): AgentWalletPurpose | "external" | null => {
+    if (!depositAgentAddress) return null;
+    if (depositAgentAddress === lpAgentAddress) return "lp";
+    if (depositAgentAddress === agentAddress) return "chat";
+    return "external";
+  }, [depositAgentAddress, agentAddress, lpAgentAddress]);
+
+  const availableWallets = useMemo((): AgentWalletPurpose[] => {
+    const out: AgentWalletPurpose[] = [];
+    if (agentAddress) out.push("chat");
+    if (lpAgentAddress) out.push("lp");
+    return out;
+  }, [agentAddress, lpAgentAddress]);
+
+  const activePurpose: AgentWalletPurpose = useMemo(() => {
+    if (lockedPurpose === "chat" || lockedPurpose === "lp") return lockedPurpose;
+    if (availableWallets.includes(selectedWallet)) return selectedWallet;
+    return availableWallets[0] ?? "chat";
+  }, [lockedPurpose, availableWallets, selectedWallet]);
+
+  const activeAddress = activePurpose === "lp" ? lpAgentAddress : agentAddress;
+  const activeAnonymousId = activePurpose === "lp" ? lpAnonymousId : anonymousId;
+  const activeSolBalance = activePurpose === "lp" ? lpAgentSolBalance : agentSolBalance;
+  const activeUsdcBalance = activePurpose === "lp" ? lpAgentUsdcBalance : agentUsdcBalance;
+
+  const isLockedExternal = lockedPurpose === "external";
+  const targetAgentAddress = isLockedExternal ? depositAgentAddress : activeAddress;
+  const targetAnonymousId = isLockedExternal ? depositAnonymousId : activeAnonymousId;
+  const isExternalTarget = isLockedExternal;
+  const showWalletSwitcher = !isLockedExternal && availableWallets.length > 1;
+  const activeSlot = getAgentWalletSlot(activePurpose);
+  const activeAccent = AGENT_WALLET_ACCENT[activePurpose];
+  const displayWalletLabel = walletLabel ?? activeSlot.label;
   const { toast } = useToast();
+  const [addressCopied, setAddressCopied] = useState(false);
+
+  const walletSwitcherBalances = useMemo(
+    () => ({
+      chat:
+        agentAddress != null
+          ? { sol: agentSolBalance, usdc: agentUsdcBalance }
+          : undefined,
+      lp:
+        lpAgentAddress != null
+          ? { sol: lpAgentSolBalance, usdc: lpAgentUsdcBalance }
+          : undefined,
+    }),
+    [
+      agentAddress,
+      agentSolBalance,
+      agentUsdcBalance,
+      lpAgentAddress,
+      lpAgentSolBalance,
+      lpAgentUsdcBalance,
+    ],
+  );
   /** USDC vs native SOL. */
   const [depositMode, setDepositMode] = useState<"usdc" | "native">("usdc");
   const [customUsd, setCustomUsd] = useState("");
@@ -235,12 +319,27 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   const withdrawNativeHuman = withdrawMode === "native" ? parseAmountInput(withdrawCustomNative) : 0;
 
   const runAgentBalanceRefresh = useCallback(async () => {
-    await refetchBalance();
-  }, [refetchBalance]);
+    if (isLockedExternal) {
+      onDepositComplete?.();
+      return;
+    }
+    if (activePurpose === "lp") {
+      await refetchLpBalance();
+    } else {
+      await refetchBalance();
+    }
+  }, [activePurpose, refetchBalance, refetchLpBalance, isLockedExternal, onDepositComplete]);
 
   useEffect(() => {
     if (open) {
-      setFlowTab(initialFlowTab);
+      const preferred =
+        lockedPurpose === "chat" || lockedPurpose === "lp"
+          ? lockedPurpose
+          : availableWallets.includes(initialAgentWallet)
+            ? initialAgentWallet
+            : (availableWallets[0] ?? "chat");
+      setSelectedWallet(preferred);
+      setFlowTab(isExternalTarget ? "deposit" : initialFlowTab);
       setDepositMode("usdc");
       setCustomUsd("");
       setCustomNative("");
@@ -252,11 +351,11 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       setWithdrawing(false);
       setSubmitting(false);
     }
-  }, [open, initialFlowTab]);
+  }, [open, initialFlowTab, isExternalTarget, initialAgentWallet, lockedPurpose, availableWallets]);
 
   const buildSolanaTx = useCallback(async () => {
-    if (!publicKey || !agentAddress) return null;
-    const agentPubkey = new PublicKey(agentAddress);
+    if (!publicKey || !targetAgentAddress) return null;
+    const agentPubkey = new PublicKey(targetAgentAddress);
     const usdcRaw = BigInt(Math.floor(depositUsdcHuman * 10 ** USDC_DECIMALS));
     const solLamports = BigInt(Math.floor(depositNativeHuman * LAMPORTS_PER_SOL));
     if (usdcRaw <= 0n && solLamports <= 0n) return null;
@@ -314,13 +413,13 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   }, [
     depositUsdcHuman,
     depositNativeHuman,
-    agentAddress,
+    targetAgentAddress,
     publicKey,
     connection,
   ]);
 
   const handleFuelSubmit = useCallback(async () => {
-    if (!agentAddress || (depositUsdcHuman <= 0 && depositNativeHuman <= 0)) return;
+    if (!targetAgentAddress || (depositUsdcHuman <= 0 && depositNativeHuman <= 0)) return;
     const depositErr = getDepositAmountError({
       flowTab: "deposit",
       hasDepositAmount: depositUsdcHuman > 0 || depositNativeHuman > 0,
@@ -390,7 +489,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   }, [
     depositUsdcHuman,
     depositNativeHuman,
-    agentAddress,
+    targetAgentAddress,
     publicKey,
     sendTransaction,
     buildSolanaTx,
@@ -403,7 +502,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   ]);
 
   const handleWithdrawToUserWallet = useCallback(async () => {
-    if (!anonymousId || !publicKey) {
+    if (!targetAnonymousId || !publicKey) {
       toast({
         title: "Connect wallet",
         description: "Connect your Solana wallet to withdraw agent funds to it.",
@@ -418,8 +517,8 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       withdrawMode,
       withdrawUsdcHuman,
       withdrawNativeHuman,
-      agentUsdcDisplay: agentUsdcBalance,
-      agentSolBalance,
+      agentUsdcDisplay: activeUsdcBalance,
+      agentSolBalance: activeSolBalance,
       nativeLabel: "SOL",
     });
     if (withdrawErr) {
@@ -442,7 +541,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     let withdrawSignature: string | null = null;
     try {
       const { signature } = await agentWalletApi.withdrawToLinkedWallet(
-        anonymousId,
+        targetAnonymousId,
         publicKey.toBase58(),
         withdrawMode === "usdc"
           ? { asset: "usdc" as const, usdcAmount: withdrawUsdcHuman }
@@ -467,7 +566,9 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
     }
     // Optimistic agent balances + linked-wallet refresh (reportDebit/reportNativeDebit schedule refetchBalance.)
     if (withdrawSignature) {
-      if (withdrawMode === "usdc" && withdrawUsdcHuman > 0) {
+      if (activePurpose === "lp") {
+        void refetchLpBalance();
+      } else if (withdrawMode === "usdc" && withdrawUsdcHuman > 0) {
         reportDebit(withdrawUsdcHuman);
       } else if (withdrawMode === "native" && withdrawNativeHuman > 0) {
         reportNativeDebit(withdrawNativeHuman);
@@ -475,17 +576,19 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       void refreshSolanaBalances();
     }
   }, [
-    anonymousId,
+    targetAnonymousId,
+    activePurpose,
     publicKey,
     reportDebit,
     reportNativeDebit,
+    refetchLpBalance,
     refreshSolanaBalances,
     toast,
     withdrawMode,
     withdrawUsdcHuman,
     withdrawNativeHuman,
-    agentUsdcBalance,
-    agentSolBalance,
+    activeUsdcBalance,
+    activeSolBalance,
   ]);
 
   const hasDepositAmount = depositUsdcHuman > 0 || depositNativeHuman > 0;
@@ -535,8 +638,8 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   const walletUsdcReady = usdcBalanceDisplay != null && usdcBalanceDisplay > 0;
   const walletNativeReady = nativeBalance != null && nativeBalance > 0;
 
-  const agentNativeBalance = agentSolBalance;
-  const agentUsdcDisplay = agentUsdcBalance;
+  const agentNativeBalance = activeSolBalance;
+  const agentUsdcDisplay = activeUsdcBalance;
 
   const fillWithdrawUsdcFromAgentFraction = useCallback(
     (fraction: 0.5 | 1) => {
@@ -608,7 +711,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
         withdrawUsdcHuman,
         withdrawNativeHuman,
         agentUsdcDisplay,
-        agentSolBalance,
+        agentSolBalance: agentNativeBalance,
         nativeLabel,
       }),
     [
@@ -618,7 +721,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
       withdrawUsdcHuman,
       withdrawNativeHuman,
       agentUsdcDisplay,
-      agentSolBalance,
+      agentNativeBalance,
       nativeLabel,
     ],
   );
@@ -626,15 +729,16 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   const canSubmitDeposit =
     hasDepositAmount &&
     !depositAmountError &&
-    !!agentAddress &&
+    !!targetAgentAddress &&
     !submitting &&
     !!publicKey &&
     !!sendTransaction;
   const canSubmitWithdraw =
+    !isExternalTarget &&
     hasWithdrawAmount &&
     !withdrawAmountError &&
-    !!agentAddress &&
-    !!anonymousId &&
+    !!targetAnonymousId &&
+    !!activeAddress &&
     !!publicKey &&
     !withdrawing &&
     !submitting;
@@ -645,129 +749,99 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex min-h-0 w-[calc(100vw-1rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px)))] max-w-[min(44rem,calc(100vw-1rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px))))] max-h-[min(88dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1rem))] flex-col gap-0 overflow-x-hidden overflow-y-auto rounded-2xl border-border/60 bg-gradient-to-b from-card via-card to-muted/20 p-0 shadow-2xl ring-1 ring-white/[0.06] sm:rounded-2xl"
+        className="flex min-h-0 w-[calc(100vw-1rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px)))] max-w-[min(44rem,calc(100vw-1rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px))))] max-h-[min(88dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1rem))] flex-col gap-0 overflow-x-hidden overflow-y-auto rounded-2xl border-border/50 bg-card p-0 shadow-2xl shadow-black/10 ring-1 ring-white/[0.08] sm:rounded-2xl dark:shadow-black/40"
       >
         <DialogHeader
           className={cn(
-            "relative shrink-0 space-y-1.5 pb-3 pt-[max(1rem,env(safe-area-inset-top,0px))] text-left pr-10 min-[380px]:pr-11 sm:pr-12",
+            "relative shrink-0 space-y-4 pb-4 pt-[max(1rem,env(safe-area-inset-top,0px))] text-left pr-10 min-[380px]:pr-11 sm:pr-12",
             modalPadX,
-            "after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border/80 after:to-transparent",
+            "after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border/60 after:to-transparent",
             modalPadAfter,
           )}
         >
-          <DialogTitle className="text-lg font-semibold tracking-tight text-foreground min-[380px]:text-xl">
-            Agent wallet
-          </DialogTitle>
-          <DialogDescription className="line-clamp-2 text-[12px] leading-snug text-muted-foreground/90 min-[380px]:text-[13px] sm:text-sm">
-            Add funds from your Solana wallet to your agent, or move them back to the same connected wallet.
-          </DialogDescription>
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
+              Treasury
+            </p>
+            <DialogTitle className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              Move funds
+            </DialogTitle>
+            <DialogDescription className="max-w-md text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+              {isExternalTarget
+                ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
+                : showWalletSwitcher
+                  ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
+                  : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
+            </DialogDescription>
+          </div>
+
+          {showWalletSwitcher ? (
+            <AgentWalletSwitcher
+              value={activePurpose}
+              onChange={setSelectedWallet}
+              available={availableWallets}
+              balances={walletSwitcherBalances}
+            />
+          ) : (
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                activeAccent.pill,
+              )}
+            >
+              {displayWalletLabel}
+            </div>
+          )}
+
+          {activeAddress && !isLockedExternal ? (
+            <button
+              type="button"
+              className={cn(
+                "group flex w-full items-center justify-between gap-3 rounded-xl border bg-muted/20 px-3 py-2.5 text-left transition-colors hover:bg-muted/35",
+                activeAccent.border,
+              )}
+              onClick={() => {
+                void navigator.clipboard?.writeText(activeAddress).then(
+                  () => {
+                    setAddressCopied(true);
+                    window.setTimeout(() => setAddressCopied(false), 2000);
+                  },
+                  () => undefined,
+                );
+              }}
+            >
+              <span className="min-w-0">
+                <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+                  Agent address
+                </span>
+                <span className="mt-0.5 block truncate font-mono text-xs text-foreground sm:text-[13px]">
+                  {shortenAgentAddress(activeAddress)}
+                </span>
+              </span>
+              {addressCopied ? (
+                <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+              ) : (
+                <Copy className="h-4 w-4 shrink-0 text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100" aria-hidden />
+              )}
+            </button>
+          ) : null}
         </DialogHeader>
 
         <div className="min-w-0 flex flex-col overflow-hidden">
           <div ref={fuelBodyShellRef} className="overflow-hidden will-change-[height]">
-            <div ref={fuelBodyMeasureRef} className={cn("flex flex-col gap-3 pb-2", modalPadX)}>
-            {/* Balances — direction hints (deposit vs withdraw) */}
-            <div
-              className={cn(
-                "shrink-0 rounded-2xl border px-3 py-2.5 transition-[border-color,background-color,box-shadow] duration-300 sm:px-4 sm:py-3",
-                flowTab === "deposit" &&
-                  "border-primary/25 bg-gradient-to-br from-primary/[0.07] via-muted/12 to-amber-500/[0.05] shadow-[inset_0_1px_0_0_hsl(var(--primary)/0.06)]",
-                flowTab === "withdraw" &&
-                  "border-emerald-500/20 bg-gradient-to-br from-amber-500/[0.06] via-muted/12 to-primary/[0.07] shadow-[inset_0_1px_0_0_hsl(var(--primary)/0.05)]",
-              )}
-            >
-              <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch sm:gap-3">
-                <div
-                  className={cn(
-                    "min-w-0 rounded-xl px-2 py-1.5 transition-[background-color,box-shadow] duration-300 sm:px-3 sm:py-2.5",
-                    flowTab === "deposit" && "bg-primary/[0.11] ring-1 ring-inset ring-primary/20",
-                    flowTab === "withdraw" &&
-                      "bg-amber-500/[0.09] ring-1 ring-inset ring-amber-500/18",
-                  )}
-                >
-                  <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70 sm:text-[11px]">Agent</p>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums text-[13px] sm:text-sm">
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                      <CoinLogo symbol="USDC" size="xs" />
-                      <span className={cn(agentUsdcDisplay != null && agentUsdcDisplay > 0 && "font-medium text-emerald-600 dark:text-emerald-400")}>
-                        {agentUsdcDisplay != null ? `$${agentUsdcDisplay.toFixed(2)}` : "—"}
-                      </span>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                      <CoinLogo symbol={nativeLabel} size="xs" />
-                      <span className="font-medium text-foreground/90">{formatBalance(agentNativeBalance ?? undefined)}</span>
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "items-center justify-center sm:flex sm:w-11 sm:flex-col",
-                    flowTab === "deposit" &&
-                      "flex min-h-[1.75rem] border-y border-primary/15 py-1 sm:min-h-0 sm:border-x sm:border-y-0 sm:py-0",
-                    flowTab === "withdraw" &&
-                      "flex min-h-[1.75rem] border-y border-emerald-500/15 py-1 sm:min-h-0 sm:border-x sm:border-y-0 sm:py-0",
-                  )}
-                  aria-hidden
-                >
-                  {flowTab === "deposit" ? (
-                    <span key={depositFlowAnimKey} className="flex flex-col items-center justify-center gap-0.5">
-                      <ChevronsUp
-                        className="h-5 w-5 text-primary sm:hidden animate-deposit-flow-up"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                      <ChevronsLeft
-                        className="hidden h-7 w-7 text-primary sm:block animate-deposit-flow-left"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </span>
-                  ) : flowTab === "withdraw" ? (
-                    <span key={withdrawFlowAnimKey} className="flex flex-col items-center justify-center gap-0.5">
-                      <ChevronsDown
-                        className="h-5 w-5 text-emerald-500 sm:hidden animate-withdraw-flow-down"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                      <ChevronsRight
-                        className="hidden h-7 w-7 text-emerald-500 sm:block animate-withdraw-flow-right"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </span>
-                  ) : (
-                    <div className="h-10 w-px shrink-0 bg-border/50" />
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    /* Mobile: match Agent horizontal padding; inset rings avoid clipping under overflow-hidden. */
-                    "min-w-0 rounded-xl border-t border-border/40 px-2 pb-2.5 pt-3 transition-[background-color,box-shadow,border-color] duration-300 sm:border-0 sm:px-3 sm:py-2.5",
-                    flowTab === "deposit" &&
-                      "border-primary/15 bg-amber-500/[0.08] ring-1 ring-inset ring-amber-500/15 sm:border-0",
-                    flowTab === "withdraw" &&
-                      "border-emerald-500/15 bg-primary/[0.1] ring-1 ring-inset ring-primary/18 sm:border-0",
-                  )}
-                >
-                  <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70 sm:text-[11px]">Yours</p>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums text-[13px] sm:text-sm">
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                      <CoinLogo symbol="USDC" size="xs" />
-                      <span className={cn(usdcBalanceDisplay != null && usdcBalanceDisplay > 0 && "font-medium text-emerald-600 dark:text-emerald-400")}>
-                        {usdcBalanceDisplay != null ? `$${usdcBalanceDisplay.toFixed(2)}` : "—"}
-                      </span>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                      <CoinLogo symbol={nativeLabel} size="xs" />
-                      <span className="font-medium text-foreground/90">{formatBalance(nativeBalance)}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div ref={fuelBodyMeasureRef} className={cn("flex flex-col gap-4 pb-2", modalPadX)}>
+            <AgentTreasuryBalanceRail
+              flowTab={flowTab}
+              purpose={activePurpose}
+              agentUsdc={agentUsdcDisplay}
+              agentSol={agentNativeBalance}
+              walletUsdc={usdcBalanceDisplay}
+              walletSol={nativeBalance}
+              nativeLabel={nativeLabel}
+              flowAnimKey={flowTab === "deposit" ? depositFlowAnimKey : withdrawFlowAnimKey}
+            />
 
-            {/* Primary intent — two large choices (not nested tab strips) */}
-            <div className="grid min-w-0 shrink-0 grid-cols-2 gap-2 sm:gap-3">
+            <div className="grid min-w-0 shrink-0 grid-cols-2 gap-2 sm:gap-2.5">
               <button
                 type="button"
                 onClick={() => {
@@ -775,14 +849,14 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                   setDepositFlowAnimKey((k) => k + 1);
                 }}
                 className={cn(
-                  "rounded-2xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-3.5",
+                  "rounded-2xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-3.5",
                   flowTab === "deposit"
-                    ? "border-primary/35 bg-primary/[0.06] shadow-sm ring-1 ring-primary/20"
-                    : "border-border/40 bg-background/40 hover:border-border/60 hover:bg-muted/20",
+                    ? "border-primary/30 bg-primary/[0.05] shadow-sm ring-1 ring-primary/15"
+                    : "border-border/45 bg-muted/15 hover:border-border/60 hover:bg-muted/25",
                 )}
               >
                 <div className="flex items-start gap-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/90 ring-1 ring-border/50 sm:h-10 sm:w-10">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 sm:h-10 sm:w-10">
                     <Zap className="h-4 w-4 text-primary sm:h-[18px] sm:w-[18px]" aria-hidden />
                   </span>
                   <div className="min-w-0 space-y-0.5">
@@ -798,15 +872,17 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
                   setWithdrawFlowAnimKey((k) => k + 1);
                 }}
                 className={cn(
-                  "rounded-2xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-3.5",
+                  "rounded-2xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-3.5",
                   flowTab === "withdraw"
-                    ? "border-foreground/25 bg-muted/30 shadow-sm ring-1 ring-border/40"
-                    : "border-border/40 bg-background/40 hover:border-border/60 hover:bg-muted/20",
+                    ? "border-emerald-500/25 bg-emerald-500/[0.04] shadow-sm ring-1 ring-emerald-500/15"
+                    : "border-border/45 bg-muted/15 hover:border-border/60 hover:bg-muted/25",
+                  isExternalTarget && "pointer-events-none opacity-45",
                 )}
+                disabled={isExternalTarget}
               >
                 <div className="flex items-start gap-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/90 ring-1 ring-border/50 sm:h-10 sm:w-10">
-                    <ArrowDownToLine className="h-4 w-4 text-muted-foreground sm:h-[18px] sm:w-[18px]" aria-hidden />
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20 sm:h-10 sm:w-10">
+                    <ArrowDownToLine className="h-4 w-4 text-emerald-600 dark:text-emerald-400 sm:h-[18px] sm:w-[18px]" aria-hidden />
                   </span>
                   <div className="min-w-0 space-y-0.5">
                     <p className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">Move out</p>
@@ -1176,14 +1252,14 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
 
         <DialogFooter
           className={cn(
-            "shrink-0 w-full min-w-0 gap-2 border-t border-border/40 py-2 sm:gap-3 sm:space-x-0 sm:py-2.5",
-            "pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-2 sm:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pt-2.5",
+            "shrink-0 w-full min-w-0 gap-2 border-t border-border/40 bg-muted/10 py-2 sm:gap-3 sm:space-x-0 sm:py-3",
+            "pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-2 sm:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pt-3",
             modalPadX,
           )}
         >
           <Button
             variant="ghost"
-            className="h-11 min-h-[44px] w-full rounded-lg px-4 text-muted-foreground hover:text-foreground sm:h-10 sm:min-h-0 sm:w-auto"
+            className="h-11 min-h-[44px] w-full rounded-xl px-4 text-muted-foreground hover:bg-muted/40 hover:text-foreground sm:h-10 sm:min-h-0 sm:w-auto"
             onClick={() => onOpenChange(false)}
             disabled={submitting || withdrawing}
           >
@@ -1191,7 +1267,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
           </Button>
           {flowTab === "deposit" ? (
             <Button
-              className="h-11 min-h-[44px] w-full min-w-0 rounded-lg px-5 text-sm font-semibold shadow-md shadow-primary/15 sm:h-10 sm:min-h-0 sm:w-auto sm:min-w-[8rem]"
+              className="h-11 min-h-[44px] w-full min-w-0 rounded-xl px-5 text-sm font-semibold shadow-lg shadow-primary/20 sm:h-10 sm:min-h-0 sm:w-auto sm:min-w-[9rem]"
               onClick={() => void handleFuelSubmit()}
               disabled={!canSubmitDeposit}
             >
@@ -1209,7 +1285,7 @@ export function FuelAgentModal({ open, onOpenChange, initialFlowTab = "deposit" 
             </Button>
           ) : (
             <Button
-              className="h-11 min-h-[44px] w-full min-w-0 rounded-lg px-5 text-sm font-semibold shadow-md shadow-primary/15 sm:h-10 sm:min-h-0 sm:w-auto sm:min-w-[8rem]"
+              className="h-11 min-h-[44px] w-full min-w-0 rounded-xl px-5 text-sm font-semibold shadow-lg shadow-emerald-500/15 sm:h-10 sm:min-h-0 sm:w-auto sm:min-w-[9rem]"
               onClick={() => void handleWithdrawToUserWallet()}
               disabled={!canSubmitWithdraw}
             >

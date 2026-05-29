@@ -78,6 +78,21 @@ async function privyFetch(path, options = {}) {
 }
 
 /**
+ * Privy external_id: URL-safe [a-zA-Z0-9_-], max 64 chars (write-once).
+ * @param {string} anonymousId
+ * @returns {string | undefined}
+ */
+function privyExternalIdFromAnonymousId(anonymousId) {
+  const raw = String(anonymousId || '').trim();
+  if (!raw) return undefined;
+  let safe = raw.replace(/[^a-zA-Z0-9_-]/g, '_');
+  if (safe.length > 64) {
+    safe = `syra_${crypto.createHash('sha256').update(raw).digest('hex').slice(0, 56)}`;
+  }
+  return safe || undefined;
+}
+
+/**
  * Provision a new Privy server wallet for a user.
  *
  * @param {Object} input
@@ -88,12 +103,13 @@ async function privyFetch(path, options = {}) {
 export async function createPrivyServerWallet({ chain, anonymousId }) {
   if (!isPrivyConfigured()) throw new Error('privy_not_configured');
   const chainType = chain === 'base' || chain === 'bsc' ? 'ethereum' : 'solana';
+  const externalId = privyExternalIdFromAnonymousId(anonymousId);
   const body = {
     chain_type: chainType,
     ...(process.env.PRIVY_DEFAULT_POLICY
       ? { policy_ids: [process.env.PRIVY_DEFAULT_POLICY] }
       : {}),
-    metadata: { anonymousId, source: 'syra-agent-wallet' },
+    ...(externalId ? { external_id: externalId } : {}),
   };
   const out = await privyFetch('/v1/wallets', { method: 'POST', body });
   const privyWalletId = String(out?.id || '').trim();

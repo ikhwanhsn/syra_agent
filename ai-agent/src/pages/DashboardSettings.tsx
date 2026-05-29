@@ -1,23 +1,16 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle,
   ArrowUpRight,
   Bot,
-  Check,
-  Copy,
   ExternalLink,
   Droplets,
   FlaskConical,
-  KeyRound,
   Loader2,
   MessageSquareText,
-  RefreshCw,
   Sparkles,
-  User,
   Wallet2,
-  Zap,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +27,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
@@ -50,7 +42,6 @@ import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
 import { agentDetailPath } from "@/lib/agentWalletUi";
-import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import {
   LS_AGENT_DISPLAY_NAME,
@@ -64,6 +55,8 @@ import {
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
+import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
+import { AgentWalletsManager } from "@/components/settings/AgentWalletsManager";
 const STALE_MS = 45_000;
 
 type SetupChain = "solana";
@@ -74,17 +67,6 @@ interface AgentSetupRecord {
   avatarUrl: string | null;
   chain: SetupChain;
   walletAddress: string;
-}
-
-function maskAnonymousId(id: string): string {
-  if (!id) return "—";
-  if (id.startsWith("wallet:")) {
-    const pubkey = id.slice(7).replace(":base", "").trim();
-    if (pubkey.length <= 8) return pubkey;
-    return `${pubkey.slice(0, 4)}…${pubkey.slice(-4)}`;
-  }
-  if (id.length <= 10) return id;
-  return `${id.slice(0, 6)}…${id.slice(-4)}`;
 }
 
 function shortenAddress(addr: string, chain: SetupChain): string {
@@ -139,9 +121,15 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
     connectedChain,
     connectedWalletAddress,
     refetchBalance,
+    refetchLpBalance,
     updateAvatarUrl,
     agentSolBalance,
     agentUsdcBalance,
+    lpReady,
+    lpAnonymousId,
+    lpAgentAddress,
+    lpAgentSolBalance,
+    lpAgentUsdcBalance,
   } = useAgentWallet();
   const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
 
@@ -242,6 +230,10 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [refreshingBalances, setRefreshingBalances] = useState(false);
   const [fuelOpen, setFuelOpen] = useState(false);
+  const [fuelInitialWallet, setFuelInitialWallet] = useState<AgentWalletPurpose>("chat");
+  const [creatingChat, setCreatingChat] = useState(false);
+  const [creatingLp, setCreatingLp] = useState(false);
+  const [refreshingLpBalances, setRefreshingLpBalances] = useState(false);
 
   const saveIdentity = useCallback(() => {
     writeAgentSetupString(LS_AGENT_DISPLAY_NAME, displayName.trim());
@@ -315,8 +307,123 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
       void connectForChain("solana");
       return;
     }
+    setFuelInitialWallet("chat");
     setFuelOpen(true);
   }, [connectedChain, connectForChain, toast]);
+
+  const handleFundLpAgent = useCallback(() => {
+    if (connectedChain !== "solana") {
+      toast({
+        title: "Connect Solana wallet",
+        description: "Connect your Solana wallet in the header to fund the LP agent treasury.",
+      });
+      void connectForChain("solana");
+      return;
+    }
+    setFuelInitialWallet("lp");
+    setFuelOpen(true);
+  }, [connectedChain, connectForChain, toast]);
+
+  const handleRefreshLpBalances = useCallback(async () => {
+    setRefreshingLpBalances(true);
+    try {
+      await refetchLpBalance();
+      toast({ title: "LP balances updated" });
+    } finally {
+      setRefreshingLpBalances(false);
+    }
+  }, [refetchLpBalance, toast]);
+
+  const lpAgent: AgentSetupRecord | undefined = useMemo(() => {
+    if (!lpReady || !lpAnonymousId || !lpAgentAddress) return undefined;
+    return {
+      anonymousId: lpAnonymousId,
+      agentAddress: lpAgentAddress,
+      avatarUrl: null,
+      chain: "solana",
+      walletAddress: activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
+    };
+  }, [lpReady, lpAnonymousId, lpAgentAddress, activeAgent?.walletAddress, connectedWalletAddress]);
+
+  const handleCreateChatWallet = useCallback(async () => {
+    setCreatingChat(true);
+    try {
+      if (hasSolana && solanaAddress) {
+        const ok = await requestSyraAuth();
+        if (!ok) {
+          toast({
+            title: "Sign in required",
+            description: "Approve the wallet sign-in prompt to create your agent wallet.",
+            variant: "destructive",
+          });
+          return;
+        }
+        await agentWalletApi.getOrCreateByWallet(solanaAddress);
+      } else {
+        await agentWalletApi.getOrCreate();
+      }
+      toast({ title: "Chat wallet created", description: "Reloading your agent setup…" });
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch (err) {
+      toast({
+        title: "Could not create wallet",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingChat(false);
+    }
+  }, [hasSolana, requestSyraAuth, solanaAddress, toast]);
+
+  const handleCreateLpWallet = useCallback(async () => {
+    if (!activeAgent?.anonymousId) {
+      toast({ title: "Create chat wallet first", variant: "destructive" });
+      return;
+    }
+    setCreatingLp(true);
+    try {
+      if (hasSolana && solanaAddress) {
+        const ok = await requestSyraAuth();
+        if (!ok) {
+          toast({
+            title: "Sign in required",
+            description: "Approve the wallet sign-in prompt to create your LP agent wallet.",
+            variant: "destructive",
+          });
+          return;
+        }
+        await agentWalletApi.getOrCreateLpByWallet(solanaAddress);
+      } else {
+        await agentWalletApi.getOrCreateLp(activeAgent.anonymousId);
+      }
+      toast({ title: "LP wallet created", description: "Reloading your agent setup…" });
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch (err) {
+      toast({
+        title: "Could not create LP wallet",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingLp(false);
+    }
+  }, [activeAgent?.anonymousId, hasSolana, requestSyraAuth, solanaAddress, toast]);
+
+  const managedChatWallet = activeAgent
+    ? {
+        anonymousId: activeAgent.anonymousId,
+        agentAddress: activeAgent.agentAddress,
+        walletAddress: activeAgent.walletAddress,
+      }
+    : undefined;
+
+  const managedLpWallet = lpAgent
+    ? {
+        anonymousId: lpAgent.anonymousId,
+        agentAddress: lpAgent.agentAddress,
+        walletAddress: lpAgent.walletAddress,
+      }
+    : undefined;
 
   const shell = cn(DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM, "pb-8");
 
@@ -391,7 +498,20 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
               refreshingBalances={refreshingBalances}
               onRefreshBalances={handleRefreshBalances}
               onFund={handleFundAgent}
+              onFundLp={handleFundLpAgent}
+              lpSolBalance={lpAgentSolBalance}
+              lpUsdcBalance={lpAgentUsdcBalance}
+              onRefreshLpBalances={handleRefreshLpBalances}
               balanceLoading={balanceQ.isLoading}
+              refreshingLpBalances={refreshingLpBalances}
+              managedChatWallet={managedChatWallet}
+              managedLpWallet={managedLpWallet}
+              hasLinkedWallet={hasSolana}
+              syraAuthenticated={syraAuthenticated}
+              onCreateChatWallet={() => void handleCreateChatWallet()}
+              onCreateLpWallet={() => void handleCreateLpWallet()}
+              creatingChat={creatingChat}
+              creatingLp={creatingLp}
             />
 
             <Card className={cn(overviewCardShell, "overflow-hidden")}>
@@ -438,7 +558,12 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
         )}
       </div>
 
-      <FuelAgentModal open={fuelOpen} onOpenChange={setFuelOpen} initialFlowTab="deposit" />
+      <FuelAgentModal
+        open={fuelOpen}
+        onOpenChange={setFuelOpen}
+        initialFlowTab="deposit"
+        initialAgentWallet={fuelInitialWallet}
+      />
     </div>
   );
 }
@@ -492,7 +617,20 @@ function AgentSetupSections({
   refreshingBalances,
   onRefreshBalances,
   onFund,
+  onFundLp,
+  lpSolBalance,
+  lpUsdcBalance,
+  onRefreshLpBalances,
   balanceLoading,
+  refreshingLpBalances,
+  managedChatWallet,
+  managedLpWallet,
+  hasLinkedWallet,
+  syraAuthenticated,
+  onCreateChatWallet,
+  onCreateLpWallet,
+  creatingChat,
+  creatingLp,
 }: {
   activeAgent: AgentSetupRecord | undefined;
   setupLoading: boolean;
@@ -511,12 +649,23 @@ function AgentSetupSections({
   copiedField: string | null;
   solBalance: number | null;
   usdcBalance: number | null;
-  ethBalance: number | null;
-  baseUsdc: number | null;
   refreshingBalances: boolean;
   onRefreshBalances: () => void;
   onFund: () => void;
+  onFundLp: () => void;
+  lpSolBalance: number | null;
+  lpUsdcBalance: number | null;
+  onRefreshLpBalances: () => void;
   balanceLoading: boolean;
+  refreshingLpBalances: boolean;
+  managedChatWallet: { anonymousId: string; agentAddress: string; walletAddress: string } | undefined;
+  managedLpWallet: { anonymousId: string; agentAddress: string; walletAddress: string } | undefined;
+  hasLinkedWallet: boolean;
+  syraAuthenticated: boolean;
+  onCreateChatWallet: () => void;
+  onCreateLpWallet: () => void;
+  creatingChat: boolean;
+  creatingLp: boolean;
 }) {
   if (setupLoading && !activeAgent) {
     return (
@@ -540,6 +689,35 @@ function AgentSetupSections({
     );
   }
 
+  if (!activeAgent && !setupLoading) {
+    return (
+      <AgentWalletsManager
+        chatWallet={managedChatWallet}
+        lpWallet={managedLpWallet}
+        chatSolBalance={solBalance}
+        chatUsdcBalance={usdcBalance}
+        lpSolBalance={lpSolBalance}
+        lpUsdcBalance={lpUsdcBalance}
+        chatBalanceLoading={balanceLoading}
+        lpBalanceLoading={false}
+        refreshingChatBalances={refreshingBalances}
+        refreshingLpBalances={refreshingLpBalances}
+        hasLinkedWallet={hasLinkedWallet}
+        syraAuthenticated={syraAuthenticated}
+        onCopy={onCopy}
+        copiedField={copiedField}
+        onFundChat={onFund}
+        onFundLp={onFundLp}
+        onRefreshChatBalances={onRefreshBalances}
+        onRefreshLpBalances={onRefreshLpBalances}
+        onCreateChatWallet={onCreateChatWallet}
+        onCreateLpWallet={onCreateLpWallet}
+        creatingChat={creatingChat}
+        creatingLp={creatingLp}
+      />
+    );
+  }
+
   if (!activeAgent) {
     return (
       <Card className={overviewCardShell}>
@@ -553,97 +731,83 @@ function AgentSetupSections({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-        <Card className={cn(overviewCardShell, "overflow-hidden")}>
-          <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="text-base font-semibold">Identity</CardTitle>
-            <CardDescription>How this agent appears across Syra.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 pt-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <Avatar className="h-20 w-20 shrink-0 rounded-2xl border-2 border-border/50 shadow-md">
-                {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="object-cover" /> : null}
-                <AvatarFallback className="rounded-2xl bg-muted/50">
-                  <Bot className="h-9 w-9 text-muted-foreground" aria-hidden />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-1 flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-fit rounded-xl gap-2"
-                  onClick={onGenerateAvatar}
-                  disabled={generatingAvatar}
-                >
-                  {generatingAvatar ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    <Sparkles className="h-4 w-4" aria-hidden />
-                  )}
-                  Generate avatar
-                </Button>
-                <p className="text-xs text-muted-foreground">Unique per agent wallet on {chainLabel}.</p>
-              </div>
+      <Card className={cn(overviewCardShell, "overflow-hidden")}>
+        <CardHeader className="border-b border-border/40 pb-4">
+          <CardTitle className="text-base font-semibold">Identity</CardTitle>
+          <CardDescription>How this agent appears across Syra.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <Avatar className="h-20 w-20 shrink-0 rounded-2xl border-2 border-border/50 shadow-md">
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="object-cover" /> : null}
+              <AvatarFallback className="rounded-2xl bg-muted/50">
+                <Bot className="h-9 w-9 text-muted-foreground" aria-hidden />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-1 flex-col gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit rounded-xl gap-2"
+                onClick={onGenerateAvatar}
+                disabled={generatingAvatar}
+              >
+                {generatingAvatar ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                )}
+                Generate avatar
+              </Button>
+              <p className="text-xs text-muted-foreground">Unique per agent wallet on {chainLabel}.</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="agent-display-name">Display name</Label>
-              <Input
-                id="agent-display-name"
-                placeholder="Name shown in Syra (this device)"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="h-10 rounded-xl border-border/80"
-              />
-            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="agent-display-name">Display name</Label>
+            <Input
+              id="agent-display-name"
+              placeholder="Name shown in Syra (this device)"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="h-10 rounded-xl border-border/80"
+            />
+          </div>
+          {activeAgent.walletAddress ? (
             <div className="space-y-2">
               <Label className="text-muted-foreground">Linked wallet</Label>
               <FieldShell className="font-mono text-xs text-foreground/90">
                 {chainLabel} · {shortWallet ?? shortenAddress(activeAgent.walletAddress, activeChain)}
               </FieldShell>
             </div>
-          </CardContent>
-        </Card>
+          ) : null}
+        </CardContent>
+      </Card>
 
-        <Card className={cn(overviewCardShell, "overflow-hidden ring-1 ring-primary/10")}>
-          <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="text-base font-semibold">Treasury</CardTitle>
-            <CardDescription>Capital this agent can spend on tools and experiments.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5">
-            <div className="space-y-3">
-              <div className="flex justify-between font-mono text-sm tabular-nums">
-                <span className="text-muted-foreground">SOL</span>
-                <span className="font-medium text-foreground">
-                  {balanceLoading ? "…" : solBalance != null ? formatSol(solBalance) : "—"}
-                </span>
-              </div>
-              <div className="flex justify-between font-mono text-sm tabular-nums">
-                <span className="text-muted-foreground">USDC</span>
-                <span className="font-medium text-foreground">
-                  {balanceLoading ? "…" : usdcBalance != null ? formatCompactUsd(usdcBalance) : "—"}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 pt-1">
-              <Button type="button" className="w-full rounded-xl gap-2" onClick={onFund}>
-                <Zap className="h-4 w-4" aria-hidden />
-                Fund agent
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full rounded-xl"
-                disabled={refreshingBalances}
-                onClick={onRefreshBalances}
-              >
-                {refreshingBalances ? "Refreshing…" : "Refresh balances"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <AgentWalletsManager
+        chatWallet={managedChatWallet}
+        lpWallet={managedLpWallet}
+        chatSolBalance={solBalance}
+        chatUsdcBalance={usdcBalance}
+        lpSolBalance={lpSolBalance}
+        lpUsdcBalance={lpUsdcBalance}
+        chatBalanceLoading={balanceLoading}
+        lpBalanceLoading={false}
+        refreshingChatBalances={refreshingBalances}
+        refreshingLpBalances={refreshingLpBalances}
+        hasLinkedWallet={hasLinkedWallet}
+        syraAuthenticated={syraAuthenticated}
+        onCopy={onCopy}
+        copiedField={copiedField}
+        onFundChat={onFund}
+        onFundLp={onFundLp}
+        onRefreshChatBalances={onRefreshBalances}
+        onRefreshLpBalances={onRefreshLpBalances}
+        onCreateChatWallet={onCreateChatWallet}
+        onCreateLpWallet={onCreateLpWallet}
+        creatingChat={creatingChat}
+        creatingLp={creatingLp}
+      />
 
       <Card className={cn(overviewCardShell, "overflow-hidden")}>
         <CardHeader className="border-b border-border/40 pb-4">
@@ -675,32 +839,6 @@ function AgentSetupSections({
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className={overviewCardShell}>
           <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="text-base font-semibold">Wallet details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5">
-            <CopyField
-              label="Agent address"
-              value={activeAgent.agentAddress}
-              display={shortenAddress(activeAgent.agentAddress, activeChain)}
-              onCopy={onCopy}
-              copied={copiedField === "Agent address"}
-            />
-            <CopyField
-              label="Session ID"
-              value={activeAgent.anonymousId}
-              display={maskAnonymousId(activeAgent.anonymousId)}
-              onCopy={onCopy}
-              copied={copiedField === "Session ID"}
-              breakAll
-            />
-            <Badge variant="outline" className="rounded-md text-[10px] font-semibold uppercase">
-              {chainLabel} chain
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card className={overviewCardShell}>
-          <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="text-base font-semibold">Experiment desks</CardTitle>
             <CardDescription>Where this agent will deploy capital when live.</CardDescription>
           </CardHeader>
@@ -721,10 +859,7 @@ function AgentSetupSections({
             ))}
           </CardContent>
         </Card>
-
       </div>
-
-      <AgentPrivateKeySection activeAgent={activeAgent} activeChain={activeChain} onCopy={onCopy} copiedField={copiedField} />
 
       <div className="flex flex-wrap gap-3">
         <Button type="button" className="rounded-xl" onClick={onSave}>
@@ -732,258 +867,6 @@ function AgentSetupSections({
         </Button>
         <Button type="button" variant="outline" className="rounded-xl" asChild>
           <Link to={agentDetailPath(activeAgent.anonymousId)}>Open agent profile</Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function exportKeyStatusMessage(reason: string | undefined): string {
-  switch (reason) {
-    case "privy_custody_not_exportable":
-      return "This agent wallet is custodied by Privy (TEE). Private keys cannot be exported.";
-    case "base_not_exportable":
-      return "Base agent wallets do not support private key export.";
-    case "auth_required":
-      return "Approve the wallet signature prompt to verify ownership before export.";
-    case "wallet_mismatch":
-      return "Switch to the wallet linked to this agent to export its key.";
-    case "no_exportable_key":
-      return "No exportable private key is stored for this agent.";
-    default:
-      return "Private key export is not available for this agent.";
-  }
-}
-
-function AgentPrivateKeySection({
-  activeAgent,
-  activeChain,
-  onCopy,
-  copiedField,
-}: {
-  activeAgent: AgentSetupRecord;
-  activeChain: SetupChain;
-  onCopy: (text: string, label: string) => void;
-  copiedField: string | null;
-}) {
-  const { toast } = useToast();
-  const { requestSyraAuthForWallet, syraAuthReady, syraAuthenticated } = useSyraAuth();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [privateKey, setPrivateKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [statusLoading, setStatusLoading] = useState(true);
-  const [exportable, setExportable] = useState<boolean | null>(null);
-  const [statusReason, setStatusReason] = useState<string | undefined>();
-  const [requiresWalletAuth, setRequiresWalletAuth] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setStatusLoading(true);
-    void agentWalletApi
-      .getExportKeyStatus(activeAgent.anonymousId)
-      .then((status) => {
-        if (cancelled) return;
-        setExportable(status.exportable);
-        setStatusReason(status.reason);
-        setRequiresWalletAuth(Boolean(status.requiresWalletAuth));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setExportable(false);
-        setStatusReason(undefined);
-      })
-      .finally(() => {
-        if (!cancelled) setStatusLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAgent.anonymousId, syraAuthenticated]);
-
-  const handleModalOpenChange = useCallback((open: boolean) => {
-    setModalOpen(open);
-    if (!open) setPrivateKey(null);
-  }, []);
-
-  const handleShowPrivateKey = useCallback(async () => {
-    if (activeChain !== "solana") {
-      toast({
-        title: "Not available",
-        description: "Private key export is only supported for Solana agents.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const hardBlock = exportable === false && statusReason !== "auth_required";
-    if (hardBlock) {
-      toast({
-        title: "Cannot export",
-        description: exportKeyStatusMessage(statusReason),
-        variant: "destructive",
-      });
-      return;
-    }
-    if (privateKey) {
-      setModalOpen(true);
-      return;
-    }
-    setLoading(true);
-    try {
-      const linkedWallet = activeAgent.walletAddress?.trim();
-      if (requiresWalletAuth || statusReason === "auth_required") {
-        if (!linkedWallet) return;
-        const signIn = await requestSyraAuthForWallet(linkedWallet);
-        if (!signIn) return;
-      }
-      const result = await agentWalletApi.exportPrivateKey(activeAgent.anonymousId);
-      setPrivateKey(result.privateKeyBase58);
-      setModalOpen(true);
-    } catch (err) {
-      toast({
-        title: "Could not export key",
-        description: err instanceof Error ? err.message : "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    activeAgent.anonymousId,
-    activeChain,
-    requestSyraAuthForWallet,
-    exportable,
-    privateKey,
-    requiresWalletAuth,
-    statusReason,
-    toast,
-  ]);
-
-  if (activeChain !== "solana") return null;
-
-  return (
-    <>
-      <Card className={cn(overviewCardShell, "overflow-hidden border-amber-500/20 ring-1 ring-amber-500/10")}>
-      <CardHeader className="border-b border-border/40 pb-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10">
-            <KeyRound className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <CardTitle className="text-base font-semibold">Agent private key</CardTitle>
-            <CardDescription>
-              Export the Solana keypair for this agent wallet. Anyone with this key controls the treasury.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-5">
-        <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p>
-            Never share your agent private key. Store it securely if you import this wallet elsewhere. Syra cannot
-            recover a key you lose after export.
-          </p>
-        </div>
-
-        {statusLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            Checking export availability…
-          </div>
-        ) : exportable === false ? (
-          <p className="text-sm text-muted-foreground">{exportKeyStatusMessage(statusReason)}</p>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl gap-2 border-amber-500/30"
-            disabled={loading || !syraAuthReady}
-            onClick={() => void handleShowPrivateKey()}
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <KeyRound className="h-4 w-4" aria-hidden />
-            )}
-            Show private key
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-
-    <Dialog open={modalOpen} onOpenChange={handleModalOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Agent private key</DialogTitle>
-          <DialogDescription>
-            Base58 secret for{" "}
-            <span className="font-mono text-foreground/90">{shortenAddress(activeAgent.agentAddress, activeChain)}</span>.
-            Anyone with this key can control the agent treasury.
-          </DialogDescription>
-        </DialogHeader>
-        {privateKey ? (
-          <div className="space-y-3">
-            <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-              <p>Do not share this key or paste it into untrusted sites.</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Private key (base58)</Label>
-              <FieldShell className="max-h-32 overflow-y-auto font-mono text-xs leading-relaxed text-foreground/90 [&_span]:break-all">
-                <span>{privateKey}</span>
-              </FieldShell>
-            </div>
-          </div>
-        ) : null}
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" className="rounded-xl" onClick={() => handleModalOpenChange(false)}>
-            Close
-          </Button>
-          {privateKey ? (
-            <Button
-              type="button"
-              className="rounded-xl gap-2"
-              onClick={() => onCopy(privateKey, "Agent private key")}
-            >
-              {copiedField === "Agent private key" ? (
-                <Check className="h-4 w-4" aria-hidden />
-              ) : (
-                <Copy className="h-4 w-4" aria-hidden />
-              )}
-              Copy private key
-            </Button>
-          ) : null}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    </>
-  );
-}
-
-function CopyField({
-  label,
-  value,
-  display,
-  onCopy,
-  copied,
-  breakAll,
-}: {
-  label: string;
-  value: string;
-  display: string;
-  onCopy: (text: string, label: string) => void;
-  copied: boolean;
-  breakAll?: boolean;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex gap-2">
-        <FieldShell className={cn("min-w-0 flex-1 font-mono text-xs text-foreground/90", breakAll && "[&_span]:break-all")}>
-          <span className="truncate">{display}</span>
-        </FieldShell>
-        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-xl" onClick={() => onCopy(value, label)}>
-          {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
         </Button>
       </div>
     </div>

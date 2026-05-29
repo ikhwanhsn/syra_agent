@@ -1,5 +1,6 @@
 import express from "express";
 import { requireSession, optionalWalletSession } from "../utils/requireSession.js";
+import { resolveLpViewerAnonymousId } from "../libs/agentWalletPurpose.js";
 import {
   disableLpReal,
   enableLpReal,
@@ -32,9 +33,8 @@ export function createLpAgentRealRouter() {
         typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
           ? req.query.anonymousId.trim()
           : null;
-      const data = await getLpRealState({
-        viewerAnonymousId: req.user?.anonymousId ?? queryAid,
-      });
+      const viewerAnonymousId = resolveLpViewerAnonymousId(req.user ?? {}, queryAid);
+      const data = await getLpRealState({ viewerAnonymousId });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -50,9 +50,8 @@ export function createLpAgentRealRouter() {
         typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
           ? req.query.anonymousId.trim()
           : null;
-      const data = await getLpRealSummary({
-        viewerAnonymousId: req.user?.anonymousId ?? queryAid,
-      });
+      const viewerAnonymousId = resolveLpViewerAnonymousId(req.user ?? {}, queryAid);
+      const data = await getLpRealSummary({ viewerAnonymousId });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -75,12 +74,13 @@ export function createLpAgentRealRouter() {
         typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
           ? req.query.anonymousId.trim()
           : null;
+      const viewerAnonymousId = resolveLpViewerAnonymousId(req.user ?? {}, queryAid);
       const data = await listLpRealPositions({
         limit,
         offset,
         status,
         experimentId,
-        viewerAnonymousId: req.user?.anonymousId ?? queryAid,
+        viewerAnonymousId,
       });
       res.json({ success: true, data });
     } catch (e) {
@@ -97,12 +97,9 @@ export function createLpAgentRealRouter() {
         typeof req.body?.anonymousId === "string" && req.body.anonymousId.trim()
           ? req.body.anonymousId.trim()
           : null;
-      const anonymousId = req.user?.anonymousId ?? bodyAid;
+      const anonymousId = resolveLpViewerAnonymousId(req.user ?? {}, bodyAid);
       if (!anonymousId) {
         return res.status(401).json({ success: false, error: "auth_required" });
-      }
-      if (req.user?.anonymousId && bodyAid && bodyAid !== req.user.anonymousId) {
-        return res.status(403).json({ success: false, error: "anonymous_id_mismatch" });
       }
       const data = await enableLpReal({ anonymousId, enabledBy: anonymousId });
       res.json({ success: true, data });
@@ -131,12 +128,9 @@ export function createLpAgentRealRouter() {
         typeof req.body?.anonymousId === "string" && req.body.anonymousId.trim()
           ? req.body.anonymousId.trim()
           : null;
-      const anonymousId = req.user?.anonymousId ?? bodyAid;
+      const anonymousId = resolveLpViewerAnonymousId(req.user ?? {}, bodyAid);
       if (!anonymousId) {
         return res.status(401).json({ success: false, error: "auth_required" });
-      }
-      if (req.user?.anonymousId && bodyAid && bodyAid !== req.user.anonymousId) {
-        return res.status(403).json({ success: false, error: "anonymous_id_mismatch" });
       }
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const closeAll = Boolean(body.closeAll);

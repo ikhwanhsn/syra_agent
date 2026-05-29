@@ -294,10 +294,6 @@ export default function InternalAgentDetailPage() {
     );
   }
 
-  if (slug === "hackathon-scout") {
-    return <Navigate to="/internal-team-agents#hackathon-board" replace />;
-  }
-
   if (slug === "partnership-scout") {
     return <Navigate to="/internal-team-agents#partnership-board" replace />;
   }

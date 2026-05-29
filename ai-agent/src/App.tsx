@@ -14,7 +14,6 @@ import TradingAgentExperiment from "./pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "./pages/TradingAgentExperimentAgentProfile";
 import ArbitrageExperiment from "./pages/ArbitrageExperiment";
 import Alpha from "./pages/Alpha";
-import AlphaAccountDetail from "./pages/AlphaAccountDetail";
 import DashboardOverview from "./pages/DashboardOverview";
 import DashboardAgents from "./pages/DashboardAgents";
 import DashboardAgentDetail from "./pages/DashboardAgentDetail";
@@ -68,7 +67,7 @@ const App = () => (
                   <Route path="/lp-experiment/history" element={<Navigate to="/lp-experiment" replace />} />
                   <Route path="/lp-experiment" element={<LpAgentExperiment embedded />} />
                   <Route path="/lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile embedded />} />
-                  <Route path="/alpha/x/:username" element={<AlphaAccountDetail />} />
+                  <Route path="/alpha/x/:username" element={<Navigate to="/alpha" replace />} />
                   <Route path="/alpha" element={<Alpha />} />
                   <Route path="/assets" element={<AssetsPage embedded />} />
                   <Route path="/assets/:assetKey" element={<AssetDetailPage embedded />} />
@@ -78,7 +77,7 @@ const App = () => (
                   <Route path="/rise-experiment" element={<RiseExperiment embedded />} />
                   <Route path="/internal-team-agents" element={<InternalTeamAgentsMonitor />} />
                   <Route path="/internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
-                  <Route path="/internal-hackathons" element={<Navigate to="/internal-team-agents#hackathon-board" replace />} />
+                  <Route path="/internal-hackathons" element={<Navigate to="/internal-team-agents" replace />} />
                 </Route>
                 <Route path="/dashboard/*" element={<LegacyDashboardPrefixRedirect />} />
                 <Route path="/leaderboard" element={<Navigate to="/overview" replace />} />

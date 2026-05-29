@@ -41,6 +41,7 @@ import {
   getDefaultCustodyMode,
 } from '../../services/privyServerWallet.js';
 import { canonicalAnonymousId, resolveAgentWalletForUser } from '../../libs/agentWalletResolve.js';
+import { lpWalletResponseFields } from '../../libs/agentWalletProvision.js';
 import { normalizeAgentChain } from '../../libs/syraChains.js';
 
 const router = express.Router();
@@ -123,6 +124,7 @@ router.post('/sign-in', async (req, res) => {
           privyWalletId,
           custody: 'privy',
           status: 'active',
+          purpose: 'chat',
           destinationAllowlist: [address],
         });
       } else if (chain === 'bsc') {
@@ -141,6 +143,7 @@ router.post('/sign-in', async (req, res) => {
           custody: 'legacy',
           agentSecretKey: encryptAgentSecretForStorage(bs58.encode(kp.secretKey)),
           status: 'active',
+          purpose: 'chat',
           destinationAllowlist: [address],
         });
       }
@@ -179,6 +182,13 @@ router.post('/sign-in', async (req, res) => {
       userAgent: req.get('user-agent') || undefined,
     });
 
+    let lpFields = {};
+    try {
+      lpFields = await lpWalletResponseFields(sessionAnonymousId);
+    } catch (err) {
+      console.warn('[agent/auth] LP wallet provision failed:', err?.message ?? err);
+    }
+
     return res.json({
       success: true,
       accessToken,
@@ -186,6 +196,7 @@ router.post('/sign-in', async (req, res) => {
       anonymousId: sessionAnonymousId,
       agentAddress: wallet.agentAddress,
       chain,
+      ...lpFields,
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err?.message || 'sign_in_failed' });

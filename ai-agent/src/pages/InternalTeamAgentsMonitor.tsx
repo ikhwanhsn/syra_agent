@@ -15,9 +15,7 @@ import {
   isInternalTeamMonitorWallet,
 } from "@/constants/internalTeamMonitorWallet";
 import { requireInternalAgentMeta } from "@/lib/internalAgentsCatalog";
-import { InternalHackathonBoard } from "@/components/internal/InternalHackathonBoard";
 import { InternalPartnershipBoard } from "@/components/internal/InternalPartnershipBoard";
-import { fetchHackathonLatestRun } from "@/lib/hackathonScoutApi";
 import {
   fetchPartnershipScoutLatest,
   fetchTrendScoutLatest,
@@ -157,8 +155,8 @@ export default function InternalTeamAgentsMonitor() {
   const allowed = isInternalTeamMonitorWallet(address);
 
   useEffect(() => {
-    if (hash === "#hackathon-board") {
-      document.getElementById("hackathon-board")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (hash === "#partnership-board") {
+      document.getElementById("partnership-board")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [hash]);
 
@@ -172,13 +170,6 @@ export default function InternalTeamAgentsMonitor() {
   const partnershipQ = useQuery({
     queryKey: ["internal-team-agents", "partnership-scout"],
     queryFn: fetchPartnershipScoutLatest,
-    enabled: allowed,
-    staleTime: STALE_MS,
-  });
-
-  const hackathonRunQ = useQuery({
-    queryKey: ["hackathon-scout", "latest-run"],
-    queryFn: fetchHackathonLatestRun,
     enabled: allowed,
     staleTime: STALE_MS,
   });
@@ -231,7 +222,7 @@ export default function InternalTeamAgentsMonitor() {
 
   const trendStatus = queryRowStatus(trendQ);
   const partnershipStatus = queryRowStatus(partnershipQ);
-  const anyFetching = trendQ.isFetching || partnershipQ.isFetching || hackathonRunQ.isFetching;
+  const anyFetching = trendQ.isFetching || partnershipQ.isFetching;
 
   return (
     <div className={DASHBOARD_CONTENT_SHELL}>
@@ -242,8 +233,7 @@ export default function InternalTeamAgentsMonitor() {
               Internal agents
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Trend Scout 06:00 WIB · Partnership Scout 06:15 WIB · Hackathon Scout 06:30 WIB · Telegram
-              digests
+              Trend Scout 06:00 WIB · Partnership Scout 06:15 WIB · Telegram digests
             </p>
           </div>
           <Button
@@ -254,7 +244,6 @@ export default function InternalTeamAgentsMonitor() {
             onClick={() => {
               void trendQ.refetch();
               void partnershipQ.refetch();
-              void hackathonRunQ.refetch();
             }}
             disabled={anyFetching}
           >
@@ -271,7 +260,7 @@ export default function InternalTeamAgentsMonitor() {
           <CardHeader className="space-y-1 pb-2 pt-4 sm:pt-5">
             <CardTitle className="text-base font-semibold">Internal scouts</CardTitle>
             <CardDescription>
-              Daily pipelines for market narrative, partnerships, and hackathon discovery on X.
+              Daily pipelines for market narrative and on-chain partnership discovery.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0 sm:px-6">
@@ -303,28 +292,10 @@ export default function InternalTeamAgentsMonitor() {
               detailSlug="partnership-scout"
               detailTo="#partnership-board"
             />
-            <AgentRow
-              name={requireInternalAgentMeta("hackathon-scout").name}
-              subtitle={requireInternalAgentMeta("hackathon-scout").subtitle}
-              status={hackathonRunQ.isLoading ? "loading" : hackathonRunQ.isError ? "error" : hackathonRunQ.data?.data ? "ok" : "empty"}
-              lastRun={hackathonRunQ.data?.data?.ranAt}
-              stats={
-                hackathonRunQ.data?.data
-                  ? [
-                      { label: "Tweets sampled", value: hackathonRunQ.data.data.tweetsSampled },
-                      { label: "New saved", value: hackathonRunQ.data.data.newSaved },
-                    ]
-                  : []
-              }
-              errorMessage={hackathonRunQ.isError ? hackathonRunQ.error?.message : undefined}
-              detailSlug="hackathon-scout"
-              detailTo="#hackathon-board"
-            />
           </CardContent>
         </Card>
 
         <InternalPartnershipBoard />
-        <InternalHackathonBoard />
       </div>
     </div>
   );

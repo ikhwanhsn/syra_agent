@@ -1,6 +1,7 @@
 import { syraFetch } from "@/lib/agentAuthApi";
 import type { AgentChain } from "@/lib/agentWalletUi";
 import { normalizeAgentChain } from "@/lib/agentWalletUi";
+import type { AgentWalletPurpose } from "@/lib/agentWalletPurpose";
 
 export const getApiBaseUrl = () => {
   const env = import.meta.env?.VITE_API_URL;
@@ -361,6 +362,14 @@ export const chatApi = {
   },
 };
 
+/** LP wallet fields returned alongside chat wallet provisioning. */
+export type AgentWalletLpFields = {
+  lpAnonymousId?: string;
+  lpAgentAddress?: string;
+  lpAvatarUrl?: string | null;
+  lpIsNewWallet?: boolean;
+};
+
 /** Agent wallet API: get/create agent wallet by anonymousId or by connected wallet. Private key stored on server for permissionless x402. */
 export const agentWalletApi = {
   /** Get or create agent wallet by connected wallet address and chain (checks database first). */
@@ -373,7 +382,7 @@ export const agentWalletApi = {
     avatarUrl?: string | null;
     isNewWallet?: boolean;
     chain?: AgentChain;
-  }> {
+  } & AgentWalletLpFields> {
     const res = await syraFetch(`${agentWalletBase()}/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
@@ -386,6 +395,10 @@ export const agentWalletApi = {
       avatarUrl?: string | null;
       isNewWallet?: boolean;
       chain?: AgentChain;
+      lpAnonymousId?: string;
+      lpAgentAddress?: string;
+      lpAvatarUrl?: string | null;
+      lpIsNewWallet?: boolean;
     }>(res);
     return {
       anonymousId: data.anonymousId,
@@ -393,6 +406,10 @@ export const agentWalletApi = {
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
       chain: data.chain ? normalizeAgentChain(data.chain) : chain,
+      lpAnonymousId: data.lpAnonymousId,
+      lpAgentAddress: data.lpAgentAddress,
+      lpAvatarUrl: data.lpAvatarUrl ?? null,
+      lpIsNewWallet: data.lpIsNewWallet,
     };
   },
 
@@ -402,11 +419,76 @@ export const agentWalletApi = {
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
-  }> {
+    purpose?: AgentWalletPurpose;
+  } & AgentWalletLpFields> {
     const res = await fetch(agentWalletBase(), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify(anonymousId ? { anonymousId } : {}),
+    });
+    const data = await handleRes<{
+      success: boolean;
+      anonymousId: string;
+      agentAddress: string;
+      avatarUrl?: string | null;
+      isNewWallet?: boolean;
+      purpose?: AgentWalletPurpose;
+      lpAnonymousId?: string;
+      lpAgentAddress?: string;
+      lpAvatarUrl?: string | null;
+      lpIsNewWallet?: boolean;
+    }>(res);
+    return {
+      anonymousId: data.anonymousId,
+      agentAddress: data.agentAddress,
+      avatarUrl: data.avatarUrl ?? null,
+      isNewWallet: data.isNewWallet,
+      purpose: data.purpose ?? "chat",
+      lpAnonymousId: data.lpAnonymousId,
+      lpAgentAddress: data.lpAgentAddress,
+      lpAvatarUrl: data.lpAvatarUrl ?? null,
+      lpIsNewWallet: data.lpIsNewWallet,
+    };
+  },
+
+  /** Get or create LP agent wallet tied to the chat wallet anonymousId. */
+  async getOrCreateLp(chatAnonymousId: string): Promise<{
+    anonymousId: string;
+    agentAddress: string;
+    avatarUrl?: string | null;
+    isNewWallet?: boolean;
+  }> {
+    const res = await fetch(agentWalletBase(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
+      body: JSON.stringify({ anonymousId: chatAnonymousId, purpose: "lp" }),
+    });
+    const data = await handleRes<{
+      success: boolean;
+      anonymousId: string;
+      agentAddress: string;
+      avatarUrl?: string | null;
+      isNewWallet?: boolean;
+    }>(res);
+    return {
+      anonymousId: data.anonymousId,
+      agentAddress: data.agentAddress,
+      avatarUrl: data.avatarUrl ?? null,
+      isNewWallet: data.isNewWallet,
+    };
+  },
+
+  /** Get or create linked LP wallet for a connected Solana wallet (requires session). */
+  async getOrCreateLpByWallet(walletAddress: string): Promise<{
+    anonymousId: string;
+    agentAddress: string;
+    avatarUrl?: string | null;
+    isNewWallet?: boolean;
+  }> {
+    const res = await syraFetch(`${agentWalletBase()}/connect/lp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
+      body: JSON.stringify({ walletAddress }),
     });
     const data = await handleRes<{
       success: boolean;
@@ -755,6 +837,72 @@ export const agentWalletApi = {
       format: data.format,
       custody: data.custody,
     };
+  },
+
+  /** Get agent wallet metadata (status, purpose, custody). */
+  async getInfo(anonymousId: string): Promise<{
+    anonymousId: string;
+    agentAddress: string;
+    walletAddress: string | null;
+    chain: AgentChain;
+    purpose: AgentWalletPurpose;
+    status: string;
+    custody: string;
+    avatarUrl: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+  }> {
+    const res = await syraFetch(`${agentWalletBase()}/${encodeURIComponent(anonymousId)}`, {
+      headers: getApiHeaders(),
+    });
+    const data = await handleRes<{
+      success: boolean;
+      anonymousId: string;
+      agentAddress: string;
+      walletAddress?: string | null;
+      chain?: AgentChain;
+      purpose?: AgentWalletPurpose;
+      status?: string;
+      custody?: string;
+      avatarUrl?: string | null;
+      createdAt?: string | null;
+      updatedAt?: string | null;
+    }>(res);
+    return {
+      anonymousId: data.anonymousId,
+      agentAddress: data.agentAddress,
+      walletAddress: data.walletAddress ?? null,
+      chain: normalizeAgentChain(data.chain ?? "solana"),
+      purpose: data.purpose ?? "chat",
+      status: data.status ?? "active",
+      custody: data.custody ?? "legacy",
+      avatarUrl: data.avatarUrl ?? null,
+      createdAt: data.createdAt ?? null,
+      updatedAt: data.updatedAt ?? null,
+    };
+  },
+
+  /** Retire (remove) an agent wallet. Chat removal also retires the LP sibling by default. */
+  async retire(
+    anonymousId: string,
+    options?: { includeSibling?: boolean },
+  ): Promise<{
+    retired: Array<{ previousAnonymousId: string; retiredAnonymousId: string; purpose: AgentWalletPurpose }>;
+  }> {
+    const qs =
+      options?.includeSibling === false ? "?includeSibling=false" : "";
+    const res = await syraFetch(
+      `${agentWalletBase()}/${encodeURIComponent(anonymousId)}${qs}`,
+      {
+        method: "DELETE",
+        headers: getApiHeaders(),
+      },
+    );
+    const data = await handleRes<{
+      success: boolean;
+      retired: Array<{ previousAnonymousId: string; retiredAnonymousId: string; purpose: AgentWalletPurpose }>;
+    }>(res);
+    return { retired: data.retired ?? [] };
   },
 };
 

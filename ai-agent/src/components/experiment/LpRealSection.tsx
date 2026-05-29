@@ -161,7 +161,7 @@ function HistoryPagination({
 }
 
 export function LpRealSection() {
-  const { anonymousId, agentAddress, agentSolBalance } = useAgentWallet();
+  const { lpAnonymousId, lpAgentAddress, lpAgentSolBalance } = useAgentWallet();
   const { requestSyraAuth } = useSyraAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -171,21 +171,21 @@ export function LpRealSection() {
   const [historyPageSize, setHistoryPageSize] = useState(10);
 
   const stateQ = useQuery({
-    queryKey: ["lp-real", "state", anonymousId],
-    queryFn: () => fetchLpRealState(anonymousId),
-    enabled: Boolean(anonymousId),
+    queryKey: ["lp-real", "state", lpAnonymousId],
+    queryFn: () => fetchLpRealState(lpAnonymousId),
+    enabled: Boolean(lpAnonymousId),
     refetchInterval: 30_000,
   });
   const summaryQ = useQuery({
-    queryKey: ["lp-real", "summary", anonymousId],
-    queryFn: () => fetchLpRealSummary(anonymousId),
-    enabled: Boolean(anonymousId),
+    queryKey: ["lp-real", "summary", lpAnonymousId],
+    queryFn: () => fetchLpRealSummary(lpAnonymousId),
+    enabled: Boolean(lpAnonymousId),
     refetchInterval: 30_000,
   });
   const positionsQ = useQuery({
-    queryKey: ["lp-real", "positions", anonymousId],
-    queryFn: () => fetchLpRealPositions({ limit: 50, anonymousId }),
-    enabled: Boolean(anonymousId),
+    queryKey: ["lp-real", "positions", lpAnonymousId],
+    queryFn: () => fetchLpRealPositions({ limit: 50, anonymousId: lpAnonymousId }),
+    enabled: Boolean(lpAnonymousId),
     refetchInterval: 30_000,
   });
   const labQ = useQuery({
@@ -200,7 +200,7 @@ export function LpRealSection() {
     mutationFn: async () => {
       const auth = await requestSyraAuth();
       if (!auth?.anonymousId) throw new Error("wallet_sign_in_required");
-      return disableLpReal({ closeAll: true });
+      return disableLpReal({ closeAll: true, anonymousId: lpAnonymousId ?? undefined });
     },
     onSuccess: () => {
       setStopAllOpen(false);
@@ -216,12 +216,12 @@ export function LpRealSection() {
   });
 
   const config = stateQ.data?.config;
-  const agentAddr = config?.agentAddress ?? agentAddress ?? "";
+  const agentAddr = config?.agentAddress ?? lpAgentAddress ?? "";
   const minBank = stateQ.data?.minBankSol ?? config?.targetBankSol ?? 10;
   const minEntry =
     stateQ.data?.minWalletToStartSol ??
     (config?.maxPositionSol ?? 1) + (config?.reserveSolForFees ?? 0.05) + 0.15;
-  const onChainBalanceSol = Math.max(stateQ.data?.onChainBalanceSol ?? 0, agentSolBalance ?? 0);
+  const onChainBalanceSol = Math.max(stateQ.data?.onChainBalanceSol ?? 0, lpAgentSolBalance ?? 0);
   const walletEquitySol = stateQ.data?.walletEquitySol ?? onChainBalanceSol;
   const deployedSol = stateQ.data?.deployedSol ?? 0;
   const totalCapitalSol = stateQ.data?.totalCapitalSol ?? walletEquitySol + deployedSol;
@@ -231,8 +231,8 @@ export function LpRealSection() {
   const canOpenNewPositions = stateQ.data?.canOpenNewPositions ?? stateQ.data?.canEnable ?? false;
   const canTurnOn = stateQ.data?.canTurnOn ?? (canOpenNewPositions || openPositionsCount > 0);
   const enabled = Boolean(config?.enabled);
-  const hasAgentWallet = Boolean(agentAddr || anonymousId);
-  const loading = Boolean(anonymousId) && (stateQ.isLoading || summaryQ.isLoading);
+  const hasAgentWallet = Boolean(agentAddr || lpAnonymousId);
+  const loading = Boolean(lpAnonymousId) && (stateQ.isLoading || summaryQ.isLoading);
   const failed = stateQ.isError;
 
   const lpState: LpRealState | undefined = useMemo(() => {

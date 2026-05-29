@@ -164,7 +164,6 @@ const RATE_LIMIT_INFO = {
       '/internal/tester-agent*',
       '/internal/trend-scout/run',
       '/internal/partnership-scout/run',
-      '/internal/hackathon-scout/run',
       '/uponly-rise-market*',
       '/uponly-rise-portfolio*',
     ],
