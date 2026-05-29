@@ -102,6 +102,7 @@ import {
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
 import { buildGatewayOpenApi } from "./libs/gatewayOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
+import { buildShadowfeedFeedsManifest } from "./config/shadowfeedDiscovery.js";
 import { shadowfeedPartnerMiddleware } from "./utils/shadowfeedPartner.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1121,6 +1122,14 @@ app.get("/mpp-openapi.json", (_req, res) => {
 // X402 Jobs verification
 app.get("/.well-known/x402-verification.json", (req, res) => {
   res.json({ x402: "8ab3d1b3906d" });
+});
+
+// ShadowFeed provider discovery manifest (Step 9 onboarding)
+// https://docs.shadowfeed.app/providers/onboarding#step-9--publish-your-discovery-manifest
+app.get("/.well-known/shadowfeed-feeds.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+  res.json(buildShadowfeedFeedsManifest());
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)

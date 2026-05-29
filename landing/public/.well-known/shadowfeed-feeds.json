@@ -1,0 +1,169 @@
+{
+  "version": "1",
+  "provider": {
+    "name": "Syra",
+    "handle": "syra",
+    "description": "AI-native crypto intelligence — news, signals, sentiment, and agent tools for traders on Solana.",
+    "website": "https://syraa.fun",
+    "api": "https://api.syraa.fun",
+    "twitter_handle": "@syraa_ai",
+    "contact_email": "hello@syraa.fun"
+  },
+  "partnerships": [
+    {
+      "marketplace": "shadowfeed",
+      "marketplace_url": "https://shadowfeed.app",
+      "marketplace_handle": "syra",
+      "marketplace_verification_url": "https://api.shadowfeed.app/providers/syra/manifest",
+      "integration_mode": "partner_bridge",
+      "partner_endpoint": "https://api.syraa.fun"
+    },
+    {
+      "marketplace": "x402",
+      "marketplace_url": "https://x402.org",
+      "marketplace_handle": "syra",
+      "integration_mode": "direct",
+      "partner_endpoint": "https://api.syraa.fun",
+      "notes": "Direct USDC micropayments on Solana and Base via HTTP 402."
+    }
+  ],
+  "feeds": [
+    {
+      "slug": "brain",
+      "name": "Syra Brain",
+      "category": "ai",
+      "path": "/brain",
+      "method": "POST",
+      "suggested_price_stx": 0.01,
+      "description": "AI agent with tool selection — ask crypto questions, get grounded answers."
+    },
+    {
+      "slug": "news",
+      "name": "Crypto News",
+      "category": "news",
+      "path": "/news",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "Curated crypto news headlines and summaries."
+    },
+    {
+      "slug": "signal",
+      "name": "Trading Signal",
+      "category": "signals",
+      "path": "/signal",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "Real-time trading signals for Solana and crypto markets."
+    },
+    {
+      "slug": "sentiment",
+      "name": "Market Sentiment",
+      "category": "analytics",
+      "path": "/sentiment",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "30-day sentiment analysis for crypto tickers."
+    },
+    {
+      "slug": "event",
+      "name": "Crypto Events",
+      "category": "news",
+      "path": "/event",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "Upcoming and recent crypto events calendar."
+    },
+    {
+      "slug": "trending-headline",
+      "name": "Trending Headlines",
+      "category": "news",
+      "path": "/trending-headline",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "Trending crypto headlines right now."
+    },
+    {
+      "slug": "sundown-digest",
+      "name": "Sundown Digest",
+      "category": "news",
+      "path": "/sundown-digest",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "End-of-day crypto market digest."
+    },
+    {
+      "slug": "health",
+      "name": "API Health",
+      "category": "health",
+      "path": "/health",
+      "method": "GET",
+      "suggested_price_stx": 0.003,
+      "description": "Paid liveness probe — verify Syra API is operational."
+    },
+    {
+      "slug": "mpp-health",
+      "name": "MPP Health Check",
+      "category": "health",
+      "path": "/mpp/v1/health",
+      "method": "GET",
+      "suggested_price_stx": 0.003,
+      "description": "Machine Payments Protocol test lane (x402 v2 compatible)."
+    },
+    {
+      "slug": "arbitrage",
+      "name": "Arbitrage Experiment",
+      "category": "analytics",
+      "path": "/arbitrage",
+      "method": "GET",
+      "suggested_price_stx": 0.01,
+      "description": "Cross-venue arbitrage route rankings and snapshots."
+    },
+    {
+      "slug": "analytics-summary",
+      "name": "Analytics Summary",
+      "category": "analytics",
+      "path": "/analytics/summary",
+      "method": "GET",
+      "suggested_price_stx": 0.01,
+      "description": "Bundled analytics: trending tokens, smart money, correlation."
+    },
+    {
+      "slug": "x",
+      "name": "X (Twitter) API",
+      "category": "social",
+      "path": "/x",
+      "method": "GET",
+      "suggested_price_stx": 0.005,
+      "description": "X profile lookup, search, and recent tweets proxy."
+    },
+    {
+      "slug": "x-analyzer",
+      "name": "X Project Analyzer",
+      "category": "social",
+      "path": "/x-analyzer",
+      "method": "GET",
+      "suggested_price_stx": 0.008,
+      "description": "Deterministic 0–100 project score from X profile and tweets."
+    }
+  ],
+  "supported_payments": [
+    {
+      "scheme": "partner_bridge",
+      "marketplace": "shadowfeed",
+      "asset": "STX",
+      "settlement_network": "stacks:mainnet"
+    },
+    {
+      "scheme": "exact",
+      "marketplace": "syra",
+      "asset": "USDC",
+      "settlement_network": "solana:mainnet"
+    },
+    {
+      "scheme": "exact",
+      "marketplace": "syra",
+      "asset": "USDC",
+      "settlement_network": "eip155:8453"
+    }
+  ]
+}
