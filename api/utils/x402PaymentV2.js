@@ -31,6 +31,7 @@ import {
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
+import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -477,6 +478,11 @@ async function settleSolanaPaymentLocally(payload, accepted) {
 export function requirePayment(options) {
   return async (req, res, next) => {
     try {
+      if (isShadowfeedPartnerRequest(req)) {
+        markShadowfeedPartnerBypass(req);
+        return next();
+      }
+
       await ensureX402ForReq(req);
       const bundle = getX402BundleForReq(req);
       const { resourceServer, config, assets } = bundle;
@@ -637,6 +643,9 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
  * @returns {Promise<{ success: boolean, payer?: string, errorReason?: string }>}
  */
 export async function settlePaymentWithFallback(payload, accepted, req) {
+  if (isShadowfeedPartnerRequest(req)) {
+    return { success: true, scheme: "shadowfeed-partner" };
+  }
   try {
     return await tryFacilitatorThenLocalSettle(payload, accepted, req);
   } catch (e) {
@@ -663,6 +672,10 @@ export async function settlePaymentWithFallback(payload, accepted, req) {
  * @returns {Promise<{ success: boolean, payer?: string, errorReason?: string }>} settle result (e.g. payer for leaderboard)
  */
 export async function settlePaymentAndSetResponse(res, req) {
+  if (isShadowfeedPartnerRequest(req)) {
+    req._requestInsightPaid = true;
+    return { success: true, scheme: "shadowfeed-partner" };
+  }
   const { payload, accepted } = req.x402Payment;
   let settle;
   try {
@@ -729,6 +742,7 @@ export function runAfterResponse(fn) {
 export function runBuybackForRequest(req) {
   if (process.env.NODE_ENV !== "production") return;
   if (isTesterAgentInternalProbeRequest(req)) return;
+  if (isShadowfeedPartnerRequest(req)) return;
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0) {
     runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));

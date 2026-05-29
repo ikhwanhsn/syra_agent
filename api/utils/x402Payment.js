@@ -14,6 +14,7 @@
 import { X402PaymentHandler } from "x402-solana/server";
 import dotenv from "dotenv";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
+import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 
 dotenv.config();
 
@@ -91,6 +92,11 @@ const x402 = new X402PaymentHandler({
 export function requirePayment(options) {
   return async (req, res, next) => {
     try {
+      if (isShadowfeedPartnerRequest(req)) {
+        markShadowfeedPartnerBypass(req);
+        return next();
+      }
+
       // 1. Extract payment header from request (V1 uses X-PAYMENT)
       const paymentHeader = req.headers["x-payment"] || x402.extractPayment(req.headers);
 

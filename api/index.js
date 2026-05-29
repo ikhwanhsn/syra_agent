@@ -102,6 +102,7 @@ import {
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
 import { buildGatewayOpenApi } from "./libs/gatewayOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
+import { shadowfeedPartnerMiddleware } from "./utils/shadowfeedPartner.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -216,6 +217,14 @@ const CORS_OPTIONS_X402 = {
     "x-payer-address",
     "X-Admin-Wallet",
     "x-admin-wallet",
+    "X-Sf-Partner",
+    "x-sf-partner",
+    "X-Sf-Timestamp",
+    "x-sf-timestamp",
+    "X-Sf-Nonce",
+    "x-sf-nonce",
+    "X-Sf-Signature",
+    "x-sf-signature",
   ],
 };
 const CORS_OPTIONS_REGULAR = {
@@ -266,6 +275,14 @@ const CORS_OPTIONS_REGULAR = {
     "x-payer-address",
     "X-Admin-Wallet",
     "x-admin-wallet",
+    "X-Sf-Partner",
+    "x-sf-partner",
+    "X-Sf-Timestamp",
+    "x-sf-timestamp",
+    "X-Sf-Nonce",
+    "x-sf-nonce",
+    "X-Sf-Signature",
+    "x-sf-signature",
   ],
 };
 
@@ -591,7 +608,19 @@ app.post(
   },
 );
 
-app.use(express.json({ limit: "200kb" })); // Prevent large-payload DoS
+app.use(express.json({
+  limit: "200kb",
+  verify: (req, _res, buf) => {
+    if (buf?.length) req.rawBody = buf;
+  },
+})); // Prevent large-payload DoS; rawBody used by ShadowFeed HMAC for POST bodies
+
+// ShadowFeed Partner Bridge: verify HMAC before x402 payment on paid routes.
+// Must run after body parser so POST body hash matches raw bytes (req.rawBody).
+app.use((req, res, next) => {
+  if (!isX402Route(req.path)) return next();
+  return shadowfeedPartnerMiddleware()(req, res, next);
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 // Request insight tracking (volume, errors, latency) for dashboard – fire-and-forget on response finish

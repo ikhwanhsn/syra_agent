@@ -21,6 +21,7 @@ import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
+import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 
 const require = createRequire(import.meta.url);
 const { deriveAgent, deriveEscrow } = require("@oobe-protocol-labs/synapse-sap-sdk/pda");
@@ -159,6 +160,10 @@ export async function verifySapEscrowRequest(req) {
  */
 export function requirePaymentSapEscrowOrExact(requirePaymentFn, options) {
   return async (req, res, next) => {
+    if (isShadowfeedPartnerRequest(req)) {
+      markShadowfeedPartnerBypass(req);
+      return next();
+    }
     if (!isSapEscrowRequest(req)) {
       return requirePaymentFn(options)(req, res, next);
     }
@@ -191,6 +196,10 @@ function runAfterResponse(fn) {
  * @param {string} serviceData - hashed for on-chain service_hash (e.g. JSON with route + idempotency)
  */
 export async function settleSapEscrowOrFacilitator(res, req, serviceData) {
+  if (isShadowfeedPartnerRequest(req)) {
+    req._requestInsightPaid = true;
+    return { success: true, scheme: "shadowfeed-partner" };
+  }
   if (req.x402Payment?.kind !== "sap-escrow") {
     return settlePaymentAndSetResponse(res, req);
   }
