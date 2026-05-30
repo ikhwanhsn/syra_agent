@@ -3,9 +3,10 @@
 import { useEffect, useMemo } from "react";
 import { StatsCard } from "@/components/StatsCard";
 import { useStakingProtocolSummary } from "@/hooks/useStakingProtocolSummary";
-import { formatCompactAmount, formatUnits } from "@/lib/format";
+import { formatCompactAmount, formatCompactAmountFloor, formatUnits } from "@/lib/format";
 import type { UserLockRow } from "@/lib/streamflowStaking";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
+import { STREAMFLOW_LOCK_SOL_RECOMMENDED } from "@/lib/streamflowStaking";
 
 function sumLockAmountRaw(locks: UserLockRow[]): bigint {
   let total = BigInt(0);
@@ -46,6 +47,7 @@ export interface StakingStatsStripProps {
   walletBalanceFormatted: string;
   /** Max lockable after Streamflow fees (shown as "available to lock"). */
   maxLockableFormatted: string;
+  solBalanceFormatted?: string;
   /** Increment to refetch protocol totals (e.g. after a new lock). */
   refreshNonce?: number;
 }
@@ -58,6 +60,7 @@ export function StakingStatsStrip({
   openLocks,
   walletBalanceFormatted,
   maxLockableFormatted,
+  solBalanceFormatted,
   refreshNonce = 0,
 }: StakingStatsStripProps) {
   const { summary, loading: protocolLoading, refetch } = useStakingProtocolSummary();
@@ -96,7 +99,7 @@ export function StakingStatsStrip({
     : "—";
 
   const availableToLockDisplay = connected
-    ? `${formatCompactAmount(maxLockableFormatted)} ${symbol}`
+    ? `${formatCompactAmountFloor(maxLockableFormatted)} ${symbol}`
     : "—";
 
   const walletBalanceDisplay = connected
@@ -135,7 +138,9 @@ export function StakingStatsStrip({
           value={availableToLockDisplay}
           subValue={
             connected
-              ? `Wallet balance ${walletBalanceDisplay} · ${STREAMFLOW_CONFIG.lockDurationLabel}`
+              ? solBalanceFormatted
+                ? `Wallet ${walletBalanceDisplay} · SOL ${solBalanceFormatted} (need ~${STREAMFLOW_LOCK_SOL_RECOMMENDED})`
+                : `Wallet balance ${walletBalanceDisplay} · ${STREAMFLOW_CONFIG.lockDurationLabel}`
               : "Connect wallet to lock"
           }
         />

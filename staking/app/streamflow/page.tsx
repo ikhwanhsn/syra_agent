@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useTheme } from "@/app/ThemeContext";
 import { StakingShell } from "@/components/StakingShell";
 import { StakingStatsStrip } from "@/components/StakingStatsStrip";
+import {
+  parseStakeErrorForNotify,
+  StakePreflightChecklist,
+} from "@/components/StakePreflightChecklist";
 import { useStreamflowStaking } from "@/hooks/useStreamflowStaking";
 import type { UserLockRow } from "@/lib/streamflowStaking";
 import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { CONFIG } from "@/constants/config";
-import { formatCompactAmount, formatUnits, parseUnits } from "@/lib/format";
+import { formatCompactAmount, formatCompactAmountFloor, formatUnits, parseUnits } from "@/lib/format";
 import { toast } from "sonner";
 
 const EXPLORER_TX = (sig: string) =>
@@ -188,6 +192,9 @@ export default function StreamflowStakingPage() {
     maxLockableFormatted,
     maxLockableRaw,
     tokenDecimals: onChainDecimals,
+    readiness,
+    readinessLoading,
+    refreshReadiness,
     loading,
     actionLoading,
     error,
@@ -215,7 +222,7 @@ export default function StreamflowStakingPage() {
 
   const sortedLocks = useMemo(() => locks, [locks]);
   const maxLockableCompact = useMemo(
-    () => formatCompactAmount(maxLockableFormatted),
+    () => formatCompactAmountFloor(maxLockableFormatted),
     [maxLockableFormatted]
   );
 
@@ -224,9 +231,29 @@ export default function StreamflowStakingPage() {
     return walletBalanceRaw > maxLockableRaw;
   }, [connected, walletBalanceRaw, maxLockableRaw]);
 
+  useEffect(() => {
+    if (!connected) return;
+    const timer = window.setTimeout(() => {
+      void refreshReadiness(amount);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [connected, amount, refreshReadiness, maxLockableRaw, walletBalanceRaw]);
+
+  const lockBlocked = connected && readiness != null && !readiness.canLock && amount.trim().length > 0;
+
   const handleLock = async () => {
     if (!connected) {
       toast.error("Connect your wallet first");
+      return;
+    }
+    const preflight = await refreshReadiness(amount);
+    if (preflight && !preflight.canLock && amount.trim()) {
+      const firstError = preflight.issues.find((i) => i.severity === "error");
+      toast.error(
+        firstError
+          ? `${firstError.title} — ${firstError.fix}`
+          : "Fix the checklist items before locking."
+      );
       return;
     }
     try {
@@ -266,8 +293,13 @@ export default function StreamflowStakingPage() {
       );
       setAmount("");
       setStatsRefreshNonce((n) => n + 1);
+      void refreshReadiness("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Lock failed");
+      const parsed = parseStakeErrorForNotify(e);
+      toast.error(parsed.title, {
+        description: parsed.description,
+        duration: parsed.durationMs,
+      });
     }
   };
 
@@ -308,7 +340,7 @@ export default function StreamflowStakingPage() {
             </div>
             {error ? (
               <div
-                className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+                className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive whitespace-pre-line"
                 role="alert"
               >
                 {error}
@@ -324,6 +356,7 @@ export default function StreamflowStakingPage() {
             openLocks={sortedLocks}
             walletBalanceFormatted={walletBalanceFormatted}
             maxLockableFormatted={maxLockableFormatted}
+            solBalanceFormatted={readiness?.solBalanceFormatted}
             refreshNonce={statsRefreshNonce}
           />
 
@@ -360,16 +393,16 @@ export default function StreamflowStakingPage() {
                       <button
                         type="button"
                         className="w-full text-left text-xs text-muted-foreground transition hover:text-foreground sm:w-auto sm:text-right"
-                        title={maxLockableFormatted}
+                        title={`Exact max: ${maxLockableFormatted} ${symbol}`}
                         onClick={() => void applyBalanceFraction(1n, 1n)}
                         disabled={!connected || maxLockableRaw <= 0n}
                       >
                         <span className="font-medium text-foreground tabular-nums">
-                          {maxLockableCompact}
+                          {maxLockableFormatted}
                         </span>{" "}
                         {symbol} available to lock
                         <span className="block text-[10px] font-normal text-muted-foreground/90">
-                          after Streamflow fees · tap for Max
+                          ~{maxLockableCompact} after Streamflow fees · tap for Max
                         </span>
                       </button>
                     </div>
@@ -418,21 +451,23 @@ export default function StreamflowStakingPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-border/50 bg-muted/25 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                    Streamflow adds a small{" "}
-                    <span className="font-medium text-foreground">{symbol}</span> fee on top of
-                    your lock amount, plus a{" "}
-                    <span className="font-medium text-foreground">SOL</span> network fee for the
-                    contract. Keep spare SOL in this wallet and prefer{" "}
-                    <span className="font-medium text-foreground">Max</span> for the exact
-                    lockable amount.
-                  </div>
+                  <StakePreflightChecklist
+                    symbol={symbol}
+                    readiness={readiness}
+                    loading={readinessLoading}
+                    connected={connected}
+                  />
 
                   <div className="mt-auto space-y-3 pt-2">
                     <button
                       type="button"
                       onClick={() => void handleLock()}
-                      disabled={!connected || actionLoading || loading}
+                      disabled={
+                        !connected ||
+                        actionLoading ||
+                        loading ||
+                        (lockBlocked && amount.trim().length > 0)
+                      }
                       className="btn-primary min-h-[52px] w-full touch-manipulation px-5 py-4 text-base active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       <span className="relative z-10 flex flex-col items-center gap-0.5">
@@ -456,6 +491,12 @@ export default function StreamflowStakingPage() {
                         )}
                       </span>
                     </button>
+                    {lockBlocked ? (
+                      <p className="text-center text-xs leading-relaxed text-destructive" role="status">
+                        {readiness?.issues.find((i) => i.severity === "error")?.title ?? "Fix checklist items above"} — see
+                        how to fix in the red boxes.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </section>

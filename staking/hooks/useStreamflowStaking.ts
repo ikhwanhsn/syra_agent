@@ -7,9 +7,13 @@ import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import { formatUnits, parseUnits } from "@/lib/format";
 import {
   createTokenLockStake,
+  evaluateStakeReadiness,
   fetchMaxLockableRaw,
   fetchUserTokenLocksAll,
   mapStreamflowError,
+  resolveStakeAmountRaw,
+  StakeLockError,
+  type StakeReadiness,
   type UserLockRow,
 } from "@/lib/streamflowStaking";
 import {
@@ -79,6 +83,10 @@ export interface StreamflowStakingState {
   /** Max lockable amount after Streamflow fees (used by Max/50% buttons). */
   refreshMaxLockAmount: () => Promise<{ maxLockable: bigint; decimals: number }>;
   lockTokens: (amount: string, lockDurationSeconds: number) => Promise<LockTokensResult>;
+  /** Live pre-flight: SOL fees, SYRA max, amount validation. */
+  readiness: StakeReadiness | null;
+  readinessLoading: boolean;
+  refreshReadiness: (amount?: string) => Promise<StakeReadiness | null>;
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
@@ -95,6 +103,8 @@ export function useStreamflowStaking(): StreamflowStakingState {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<StakeReadiness | null>(null);
+  const [readinessLoading, setReadinessLoading] = useState(false);
   const fetchedWalletRef = useRef<string | null>(null);
 
   const decimals = mintDecimals;
@@ -148,6 +158,27 @@ export function useStreamflowStaking(): StreamflowStakingState {
       return { maxLockable: BigInt(0), decimals: mintDecimals };
     }
   }, [connection, publicKey, mintDecimals]);
+
+  const refreshReadiness = useCallback(
+    async (amountInput = ""): Promise<StakeReadiness | null> => {
+      if (!publicKey) {
+        setReadiness(null);
+        return null;
+      }
+      setReadinessLoading(true);
+      try {
+        const result = await evaluateStakeReadiness(connection, publicKey, amountInput);
+        setReadiness(result);
+        return result;
+      } catch {
+        setReadiness(null);
+        return null;
+      } finally {
+        setReadinessLoading(false);
+      }
+    },
+    [connection, publicKey]
+  );
 
   const fetchLocks = useCallback(async () => {
     if (!publicKey) {
@@ -238,12 +269,13 @@ export function useStreamflowStaking(): StreamflowStakingState {
     try {
       await fetchBalance();
       await fetchLocks();
+      await refreshReadiness("");
     } catch {
       // non-fatal
     } finally {
       setLoading(false);
     }
-  }, [publicKey, fetchBalance, fetchLocks]);
+  }, [publicKey, fetchBalance, fetchLocks, refreshReadiness]);
 
   const walletKey = publicKey?.toBase58() ?? null;
   useEffect(() => {
@@ -294,16 +326,27 @@ export function useStreamflowStaking(): StreamflowStakingState {
       setMaxLockableRaw(maxLockable);
       setMintDecimals(stakeDecimals);
 
-      let raw = parseUnits(amount.trim(), stakeDecimals);
-      if (raw <= BigInt(0)) throw new Error("Enter a valid amount");
-      if (raw <= BigInt(1)) {
-        throw new Error("Amount too small for Streamflow (minimum 2 base units)");
+      const requestedRaw = parseUnits(amount.trim(), stakeDecimals);
+      if (requestedRaw <= BigInt(0)) {
+        throw new StakeLockError({
+          code: "amount_empty",
+          title: "Enter an amount",
+          message: "Choose how much to lock or tap Max.",
+          fix: "Tap Max to use the highest lockable amount.",
+        });
       }
-      let preClamped = false;
-      if (raw > maxLockable) {
-        raw = maxLockable;
-        preClamped = true;
+      if (requestedRaw <= BigInt(1)) {
+        throw new StakeLockError({
+          code: "amount_too_low",
+          title: "Amount too small",
+          message: "Streamflow requires more than 2 base units.",
+          fix: "Enter a larger amount or tap Max.",
+        });
       }
+
+      const resolved = await resolveStakeAmountRaw(connection, publicKey, requestedRaw);
+      let raw = resolved.amountRaw;
+      let preClamped = resolved.wasClamped;
       setActionLoading(true);
       setError(null);
       try {
@@ -345,7 +388,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
         return { txId, wasClamped: wasClamped || preClamped, amountFormatted };
       } catch (e) {
         const mapped = mapStreamflowError(e, STREAMFLOW_CONFIG.tokenSymbol);
-        setError(mapped.message);
+        setError(mapped.displayMessage());
         throw mapped;
       } finally {
         setActionLoading(false);
@@ -374,6 +417,9 @@ export function useStreamflowStaking(): StreamflowStakingState {
     refreshBalance: fetchBalance,
     refreshMaxLockAmount,
     lockTokens,
+    readiness,
+    readinessLoading,
+    refreshReadiness,
     loading,
     actionLoading,
     error,

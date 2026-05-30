@@ -23,8 +23,88 @@ import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 
 type StreamflowCreateExt = Parameters<SolanaStreamClient["create"]>[1];
 
-/** Minimum SOL required for Streamflow metadata + escrow rent. */
-const MIN_SOL_FOR_LOCK_LAMPORTS = Math.floor(0.005 * LAMPORTS_PER_SOL);
+const TOKEN_PROGRAM_ID_STR = TOKEN_PROGRAM_ID.toBase58().toLowerCase();
+const SYSTEM_PROGRAM_ID_STR = "11111111111111111111111111111111";
+
+/**
+ * Streamflow charges ~0.16 SOL service fee + ~0.015 SOL network fee per lock.
+ * Paid by the staker's wallet in SOL — not a Syra subscription.
+ */
+export const STREAMFLOW_LOCK_SOL_RECOMMENDED = 0.18;
+export const STREAMFLOW_LOCK_SOL_MIN_LAMPORTS = Math.floor(
+  STREAMFLOW_LOCK_SOL_RECOMMENDED * LAMPORTS_PER_SOL
+);
+
+export type StakeIssueCode =
+  | "wallet_disconnected"
+  | "no_sol"
+  | "low_sol"
+  | "no_syra_account"
+  | "syra_scattered"
+  | "no_syra_balance"
+  | "amount_empty"
+  | "amount_too_low"
+  | "amount_too_high"
+  | "insufficient_syra"
+  | "insufficient_sol"
+  | "simulation_failed"
+  | "network"
+  | "user_rejected"
+  | "unknown";
+
+export interface StakeReadinessIssue {
+  code: StakeIssueCode;
+  severity: "error" | "warning";
+  title: string;
+  detail: string;
+  fix: string;
+}
+
+export interface StakeReadiness {
+  canLock: boolean;
+  solBalanceLamports: number;
+  solRequiredLamports: number;
+  solBalanceFormatted: string;
+  solRequiredFormatted: string;
+  feePercent: number;
+  walletBalanceRaw: bigint;
+  walletBalanceFormatted: string;
+  maxLockableRaw: bigint;
+  maxLockableFormatted: string;
+  requestedRaw: bigint;
+  requestedFormatted: string;
+  /** Extra SYRA debited beyond lock amount (Streamflow token fee). */
+  estimatedSyraFeeFormatted: string;
+  issues: StakeReadinessIssue[];
+}
+
+export class StakeLockError extends Error {
+  readonly code: StakeIssueCode;
+  readonly fix: string;
+  readonly title: string;
+
+  constructor(args: {
+    code: StakeIssueCode;
+    title: string;
+    message: string;
+    fix: string;
+  }) {
+    super(args.message);
+    this.name = "StakeLockError";
+    this.code = args.code;
+    this.title = args.title;
+    this.fix = args.fix;
+  }
+
+  /** Full user-facing block: title, detail, and fix. */
+  displayMessage(): string {
+    return `${this.title}\n\n${this.message}\n\nHow to fix: ${this.fix}`;
+  }
+}
+
+function formatSol(lamports: number, digits = 4): string {
+  return `${(lamports / LAMPORTS_PER_SOL).toFixed(digits)} SOL`;
+}
 
 const FEE_MULTIPLIER_BN = new BN(1_000_000);
 const FEE_NORMALIZER = 10_000;
@@ -290,51 +370,112 @@ export interface CreateLockStakeResult {
   wasClamped: boolean;
 }
 
+function classifyInsufficientFundsCause(logs: string[]): "sol" | "token" | "ambiguous" {
+  const haystack = logs.join("\n").toLowerCase();
+  const mentionsSol =
+    haystack.includes(SYSTEM_PROGRAM_ID_STR) ||
+    haystack.includes("system program") ||
+    haystack.includes("insufficient lamports");
+  const mentionsToken =
+    haystack.includes(TOKEN_PROGRAM_ID_STR) ||
+    haystack.includes("token program") ||
+    haystack.includes("spl-token");
+
+  if (mentionsSol && !mentionsToken) return "sol";
+  if (mentionsToken && !mentionsSol) return "token";
+  return "ambiguous";
+}
+
 /**
- * Translate raw Streamflow / Solana send errors into clear user-facing strings.
- * Falls back to the original message if no known pattern is found.
+ * Translate raw Streamflow / Solana send errors into clear, actionable StakeLockError.
  */
-export function mapStreamflowError(err: unknown, symbol: string): Error {
+export function mapStreamflowError(err: unknown, symbol: string): StakeLockError {
+  if (err instanceof StakeLockError) return err;
+
   const raw = err instanceof Error ? err.message : String(err);
-  const logs: string[] | undefined =
+  const logs: string[] =
     err && typeof err === "object" && "logs" in err
-      ? ((err as { logs?: string[] }).logs ?? undefined)
-      : undefined;
-  const haystack = [raw, ...(logs ?? [])].join("\n").toLowerCase();
+      ? ((err as { logs?: string[] }).logs ?? [])
+      : [];
+  const haystack = [raw, ...logs].join("\n").toLowerCase();
 
   if (haystack.includes("insufficient funds") || haystack.includes("insufficientfunds")) {
-    const mentionsSol =
-      haystack.includes("system program") ||
-      haystack.includes("11111111111111111111111111111111");
-    if (mentionsSol) {
-      return new Error(
-        "Not enough SOL in this wallet to pay Streamflow account rent. " +
-          "Keep at least 0.005 SOL and try again."
-      );
+    const cause = classifyInsufficientFundsCause([haystack, ...logs]);
+
+    if (cause === "sol") {
+      return new StakeLockError({
+        code: "insufficient_sol",
+        title: "Not enough SOL for Streamflow fees",
+        message:
+          `This wallet does not have enough SOL to pay Streamflow's lock fee ` +
+          `(~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL per lock: service + network + rent). ` +
+          `Syra does not charge a separate subscription — the staker pays Streamflow in SOL when signing.`,
+        fix: `Add at least ${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL to this wallet, then try again.`,
+      });
     }
-    return new Error(
-      `Insufficient ${symbol} in your token account for this lock. ` +
-        `Use Max (not your full wallet display if it includes other tokens) or enter a smaller amount.`
-    );
+
+    if (cause === "token") {
+      return new StakeLockError({
+        code: "insufficient_syra",
+        title: `Not enough ${symbol} (including Streamflow token fee)`,
+        message:
+          `The lock amount plus Streamflow's small ${symbol} fee exceeds what this token account can send. ` +
+          `This often happens when you type a rounded number (e.g. 936000) instead of using Max.`,
+        fix: `Tap Max to fill the exact lockable amount, or enter a slightly smaller ${symbol} amount.`,
+      });
+    }
+
+    return new StakeLockError({
+      code: "insufficient_sol",
+      title: "Not enough balance to complete this lock",
+      message:
+        `The transaction failed for insufficient funds. Most often this is missing SOL for Streamflow ` +
+        `(~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL per lock), or ${symbol} amount higher than the lockable max after fees.`,
+      fix: `Keep ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL in the wallet, tap Max for ${symbol}, and retry.`,
+    });
   }
+
   if (
     haystack.includes("0x1") &&
     (haystack.includes("system program") || haystack.includes("transfer"))
   ) {
-    return new Error(
-      `Not enough SOL to pay for Streamflow account rent. Add a small amount of SOL and retry.`
-    );
+    return new StakeLockError({
+      code: "insufficient_sol",
+      title: "Not enough SOL for this transaction",
+      message:
+        `Solana rejected the transaction because this wallet cannot pay the required SOL ` +
+        `(Streamflow service fee ~0.16 SOL + network ~0.015 SOL + rent).`,
+      fix: `Add at least ${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL to this wallet and retry.`,
+    });
   }
+
   if (haystack.includes("blockhash not found") || haystack.includes("block height exceeded")) {
-    return new Error("Network was slow — your transaction expired. Please try again.");
+    return new StakeLockError({
+      code: "network",
+      title: "Transaction expired",
+      message: "The network was slow and the transaction blockhash expired before confirmation.",
+      fix: "Wait a moment and try again.",
+    });
   }
+
   if (haystack.includes("user rejected") || haystack.includes("rejected the request")) {
-    return new Error("Transaction was rejected in your wallet.");
+    return new StakeLockError({
+      code: "user_rejected",
+      title: "Transaction cancelled",
+      message: "You declined the transaction in your wallet.",
+      fix: "Approve the transaction in your wallet when you are ready to lock.",
+    });
   }
-  return err instanceof Error ? err : new Error(raw);
+
+  return new StakeLockError({
+    code: "unknown",
+    title: "Lock failed",
+    message: raw || "An unexpected error occurred.",
+    fix: `Ensure ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL and enough ${symbol} (use Max), then retry.`,
+  });
 }
 
-function isInsufficientFundsSimulation(err: unknown, logs?: string[] | null): boolean {
+function isInsufficientFundsError(err: unknown, logs?: string[] | null): boolean {
   const haystack = [
     err instanceof Error ? err.message : String(err),
     JSON.stringify(err),
@@ -343,6 +484,10 @@ function isInsufficientFundsSimulation(err: unknown, logs?: string[] | null): bo
     .join("\n")
     .toLowerCase();
   return haystack.includes("insufficient funds") || haystack.includes("insufficientfunds");
+}
+
+function isInsufficientFundsSimulation(err: unknown, logs?: string[] | null): boolean {
+  return isInsufficientFundsError(err, logs);
 }
 
 async function assertStakePreflight(
@@ -354,24 +499,35 @@ async function assertStakePreflight(
 ): Promise<void> {
   const symbol = STREAMFLOW_CONFIG.tokenSymbol;
   const solBalance = await connection.getBalance(sender, "confirmed");
-  if (solBalance < MIN_SOL_FOR_LOCK_LAMPORTS) {
-    throw new Error(
-      `Not enough SOL to open a Streamflow lock (need ~0.005 SOL for rent). ` +
-        `You have ${(solBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL — add SOL and retry.`
-    );
+
+  if (solBalance < STREAMFLOW_LOCK_SOL_MIN_LAMPORTS) {
+    throw new StakeLockError({
+      code: "low_sol",
+      title: "Not enough SOL for Streamflow fees",
+      message:
+        `You have ${formatSol(solBalance)} but need about ${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL to create a lock. ` +
+        `Streamflow charges ~0.16 SOL service fee + ~0.015 SOL network fee per lock (paid by you, not Syra).`,
+      fix: `Send at least ${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL to this wallet, then retry.`,
+    });
   }
 
   if (!walletState.ataExists || walletState.balance <= 0n) {
     if (walletState.totalBalance > 0n) {
-      throw new Error(
-        `${symbol} is in your wallet but not in the token account Streamflow uses for locks. ` +
-          `Consolidate ${symbol} into your primary wallet balance (e.g. receive or swap again), then tap Max and retry.`
-      );
+      throw new StakeLockError({
+        code: "syra_scattered",
+        title: `${symbol} is split across token accounts`,
+        message:
+          `${symbol} exists in this wallet but not in the primary token account Streamflow uses. ` +
+          `Your wallet may show a higher total than what can be locked in one transaction.`,
+        fix: `Consolidate ${symbol} into one balance (swap or transfer to yourself), then tap Max and retry.`,
+      });
     }
-    throw new Error(
-      `No ${symbol} token account found for this wallet on ${STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet"}. ` +
-        `Receive ${symbol} in your wallet first, then try again.`
-    );
+    throw new StakeLockError({
+      code: "no_syra_account",
+      title: `No ${symbol} in this wallet`,
+      message: `This wallet has no ${symbol} token account on ${STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet"}.`,
+      fix: `Receive or buy ${symbol} in this wallet first.`,
+    });
   }
 
   const amountBn = new BN(amountRaw.toString());
@@ -383,15 +539,23 @@ async function assertStakePreflight(
       new BN(walletState.balance.toString()),
       feePercent
     );
-    throw new Error(
-      `Insufficient ${symbol} balance. ` +
-        `This lock needs ${requiredRaw.toString()} base units` +
-        (feePercent > 0 ? ` (includes Streamflow fee ~${feePercent}%)` : "") +
-        ` but your account has ${walletState.balance.toString()}.` +
-        (maxDeposit.gt(new BN(2))
-          ? ` Use Max or enter at most ${getNumberFromBN(maxDeposit, walletState.decimals)} ${symbol}.`
-          : "")
-    );
+    const maxHuman = maxDeposit.gt(new BN(2))
+      ? getNumberFromBN(maxDeposit, walletState.decimals).toString()
+      : "0";
+    const requiredHuman = getNumberFromBN(new BN(requiredRaw.toString()), walletState.decimals).toString();
+    const balanceHuman = getNumberFromBN(new BN(walletState.balance.toString()), walletState.decimals).toString();
+
+    throw new StakeLockError({
+      code: "amount_too_high",
+      title: `${symbol} amount too high (fee not included)`,
+      message:
+        `Locking ${getNumberFromBN(amountBn, walletState.decimals)} ${symbol} needs ${requiredHuman} ${symbol} total ` +
+        `(lock + Streamflow fee ~${feePercent}%), but your account only has ${balanceHuman} ${symbol}.`,
+      fix:
+        maxDeposit.gt(new BN(2))
+          ? `Tap Max to use ${maxHuman} ${symbol} — the highest amount that fits after fees.`
+          : `Add more ${symbol} or enter a smaller amount.`,
+    });
   }
 }
 
@@ -474,10 +638,14 @@ async function resolveStakeAmountForSimulation(
     }
   }
 
-  throw new Error(
-    `Could not lock ${STREAMFLOW_CONFIG.tokenSymbol} with your current balance. ` +
-      `Tap Max to use the exact lockable amount (after Streamflow fees), or try a slightly smaller amount.`
-  );
+  throw new StakeLockError({
+    code: "simulation_failed",
+    title: `Could not lock ${STREAMFLOW_CONFIG.tokenSymbol}`,
+    message:
+      `On-chain simulation failed after adjusting for Streamflow fees. ` +
+      `Your ${STREAMFLOW_CONFIG.tokenSymbol} balance may be too tight, or SOL may be too low.`,
+    fix: `Tap Max. Keep ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL in this wallet and retry.`,
+  });
 }
 
 export async function createTokenLockStake(
@@ -491,9 +659,12 @@ export async function createTokenLockStake(
 
   const resolved = await resolveStakeAmountRaw(connection, sender, amountRaw);
   if (resolved.amountRaw <= 2n) {
-    throw new Error(
-      `Amount too small to lock ${STREAMFLOW_CONFIG.tokenSymbol}. Use Max or enter a larger amount.`
-    );
+    throw new StakeLockError({
+      code: "amount_too_low",
+      title: "Amount too small",
+      message: `The amount is below Streamflow's minimum (2 base units of ${STREAMFLOW_CONFIG.tokenSymbol}).`,
+      fix: `Enter a larger amount or tap Max.`,
+    });
   }
 
   let walletState = resolved.walletState;
@@ -511,39 +682,80 @@ export async function createTokenLockStake(
     walletState
   );
 
-  const stakeRaw = simulated.stakeRaw;
+  let stakeRaw = simulated.stakeRaw;
   if (simulated.wasAdjusted) {
     wasClamped = true;
   }
-
-  const amountBn = new BN(stakeRaw.toString());
-  const unlockAt = simulated.unlockAtUnix;
-
-  const params = buildTokenLockCreateParams({
-    wallet: sender,
-    amountRaw: amountBn,
-    unlockAtUnix: unlockAt,
-    name: `${STREAMFLOW_CONFIG.tokenSymbol} lock · Syra`,
-    tokenProgramId: walletState.tokenProgramId,
-  });
 
   const ext: StreamflowCreateExt = {
     sender: walletAdapter as unknown as StreamflowCreateExt["sender"],
     isNative: false,
   };
 
-  try {
-    const { txId, metadataId } = await client.create(params, ext);
-    return {
-      txId,
-      metadataId,
+  for (let sendAttempt = 0; sendAttempt < 2; sendAttempt++) {
+    walletState = await fetchWalletMintState(
+      connection,
+      STREAMFLOW_CONFIG.tokenMint,
+      sender
+    );
+
+    const amountBn = new BN(stakeRaw.toString());
+    const unlockAt = simulated.unlockAtUnix;
+
+    const params = buildTokenLockCreateParams({
+      wallet: sender,
+      amountRaw: amountBn,
       unlockAtUnix: unlockAt,
-      amountRaw: stakeRaw,
-      wasClamped,
-    };
-  } catch (err) {
-    throw mapStreamflowError(err, STREAMFLOW_CONFIG.tokenSymbol);
+      name: `${STREAMFLOW_CONFIG.tokenSymbol} lock · Syra`,
+      tokenProgramId: walletState.tokenProgramId,
+    });
+
+    try {
+      const { txId, metadataId } = await client.create(params, ext);
+      return {
+        txId,
+        metadataId,
+        unlockAtUnix: unlockAt,
+        amountRaw: stakeRaw,
+        wasClamped,
+      };
+    } catch (err) {
+      const logs =
+        err && typeof err === "object" && "logs" in err
+          ? ((err as { logs?: string[] }).logs ?? undefined)
+          : undefined;
+
+      if (sendAttempt === 0 && isInsufficientFundsError(err, logs)) {
+        const feePercent = await client.getTotalFee({ address: sender.toBase58() });
+        const freshState = await fetchWalletMintState(
+          connection,
+          STREAMFLOW_CONFIG.tokenMint,
+          sender
+        );
+        const maxBn = computeMaxDepositRaw(
+          new BN(freshState.balance.toString()),
+          feePercent
+        );
+        const nextStake = BigInt(maxBn.toString());
+        if (nextStake > 2n && nextStake < stakeRaw) {
+          stakeRaw = nextStake;
+          wasClamped = true;
+          continue;
+        }
+      }
+
+      throw mapStreamflowError(err, STREAMFLOW_CONFIG.tokenSymbol);
+    }
   }
+
+  throw new StakeLockError({
+    code: "simulation_failed",
+    title: `Could not lock ${STREAMFLOW_CONFIG.tokenSymbol}`,
+    message:
+      `The transaction could not be submitted after adjusting for fees. ` +
+      `Check SOL (~${STREAMFLOW_LOCK_SOL_RECOMMENDED}) and ${STREAMFLOW_CONFIG.tokenSymbol} balance.`,
+    fix: `Tap Max, ensure ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL, and retry.`,
+  });
 }
 
 /** Max deposit (raw) the wallet can lock after Streamflow fees and safety buffer. */
@@ -562,6 +774,181 @@ export async function fetchMaxLockableRaw(
     maxLockable: BigInt(maxDeposit.toString()),
     walletState,
     feePercent,
+  };
+}
+
+function parseHumanAmount(value: string, decimals: number): bigint {
+  const trimmed = value.trim();
+  if (!trimmed) return 0n;
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  const paddedFraction = fraction.padEnd(decimals, "0").slice(0, decimals);
+  try {
+    return BigInt(whole) * BigInt(10 ** decimals) + BigInt(paddedFraction || "0");
+  } catch {
+    return 0n;
+  }
+}
+
+/**
+ * Pre-submit checklist: explains exactly why a lock would fail (SOL fees, SYRA amount, etc.).
+ */
+export async function evaluateStakeReadiness(
+  connection: Connection,
+  owner: PublicKey | null,
+  amountInput: string
+): Promise<StakeReadiness> {
+  const symbol = STREAMFLOW_CONFIG.tokenSymbol;
+  const empty: StakeReadiness = {
+    canLock: false,
+    solBalanceLamports: 0,
+    solRequiredLamports: STREAMFLOW_LOCK_SOL_MIN_LAMPORTS,
+    solBalanceFormatted: "0 SOL",
+    solRequiredFormatted: formatSol(STREAMFLOW_LOCK_SOL_MIN_LAMPORTS),
+    feePercent: 0,
+    walletBalanceRaw: 0n,
+    walletBalanceFormatted: "0",
+    maxLockableRaw: 0n,
+    maxLockableFormatted: "0",
+    requestedRaw: 0n,
+    requestedFormatted: "0",
+    estimatedSyraFeeFormatted: "0",
+    issues: [
+      {
+        code: "wallet_disconnected",
+        severity: "error",
+        title: "Wallet not connected",
+        detail: "Connect a Solana wallet to check balances and create a lock.",
+        fix: "Click Connect wallet and try again.",
+      },
+    ],
+  };
+
+  if (!owner) return empty;
+
+  const solBalanceLamports = await connection.getBalance(owner, "confirmed");
+  const { maxLockable, walletState, feePercent } = await fetchMaxLockableRaw(connection, owner);
+  const walletBalanceFormatted = getNumberFromBN(
+    new BN(walletState.balance.toString()),
+    walletState.decimals
+  ).toString();
+  const maxLockableFormatted = getNumberFromBN(
+    new BN(maxLockable.toString()),
+    walletState.decimals
+  ).toString();
+
+  const requestedRaw = parseHumanAmount(amountInput, walletState.decimals);
+  const requestedFormatted =
+    requestedRaw > 0n
+      ? getNumberFromBN(new BN(requestedRaw.toString()), walletState.decimals).toString()
+      : "0";
+
+  let estimatedSyraFeeFormatted = "0";
+  if (requestedRaw > 2n) {
+    const required = computeRequiredBalanceRaw(new BN(requestedRaw.toString()), feePercent);
+    const feeRaw = required.sub(new BN(requestedRaw.toString()));
+    if (feeRaw.gt(new BN(0))) {
+      estimatedSyraFeeFormatted = getNumberFromBN(feeRaw, walletState.decimals).toString();
+    }
+  }
+
+  const issues: StakeReadinessIssue[] = [];
+
+  if (solBalanceLamports < STREAMFLOW_LOCK_SOL_MIN_LAMPORTS) {
+    issues.push({
+      code: "low_sol",
+      severity: "error",
+      title: "Not enough SOL for Streamflow fees",
+      detail:
+        `You have ${formatSol(solBalanceLamports)} but need ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL. ` +
+        `Streamflow charges ~0.16 SOL service + ~0.015 SOL network per lock (you pay this, not Syra).`,
+      fix: `Add SOL until you have at least ${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL, then retry.`,
+    });
+  } else if (solBalanceLamports < STREAMFLOW_LOCK_SOL_MIN_LAMPORTS * 1.1) {
+    issues.push({
+      code: "low_sol",
+      severity: "warning",
+      title: "SOL balance is tight",
+      detail: `You have ${formatSol(solBalanceLamports)}. We recommend ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL per lock.`,
+      fix: "Consider adding a little extra SOL so the transaction does not fail.",
+    });
+  }
+
+  if (!walletState.ataExists || walletState.balance <= 0n) {
+    if (walletState.totalBalance > 0n) {
+      issues.push({
+        code: "syra_scattered",
+        severity: "error",
+        title: `${symbol} split across accounts`,
+        detail: `${symbol} is in this wallet but not in the account Streamflow can debit.`,
+        fix: `Consolidate ${symbol}, then tap Max.`,
+      });
+    } else {
+      issues.push({
+        code: "no_syra_balance",
+        severity: "error",
+        title: `No ${symbol} to lock`,
+        detail: `This wallet has no ${symbol} available.`,
+        fix: `Receive or buy ${symbol} first.`,
+      });
+    }
+  } else if (maxLockable <= 2n) {
+    issues.push({
+      code: "no_syra_balance",
+      severity: "error",
+      title: `${symbol} balance too low after fees`,
+      detail: `After Streamflow's ~${feePercent}% ${symbol} fee, nothing meaningful can be locked.`,
+      fix: `Add more ${symbol} to this wallet.`,
+    });
+  }
+
+  if (!amountInput.trim()) {
+    issues.push({
+      code: "amount_empty",
+      severity: "warning",
+      title: "Enter an amount",
+      detail: `Choose how much ${symbol} to lock, or tap Max.`,
+      fix: "Tap Max to use the highest lockable amount.",
+    });
+  } else if (requestedRaw <= 2n) {
+    issues.push({
+      code: "amount_too_low",
+      severity: "error",
+      title: "Amount too small",
+      detail: "Streamflow requires more than 2 base units.",
+      fix: "Enter a larger amount or tap Max.",
+    });
+  } else if (requestedRaw > maxLockable) {
+    const required = computeRequiredBalanceRaw(new BN(requestedRaw.toString()), feePercent);
+    issues.push({
+      code: "amount_too_high",
+      severity: "error",
+      title: `${symbol} amount too high`,
+      detail:
+        `Locking ${requestedFormatted} ${symbol} needs ~${getNumberFromBN(required, walletState.decimals)} ${symbol} ` +
+        `(includes ~${estimatedSyraFeeFormatted} ${symbol} Streamflow fee). ` +
+        `Max lockable: ${maxLockableFormatted} ${symbol}.`,
+      fix: "Tap Max — do not type a rounded number like 936K manually.",
+    });
+  }
+
+  const hasBlockingError = issues.some((i) => i.severity === "error");
+  const canLock = !hasBlockingError && requestedRaw > 2n && maxLockable > 2n;
+
+  return {
+    canLock,
+    solBalanceLamports,
+    solRequiredLamports: STREAMFLOW_LOCK_SOL_MIN_LAMPORTS,
+    solBalanceFormatted: formatSol(solBalanceLamports),
+    solRequiredFormatted: formatSol(STREAMFLOW_LOCK_SOL_MIN_LAMPORTS),
+    feePercent,
+    walletBalanceRaw: walletState.balance,
+    walletBalanceFormatted,
+    maxLockableRaw: maxLockable,
+    maxLockableFormatted,
+    requestedRaw,
+    requestedFormatted,
+    estimatedSyraFeeFormatted,
+    issues,
   };
 }
 

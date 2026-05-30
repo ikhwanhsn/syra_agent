@@ -19,21 +19,44 @@ export function formatUnits(
 /**
  * Parse human-readable amount to raw token amount (smallest units).
  */
-/** Compact display for large token amounts (e.g. 1.2M, 450K). */
+function formatCompactScaled(value: number, divisor: number, suffix: string): string {
+  const n = value / divisor;
+  if (n >= 10) return `${Math.floor(n)}${suffix}`;
+  const floored = Math.floor(n * 10) / 10;
+  return `${floored}${suffix}`;
+}
+
+/** Compact display for large token amounts (e.g. 1.2M, 450K). Rounds normally. */
 export function formatCompactAmount(value: string | number): string {
   const num = typeof value === "number" ? value : Number.parseFloat(value);
   if (!Number.isFinite(num) || num <= 0) return "0";
   if (num >= 1_000_000_000) {
-    const n = num / 1_000_000_000;
-    return `${n >= 10 ? n.toFixed(0) : n.toFixed(1)}B`;
+    return formatCompactScaled(num, 1_000_000_000, "B");
   }
   if (num >= 1_000_000) {
-    const n = num / 1_000_000;
-    return `${n >= 10 ? n.toFixed(0) : n.toFixed(1)}M`;
+    return formatCompactScaled(num, 1_000_000, "M");
   }
   if (num >= 1_000) {
-    const n = num / 1_000;
-    return `${n >= 10 ? n.toFixed(0) : n.toFixed(1)}K`;
+    return formatCompactScaled(num, 1_000, "K");
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+/**
+ * Compact display that never rounds up (safe for "max available" labels).
+ * e.g. 935_999 → "935.9K" not "936K".
+ */
+export function formatCompactAmountFloor(value: string | number): string {
+  const num = typeof value === "number" ? value : Number.parseFloat(value);
+  if (!Number.isFinite(num) || num <= 0) return "0";
+  if (num >= 1_000_000_000) {
+    return formatCompactScaled(num, 1_000_000_000, "B");
+  }
+  if (num >= 1_000_000) {
+    return formatCompactScaled(num, 1_000_000, "M");
+  }
+  if (num >= 1_000) {
+    return formatCompactScaled(num, 1_000, "K");
   }
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
