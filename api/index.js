@@ -159,6 +159,7 @@ const CORS_ALLOWED_ORIGINS = [
   "http://localhost:5174", // internal dashboard
   "http://localhost:5175",
   "http://localhost:3001",
+  "http://localhost:3000",
   "https://api.syraa.fun",
   "https://syraa.fun",
   "https://www.syraa.fun",
@@ -238,6 +239,13 @@ const CORS_OPTIONS_REGULAR = {
       CORS_ALLOWED_ORIGINS_SET.has(normalized)
     )
       return cb(null, true);
+    // Local Syra frontends may run on any localhost port during dev.
+    try {
+      const host = new URL(origin).hostname.toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1") return cb(null, true);
+    } catch {
+      /* ignore malformed origin */
+    }
     return cb(null, false);
   },
   // Required when browsers use fetch(..., { credentials: "include" }) — e.g. ai-agent trading experiment page
@@ -348,7 +356,9 @@ function isX402Route(p) {
 // non-x402 Syra APIs while still letting Syra frontends call them transparently
 // (trusted-origin API-key injection covers auth for browser callers).
 app.use((req, res, next) => {
-  const options = isX402Route(req.path) ? CORS_OPTIONS_X402 : CORS_OPTIONS_REGULAR;
+  const options = isX402Route(req.path)
+    ? CORS_OPTIONS_X402
+    : CORS_OPTIONS_REGULAR;
   cors(options)(req, res, next);
 });
 
@@ -442,11 +452,9 @@ app.post(
     const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"];
     const forwardMethod = (method || "GET").toUpperCase();
     if (!allowedMethods.includes(forwardMethod)) {
-      res
-        .status(400)
-        .json({
-          error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}`,
-        });
+      res.status(400).json({
+        error: `Method ${forwardMethod} not allowed. Supported: ${allowedMethods.join(", ")}`,
+      });
       return;
     }
     const sentinelFetch = getSentinelFetch("playground");
@@ -609,12 +617,14 @@ app.post(
   },
 );
 
-app.use(express.json({
-  limit: "200kb",
-  verify: (req, _res, buf) => {
-    if (buf?.length) req.rawBody = buf;
-  },
-})); // Prevent large-payload DoS; rawBody used by ShadowFeed HMAC for POST bodies
+app.use(
+  express.json({
+    limit: "200kb",
+    verify: (req, _res, buf) => {
+      if (buf?.length) req.rawBody = buf;
+    },
+  }),
+); // Prevent large-payload DoS; rawBody used by ShadowFeed HMAC for POST bodies
 
 // ShadowFeed Partner Bridge: verify HMAC before x402 payment on paid routes.
 // Must run after body parser so POST body hash matches raw bytes (req.rawBody).
@@ -714,9 +724,13 @@ app.use(
       p === "/internal/partnership-scout/run" &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
-      const secret = (process.env.SYRA_PARTNERSHIP_SCOUT_CRON_SECRET || "").trim();
+      const secret = (
+        process.env.SYRA_PARTNERSHIP_SCOUT_CRON_SECRET || ""
+      ).trim();
       if (secret) {
-        const got = (req.get("x-syra-partnership-scout-cron-secret") || "").trim();
+        const got = (
+          req.get("x-syra-partnership-scout-cron-secret") || ""
+        ).trim();
         if (got === secret) return true;
       }
     }
@@ -1253,7 +1267,8 @@ app.listen(PORT, () => {
           "[Trading experiment] validate failed:",
           err?.message || err,
         ),
-      ));
+      ),
+  );
 
   const runSignal = runIfMongoConnected(() =>
     Promise.all([
@@ -1283,7 +1298,8 @@ app.listen(PORT, () => {
           "[Trading experiment] signal failed:",
           err?.message || err,
         ),
-      ));
+      ),
+  );
 
   const runFull = runIfMongoConnected(() =>
     import("./libs/tradingExperimentService.js")
@@ -1298,7 +1314,8 @@ app.listen(PORT, () => {
       })
       .catch((err) =>
         console.warn("[Trading experiment] cycle failed:", err?.message || err),
-      ));
+      ),
+  );
 
   if (validateMs >= 1_000) {
     setInterval(runValidate, validateMs);
@@ -1315,24 +1332,32 @@ app.listen(PORT, () => {
       .then(({ runLpExperimentSignalCycle }) => runLpExperimentSignalCycle())
       .then((out) => {
         if (out.errors?.length) {
-          console.warn("[LP experiment] signal errors:", out.errors.slice(0, 3));
+          console.warn(
+            "[LP experiment] signal errors:",
+            out.errors.slice(0, 3),
+          );
         }
       })
       .catch((err) =>
         console.warn("[LP experiment] signal failed:", err?.message || err),
-      ));
+      ),
+  );
 
   const runLpResolve = runIfMongoConnected(() =>
     import("./libs/lpExperimentService.js")
       .then(({ resolveOpenLpRuns }) => resolveOpenLpRuns())
       .then((out) => {
         if (out.errors?.length) {
-          console.warn("[LP experiment] resolve errors:", out.errors.slice(0, 3));
+          console.warn(
+            "[LP experiment] resolve errors:",
+            out.errors.slice(0, 3),
+          );
         }
       })
       .catch((err) =>
         console.warn("[LP experiment] resolve failed:", err?.message || err),
-      ));
+      ),
+  );
 
   if (LP_AGENT_SIGNAL_INTERVAL_MS >= 60_000) {
     setInterval(runLpSignal, LP_AGENT_SIGNAL_INTERVAL_MS);
@@ -1355,7 +1380,10 @@ app.listen(PORT, () => {
           console.warn("[LP real] signal errors:", out.errors.slice(0, 3));
         }
       })
-      .catch((err) => console.warn("[LP real] signal failed:", err?.message || err)));
+      .catch((err) =>
+        console.warn("[LP real] signal failed:", err?.message || err),
+      ),
+  );
 
   const runLpRealResolve = runIfMongoConnected(() =>
     import("./libs/lpRealService.js")
@@ -1368,7 +1396,10 @@ app.listen(PORT, () => {
           console.warn("[LP real] resolve errors:", out.errors.slice(0, 3));
         }
       })
-      .catch((err) => console.warn("[LP real] resolve failed:", err?.message || err)));
+      .catch((err) =>
+        console.warn("[LP real] resolve failed:", err?.message || err),
+      ),
+  );
 
   if (LP_AGENT_REAL_SIGNAL_INTERVAL_MS >= 60_000) {
     setInterval(runLpRealSignal, LP_AGENT_REAL_SIGNAL_INTERVAL_MS);
@@ -1379,12 +1410,23 @@ app.listen(PORT, () => {
 
   const bootLpRealCrons = runIfMongoConnected(() =>
     import("./libs/lpRealService.js")
-      .then(({ isRealCronEnabled, runLpRealSignalCycle, resolveLpRealPositions }) => {
-        if (!isRealCronEnabled()) return null;
-        console.info("[LP real] boot signal+resolve tick");
-        return Promise.all([runLpRealSignalCycle(), resolveLpRealPositions()]);
-      })
-      .catch((err) => console.warn("[LP real] boot tick failed:", err?.message || err)),
+      .then(
+        ({
+          isRealCronEnabled,
+          runLpRealSignalCycle,
+          resolveLpRealPositions,
+        }) => {
+          if (!isRealCronEnabled()) return null;
+          console.info("[LP real] boot signal+resolve tick");
+          return Promise.all([
+            runLpRealSignalCycle(),
+            resolveLpRealPositions(),
+          ]);
+        },
+      )
+      .catch((err) =>
+        console.warn("[LP real] boot tick failed:", err?.message || err),
+      ),
   );
   setTimeout(bootLpRealCrons, 20_000);
 
@@ -1417,8 +1459,12 @@ app.listen(PORT, () => {
             );
           })
           .catch((err) =>
-            console.warn("[LP experiment evolution failed]", err?.message || err),
-          ));
+            console.warn(
+              "[LP experiment evolution failed]",
+              err?.message || err,
+            ),
+          ),
+      );
       setInterval(tick, evo.ms);
     })
     .catch(() => {});
@@ -1430,56 +1476,59 @@ app.listen(PORT, () => {
         runAllTradingExperimentEvolution,
         maybeBootstrapMultiTokenEvolution,
       }) => {
-      const evo = evolutionConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const logEvolution = (outs) => {
-        for (const out of outs) {
-          if (!out.ok) {
-            console.warn("[Trading experiment evolution]", out.skipped || out);
-            continue;
-          }
-          console.info(
-            "[Trading experiment evolution]",
-            out.suite,
-            "culled",
-            out.culled?.length ?? 0,
-            "spawned",
-            out.spawned?.length ?? 0,
-            "daily",
-            out.dailySpawned?.length ?? 0,
-          );
-        }
-      };
-      const tick = runIfMongoConnected(() =>
-        runAllTradingExperimentEvolution()
-          .then(({ results }) => logEvolution(results))
-          .catch((err) =>
-            console.warn(
-              "[Trading experiment evolution failed]",
-              err?.message || err,
-            ),
-          ),
-      );
-      runIfMongoConnected(() =>
-        maybeBootstrapMultiTokenEvolution()
-          .then((boot) => {
-            if (boot.dailySpawned?.length) {
-              console.info(
+        const evo = evolutionConfigFromEnv();
+        if (!evo.enabled || evo.ms < 60_000) return;
+        const logEvolution = (outs) => {
+          for (const out of outs) {
+            if (!out.ok) {
+              console.warn(
                 "[Trading experiment evolution]",
-                "multi_token bootstrap daily spawned",
-                boot.dailySpawned.length,
+                out.skipped || out,
               );
+              continue;
             }
-          })
-          .catch((err) =>
-            console.warn(
-              "[Trading experiment multi_token bootstrap]",
-              err?.message || err,
+            console.info(
+              "[Trading experiment evolution]",
+              out.suite,
+              "culled",
+              out.culled?.length ?? 0,
+              "spawned",
+              out.spawned?.length ?? 0,
+              "daily",
+              out.dailySpawned?.length ?? 0,
+            );
+          }
+        };
+        const tick = runIfMongoConnected(() =>
+          runAllTradingExperimentEvolution()
+            .then(({ results }) => logEvolution(results))
+            .catch((err) =>
+              console.warn(
+                "[Trading experiment evolution failed]",
+                err?.message || err,
+              ),
             ),
-          ),
-      );
-      setInterval(tick, evo.ms);
-    },
+        );
+        runIfMongoConnected(() =>
+          maybeBootstrapMultiTokenEvolution()
+            .then((boot) => {
+              if (boot.dailySpawned?.length) {
+                console.info(
+                  "[Trading experiment evolution]",
+                  "multi_token bootstrap daily spawned",
+                  boot.dailySpawned.length,
+                );
+              }
+            })
+            .catch((err) =>
+              console.warn(
+                "[Trading experiment multi_token bootstrap]",
+                err?.message || err,
+              ),
+            ),
+        );
+        setInterval(tick, evo.ms);
+      },
     )
     .catch(() => {});
 

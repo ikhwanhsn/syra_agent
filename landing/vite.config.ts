@@ -10,11 +10,11 @@ function qwertiWidgetPlugin(): Plugin {
   const attrString = Object.entries(attrs)
     .map(([k, v]) => `${k}="${v}"`)
     .join(" ");
-  const tag = `<script src="${QWERTI_LOADER_SRC_DIRECT}" ${attrString}></script>`;
+  const tag = `<script src="${QWERTI_LOADER_SRC_DIRECT}" async ${attrString}></script>`;
   return {
     name: "qwerti-widget",
     transformIndexHtml(html) {
-      if (html.includes('data-token="')) return html;
+      if (html.includes(`data-campaign="${attrs["data-campaign"]}"`)) return html;
       return html.replace(
         "<link rel=\"preconnect\" href=\"https://widget.qwerti.ai\"",
         `${tag}\n    <link rel="preconnect" href="https://widget.qwerti.ai"`,

@@ -365,13 +365,23 @@
   }
 }
 
-/* Qwerti embedded widget — https://partner-demo.qwerti.ai/integration-guide?type=widget */
-#qwerti-widget-root {
-  --qwerti-offset-bottom: max(6rem, calc(env(safe-area-inset-bottom, 0px) + 5rem));
-  --qwerti-offset-right: max(1rem, env(safe-area-inset-right, 0px));
-  --qwerti-offset-left: auto;
-  --qwerti-offset-top: auto;
-  --qwerti-z-index: 2147482000;
+/* Qwerti embedded widget — desktop only (lg+), https://partner-demo.qwerti.ai/integration-guide?type=widget */
+@media (max-width: 1023px) {
+  #qwerti-widget-root {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  #qwerti-widget-root {
+    --qwerti-offset-bottom: max(6rem, calc(env(safe-area-inset-bottom, 0px) + 5rem));
+    --qwerti-offset-right: max(1rem, env(safe-area-inset-right, 0px));
+    --qwerti-offset-left: auto;
+    --qwerti-offset-top: auto;
+    --qwerti-z-index: 2147482000;
+  }
 }
 
 @keyframes data-flow {

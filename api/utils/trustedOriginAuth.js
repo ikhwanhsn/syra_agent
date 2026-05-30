@@ -16,6 +16,8 @@ const SERVER_KEY = RAW_KEYS[0] || null;
 
 const TRUSTED_ORIGINS = [
   "http://localhost:8080",
+  "http://localhost:3000",
+  "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
@@ -89,18 +91,16 @@ function getOriginFromRequest(req) {
   return null;
 }
 
-/** In development, allow any localhost / 127.0.0.1 origin (any port) so local dev works. */
+/** Allow Syra local frontends on any localhost / 127.0.0.1 port (dev uses varying Vite ports). */
 function isTrustedOrigin(origin) {
   if (!origin || typeof origin !== "string") return false;
   if (TRUSTED_ORIGINS.includes(origin)) return true;
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      const u = new URL(origin);
-      const host = (u.hostname || "").toLowerCase();
-      if (host === "localhost" || host === "127.0.0.1") return true;
-    } catch {
-      // ignore
-    }
+  try {
+    const u = new URL(origin);
+    const host = (u.hostname || "").toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") return true;
+  } catch {
+    /* ignore */
   }
   return false;
 }

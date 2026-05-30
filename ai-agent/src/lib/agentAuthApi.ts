@@ -1,10 +1,20 @@
 import bs58 from "bs58";
 import { normalizeAgentChain, type AgentChain } from "@/lib/agentWalletUi";
 
+const PRODUCTION_API_DEFAULT = "https://api.syraa.fun";
+
 const getApiBaseUrl = () => {
-  const env = import.meta.env?.VITE_API_URL;
-  if (env && typeof env === "string") return env.replace(/\/$/, "");
-  return "http://localhost:3000";
+  const env =
+    import.meta.env?.VITE_SYRA_API_URL ??
+    import.meta.env?.VITE_API_URL;
+  if (env && typeof env === "string") {
+    const trimmed = env.replace(/\/$/, "");
+    if (/localhost|127\.0\.0\.1/i.test(trimmed) && !import.meta.env.DEV) {
+      return PRODUCTION_API_DEFAULT;
+    }
+    return trimmed;
+  }
+  return PRODUCTION_API_DEFAULT;
 };
 
 const AUTH_BASE = () => `${getApiBaseUrl()}/agent/auth`;

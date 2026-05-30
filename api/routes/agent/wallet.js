@@ -884,12 +884,17 @@ router.post('/', async (req, res) => {
 
     let doc = await AgentWallet.findOne({ anonymousId, status: { $ne: 'retired' } }).lean();
     if (doc) {
+      let avatarUrl = doc.avatarUrl || null;
+      if (!avatarUrl) {
+        avatarUrl = avatarGenerator.generateRandomAvatar(anonymousId);
+        await AgentWallet.updateOne({ anonymousId }, { $set: { avatarUrl } });
+      }
       const lp = await lpWalletResponseFields(anonymousId);
       return res.json({
         success: true,
         anonymousId,
         agentAddress: doc.agentAddress,
-        avatarUrl: doc.avatarUrl || null,
+        avatarUrl,
         purpose: doc.purpose || 'chat',
         ...lp,
       });

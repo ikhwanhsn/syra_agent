@@ -16,7 +16,11 @@ function findExistingLoaderScript(): HTMLScriptElement | null {
 }
 
 function scriptHasRequiredAttrs(script: HTMLScriptElement): boolean {
-  return Boolean(script.dataset.token?.trim() && script.dataset.chain?.trim());
+  const attrs = buildQwertiEmbedAttrs();
+  return (
+    script.dataset.widget === attrs["data-widget"] &&
+    script.dataset.campaign === attrs["data-campaign"]
+  );
 }
 
 /** Fallback inject when the Vite HTML transform did not run. */
@@ -32,6 +36,7 @@ export function injectQwertiHeadScript(): void {
   window.Qwerti?.destroy?.();
 
   const script = document.createElement("script");
+  script.async = true;
   script.src = QWERTI_LOADER_SRC_DIRECT;
   for (const [key, value] of Object.entries(buildQwertiEmbedAttrs())) {
     script.setAttribute(key, value);

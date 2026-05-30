@@ -1,0 +1,820 @@
+import {
+  cloneElement,
+  Fragment,
+  isValidElement,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { Components } from "react-markdown";
+import { Copy, Check, RefreshCw, Pencil, Link2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { PumpfunPriceChart } from "@/components/chat/PumpfunPriceChart";
+import { PumpfunCreateCoinInlineForm } from "@/components/chat/PumpfunCreateCoinInlineForm";
+import { PumpfunCreateCoinResultBar } from "@/components/chat/PumpfunCreateCoinResultBar";
+import { AgentSwapInlineForm } from "@/components/chat/AgentSwapInlineForm";
+import type { AgentInlineUiPayload } from "@/lib/chatApi";
+import { linkifyBareHttpUrlsInMarkdown } from "@/lib/markdownLinkifyHttp";
+import { injectSolscanLinksInMarkdown } from "@/lib/solanaExplorerMarkdown";
+import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
+import { AgentThinkingIndicator, ThinkingDots } from "@/components/chat/AgentThinkingIndicator";
+
+/** Match signed percentages in prose (e.g. -0.68%, +1.2%). Skipped inside code / links via tree walk. */
+const SIGNED_PERCENT_RE = /([+-]?\d+(?:\.\d+)?%)/g;
+
+function splitStringWithSignedPercentColor(text: string): ReactNode {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  const re = new RegExp(SIGNED_PERCENT_RE.source, SIGNED_PERCENT_RE.flags);
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    const token = m[1];
+    const val = parseFloat(token.replace("%", ""));
+    let tone = "text-foreground";
+    if (!Number.isNaN(val)) {
+      if (val < 0) tone = "text-red-600 dark:text-red-400";
+      else if (val > 0) tone = "text-emerald-600 dark:text-emerald-400";
+    }
+    nodes.push(
+      <span key={`pct-${k++}`} data-pct-colored className={cn("font-medium tabular-nums", tone)}>
+        {token}
+      </span>,
+    );
+    last = m.index + token.length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  if (nodes.length === 0) return text;
+  if (nodes.length === 1 && typeof nodes[0] === "string") return nodes[0];
+  return <>{nodes}</>;
+}
+
+const PCT_SKIP_TAGS = new Set(["code", "pre", "a"]);
+
+/**
+ * Color signed percentages in markdown-rendered React trees.
+ * Skips `code` / `pre` / `a`, and leaves spans from a prior pass untouched.
+ * When `skipDeepEnterTags` includes `p`, list/table cells avoid double-processing paragraphs.
+ */
+function createSignedPctAccentWalker(options: { skipDeepEnterTags?: readonly string[] } = {}) {
+  const skipDeepEnter = new Set(options.skipDeepEnterTags ?? []);
+  function accent(node: ReactNode): ReactNode {
+    if (node == null || typeof node === "boolean") return node;
+    if (typeof node === "string") return splitStringWithSignedPercentColor(node);
+    if (typeof node === "number") return node;
+    if (Array.isArray(node)) {
+      return node.map((child, i) => (
+        <Fragment key={i}>{accent(child)}</Fragment>
+      ));
+    }
+    if (isValidElement(node)) {
+      const el = node as ReactElement<{ children?: ReactNode; "data-pct-colored"?: boolean }>;
+      const tag = typeof el.type === "string" ? el.type : "";
+      if (el.props["data-pct-colored"] === true) return el;
+      if (PCT_SKIP_TAGS.has(tag)) return el;
+      if (skipDeepEnter.has(tag)) return el;
+      return cloneElement(el, undefined, accent(el.props.children));
+    }
+    return node;
+  }
+  return accent;
+}
+
+const accentSignedPercentagesFull = createSignedPctAccentWalker();
+const accentSignedPercentagesSkipBlockP = createSignedPctAccentWalker({ skipDeepEnterTags: ["p"] });
+
+/** Context-specific step sequences — each tells a short "story" relevant to the user's question. */
+const STEP_SEQUENCES: Record<string, string[]> = {
+  news: [
+    "Understanding your question...",
+    "Finding relevant news and headlines...",
+    "Checking sources and dates...",
+    "Reading and summarizing...",
+    "Preparing your answer...",
+  ],
+  search: [
+    "Understanding what you're looking for...",
+    "Searching across sources...",
+    "Filtering relevant results...",
+    "Organizing findings...",
+    "Preparing your answer...",
+  ],
+  analysis: [
+    "Understanding your question...",
+    "Analyzing market data...",
+    "Checking sentiment and signals...",
+    "Gathering insights...",
+    "Preparing your answer...",
+  ],
+  research: [
+    "Understanding the topic...",
+    "Running deep research...",
+    "Checking reports and data...",
+    "Synthesizing findings...",
+    "Preparing your answer...",
+  ],
+  signals: [
+    "Understanding your question...",
+    "Checking trading signals and data...",
+    "Analyzing price and charts...",
+    "Gathering signal insights...",
+    "Preparing your answer...",
+  ],
+  tokens: [
+    "Understanding your question...",
+    "Fetching token and market data...",
+    "Analyzing metrics...",
+    "Gathering insights...",
+    "Preparing your answer...",
+  ],
+  default: [
+    "Thinking about your question...",
+    "Looking that up...",
+    "Gathering information...",
+    "Preparing your answer...",
+  ],
+};
+
+/** Pick a step sequence that matches the user's message. */
+function getStepsForMessage(userMessage: string | undefined): string[] {
+  if (!userMessage || typeof userMessage !== "string")
+    return STEP_SEQUENCES.default;
+  const t = userMessage.trim().toLowerCase();
+  if (/news|latest|headline|article|what'?s\s+happening/i.test(t)) return STEP_SEQUENCES.news;
+  if (/search|find|x\s*search|twitter|look\s+up/i.test(t)) return STEP_SEQUENCES.search;
+  if (/analyze|analysis|sentiment|market\s+overview/i.test(t)) return STEP_SEQUENCES.analysis;
+  if (/research|deep\s*dive|report|explain\s+in\s+detail/i.test(t)) return STEP_SEQUENCES.research;
+  if (/signal|trade|price|chart|trading/i.test(t)) return STEP_SEQUENCES.signals;
+  if (/token|memecoin|dex|jupiter|pump|rug|bubble/i.test(t)) return STEP_SEQUENCES.tokens;
+  return STEP_SEQUENCES.default;
+}
+
+export type ToolUsageItem = {
+  name: string;
+  status: "running" | "complete" | "error" | "skipped";
+  costUsd?: number;
+  included?: boolean;
+  chartMint?: string;
+  chartCoinId?: string;
+  chartSymbol?: string;
+  chartName?: string;
+  pumpfunCreateMint?: string;
+  pumpfunCreateSignature?: string;
+  pumpfunCreateSymbol?: string;
+  pumpfunCreateName?: string;
+};
+
+export interface ChatMessageModel {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+  toolUsage?: ToolUsageItem;
+  /** Optional: multiple tools used for this answer (future API support). */
+  toolUsages?: ToolUsageItem[];
+  inlineUi?: AgentInlineUiPayload;
+  inlineUiDismissed?: boolean;
+  swapActionsHidden?: boolean;
+  swapInlineStatus?: "cancelled" | "submitted";
+}
+
+interface ChatMessageProps {
+  message: ChatMessageModel;
+  agentName?: string;
+  agentAvatar?: string;
+  onRegenerate?: (messageId: string) => void;
+  /** When true, disable Regenerate (e.g. while another request is in progress) */
+  isRegenerateDisabled?: boolean;
+  /** User avatar URL for user messages */
+  userAvatarUrl?: string | null;
+  /** Stable seed for guest avataaars when avatarUrl is not stored yet */
+  userAvatarSeed?: string | null;
+  /** When user saves an edited user message: (messageId, newContent) => update in place */
+  onUpdateUserMessage?: (messageId: string, content: string) => void;
+  /** pump.fun launch form: dismiss without sending */
+  onDismissPumpfunCreateForm?: (assistantMessageId: string) => void;
+  /** pump.fun launch form: submit structured follow-up user turn */
+  onSubmitPumpfunCreateForm?: (payload: { assistantMessageId: string; prompt: string }) => void;
+  /** Shared / read-only view: show form as static notice only */
+  pumpfunCreateFormReadOnly?: boolean;
+}
+
+export function ChatMessage({
+  message,
+  agentName = "Syra Agent",
+  agentAvatar = "/logo.jpg",
+  onRegenerate,
+  isRegenerateDisabled,
+  userAvatarUrl = null,
+  userAvatarSeed = null,
+  onUpdateUserMessage,
+  onDismissPumpfunCreateForm,
+  onSubmitPumpfunCreateForm,
+  pumpfunCreateFormReadOnly = false,
+}: ChatMessageProps) {
+  const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState("");
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const isUser = message.role === "user";
+  const userAvatarImageUrl = useMemo(
+    () => resolveUserAvatarUrl(userAvatarUrl, userAvatarSeed ?? message.id),
+    [userAvatarUrl, userAvatarSeed, message.id],
+  );
+
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const startEditing = () => {
+    setEditDraft(message.content);
+    setIsEditing(true);
+  };
+
+  useEffect(() => {
+    if (isEditing && isUser) {
+      editTextareaRef.current?.focus();
+      const len = message.content.length;
+      editTextareaRef.current?.setSelectionRange(len, len);
+    }
+  }, [isEditing, isUser, message.content.length]);
+
+  const saveEdit = () => {
+    const trimmed = editDraft.trim();
+    if (trimmed && onUpdateUserMessage) {
+      onUpdateUserMessage(message.id, trimmed);
+      setIsEditing(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditDraft("");
+  };
+
+  const markdownComponents: Components = useMemo(() => {
+    const prose = isUser
+      ? {
+          p: "my-3 min-w-0 max-w-full whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-foreground/95 sm:text-base",
+          ul: "my-4 ml-5 list-disc space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:text-primary/40 sm:text-base",
+          ol: "my-4 ml-5 list-decimal space-y-2.5 pl-0.5 text-[15px] leading-relaxed text-foreground/95 marker:font-medium marker:text-muted-foreground/70 sm:text-base",
+          h1: "mt-6 break-words text-balance text-xl font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-2xl",
+          h2: "mt-6 break-words border-b border-border/50 pb-2 text-lg font-semibold tracking-tight text-foreground first:mt-0 sm:mt-7 sm:text-xl",
+          h3: "mt-6 break-words text-base font-semibold tracking-tight text-foreground first:mt-0 sm:text-lg",
+          bq: "my-5 max-w-full rounded-r-xl border-l-2 border-primary/30 bg-muted/20 py-3 pl-4 pr-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base",
+          codeWrap: "my-3 rounded-xl overflow-hidden border border-border max-w-full min-w-0",
+          codeBar: "flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-secondary/50 border-b border-border min-w-0",
+          codePre: "p-3 sm:p-4 bg-secondary/30 text-xs sm:text-sm min-w-0 max-w-full scrollbar-thin",
+          inlineCode: "rounded bg-secondary/60 px-1.5 py-0.5 text-sm font-mono text-foreground break-all",
+          tableWrap: "my-4 overflow-x-auto rounded-xl border border-border max-w-full scrollbar-thin -mx-1 sm:mx-0",
+          thead: "bg-secondary/60 border-b border-border",
+          tr: "hover:bg-secondary/30 transition-colors",
+          th: "px-4 py-3 text-left font-semibold text-foreground align-top",
+          td: "px-4 py-3 text-muted-foreground align-top break-words min-w-0",
+          link: "font-medium text-foreground underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary",
+        }
+      : {
+          p: "my-3.5 min-w-0 max-w-full whitespace-pre-wrap break-words text-[15px] leading-[1.72] text-foreground/92 first:mt-0 sm:my-4 sm:text-[15.5px] sm:leading-[1.75] tracking-[-0.011em]",
+          ul: "my-5 ml-5 list-disc space-y-2.5 pl-1 text-[15px] leading-[1.72] text-foreground/90 marker:text-foreground/35 sm:my-6 sm:text-[15.5px] sm:leading-[1.75] tracking-[-0.011em]",
+          ol: "my-5 ml-5 list-decimal space-y-2.5 pl-1 text-[15px] leading-[1.72] text-foreground/90 marker:font-semibold marker:text-foreground/50 sm:my-6 sm:text-[15.5px]",
+          h1: "mt-8 break-words text-balance text-[1.35rem] font-semibold tracking-[-0.03em] text-foreground first:mt-0 sm:mt-9 sm:text-2xl",
+          h2: "mt-8 break-words border-b border-border/45 pb-2.5 text-lg font-semibold tracking-[-0.025em] text-foreground first:mt-0 sm:mt-9 sm:text-xl",
+          h3: "mt-7 break-words text-base font-semibold tracking-[-0.02em] text-foreground first:mt-0 sm:mt-8 sm:text-[1.05rem]",
+          bq: "my-6 max-w-full rounded-xl border border-border/60 bg-gradient-to-br from-muted/25 via-muted/10 to-transparent py-3.5 pl-4 pr-4 text-[15px] leading-relaxed text-muted-foreground shadow-[inset_3px_0_0_0_hsl(var(--primary)/0.35)] sm:my-7 sm:text-[15.5px]",
+          codeWrap:
+            "my-4 overflow-hidden rounded-xl border border-border/70 bg-background/30 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)] max-w-full min-w-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
+          codeBar:
+            "flex items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-muted/35 border-b border-border/60 min-w-0 backdrop-blur-[2px]",
+          codePre:
+            "p-3 sm:p-4 bg-[hsl(var(--message-agent)/0.65)] text-[13px] sm:text-sm min-w-0 max-w-full scrollbar-thin leading-relaxed text-foreground/95",
+          inlineCode:
+            "rounded-md border border-border/50 bg-muted/35 px-1.5 py-px text-[0.8125rem] font-mono text-foreground/95 shadow-sm",
+          tableWrap:
+            "my-5 overflow-x-auto rounded-xl border border-border/70 bg-muted/15 max-w-full scrollbar-thin shadow-sm -mx-0.5 sm:mx-0",
+          thead: "bg-muted/40 border-b border-border/60",
+          tr: "border-b border-border/35 transition-colors odd:bg-background/[0.12] hover:bg-muted/25",
+          th: "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground align-top sm:text-[13px]",
+          td: "px-4 py-3 text-[13px] text-foreground/90 align-top break-words min-w-0 sm:text-sm",
+          link: "font-medium text-foreground underline decoration-primary/35 underline-offset-[5px] transition-all hover:bg-primary/8 hover:decoration-primary/80 rounded-sm px-0.5 -mx-0.5",
+        };
+
+    return {
+      table: ({ children, ...props }) => (
+        <div className={prose.tableWrap}>
+          <table className="w-full min-w-[240px] sm:min-w-[400px] border-collapse text-sm" {...props}>
+            {children}
+          </table>
+        </div>
+      ),
+      thead: ({ children, ...props }) => (
+        <thead className={prose.thead} {...props}>
+          {children}
+        </thead>
+      ),
+      tbody: ({ children, ...props }) => <tbody className="divide-y divide-border/50" {...props}>{children}</tbody>,
+      tr: ({ children, ...props }) => (
+        <tr className={prose.tr} {...props}>
+          {children}
+        </tr>
+      ),
+      th: ({ children, ...props }) => (
+        <th className={prose.th} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </th>
+      ),
+      td: ({ children, ...props }) => (
+        <td className={prose.td} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </td>
+      ),
+      code: ({ className, children, ...props }) => {
+        const code = String(children).replace(/\n$/, "");
+        const hasLanguage = className?.startsWith("language-");
+        const isBlock = hasLanguage || code.includes("\n");
+        const lang = className?.replace("language-", "") ?? "plaintext";
+        const isLongSingleLine = !code.includes("\n") && code.length > 40;
+        if (isBlock) {
+          return (
+            <div className={prose.codeWrap}>
+              <div className={prose.codeBar}>
+                <span className="inline-flex items-center gap-2 min-w-0">
+                  {!isUser && (
+                    <span className="hidden h-2 w-2 shrink-0 rounded-full bg-foreground/15 shadow-[0_0_0_3px_hsl(var(--foreground)/0.04)] sm:inline sm:h-1.5 sm:w-1.5" aria-hidden />
+                  )}
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate min-w-0">
+                    {lang}
+                  </span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 sm:h-7 gap-1.5 text-xs shrink-0 min-h-[36px] sm:min-h-0 touch-manipulation rounded-lg hover:bg-background/60"
+                  onClick={() => navigator.clipboard.writeText(code)}
+                  title="Copy code"
+                  aria-label="Copy code"
+                >
+                  <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+                  <span className="hidden sm:inline">Copy</span>
+                </Button>
+              </div>
+              <pre
+                className={cn(
+                  prose.codePre,
+                  isLongSingleLine ? "overflow-x-auto break-all whitespace-pre-wrap" : "overflow-x-auto whitespace-pre",
+                )}
+                style={isLongSingleLine ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+              >
+                <code
+                  className="font-mono text-foreground break-all min-w-0"
+                  style={isLongSingleLine ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+                >
+                  {children}
+                </code>
+              </pre>
+            </div>
+          );
+        }
+        const inlineCode = String(children);
+        const isLongInline = inlineCode.length > 30 && !inlineCode.includes(" ");
+        return (
+          <code
+            className={prose.inlineCode}
+            style={isLongInline ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+            {...props}
+          >
+            {children}
+          </code>
+        );
+      },
+      pre: ({ children }) => <>{children}</>,
+      h1: ({ children, ...props }) => (
+        <h1 className={prose.h1} {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h1>
+      ),
+      h2: ({ children, ...props }) => (
+        <h2 className={prose.h2} {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h2>
+      ),
+      h3: ({ children, ...props }) => (
+        <h3 className={prose.h3} {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h3>
+      ),
+      h4: ({ children, ...props }) => (
+        <h4 className="mt-4 mb-1.5 text-sm font-semibold tracking-tight text-foreground sm:text-[15px]" {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h4>
+      ),
+      h5: ({ children, ...props }) => (
+        <h5 className="mt-3.5 mb-1 text-sm font-medium text-foreground/95" {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h5>
+      ),
+      h6: ({ children, ...props }) => (
+        <h6 className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" {...props}>
+          {accentSignedPercentagesFull(children)}
+        </h6>
+      ),
+      ul: ({ children, ...props }) => (
+        <ul className={prose.ul} {...props}>
+          {children}
+        </ul>
+      ),
+      ol: ({ children, ...props }) => (
+        <ol className={prose.ol} {...props}>
+          {children}
+        </ol>
+      ),
+      li: ({ children, ...props }) => (
+        <li className={cn("min-w-0 break-words pl-0.5", !isUser && "leading-[1.72]")} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </li>
+      ),
+      p: ({ children, ...props }) => {
+        const text = typeof children === "string" ? children : String(children);
+        const hasLongString = text.length > 50 && !text.includes(" ");
+        return (
+          <p
+            className={prose.p}
+            style={hasLongString ? ({ wordBreak: "break-all", overflowWrap: "anywhere" } satisfies CSSProperties) : undefined}
+            {...props}
+          >
+            {accentSignedPercentagesFull(children)}
+          </p>
+        );
+      },
+      blockquote: ({ children, ...props }) => (
+        <blockquote className={prose.bq} {...props}>
+          {accentSignedPercentagesSkipBlockP(children)}
+        </blockquote>
+      ),
+      strong: ({ children, ...props }) => (
+        <strong className="font-semibold text-foreground" {...props}>
+          {children}
+        </strong>
+      ),
+      a: ({ href, children, node: _node, ...props }) => {
+        const isHttps = typeof href === "string" && href.startsWith("https://");
+        return (
+          <a
+            href={href}
+            className={cn(
+              prose.link,
+              "cursor-pointer",
+              isHttps && "inline-flex max-w-full items-center gap-1.5 align-baseline",
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            {...props}
+          >
+            {isHttps ? (
+              <>
+                <Link2
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-80"
+                  aria-hidden
+                />
+                <span className="min-w-0 break-all">{children}</span>
+              </>
+            ) : (
+              children
+            )}
+          </a>
+        );
+      },
+      hr: () => (
+        <hr className="my-9 h-px border-0 bg-gradient-to-r from-transparent via-border to-transparent opacity-80 sm:my-10" />
+      ),
+    };
+  }, [isUser]);
+
+  const toolItems = useMemo((): ToolUsageItem[] => {
+    if (isUser) return [];
+    if (message.toolUsages?.length) return message.toolUsages;
+    if (message.toolUsage) return [message.toolUsage];
+    return [];
+  }, [isUser, message.toolUsages, message.toolUsage]);
+
+  const pumpChartFromTools = useMemo(() => {
+    const hit = toolItems.find(
+      (t) =>
+        t.status === "complete" &&
+        ((typeof t.chartMint === "string" && t.chartMint.trim().length > 0) ||
+          (typeof t.chartCoinId === "string" && t.chartCoinId.trim().length > 0)),
+    );
+    if (!hit) return null;
+    const chartTitle = hit.chartSymbol?.trim() || hit.chartName?.trim() || undefined;
+    if (hit.chartMint?.trim()) {
+      return { kind: "mint" as const, mint: hit.chartMint.trim(), title: chartTitle };
+    }
+    if (hit.chartCoinId?.trim()) {
+      return { kind: "coinId" as const, coinId: hit.chartCoinId.trim(), title: chartTitle };
+    }
+    return null;
+  }, [toolItems]);
+
+  const pumpfunCreateResult = useMemo(() => {
+    const hit = toolItems.find(
+      (t) =>
+        t.status === "complete" &&
+        typeof t.pumpfunCreateMint === "string" &&
+        t.pumpfunCreateMint.trim().length > 0,
+    );
+    if (!hit) return null;
+    const mint = hit.pumpfunCreateMint!.trim();
+    const signature =
+      typeof hit.pumpfunCreateSignature === "string" && hit.pumpfunCreateSignature.trim().length > 0
+        ? hit.pumpfunCreateSignature.trim()
+        : undefined;
+    const tokenSymbol =
+      typeof hit.pumpfunCreateSymbol === "string" && hit.pumpfunCreateSymbol.trim().length > 0
+        ? hit.pumpfunCreateSymbol.trim()
+        : undefined;
+    const tokenName =
+      typeof hit.pumpfunCreateName === "string" && hit.pumpfunCreateName.trim().length > 0
+        ? hit.pumpfunCreateName.trim()
+        : undefined;
+    return { mint, signature, tokenSymbol, tokenName };
+  }, [toolItems]);
+
+  const contentWithSolscanLinks = useMemo(
+    () => linkifyBareHttpUrlsInMarkdown(injectSolscanLinksInMarkdown(message.content || "")),
+    [message.content],
+  );
+
+  return (
+    <div
+      className={cn(
+        "group flex min-w-0 max-w-full animate-fade-in",
+        isUser
+          ? "gap-3 overflow-x-hidden overflow-y-visible bg-transparent px-3 py-2 sm:gap-4 sm:px-4 sm:py-3"
+          : "items-start gap-3 overflow-x-hidden overflow-y-visible py-1.5 sm:gap-4 sm:py-2",
+      )}
+    >
+      <div className={cn("flex-shrink-0", !isUser && "pt-1 sm:pt-1.5")}>
+        {isUser ? (
+          userAvatarImageUrl ? (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card shadow-md ring-2 ring-background/50 sm:h-8 sm:w-8">
+              <img
+                src={userAvatarImageUrl}
+                alt="You"
+                className="h-full w-full object-cover"
+                key={userAvatarImageUrl}
+                draggable={false}
+              />
+            </div>
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/50 shadow-md ring-2 ring-background/50 sm:h-8 sm:w-8">
+              <span className="text-xs font-semibold text-muted-foreground">You</span>
+            </div>
+          )
+        ) : (
+          <div className="relative pt-1 sm:pt-1.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card shadow-md ring-1 ring-border/60 ring-offset-2 ring-offset-background sm:h-9 sm:w-9">
+              <img src={agentAvatar} alt={agentName} className="h-full w-full object-cover" />
+            </div>
+            {message.isStreaming && (
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background bg-background shadow-sm">
+                <span className="h-2 w-2 animate-thinking-glow rounded-full bg-primary" />
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {isUser ? (
+        <div className="min-w-0 flex-1 space-y-1.5 overflow-x-hidden">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="shrink-0 text-sm font-medium text-foreground">You</span>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+
+          <div className="min-w-0 break-words leading-relaxed text-foreground">
+            {isEditing ? (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-border p-px">
+                  <Textarea
+                    ref={editTextareaRef}
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        saveEdit();
+                      }
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    rows={3}
+                    className="min-h-[72px] resize-y rounded-[calc(0.5rem-1px)] border-0 bg-background shadow-none ring-offset-0 focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-inset focus-visible:ring-offset-0"
+                    placeholder="Your message..."
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={saveEdit}
+                    disabled={!editDraft.trim()}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Save
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5" onClick={cancelEdit}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="my-0 min-w-0 max-w-full break-words text-[15px] leading-relaxed text-foreground [&_p]:my-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {contentWithSolscanLinks}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+
+          {!isEditing && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 min-h-[44px] gap-1.5 touch-manipulation text-muted-foreground hover:text-foreground sm:h-8 sm:min-h-0"
+                onClick={copyToClipboard}
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+              {onUpdateUserMessage && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 min-h-[44px] gap-1.5 touch-manipulation text-muted-foreground hover:text-foreground sm:h-8 sm:min-h-0"
+                  onClick={startEditing}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+          <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.92)] shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_28px_64px_-32px_rgba(0,0,0,0.78),0_1px_0_0_hsl(var(--primary)/0.06)_inset] backdrop-blur-xl dark:bg-gradient-to-br dark:from-[hsl(var(--message-agent)/0.98)] dark:via-card/55 dark:to-card/20">
+            <div
+              className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/25 to-primary/0 opacity-90"
+              aria-hidden
+            />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_80%_at_0%_0%,hsl(var(--foreground)/0.06),transparent_55%)]" />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.055] to-transparent dark:from-white/[0.04]" />
+            <div className="relative space-y-3 px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
+              <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2 border-b border-border/35 pb-3.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                  <span className="text-[15px] font-semibold tracking-[-0.02em] text-foreground sm:text-base">
+                    {agentName}
+                  </span>
+                  <span className="text-xs tabular-nums text-muted-foreground/85">
+                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              </div>
+
+              {!message.isStreaming && pumpChartFromTools && (
+                <PumpfunPriceChart
+                  {...(pumpChartFromTools.kind === "mint"
+                    ? { mint: pumpChartFromTools.mint }
+                    : { coinId: pumpChartFromTools.coinId })}
+                  title={pumpChartFromTools.title}
+                />
+              )}
+
+              <div className="w-full min-w-0 max-w-none break-words text-foreground text-pretty">
+                {(message.content?.trim() || message.isStreaming) && (
+                  <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words rounded-xl border border-border/30 bg-background/[0.14] px-3 py-4 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)] sm:px-5 sm:py-5 [&>*:first-child]:mt-0">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {contentWithSolscanLinks}
+                    </ReactMarkdown>
+                  </div>
+                )}
+                {message.isStreaming && (
+                  <span className="ml-0 mt-3 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/25 px-3 py-1.5 align-middle shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)]">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Writing
+                    </span>
+                    <ThinkingDots />
+                  </span>
+                )}
+                {!message.isStreaming &&
+                  message.inlineUi?.type === "pumpfun-create-coin" &&
+                  !message.inlineUiDismissed &&
+                  (pumpfunCreateFormReadOnly || (onDismissPumpfunCreateForm && onSubmitPumpfunCreateForm) ? (
+                    <PumpfunCreateCoinInlineForm
+                      assistantMessageId={message.id}
+                      readOnly={pumpfunCreateFormReadOnly}
+                      onCreate={onSubmitPumpfunCreateForm ?? (() => {})}
+                      onCancel={onDismissPumpfunCreateForm ?? (() => {})}
+                    />
+                  ) : null)}
+                {!message.isStreaming &&
+                  (message.inlineUi?.type === "jupiter-swap" || message.inlineUi?.type === "pumpfun-swap") &&
+                  !message.inlineUiDismissed &&
+                  (pumpfunCreateFormReadOnly || (onDismissPumpfunCreateForm && onSubmitPumpfunCreateForm) ? (
+                    <AgentSwapInlineForm
+                      mode={message.inlineUi.type === "pumpfun-swap" ? "pumpfun" : "jupiter"}
+                      inlineUi={message.inlineUi}
+                      assistantMessageId={message.id}
+                      readOnly={pumpfunCreateFormReadOnly}
+                      actionsHidden={!!message.swapActionsHidden}
+                      swapInlineStatus={message.swapInlineStatus}
+                      onSwap={onSubmitPumpfunCreateForm ?? (() => {})}
+                      onCancel={onDismissPumpfunCreateForm ?? (() => {})}
+                    />
+                  ) : null)}
+                {!message.isStreaming && pumpfunCreateResult ? (
+                  <PumpfunCreateCoinResultBar
+                    mint={pumpfunCreateResult.mint}
+                    signature={pumpfunCreateResult.signature}
+                    tokenSymbol={pumpfunCreateResult.tokenSymbol}
+                    tokenName={pumpfunCreateResult.tokenName}
+                    className="mt-4"
+                  />
+                ) : null}
+              </div>
+
+              {!message.isStreaming && (
+                <div className="flex flex-wrap items-center gap-1 border-t border-border/30 pt-3.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 min-h-[44px] gap-1.5 touch-manipulation rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:h-8 sm:min-h-0"
+                    onClick={copyToClipboard}
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 min-h-[44px] gap-1.5 touch-manipulation rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:h-8 sm:min-h-0"
+                    onClick={() => onRegenerate?.(message.id)}
+                    disabled={!onRegenerate || isRegenerateDisabled}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Regenerate
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SkeletonMessage() {
+  return (
+    <div className="flex min-w-0 animate-fade-in items-start gap-3 py-1.5 sm:gap-4 sm:py-2">
+      <div className="h-9 w-9 shrink-0 rounded-full skeleton-shimmer ring-1 ring-border/40 ring-offset-2 ring-offset-background sm:h-9 sm:w-9" />
+      <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+        <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.85)] p-4 shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.65)] sm:p-5">
+          <div className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/20 to-primary/0" aria-hidden />
+          <div className="mb-4 flex gap-2 border-b border-border/35 pb-3">
+            <div className="h-5 w-16 rounded-full skeleton-shimmer" />
+            <div className="h-4 w-32 rounded-md skeleton-shimmer" />
+          </div>
+          <div className="space-y-2.5 rounded-xl border border-border/25 bg-background/[0.1] p-4">
+            <div className="h-4 w-full rounded-md skeleton-shimmer" />
+            <div className="h-4 w-[92%] rounded-md skeleton-shimmer" />
+            <div className="h-4 w-[78%] rounded-md skeleton-shimmer" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Animated loading message while the agent prepares a reply (no streamed tokens yet). */
+export function LoadingStepMessage({
+  lastUserMessage,
+  agentName = "Syra Agent",
+}: { lastUserMessage?: string; agentName?: string } = {}) {
+  const steps = getStepsForMessage(lastUserMessage);
+  return <AgentThinkingIndicator agentName={agentName} steps={steps} avatarSrc="/logo.jpg" />;
+}

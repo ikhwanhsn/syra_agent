@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { closeQwertiBuyWidget } from "@/lib/qwerti";
 import { injectQwertiHeadScript } from "@/lib/qwertiHeadScript";
 import { isQwertiHiddenRoute } from "@/lib/qwertiRoutes";
+import { subscribeQwertiDesktopViewport } from "@/lib/qwertiViewport";
 
 /**
  * Ensures the Qwerti embed script is present on marketing routes.
@@ -17,7 +18,11 @@ export function QwertiAutoLoad() {
       closeQwertiBuyWidget();
       return;
     }
-    injectQwertiHeadScript();
+    const sync = (isDesktop: boolean) => {
+      if (isDesktop) injectQwertiHeadScript();
+      else closeQwertiBuyWidget();
+    };
+    return subscribeQwertiDesktopViewport(sync);
   }, [hidden]);
 
   return null;

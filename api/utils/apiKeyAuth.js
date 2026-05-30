@@ -48,6 +48,7 @@ export function authorizationBearerIsApiKey(req) {
 export function requireApiKey(skip) {
   return (req, res, next) => {
     if (!AUTH_REQUIRED) return next();
+    if (String(req.method || "").toUpperCase() === "OPTIONS") return next();
     if (skip && skip(req)) return next();
 
     const key = getKeyFromRequest(req);

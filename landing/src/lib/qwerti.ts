@@ -21,6 +21,14 @@ function findEmbedScript(): HTMLScriptElement | null {
   );
 }
 
+function scriptHasRequiredAttrs(script: HTMLScriptElement): boolean {
+  const attrs = buildQwertiEmbedAttrs();
+  return (
+    script.dataset.widget === attrs["data-widget"] &&
+    script.dataset.campaign === attrs["data-campaign"]
+  );
+}
+
 export function waitForQwertiSdk(timeoutMs = READY_TIMEOUT_MS): Promise<QwertiSdk> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
@@ -53,7 +61,7 @@ export function waitForQwertiSdk(timeoutMs = READY_TIMEOUT_MS): Promise<QwertiSd
 
 export async function openQwertiBuyWidget(): Promise<void> {
   const script = findEmbedScript();
-  if (!script?.dataset.token?.trim() || !script.dataset.chain?.trim()) {
+  if (!script || !scriptHasRequiredAttrs(script)) {
     injectQwertiHeadScript();
   }
 
