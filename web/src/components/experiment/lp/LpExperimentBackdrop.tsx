@@ -3,31 +3,38 @@ export function LpExperimentBackdrop() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       <div
-        className="absolute inset-0 opacity-[0.32]"
+        className="absolute inset-0 opacity-[0.28]"
         style={{
           backgroundImage: `
-            linear-gradient(to right, hsl(var(--border) / 0.08) 1px, transparent 1px),
-            linear-gradient(to bottom, hsl(var(--border) / 0.08) 1px, transparent 1px)
+            linear-gradient(to right, hsl(var(--border) / 0.07) 1px, transparent 1px),
+            linear-gradient(to bottom, hsl(var(--border) / 0.07) 1px, transparent 1px)
           `,
-          backgroundSize: "48px 48px",
+          backgroundSize: "56px 56px",
+          maskImage: "radial-gradient(ellipse 85% 70% at 50% 0%, black 20%, transparent 75%)",
         }}
       />
       <div
-        className="absolute -left-[18%] top-[-8%] h-[52vh] w-[52vw] rounded-full blur-[110px]"
+        className="absolute -left-[16%] top-[-10%] h-[58vh] w-[55vw] rounded-full blur-[120px]"
         style={{
-          background: "radial-gradient(circle, hsl(262 83% 58% / 0.11), transparent 68%)",
+          background: "radial-gradient(circle, hsl(262 83% 58% / 0.13), transparent 68%)",
         }}
       />
       <div
-        className="absolute -right-[12%] top-[22%] h-[38vh] w-[38vw] rounded-full blur-[96px]"
+        className="absolute -right-[10%] top-[18%] h-[42vh] w-[40vw] rounded-full blur-[100px]"
         style={{
-          background: "radial-gradient(circle, hsl(173 58% 39% / 0.08), transparent 65%)",
+          background: "radial-gradient(circle, hsl(173 58% 39% / 0.09), transparent 65%)",
         }}
       />
       <div
-        className="absolute bottom-0 left-[30%] h-[28vh] w-[40vw] rounded-full blur-[80px]"
+        className="absolute bottom-[-5%] left-[25%] h-[32vh] w-[45vw] rounded-full blur-[90px]"
         style={{
-          background: "radial-gradient(circle, hsl(var(--primary) / 0.05), transparent 70%)",
+          background: "radial-gradient(circle, hsl(var(--primary) / 0.06), transparent 70%)",
+        }}
+      />
+      <div
+        className="absolute inset-x-0 top-0 h-px opacity-60"
+        style={{
+          background: "linear-gradient(90deg, transparent, hsl(262 83% 58% / 0.25), transparent)",
         }}
       />
     </div>

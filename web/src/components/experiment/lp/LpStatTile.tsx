@@ -35,10 +35,10 @@ export function LpStatTile({
     <div
       className={cn(
         "group relative flex min-w-0 flex-col gap-2.5 rounded-2xl border px-4 py-3.5",
-        "bg-background/50 backdrop-blur-sm transition-[border-color,box-shadow] duration-200",
+        "bg-background/55 backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-200",
         highlight
-          ? "border-violet-500/35 shadow-[inset_0_1px_0_0_hsl(var(--background)/0.8)]"
-          : "border-border/45 hover:border-violet-500/20",
+          ? "border-violet-500/35 shadow-[inset_0_1px_0_0_hsl(var(--background)/0.85),0_8px_24px_-16px_hsl(262_83%_58%/0.25)]"
+          : "border-border/45 hover:-translate-y-px hover:border-violet-500/22 hover:shadow-sm",
         className,
       )}
     >

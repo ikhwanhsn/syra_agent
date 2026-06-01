@@ -11,12 +11,9 @@ import { cn } from "@/lib/utils";
 import { formatLpUsd } from "@/lib/lpAgentExperimentApi";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import type { LpGlobalOverview } from "@/lib/lpAgentExperimentApi";
+import { LpSectionHeader } from "./LpSectionHeader";
 import { LpStatTile } from "./LpStatTile";
-import {
-  overviewAccentBackground,
-  overviewCardShell,
-  overviewKickerClass,
-} from "@/components/dashboard/overview/overviewStyles";
+import { overviewAccentBackground, overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 
 function formatCompactUsd(value: number) {
   const n = Number(value);
@@ -42,19 +39,22 @@ export function LpExperimentGlobalStats({ overview, loading, className }: LpExpe
   const real = overview?.realAgent;
   const meteora = overview?.meteora;
   const candidates = overview?.candidates;
+  const simPnlTone =
+    (sim?.sumNetPnlSol ?? 0) > 0 ? "positive" : (sim?.sumNetPnlSol ?? 0) < 0 ? "negative" : "default";
+  const realPnlTone =
+    (real?.realizedNetPnlSol ?? 0) > 0
+      ? "positive"
+      : (real?.realizedNetPnlSol ?? 0) < 0
+        ? "negative"
+        : "default";
 
   return (
-    <section className={cn("space-y-3", className)}>
-      <div>
-        <p className={overviewKickerClass}>At a glance</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-          How the lab is doing
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Market depth on Meteora, paper-trading cohort performance, and real agents deployed by users — all in one
-          place.
-        </p>
-      </div>
+    <section className={cn("space-y-4", className)}>
+      <LpSectionHeader
+        kicker="At a glance"
+        title="How the lab is doing"
+        description="Market depth on Meteora, paper-trading cohort performance, and real agents deployed by users — unified in one view."
+      />
 
       <article className={cn(overviewCardShell, "relative overflow-hidden rounded-3xl ring-1 ring-violet-500/12")}>
         <div
@@ -63,8 +63,41 @@ export function LpExperimentGlobalStats({ overview, loading, className }: LpExpe
           aria-hidden
         />
 
-        <div className="relative divide-y divide-border/40">
-          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
+        <div className="relative space-y-4 p-4 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <LpStatTile
+              label="Sim net PnL"
+              value={
+                loading ? "…" : `${(sim?.sumNetPnlSol ?? 0) >= 0 ? "+" : ""}${formatSol(sim?.sumNetPnlSol ?? 0)} SOL`
+              }
+              subValue={
+                loading || sim?.leaderStrategyId == null
+                  ? undefined
+                  : `Cohort leader #${sim.leaderStrategyId} · ${pctLabel(sim.leaderWinRate)} win rate`
+              }
+              icon={TrendingUp}
+              tone={simPnlTone}
+              highlight
+            />
+            <LpStatTile
+              label="Realized PnL (live)"
+              value={
+                loading
+                  ? "…"
+                  : `${(real?.realizedNetPnlSol ?? 0) >= 0 ? "+" : ""}${formatSol(real?.realizedNetPnlSol ?? 0)} SOL`
+              }
+              subValue={
+                loading
+                  ? undefined
+                  : `${real?.realWins ?? 0}W / ${real?.realLosses ?? 0}L · ${pctLabel(real?.realWinRate ?? null)}`
+              }
+              icon={Wallet}
+              tone={realPnlTone}
+              highlight
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <LpStatTile
               label="Meteora scan TVL"
               value={loading ? "…" : formatCompactUsd(meteora?.scanTvlUsd ?? 0)}
@@ -91,27 +124,22 @@ export function LpExperimentGlobalStats({ overview, loading, className }: LpExpe
               icon={FlaskConical}
             />
             <LpStatTile
-              label="Sim net PnL"
-              value={
-                loading ? "…" : `${(sim?.sumNetPnlSol ?? 0) >= 0 ? "+" : ""}${formatSol(sim?.sumNetPnlSol ?? 0)} SOL`
-              }
+              label="Strategies"
+              value={loading ? "…" : String(sim?.strategyCount ?? 0)}
               subValue={
-                loading || sim?.leaderStrategyId == null
+                loading || sim?.topWinRateStrategyId == null
                   ? undefined
-                  : `Leader #${sim.leaderStrategyId} · ${pctLabel(sim.leaderWinRate)} win`
+                  : `Best #${sim.topWinRateStrategyId} · ${sim.topWinRatePct?.toFixed(1) ?? "—"}% win`
               }
-              icon={TrendingUp}
-              tone={
-                (sim?.sumNetPnlSol ?? 0) > 0 ? "positive" : (sim?.sumNetPnlSol ?? 0) < 0 ? "negative" : "default"
-              }
+              icon={FlaskConical}
             />
           </div>
 
-          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5 sm:p-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <LpStatTile
               label="Live agents"
               value={loading ? "…" : String(real?.enabledAgents ?? 0)}
-              subValue={loading ? undefined : `${real?.openPositions ?? 0} on-chain`}
+              subValue={loading ? undefined : `${real?.openPositions ?? 0} on-chain positions`}
               icon={Users}
             />
             <LpStatTile
@@ -126,42 +154,10 @@ export function LpExperimentGlobalStats({ overview, loading, className }: LpExpe
               tone="accent"
             />
             <LpStatTile
-              label="Realized PnL"
-              value={
-                loading
-                  ? "…"
-                  : `${(real?.realizedNetPnlSol ?? 0) >= 0 ? "+" : ""}${formatSol(real?.realizedNetPnlSol ?? 0)} SOL`
-              }
-              subValue={
-                loading
-                  ? undefined
-                  : `${real?.realWins ?? 0}W / ${real?.realLosses ?? 0}L · ${pctLabel(real?.realWinRate ?? null)}`
-              }
-              icon={TrendingUp}
-              tone={
-                (real?.realizedNetPnlSol ?? 0) > 0
-                  ? "positive"
-                  : (real?.realizedNetPnlSol ?? 0) < 0
-                    ? "negative"
-                    : "default"
-              }
-            />
-            <LpStatTile
               label="Fees claimed"
               value={loading ? "…" : `${formatSol(real?.totalFeesClaimedSol ?? 0)} SOL`}
-              subValue={loading ? undefined : `${real?.totalPositions ?? 0} runs`}
+              subValue={loading ? undefined : `${real?.totalPositions ?? 0} total runs`}
               icon={Activity}
-            />
-            <LpStatTile
-              label="Strategies"
-              value={loading ? "…" : String(sim?.strategyCount ?? 0)}
-              subValue={
-                loading || sim?.topWinRateStrategyId == null
-                  ? undefined
-                  : `Best #${sim.topWinRateStrategyId} · ${sim.topWinRatePct?.toFixed(1) ?? "—"}% win`
-              }
-              icon={FlaskConical}
-              className="sm:col-span-2 lg:col-span-1"
             />
           </div>
         </div>

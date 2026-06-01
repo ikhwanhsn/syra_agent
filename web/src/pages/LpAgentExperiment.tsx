@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@/lib/navigation";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  ListOrdered,
-  Trophy,
-  Waves,
-} from "lucide-react";
+import { ListOrdered, Search, Trophy, Waves } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -26,10 +25,24 @@ import { LpExperimentBackdrop } from "@/components/experiment/lp/LpExperimentBac
 import { LpExperimentGlobalStats } from "@/components/experiment/lp/LpExperimentGlobalStats";
 import { LpExperimentHero } from "@/components/experiment/lp/LpExperimentHero";
 import { LpExperimentLabSummary } from "@/components/experiment/lp/LpExperimentLabSummary";
+import { LpSectionHeader } from "@/components/experiment/lp/LpSectionHeader";
+import {
+  LpPaginationBar,
+  LpSortableHead,
+  LpTableEmpty,
+  LpTableSkeletonRows,
+  RunStatusBadge,
+} from "@/components/experiment/lp/LpExperimentTableUi";
 import { LpRealSection } from "@/components/experiment/LpRealSection";
 import { cn } from "@/lib/utils";
-import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
-import { lpTableShell, lpTabsList, lpTabsTrigger, lpTableHead } from "@/components/experiment/lp/lpExperimentStyles";
+import {
+  lpFilterBar,
+  lpTableHead,
+  lpTableRow,
+  lpTableShell,
+  lpTabsList,
+  lpTabsTrigger,
+} from "@/components/experiment/lp/lpExperimentStyles";
 import {
   DASHBOARD_CONTENT_SHELL,
   PAGE_PADDING_TOP_STANDARD,
@@ -107,56 +120,12 @@ function pnlNumberClass(value: number) {
   return "text-foreground";
 }
 
-function PaginationBar({
-  page,
-  totalPages,
-  totalRowsLabel,
-  onPrev,
-  onNext,
-}: {
-  page: number;
-  totalPages: number;
-  totalRowsLabel: string;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/45 bg-background/20 px-4 py-3 text-xs text-muted-foreground sm:px-5">
-      <span>
-        Page {page} / {totalPages} - {totalRowsLabel}
-      </span>
-      <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" disabled={page <= 1} onClick={onPrev} className="h-8 gap-1.5 px-2.5">
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Prev
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={page >= totalPages}
-          onClick={onNext}
-          className="h-8 gap-1.5 px-2.5"
-        >
-          Next
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function RunStatusBadge({ status }: { status: LpRunStatus }) {
-  const tone =
-    status === "win"
-      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-      : status === "loss" || status === "error"
-        ? "bg-destructive/15 text-destructive"
-        : status === "open"
-          ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
-          : "bg-violet-500/12 text-violet-800 dark:text-violet-200";
-  return (
-    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize", tone)}>{status}</span>
-  );
+function toggleSort<T extends string>(
+  prev: { key: T; dir: SortDirection },
+  key: T,
+): { key: T; dir: SortDirection } {
+  if (prev.key !== key) return { key, dir: "desc" };
+  return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
 }
 
 export default function LpAgentExperiment({ embedded = false }: { embedded?: boolean }) {
@@ -176,6 +145,12 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
   const [runPage, setRunPage] = useState(1);
   const [runStatus, setRunStatus] = useState<string>("all");
   const [runSymbol, setRunSymbol] = useState("");
+  const [runSymbolDebounced, setRunSymbolDebounced] = useState("");
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setRunSymbolDebounced(runSymbol.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [runSymbol]);
 
   const strategiesQ = useQuery({
     queryKey: ["lp-agent", "strategies"],
@@ -204,13 +179,13 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     refetchInterval: 60_000,
   });
   const runsQ = useQuery({
-    queryKey: ["lp-agent", "runs", activeCohortId ?? "none", runStatus, runSymbol, runPage],
+    queryKey: ["lp-agent", "runs", activeCohortId ?? "none", runStatus, runSymbolDebounced, runPage],
     queryFn: () =>
       fetchLpRuns({
         limit: RUNS_PAGE_SIZE,
         offset: (runPage - 1) * RUNS_PAGE_SIZE,
         status: runStatus === "all" ? undefined : runStatus,
-        symbol: runSymbol.trim() || undefined,
+        symbol: runSymbolDebounced || undefined,
         experimentId: activeCohortId ?? undefined,
       }),
     enabled: labStateQ.isFetched && Boolean(activeCohortId),
@@ -271,6 +246,10 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     }
   }, [runPage, runTotalPages]);
 
+  useEffect(() => {
+    setRunPage(1);
+  }, [runSymbolDebounced]);
+
   const loading =
     overviewQ.isLoading ||
     strategiesQ.isLoading ||
@@ -295,7 +274,9 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
     void labStateQ.refetch();
   }, [overviewQ, strategiesQ, statsQ, candidatesQ, runsQ, labStateQ]);
 
-  const tableShell = lpTableShell;
+  const agentCount = statsQ.data?.agents?.length ?? 0;
+  const candidateCount = candidatesQ.data?.length ?? 0;
+  const runCount = runsQ.data?.total ?? 0;
 
   return (
     <>
@@ -305,7 +286,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           DASHBOARD_CONTENT_SHELL,
           PAGE_PADDING_TOP_STANDARD,
           PAGE_SAFE_AREA_BOTTOM_COMPACT,
-          "relative space-y-6",
+          "relative space-y-8",
         )}
       >
         <LpExperimentRiskAgreementDialog />
@@ -322,20 +303,20 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
 
         <LpRealSection />
 
-        <section className="space-y-6">
-          <div>
-            <p className={overviewKickerClass}>Simulation</p>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Paper trading lab</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              {overviewQ.data?.simulation.leaderStrategyId != null
-                ? `The live agent follows cohort leader #${overviewQ.data.simulation.leaderStrategyId} (highest net PnL). `
-                : ""}
-              Fifteen strategies compete on live Meteora data with no wallet risk.
-              {labStateQ.data?.activeExperimentId
+        <section id="simulation" className="scroll-mt-8 space-y-6">
+          <LpSectionHeader
+            kicker="Simulation"
+            title="Paper trading lab"
+            description={[
+              overviewQ.data?.simulation.leaderStrategyId != null
+                ? `Live agent mirrors cohort leader #${overviewQ.data.simulation.leaderStrategyId} (highest net PnL). `
+                : "",
+              "Fifteen strategies compete on live Meteora data with no wallet risk.",
+              labStateQ.data?.activeExperimentId
                 ? ` Active cohort: ${labStateQ.data.simConfig.maxConcurrentPositions} slots × ${labStateQ.data.simConfig.maxPositionSol} SOL each.`
-                : " Waiting for the next cohort."}
-            </p>
-          </div>
+                : " Waiting for the next cohort.",
+            ].join("")}
+          />
 
           <LpExperimentLabSummary
             agents={statsQ.data?.agents ?? []}
@@ -344,85 +325,115 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
             loading={loading}
           />
 
-          <div>
-            <p className={overviewKickerClass}>Full data</p>
-            <h3 className="mt-1 text-base font-semibold tracking-tight text-foreground">Detailed tables</h3>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Sort and filter leaderboard, candidate pools, and run history.
-            </p>
-          </div>
+          <LpSectionHeader
+            kicker="Full data"
+            title="Detailed tables"
+            description="Sort columns, filter run history, and drill into any strategy profile."
+          />
 
           <Tabs defaultValue="leaderboard" className="w-full space-y-4">
             <TabsList className={cn(lpTabsList, "grid-cols-3")}>
               <TabsTrigger value="leaderboard" className={cn(lpTabsTrigger, "gap-1.5")}>
-                <Trophy className="h-3.5 w-3.5" />
+                <Trophy className="h-3.5 w-3.5 shrink-0" />
                 Leaderboard
+                <span className="ml-0.5 rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300">
+                  {agentCount}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="candidates" className={cn(lpTabsTrigger, "gap-1.5")}>
-                <Waves className="h-3.5 w-3.5" />
+                <Waves className="h-3.5 w-3.5 shrink-0" />
                 Candidates
+                <span className="ml-0.5 rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300">
+                  {candidateCount}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="runs" className={cn(lpTabsTrigger, "gap-1.5")}>
-                <ListOrdered className="h-3.5 w-3.5" />
+                <ListOrdered className="h-3.5 w-3.5 shrink-0" />
                 Runs
+                <span className="ml-0.5 rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300">
+                  {runCount}
+                </span>
               </TabsTrigger>
             </TabsList>
 
         <TabsContent value="leaderboard" className="mt-0 space-y-3">
-          <p className="px-1 text-sm font-medium text-muted-foreground">Active cohort — sorted by net PnL</p>
-          <div className={tableShell}>
+          <p className="px-1 text-sm text-muted-foreground">
+            Active cohort — click a column header to sort. Default: net PnL descending.
+          </p>
+          <div className={lpTableShell}>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "strategyName", dir: prev.key === "strategyName" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Strategy <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Strategy"
+                      active={leaderboardSort.key === "strategyName"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "strategyName"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "wins", dir: prev.key === "wins" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Wins <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Wins"
+                      align="right"
+                      active={leaderboardSort.key === "wins"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "wins"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "losses", dir: prev.key === "losses" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Losses <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Losses"
+                      align="right"
+                      active={leaderboardSort.key === "losses"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "losses"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "openPositions", dir: prev.key === "openPositions" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Open <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Open"
+                      align="right"
+                      active={leaderboardSort.key === "openPositions"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "openPositions"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "winRatePct", dir: prev.key === "winRatePct" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Win % <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Win %"
+                      align="right"
+                      active={leaderboardSort.key === "winRatePct"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "winRatePct"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setLeaderboardSort((prev) => ({ key: "avgPnlPct", dir: prev.key === "avgPnlPct" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Avg PnL % <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Avg PnL %"
+                      align="right"
+                      active={leaderboardSort.key === "avgPnlPct"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "avgPnlPct"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button
-                      type="button"
-                      className="ml-auto inline-flex items-center gap-1"
-                      onClick={() =>
-                        setLeaderboardSort((prev) => ({
-                          key: "sumNetPnlSol",
-                          dir: prev.key === "sumNetPnlSol" && prev.dir === "asc" ? "desc" : "asc",
-                        }))
-                      }
-                    >
-                      Net PnL <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Net PnL"
+                      align="right"
+                      active={leaderboardSort.key === "sumNetPnlSol"}
+                      direction={leaderboardSort.dir}
+                      onClick={() => setLeaderboardSort((prev) => toggleSort(prev, "sumNetPnlSol"))}
+                    />
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {loading && sortedLeaderboardRows.length === 0 ? (
+                  <LpTableSkeletonRows colSpan={7} />
+                ) : null}
                 {sortedLeaderboardRows.map((row) => (
-                  <TableRow key={row.strategyId}>
+                  <TableRow key={row.strategyId} className={lpTableRow}>
                     <TableCell className="font-medium">
                       <div className="flex min-w-0 items-center gap-2">
                         <Link
@@ -463,11 +474,11 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                   </TableRow>
                 ))}
                 {!loading && (statsQ.data?.agents || []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      No runs yet.
-                    </TableCell>
-                  </TableRow>
+                  <LpTableEmpty
+                    colSpan={7}
+                    title="No strategies yet"
+                    description="Leaderboard fills in after the lab records its first runs."
+                  />
                 ) : null}
               </TableBody>
             </Table>
@@ -475,46 +486,69 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         </TabsContent>
 
         <TabsContent value="candidates" className="mt-0 space-y-3">
-          <p className="px-1 text-sm font-medium text-muted-foreground">Top pools by strategy score</p>
-          <div className={tableShell}>
+          <p className="px-1 text-sm text-muted-foreground">Top pools ranked by each strategy&apos;s scoring model.</p>
+          <div className={lpTableShell}>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "strategyName", dir: prev.key === "strategyName" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Strategy <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Strategy"
+                      active={candidateSort.key === "strategyName"}
+                      direction={candidateSort.dir}
+                      onClick={() => setCandidateSort((prev) => toggleSort(prev, "strategyName"))}
+                    />
                   </TableHead>
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "poolName", dir: prev.key === "poolName" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Pool <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Pool"
+                      active={candidateSort.key === "poolName"}
+                      direction={candidateSort.dir}
+                      onClick={() => setCandidateSort((prev) => toggleSort(prev, "poolName"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "score", dir: prev.key === "score" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Score <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Score"
+                      align="right"
+                      active={candidateSort.key === "score"}
+                      direction={candidateSort.dir}
+                      onClick={() => setCandidateSort((prev) => toggleSort(prev, "score"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "tvlUsd", dir: prev.key === "tvlUsd" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      TVL <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="TVL"
+                      align="right"
+                      active={candidateSort.key === "tvlUsd"}
+                      direction={candidateSort.dir}
+                      onClick={() => setCandidateSort((prev) => toggleSort(prev, "tvlUsd"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "volume24hUsd", dir: prev.key === "volume24hUsd" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      24h Vol <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="24h Vol"
+                      align="right"
+                      active={candidateSort.key === "volume24hUsd"}
+                      direction={candidateSort.dir}
+                      onClick={() => setCandidateSort((prev) => toggleSort(prev, "volume24hUsd"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setCandidateSort((prev) => ({ key: "feeTvlRatio", dir: prev.key === "feeTvlRatio" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Fee/TVL <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Fee/TVL"
+                      align="right"
+                      active={candidateSort.key === "feeTvlRatio"}
+                      direction={candidateSort.dir}
+                      onClick={() => setCandidateSort((prev) => toggleSort(prev, "feeTvlRatio"))}
+                    />
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {loading && pagedCandidates.length === 0 ? <LpTableSkeletonRows colSpan={6} /> : null}
                 {pagedCandidates.map((row) => (
-                  <TableRow key={`${row.strategyId}:${row.poolAddress}`}>
+                  <TableRow key={`${row.strategyId}:${row.poolAddress}`} className={lpTableRow}>
                     <TableCell className="font-medium">
                       <Link
                         to={`/lp-experiment/agent/${row.strategyId}`}
@@ -539,15 +573,15 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                   </TableRow>
                 ))}
                 {!loading && pagedCandidates.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No candidates found.
-                    </TableCell>
-                  </TableRow>
+                  <LpTableEmpty
+                    colSpan={6}
+                    title="No candidate pools"
+                    description="The scanner has not surfaced gated pools for this cycle yet."
+                  />
                 ) : null}
               </TableBody>
             </Table>
-            <PaginationBar
+            <LpPaginationBar
               page={safeCandidatePage}
               totalPages={candidateTotalPages}
               totalRowsLabel={`${candidateRows.length} candidates`}
@@ -558,87 +592,111 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
         </TabsContent>
 
         <TabsContent value="runs" className="mt-0 space-y-3">
-          <div className="mb-2 flex items-center justify-between gap-2 px-1">
-            <p className="text-sm font-medium">Run history</p>
-            <p className="text-xs text-muted-foreground">Latest LP runs and outcomes</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
+          <p className="px-1 text-sm text-muted-foreground">
+            Filter by status or symbol — search updates automatically as you type.
+          </p>
+          <div className={lpFilterBar}>
+            <Select
               value={runStatus}
-              onChange={(e) => {
-                setRunStatus(e.target.value);
+              onValueChange={(value) => {
+                setRunStatus(value);
                 setRunPage(1);
               }}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="all">All statuses</option>
-              {RUN_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <Input
-              value={runSymbol}
-              onChange={(e) => {
-                setRunSymbol(e.target.value);
-                setRunPage(1);
-              }}
-              placeholder="Filter by symbol or pool"
-              className="max-w-xs"
-            />
-            <Button size="sm" variant="outline" onClick={() => runsQ.refetch()}>
-              Apply
-            </Button>
+              <SelectTrigger className="h-9 w-[160px] rounded-lg border-border/50 bg-background/70 text-sm">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {RUN_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative min-w-[200px] flex-1 sm:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Input
+                value={runSymbol}
+                onChange={(e) => setRunSymbol(e.target.value)}
+                placeholder="Symbol or pool name"
+                className="h-9 rounded-lg border-border/50 bg-background/70 pl-9 text-sm"
+                aria-label="Filter runs by symbol or pool"
+              />
+            </div>
           </div>
-          <div className={tableShell}>
+          <div className={lpTableShell}>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "strategyName", dir: prev.key === "strategyName" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Strategy <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Strategy"
+                      active={runSort.key === "strategyName"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "strategyName"))}
+                    />
                   </TableHead>
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "poolName", dir: prev.key === "poolName" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Pool <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Pool"
+                      active={runSort.key === "poolName"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "poolName"))}
+                    />
                   </TableHead>
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "status", dir: prev.key === "status" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Status <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Status"
+                      active={runSort.key === "status"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "status"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "simPnlPct", dir: prev.key === "simPnlPct" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      PnL % <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="PnL %"
+                      align="right"
+                      active={runSort.key === "simPnlPct"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "simPnlPct"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button
-                      type="button"
-                      className="ml-auto inline-flex items-center gap-1"
-                      onClick={() => setRunSort((prev) => ({ key: "simNetPnlSol", dir: prev.key === "simNetPnlSol" && prev.dir === "asc" ? "desc" : "asc" }))}
-                    >
-                      Net PnL (SOL + USD) <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Net PnL"
+                      align="right"
+                      active={runSort.key === "simNetPnlSol"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "simNetPnlSol"))}
+                    />
                   </TableHead>
                   <TableHead className={cn(lpTableHead, "text-right")}>
-                    <button type="button" className="ml-auto inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "simFeesEarnedSol", dir: prev.key === "simFeesEarnedSol" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      LP fees (SOL) <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="LP fees"
+                      align="right"
+                      active={runSort.key === "simFeesEarnedSol"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "simFeesEarnedSol"))}
+                    />
                   </TableHead>
                   <TableHead className={lpTableHead}>
-                    <button type="button" className="inline-flex items-center gap-1" onClick={() => setRunSort((prev) => ({ key: "createdAt", dir: prev.key === "createdAt" && prev.dir === "asc" ? "desc" : "asc" }))}>
-                      Created <ArrowUpDown className="h-3.5 w-3.5" />
-                    </button>
+                    <LpSortableHead
+                      label="Created"
+                      active={runSort.key === "createdAt"}
+                      direction={runSort.dir}
+                      onClick={() => setRunSort((prev) => toggleSort(prev, "createdAt"))}
+                    />
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {(runsQ.isFetching || loading) && sortedRuns.length === 0 ? (
+                  <LpTableSkeletonRows colSpan={7} />
+                ) : null}
                 {sortedRuns.map((run) => (
-                  <TableRow key={run._id}>
+                  <TableRow key={run._id} className={lpTableRow}>
                     <TableCell className="font-medium">
                       <div className="flex min-w-0 items-center gap-2">
                         <Link
@@ -679,16 +737,16 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
                     <TableCell>{run.createdAt ? new Date(run.createdAt).toLocaleString() : "—"}</TableCell>
                   </TableRow>
                 ))}
-                {!loading && (runsQ.data?.runs || []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      No runs found.
-                    </TableCell>
-                  </TableRow>
+                {!loading && !runsQ.isFetching && (runsQ.data?.runs || []).length === 0 ? (
+                  <LpTableEmpty
+                    colSpan={7}
+                    title="No runs match"
+                    description="Try clearing filters or wait for the next signal cycle."
+                  />
                 ) : null}
               </TableBody>
             </Table>
-            <PaginationBar
+            <LpPaginationBar
               page={safeRunPage}
               totalPages={runTotalPages}
               totalRowsLabel={`${runsQ.data?.total || 0} runs`}

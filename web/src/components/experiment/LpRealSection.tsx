@@ -77,6 +77,7 @@ import {
   overviewCardShell,
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
+import { LpSectionHeader } from "@/components/experiment/lp/LpSectionHeader";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -325,14 +326,11 @@ export function LpRealSection() {
 
   return (
     <section id="real-agent" className="scroll-mt-8 space-y-4">
-      <div>
-        <p className={overviewKickerClass}>Your wallet</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground sm:text-xl">Live LP agent</h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Turn this on to let Syra add liquidity on Meteora using SOL from your agent wallet. Real funds are deployed
-          on-chain — only use amounts you can afford to lose.
-        </p>
-      </div>
+      <LpSectionHeader
+        kicker="Your wallet"
+        title="Live LP agent"
+        description="Turn this on to let Syra add liquidity on Meteora using SOL from your agent wallet. Real funds are deployed on-chain — only use amounts you can afford to lose."
+      />
 
       <article className={cn(overviewCardShell, "overflow-hidden rounded-3xl ring-1 ring-violet-500/15")}>
         <div

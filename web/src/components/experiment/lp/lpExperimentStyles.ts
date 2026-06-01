@@ -7,13 +7,23 @@ export const lpTableShell = cn(
   "overflow-hidden rounded-3xl ring-1 ring-violet-500/10",
 );
 
+export const lpTableRow = cn(
+  "border-border/30 transition-colors",
+  "hover:bg-violet-500/[0.04] data-[state=selected]:bg-violet-500/[0.06]",
+);
+
+export const lpFilterBar = cn(
+  "flex flex-wrap items-center gap-2 rounded-2xl border border-border/45 bg-background/35 p-2 backdrop-blur-md sm:gap-2.5 sm:p-2.5",
+);
+
 export const lpTabsList = cn(
-  "grid h-auto w-full rounded-2xl border border-border/50 bg-background/40 p-1 backdrop-blur-md",
+  "grid h-auto w-full gap-1 rounded-2xl border border-border/50 bg-background/40 p-1 shadow-[inset_0_1px_0_0_hsl(var(--background)/0.5)] backdrop-blur-md",
 );
 
 export const lpTabsTrigger = cn(
-  "h-9 gap-1.5 rounded-xl text-xs text-muted-foreground transition-colors",
-  "data-[state=active]:bg-background/90 data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+  "relative h-9 gap-1.5 rounded-xl text-xs font-medium text-muted-foreground transition-[color,background,box-shadow] duration-200",
+  "data-[state=active]:bg-background/95 data-[state=active]:text-foreground data-[state=active]:shadow-[0_1px_2px_hsl(var(--foreground)/0.06),0_0_0_1px_hsl(var(--border)/0.5)]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30",
   "sm:h-10 sm:text-sm",
 );
 
