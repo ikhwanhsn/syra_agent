@@ -10,18 +10,12 @@ import {
   Droplets,
   Rocket,
   Crosshair,
+  Sparkles,
   Lock,
-  History,
   Code2,
   BookOpen,
-  Compass,
-  Layers,
-  TestTube2,
-  FileCode2,
   ExternalLink,
   Info,
-  MessageSquareText,
-  Wallet2,
 } from "lucide-react";
 
 export type NavLinkItem = {
@@ -57,11 +51,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       !p.startsWith("/alpha") &&
       !p.startsWith("/assets") &&
       !p.startsWith("/internal-team"),
-    items: [
-      { href: "/", label: "Chat", icon: Bot, description: "Talk to your agent" },
-      { href: "/wallet", label: "Wallets", icon: Wallet2, description: "Fund and manage agent treasuries" },
-      { href: "/settings", label: "Settings", icon: MessageSquareText, description: "Agent setup and preferences" },
-    ],
   },
   {
     id: "dashboard",
@@ -75,6 +64,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/alpha") ||
       p.startsWith("/assets") ||
       p.includes("-experiment") ||
+      p.startsWith("/vibe-trading") ||
       p.startsWith("/arbitrage") ||
       p.startsWith("/internal-team-agents"),
     items: [
@@ -83,6 +73,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       { href: "/alpha", label: "Alpha intel", icon: Telescope },
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/trading-experiment", label: "Trading experiment", icon: FlaskConical },
+      { href: "/vibe-trading", label: "Bitget Vibe Trader", icon: Sparkles },
       { href: "/arbitrage-experiment", label: "Arbitrage", icon: Scale },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
       { href: "/pumpfun-experiment", label: "Pumpfun", icon: Rocket },
@@ -91,45 +82,31 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "staking",
-    label: "Earn",
+    label: "Staking",
     href: "/staking",
     icon: Lock,
     match: (p) => p.startsWith("/staking"),
     items: [
-      { href: "/staking", label: "Lock $SYRA", description: "Streamflow token locks", icon: Lock },
-      { href: "/staking/details", label: "My positions", description: "Legacy pool stakes", icon: History },
+      { href: "/staking", label: "Locks", icon: Lock, description: "Open and manage Streamflow locks" },
       {
-        href: "/staking/dashboard",
-        label: "Stakers dashboard",
-        description: "Operator registry",
-        icon: Layers,
+        href: "/staking/admin",
+        label: "Admin",
+        icon: LayoutDashboard,
+        description: "Operator registry — stakers and totals",
         adminOnly: true,
       },
     ],
   },
   {
     id: "playground",
-    label: "Develop",
+    label: "Playground",
     href: "/playground",
     icon: Code2,
     match: (p) => p.startsWith("/playground"),
-    items: [
-      { href: "/playground", label: "Playground", description: "x402 API tester", icon: Code2 },
-      { href: "/playground/examples", label: "Examples", icon: BookOpen },
-      { href: "/playground/explorer", label: "Explorer", icon: Compass },
-      { href: "/playground/batch-test", label: "Batch test", icon: TestTube2 },
-      { href: "/playground/format-test", label: "Format validator", icon: FileCode2 },
-    ],
   },
 ];
 
 export const SITE_NAV_MORE: NavLinkItem[] = [
-  {
-    href: "/wallet",
-    label: "Agent wallets",
-    icon: Wallet2,
-    description: "Deposit, withdraw, and manage treasuries",
-  },
   {
     href: "/about",
     label: "About",

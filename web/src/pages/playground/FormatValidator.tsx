@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TopBar } from '@/components/TopBar';
+import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import { extractPaymentDetailsFromOption } from '@/lib/x402Client';
 import { CheckCircle2, XCircle, AlertCircle, Loader2, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
-import { BRAND_NAME, MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
+import { BRAND_NAME } from '@/lib/branding';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -149,30 +149,10 @@ export default function FormatValidator() {
     }
   };
 
-  const flowStatus =
-    loading ? 'loading'
-    : fetchError || (result && !result.valid) ? 'error'
-    : result?.valid ? 'success'
-    : 'idle';
-
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
-      <TopBar
-        wallet={wallet}
-        onOpenConnectModal={() => {}}
-        onToggleSidebar={() => {}}
-        isSidebarOpen={false}
-        paymentNetwork={selectedPaymentChain}
-        flowStatus={flowStatus}
-      />
-      <div
-        className={cn(
-          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
-          MAIN_CONTENT_PT_CLASS,
-          MAIN_CONTENT_PB_SAFE_CLASS,
-        )}
-      >
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-24">
+    <PlaygroundPageShell>
+      <PlaygroundScrollBody>
+        <div className="mx-auto w-full min-w-0 max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 pb-24">
           <div className="glass-panel rounded-2xl p-5 sm:p-6 mb-8 border border-border/50">
             <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
               <div className="relative shrink-0">
@@ -435,7 +415,7 @@ export default function FormatValidator() {
             </Card>
           )}
         </div>
-      </div>
-    </div>
+      </PlaygroundScrollBody>
+    </PlaygroundPageShell>
   );
 }

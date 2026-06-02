@@ -20,6 +20,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
+import { withRpcFallback } from '@/lib/solanaRpc';
 
 // USDC token mint on Solana mainnet
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -488,7 +489,9 @@ export async function createPaymentTransaction(
   config: X402ClientConfig,
   paymentOption: X402PaymentOption
 ): Promise<PaymentTransactionResult> {
-  const { connection, publicKey } = config;
+  const { publicKey } = config;
+
+  return withRpcFallback(async (connection) => {
 
   const recipientPubkey = new PublicKey(paymentOption.payTo);
   const amount = parseAmountToSmallestUnits(paymentOption.amount, 6);
@@ -619,6 +622,7 @@ export async function createPaymentTransaction(
 
   const transaction = new VersionedTransaction(message);
   return { transaction, lastValidBlockHeight };
+  });
 }
 
 /**

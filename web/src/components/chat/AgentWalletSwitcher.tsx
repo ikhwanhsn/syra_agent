@@ -6,6 +6,8 @@ import {
   type AgentWalletPurpose,
 } from "@/lib/agentWalletCatalog";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
+import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
+import { formatSol } from "@/lib/dashboardOverviewAggregates";
 
 export interface AgentWalletBalances {
   sol: number | null;
@@ -18,16 +20,6 @@ export interface AgentWalletSwitcherProps {
   available: AgentWalletPurpose[];
   balances?: Partial<Record<AgentWalletPurpose, AgentWalletBalances>>;
   className?: string;
-}
-
-function formatUsdc(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "—";
-  return `$${v.toFixed(2)}`;
-}
-
-function formatSol(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "—";
-  return v.toFixed(4);
 }
 
 export function AgentWalletSwitcher({ value, onChange, available, balances, className }: AgentWalletSwitcherProps) {
@@ -97,12 +89,12 @@ export function AgentWalletSwitcher({ value, onChange, available, balances, clas
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <CoinLogo symbol="USDC" size="xs" />
                     <span className={bal.usdc != null && bal.usdc > 0 ? "font-medium text-foreground" : ""}>
-                      {formatUsdc(bal.usdc)}
+                      {formatTreasuryUsd(bal.usdc)}
                     </span>
                   </span>
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <CoinLogo symbol="SOL" size="xs" />
-                    {formatSol(bal.sol)}
+                    {bal.sol != null && Number.isFinite(bal.sol) ? formatSol(bal.sol) : "—"}
                   </span>
                 </span>
               ) : null}

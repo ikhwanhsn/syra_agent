@@ -5,8 +5,15 @@ import { ChatArea } from "@/components/chat/ChatArea";
 import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
 import { capitalizeFirstLetter, cn } from "@/lib/utils";
-import { CHAT_SIDEBAR_TRANSITION, CHAT_SIDEBAR_WIDTH } from "@/lib/layoutConstants";
-import { chatApi, getApiBaseUrl, type AgentInlineUiPayload } from "@/lib/chatApi";
+import {
+  CHAT_SIDEBAR_TRANSITION,
+  CHAT_SIDEBAR_WIDTH,
+} from "@/lib/layoutConstants";
+import {
+  chatApi,
+  getApiBaseUrl,
+  type AgentInlineUiPayload,
+} from "@/lib/chatApi";
 import { resolveAssistantSwapInlineUi } from "@/lib/swapIntentFromMessage";
 import { getAgentSystemPrompt } from "@/lib/agentSetupStorage";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -14,7 +21,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Moon, RefreshCw, Sun } from "lucide-react";
 import DashboardSettings from "@/pages/DashboardSettings";
-import { QwertiAgentIntegration } from "@/components/qwerti/QwertiAgentIntegration";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
 import { AboutPageView } from "@/components/about/AboutPageView";
 
@@ -101,7 +107,8 @@ function toMessage(m: {
     id: m.id,
     role: m.role as "user" | "assistant",
     content: m.content,
-    timestamp: typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
+    timestamp:
+      typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp,
     toolUsage: m.toolUsage as Message["toolUsage"],
     toolUsages: m.toolUsages as Message["toolUsages"],
     ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
@@ -122,8 +129,12 @@ function serializeToolUsage(u: ToolUsageEntry): ToolUsageEntry {
     ...(u.chartSymbol ? { chartSymbol: u.chartSymbol } : {}),
     ...(u.chartName ? { chartName: u.chartName } : {}),
     ...(u.pumpfunCreateMint ? { pumpfunCreateMint: u.pumpfunCreateMint } : {}),
-    ...(u.pumpfunCreateSignature ? { pumpfunCreateSignature: u.pumpfunCreateSignature } : {}),
-    ...(u.pumpfunCreateSymbol ? { pumpfunCreateSymbol: u.pumpfunCreateSymbol } : {}),
+    ...(u.pumpfunCreateSignature
+      ? { pumpfunCreateSignature: u.pumpfunCreateSignature }
+      : {}),
+    ...(u.pumpfunCreateSymbol
+      ? { pumpfunCreateSymbol: u.pumpfunCreateSymbol }
+      : {}),
     ...(u.pumpfunCreateName ? { pumpfunCreateName: u.pumpfunCreateName } : {}),
   };
 }
@@ -131,7 +142,8 @@ function serializeToolUsage(u: ToolUsageEntry): ToolUsageEntry {
 /** Persist assistant tool rows + first tool for legacy `toolUsage` readers. */
 function messageToApiPayload(m: Message) {
   const usages = m.toolUsages?.map(serializeToolUsage);
-  const first = usages?.[0] ?? (m.toolUsage ? serializeToolUsage(m.toolUsage) : undefined);
+  const first =
+    usages?.[0] ?? (m.toolUsage ? serializeToolUsage(m.toolUsage) : undefined);
   return {
     id: m.id,
     role: m.role,
@@ -160,7 +172,13 @@ export interface IndexInitialChat {
   shareId?: string | null;
   isPublic?: boolean;
   timestamp?: string | Date;
-  messages?: Array<{ id: string; role: string; content: string; timestamp: string | Date; toolUsage?: unknown }>;
+  messages?: Array<{
+    id: string;
+    role: string;
+    content: string;
+    timestamp: string | Date;
+    toolUsage?: unknown;
+  }>;
 }
 
 interface IndexProps {
@@ -192,7 +210,17 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { ready, anonymousId, connectedWalletAddress, refetchBalance, reportDebit, avatarUrl, getAgentWalletBalances, agentUsdcBalance, agentSolBalance } = useAgentWallet();
+  const {
+    ready,
+    anonymousId,
+    connectedWalletAddress,
+    refetchBalance,
+    reportDebit,
+    avatarUrl,
+    getAgentWalletBalances,
+    agentUsdcBalance,
+    agentSolBalance,
+  } = useAgentWallet();
   const userAvatarUrl = useMemo(
     () => resolveUserAvatarUrl(avatarUrl, anonymousId),
     [avatarUrl, anonymousId],
@@ -210,7 +238,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const focusChatInput = useCallback(() => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+        const isDesktop =
+          typeof window !== "undefined" && window.innerWidth >= 1024;
         (isDesktop ? chatInputRefDesktop : chatInputRefMobile).current?.focus();
       });
     });
@@ -220,9 +249,13 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const [selectedAgent, setSelectedAgent] = useState<Agent>(defaultAgents[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [chatsLoading, setChatsLoading] = useState(true);
-  const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>({});
+  const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>(
+    {},
+  );
   const chatMessagesRef = useRef<Record<string, Message[]>>({});
-  const [apiConnectionError, setApiConnectionError] = useState<string | null>(null);
+  const [apiConnectionError, setApiConnectionError] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     chatMessagesRef.current = chatMessages;
@@ -270,18 +303,23 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           id: c.id,
           title: capitalizeFirstLetter(c.title),
           preview: capitalizeFirstLetter(c.preview),
-          timestamp: typeof c.timestamp === "string" ? new Date(c.timestamp) : new Date(c.timestamp),
+          timestamp:
+            typeof c.timestamp === "string"
+              ? new Date(c.timestamp)
+              : new Date(c.timestamp),
           messages: [],
           shareId: c.shareId ?? null,
           isPublic: !!c.isPublic,
-        }))
+        })),
       );
     } catch (err) {
       const isNetworkError =
-        err instanceof TypeError && (err.message === "Failed to fetch" || err.message.includes("Load failed"));
+        err instanceof TypeError &&
+        (err.message === "Failed to fetch" ||
+          err.message.includes("Load failed"));
       if (isNetworkError) {
         setApiConnectionError(
-          `Cannot connect to the API at ${getApiBaseUrl()}. Make sure the server is running.`
+          `Cannot connect to the API at ${getApiBaseUrl()}. Make sure the server is running.`,
         );
       }
     } finally {
@@ -313,28 +351,44 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       };
       setChats([localChat]);
       setActiveChat(LOCAL_CHAT_ID);
-      setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [] }));
+      setChatMessages((prev) => ({
+        ...prev,
+        [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [],
+      }));
     }
   }, [sessionReady, walletConnected, initialChatId]);
 
-  const loadChatMessages = useCallback(async (id: string) => {
-    if (!anonymousId) return;
-    try {
-      const chat = await chatApi.get(id, anonymousId);
-      const msgs = (chat.messages || []).map(toMessage);
-      setChatMessages((prev) => ({ ...prev, [id]: msgs }));
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, shareId: chat.shareId ?? null, isPublic: !!chat.isPublic } : c
-        )
-      );
-    } catch (err) {
-      // Silently fail; messages may load on retry
-    }
-  }, [anonymousId]);
+  const loadChatMessages = useCallback(
+    async (id: string) => {
+      if (!anonymousId) return;
+      try {
+        const chat = await chatApi.get(id, anonymousId);
+        const msgs = (chat.messages || []).map(toMessage);
+        setChatMessages((prev) => ({ ...prev, [id]: msgs }));
+        setChats((prev) =>
+          prev.map((c) =>
+            c.id === id
+              ? {
+                  ...c,
+                  shareId: chat.shareId ?? null,
+                  isPublic: !!chat.isPublic,
+                }
+              : c,
+          ),
+        );
+      } catch (err) {
+        // Silently fail; messages may load on retry
+      }
+    },
+    [anonymousId],
+  );
 
   useEffect(() => {
-    if (activeChat && !isLocalChat(activeChat) && chatMessages[activeChat] === undefined) {
+    if (
+      activeChat &&
+      !isLocalChat(activeChat) &&
+      chatMessages[activeChat] === undefined
+    ) {
       loadChatMessages(activeChat);
     }
   }, [activeChat, chatMessages, loadChatMessages]);
@@ -365,7 +419,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     };
     setChats((prev) => {
       const exists = prev.some((c) => c.id === initialChatId);
-      if (exists) return prev.map((c) => (c.id === initialChatId ? chatEntry : c));
+      if (exists)
+        return prev.map((c) => (c.id === initialChatId ? chatEntry : c));
       return [chatEntry, ...prev];
     });
     const msgs = (initialChat.messages || []).map(toMessage);
@@ -380,7 +435,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   useEffect(() => {
     if (initialChatId) return;
     if (activeChat !== null && !isLocalChat(activeChat)) return;
-    const pathname = typeof window !== "undefined" ? window.location.pathname : location.pathname;
+    const pathname =
+      typeof window !== "undefined"
+        ? window.location.pathname
+        : location.pathname;
     if (pathname === "/" || !pathname.startsWith("/c/")) return;
     navigate("/", { replace: true });
   }, [initialChatId, activeChat, location.pathname, navigate]);
@@ -431,12 +489,16 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             id: chatId,
             title: capitalizeFirstLetter(chat.title),
             preview: capitalizeFirstLetter(chat.preview),
-            timestamp: typeof chat.timestamp === "string" ? new Date(chat.timestamp) : new Date(chat.timestamp),
+            timestamp:
+              typeof chat.timestamp === "string"
+                ? new Date(chat.timestamp)
+                : new Date(chat.timestamp),
             messages: [],
             shareId: chat.shareId ?? null,
             isPublic: !!chat.isPublic,
           };
-          if (exists) return prev.map((c) => (c.id === chatId ? { ...c, ...entry } : c));
+          if (exists)
+            return prev.map((c) => (c.id === chatId ? { ...c, ...entry } : c));
           return [entry, ...prev];
         });
         const msgs = (chat.messages || []).map(toMessage);
@@ -447,11 +509,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           state: { fromOwner: true, chat },
         });
       } else {
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete("shareId");
-          return next;
-        }, { replace: true });
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("shareId");
+            return next;
+          },
+          { replace: true },
+        );
       }
     });
     return () => {
@@ -498,47 +563,56 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   /** Reset to default screen (empty state) when user clicks logo in sidebar */
   const handleLogoClick = useCallback(() => {
     setActiveChat(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("shareId");
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("shareId");
+        return next;
+      },
+      { replace: true },
+    );
     if (location.pathname !== "/") {
       navigate("/", { replace: true });
     }
     setSidebarOpen(false);
   }, [navigate, location.pathname, setSearchParams]);
 
-  const handleDeleteChat = useCallback(async (id: string) => {
-    if (isLocalChat(id)) {
-      setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: [] }));
-      setSidebarOpen(false);
-      return;
-    }
-    if (!anonymousId) return;
-    try {
-      await chatApi.delete(id, anonymousId);
-      const remaining = chats.filter((c) => c.id !== id);
-      setChats(remaining);
-      setChatMessages((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      if (activeChat === id) {
-        setActiveChat(null);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete("shareId");
-          return next;
-        }, { replace: true });
-        navigate("/", { replace: true });
+  const handleDeleteChat = useCallback(
+    async (id: string) => {
+      if (isLocalChat(id)) {
+        setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: [] }));
+        setSidebarOpen(false);
+        return;
       }
-      setSidebarOpen(false);
-    } catch (err) {
-      // Silently fail; user can retry
-    }
-  }, [anonymousId, activeChat, chats, navigate, setSearchParams]);
+      if (!anonymousId) return;
+      try {
+        await chatApi.delete(id, anonymousId);
+        const remaining = chats.filter((c) => c.id !== id);
+        setChats(remaining);
+        setChatMessages((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        if (activeChat === id) {
+          setActiveChat(null);
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete("shareId");
+              return next;
+            },
+            { replace: true },
+          );
+          navigate("/", { replace: true });
+        }
+        setSidebarOpen(false);
+      } catch (err) {
+        // Silently fail; user can retry
+      }
+    },
+    [anonymousId, activeChat, chats, navigate, setSearchParams],
+  );
 
   const handleDeleteChats = useCallback(
     async (ids: string[]) => {
@@ -549,7 +623,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }
       if (remoteIds.length > 0 && anonymousId) {
         try {
-          await Promise.all(remoteIds.map((id) => chatApi.delete(id, anonymousId)));
+          await Promise.all(
+            remoteIds.map((id) => chatApi.delete(id, anonymousId)),
+          );
         } catch {
           // Silently fail; user can retry
         }
@@ -564,38 +640,44 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       });
       if (activeChat && idSet.has(activeChat)) {
         setActiveChat(null);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete("shareId");
-          return next;
-        }, { replace: true });
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("shareId");
+            return next;
+          },
+          { replace: true },
+        );
         navigate("/", { replace: true });
       }
       setSidebarOpen(false);
     },
-    [anonymousId, activeChat, chats, navigate, setSearchParams]
+    [anonymousId, activeChat, chats, navigate, setSearchParams],
   );
 
-  const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
-    const trimmed = newTitle.trim();
-    if (!trimmed) return;
-    const normalized = capitalizeFirstLetter(trimmed);
-    if (isLocalChat(id)) {
-      setChats((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: normalized } : c))
-      );
-      return;
-    }
-    if (!anonymousId) return;
-    try {
-      await chatApi.update(id, anonymousId, { title: normalized });
-      setChats((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: normalized } : c))
-      );
-    } catch (err) {
-      // Silently fail; user can retry
-    }
-  }, [anonymousId]);
+  const handleRenameChat = useCallback(
+    async (id: string, newTitle: string) => {
+      const trimmed = newTitle.trim();
+      if (!trimmed) return;
+      const normalized = capitalizeFirstLetter(trimmed);
+      if (isLocalChat(id)) {
+        setChats((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, title: normalized } : c)),
+        );
+        return;
+      }
+      if (!anonymousId) return;
+      try {
+        await chatApi.update(id, anonymousId, { title: normalized });
+        setChats((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, title: normalized } : c)),
+        );
+      } catch (err) {
+        // Silently fail; user can retry
+      }
+    },
+    [anonymousId],
+  );
 
   const handleToggleShareVisibility = useCallback(
     async (chatId: string, isPublic: boolean) => {
@@ -603,13 +685,13 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       try {
         await chatApi.update(chatId, anonymousId, { isPublic });
         setChats((prev) =>
-          prev.map((c) => (c.id === chatId ? { ...c, isPublic } : c))
+          prev.map((c) => (c.id === chatId ? { ...c, isPublic } : c)),
         );
       } catch (err) {
         // Silently fail; user can retry
       }
     },
-    [anonymousId]
+    [anonymousId],
   );
 
   const handleSendMessage = async (
@@ -618,7 +700,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       replaceHistory?: Message[];
       dismissInlineUiAssistantMessageId?: string;
       hideSwapActionsAssistantMessageId?: string;
-    }
+    },
   ) => {
     if (!anonymousId) return;
     let chatId = activeChat;
@@ -638,9 +720,12 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                   messages: [],
                 },
                 ...prev,
-              ]
+              ],
         );
-        setChatMessages((prev) => ({ ...prev, [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [] }));
+        setChatMessages((prev) => ({
+          ...prev,
+          [LOCAL_CHAT_ID]: prev[LOCAL_CHAT_ID] ?? [],
+        }));
       } else {
         chatId = LOCAL_CHAT_ID;
       }
@@ -675,24 +760,33 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       timestamp: new Date(),
     };
 
-    const prevRaw = options?.replaceHistory ?? (chatMessagesRef.current[chatId] ?? []);
+    const prevRaw =
+      options?.replaceHistory ?? chatMessagesRef.current[chatId] ?? [];
     let prevMessages = prevRaw;
     if (options?.dismissInlineUiAssistantMessageId) {
       prevMessages = prevRaw.map((m) =>
-        m.id === options.dismissInlineUiAssistantMessageId && m.role === "assistant"
+        m.id === options.dismissInlineUiAssistantMessageId &&
+        m.role === "assistant"
           ? { ...m, inlineUiDismissed: true, inlineUi: undefined }
-          : m
+          : m,
       );
     } else if (options?.hideSwapActionsAssistantMessageId) {
       prevMessages = prevRaw.map((m) =>
-        m.id === options.hideSwapActionsAssistantMessageId && m.role === "assistant"
-          ? { ...m, swapActionsHidden: true, swapInlineStatus: "submitted" as const }
-          : m
+        m.id === options.hideSwapActionsAssistantMessageId &&
+        m.role === "assistant"
+          ? {
+              ...m,
+              swapActionsHidden: true,
+              swapInlineStatus: "submitted" as const,
+            }
+          : m,
       );
     }
     const nextMessages = [...prevMessages, userMessage];
     const isFirstMessage = prevMessages.length === 0;
-    const newTitle = isFirstMessage ? capitalizeFirstLetter(content.slice(0, 30)) : undefined;
+    const newTitle = isFirstMessage
+      ? capitalizeFirstLetter(content.slice(0, 30))
+      : undefined;
     const newPreview = capitalizeFirstLetter(content.slice(0, 50));
 
     setChatMessages((prev) => ({ ...prev, [chatId!]: nextMessages }));
@@ -700,8 +794,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       prev.map((c) =>
         c.id === chatId
           ? { ...c, preview: newPreview, title: newTitle ?? c.title }
-          : c
-      )
+          : c,
+      ),
     );
 
     // Persist title to DB only when wallet connected (history is saved)
@@ -735,14 +829,28 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     try {
       let agentWalletBalances = await getAgentWalletBalances();
       // If fresh fetch failed but navbar has balance, send displayed values so API matches UI
-      if (agentWalletBalances == null && typeof agentUsdcBalance === "number" && typeof agentSolBalance === "number") {
-        agentWalletBalances = { usdcBalance: agentUsdcBalance, solBalance: agentSolBalance };
+      if (
+        agentWalletBalances == null &&
+        typeof agentUsdcBalance === "number" &&
+        typeof agentSolBalance === "number"
+      ) {
+        agentWalletBalances = {
+          usdcBalance: agentUsdcBalance,
+          solBalance: agentSolBalance,
+        };
       }
-      const { response: responseText, amountChargedUsd, toolUsages, inlineUi } = await chatApi.completion({
+      const {
+        response: responseText,
+        amountChargedUsd,
+        toolUsages,
+        inlineUi,
+      } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: getAgentSystemPrompt(),
         chatId:
-          walletConnected && chatId && !isLocalChat(chatId) ? chatId : undefined,
+          walletConnected && chatId && !isLocalChat(chatId)
+            ? chatId
+            : undefined,
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
@@ -759,7 +867,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         charIndex += chunkSize;
         if (charIndex >= responseText.length) {
           clearInterval(streamInterval);
-          const mergedInlineUi = resolveAssistantSwapInlineUi(inlineUi, nextMessages);
+          const mergedInlineUi = resolveAssistantSwapInlineUi(
+            inlineUi,
+            nextMessages,
+          );
           const finalMessages: Message[] = [
             ...nextMessages,
             {
@@ -779,7 +890,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 chatId!,
                 anonymousId,
                 finalMessages.map(messageToApiPayload),
-                newTitle ? { title: newTitle, preview: newPreview } : undefined
+                newTitle ? { title: newTitle, preview: newPreview } : undefined,
               )
               .catch(() => {});
           }
@@ -797,8 +908,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         }
       }, 8);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to get response from the agent.";
-      const mergedInlineUi = resolveAssistantSwapInlineUi(undefined, nextMessages);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to get response from the agent.";
+      const mergedInlineUi = resolveAssistantSwapInlineUi(
+        undefined,
+        nextMessages,
+      );
       const finalMessages: Message[] = [
         ...nextMessages,
         {
@@ -817,7 +934,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             chatId!,
             anonymousId,
             finalMessages.map(messageToApiPayload),
-            newTitle ? { title: newTitle, preview: newPreview } : undefined
+            newTitle ? { title: newTitle, preview: newPreview } : undefined,
           )
           .catch(() => {});
       }
@@ -837,19 +954,25 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           if (m.id !== assistantMessageId || m.role !== "assistant") return m;
           const t = m.inlineUi?.type;
           if (t === "jupiter-swap" || t === "pumpfun-swap") {
-            return { ...m, swapActionsHidden: true, swapInlineStatus: "cancelled" as const };
+            return {
+              ...m,
+              swapActionsHidden: true,
+              swapInlineStatus: "cancelled" as const,
+            };
           }
           return { ...m, inlineUiDismissed: true };
         });
         if (walletConnected && !isLocalChat(chatId)) {
           queueMicrotask(() => {
-            chatApi.putMessages(chatId, anonymousId, next.map(messageToApiPayload)).catch(() => {});
+            chatApi
+              .putMessages(chatId, anonymousId, next.map(messageToApiPayload))
+              .catch(() => {});
           });
         }
         return { ...prev, [chatId]: next };
       });
     },
-    [activeChat, anonymousId, walletConnected]
+    [activeChat, anonymousId, walletConnected],
   );
 
   const handlePumpfunCreateFormSubmit = useCallback(
@@ -857,17 +980,20 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const chatId = activeChat;
       if (!chatId) return;
       const list = chatMessagesRef.current[chatId] ?? [];
-      const msg = list.find((x) => x.id === payload.assistantMessageId && x.role === "assistant");
+      const msg = list.find(
+        (x) => x.id === payload.assistantMessageId && x.role === "assistant",
+      );
       const isSwap =
-        msg?.inlineUi?.type === "jupiter-swap" || msg?.inlineUi?.type === "pumpfun-swap";
+        msg?.inlineUi?.type === "jupiter-swap" ||
+        msg?.inlineUi?.type === "pumpfun-swap";
       void handleSendMessageRef.current(
         payload.prompt,
         isSwap
           ? { hideSwapActionsAssistantMessageId: payload.assistantMessageId }
-          : { dismissInlineUiAssistantMessageId: payload.assistantMessageId }
+          : { dismissInlineUiAssistantMessageId: payload.assistantMessageId },
       );
     },
-    [activeChat]
+    [activeChat],
   );
 
   const urlPromptParam =
@@ -879,7 +1005,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   useEffect(() => {
     if (!ready || !anonymousId || !urlPromptParam) return;
     const hasQParam =
-      searchParams.has("q") || searchParams.has("query") || searchParams.has("prompt");
+      searchParams.has("q") ||
+      searchParams.has("query") ||
+      searchParams.has("prompt");
     if (lastConsumedUrlPromptParam === urlPromptParam) {
       if (hasQParam) {
         setSearchParams(
@@ -913,12 +1041,14 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     (messageId: string, content: string) => {
       if (!activeChat) return;
       const list = chatMessages[activeChat] ?? [];
-      const editIndex = list.findIndex((m) => m.id === messageId && m.role === "user");
+      const editIndex = list.findIndex(
+        (m) => m.id === messageId && m.role === "user",
+      );
       if (editIndex === -1) return;
       const truncated = list.slice(0, editIndex);
       handleSendMessage(content, { replaceHistory: truncated });
     },
-    [activeChat, chatMessages, handleSendMessage]
+    [activeChat, chatMessages, handleSendMessage],
   );
 
   const handleStopGeneration = () => {
@@ -928,7 +1058,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       const msgs = prev[activeChat] ?? [];
       return {
         ...prev,
-        [activeChat]: msgs.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+        [activeChat]: msgs.map((m) =>
+          m.isStreaming ? { ...m, isStreaming: false } : m,
+        ),
       };
     });
   };
@@ -937,7 +1069,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     if (!anonymousId || !activeChat) return;
     const msgs = chatMessages[activeChat] ?? [];
     const idx = msgs.findIndex(
-      (m) => m.id === assistantMessageId && m.role === "assistant"
+      (m) => m.id === assistantMessageId && m.role === "assistant",
     );
     if (idx < 0) return;
     const previousUser = msgs[idx - 1];
@@ -968,10 +1100,22 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     setIsLoading(true);
     try {
       let agentWalletBalances = await getAgentWalletBalances();
-      if (agentWalletBalances == null && typeof agentUsdcBalance === "number" && typeof agentSolBalance === "number") {
-        agentWalletBalances = { usdcBalance: agentUsdcBalance, solBalance: agentSolBalance };
+      if (
+        agentWalletBalances == null &&
+        typeof agentUsdcBalance === "number" &&
+        typeof agentSolBalance === "number"
+      ) {
+        agentWalletBalances = {
+          usdcBalance: agentUsdcBalance,
+          solBalance: agentSolBalance,
+        };
       }
-      const { response: responseText, amountChargedUsd, toolUsages, inlineUi } = await chatApi.completion({
+      const {
+        response: responseText,
+        amountChargedUsd,
+        toolUsages,
+        inlineUi,
+      } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: getAgentSystemPrompt(),
         chatId: walletConnected && !isLocalChat(chatId) ? chatId : undefined,
@@ -991,7 +1135,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         charIndex += chunkSize;
         if (charIndex >= responseText.length) {
           clearInterval(streamInterval);
-          const mergedInlineUi = resolveAssistantSwapInlineUi(inlineUi, truncated);
+          const mergedInlineUi = resolveAssistantSwapInlineUi(
+            inlineUi,
+            truncated,
+          );
           const finalMessages: Message[] = [
             ...truncated,
             {
@@ -1010,7 +1157,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               .putMessages(
                 chatId,
                 anonymousId,
-                finalMessages.map(messageToApiPayload)
+                finalMessages.map(messageToApiPayload),
               )
               .catch(() => {});
           }
@@ -1029,7 +1176,9 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       }, 8);
     } catch (err) {
       const errorContent =
-        err instanceof Error ? err.message : "Failed to get response from the agent.";
+        err instanceof Error
+          ? err.message
+          : "Failed to get response from the agent.";
       const mergedInlineUi = resolveAssistantSwapInlineUi(undefined, truncated);
       const finalMessages: Message[] = [
         ...truncated,
@@ -1048,7 +1197,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           .putMessages(
             chatId,
             anonymousId,
-            finalMessages.map(messageToApiPayload)
+            finalMessages.map(messageToApiPayload),
           )
           .catch(() => {});
       }
@@ -1080,7 +1229,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   );
 
   const handleToggleSidebar = useCallback(() => {
-    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+    const isDesktop =
+      typeof window !== "undefined" && window.innerWidth >= 1024;
     if (isDesktop) {
       setSidebarCollapsed((collapsed) => !collapsed);
       return;
@@ -1089,7 +1239,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   }, []);
 
   const handleCloseSidebar = useCallback(() => {
-    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+    const isDesktop =
+      typeof window !== "undefined" && window.innerWidth >= 1024;
     if (isDesktop) {
       setSidebarCollapsed(true);
     } else {
@@ -1107,7 +1258,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           <div className="absolute w-[70%] h-[70%] rounded-full border border-primary/20 loader-app-ring-slow" />
           {/* Center orb with logo */}
           <div className="relative z-10 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-card border border-border shadow-xl loader-app-orb overflow-hidden">
-            <img src="/logo.jpg" alt="Syra" className="w-full h-full object-cover" />
+            <img
+              src="/logo.jpg"
+              alt="Syra"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
         <p className="mt-8 text-sm font-medium text-foreground loader-text-fade">
@@ -1127,7 +1282,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     <div className="syra-agent-qwerti flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
       {/* API connection error banner */}
       {apiConnectionError && (
-        <Alert variant="destructive" className="rounded-none border-x-0 border-t-0 shrink-0">
+        <Alert
+          variant="destructive"
+          className="rounded-none border-x-0 border-t-0 shrink-0"
+        >
           <AlertCircle className="h-4 w-4 shrink-0" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
             <span className="min-w-0 break-words">{apiConnectionError}</span>
@@ -1145,61 +1303,26 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       )}
 
       <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-      {!isNonChatRoute ? (
-        <>
-          {/* Mobile: dimmed backdrop (fades in/out with sidebar) */}
-          <div
-            aria-hidden={!sidebarOpen}
-            className={cn(
-              "fixed inset-x-0 bottom-0 top-[var(--syra-global-nav-height,3.5rem)] z-30 lg:hidden",
-              "bg-black/45 backdrop-blur-[1px] transition-opacity",
-              CHAT_SIDEBAR_TRANSITION,
-              sidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-            )}
-            onClick={() => setSidebarOpen(false)}
-          />
-
-          {/* Mobile: fixed sidebar (overlay) */}
-          <div className="lg:hidden">
-            <Sidebar
-              variant="overlay"
-              chats={chats}
-              activeChat={activeChat}
-              onSelectChat={handleSelectChat}
-              onNewChat={handleNewChat}
-              onDeleteChat={handleDeleteChat}
-              onDeleteChats={handleDeleteChats}
-              onRenameChat={handleRenameChat}
-              isOpen={sidebarOpen}
-              onToggle={() => setSidebarOpen(!sidebarOpen)}
-              chatsLoading={chatsLoading}
-              sessionReady={sessionReady}
-              walletConnected={walletConnected}
-              onToggleShareVisibility={(chatId, isPublic) =>
-                !isLocalChat(chatId) && handleToggleShareVisibility(chatId, isPublic)
-              }
-              onLogoClick={handleLogoClick}
-            />
-          </div>
-        </>
-      ) : null}
-
-      {/* Desktop: animated sidebar + main */}
-      <div className="hidden h-full min-h-0 min-w-0 flex-1 lg:flex">
         {!isNonChatRoute ? (
-          <div
-            aria-hidden={sidebarCollapsed}
-            className={cn(
-              "relative flex shrink-0 flex-col overflow-hidden border-r border-border/60 bg-background/95 backdrop-blur-xl",
-              "transition-[width,opacity,border-color]",
-              CHAT_SIDEBAR_TRANSITION,
-              sidebarCollapsed ? "w-0 border-transparent opacity-0" : "opacity-100",
-            )}
-            style={sidebarCollapsed ? undefined : { width: CHAT_SIDEBAR_WIDTH }}
-          >
-            <div className="h-full" style={{ width: CHAT_SIDEBAR_WIDTH }}>
+          <>
+            {/* Mobile: dimmed backdrop (fades in/out with sidebar) */}
+            <div
+              aria-hidden={!sidebarOpen}
+              className={cn(
+                "fixed inset-x-0 bottom-0 top-[var(--syra-global-nav-height,3.5rem)] z-30 lg:hidden",
+                "bg-black/45 backdrop-blur-[1px] transition-opacity",
+                CHAT_SIDEBAR_TRANSITION,
+                sidebarOpen
+                  ? "pointer-events-auto opacity-100"
+                  : "pointer-events-none opacity-0",
+              )}
+              onClick={() => setSidebarOpen(false)}
+            />
+
+            {/* Mobile: fixed sidebar (overlay) */}
+            <div className="lg:hidden">
               <Sidebar
-                variant="resizable"
+                variant="overlay"
                 chats={chats}
                 activeChat={activeChat}
                 onSelectChat={handleSelectChat}
@@ -1207,24 +1330,105 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onDeleteChat={handleDeleteChat}
                 onDeleteChats={handleDeleteChats}
                 onRenameChat={handleRenameChat}
-                isOpen={!sidebarCollapsed}
-                onToggle={handleCloseSidebar}
-                onCollapse={handleCloseSidebar}
+                isOpen={sidebarOpen}
+                onToggle={() => setSidebarOpen(!sidebarOpen)}
                 chatsLoading={chatsLoading}
                 sessionReady={sessionReady}
                 walletConnected={walletConnected}
                 onToggleShareVisibility={(chatId, isPublic) =>
-                  !isLocalChat(chatId) && handleToggleShareVisibility(chatId, isPublic)
+                  !isLocalChat(chatId) &&
+                  handleToggleShareVisibility(chatId, isPublic)
                 }
                 onLogoClick={handleLogoClick}
               />
             </div>
-          </div>
+          </>
         ) : null}
+
+        {/* Desktop: animated sidebar + main */}
+        <div className="hidden h-full min-h-0 min-w-0 flex-1 lg:flex">
+          {!isNonChatRoute ? (
+            <div
+              aria-hidden={sidebarCollapsed}
+              className={cn(
+                "relative flex shrink-0 flex-col overflow-hidden border-r border-border/60 bg-background/95 backdrop-blur-xl",
+                "transition-[width,opacity,border-color]",
+                CHAT_SIDEBAR_TRANSITION,
+                sidebarCollapsed
+                  ? "w-0 border-transparent opacity-0"
+                  : "opacity-100",
+              )}
+              style={
+                sidebarCollapsed ? undefined : { width: CHAT_SIDEBAR_WIDTH }
+              }
+            >
+              <div className="h-full" style={{ width: CHAT_SIDEBAR_WIDTH }}>
+                <Sidebar
+                  variant="resizable"
+                  chats={chats}
+                  activeChat={activeChat}
+                  onSelectChat={handleSelectChat}
+                  onNewChat={handleNewChat}
+                  onDeleteChat={handleDeleteChat}
+                  onDeleteChats={handleDeleteChats}
+                  onRenameChat={handleRenameChat}
+                  isOpen={!sidebarCollapsed}
+                  onToggle={handleCloseSidebar}
+                  onCollapse={handleCloseSidebar}
+                  chatsLoading={chatsLoading}
+                  sessionReady={sessionReady}
+                  walletConnected={walletConnected}
+                  onToggleShareVisibility={(chatId, isPublic) =>
+                    !isLocalChat(chatId) &&
+                    handleToggleShareVisibility(chatId, isPublic)
+                  }
+                  onLogoClick={handleLogoClick}
+                />
+              </div>
+            </div>
+          ) : null}
+          <main
+            className={cn(
+              "flex h-full min-h-0 min-w-0 flex-1 flex-col transition-[flex-grow]",
+              CHAT_SIDEBAR_TRANSITION,
+            )}
+          >
+            {isAboutRoute ? (
+              <AgentAboutView />
+            ) : isSettingsRoute ? (
+              <AgentSettingsView />
+            ) : (
+              <ChatArea
+                messages={messages}
+                isLoading={isLoading}
+                onSendMessage={handleSendMessage}
+                onStopGeneration={handleStopGeneration}
+                onRegenerate={handleRegenerate}
+                selectedAgent={selectedAgent}
+                onSelectAgent={setSelectedAgent}
+                systemPrompt={getAgentSystemPrompt()}
+                onToggleSidebar={handleToggleSidebar}
+                sidebarCollapsed={sidebarCollapsed}
+                sessionReady={sessionReady}
+                walletConnected={walletConnected}
+                inputRef={chatInputRefDesktop}
+                isDarkMode={isDarkMode}
+                onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                userAvatarUrl={userAvatarUrl}
+                userAvatarSeed={anonymousId}
+                onUpdateUserMessage={handleUpdateUserMessage}
+                onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
+                onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
+              />
+            )}
+          </main>
+        </div>
+
+        {/* Mobile: main content — full width, proper flex for keyboard */}
         <main
           className={cn(
-            "flex h-full min-h-0 min-w-0 flex-1 flex-col transition-[flex-grow]",
-            CHAT_SIDEBAR_TRANSITION
+            "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:hidden",
+            "transition-all duration-300",
           )}
         >
           {isAboutRoute ? (
@@ -1241,11 +1445,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               selectedAgent={selectedAgent}
               onSelectAgent={setSelectedAgent}
               systemPrompt={getAgentSystemPrompt()}
-              onToggleSidebar={handleToggleSidebar}
-              sidebarCollapsed={sidebarCollapsed}
+              onToggleSidebar={() => setSidebarOpen(true)}
+              sidebarCollapsed={false}
               sessionReady={sessionReady}
               walletConnected={walletConnected}
-              inputRef={chatInputRefDesktop}
+              inputRef={chatInputRefMobile}
               isDarkMode={isDarkMode}
               onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
               userAvatarUrl={userAvatarUrl}
@@ -1257,45 +1461,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           )}
         </main>
       </div>
-
-      {/* Mobile: main content — full width, proper flex for keyboard */}
-      <main
-        className={cn(
-          "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:hidden",
-          "transition-all duration-300",
-        )}
-      >
-        {isAboutRoute ? (
-          <AgentAboutView />
-        ) : isSettingsRoute ? (
-          <AgentSettingsView />
-        ) : (
-          <ChatArea
-            messages={messages}
-            isLoading={isLoading}
-            onSendMessage={handleSendMessage}
-            onStopGeneration={handleStopGeneration}
-            onRegenerate={handleRegenerate}
-            selectedAgent={selectedAgent}
-            onSelectAgent={setSelectedAgent}
-            systemPrompt={getAgentSystemPrompt()}
-            onToggleSidebar={() => setSidebarOpen(true)}
-            sidebarCollapsed={false}
-            sessionReady={sessionReady}
-            walletConnected={walletConnected}
-            inputRef={chatInputRefMobile}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-            userAvatarUrl={userAvatarUrl}
-            userAvatarSeed={anonymousId}
-            onUpdateUserMessage={handleUpdateUserMessage}
-            onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
-            onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
-          />
-        )}
-      </main>
-      </div>
-      <QwertiAgentIntegration />
     </div>
   );
 }

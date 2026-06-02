@@ -277,7 +277,69 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
 
     if (!syraAuthenticated) {
       setReady(true);
-      return;
+      let cancelledGuest = false;
+      const hydrateAddr = cached?.agentAddress;
+      if (hydrateAddr) {
+        void fetchAgentBalanceFromChain(connection, hydrateAddr)
+          .then(({ solBalance, usdcBalance }) => {
+            if (cancelledGuest) return;
+            setAgentSolBalance(solBalance);
+            setAgentUsdcBalance(usdcBalance);
+            mergeCachedBalances(hydrateAddr, {
+              agentSolBalance: solBalance,
+              agentUsdcBalance: usdcBalance,
+            });
+          })
+          .catch(() => {
+            /* keep cache-restored values */
+          });
+      } else {
+        const storedId =
+          typeof localStorage !== "undefined"
+            ? localStorage.getItem(STORAGE_KEY)?.trim() || null
+            : null;
+        if (storedId) {
+          void agentWalletApi
+            .getOrCreate(storedId)
+            .then(async (res) => {
+              if (cancelledGuest) return;
+              setAnonymousId(storedId);
+              setAgentAddress(res.agentAddress);
+              const resolvedAvatar = syncAvatarFromApi(storedId, res.avatarUrl, setAvatarUrl);
+              await hydrateLpWalletFromFields(connection, res, lpSetters);
+              let sol: number | null = null;
+              let usdc: number | null = null;
+              try {
+                const bal = await fetchAgentBalanceFromChain(connection, res.agentAddress);
+                sol = bal.solBalance;
+                usdc = bal.usdcBalance;
+                if (cancelledGuest) return;
+                setAgentSolBalance(sol);
+                setAgentUsdcBalance(usdc);
+              } catch {
+                if (!cancelledGuest) {
+                  setAgentSolBalance(null);
+                  setAgentUsdcBalance(null);
+                }
+              }
+              writeAgentWalletCache({
+                anonymousId: storedId,
+                linkedWallet: connectedWalletAddress,
+                chain: "solana",
+                agentAddress: res.agentAddress,
+                avatarUrl: resolvedAvatar,
+                agentSolBalance: sol,
+                agentUsdcBalance: usdc,
+              });
+            })
+            .catch(() => {
+              /* guest hydrate failed */
+            });
+        }
+      }
+      return () => {
+        cancelledGuest = true;
+      };
     }
 
     if (Date.now() < walletConnectCooldownUntilRef.current) {

@@ -21,6 +21,7 @@ import {
   upsertLockToRegistry,
   type StreamflowLockRegistryItem,
 } from "@/lib/streamflowLockRegistry";
+import { withRpcFallback } from "@/lib/solanaRpc";
 
 function toRegistryNetwork(): "mainnet" | "devnet" {
   return STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet";
@@ -124,17 +125,19 @@ export function useStreamflowStaking(): StreamflowStakingState {
       return BigInt(0);
     }
     try {
-      const { maxLockable, walletState } = await fetchMaxLockableRaw(connection, publicKey);
-      setWalletBalanceRaw(walletState.balance);
-      setMaxLockableRaw(maxLockable);
-      setMintDecimals(walletState.decimals);
-      return walletState.balance;
+      return await withRpcFallback(async (readConnection) => {
+        const { maxLockable, walletState } = await fetchMaxLockableRaw(readConnection, publicKey);
+        setWalletBalanceRaw(walletState.balance);
+        setMaxLockableRaw(maxLockable);
+        setMintDecimals(walletState.decimals);
+        return walletState.balance;
+      });
     } catch {
       setWalletBalanceRaw(BigInt(0));
       setMaxLockableRaw(BigInt(0));
       return BigInt(0);
     }
-  }, [connection, publicKey]);
+  }, [publicKey]);
 
   const refreshMaxLockAmount = useCallback(async (): Promise<{
     maxLockable: bigint;
@@ -145,16 +148,18 @@ export function useStreamflowStaking(): StreamflowStakingState {
       return { maxLockable: BigInt(0), decimals: mintDecimals };
     }
     try {
-      const { maxLockable, walletState } = await fetchMaxLockableRaw(connection, publicKey);
-      setWalletBalanceRaw(walletState.balance);
-      setMaxLockableRaw(maxLockable);
-      setMintDecimals(walletState.decimals);
-      return { maxLockable, decimals: walletState.decimals };
+      return await withRpcFallback(async (readConnection) => {
+        const { maxLockable, walletState } = await fetchMaxLockableRaw(readConnection, publicKey);
+        setWalletBalanceRaw(walletState.balance);
+        setMaxLockableRaw(maxLockable);
+        setMintDecimals(walletState.decimals);
+        return { maxLockable, decimals: walletState.decimals };
+      });
     } catch {
       setMaxLockableRaw(BigInt(0));
       return { maxLockable: BigInt(0), decimals: mintDecimals };
     }
-  }, [connection, publicKey, mintDecimals]);
+  }, [publicKey, mintDecimals]);
 
   const refreshReadiness = useCallback(
     async (amountInput = ""): Promise<StakeReadiness | null> => {
@@ -164,7 +169,9 @@ export function useStreamflowStaking(): StreamflowStakingState {
       }
       setReadinessLoading(true);
       try {
-        const result = await evaluateStakeReadiness(connection, publicKey, amountInput);
+        const result = await withRpcFallback((readConnection) =>
+          evaluateStakeReadiness(readConnection, publicKey, amountInput),
+        );
         setReadiness(result);
         return result;
       } catch {
@@ -174,7 +181,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
         setReadinessLoading(false);
       }
     },
-    [connection, publicKey]
+    [publicKey]
   );
 
   const fetchLocks = useCallback(async () => {
@@ -196,7 +203,9 @@ export function useStreamflowStaking(): StreamflowStakingState {
 
     let chainRows: UserLockRow[] = [];
     try {
-      chainRows = await fetchUserTokenLocksAll(connection, publicKey);
+      chainRows = await withRpcFallback((readConnection) =>
+        fetchUserTokenLocksAll(readConnection, publicKey),
+      );
     } catch {
       chainRows = [];
     }
@@ -249,7 +258,7 @@ export function useStreamflowStaking(): StreamflowStakingState {
         console.warn("[staking] registry bulk sync failed:", err);
       });
     }
-  }, [connection, publicKey, mint, decimals]);
+  }, [publicKey, mint, decimals]);
 
   const fetchData = useCallback(async () => {
     if (!publicKey) {

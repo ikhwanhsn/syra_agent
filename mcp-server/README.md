@@ -20,6 +20,21 @@ A **Model Context Protocol (MCP)** server that exposes the **Syra API** as tools
 
 ---
 
+## Bitget Agent Hub (Hackathon)
+
+Syra’s **Bitget Vibe Trader** (`/vibe-trading` on the web app) uses Bitget public market APIs and maps perception to Agent Hub Skill Hub ids. For direct Bitget trading tools in Cursor, add the official MCP server:
+
+```bash
+export BITGET_API_KEY=your-api-key
+export BITGET_SECRET_KEY=your-secret-key
+export BITGET_PASSPHRASE=your-passphrase
+# claude mcp add ... bitget -- npx -y bitget-mcp-server
+```
+
+See [documentation/BITGET_VIBE_TRADER.md](../documentation/BITGET_VIBE_TRADER.md) for the Track 1 submission pack.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)

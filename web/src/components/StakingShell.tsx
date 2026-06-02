@@ -1,8 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { StakingBackground } from "@/components/StakingBackground";
+import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { StakingFooter } from "@/components/StakingFooter";
+import { StakingNav } from "@/components/StakingNav";
+import {
+  DASHBOARD_CONTENT_SHELL,
+  PAGE_PADDING_TOP_MEDIUM,
+  PAGE_SAFE_AREA_BOTTOM,
+} from "@/lib/layoutConstants";
+import { cn } from "@/lib/utils";
 
 interface StakingShellProps {
   children: ReactNode;
@@ -10,12 +17,22 @@ interface StakingShellProps {
 
 export function StakingShell({ children }: StakingShellProps) {
   return (
-    <div className="relative min-h-[100dvh] min-w-0 overflow-x-clip text-foreground">
-      <StakingBackground />
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pt-8">
+    <>
+      <OverviewPageBackdrop />
+      <div
+        className={cn(
+          DASHBOARD_CONTENT_SHELL,
+          PAGE_PADDING_TOP_MEDIUM,
+          PAGE_SAFE_AREA_BOTTOM,
+          "relative z-[1] min-w-0 max-w-6xl",
+        )}
+      >
+        <div className="mb-6 flex justify-center sm:mb-8">
+          <StakingNav />
+        </div>
         {children}
         <StakingFooter />
       </div>
-    </div>
+    </>
   );
 }

@@ -25,6 +25,8 @@ import {
 import { Connection } from "@solana/web3.js";
 import { env } from "@/lib/env";
 import { notify } from "@/lib/notify";
+import { fetchUserWalletBalancesResilient } from "@/lib/userWalletBalance";
+import { createSolanaConnection, getPrimarySolanaRpcUrl, withRpcFallback } from "@/lib/solanaRpc";
 
 /** Curated Privy Solana wallet options only. */
 const POPULAR_SOLANA_WALLET_LIST: string[] = [
@@ -39,9 +41,7 @@ const MINIMAL_LOGIN_OPTIONS = { loginMethods: ["email", "wallet"] as const };
 const USDC_MINT = new PublicKey(
   "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 );
-const MAINNET_RPC = env.solanaRpcUrl;
-
-export const connection = new Connection(MAINNET_RPC);
+export const connection = createSolanaConnection(getPrimarySolanaRpcUrl());
 
 export type ConnectOption = "email" | "solana";
 
@@ -293,29 +293,19 @@ const WalletContextInner: FC<{
   }, [authenticated, solanaWallets]);
 
   const refreshSolanaBalances = useCallback(async () => {
-    if (!publicKey || !connected) {
+    if (!address || !connected) {
       setSolBalance(null);
       setUsdcBalance(null);
       return;
     }
     try {
-      const balance = await connection.getBalance(publicKey, "confirmed");
-      setSolBalance(balance / LAMPORTS_PER_SOL);
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
-        mint: USDC_MINT,
-      });
-      if (tokenAccounts.value.length > 0) {
-        const total = tokenAccounts.value.reduce(
-          (sum, acc) =>
-            sum + (Number(acc.account.data.parsed.info.tokenAmount.uiAmount) || 0),
-          0,
-        );
-        setUsdcBalance(total);
-      } else setUsdcBalance(0);
+      const balances = await fetchUserWalletBalancesResilient(address);
+      setSolBalance(balances.solBalance);
+      setUsdcBalance(balances.usdcBalance);
     } catch {
-      setUsdcBalance(0);
+      // Keep last known balances on transient RPC failure (avoid false "0 USDC").
     }
-  }, [publicKey, connected]);
+  }, [address, connected]);
 
   useEffect(() => {
     void refreshSolanaBalances();
@@ -566,28 +556,26 @@ const WalletContextInner: FC<{
       options?: { skipPreflight?: boolean; maxRetries?: number }
     ) => {
       if (!solanaWallet || !publicKey) throw new Error("No Solana wallet connected");
-      const { blockhash } = await connection.getLatestBlockhash("finalized");
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
-      const serialized = transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false,
-      });
-      const { signedTransaction } = await privySignTransaction({
-        transaction: serialized,
-        wallet: solanaWallet,
-      });
-      const sig = await connection.sendRawTransaction(
-        new Uint8Array(signedTransaction),
-        {
+      return withRpcFallback(async (readConnection) => {
+        const { blockhash } = await readConnection.getLatestBlockhash("finalized");
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = publicKey;
+        const serialized = transaction.serialize({
+          requireAllSignatures: false,
+          verifySignatures: false,
+        });
+        const { signedTransaction } = await privySignTransaction({
+          transaction: serialized,
+          wallet: solanaWallet,
+        });
+        return readConnection.sendRawTransaction(new Uint8Array(signedTransaction), {
           skipPreflight: options?.skipPreflight ?? false,
           maxRetries: options?.maxRetries ?? 3,
           preflightCommitment: "finalized",
-        }
-      );
-      return sig;
+        });
+      });
     },
-    [solanaWallet, publicKey, privySignTransaction, connection]
+    [solanaWallet, publicKey, privySignTransaction]
   );
 
   const signMessage = useCallback(

@@ -30,6 +30,7 @@ import { createBnb8183Router } from "./routes/agent/bnb8183.js";
 import { createAgentChainsRouter } from "./routes/agent/chains.js";
 import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
 import { createInfoRouter } from "./routes/info.js";
+import { createWalletSolanaBalanceRouter } from "./routes/walletSolanaBalance.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
@@ -42,6 +43,7 @@ import {
   TESTER_AGENT_CONFIG,
 } from "./libs/testerAgent/testerAgentConfig.js";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
+import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import {
@@ -110,6 +112,10 @@ const __dirname = path.dirname(__filename);
 
 // Always load api/.env first (so SOLANA_RPC_URL etc. are set even when run from monorepo root)
 dotenv.config({ path: path.resolve(__dirname, ".env") });
+// Dev: web/.env.local often defines VITE_ADMIN_DASHBOARD_WALLET — mirror for staking admin gate.
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: path.resolve(__dirname, "../web/.env.local") });
+}
 
 // SECURITY P0.1 — refuse to boot if agent wallet encryption is not configured.
 // Skipping this check would silently allow plaintext storage of private keys.
@@ -984,6 +990,7 @@ app.get("/", (req, res) => {
 // x402 routes (unversioned paths only; single canonical URL per endpoint)
 // Partner HTTP (also callable via POST /agent/tools/call when agentDirect)
 app.use("/info", await createInfoRouter());
+app.use("/wallet/solana", createWalletSolanaBalanceRouter());
 app.use("/", await createCryptonewsRouter());
 
 // Preview/landing routes (no x402) – dashboard-summary, binance-ticker, preview/news|sentiment|signal
@@ -1083,6 +1090,10 @@ app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
+// Bitget Vibe Trader (Track 1 hackathon — NL strategy loop on Bitget Agent Hub)
+const bitgetVibeRouter = createBitgetVibeRouter();
+app.use("/agent/bitget-vibe", bitgetVibeRouter);
+app.use("/experiment/bitget-vibe", bitgetVibeRouter);
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet
@@ -1325,6 +1336,23 @@ app.listen(PORT, () => {
   }
   if (legacyMs >= 60_000 && validateMs < 1_000 && signalMs < 60_000) {
     setInterval(runFull, legacyMs);
+  }
+
+  const bitgetVibeMs = Number(process.env.BITGET_VIBE_CRON_MS || 0);
+  const runBitgetVibe = runIfMongoConnected(() =>
+    import("./libs/bitgetVibeService.js")
+      .then(({ runAllVibeLoopTicks }) => runAllVibeLoopTicks())
+      .then((out) => {
+        if (out.errors?.length) {
+          console.warn("[Bitget Vibe] tick errors:", out.errors.slice(0, 3));
+        }
+      })
+      .catch((err) =>
+        console.warn("[Bitget Vibe] tick failed:", err?.message || err),
+      ),
+  );
+  if (bitgetVibeMs >= 60_000) {
+    setInterval(runBitgetVibe, bitgetVibeMs);
   }
 
   const runLpSignal = runIfMongoConnected(() =>

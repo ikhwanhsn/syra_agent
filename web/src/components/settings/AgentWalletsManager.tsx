@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
+  ArrowDownToLine,
   Check,
+  ChevronDown,
   Copy,
   Droplets,
   KeyRound,
@@ -13,6 +15,7 @@ import {
   Wallet2,
   Zap,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +31,17 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { agentWalletApi } from "@/lib/chatApi";
-import { AGENT_WALLET_ACCENT, getAgentWalletSlot } from "@/lib/agentWalletCatalog";
+import {
+  AGENT_WALLET_ACCENT,
+  AGENT_WALLET_COMING_SOON_ACCENT,
+  AGENT_WALLET_COMING_SOON_SLOTS,
+  getAgentWalletComingSoonSlot,
+  getAgentWalletSlot,
+  type AgentWalletComingSoonId,
+} from "@/lib/agentWalletCatalog";
 import { clearAgentWalletLocalSession } from "@/lib/agentWalletSession";
-import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
+import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
+import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { useToast } from "@/hooks/use-toast";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 
@@ -116,6 +127,67 @@ function exportKeyStatusMessage(reason: string | undefined): string {
   }
 }
 
+function AgentWalletComingSoonCard({ id }: { id: AgentWalletComingSoonId }) {
+  const slot = getAgentWalletComingSoonSlot(id);
+  const accent = AGENT_WALLET_COMING_SOON_ACCENT[id];
+  const Icon = slot.icon;
+
+  return (
+    <Card
+      className={cn(
+        overviewCardShell,
+        "relative overflow-hidden ring-1 ring-inset opacity-[0.92]",
+        accent.border,
+      )}
+    >
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
+                accent.bgActive,
+                accent.border,
+              )}
+            >
+              <Icon className={cn("h-5 w-5", accent.icon)} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold tracking-tight text-foreground">{slot.label}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{slot.description}</p>
+            </div>
+          </div>
+          <Badge
+            variant="outline"
+            className={cn("shrink-0 rounded-full border-0 text-[10px] font-semibold uppercase tracking-wide", accent.pill)}
+          >
+            Coming soon
+          </Badge>
+        </div>
+
+        <div className="mt-5 space-y-1">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Balance</p>
+          <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-muted-foreground/50">—</p>
+          <p className="font-mono text-sm tabular-nums text-muted-foreground/45">Not available yet</p>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Button type="button" className="h-11 rounded-xl font-semibold" disabled>
+            Deposit
+          </Button>
+          <Button type="button" variant="outline" className="h-11 rounded-xl font-semibold" disabled>
+            Withdraw
+          </Button>
+        </div>
+
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+          Dedicated treasury for this agent type is in development.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AgentWalletManageCard({
   kind,
   wallet,
@@ -123,12 +195,14 @@ function AgentWalletManageCard({
   usdcBalance,
   balanceLoading,
   onFund,
+  onWithdraw,
   onRefreshBalance,
   refreshingBalance,
   onCopy,
   copiedField,
   onRemove,
   removing,
+  layout = "default",
 }: {
   kind: "chat" | "lp";
   wallet: ManagedAgentWallet;
@@ -136,12 +210,14 @@ function AgentWalletManageCard({
   usdcBalance: number | null;
   balanceLoading: boolean;
   onFund: () => void;
+  onWithdraw?: () => void;
   onRefreshBalance: () => void;
   refreshingBalance: boolean;
   onCopy: (text: string, label: string) => void;
   copiedField: string | null;
   onRemove: () => void;
   removing: boolean;
+  layout?: "default" | "simple";
 }) {
   const { toast } = useToast();
   const { requestSyraAuthForWallet, syraAuthReady, syraAuthenticated } = useSyraAuth();
@@ -240,6 +316,193 @@ function AgentWalletManageCard({
   const addressLabel = kind === "chat" ? "Agent address" : "LP agent address";
   const sessionLabel = kind === "chat" ? "Session ID" : "LP session ID";
 
+  if (layout === "simple") {
+    return (
+      <>
+        <Card
+          className={cn(
+            overviewCardShell,
+            "overflow-hidden ring-1 ring-inset transition-shadow hover:shadow-md",
+            accent.border,
+          )}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
+                    accent.bgActive,
+                    accent.border,
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5", accent.icon)} aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold tracking-tight text-foreground">{slot.label}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{slot.description}</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground"
+                disabled={refreshingBalance}
+                aria-label={`Refresh ${slot.shortLabel} balance`}
+                onClick={onRefreshBalance}
+              >
+                {refreshingBalance ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="h-4 w-4" aria-hidden />
+                )}
+              </Button>
+            </div>
+
+            <div className="mt-5 space-y-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Balance</p>
+              <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+                {balanceLoading ? "…" : formatTreasuryUsd(usdcBalance)}
+              </p>
+              <p className="font-mono text-sm tabular-nums text-muted-foreground">
+                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL` : "— SOL"}
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <Button type="button" className="h-11 rounded-xl gap-2 font-semibold" onClick={onFund}>
+                <Zap className="h-4 w-4" aria-hidden />
+                Deposit
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl gap-2 font-semibold"
+                onClick={onWithdraw ?? onFund}
+              >
+                <ArrowDownToLine className="h-4 w-4" aria-hidden />
+                Withdraw
+              </Button>
+            </div>
+
+            <Collapsible className="mt-4">
+              <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-lg px-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                Wallet details
+                <ChevronDown
+                  className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180"
+                  aria-hidden
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-2 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                <CopyField
+                  label={addressLabel}
+                  value={wallet.agentAddress}
+                  display={shortenAddress(wallet.agentAddress)}
+                  onCopy={onCopy}
+                  copied={copiedField === addressLabel}
+                />
+                <CopyField
+                  label={sessionLabel}
+                  value={wallet.anonymousId}
+                  display={maskAnonymousId(wallet.anonymousId)}
+                  onCopy={onCopy}
+                  copied={copiedField === sessionLabel}
+                  breakAll
+                />
+                <div className="flex flex-wrap gap-2">
+                  {!statusLoading && exportable !== false ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl gap-2 border-amber-500/30"
+                      disabled={exportLoading || !syraAuthReady}
+                      onClick={() => void handleShowPrivateKey()}
+                    >
+                      {exportLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <KeyRound className="h-4 w-4" aria-hidden />
+                      )}
+                      Export key
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={removing}
+                    onClick={onRemove}
+                  >
+                    {removing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    )}
+                    Remove
+                  </Button>
+                </div>
+                {!statusLoading && exportable === false ? (
+                  <p className="text-xs text-muted-foreground">{exportKeyStatusMessage(statusReason)}</p>
+                ) : null}
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
+        </Card>
+        <Dialog open={exportOpen} onOpenChange={handleExportOpenChange}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{slot.label} — private key</DialogTitle>
+              <DialogDescription>
+                Base58 secret for{" "}
+                <span className="font-mono text-foreground/90">{shortenAddress(wallet.agentAddress)}</span>. Anyone
+                with this key controls the treasury.
+              </DialogDescription>
+            </DialogHeader>
+            {privateKey ? (
+              <div className="space-y-3">
+                <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                  <p>
+                    Never share this key or paste it into untrusted sites. Syra cannot recover it after you close this
+                    dialog.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Private key (base58)</Label>
+                  <FieldShell className="max-h-32 overflow-y-auto font-mono text-xs leading-relaxed text-foreground/90 [&_span]:break-all">
+                    <span>{privateKey}</span>
+                  </FieldShell>
+                </div>
+              </div>
+            ) : null}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" className="rounded-xl" onClick={() => handleExportOpenChange(false)}>
+                Close
+              </Button>
+              {privateKey ? (
+                <Button
+                  type="button"
+                  className="rounded-xl gap-2"
+                  onClick={() => onCopy(privateKey, `${slot.label} private key`)}
+                >
+                  {copiedField === `${slot.label} private key` ? (
+                    <Check className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <Copy className="h-4 w-4" aria-hidden />
+                  )}
+                  Copy key
+                </Button>
+              ) : null}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
   return (
     <>
       <Card className={cn(overviewCardShell, "overflow-hidden ring-1 ring-inset", accent.border)}>
@@ -296,7 +559,7 @@ function AgentWalletManageCard({
               <div className="flex justify-between font-mono text-sm tabular-nums">
                 <span className="text-muted-foreground">USDC</span>
                 <span className="font-medium text-foreground">
-                  {balanceLoading ? "…" : usdcBalance != null ? formatCompactUsd(usdcBalance) : "—"}
+                  {balanceLoading ? "…" : formatTreasuryUsd(usdcBalance)}
                 </span>
               </div>
             </div>
@@ -424,6 +687,8 @@ export function AgentWalletsManager({
   copiedField,
   onFundChat,
   onFundLp,
+  onWithdrawChat,
+  onWithdrawLp,
   onRefreshChatBalances,
   onRefreshLpBalances,
   onCreateChatWallet,
@@ -431,6 +696,8 @@ export function AgentWalletsManager({
   creatingChat,
   creatingLp,
   embedded = false,
+  layout = "default",
+  showComingSoon = false,
 }: {
   chatWallet: ManagedAgentWallet | undefined;
   lpWallet: ManagedAgentWallet | undefined;
@@ -448,6 +715,8 @@ export function AgentWalletsManager({
   copiedField: string | null;
   onFundChat: () => void;
   onFundLp: () => void;
+  onWithdrawChat?: () => void;
+  onWithdrawLp?: () => void;
   onRefreshChatBalances: () => void;
   onRefreshLpBalances: () => void;
   onCreateChatWallet: () => void;
@@ -456,6 +725,10 @@ export function AgentWalletsManager({
   creatingLp: boolean;
   /** Hide section title when rendered inside a dedicated page shell. */
   embedded?: boolean;
+  /** Simpler cards for the dedicated wallet page. */
+  layout?: "default" | "simple";
+  /** Show trading & arbitrage placeholders (wallet page). */
+  showComingSoon?: boolean;
 }) {
   const { toast } = useToast();
   const { requestSyraAuth } = useSyraAuth();
@@ -509,75 +782,87 @@ export function AgentWalletsManager({
         </div>
       ) : null}
 
-      {chatWallet ? (
-        <AgentWalletManageCard
-          kind="chat"
-          wallet={chatWallet}
-          solBalance={chatSolBalance}
-          usdcBalance={chatUsdcBalance}
-          balanceLoading={chatBalanceLoading}
-          onFund={onFundChat}
-          onRefreshBalance={onRefreshChatBalances}
-          refreshingBalance={refreshingChatBalances}
-          onCopy={onCopy}
-          copiedField={copiedField}
-          removing={removing && removeTarget?.kind === "chat"}
-          onRemove={() => setRemoveTarget({ wallet: chatWallet, kind: "chat" })}
-        />
-      ) : (
-        <Card className={cn(overviewCardShell, "overflow-hidden border-dashed")}>
-          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
-              <Wallet2 className="h-6 w-6 text-muted-foreground" aria-hidden />
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">No chat agent wallet</p>
-              <p className="max-w-md text-sm text-muted-foreground">
-                Create a chat agent wallet to pay for tools, x402 API calls, and research.
-              </p>
-            </div>
-            <Button type="button" className="rounded-xl gap-2" disabled={creatingChat} onClick={onCreateChatWallet}>
-              {creatingChat ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
-              Create chat wallet
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      <div className={cn(layout === "simple" && "grid gap-4 sm:grid-cols-2")}>
+        {chatWallet ? (
+          <AgentWalletManageCard
+            kind="chat"
+            layout={layout}
+            wallet={chatWallet}
+            solBalance={chatSolBalance}
+            usdcBalance={chatUsdcBalance}
+            balanceLoading={chatBalanceLoading}
+            onFund={onFundChat}
+            onWithdraw={onWithdrawChat}
+            onRefreshBalance={onRefreshChatBalances}
+            refreshingBalance={refreshingChatBalances}
+            onCopy={onCopy}
+            copiedField={copiedField}
+            removing={removing && removeTarget?.kind === "chat"}
+            onRemove={() => setRemoveTarget({ wallet: chatWallet, kind: "chat" })}
+          />
+        ) : (
+          <Card className={cn(overviewCardShell, "overflow-hidden border-dashed")}>
+            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
+                <Wallet2 className="h-6 w-6 text-muted-foreground" aria-hidden />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">Chat wallet</p>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Pays for AI tools, research, and API calls while you chat.
+                </p>
+              </div>
+              <Button type="button" className="rounded-xl gap-2" disabled={creatingChat} onClick={onCreateChatWallet}>
+                {creatingChat ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+                Create chat wallet
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-      {lpWallet ? (
-        <AgentWalletManageCard
-          kind="lp"
-          wallet={lpWallet}
-          solBalance={lpSolBalance}
-          usdcBalance={lpUsdcBalance}
-          balanceLoading={lpBalanceLoading}
-          onFund={onFundLp}
-          onRefreshBalance={onRefreshLpBalances}
-          refreshingBalance={refreshingLpBalances}
-          onCopy={onCopy}
-          copiedField={copiedField}
-          removing={removing && removeTarget?.kind === "lp"}
-          onRemove={() => setRemoveTarget({ wallet: lpWallet, kind: "lp" })}
-        />
-      ) : chatWallet ? (
-        <Card className={cn(overviewCardShell, "overflow-hidden border-dashed")}>
-          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/5">
-              <Droplets className="h-6 w-6 text-violet-500" aria-hidden />
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">No LP agent wallet</p>
-              <p className="max-w-md text-sm text-muted-foreground">
-                Create a dedicated LP treasury before enabling the real Meteora LP agent.
-              </p>
-            </div>
-            <Button type="button" className="rounded-xl gap-2" disabled={creatingLp} onClick={onCreateLpWallet}>
-              {creatingLp ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
-              Create LP wallet
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
+        {lpWallet ? (
+          <AgentWalletManageCard
+            kind="lp"
+            layout={layout}
+            wallet={lpWallet}
+            solBalance={lpSolBalance}
+            usdcBalance={lpUsdcBalance}
+            balanceLoading={lpBalanceLoading}
+            onFund={onFundLp}
+            onWithdraw={onWithdrawLp}
+            onRefreshBalance={onRefreshLpBalances}
+            refreshingBalance={refreshingLpBalances}
+            onCopy={onCopy}
+            copiedField={copiedField}
+            removing={removing && removeTarget?.kind === "lp"}
+            onRemove={() => setRemoveTarget({ wallet: lpWallet, kind: "lp" })}
+          />
+        ) : chatWallet ? (
+          <Card className={cn(overviewCardShell, "overflow-hidden border-dashed")}>
+            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/5">
+                <Droplets className="h-6 w-6 text-violet-500" aria-hidden />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">LP wallet</p>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Separate treasury for liquidity experiments on Meteora.
+                </p>
+              </div>
+              <Button type="button" className="rounded-xl gap-2" disabled={creatingLp} onClick={onCreateLpWallet}>
+                {creatingLp ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+                Create LP wallet
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {showComingSoon
+          ? AGENT_WALLET_COMING_SOON_SLOTS.map((slot) => (
+              <AgentWalletComingSoonCard key={slot.id} id={slot.id} />
+            ))
+          : null}
+      </div>
 
       <Dialog open={Boolean(removeTarget)} onOpenChange={(open) => !open && !removing && setRemoveTarget(null)}>
         <DialogContent className="sm:max-w-md">

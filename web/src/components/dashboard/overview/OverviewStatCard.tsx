@@ -22,6 +22,8 @@ export interface OverviewStatCardProps {
   isLoading?: boolean;
   error?: boolean;
   className?: string;
+  /** Override inner content padding (default p-5 sm:p-6). */
+  contentClassName?: string;
 }
 
 export function OverviewStatCard({
@@ -34,13 +36,15 @@ export function OverviewStatCard({
   isLoading,
   error,
   className,
+  contentClassName,
 }: OverviewStatCardProps) {
   const body = (
     <article
       className={cn(
         overviewCardShell,
-        "group h-full p-4 sm:p-5 transition-all duration-300",
-        href && "hover:-translate-y-0.5 hover:border-border/80 hover:shadow-[0_1px_0_0_hsl(var(--border)/0.55),0_28px_56px_-28px_rgba(0,0,0,0.75)]",
+        "group h-full transition-all duration-300",
+        href &&
+          "hover:-translate-y-0.5 hover:border-border/80 hover:shadow-[0_1px_0_0_hsl(var(--border)/0.55),0_28px_56px_-28px_rgba(0,0,0,0.75)]",
         error && "opacity-80",
         className,
       )}
@@ -50,9 +54,14 @@ export function OverviewStatCard({
         style={{ background: overviewAccentBackground(accent) }}
         aria-hidden
       />
-      <div className="relative flex h-full flex-col">
-        <header className="mb-3 flex items-start justify-between gap-2">
-          <p className={cn(overviewKickerClass, "min-w-0")}>{label}</p>
+      <div
+        className={cn(
+          "relative z-[1] flex h-full min-w-0 flex-col p-5 sm:p-6",
+          contentClassName,
+        )}
+      >
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <p className={cn(overviewKickerClass, "min-w-0 flex-1 pr-1")}>{label}</p>
           {Icon ? (
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground transition-colors group-hover:border-border/70 group-hover:text-foreground">
               <Icon className="h-4 w-4" aria-hidden />
@@ -67,8 +76,12 @@ export function OverviewStatCard({
           </div>
         ) : (
           <>
-            <p className={cn(overviewMetricValueClass, error && "text-muted-foreground")}>{value}</p>
-            {hint ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground/85">{hint}</p> : null}
+            <p className={cn(overviewMetricValueClass, error && "text-muted-foreground")}>
+              {value}
+            </p>
+            {hint ? (
+              <p className="mt-2 text-[11px] leading-snug text-muted-foreground/85">{hint}</p>
+            ) : null}
           </>
         )}
 
@@ -79,7 +92,10 @@ export function OverviewStatCard({
           </span>
         ) : null}
         {isLoading ? (
-          <Loader2 className="absolute right-4 top-4 h-4 w-4 animate-spin text-muted-foreground/50" aria-label="Loading" />
+          <Loader2
+            className="absolute right-5 top-5 h-4 w-4 animate-spin text-muted-foreground/50 sm:right-6 sm:top-6"
+            aria-label="Loading"
+          />
         ) : null}
       </div>
     </article>

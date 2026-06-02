@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, Fragment } from 'react';
-import { TopBar } from '@/components/TopBar';
+import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
 import { Button } from '@/components/ui/button';
 import { useConnectModal } from '@/contexts/ConnectModalContext';
 import {
@@ -33,7 +33,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { RequestParam } from '@/types/api';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
-import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 
 function getRequestOrigin(urlStr: string): string | null {
   try {
@@ -689,15 +688,7 @@ export default function BatchTest() {
   const hasWallet = walletContext.connected;
 
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
-      <TopBar
-        wallet={wallet}
-        onOpenConnectModal={() => openConnectModal()}
-        onToggleSidebar={() => {}}
-        isSidebarOpen={false}
-        paymentNetwork={paymentChain}
-        flowStatus={running ? 'loading' : 'idle'}
-      />
+    <PlaygroundPageShell>
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="max-w-lg max-h-[85dvh] overflow-hidden flex flex-col rounded-2xl border-border/60">
           <DialogHeader>
@@ -922,13 +913,7 @@ export default function BatchTest() {
         </DialogContent>
       </Dialog>
 
-      <main
-        className={cn(
-          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
-          MAIN_CONTENT_PT_CLASS,
-          MAIN_CONTENT_PB_SAFE_CLASS,
-        )}
-      >
+      <PlaygroundScrollBody>
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 flex flex-col gap-8 pb-24">
           <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-border/50">
             <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
@@ -1239,7 +1224,7 @@ export default function BatchTest() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </PlaygroundScrollBody>
+    </PlaygroundPageShell>
   );
 }

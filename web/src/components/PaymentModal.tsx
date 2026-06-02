@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { PLAYGROUND_MODAL_Z } from '@/components/playground/playgroundStyles';
 import {
   X,
   Wallet,
@@ -19,6 +21,8 @@ import { Badge } from '@/components/ui/badge';
 import { PaymentDetails, TransactionStatus, WalletState } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { useWalletContext } from '@/contexts/WalletContext';
+import { useUserWalletBalance } from '@/hooks/useUserWalletBalance';
+import { formatUsdcAmount } from '@/lib/userWalletBalance';
 import type { X402PaymentOption } from '@/lib/x402Client';
 
 interface PaymentModalProps {
@@ -55,9 +59,26 @@ export function PaymentModal({
   onSelectPaymentChain: _onSelectPaymentChain,
 }: PaymentModalProps) {
   const walletContext = useWalletContext();
+  const {
+    userUsdcBalance,
+    userSolBalance,
+    isLoading: balanceLoading,
+    isFetching: balanceFetching,
+    refetch: refetchUserBalance,
+  } = useUserWalletBalance();
   const [copiedRecipient, setCopiedRecipient] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    void walletContext.refreshSolanaBalances();
+    void refetchUserBalance();
+  }, [isOpen, walletContext.refreshSolanaBalances, refetchUserBalance]);
+
   if (!isOpen) return null;
+
+  const usdcBalance = userUsdcBalance ?? walletContext.usdcBalance;
+  const solBalance = userSolBalance ?? walletContext.solBalance;
+  const balancePending = (balanceLoading || balanceFetching) && usdcBalance == null && solBalance == null;
 
   const isPending = transactionStatus.status === 'pending';
   const isConfirmed = transactionStatus.status === 'confirmed';
@@ -68,9 +89,9 @@ export function PaymentModal({
   const paymentAmount = parseFloat(paymentDetails.amount) || 0;
   const hasEnoughBalance =
     paymentDetails.token === 'USDC'
-      ? (walletContext.usdcBalance || 0) >= paymentAmount
-      : (walletContext.solBalance || 0) >= paymentAmount;
-  const walletConnectedForChain = wallet.connected;
+      ? (usdcBalance ?? 0) >= paymentAmount - 1e-9
+      : (solBalance ?? 0) >= paymentAmount - 1e-9;
+  const walletConnectedForChain = walletContext.connected;
   
   // Check if payment details are valid (has recipient address)
   const hasValidPaymentDetails = paymentDetails.recipient && 
@@ -102,8 +123,8 @@ export function PaymentModal({
   };
 
   const displayWalletShort = walletContext.shortAddress ?? walletContext.address;
-  const displayUsdc = walletContext.usdcBalance;
-  const displayNativeBalance = walletContext.solBalance;
+  const displayUsdc = usdcBalance;
+  const displayNativeBalance = solBalance;
 
   const copyRecipient = async () => {
     const addr = paymentDetails.recipient;
@@ -123,17 +144,24 @@ export function PaymentModal({
       ? `https://basescan.org/tx/${transactionStatus.hash}`
       : `https://explorer.solana.com/tx/${transactionStatus.hash}`);
 
-  return (
+  return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop — portaled above playground drawer (z-30) and nav (z-200) */}
       <div
-        className="fixed inset-0 z-50 animate-in fade-in-0 duration-300 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,hsl(var(--ring)/0.12),transparent_55%),hsl(var(--background)/0.88)] backdrop-blur-xl dark:bg-[radial-gradient(ellipse_100%_60%_at_50%_100%,hsl(var(--primary)/0.06),transparent_45%),hsl(220_14%_4%/0.82)]"
+        className={cn(
+          'fixed inset-0 animate-in fade-in-0 duration-300 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,hsl(var(--ring)/0.12),transparent_55%),hsl(var(--background)/0.88)] backdrop-blur-xl dark:bg-[radial-gradient(ellipse_100%_60%_at_50%_100%,hsl(var(--primary)/0.06),transparent_45%),hsl(220_14%_4%/0.82)]',
+          PLAYGROUND_MODAL_Z,
+        )}
         onClick={onClose}
         aria-hidden
       />
 
       {/* Modal - scrollable on small screens; safe area padding */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden safe-area-inset-top safe-area-inset-bottom pointer-events-none">
+      <div
+        className={cn(
+          'fixed inset-0 z-[501] flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden safe-area-inset-top safe-area-inset-bottom pointer-events-none',
+        )}
+      >
         <div
           className="pointer-events-auto w-full max-w-lg sm:max-w-xl glass-panel animate-scale-in overflow-hidden my-auto max-h-[min(calc(100dvh-2rem),calc(100svh-2rem))] flex flex-col min-h-0 rounded-2xl ring-1 ring-border/60 dark:ring-white/[0.07] shadow-2xl relative playground-ambient"
           onClick={(e) => e.stopPropagation()}
@@ -402,7 +430,14 @@ export function PaymentModal({
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="font-mono text-sm font-medium tabular-nums text-foreground">
-                      {(displayUsdc ?? 0).toFixed(2)} USDC
+                      {balancePending ? (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading…
+                        </span>
+                      ) : (
+                        <>{formatUsdcAmount(displayUsdc)} USDC</>
+                      )}
                     </p>
                     {!isBase && displayNativeBalance != null && (
                       <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
@@ -413,7 +448,7 @@ export function PaymentModal({
                 </div>
                 
                 {/* Insufficient Balance Warning */}
-                {!hasEnoughBalance && (
+                {!balancePending && !hasEnoughBalance && (
                   <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
                     <div>
@@ -463,12 +498,23 @@ export function PaymentModal({
                 variant="neon"
                 className="glow-primary-hover h-12 w-full gap-2 rounded-xl text-[15px] font-semibold shadow-lg"
                 onClick={onPay}
-                disabled={isPending || !hasEnoughBalance || !hasValidPaymentDetails || !walletConnectedForChain}
+                disabled={
+                  isPending ||
+                  balancePending ||
+                  !hasEnoughBalance ||
+                  !hasValidPaymentDetails ||
+                  !walletConnectedForChain
+                }
               >
                 {isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Processing Payment...
+                  </>
+                ) : balancePending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Checking balance…
                   </>
                 ) : !hasValidPaymentDetails ? (
                   <>
@@ -501,6 +547,7 @@ export function PaymentModal({
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

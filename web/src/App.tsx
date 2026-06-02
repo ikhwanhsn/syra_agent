@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { QwertiAgentIntegration } from "@/components/qwerti/QwertiAgentIntegration";
 import { AppProviders } from "@/components/providers/AppProviders";
 import Alpha from "@/pages/Alpha";
 import ArbitrageExperiment from "@/pages/ArbitrageExperiment";
@@ -29,16 +30,11 @@ import RiseExperiment from "@/pages/RiseExperiment";
 import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
-import PlaygroundBatchTest from "@/pages/playground/BatchTest";
-import PlaygroundExamples from "@/pages/playground/Examples";
-import PlaygroundExamplesGroup, { ExamplesLegacyGroupRedirect } from "@/pages/playground/ExamplesGroup";
-import PlaygroundExplorer from "@/pages/playground/Explorer";
-import PlaygroundExplorerDetail from "@/pages/playground/ExplorerDetail";
-import PlaygroundFormatValidator from "@/pages/playground/FormatValidator";
-import PlaygroundIndex from "@/pages/playground/Index";
-import StakingDashboardPage from "@/pages/staking/StakingDashboardPage";
-import StakingDetailsPage from "@/pages/staking/StakingDetailsPage";
+import BitgetVibeTrader from "@/pages/BitgetVibeTrader";
+import PlaygroundHub from "@/pages/playground/PlaygroundHub";
+import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
 import StreamflowPage from "@/pages/staking/StreamflowPage";
+import StakingAdminDashboardPage from "@/pages/staking/StakingAdminDashboardPage";
 
 function DashboardLayoutRoute() {
   return (
@@ -52,6 +48,7 @@ const App = () => (
   <AppProviders>
     <BrowserRouter>
       <AppShell>
+        <QwertiAgentIntegration />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<Index />} />
@@ -75,23 +72,19 @@ const App = () => (
             <Route path="/lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile />} />
             <Route path="/trading-experiment" element={<TradingAgentExperiment />} />
             <Route path="/trading-experiment/agent/:agentId" element={<TradingAgentExperimentAgentProfile />} />
+            <Route path="/vibe-trading" element={<BitgetVibeTrader />} />
             <Route path="/internal-team-agents" element={<InternalTeamAgentsMonitor />} />
             <Route path="/internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
           </Route>
 
-          <Route path="/playground" element={<PlaygroundIndex />} />
-          <Route path="/playground/s/:slug" element={<PlaygroundIndex />} />
-          <Route path="/playground/batch-test" element={<PlaygroundBatchTest />} />
-          <Route path="/playground/examples" element={<PlaygroundExamples />} />
-          <Route path="/playground/examples/:catalog/:groupSlug" element={<PlaygroundExamplesGroup />} />
-          <Route path="/playground/examples/:groupSlug" element={<ExamplesLegacyGroupRedirect />} />
-          <Route path="/playground/explorer" element={<PlaygroundExplorer />} />
-          <Route path="/playground/explorer/:slug" element={<PlaygroundExplorerDetail />} />
-          <Route path="/playground/format-test" element={<PlaygroundFormatValidator />} />
+          <Route path="/playground" element={<PlaygroundHub />} />
+          <Route path="/playground/s/:slug" element={<PlaygroundShareRoute />} />
+          <Route path="/playground/*" element={<Navigate to="/playground" replace />} />
 
           <Route path="/staking" element={<StreamflowPage />} />
-          <Route path="/staking/dashboard" element={<StakingDashboardPage />} />
-          <Route path="/staking/details" element={<StakingDetailsPage />} />
+          <Route path="/staking/admin" element={<StakingAdminDashboardPage />} />
+          <Route path="/staking/dashboard" element={<Navigate to="/staking/admin" replace />} />
+          <Route path="/staking/details" element={<Navigate to="/staking" replace />} />
 
           <Route path="/marketplace" element={<LegacyMarketplaceRedirect />} />
           <Route path="/marketplace/*" element={<LegacyMarketplaceRedirect />} />
@@ -105,7 +98,7 @@ const App = () => (
           <Route path="/token-check" element={<Navigate to="/assets" replace />} />
           <Route path="/dossier" element={<Navigate to="/assets" replace />} />
           <Route path="/internal-hackathons" element={<Navigate to="/internal-team-agents" replace />} />
-          <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/dashboard" replace />} />
+          <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/admin" replace />} />
           <Route path="/mpp" element={<Navigate to="/playground" replace />} />
           <Route path="/playground/mpp" element={<Navigate to="/playground" replace />} />
 

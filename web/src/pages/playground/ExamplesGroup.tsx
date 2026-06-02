@@ -10,7 +10,7 @@ import {
   filterExampleFlowsByGroupSlug,
   type ExampleFlowPreset,
 } from '@/hooks/useApiPlayground';
-import { TopBar } from '@/components/TopBar';
+import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
 import { QueryParamsModal } from '@/components/QueryParamsModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useConnectModal } from '@/contexts/ConnectModalContext';
@@ -28,7 +28,6 @@ import {
   resolveSyraBrowserFetchUrl,
 } from '@/lib/resolveApiBaseUrl';
 import { buildFullMppExampleFlowList } from '@/lib/mppOpenApiToExampleFlows';
-import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
 import { cn } from '@/lib/utils';
 
 type ExamplesCatalog = 'x402' | 'mpp';
@@ -118,45 +117,31 @@ const ExamplesGroup = () => {
 
   if (!catalog || !groupSlug || (catalog !== 'x402' && catalog !== 'mpp')) {
     return (
-      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col w-full max-w-[100vw] overflow-x-hidden playground-ambient">
-        <TopBar
-          wallet={wallet}
-          onOpenConnectModal={() => openConnectModal()}
-          onToggleSidebar={() => {}}
-          isSidebarOpen={false}
-          flowStatus="idle"
-        />
-        <div className="flex flex-1 min-h-0 items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))] pb-[env(safe-area-inset-bottom,0px)]">
+      <PlaygroundPageShell>
+        <div className="relative z-[1] flex flex-1 items-center justify-center px-4 pb-[env(safe-area-inset-bottom,0px)]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Invalid examples link.</p>
             <Button asChild variant="outline">
-              <Link to="/playground/examples">Back to Examples</Link>
+              <Link to="/playground?view=examples">Back to Examples</Link>
             </Button>
           </div>
         </div>
-      </div>
+      </PlaygroundPageShell>
     );
   }
 
   if (!group && !(isMpp && mppLoadState === 'loading')) {
     return (
-      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col w-full max-w-[100vw] overflow-x-hidden playground-ambient">
-        <TopBar
-          wallet={wallet}
-          onOpenConnectModal={() => openConnectModal()}
-          onToggleSidebar={() => {}}
-          isSidebarOpen={false}
-          flowStatus="idle"
-        />
-        <div className="flex flex-1 min-h-0 items-center justify-center px-4 relative z-[1] pt-[calc(3.5rem+env(safe-area-inset-top,0px))] pb-[env(safe-area-inset-bottom,0px)]">
+      <PlaygroundPageShell>
+        <div className="relative z-[1] flex flex-1 items-center justify-center px-4 pb-[env(safe-area-inset-bottom,0px)]">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Group not found.</p>
             <Button asChild variant="outline">
-              <Link to="/playground/examples">Back to Examples</Link>
+              <Link to="/playground?view=examples">Back to Examples</Link>
             </Button>
           </div>
         </div>
-      </div>
+      </PlaygroundPageShell>
     );
   }
 
@@ -167,28 +152,15 @@ const ExamplesGroup = () => {
   const catalogLabel = isMpp ? 'MPP' : 'x402';
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
-      <TopBar
-        wallet={wallet}
-        onOpenConnectModal={() => openConnectModal()}
-        onToggleSidebar={() => {}}
-        isSidebarOpen={false}
-        flowStatus="idle"
-      />
-      <div
-        className={cn(
-          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
-          MAIN_CONTENT_PT_CLASS,
-          MAIN_CONTENT_PB_SAFE_CLASS,
-        )}
-      >
+    <PlaygroundPageShell>
+      <PlaygroundScrollBody>
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-24">
           <nav
             className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground mb-6"
             aria-label="Breadcrumb"
           >
             <Link
-              to="/playground/examples"
+              to="/playground?view=examples"
               className="rounded-full px-3 py-1 font-medium hover:text-foreground hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06] transition-colors"
             >
               Example flows
@@ -357,7 +329,7 @@ const ExamplesGroup = () => {
             </section>
           )}
         </div>
-      </div>
+      </PlaygroundScrollBody>
 
       <QueryParamsModal
         isOpen={!!paramsModalFlow}
@@ -369,7 +341,7 @@ const ExamplesGroup = () => {
         initialParams={paramsModalInitialParams}
         onRun={handleRunWithParams}
       />
-    </div>
+    </PlaygroundPageShell>
   );
 };
 
@@ -377,7 +349,7 @@ const ExamplesGroup = () => {
 export function ExamplesLegacyGroupRedirect() {
   const { groupSlug } = useParams<{ groupSlug: string }>();
   if (!groupSlug || groupSlug === 'x402' || groupSlug === 'mpp') {
-    return <Navigate to="/playground/examples" replace />;
+    return <Navigate to="/playground?view=examples" replace />;
   }
   return <Navigate to={`/playground/examples/x402/${groupSlug}`} replace />;
 }

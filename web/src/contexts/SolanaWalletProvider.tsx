@@ -5,10 +5,9 @@ import { WalletModalProviderFixed } from "@/components/chat/WalletModalProviderF
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-const RPC_ENDPOINT =
-  typeof import.meta.env?.VITE_SOLANA_RPC_URL === "string" && import.meta.env.VITE_SOLANA_RPC_URL.trim()
-    ? import.meta.env.VITE_SOLANA_RPC_URL.trim()
-    : "https://rpc.ankr.com/solana";
+import { getPrimarySolanaRpcUrl } from "@/lib/solanaRpc";
+
+const RPC_ENDPOINT = getPrimarySolanaRpcUrl();
 
 export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   const wallets = useMemo(

@@ -7,6 +7,8 @@ import {
 import { cn } from "@/lib/utils";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 import { AGENT_WALLET_ACCENT, type AgentWalletPurpose } from "@/lib/agentWalletCatalog";
+import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
+import { formatSol } from "@/lib/dashboardOverviewAggregates";
 
 export interface AgentTreasuryBalanceRailProps {
   flowTab: "deposit" | "withdraw";
@@ -18,16 +20,6 @@ export interface AgentTreasuryBalanceRailProps {
   nativeLabel?: string;
   /** Bumps when user switches deposit / withdraw to replay motion. */
   flowAnimKey?: number;
-}
-
-function formatUsdc(v: number | null): string {
-  if (v == null || !Number.isFinite(v)) return "—";
-  return `$${v.toFixed(2)}`;
-}
-
-function formatSol(v: number | null): string {
-  if (v == null || !Number.isFinite(v)) return "—";
-  return v.toFixed(4);
 }
 
 function BalanceColumn({
@@ -65,7 +57,7 @@ function BalanceColumn({
               usdc != null && usdc > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
             )}
           >
-            {formatUsdc(usdc)}
+            {formatTreasuryUsd(usdc)}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -73,7 +65,9 @@ function BalanceColumn({
             <CoinLogo symbol={nativeLabel} size="xs" />
             {nativeLabel}
           </span>
-          <span className="text-[13px] font-medium text-foreground sm:text-sm">{formatSol(sol)}</span>
+          <span className="text-[13px] font-medium text-foreground sm:text-sm">
+            {sol != null && Number.isFinite(sol) ? `${formatSol(sol)} ${nativeLabel}` : "—"}
+          </span>
         </div>
       </div>
     </div>

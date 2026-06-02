@@ -2,6 +2,7 @@
 
 import { useState, type RefObject } from "react";
 import { Link } from "@/lib/navigation";
+import { isPlaygroundNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
 import { ArrowUpRight, Menu, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,9 @@ import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { GlobalNavAssetSearch } from "@/components/layout/GlobalNavAssetSearch";
 
 function isItemActive(pathname: string, href: string) {
+  if (href === "/playground") {
+    return isPlaygroundNavItemActive(pathname, href);
+  }
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
 

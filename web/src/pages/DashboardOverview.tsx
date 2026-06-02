@@ -1,21 +1,22 @@
 import { useMemo } from "react";
 import { Link } from "@/lib/navigation";
-import { useQueries } from "@tanstack/react-query";
 import {
-  Crosshair,
+  Activity,
+  Bot,
+  ChevronRight,
   Droplets,
   FlaskConical,
   Lock,
-  Activity,
-  ChevronRight,
-  Telescope,
-  Rocket,
+  Plus,
   Scale,
+  Telescope,
+  TrendingUp,
   UsersRound,
-  Wifi,
+  Wallet,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -28,45 +29,27 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
-import { fetchTradingExperimentStats } from "@/lib/tradingExperimentApi";
-import { fetchArbitrageSnapshot, fetchCmcTop } from "@/lib/arbitrageExperimentApi";
-import { fetchLpStats } from "@/lib/lpAgentExperimentApi";
-import { fetchPumpfunAlphaTrend } from "@/lib/pumpfunAlphaTrendApi";
-import { fetchRiseAlphaMarketsBundle } from "@/lib/riseMarketsApi";
+import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
 import { fetchPartnershipScoutLatest, fetchTrendScoutLatest } from "@/lib/internalTeamAgentsApi";
-import {
-  aggregateLpAgents,
-  aggregatePumpfunExperiment,
-  aggregateRiseExperiment,
-  aggregateTradingAgents,
-  formatCompactUsd,
-  formatPct,
-  formatSol,
-} from "@/lib/dashboardOverviewAggregates";
-import { fetchPumpfunExperimentLedger } from "@/lib/pumpfunExperimentApi";
-import { fetchRiseExperimentLedger } from "@/lib/riseExperimentApi";
-import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
-import { CoinLogo } from "@/components/crypto/CoinLogo";
+import { useQueries } from "@tanstack/react-query";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
-import { OverviewHero } from "@/components/dashboard/overview/OverviewHero";
-import { SyraChainsBar } from "@/components/dashboard/SyraChainsBar";
 import { OverviewGroupLabel } from "@/components/dashboard/overview/OverviewGroupLabel";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { UserOverviewConnectHero, UserOverviewHero } from "@/components/dashboard/overview/UserOverviewHero";
+import { TreasurySplitCardGrid } from "@/components/dashboard/overview/TreasurySplitCard";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
 import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
+import { useUserDashboardOverview } from "@/hooks/useUserDashboardOverview";
+import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 
-const STALE_MS = 60_000;
+const STALE_MS = 45_000;
 
 const wlChartConfig = {
   wins: { label: "Wins", color: "hsl(var(--foreground))" },
-  losses: { label: "Losses", color: "hsl(var(--muted-foreground))" },
-} satisfies ChartConfig;
-
-const venueChartConfig = {
-  ok: { label: "Live", color: "hsl(var(--foreground))" },
-  err: { label: "Unavailable", color: "hsl(var(--destructive))" },
+  losses: { label: "Losses", color: "hsl(var(--destructive) / 0.65)" },
 } satisfies ChartConfig;
 
 export interface DashboardOverviewProps {
@@ -75,133 +58,44 @@ export interface DashboardOverviewProps {
 
 export default function DashboardOverview({ embedded = false }: DashboardOverviewProps) {
   const { address } = useWalletContext();
+  const { openConnectModal } = useConnectModal();
   const showInternal = isInternalTeamMonitorWallet(address);
+  const overview = useUserDashboardOverview();
 
-  const queries = useQueries({
+  const internalQueries = useQueries({
     queries: [
-      {
-        queryKey: ["dashboard-overview", "trading-stats"],
-        queryFn: () => fetchTradingExperimentStats("primary"),
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["dashboard-overview", "arbitrage"],
-        queryFn: () => fetchArbitrageSnapshot({}),
-        staleTime: 30_000,
-      },
-      {
-        queryKey: ["dashboard-overview", "cmc-top"],
-        queryFn: () => fetchCmcTop({ limit: 12 }),
-        staleTime: 120_000,
-      },
-      {
-        queryKey: ["dashboard-overview", "pumpfun-trend"],
-        queryFn: () => fetchPumpfunAlphaTrend("today"),
-        staleTime: 120_000,
-      },
-      {
-        queryKey: ["dashboard-overview", "rise-markets"],
-        queryFn: () => fetchRiseAlphaMarketsBundle(),
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["dashboard-overview", "lp-stats"],
-        queryFn: () => fetchLpStats(),
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["dashboard-overview", "pumpfun-ledger"],
-        queryFn: () => fetchPumpfunExperimentLedger(),
-        staleTime: STALE_MS,
-      },
-      {
-        queryKey: ["dashboard-overview", "rise-ledger"],
-        queryFn: () => fetchRiseExperimentLedger(),
-        staleTime: STALE_MS,
-      },
       {
         queryKey: ["dashboard-overview", "internal-trend-scout"],
         queryFn: () => fetchTrendScoutLatest(),
-        staleTime: 45_000,
+        staleTime: STALE_MS,
         enabled: showInternal,
       },
       {
         queryKey: ["dashboard-overview", "internal-partnership-scout"],
         queryFn: () => fetchPartnershipScoutLatest(),
-        staleTime: 45_000,
+        staleTime: STALE_MS,
         enabled: showInternal,
       },
     ],
   });
 
-  const [
-    tradeQ,
-    arbQ,
-    cmcQ,
-    pumpfunTrendQ,
-    riseMarketsQ,
-    lpStatsQ,
-    pumpfunLedgerQ,
-    riseLedgerQ,
-    trendScoutQ,
-    partnershipScoutQ,
-  ] = queries;
-
-  const tradingAgents = tradeQ.data?.agents ?? [];
-  const tradingStrategies = tradeQ.data?.strategies ?? [];
-  const tradingTotals = useMemo(() => aggregateTradingAgents(tradingAgents), [tradingAgents]);
-
-  const venueStats = useMemo(() => {
-    const venues = arbQ.data?.venues ?? [];
-    let ok = 0;
-    let err = 0;
-    for (const v of venues) {
-      if (v.ok) ok += 1;
-      else err += 1;
-    }
-    return { ok, err, token: arbQ.data?.token ?? "—", spread: arbQ.data?.strategy?.grossSpreadPct };
-  }, [arbQ.data]);
-
-  const cmcBarData = useMemo(
-    () =>
-      (cmcQ.data?.assets ?? []).map((a) => ({
-        symbol: a.symbol,
-        rank: a.cmcRank,
-        score: Math.max(1, 51 - Math.min(50, a.cmcRank)),
-      })),
-    [cmcQ.data?.assets],
-  );
-
-  const topPumpTokens = useMemo(
-    () =>
-      [...(pumpfunTrendQ.data?.tokens ?? [])]
-        .sort((a, b) => (b.marketCapUsd ?? 0) - (a.marketCapUsd ?? 0))
-        .slice(0, 6),
-    [pumpfunTrendQ.data?.tokens],
-  );
-
-  const topRiseMarkets = useMemo(
-    () =>
-      [...(riseMarketsQ.data?.markets ?? [])]
-        .sort((a, b) => (b.marketCapUsd ?? 0) - (a.marketCapUsd ?? 0))
-        .slice(0, 6),
-    [riseMarketsQ.data?.markets],
-  );
-
-  const pumpfunPaper = useMemo(
-    () => (pumpfunLedgerQ.data ? aggregatePumpfunExperiment(pumpfunLedgerQ.data) : null),
-    [pumpfunLedgerQ.data],
-  );
-  const risePaper = useMemo(
-    () => (riseLedgerQ.data ? aggregateRiseExperiment(riseLedgerQ.data) : null),
-    [riseLedgerQ.data],
-  );
-  const lpTotals = useMemo(() => aggregateLpAgents(lpStatsQ.data?.agents ?? []), [lpStatsQ.data?.agents]);
+  const [trendScoutQ, partnershipScoutQ] = internalQueries;
 
   const internalPipelineCount = useMemo(() => {
     if (!showInternal) return 0;
     return [trendScoutQ.data?.data, partnershipScoutQ.data?.data].filter(Boolean).length;
   }, [showInternal, trendScoutQ.data, partnershipScoutQ.data]);
+
+  const lpSummary = overview.lpSummaryQ.data;
+  const lpState = overview.lpStateQ.data;
+  const tradingAgents = overview.tradingStatsQ.data?.agents ?? [];
+  const topStrategies = useMemo(
+    () => [...tradingAgents].sort((a, b) => (b.wins ?? 0) - (a.wins ?? 0)).slice(0, 5),
+    [tradingAgents],
+  );
+
+  const walletLabel = overview.shortAddress ?? undefined;
+  const showPortfolio = overview.connected;
 
   return (
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1 min-h-0" : "min-h-screen")}>
@@ -209,302 +103,397 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
       <div
         className={cn(DASHBOARD_CONTENT_SHELL, "relative flex-1 space-y-8", PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM)}
       >
-        <OverviewHero
-          liveSignals={
-            <>
-              <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 px-2.5 py-1 font-medium backdrop-blur-md">
-                <Activity className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                {queries.filter((q) => q.isSuccess).length} feeds live
-              </Badge>
-              {queries.some((q) => q.isLoading) ? (
-                <Badge variant="outline" className="rounded-lg border-border/50 bg-background/25 px-2.5 py-1 font-medium backdrop-blur-md">
-                  Syncing {queries.filter((q) => q.isLoading).length}
+        {!showPortfolio ? (
+          <UserOverviewConnectHero onConnect={() => openConnectModal()} />
+        ) : (
+          <UserOverviewHero
+            walletLabel={walletLabel}
+            totalUsd={overview.treasury.totalUsd}
+            totalUsdc={overview.treasury.totalUsdc}
+            totalSol={overview.treasury.totalSol}
+            isLoading={overview.balancesLoading}
+            refreshing={overview.refreshing}
+            onRefresh={() => void overview.refreshAll()}
+            liveSignals={
+              <>
+                <Badge
+                  variant="secondary"
+                  className="rounded-lg border border-border/50 bg-background/40 px-2.5 py-1 font-medium backdrop-blur-md"
+                >
+                  <Activity className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
+                  Live balances
                 </Badge>
-              ) : null}
-            </>
-          }
-        />
-        <SyraChainsBar />
-        <OverviewGroupLabel icon={Telescope}>Alpha intelligence</OverviewGroupLabel>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <OverviewStatCard
-              label="Pump.fun trend"
-              icon={Rocket}
-              accent="alpha"
-              isLoading={pumpfunTrendQ.isLoading}
-              value={pumpfunTrendQ.isError ? "—" : String(pumpfunTrendQ.data?.matchedCount ?? "—")}
-              hint={
-                pumpfunTrendQ.data
-                  ? `${pumpfunTrendQ.data.tokens.length} tokens · ${pumpfunTrendQ.data.analysis.watchlist.length} watchlist`
-                  : "Graduate candidates (today)"
-              }
-              href="/alpha"
-              error={pumpfunTrendQ.isError}
-            />
-            <OverviewStatCard
-              label="Rise markets"
-              icon={Crosshair}
-              accent="alpha"
-              isLoading={riseMarketsQ.isLoading}
-              value={riseMarketsQ.isError ? "—" : String(riseMarketsQ.data?.markets.length ?? "—")}
-              hint="Listed Rise alpha markets (deduped)"
-              href="/alpha"
-              error={riseMarketsQ.isError}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className={cn(overviewCardShell, 'overflow-hidden')}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[13px] font-semibold tracking-tight">Top pump.fun tokens</CardTitle>
-                <CardDescription>By market cap (today)</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {topPumpTokens.length === 0 ? (
-                  <p className="px-4 pb-4 text-sm text-muted-foreground">No tokens in trend feed.</p>
+                {overview.wallets.managedChatWallet ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-lg border-border/50 bg-background/25 px-2.5 py-1 font-medium backdrop-blur-md"
+                  >
+                    Trading agent ready
+                  </Badge>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Token</TableHead>
-                        <TableHead className="text-right">MCap</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {topPumpTokens.map((t) => (
-                        <TableRow key={t.mint}>
-                          <TableCell>
-                            <span className="font-medium">{t.symbol}</span>
-                            <p className="text-[11px] text-muted-foreground truncate max-w-[140px]">{t.name}</p>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-xs tabular-nums">
-                            {formatCompactUsd(t.marketCapUsd)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <Badge
+                    variant="outline"
+                    className="rounded-lg border-amber-500/30 bg-amber-500/5 px-2.5 py-1 font-medium text-amber-700 dark:text-amber-400 backdrop-blur-md"
+                  >
+                    Set up trading agent
+                  </Badge>
                 )}
-              </CardContent>
-            </Card>
+              </>
+            }
+          />
+        )}
 
-            <Card className={cn(overviewCardShell, 'overflow-hidden')}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[13px] font-semibold tracking-tight">Top Rise markets</CardTitle>
-                <CardDescription>By market cap</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {riseMarketsQ.isError ? (
-                  <p className="px-4 pb-4 text-sm text-destructive">Could not load Rise markets.</p>
-                ) : topRiseMarkets.length === 0 ? (
-                  <p className="px-4 pb-4 text-sm text-muted-foreground">No markets returned.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Market</TableHead>
-                        <TableHead className="text-right">MCap</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {topRiseMarkets.map((m) => (
-                        <TableRow key={m.mint}>
-                          <TableCell>
-                            <span className="font-medium">{m.symbol ?? m.name ?? "—"}</span>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-xs tabular-nums">
-                            {formatCompactUsd(m.marketCapUsd)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-        <OverviewGroupLabel icon={FlaskConical}>Experiments</OverviewGroupLabel>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
-            <OverviewStatCard
-              label="Trading lab"
-              icon={FlaskConical}
-              accent="experiment"
-              isLoading={tradeQ.isLoading}
-              value={tradeQ.isError ? "—" : tradingTotals.agentCount.toLocaleString()}
-              hint={`${tradingStrategies.length} strategies · ${tradingTotals.wins}W / ${tradingTotals.losses}L · ${tradingTotals.open} open`}
-              href="/trading-experiment"
-              error={tradeQ.isError}
-            />
-            <OverviewStatCard
-              label="Arbitrage"
-              icon={Scale}
-              accent="experiment"
-              isLoading={arbQ.isLoading}
-              value={
-                arbQ.isError
-                  ? "—"
-                  : venueStats.spread != null
-                    ? `${venueStats.spread >= 0 ? "+" : ""}${venueStats.spread.toFixed(2)}%`
+        {showPortfolio ? (
+          <>
+            <OverviewGroupLabel icon={Wallet}>Treasury</OverviewGroupLabel>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <OverviewStatCard
+                label="Total assets"
+                icon={Wallet}
+                accent="marketplace"
+                isLoading={overview.balancesLoading}
+                value={
+                  overview.treasury.totalUsd != null
+                    ? formatCompactUsd(overview.treasury.totalUsd)
+                    : overview.treasury.totalUsdc != null
+                      ? formatCompactUsd(overview.treasury.totalUsdc)
+                      : "—"
+                }
+                hint={
+                  overview.treasury.totalSol != null
+                    ? `${formatSol(overview.treasury.totalSol)} SOL across wallet + agents`
+                    : "Wallet + agent treasuries"
+                }
+                href="/wallet"
+              />
+              <OverviewStatCard
+                label="Trading agent balance"
+                icon={Bot}
+                accent="experiment"
+                isLoading={overview.balancesLoading}
+                value={
+                  overview.treasury.chatUsdc != null
+                    ? formatCompactUsd(overview.treasury.chatUsdc)
                     : "—"
-              }
-              hint={`${venueStats.ok} live / ${venueStats.err} down · ${venueStats.token}`}
-              href="/arbitrage-experiment"
-              error={arbQ.isError}
-            />
-            <OverviewStatCard
-              label="LP agent lab"
-              icon={Droplets}
-              accent="experiment"
-              isLoading={lpStatsQ.isLoading}
-              value={lpStatsQ.isError ? "—" : String(lpTotals.agentCount)}
-              hint={`${lpTotals.wins}W / ${lpTotals.losses}L · ${lpTotals.open} open · ${lpTotals.expired} expired`}
-              href="/lp-experiment"
-              error={lpStatsQ.isError}
-            />
-            <OverviewStatCard
-              label="Pumpfun desk"
-              icon={Rocket}
-              accent="experiment"
-              isLoading={pumpfunLedgerQ.isLoading}
-              value={pumpfunPaper ? formatSol(pumpfunPaper.totalEquity) : "—"}
-              hint={
-                pumpfunPaper
-                  ? `${pumpfunPaper.activeCells} desks · ${pumpfunPaper.openPositions} open · avg ${formatPct(pumpfunPaper.avgReturnPct)}`
-                  : "Paper sim ledger"
-              }
-              href="/pumpfun-experiment"
-              error={pumpfunLedgerQ.isError}
-            />
-            <OverviewStatCard
-              label="Rise desk"
-              icon={Crosshair}
-              accent="experiment"
-              isLoading={riseLedgerQ.isLoading}
-              value={risePaper ? formatSol(risePaper.totalEquity) : "—"}
-              hint={
-                risePaper
-                  ? `${risePaper.openPositions} open across 2 agents · ${risePaper.discoveries} discoveries`
-                  : "Paper sim ledger"
-              }
-              href="/rise-experiment"
-              error={riseLedgerQ.isError}
-            />
-            <OverviewStatCard
-              label="CMC top assets"
-              icon={Wifi}
-              accent="experiment"
-              isLoading={cmcQ.isLoading}
-              value={cmcQ.isError ? "—" : String(cmcBarData.length)}
-              hint={cmcQ.data?.source === "coinmarketcap" ? "Live CoinMarketCap ranks" : "Cached fallback list"}
-              href="/arbitrage-experiment"
-              error={cmcQ.isError}
-            />
-          </div>
+                }
+                hint={
+                  overview.treasury.chatSol != null
+                    ? `${formatSol(overview.treasury.chatSol)} SOL · fund for spot strategies`
+                    : "Chat agent treasury"
+                }
+                href="/wallet?wallet=chat"
+              />
+              <OverviewStatCard
+                label="LP agent balance"
+                icon={Droplets}
+                accent="experiment"
+                isLoading={overview.balancesLoading}
+                value={
+                  overview.treasury.lpUsdc != null ? formatCompactUsd(overview.treasury.lpUsdc) : "—"
+                }
+                hint={
+                  overview.treasury.lpSol != null
+                    ? `${formatSol(overview.treasury.lpSol)} SOL · Meteora DLMM`
+                    : "LP treasury"
+                }
+                href="/wallet?wallet=lp"
+              />
+              <OverviewStatCard
+                label="Agent capital (combined)"
+                icon={TrendingUp}
+                accent="neutral"
+                isLoading={overview.balancesLoading}
+                value={
+                  overview.treasury.agentUsdc != null
+                    ? formatCompactUsd(overview.treasury.agentUsdc)
+                    : "—"
+                }
+                hint="Trading + LP agent USDC"
+                href="/agents"
+              />
+            </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className={overviewCardShell}>
-              <CardHeader>
-                <CardTitle className="text-base">Trading desk — resolved outcomes</CardTitle>
-                <CardDescription>Primary suite wins vs losses</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[240px]">
-                {tradeQ.isError ? (
-                  <p className="text-sm text-destructive">Could not load trading stats.</p>
-                ) : tradingTotals.wins + tradingTotals.losses === 0 ? (
-                  <p className="text-sm text-muted-foreground">No resolved wins/losses yet.</p>
-                ) : (
-                  <ChartContainer config={wlChartConfig} className="h-full w-full aspect-auto">
-                    <BarChart
-                      data={[{ label: "All agents", wins: tradingTotals.wins, losses: tradingTotals.losses }]}
-                      margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                      <YAxis tickLine={false} axisLine={false} width={48} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="wins" stackId="a" fill="var(--color-wins)" />
-                      <Bar dataKey="losses" stackId="a" fill="var(--color-losses)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ChartContainer>
-                )}
-              </CardContent>
-            </Card>
+            <TreasurySplitCardGrid
+              loading={overview.balancesLoading}
+              connectedWallet={{
+                usdc: overview.treasury.userUsdc,
+                sol: overview.treasury.userSol,
+              }}
+              trading={{
+                usdc: overview.treasury.chatUsdc,
+                sol: overview.treasury.chatSol,
+              }}
+              lp={{
+                usdc: overview.treasury.lpUsdc,
+                sol: overview.treasury.lpSol,
+              }}
+            />
 
-            <Card className={overviewCardShell}>
-              <CardHeader>
-                <CardTitle className="text-base">Arbitrage — venue health</CardTitle>
-                <CardDescription>
-                  Price feeds for <span className="font-medium text-foreground">{venueStats.token}</span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[240px]">
-                {arbQ.isError ? (
-                  <p className="text-sm text-destructive">Could not load arbitrage snapshot.</p>
-                ) : venueStats.ok + venueStats.err === 0 ? (
-                  <p className="text-sm text-muted-foreground">No venue rows returned.</p>
-                ) : (
-                  <ChartContainer config={venueChartConfig} className="h-full w-full aspect-auto">
-                    <BarChart
-                      data={[{ label: "Venues", ok: venueStats.ok, err: venueStats.err }]}
-                      margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                      <YAxis tickLine={false} axisLine={false} allowDecimals={false} width={36} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="ok" stackId="v" fill="var(--color-ok)" />
-                      <Bar dataKey="err" stackId="v" fill="var(--color-err)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ChartContainer>
-                )}
-              </CardContent>
-            </Card>
+            <OverviewGroupLabel icon={FlaskConical}>Your agents</OverviewGroupLabel>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <OverviewStatCard
+                label="Trading strategies"
+                icon={FlaskConical}
+                accent="experiment"
+                isLoading={overview.tradingStatsQ.isLoading}
+                value={
+                  overview.tradingStatsQ.isError
+                    ? "—"
+                    : String(overview.tradingTotals.agentCount)
+                }
+                hint={
+                  overview.maxTradingAgents > 0
+                    ? `${overview.tradingTotals.wins}W / ${overview.tradingTotals.losses}L · ${overview.tradingTotals.open} open · max ${overview.maxTradingAgents}`
+                    : `${overview.tradingTotals.wins}W / ${overview.tradingTotals.losses}L · ${overview.tradingTotals.open} open`
+                }
+                href="/trading-experiment"
+                error={overview.tradingStatsQ.isError}
+              />
+              <OverviewStatCard
+                label="LP performance"
+                icon={Droplets}
+                accent="experiment"
+                isLoading={overview.lpSummaryQ.isLoading}
+                value={
+                  lpSummary
+                    ? `${lpSummary.wins}W / ${lpSummary.losses}L`
+                    : overview.wallets.managedLpWallet
+                      ? "—"
+                      : "Not set up"
+                }
+                hint={
+                  lpSummary
+                    ? `${lpSummary.openCount} open · ${formatSol(lpSummary.totalReturnSol)} return`
+                    : "Create LP wallet to deploy"
+                }
+                href="/lp-experiment"
+                error={overview.lpSummaryQ.isError}
+              />
+              <OverviewStatCard
+                label="LP deployed"
+                icon={Scale}
+                accent="experiment"
+                isLoading={overview.lpStateQ.isLoading}
+                value={lpState ? formatSol(lpState.deployedSol) : "—"}
+                hint={
+                  lpState
+                    ? `${lpState.openPositionsCount} positions · ${formatSol(lpState.walletEquitySol)} equity`
+                    : "On-chain LP capital"
+                }
+                href="/lp-experiment"
+                error={overview.lpStateQ.isError}
+              />
+              <OverviewStatCard
+                label="Alpha intel"
+                icon={Telescope}
+                accent="alpha"
+                value="Explore"
+                hint="Market signals & graduate candidates"
+                href="/alpha"
+              />
+            </div>
 
-            <Card className={cn(overviewCardShell, 'lg:col-span-2')}>
-              <CardHeader>
-                <CardTitle className="text-base">Market cap rank (top assets)</CardTitle>
-                <CardDescription>Lower bar = higher CMC rank</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[260px]">
-                {cmcBarData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No assets returned.</p>
-                ) : (
-                  <CoingeckoBatchImageProvider symbols={cmcBarData.map((d) => d.symbol)}>
-                    <ChartContainer
-                      config={{ score: { label: "Rank score", color: "hsl(var(--accent))" } }}
-                      className="h-full w-full aspect-auto"
-                    >
-                      <BarChart data={cmcBarData} margin={{ left: 8, right: 8, top: 8, bottom: 48 }}>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card className={overviewCardShell}>
+                <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+                  <div>
+                    <CardTitle className="text-base">Trading strategies</CardTitle>
+                    <CardDescription>Your custom agents — resolved outcomes</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="sm" className="shrink-0 rounded-lg gap-1" asChild>
+                    <Link to="/trading-experiment">
+                      <Plus className="h-3.5 w-3.5" />
+                      New
+                    </Link>
+                  </Button>
+                </CardHeader>
+                <CardContent className="h-[240px]">
+                  {overview.tradingStatsQ.isError ? (
+                    <p className="text-sm text-destructive">Sign in and connect your wallet to load strategies.</p>
+                  ) : overview.tradingTotals.wins + overview.tradingTotals.losses === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                      <p className="text-sm text-muted-foreground">No resolved trades yet.</p>
+                      <Button size="sm" className="rounded-xl" asChild>
+                        <Link to="/trading-experiment">Launch trading experiment</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <ChartContainer config={wlChartConfig} className="h-full w-full aspect-auto">
+                      <BarChart
+                        data={[
+                          {
+                            label: "Your agents",
+                            wins: overview.tradingTotals.wins,
+                            losses: overview.tradingTotals.losses,
+                          },
+                        ]}
+                        margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                        <XAxis dataKey="symbol" tickLine={false} axisLine={false} interval={0} angle={-30} textAnchor="end" height={52} />
-                        <YAxis tickLine={false} axisLine={false} width={32} />
-                        <Tooltip
-                          cursor={{ fill: "hsl(var(--muted) / 0.2)" }}
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.[0]) return null;
-                            const row = payload[0].payload as { symbol: string; rank: number };
-                            return (
-                              <div className="rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs shadow-md">
-                                <div className="flex items-center gap-2">
-                                  <CoinLogo symbol={row.symbol} size="xs" />
-                                  <div>
-                                    <p className="font-medium">{row.symbol}</p>
-                                    <p className="text-muted-foreground">CMC rank #{row.rank}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar dataKey="score" fill="var(--color-score)" radius={[4, 4, 0, 0]} />
+                        <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                        <YAxis tickLine={false} axisLine={false} width={48} allowDecimals={false} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="wins" stackId="a" fill="var(--color-wins)" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="losses" stackId="a" fill="var(--color-losses)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ChartContainer>
-                  </CoingeckoBatchImageProvider>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className={cn(overviewCardShell, "overflow-hidden")}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Top strategies</CardTitle>
+                  <CardDescription>By win count</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {overview.tradingStatsQ.isLoading ? (
+                    <p className="px-4 pb-4 text-sm text-muted-foreground">Loading…</p>
+                  ) : topStrategies.length === 0 ? (
+                    <div className="px-4 pb-6 pt-2">
+                      <p className="text-sm text-muted-foreground">No strategies yet.</p>
+                      <Button size="sm" variant="outline" className="mt-3 rounded-xl" asChild>
+                        <Link to="/trading-experiment">Create your first strategy</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Strategy</TableHead>
+                          <TableHead className="text-right">W/L</TableHead>
+                          <TableHead className="text-right">Open</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topStrategies.map((a) => (
+                          <TableRow key={a.strategyId}>
+                            <TableCell>
+                              <span className="font-medium">{a.name}</span>
+                              <p className="text-[11px] text-muted-foreground">{a.token}</p>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs tabular-nums">
+                              {a.wins}/{a.losses}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
+                              {a.openPositions}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              {lpSummary ? (
+                <Card className={cn(overviewCardShell, "lg:col-span-2")}>
+                  <CardHeader>
+                    <CardTitle className="text-base">LP agent snapshot</CardTitle>
+                    <CardDescription>Realized and book P&amp;L for your LP treasury</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {(
+                        [
+                          {
+                            label: "Total return",
+                            value: lpSummary.totalReturnSol,
+                            format: formatSol,
+                            suffix: " SOL",
+                          },
+                          {
+                            label: "Realized PnL",
+                            value: lpSummary.realizedNetPnlSol,
+                            format: formatSol,
+                            suffix: " SOL",
+                          },
+                          {
+                            label: "Unrealized",
+                            value: lpSummary.unrealizedPnlSol,
+                            format: formatSol,
+                            suffix: " SOL",
+                          },
+                          {
+                            label: "Fees claimed",
+                            value: lpSummary.totalFeesClaimedSol,
+                            format: formatSol,
+                            suffix: " SOL",
+                          },
+                        ] as const
+                      ).map((stat) => (
+                        <div
+                          key={stat.label}
+                          className="rounded-2xl border border-border/50 bg-muted/15 px-4 py-3.5"
+                        >
+                          <p className="text-[11px] font-medium text-muted-foreground">{stat.label}</p>
+                          <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight">
+                            <AnimatedMetric value={stat.value} format={stat.format} />
+                            {stat.suffix}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
+
+            <OverviewGroupLabel icon={Bot}>Quick actions</OverviewGroupLabel>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                [
+                  { label: "Agent wallets", desc: "Deposit & withdraw", to: "/wallet", icon: Wallet },
+                  { label: "My agents", desc: "Profiles & addresses", to: "/agents", icon: Bot },
+                  { label: "Trading lab", desc: "Custom strategies", to: "/trading-experiment", icon: FlaskConical },
+                  { label: "LP experiment", desc: "Meteora agents", to: "/lp-experiment", icon: Droplets },
+                  { label: "Alpha", desc: "Signals & trends", to: "/alpha", icon: Telescope },
+                  { label: "Assets", desc: "Market board", to: "/assets", icon: TrendingUp },
+                ] as const
+              ).map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    overviewCardShell,
+                    "group flex items-center justify-between gap-3 px-4 py-3.5 transition-all hover:-translate-y-0.5 hover:border-border/75",
+                  )}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/40">
+                      <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <OverviewStatCard
+              label="Trading agents"
+              icon={FlaskConical}
+              accent="experiment"
+              value="—"
+              hint="Connect wallet to deploy custom strategies"
+              href="/trading-experiment"
+            />
+            <OverviewStatCard
+              label="LP agents"
+              icon={Droplets}
+              accent="experiment"
+              value="—"
+              hint="Connect wallet to fund LP treasury"
+              href="/lp-experiment"
+            />
           </div>
+        )}
+
         {showInternal ? (
           <>
             <OverviewGroupLabel icon={UsersRound}>Internal agents</OverviewGroupLabel>
@@ -513,7 +502,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 label="Pipelines with data"
                 accent="internal"
                 value={`${internalPipelineCount} / ${INTERNAL_AGENTS.length}`}
-                hint="Trend scout + partnership scout (on-chain AI utility)"
+                hint="Trend scout + partnership scout"
                 href="/internal-team-agents"
               />
               <OverviewStatCard
@@ -525,12 +514,12 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                     <Lock className="w-4 h-4" /> Authorized
                   </span>
                 }
-                hint="Your wallet is on the internal monitor allowlist"
+                hint="Internal monitor allowlist"
                 href="/internal-team-agents"
               />
             </div>
 
-            <Card className={cn(overviewCardShell, 'divide-y divide-border/60')}>
+            <Card className={cn(overviewCardShell, "divide-y divide-border/60")}>
               {INTERNAL_AGENTS.map((agent) => {
                 const href =
                   agent.slug === "partnership-scout"
@@ -569,10 +558,18 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                       ) : null}
                       {q && savedAt ? (
                         <span className="text-[11px] font-mono text-muted-foreground">
-                          {new Date(savedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {new Date(savedAt).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       ) : null}
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" aria-hidden />
+                      <ChevronRight
+                        className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+                        aria-hidden
+                      />
                     </div>
                   </Link>
                 );

@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { CONFIG } from "@/constants/config";
+import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 
 function getApiBaseUrl(): string {
   return (
@@ -78,7 +78,11 @@ export function mintExplorerUrl(mint: PublicKey, isDevnet: boolean): string {
 }
 
 export function dashboardNetworkLabel(): "mainnet" | "devnet" {
-  return CONFIG.IS_DEVNET ? "devnet" : "mainnet";
+  return STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet";
 }
 
-export { CONFIG };
+export function dashboardStreamflowMint(): string {
+  return STREAMFLOW_CONFIG.tokenMint.toBase58();
+}
+
+export { STREAMFLOW_CONFIG };

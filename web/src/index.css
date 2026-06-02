@@ -66,7 +66,11 @@
       hsl(0 0% 46%) 100%
     );
     --gradient-primary: var(--gradient-hero);
-    --gradient-dark: linear-gradient(180deg, hsl(0 0% 97%) 0%, hsl(0 0% 100%) 100%);
+    --gradient-dark: linear-gradient(
+      180deg,
+      hsl(0 0% 97%) 0%,
+      hsl(0 0% 100%) 100%
+    );
     --gradient-ambient: none;
 
     --sidebar-background: 0 0% 97%;
@@ -138,8 +142,7 @@
     --glass-bg: 220 12% 6%;
     --glass-border: 220 10% 16%;
     --glass-shadow:
-      0 0 0 1px hsl(0 0% 100% / 0.04) inset,
-      0 8px 40px hsl(0 0% 0% / 0.55),
+      0 0 0 1px hsl(0 0% 100% / 0.04) inset, 0 8px 40px hsl(0 0% 0% / 0.55),
       0 1px 0 hsl(0 0% 100% / 0.03);
 
     --gradient-hero: linear-gradient(
@@ -385,17 +388,22 @@
     box-shadow:
       var(--glass-shadow),
       0 0 0 1px hsl(0 0% 100% / 0.05) inset,
-      0 0 100px -28px hsl(var(--primary) / 0.12);
+      0 0 120px -32px hsl(var(--ring) / 0.1),
+      0 24px 48px -24px hsl(0 0% 0% / 0.22);
   }
 
   html.light .glass-panel-playground-main {
     box-shadow:
       var(--glass-shadow),
-      0 0 80px -32px hsl(var(--ring) / 0.14);
+      0 0 0 1px hsl(0 0% 100% / 0.65) inset,
+      0 0 100px -36px hsl(var(--ring) / 0.12),
+      0 20px 40px -28px hsl(0 0% 0% / 0.08);
   }
 
   .playground-ambient {
     position: relative;
+    isolation: isolate;
+    background-color: hsl(var(--background));
   }
 
   .playground-ambient::before {
@@ -403,13 +411,103 @@
     pointer-events: none;
     position: absolute;
     inset: 0;
-    opacity: 0.35;
-    background-image: radial-gradient(
-        circle at 20% 0%,
-        hsl(var(--ring) / 0.08) 0%,
-        transparent 45%
+    z-index: 0;
+    opacity: 1;
+    background-image:
+      radial-gradient(
+        ellipse 80% 50% at 12% -8%,
+        hsl(var(--ring) / 0.11) 0%,
+        transparent 55%
       ),
-      radial-gradient(circle at 85% 10%, hsl(var(--primary) / 0.04) 0%, transparent 40%);
+      radial-gradient(
+        ellipse 60% 40% at 92% 4%,
+        hsl(var(--primary) / 0.06) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle,
+        hsl(var(--muted-foreground) / 0.07) 1px,
+        transparent 1px
+      );
+    background-size:
+      auto,
+      auto,
+      28px 28px;
+    mask-image: linear-gradient(
+      to bottom,
+      hsl(0 0% 0% / 1) 0%,
+      hsl(0 0% 0% / 0.35) 55%,
+      transparent 100%
+    );
+  }
+
+  .playground-api-card {
+    animation: playground-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .playground-try-btn {
+    @apply relative z-10 bg-primary text-primary-foreground shadow-sm;
+    transition:
+      transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .playground-try-btn:hover:not(:disabled) {
+    @apply bg-primary/90;
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.35);
+    transform: translateY(-1px);
+  }
+
+  .playground-try-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .playground-try-btn:hover:not(:disabled) .playground-try-icon {
+    transform: scale(1.1);
+  }
+
+  @keyframes playground-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .playground-onboarding {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.04) 0%,
+      transparent 50%,
+      hsl(var(--ring) / 0.03) 100%
+    );
+  }
+
+  html.dark .playground-ambient::before {
+    background-image:
+      radial-gradient(
+        ellipse 80% 50% at 12% -8%,
+        hsl(var(--ring) / 0.14) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 38% at 88% 2%,
+        hsl(var(--primary) / 0.08) 0%,
+        transparent 48%
+      ),
+      radial-gradient(
+        circle,
+        hsl(var(--muted-foreground) / 0.09) 1px,
+        transparent 1px
+      );
+    background-size:
+      auto,
+      auto,
+      28px 28px;
   }
 
   .glass-panel-subtle {
@@ -762,16 +860,36 @@ textarea:focus-visible {
 }
 
 .animate-slide-up {
-  animation: slide-up-playground 0.3s ease-out forwards;
+  animation: slide-up-playground 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Qwerti embedded widget — agent page launcher + modal offsets (desktop only, lg+) */
-@media (max-width: 1023px) {
-  .syra-agent-qwerti #qwerti-widget-root {
-    display: none !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
+@media (prefers-reduced-motion: reduce) {
+  .playground-api-card,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-slide-up,
+  .playground-tab-panel,
+  .playground-section-enter,
+  .playground-section-enter.animate-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
+
+  .playground-api-card,
+  [class*="hover:-translate-y"],
+  .playground-try-btn:hover:not(:disabled),
+  .playground-try-btn:active:not(:disabled) {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Qwerti embedded widget — home route only (see body.syra-qwerti-active) */
+body:not(.syra-qwerti-active) #qwerti-widget-root {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 /* Premium toast (SyraToast + Sonner) */
@@ -804,12 +922,22 @@ textarea:focus-visible {
   box-shadow: none !important;
 }
 
+body.syra-qwerti-active #qwerti-widget-root {
+  --qwerti-offset-bottom: max(
+    5.5rem,
+    calc(env(safe-area-inset-bottom, 0px) + 4.75rem)
+  );
+  --qwerti-offset-right: max(1rem, env(safe-area-inset-right, 0px));
+  --qwerti-offset-left: auto;
+  --qwerti-offset-top: auto;
+  --qwerti-z-index: 2147482000;
+}
+
 @media (min-width: 1024px) {
-  .syra-agent-qwerti #qwerti-widget-root {
-    --qwerti-offset-bottom: max(7.5rem, calc(env(safe-area-inset-bottom, 0px) + 6.75rem));
-    --qwerti-offset-right: max(1rem, env(safe-area-inset-right, 0px));
-    --qwerti-offset-left: auto;
-    --qwerti-offset-top: auto;
-    --qwerti-z-index: 2147482000;
+  body.syra-qwerti-active #qwerti-widget-root {
+    --qwerti-offset-bottom: max(
+      7.5rem,
+      calc(env(safe-area-inset-bottom, 0px) + 6.75rem)
+    );
   }
 }

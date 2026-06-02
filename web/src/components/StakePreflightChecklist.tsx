@@ -1,7 +1,9 @@
 "use client";
 
+import { stakingInsetCard, stakingInsetPadding } from "@/components/staking/stakingStyles";
 import type { StakeReadiness, StakeReadinessIssue } from "@/lib/streamflowStaking";
 import { STREAMFLOW_LOCK_SOL_RECOMMENDED, StakeLockError } from "@/lib/streamflowStaking";
+import { cn } from "@/lib/utils";
 
 function StatusIcon({ ok }: { ok: boolean }) {
   if (ok) {
@@ -46,11 +48,13 @@ function IssueRow({ issue }: { issue: StakeReadinessIssue }) {
   const isError = issue.severity === "error";
   return (
     <li
-      className={`rounded-lg border px-3 py-2.5 ${
+      className={cn(
+        "rounded-lg border",
+        stakingInsetPadding,
         isError
           ? "border-destructive/30 bg-destructive/5"
-          : "border-amber-500/25 bg-amber-500/5"
-      }`}
+          : "border-amber-500/25 bg-amber-500/5",
+      )}
     >
       <p className={`text-sm font-semibold ${isError ? "text-destructive" : "text-amber-700 dark:text-amber-400"}`}>
         {issue.title}
@@ -76,7 +80,12 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
 
   if (!connected) {
     return (
-      <div className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
+      <div
+        className={cn(
+          stakingInsetCard,
+          "border-dashed text-xs text-muted-foreground",
+        )}
+      >
         Connect your wallet to see fee requirements and a pre-flight checklist.
       </div>
     );
@@ -84,7 +93,7 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
 
   if (loading || !readiness) {
     return (
-      <div className="animate-pulse rounded-xl border border-border/50 bg-muted/20 px-4 py-4">
+      <div className={cn(stakingInsetCard, "animate-pulse")}>
         <div className="mb-2 h-3 w-32 rounded bg-muted-foreground/15" />
         <div className="h-3 w-full max-w-md rounded bg-muted-foreground/10" />
       </div>
@@ -99,9 +108,9 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Before you lock — checklist
+      <div className={stakingInsetCard}>
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Pre-flight checklist
         </p>
         <ul className="space-y-2.5 text-sm">
           <li className="flex items-start gap-2.5">
@@ -172,7 +181,7 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
           </ul>
         </div>
       ) : readiness.canLock ? (
-        <div className="rounded-xl border border-success/25 bg-success/5 px-4 py-3 text-xs text-muted-foreground">
+        <div className={cn(stakingInsetCard, "border-success/25 bg-success/5 text-xs text-muted-foreground")}>
           <p className="font-semibold text-success">Ready to lock</p>
           <p className="mt-1 leading-relaxed">
             SOL and {symbol} look good. Confirm in your wallet — Streamflow will deduct fees automatically.
@@ -183,7 +192,13 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
       {warnings.length > 0 ? (
         <ul className="space-y-2">
           {warnings.map((issue) => (
-            <li key={issue.code} className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+            <li
+              key={issue.code}
+              className={cn(
+                "flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5",
+                stakingInsetPadding,
+              )}
+            >
               <WarningIcon />
               <div>
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{issue.title}</p>

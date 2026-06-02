@@ -1,84 +1,77 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "@/lib/navigation";
-import { PublicKey } from "@solana/web3.js";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useLocation } from "@/lib/navigation";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
+import { useAgentTreasuryBalances } from "@/hooks/useAgentTreasuryBalances";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ArrowLeftRight,
+  Bug,
   Check,
   ChevronDown,
   ChevronRight,
   Copy,
+  Lightbulb,
   Loader2,
   LogOut,
-  MessageSquare,
   Moon,
-  Plus,
   RefreshCw,
+  Settings,
   Sun,
   Wallet,
+  Wallet2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { notify } from "@/lib/notify";
-import { FeedbackModal } from "./FeedbackModal";
+import { buildFeedbackMailto } from "./FeedbackModal";
 import { cn } from "@/lib/utils";
-import { CoinLogo } from "@/components/crypto/CoinLogo";
 import { shortenAgentAddress } from "@/lib/agentWalletCatalog";
-
-const LAMPORTS_PER_SOL = 1e9;
-const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
+import { formatSol } from "@/lib/dashboardOverviewAggregates";
 
 export interface WalletNavProps {
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
 }
 
-function formatUsdcDisplay(value: number | null | undefined): string {
-  if (value == null) return "—";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 10_000) return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatSolDisplay(value: number | null | undefined): string {
-  if (value == null) return "—";
-  if (value >= 100) return value.toFixed(2);
-  if (value >= 1) return value.toFixed(3);
-  return value.toFixed(4);
+function menuRowClass(active?: boolean) {
+  return cn(
+    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none transition-colors",
+    active
+      ? "bg-primary/[0.08] text-foreground ring-1 ring-inset ring-primary/15"
+      : "text-foreground hover:bg-muted/50 focus:bg-muted/50",
+  );
 }
 
 export function WalletNav(props: WalletNavProps = {}) {
   const { isDarkMode = true, onToggleDarkMode } = props;
-  const { connection, publicKey, disconnect, connected } = useWalletContext();
+  const { pathname } = useLocation();
+  const { publicKey, disconnect, connected } = useWalletContext();
   const { openConnectModal } = useConnectModal();
+  const { ready, agentAddress, connectedWalletShort, lpAgentAddress } = useAgentWallet();
+  const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
   const {
-    ready,
-    agentAddress,
-    connectedWalletShort,
-    agentUsdcBalance,
-    agentSolBalance,
-    lpAgentAddress,
-    lpAgentUsdcBalance,
-    lpAgentSolBalance,
-    refetchBalance,
-    refetchLpBalance,
-  } = useAgentWallet();
+    hasAgentTreasury,
+    chatUsdcBalance,
+    chatSolBalance,
+    lpUsdcBalance,
+    lpSolBalance,
+    totalUsdc: totalAgentUsdc,
+    totalSol: totalAgentSol,
+    balancesLoading,
+    refreshTreasuryBalances,
+  } = useAgentTreasuryBalances();
   const hasAnyWallet = connected && !!publicKey;
   const { toast } = useToast();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-  const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
-  const [userSolBalance, setUserSolBalance] = useState<number | null>(null);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
@@ -87,58 +80,47 @@ export function WalletNav(props: WalletNavProps = {}) {
     ? (connectedWalletShort ?? shortenAgentAddress(publicKey.toBase58()))
     : "…";
 
-  const fetchUserBalance = useCallback(async () => {
-    if (!publicKey) return;
-    try {
-      const [solLamports, tokenAccounts] = await Promise.all([
-        connection.getBalance(publicKey, "confirmed"),
-        connection.getParsedTokenAccountsByOwner(publicKey, { mint: USDC_MINT_MAINNET }),
-      ]);
-      setUserSolBalance(solLamports / LAMPORTS_PER_SOL);
-      const usdc =
-        tokenAccounts.value.length > 0
-          ? tokenAccounts.value.reduce((sum, acc) => {
-              const ui = acc.account.data.parsed?.info?.tokenAmount?.uiAmount;
-              return sum + (Number(ui) || 0);
-            }, 0)
-          : 0;
-      setUserUsdcBalance(usdc);
-    } catch {
-      setUserUsdcBalance(null);
-      setUserSolBalance(null);
-    }
-  }, [publicKey, connection]);
-
   useEffect(() => {
-    if (!open || !publicKey) {
-      setUserUsdcBalance(null);
-      setUserSolBalance(null);
-      return;
+    if (!open || !connected || !publicKey) return;
+    if (syraAuthReady && !syraAuthenticated) {
+      void requestSyraAuth();
     }
-    fetchUserBalance();
-  }, [open, publicKey, fetchUserBalance]);
+    let cancelled = false;
+    setBalanceRefreshing(true);
+    void refreshTreasuryBalances().finally(() => {
+      if (!cancelled) setBalanceRefreshing(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Only refresh when the menu opens — not when refreshTreasuryBalances identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, connected, publicKey, syraAuthReady, syraAuthenticated]);
 
-  const goToWalletPage = useCallback(
-    (tab: "deposit" | "withdraw" = "deposit", wallet: "chat" | "lp" = "chat") => {
+  const goTo = useCallback(
+    (path: string) => {
       setOpen(false);
-      navigate(`/wallet?tab=${tab}&wallet=${wallet}#move-funds`);
+      navigate(path);
     },
     [navigate],
   );
 
+  const openFeedbackMailto = useCallback((kind: "feature" | "bug") => {
+    setOpen(false);
+    window.location.href = buildFeedbackMailto(kind);
+  }, []);
+
   const handleRefreshBalances = useCallback(async () => {
     setBalanceRefreshing(true);
     try {
-      const tasks = [refetchBalance(), refetchLpBalance()];
-      if (publicKey) tasks.push(fetchUserBalance());
-      await Promise.all(tasks);
+      await refreshTreasuryBalances();
       notify.success("Balances updated");
     } catch {
       notify.error("Could not refresh balances");
     } finally {
       setBalanceRefreshing(false);
     }
-  }, [refetchBalance, refetchLpBalance, fetchUserBalance, publicKey, toast]);
+  }, [refreshTreasuryBalances]);
 
   const copyAddress = useCallback(
     (text: string, label: string) => {
@@ -164,30 +146,20 @@ export function WalletNav(props: WalletNavProps = {}) {
     } finally {
       setDisconnecting(false);
     }
-  }, [disconnect, toast]);
+  }, [disconnect]);
 
-  const agentLoading = hasAnyWallet && !ready;
+  const agentLoading =
+    hasAnyWallet &&
+    (!ready || balancesLoading || (balanceRefreshing && totalAgentUsdc == null && totalAgentSol == null));
 
-  const totalAgentUsdc = useMemo(() => {
-    const chat = agentUsdcBalance ?? 0;
-    const lp = lpAgentUsdcBalance ?? 0;
-    if (agentUsdcBalance == null && lpAgentUsdcBalance == null) return null;
-    return chat + lp;
-  }, [agentUsdcBalance, lpAgentUsdcBalance]);
-
-  const totalAgentSol = useMemo(() => {
-    const chat = agentSolBalance ?? 0;
-    const lp = lpAgentSolBalance ?? 0;
-    if (agentSolBalance == null && lpAgentSolBalance == null) return null;
-    return chat + lp;
-  }, [agentSolBalance, lpAgentSolBalance]);
-
-  const showLpSplit = Boolean(lpAgentAddress && (lpAgentUsdcBalance != null || lpAgentSolBalance != null));
+  const showLpSplit = Boolean(lpAgentAddress);
+  const onWalletPage = pathname === "/wallet" || pathname.startsWith("/wallet/");
+  const onSettingsPage = pathname === "/settings" || pathname.startsWith("/settings/");
 
   if (!hasAnyWallet) {
     return (
       <div className="flex min-w-0 max-w-full shrink-0 items-center gap-2">
-        {onToggleDarkMode && (
+        {onToggleDarkMode ? (
           <Button
             variant="ghost"
             size="icon"
@@ -198,7 +170,7 @@ export function WalletNav(props: WalletNavProps = {}) {
           >
             {isDarkMode ? <Sun className="h-4 w-4 text-foreground" /> : <Moon className="h-4 w-4 text-foreground" />}
           </Button>
-        )}
+        ) : null}
         <Button
           className="h-9 min-h-[44px] min-w-0 max-w-full rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 touch-manipulation sm:min-h-0"
           onClick={openConnectModal}
@@ -213,35 +185,46 @@ export function WalletNav(props: WalletNavProps = {}) {
     );
   }
 
-  const navItemClass =
-    "h-9 min-h-[44px] sm:min-h-0 rounded-xl border border-border/60 bg-muted/25 px-2.5 shadow-sm backdrop-blur-sm sm:px-3 gap-2 text-sm font-medium inline-flex items-center min-w-0 touch-manipulation transition-colors hover:bg-muted/40";
+  const triggerClass = cn(
+    "h-9 min-h-[44px] max-w-[min(11rem,calc(100vw-8rem))] gap-2 rounded-xl border border-border/50 bg-muted/20 pl-2 pr-2.5",
+    "shadow-sm backdrop-blur-sm transition-[background,box-shadow,border-color] hover:bg-muted/35 hover:border-border/70",
+    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "touch-manipulation sm:min-h-9 sm:max-w-[12.5rem]",
+  );
 
   return (
     <div className="flex min-w-0 max-w-full shrink-0 items-center justify-end">
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(navItemClass, "max-w-[min(12rem,calc(100vw-10rem))] justify-between gap-1.5 font-medium")}
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="truncate text-foreground">Wallet</span>
+          <Button variant="outline" className={triggerClass}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-inset ring-primary/20">
+              <Wallet className="h-3.5 w-3.5 text-primary" aria-hidden />
             </span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block truncate font-mono text-xs font-medium text-foreground">{walletLabel}</span>
+              <span className="block truncate text-[10px] text-muted-foreground">Solana</span>
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground/70 transition-transform duration-200",
+                open && "rotate-180",
+              )}
+              aria-hidden
+            />
           </Button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
           align="end"
-          sideOffset={8}
+          sideOffset={10}
           className={cn(
-            "z-[100] w-[min(19.5rem,calc(100vw-1.5rem))] overflow-hidden p-0",
-            "rounded-2xl border border-border/50 bg-popover/95 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl",
-            "dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.65)]",
+            "z-[250] w-[min(21rem,calc(100vw-1.25rem))] overflow-hidden p-0",
+            "rounded-2xl border border-border/50 bg-popover/95",
+            "shadow-[0_24px_64px_-16px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150",
+            "dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)]",
           )}
         >
-          {onToggleDarkMode && (
+          {onToggleDarkMode ? (
             <div className="border-b border-border/40 p-1.5 lg:hidden">
               <DropdownMenuItem
                 className="cursor-pointer gap-3 rounded-xl px-3 py-2.5 text-sm focus:bg-muted/60"
@@ -251,31 +234,36 @@ export function WalletNav(props: WalletNavProps = {}) {
                 {isDarkMode ? "Light mode" : "Dark mode"}
               </DropdownMenuItem>
             </div>
-          )}
+          ) : null}
 
-          {/* Connected identity */}
-          <div className="border-b border-border/40 bg-muted/20 px-4 py-3.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-muted-foreground">Connected</p>
-                <button
-                  type="button"
-                  onClick={() => publicKey && copyAddress(publicKey.toBase58(), "Wallet address")}
-                  className="group mt-1 flex max-w-full items-center gap-2 text-left"
-                  title={publicKey?.toBase58()}
-                >
-                  <span className="truncate font-mono text-sm font-medium text-foreground">{walletLabel}</span>
+          <div className="relative border-b border-border/40 px-4 pb-4 pt-4">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-70"
+              style={{
+                background:
+                  "radial-gradient(120% 80% at 100% 0%, hsl(var(--primary) / 0.12), transparent 55%)",
+              }}
+              aria-hidden
+            />
+            <div className="relative flex items-start justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => publicKey && copyAddress(publicKey.toBase58(), "Wallet address")}
+                className="group min-w-0 flex-1 text-left"
+                title={publicKey?.toBase58()}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Connected wallet
+                </p>
+                <p className="mt-1 flex items-center gap-1.5 font-mono text-sm font-semibold text-foreground">
+                  <span className="truncate">{walletLabel}</span>
                   {addressCopied ? (
                     <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100" />
+                    <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-50 transition-opacity group-hover:opacity-100" />
                   )}
-                </button>
-                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border/50">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#9945FF]" aria-hidden />
-                  Solana
-                </span>
-              </div>
+                </p>
+              </button>
               <Button
                 type="button"
                 variant="ghost"
@@ -292,110 +280,112 @@ export function WalletNav(props: WalletNavProps = {}) {
                 )}
               </Button>
             </div>
-          </div>
 
-          {/* Agent balance — primary focus */}
-          <div className="px-4 py-4">
-            <p className="text-[11px] font-medium text-muted-foreground">Agent balance</p>
-            {agentLoading ? (
-              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Setting up…
-              </div>
-            ) : (
-              <>
-                <div className="mt-1 flex items-baseline gap-1.5 tabular-nums">
-                  <span className="text-2xl font-semibold tracking-tight text-foreground">
-                    ${formatUsdcDisplay(totalAgentUsdc)}
-                  </span>
-                  <span className="text-sm font-medium text-muted-foreground">USDC</span>
+            <div className="relative mt-4 rounded-xl border border-border/50 bg-card/80 px-3.5 py-3 ring-1 ring-inset ring-white/[0.04]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Agent treasuries
+              </p>
+              {agentLoading ? (
+                <div className="mt-2 flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading balances…
                 </div>
-                <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
-                  {formatSolDisplay(totalAgentSol)} SOL
-                </p>
-
-                {showLpSplit ? (
-                  <div className="mt-3 space-y-1.5 rounded-xl bg-muted/25 px-3 py-2.5 text-xs tabular-nums ring-1 ring-inset ring-border/40">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground">Chat agent</span>
-                      <span className="font-medium text-foreground">
-                        ${formatUsdcDisplay(agentUsdcBalance)}
-                      </span>
+              ) : hasAgentTreasury ? (
+                <>
+                  <p className="mt-1 font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground">
+                    {formatTreasuryUsd(totalAgentUsdc)}
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                    {totalAgentSol != null ? `${formatSol(totalAgentSol)} SOL` : "— SOL"}
+                  </p>
+                  {showLpSplit ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-lg bg-muted/30 px-2.5 py-2 ring-1 ring-inset ring-border/40">
+                        <p className="text-[10px] text-muted-foreground">Chat</p>
+                        <p className="mt-0.5 font-mono text-xs font-medium tabular-nums text-foreground">
+                          {formatTreasuryUsd(chatUsdcBalance)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/30 px-2.5 py-2 ring-1 ring-inset ring-border/40">
+                        <p className="text-[10px] text-muted-foreground">LP</p>
+                        <p className="mt-0.5 font-mono text-xs font-medium tabular-nums text-foreground">
+                          {formatTreasuryUsd(lpUsdcBalance)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground">LP agent</span>
-                      <span className="font-medium text-foreground">
-                        ${formatUsdcDisplay(lpAgentUsdcBalance)}
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-
-                <Button
-                  type="button"
-                  className="mt-4 h-10 w-full rounded-xl text-sm font-semibold shadow-sm"
-                  onClick={() => goToWalletPage("deposit", "chat")}
-                  disabled={!agentAddress}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add funds
-                </Button>
-
-                <button
-                  type="button"
-                  className="mt-3 flex w-full items-center justify-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={() => goToWalletPage("withdraw", "chat")}
-                >
-                  Manage & withdraw
-                  <ChevronRight className="h-4 w-4 opacity-70" />
-                </button>
-              </>
-            )}
+                  ) : null}
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No agent wallet linked yet.</p>
+              )}
+            </div>
           </div>
 
-          {/* Your wallet — compact */}
-          {userUsdcBalance != null && userSolBalance != null ? (
-            <div className="border-t border-border/40 px-4 py-3">
-              <p className="text-[11px] font-medium text-muted-foreground">In your wallet</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm tabular-nums">
-                <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                  <CoinLogo symbol="USDC" size="xs" />
-                  ${formatUsdcDisplay(userUsdcBalance)}
-                </span>
-                <span className="text-muted-foreground/40" aria-hidden>
-                  ·
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <CoinLogo symbol="SOL" size="xs" />
-                  {formatSolDisplay(userSolBalance)} SOL
-                </span>
-              </div>
-            </div>
-          ) : null}
+          <div className="space-y-0.5 px-2 py-2">
+            <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+              Account
+            </p>
+            <DropdownMenuItem className={menuRowClass(onWalletPage)} onSelect={() => goTo("/wallet")}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/40 ring-1 ring-inset ring-border/50">
+                <Wallet2 className="h-4 w-4 text-foreground/80" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Wallets</span>
+                <span className="block text-xs text-muted-foreground">Treasuries & move funds</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+            </DropdownMenuItem>
+            <DropdownMenuItem className={menuRowClass(onSettingsPage)} onSelect={() => goTo("/settings")}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/40 ring-1 ring-inset ring-border/50">
+                <Settings className="h-4 w-4 text-foreground/80" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Settings</span>
+                <span className="block text-xs text-muted-foreground">Agent & preferences</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+            </DropdownMenuItem>
+          </div>
 
-          {/* Account actions */}
+          <div className="space-y-0.5 border-t border-border/40 px-2 py-2">
+            <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+              Support
+            </p>
+            <DropdownMenuItem
+              className={menuRowClass()}
+              onSelect={(e) => {
+                e.preventDefault();
+                openFeedbackMailto("feature");
+              }}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-inset ring-amber-500/20">
+                <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Request a feature</span>
+                <span className="block text-xs text-muted-foreground">Email the Syra team</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className={menuRowClass()}
+              onSelect={(e) => {
+                e.preventDefault();
+                openFeedbackMailto("bug");
+              }}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10 ring-1 ring-inset ring-red-500/20">
+                <Bug className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Report a bug</span>
+                <span className="block text-xs text-muted-foreground">Something broken? Tell us</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+            </DropdownMenuItem>
+          </div>
+
           <div className="border-t border-border/40 p-1.5">
-            <DropdownMenuItem
-              className="cursor-pointer gap-3 rounded-xl px-3 py-2.5 text-sm focus:bg-muted/60"
-              onSelect={() => {
-                setOpen(false);
-                openConnectModal();
-              }}
-            >
-              <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
-              Switch wallet
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer gap-3 rounded-xl px-3 py-2.5 text-sm focus:bg-muted/60"
-              onSelect={() => {
-                setOpen(false);
-                setFeedbackModalOpen(true);
-              }}
-            >
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              Feedback
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1 bg-border/40" />
             <DropdownMenuItem
               className={cn(
                 "cursor-pointer gap-3 rounded-xl px-3 py-2.5 text-sm focus:bg-destructive/10",
@@ -417,8 +407,6 @@ export function WalletNav(props: WalletNavProps = {}) {
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <FeedbackModal open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen} />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import type { RequestParam } from '@/types/api';
 import type { ExampleFlowPreset } from '@/hooks/useApiPlayground';
+import { PLAYGROUND_MODAL_Z } from '@/components/playground/playgroundStyles';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -163,7 +164,9 @@ export function QueryParamsModal({ isOpen, onClose, flow, initialParams, onRun }
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
+        overlayClassName={PLAYGROUND_MODAL_Z}
         className={cn(
+          PLAYGROUND_MODAL_Z,
           'flex max-h-[min(90dvh,720px)] w-[calc(100%-1.5rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 sm:max-w-xl sm:rounded-2xl',
           'border-border/60 bg-card/95 shadow-2xl shadow-black/40 backdrop-blur-2xl dark:border-white/[0.08]',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',

@@ -148,6 +148,27 @@ export async function ensureAccessToken(): Promise<string | null> {
   return refreshAccessToken();
 }
 
+/** Access token only when the Syra session belongs to this wallet (avoids stale cross-wallet JWTs). */
+export async function ensureAccessTokenForWallet(walletAddress: string): Promise<string | null> {
+  const expected = walletAddress.trim();
+  if (!expected) return null;
+
+  const session = getSyraSessionWallet();
+  if (session && session.address !== expected) {
+    return null;
+  }
+
+  const token = await ensureAccessToken();
+  if (!token) return null;
+
+  const sessionAfter = getSyraSessionWallet();
+  if (sessionAfter && sessionAfter.address !== expected) {
+    return null;
+  }
+
+  return token;
+}
+
 export async function fetchAuthNonce(
   chain: AgentChain,
   address: string,
@@ -244,7 +265,7 @@ export async function syraFetch(input: RequestInfo | URL, init?: RequestInit): P
 
   let token = await ensureAccessToken();
   let res = await doFetch(token);
-  if (res.status === 401 && init?.method && init.method !== "GET" && hasSessionHints()) {
+  if (res.status === 401 && hasSessionHints()) {
     const refreshed = await refreshAccessToken();
     if (refreshed && refreshed !== token) {
       token = refreshed;

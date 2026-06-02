@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 /** Same address as landing/docs community contact. */
 export const SYRA_FEEDBACK_EMAIL = "support@syraa.fun";
 
-function buildFeedbackMailto(kind: "feature" | "bug"): string {
+export function buildFeedbackMailto(kind: "feature" | "bug"): string {
   const subject =
     kind === "feature"
       ? "[Syra Agent] Feature request"

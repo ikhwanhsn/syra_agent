@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAgentTreasuryBalances } from "@/hooks/useAgentTreasuryBalances";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -42,15 +43,9 @@ export function useManagedAgentWallets() {
     avatarUrl: contextAvatarUrl,
     connectedChain,
     connectedWalletAddress,
-    refetchBalance,
-    refetchLpBalance,
-    agentSolBalance,
-    agentUsdcBalance,
     lpReady,
     lpAnonymousId,
     lpAgentAddress,
-    lpAgentSolBalance,
-    lpAgentUsdcBalance,
   } = useAgentWallet();
   const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
 
@@ -108,25 +103,18 @@ export function useManagedAgentWallets() {
   const activeAgent = hasSolana ? solanaQ.data ?? contextLinkedAgent : guestAgent;
   const activeQ = hasSolana ? solanaQ : { isLoading: !contextReady, isFetching: false, isError: false };
   const authPending = hasSolana && syraAuthReady && !syraAuthenticated;
+
+  useEffect(() => {
+    if (!hasSolana || !syraAuthReady || syraAuthenticated) return;
+    void requestSyraAuth();
+  }, [hasSolana, syraAuthReady, syraAuthenticated, requestSyraAuth]);
+
   const setupLoading =
     hasSolana
       ? !activeAgent && (!syraAuthReady || authPending || activeQ.isLoading || activeQ.isFetching)
       : !contextReady;
   const setupLoadError =
     hasSolana && syraAuthReady && syraAuthenticated && activeQ.isError && !activeAgent;
-
-  const isContextAgent =
-    !!activeAgent &&
-    contextReady &&
-    activeAgent.anonymousId === contextAnonymousId &&
-    activeAgent.chain === connectedChain;
-
-  const balanceQ = useQuery({
-    queryKey: ["agent-wallet-balance", activeAgent?.anonymousId],
-    queryFn: () => agentWalletApi.getBalance(activeAgent!.anonymousId),
-    enabled: Boolean(activeAgent?.anonymousId),
-    staleTime: STALE_MS,
-  });
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [refreshingBalances, setRefreshingBalances] = useState(false);
@@ -147,6 +135,18 @@ export function useManagedAgentWallets() {
     };
   }, [lpReady, lpAnonymousId, lpAgentAddress, activeAgent?.walletAddress, connectedWalletAddress]);
 
+  const {
+    chatUsdcBalance,
+    chatSolBalance,
+    lpUsdcBalance: lpUsdcResolved,
+    lpSolBalance: lpSolResolved,
+    totalUsdc,
+    totalSol,
+    refreshTreasuryBalances,
+    refreshChatBalances,
+    refreshLpBalances,
+  } = useAgentTreasuryBalances({ chatAnonymousId: activeAgent?.anonymousId });
+
   const managedChatWallet: ManagedAgentWallet | undefined = activeAgent
     ? {
         anonymousId: activeAgent.anonymousId,
@@ -162,23 +162,6 @@ export function useManagedAgentWallets() {
         walletAddress: lpAgent.walletAddress,
       }
     : undefined;
-
-  const chatSolBalance = isContextAgent ? agentSolBalance : balanceQ.data?.solBalance ?? null;
-  const chatUsdcBalance = isContextAgent ? agentUsdcBalance : balanceQ.data?.usdcBalance ?? null;
-
-  const totalUsdc = useMemo(() => {
-    const chat = chatUsdcBalance ?? 0;
-    const lp = lpAgentUsdcBalance ?? 0;
-    if (chatUsdcBalance == null && lpAgentUsdcBalance == null) return null;
-    return chat + lp;
-  }, [chatUsdcBalance, lpAgentUsdcBalance]);
-
-  const totalSol = useMemo(() => {
-    const chat = chatSolBalance ?? 0;
-    const lp = lpAgentSolBalance ?? 0;
-    if (chatSolBalance == null && lpAgentSolBalance == null) return null;
-    return chat + lp;
-  }, [chatSolBalance, lpAgentSolBalance]);
 
   const copyToClipboard = useCallback(
     (text: string, label: string) => {
@@ -204,8 +187,9 @@ export function useManagedAgentWallets() {
       });
       return;
     }
+    await queryClient.invalidateQueries({ queryKey: ["agent-setup", "solana", solanaAddress] });
     await solanaQ.refetch();
-  }, [requestSyraAuth, solanaQ, toast]);
+  }, [queryClient, requestSyraAuth, solanaAddress, solanaQ, toast]);
 
   const selectFundTarget = useCallback(
     (tab: "deposit" | "withdraw", wallet: AgentWalletPurpose) => {
@@ -232,29 +216,32 @@ export function useManagedAgentWallets() {
   const handleRefreshChatBalances = useCallback(async () => {
     setRefreshingBalances(true);
     try {
-      if (isContextAgent) await refetchBalance();
-      if (activeAgent?.anonymousId) {
-        await balanceQ.refetch();
-        await queryClient.invalidateQueries({ queryKey: ["agent-wallet-balance", activeAgent.anonymousId] });
-      }
+      await refreshChatBalances();
     } finally {
       setRefreshingBalances(false);
     }
-  }, [activeAgent?.anonymousId, balanceQ, isContextAgent, queryClient, refetchBalance]);
+  }, [refreshChatBalances]);
 
   const handleRefreshLpBalances = useCallback(async () => {
     setRefreshingLpBalances(true);
     try {
-      await refetchLpBalance();
+      await refreshLpBalances();
     } finally {
       setRefreshingLpBalances(false);
     }
-  }, [refetchLpBalance]);
+  }, [refreshLpBalances]);
 
   const handleRefreshAll = useCallback(async () => {
-    await Promise.all([handleRefreshChatBalances(), handleRefreshLpBalances()]);
-    toast({ title: "Balances updated" });
-  }, [handleRefreshChatBalances, handleRefreshLpBalances, toast]);
+    setRefreshingBalances(true);
+    setRefreshingLpBalances(true);
+    try {
+      await refreshTreasuryBalances();
+      toast({ title: "Balances updated" });
+    } finally {
+      setRefreshingBalances(false);
+      setRefreshingLpBalances(false);
+    }
+  }, [refreshTreasuryBalances, toast]);
 
   const handleCreateChatWallet = useCallback(async () => {
     setCreatingChat(true);
@@ -334,8 +321,8 @@ export function useManagedAgentWallets() {
     managedLpWallet,
     chatSolBalance,
     chatUsdcBalance,
-    lpAgentSolBalance,
-    lpAgentUsdcBalance,
+    lpAgentSolBalance: lpSolResolved,
+    lpAgentUsdcBalance: lpUsdcResolved,
     totalUsdc,
     totalSol,
     copiedField,

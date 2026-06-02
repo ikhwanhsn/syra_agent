@@ -2,17 +2,19 @@
 
 import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { closeQwertiBuyWidget, destroyQwertiEmbed } from "@/lib/qwerti";
+import { destroyQwertiEmbed } from "@/lib/qwerti";
 import { injectQwertiHeadScript } from "@/lib/qwertiHeadScript";
-import { subscribeQwertiDesktopViewport } from "@/lib/qwertiViewport";
 
-/** Home chat route only — floating launcher hidden elsewhere. */
+const BODY_ACTIVE_CLASS = "syra-qwerti-active";
+
+/** Home chat route only (`/`) — floating launcher hidden elsewhere. */
 export function isQwertiHomeRoute(pathname: string): boolean {
-  return pathname === "/";
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return path === "/";
 }
 
 /**
- * Loads the Qwerti buy widget on `/` (desktop only).
+ * Loads the Qwerti buy widget on `/` only (all viewports).
  * Launcher + open() are handled by the official buy.js bundle.
  */
 export function QwertiAgentIntegration() {
@@ -20,17 +22,19 @@ export function QwertiAgentIntegration() {
   const visible = useMemo(() => isQwertiHomeRoute(pathname), [pathname]);
 
   useEffect(() => {
+    document.body.classList.toggle(BODY_ACTIVE_CLASS, visible);
+
     if (!visible) {
       destroyQwertiEmbed();
-      return;
+      return () => {
+        document.body.classList.remove(BODY_ACTIVE_CLASS);
+      };
     }
-    const sync = (isDesktop: boolean) => {
-      if (isDesktop) injectQwertiHeadScript();
-      else closeQwertiBuyWidget();
-    };
-    const unsubscribe = subscribeQwertiDesktopViewport(sync);
+
+    injectQwertiHeadScript();
+
     return () => {
-      unsubscribe();
+      document.body.classList.remove(BODY_ACTIVE_CLASS);
       destroyQwertiEmbed();
     };
   }, [visible]);

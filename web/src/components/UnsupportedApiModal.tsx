@@ -14,12 +14,12 @@ export function UnsupportedApiModal({ isOpen, onClose }: UnsupportedApiModalProp
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-background/90 backdrop-blur-md z-50"
+        className="fixed inset-0 z-[500] bg-background/90 backdrop-blur-md"
         onClick={onClose}
       />
 
       {/* Modal - responsive padding and safe area */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden safe-area-inset-top safe-area-inset-bottom">
+      <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden safe-area-inset-top safe-area-inset-bottom">
         <div 
           className="w-full max-w-md mx-2 sm:mx-0 glass-panel animate-scale-in overflow-hidden"
           onClick={(e) => e.stopPropagation()}

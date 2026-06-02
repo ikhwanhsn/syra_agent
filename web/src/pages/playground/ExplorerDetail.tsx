@@ -13,13 +13,13 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TopBar } from '@/components/TopBar';
+import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { resolveApiBaseUrl } from '@/lib/resolveApiBaseUrl';
 import { format } from 'date-fns';
-import { BRAND_NAME, MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
+import { BRAND_NAME } from '@/lib/branding';
 
 interface ShareDetail {
   slug: string;
@@ -87,80 +87,41 @@ const ExplorerDetail = () => {
 
   if (loading && !data) {
     return (
-      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col overflow-x-hidden max-w-[100vw] playground-ambient">
-        <TopBar
-          wallet={wallet}
-          onOpenConnectModal={() => {}}
-          onToggleSidebar={() => {}}
-          isSidebarOpen={false}
-          flowStatus="idle"
-        />
-        <div
-          className={cn(
-            'flex flex-1 min-h-0 flex-col items-center justify-center gap-4 text-muted-foreground relative z-[1]',
-            MAIN_CONTENT_PT_CLASS,
-            MAIN_CONTENT_PB_SAFE_CLASS,
-          )}
-        >
-          <div className="relative w-14 h-14">
-            <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" aria-hidden />
+      <PlaygroundPageShell>
+        <div className="relative z-[1] flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground">
+          <div className="relative h-14 w-14">
+            <div className="absolute inset-0 animate-ping rounded-full bg-primary/15" aria-hidden />
             <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-card/80 ring-1 ring-border/50">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
             </div>
           </div>
           <p className="text-sm font-medium text-foreground">Loading request…</p>
         </div>
-      </div>
+      </PlaygroundPageShell>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col overflow-x-hidden max-w-[100vw] playground-ambient">
-        <TopBar
-          wallet={wallet}
-          onOpenConnectModal={() => {}}
-          onToggleSidebar={() => {}}
-          isSidebarOpen={false}
-          flowStatus="idle"
-        />
-        <div
-          className={cn(
-            'flex flex-1 min-h-0 items-center justify-center px-4 relative z-[1]',
-            MAIN_CONTENT_PT_CLASS,
-            MAIN_CONTENT_PB_SAFE_CLASS,
-          )}
-        >
-          <div className="glass-panel rounded-2xl p-8 max-w-md text-center border border-border/50">
-            <p className="font-display text-lg font-semibold text-foreground mb-2">Request not found</p>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+      <PlaygroundPageShell>
+        <div className="relative z-[1] flex flex-1 items-center justify-center px-4">
+          <div className="glass-panel max-w-md rounded-2xl border border-border/50 p-8 text-center">
+            <p className="font-display mb-2 text-lg font-semibold text-foreground">Request not found</p>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
               The shared request may have been removed or the link is invalid.
             </p>
             <Button variant="outline" className="rounded-full" asChild>
-              <Link to="/playground/explorer">Back to Explorer</Link>
+              <Link to="/playground?view=explorer">Back to Explorer</Link>
             </Button>
           </div>
         </div>
-      </div>
+      </PlaygroundPageShell>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] h-dvh max-h-[100dvh] bg-background flex flex-col w-full max-w-[100vw] overflow-x-hidden playground-ambient relative">
-      <TopBar
-        wallet={wallet}
-        onOpenConnectModal={() => {}}
-        onToggleSidebar={() => {}}
-        isSidebarOpen={false}
-        flowStatus="idle"
-      />
-      <div
-        className={cn(
-          'flex flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
-          MAIN_CONTENT_PT_CLASS,
-          MAIN_CONTENT_PB_SAFE_CLASS,
-        )}
-      >
+    <PlaygroundPageShell>
+      <PlaygroundScrollBody>
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-16">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
             <Button
@@ -169,7 +130,7 @@ const ExplorerDetail = () => {
               asChild
               className="gap-2 text-muted-foreground hover:text-foreground -ml-2 rounded-full"
             >
-              <Link to="/playground/explorer">
+              <Link to="/playground?view=explorer">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Explorer
               </Link>
@@ -342,8 +303,8 @@ const ExplorerDetail = () => {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </PlaygroundScrollBody>
+    </PlaygroundPageShell>
   );
 };
 

@@ -17,6 +17,8 @@ export const EXPERIMENT_SUITE_SECONDARY = "secondary";
 export const EXPERIMENT_SUITE_MULTI_RESOURCE = "multi_resource";
 /** Wallet-owned custom strategies; isolated ledger + runs reference {@link UserCustomStrategy}. */
 export const EXPERIMENT_SUITE_USER_CUSTOM = "user_custom";
+/** Bitget Vibe Trader hackathon sessions; runs link via bitgetVibeSessionId. */
+export const EXPERIMENT_SUITE_BITGET_VIBE = "bitget_vibe";
 /** Scans many tokens per cycle and opens the best spot-long setup (isolated ledger). */
 export const EXPERIMENT_SUITE_MULTI_TOKEN = "multi_token";
 

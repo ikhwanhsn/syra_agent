@@ -311,9 +311,9 @@ export function ResponseViewer({
             </div>
             
             {/* CTA Button */}
-            <Button 
-              variant="warning" 
-              className="w-full h-11 gap-2 text-sm font-semibold"
+            <Button
+              variant="neon"
+              className="glow-primary-hover w-full h-11 gap-2 rounded-xl text-sm font-semibold shadow-lg"
               onClick={onPayAndRetry}
             >
               <Wallet className="h-4 w-4" />

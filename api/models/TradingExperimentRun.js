@@ -54,6 +54,14 @@ const tradingExperimentRunSchema = new mongoose.Schema(
       sparse: true,
     },
     userWalletAddress: { type: String, default: null, index: true, sparse: true },
+    /** When suite is `bitget_vibe`: link to {@link BitgetVibeSession}. */
+    bitgetVibeSessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BitgetVibeSession",
+      default: null,
+      index: true,
+      sparse: true,
+    },
   },
   { timestamps: true },
 );
@@ -61,6 +69,7 @@ const tradingExperimentRunSchema = new mongoose.Schema(
 tradingExperimentRunSchema.index({ agentId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ suite: 1, agentId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ userStrategyId: 1, status: 1, createdAt: -1 });
+tradingExperimentRunSchema.index({ bitgetVibeSessionId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ createdAt: -1 });
 
 const TradingExperimentRun =

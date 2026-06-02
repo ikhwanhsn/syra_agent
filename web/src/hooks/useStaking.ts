@@ -21,6 +21,7 @@ import { CONFIG } from "@/constants/config";
 import { formatUnits, parseUnits } from "@/lib/format";
 import type { GlobalPool, UserStakeInfo, StakingPeriod } from "@/lib/staking";
 import { getAccount } from "@solana/spl-token";
+import { withRpcFallback } from "@/lib/solanaRpc";
 
 export interface PeriodStakeInfo {
   amount: bigint;
@@ -70,49 +71,56 @@ export function useStaking(): StakingState {
   const [pendingRewardRaw, setPendingRewardRaw] = useState<bigint>(0n);
 
   const fetchData = useCallback(async () => {
-    if (!connection) return;
     setError(null);
     try {
-      const [poolData, infos] = await Promise.all([
-        fetchGlobalPool(connection, CONFIG.programId),
-        publicKey
-          ? fetchAllUserStakeInfos(connection, publicKey, CONFIG.programId)
-          : Promise.resolve<[UserStakeInfo | null, UserStakeInfo | null, UserStakeInfo | null]>([null, null, null]),
-      ]);
-      setPool(poolData);
-      setUserStakeInfos(infos);
-
-      if (publicKey) {
-        try {
-          const stakingAta = getUserStakingAta(publicKey);
-          const rewardAta = getUserRewardAta(publicKey);
-          const [stakingAcc, rewardAcc] = await Promise.all([
-            getAccount(connection, stakingAta).catch(() => null),
-            getAccount(connection, rewardAta).catch(() => null),
+      await withRpcFallback(
+        async (readConnection) => {
+          const [poolData, infos] = await Promise.all([
+            fetchGlobalPool(readConnection, CONFIG.programId),
+            publicKey
+              ? fetchAllUserStakeInfos(readConnection, publicKey, CONFIG.programId)
+              : Promise.resolve<[UserStakeInfo | null, UserStakeInfo | null, UserStakeInfo | null]>([
+                  null,
+                  null,
+                  null,
+                ]),
           ]);
-          setUserStakingBalanceRaw(stakingAcc?.amount ?? 0n);
-          setUserRewardBalanceRaw(rewardAcc?.amount ?? 0n);
-        } catch {
-          setUserStakingBalanceRaw(0n);
-          setUserRewardBalanceRaw(0n);
-        }
-      } else {
-        setUserStakingBalanceRaw(0n);
-        setUserRewardBalanceRaw(0n);
-      }
+          setPool(poolData);
+          setUserStakeInfos(infos);
 
-      const now = getCurrentTimeSeconds();
-      if (poolData) {
-        let total = 0n;
-        for (const info of infos) {
-          if (info && info.amount > 0n) {
-            total += computePendingReward(poolData, info, now);
+          if (publicKey) {
+            try {
+              const stakingAta = getUserStakingAta(publicKey);
+              const rewardAta = getUserRewardAta(publicKey);
+              const [stakingAcc, rewardAcc] = await Promise.all([
+                getAccount(readConnection, stakingAta).catch(() => null),
+                getAccount(readConnection, rewardAta).catch(() => null),
+              ]);
+              setUserStakingBalanceRaw(stakingAcc?.amount ?? 0n);
+              setUserRewardBalanceRaw(rewardAcc?.amount ?? 0n);
+            } catch {
+              setUserStakingBalanceRaw(0n);
+              setUserRewardBalanceRaw(0n);
+            }
+          } else {
+            setUserStakingBalanceRaw(0n);
+            setUserRewardBalanceRaw(0n);
           }
-        }
-        setPendingRewardRaw(total);
-      } else {
-        setPendingRewardRaw(0n);
-      }
+
+          const now = getCurrentTimeSeconds();
+          if (poolData) {
+            let total = 0n;
+            for (const info of infos) {
+              if (info && info.amount > 0n) {
+                total += computePendingReward(poolData, info, now);
+              }
+            }
+            setPendingRewardRaw(total);
+          } else {
+            setPendingRewardRaw(0n);
+          }
+        },
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
       setPool(null);
@@ -121,7 +129,7 @@ export function useStaking(): StakingState {
     } finally {
       setLoading(false);
     }
-  }, [connection, publicKey]);
+  }, [publicKey]);
 
   useEffect(() => {
     fetchData();

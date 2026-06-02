@@ -15,12 +15,10 @@ export const CONFIG = {
   /** true on devnet, false on mainnet */
   IS_DEVNET,
 
-  /** Solana RPC endpoint. Use .env for secrets. */
+  /** Solana RPC endpoint (reads may use fallbacks via solanaRpc.ts). */
   rpcEndpoint:
-    env.solanaRpcUrl ||
-    (IS_DEVNET
-      ? "https://api.devnet.solana.com"
-      : "https://api.mainnet-beta.solana.com"),
+    env.solanaRpcUrl ??
+    (IS_DEVNET ? "https://api.devnet.solana.com" : "https://api.mainnet-beta.solana.com"),
 
   /** Your deployed Anchor staking program ID */
   programId: new PublicKey(

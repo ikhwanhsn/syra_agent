@@ -6,9 +6,10 @@ import { useTheme } from "@/app/ThemeContext";
 import { StakingShell } from "@/components/StakingShell";
 import { StatsCard } from "@/components/StatsCard";
 import { ADMIN_DASHBOARD_WALLET, isAdminWallet } from "@/constants/adminWallet";
+import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
 import {
-  CONFIG,
   dashboardNetworkLabel,
+  dashboardStreamflowMint,
   fetchOperatorRegistryStats,
   walletExplorerUrl,
   type OperatorRegistryStats,
@@ -28,7 +29,7 @@ export default function StakersDashboardPage() {
     try {
       const op = await fetchOperatorRegistryStats({
         network: dashboardNetworkLabel(),
-        mint: CONFIG.stakingMint.toBase58(),
+        mint: dashboardStreamflowMint(),
         adminWallet: publicKey.toBase58(),
       });
       setOperator(op);
@@ -46,8 +47,8 @@ export default function StakersDashboardPage() {
     if (admin && publicKey) void load();
   }, [admin, publicKey, load]);
 
-  const isDevnet = CONFIG.IS_DEVNET;
-  const symbol = CONFIG.stakingTokenSymbol;
+  const isDevnet = STREAMFLOW_CONFIG.isDevnet;
+  const symbol = STREAMFLOW_CONFIG.tokenSymbol;
 
   return (
     <StakingShell>

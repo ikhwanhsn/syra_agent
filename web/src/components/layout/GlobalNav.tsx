@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "@/lib/navigation";
+import { isPlaygroundNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/hooks/useMounted";
 import { ArrowUpRight, Moon, Sun } from "lucide-react";
@@ -51,6 +52,9 @@ const navTriggerClass = cn(
 );
 
 function isItemActive(pathname: string, href: string) {
+  if (href === "/playground") {
+    return isPlaygroundNavItemActive(pathname, href);
+  }
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
 

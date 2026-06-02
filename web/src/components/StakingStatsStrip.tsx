@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { StatsCard } from "@/components/StatsCard";
+import { Coins, Lock, Users, Wallet } from "lucide-react";
+import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
 import { useStakingProtocolSummary } from "@/hooks/useStakingProtocolSummary";
 import { formatCompactAmount, formatCompactAmountFloor, formatUnits } from "@/lib/format";
 import type { UserLockRow } from "@/lib/streamflowStaking";
@@ -22,17 +23,9 @@ function sumLockAmountRaw(locks: UserLockRow[]): bigint {
 
 function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-hidden>
+    <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="glass-card animate-pulse p-5"
-          style={{ animationDelay: `${i * 80}ms` }}
-        >
-          <div className="mb-3 h-3 w-20 rounded bg-muted-foreground/15" />
-          <div className="h-7 w-24 rounded bg-muted-foreground/12" />
-          <div className="mt-2 h-3 w-16 rounded bg-muted-foreground/10" />
-        </div>
+        <OverviewStatCard key={i} label="—" value="—" isLoading accent="neutral" />
       ))}
     </div>
   );
@@ -45,11 +38,8 @@ export interface StakingStatsStripProps {
   portfolioLoading: boolean;
   openLocks: UserLockRow[];
   walletBalanceFormatted: string;
-  /** Max lockable after Streamflow fees (shown as "available to lock"). */
   maxLockableFormatted: string;
-  /** Wallet SOL balance (for fee requirement hint). */
   solBalanceFormatted?: string;
-  /** Increment to refetch protocol totals (e.g. after a new lock). */
   refreshNonce?: number;
 }
 
@@ -73,7 +63,7 @@ export function StakingStatsStrip({
   const myLockedRaw = useMemo(() => sumLockAmountRaw(openLocks), [openLocks]);
   const myLockedFormatted = useMemo(
     () => formatUnits(myLockedRaw, tokenDecimals, 4),
-    [myLockedRaw, tokenDecimals]
+    [myLockedRaw, tokenDecimals],
   );
 
   const protocolTotalFormatted = useMemo(() => {
@@ -88,7 +78,11 @@ export function StakingStatsStrip({
   const loading = protocolLoading || (connected && portfolioLoading);
 
   if (loading && !summary && openLocks.length === 0) {
-    return <StatsSkeleton />;
+    return (
+      <section aria-label="Staking overview">
+        <StatsSkeleton />
+      </section>
+    );
   }
 
   const totalLockedDisplay = protocolTotalFormatted
@@ -103,47 +97,56 @@ export function StakingStatsStrip({
     ? `${formatCompactAmountFloor(maxLockableFormatted)} ${symbol}`
     : "—";
 
-  const walletBalanceDisplay = connected
-    ? `${formatCompactAmount(walletBalanceFormatted)} ${symbol}`
-    : "—";
+  const walletHint = connected
+    ? solBalanceFormatted
+      ? `Wallet ${formatCompactAmount(walletBalanceFormatted)} · SOL ${solBalanceFormatted}`
+      : `Wallet ${formatCompactAmount(walletBalanceFormatted)}`
+    : undefined;
 
   return (
-    <section className="mb-8 sm:mb-10" aria-label="Staking overview">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatsCard
-          title="Total locked"
+    <section aria-label="Staking overview">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
+        <OverviewStatCard
+          label="Total locked"
           value={totalLockedDisplay}
-          gradient
-          subValue={
+          hint={
             summary
-              ? `${summary.openLockCount.toLocaleString()} active lock${summary.openLockCount === 1 ? "" : "s"} on ${summary.network}`
-              : "Across all Syra stakers"
+              ? `${summary.openLockCount.toLocaleString()} locks · ${summary.network}`
+              : "Protocol-wide"
           }
+          icon={Lock}
+          accent="marketplace"
         />
-        <StatsCard
-          title="Active stakers"
+        <OverviewStatCard
+          label="Active stakers"
           value={summary ? summary.uniqueWallets.toLocaleString() : "—"}
-          subValue="Wallets with open locks"
+          hint="Wallets with open locks"
+          icon={Users}
+          accent="neutral"
         />
-        <StatsCard
-          title="Your locked"
+        <OverviewStatCard
+          label="Your locked"
           value={yourLockedDisplay}
-          subValue={
+          hint={
             connected
               ? `${openLocks.length} open position${openLocks.length === 1 ? "" : "s"}`
-              : "Connect wallet to view"
+              : "Connect wallet"
           }
+          icon={Wallet}
+          accent="neutral"
         />
-        <StatsCard
-          title="Available to lock"
+        <OverviewStatCard
+          label="Available to lock"
           value={availableToLockDisplay}
-          subValue={
+          hint={
             connected
-              ? solBalanceFormatted
-                ? `Wallet ${walletBalanceDisplay} · SOL ${solBalanceFormatted} (need ~${STREAMFLOW_LOCK_SOL_RECOMMENDED})`
-                : `Wallet balance ${walletBalanceDisplay} · ${STREAMFLOW_CONFIG.lockDurationLabel}`
-              : "Connect wallet to lock"
+              ? walletHint
+                ? `${walletHint} · ~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL for fees`
+                : STREAMFLOW_CONFIG.lockDurationLabel
+              : "Connect wallet"
           }
+          icon={Coins}
+          accent="neutral"
         />
       </div>
     </section>

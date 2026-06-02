@@ -1,5 +1,9 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
+import { resolveAgentTreasuryBalance } from "@/lib/agentWalletBalanceDisplay";
+import { agentWalletApi } from "@/lib/chatApi";
 import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -32,7 +36,6 @@ import { AgentTreasuryBalanceRail } from "@/components/chat/AgentTreasuryBalance
 import { AgentWalletSwitcher } from "@/components/chat/AgentWalletSwitcher";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useToast } from "@/hooks/use-toast";
-import { agentWalletApi } from "@/lib/chatApi";
 import {
   AGENT_WALLET_ACCENT,
   getAgentWalletSlot,
@@ -130,6 +133,8 @@ export interface FuelAgentModalProps {
   walletLabel?: string;
   /** Inline page layout instead of dialog overlay. */
   variant?: "modal" | "page";
+  /** On wallet page: hide duplicate title block (parent supplies section heading). */
+  pageEmbed?: boolean;
 }
 
 export function FuelAgentModal({
@@ -142,6 +147,7 @@ export function FuelAgentModal({
   onDepositComplete,
   walletLabel,
   variant = "modal",
+  pageEmbed = false,
 }: FuelAgentModalProps) {
   const {
     connection,
@@ -165,9 +171,11 @@ export function FuelAgentModal({
     reportDebit,
     reportNativeDebit,
   } = useAgentWallet();
+  const { syraAuthReady, syraAuthenticated } = useSyraAuth();
 
   const [selectedWallet, setSelectedWallet] = useState<AgentWalletPurpose>(initialAgentWallet);
   const isPage = variant === "page";
+  const isPageEmbed = isPage && pageEmbed;
   const isActive = isPage || open;
 
   const lockedPurpose = useMemo((): AgentWalletPurpose | "external" | null => {
@@ -192,8 +200,40 @@ export function FuelAgentModal({
 
   const activeAddress = activePurpose === "lp" ? lpAgentAddress : agentAddress;
   const activeAnonymousId = activePurpose === "lp" ? lpAnonymousId : anonymousId;
-  const activeSolBalance = activePurpose === "lp" ? lpAgentSolBalance : agentSolBalance;
-  const activeUsdcBalance = activePurpose === "lp" ? lpAgentUsdcBalance : agentUsdcBalance;
+
+  const walletQueriesEnabled = syraAuthReady && syraAuthenticated;
+
+  const chatBalanceQ = useQuery({
+    queryKey: ["agent-wallet-balance", anonymousId],
+    queryFn: () => agentWalletApi.getBalance(anonymousId!),
+    enabled: isActive && Boolean(anonymousId) && walletQueriesEnabled,
+    staleTime: 45_000,
+    retry: 1,
+  });
+
+  const lpBalanceQ = useQuery({
+    queryKey: ["agent-wallet-balance", lpAnonymousId],
+    queryFn: () => agentWalletApi.getBalance(lpAnonymousId!),
+    enabled: isActive && Boolean(lpAnonymousId) && walletQueriesEnabled,
+    staleTime: 45_000,
+    retry: 1,
+  });
+
+  const chatSolResolved = resolveAgentTreasuryBalance(
+    true,
+    agentSolBalance,
+    chatBalanceQ.data?.solBalance,
+  );
+  const chatUsdcResolved = resolveAgentTreasuryBalance(
+    true,
+    agentUsdcBalance,
+    chatBalanceQ.data?.usdcBalance,
+  );
+  const lpSolResolved = resolveAgentTreasuryBalance(true, lpAgentSolBalance, lpBalanceQ.data?.solBalance);
+  const lpUsdcResolved = resolveAgentTreasuryBalance(true, lpAgentUsdcBalance, lpBalanceQ.data?.usdcBalance);
+
+  const activeSolBalance = activePurpose === "lp" ? lpSolResolved : chatSolResolved;
+  const activeUsdcBalance = activePurpose === "lp" ? lpUsdcResolved : chatUsdcResolved;
 
   const isLockedExternal = lockedPurpose === "external";
   const targetAgentAddress = isLockedExternal ? depositAgentAddress : activeAddress;
@@ -208,24 +248,26 @@ export function FuelAgentModal({
 
   const walletSwitcherBalances = useMemo(
     () => ({
-      chat:
-        agentAddress != null
-          ? { sol: agentSolBalance, usdc: agentUsdcBalance }
-          : undefined,
-      lp:
-        lpAgentAddress != null
-          ? { sol: lpAgentSolBalance, usdc: lpAgentUsdcBalance }
-          : undefined,
+      chat: agentAddress != null ? { sol: chatSolResolved, usdc: chatUsdcResolved } : undefined,
+      lp: lpAgentAddress != null ? { sol: lpSolResolved, usdc: lpUsdcResolved } : undefined,
     }),
     [
       agentAddress,
-      agentSolBalance,
-      agentUsdcBalance,
+      chatSolResolved,
+      chatUsdcResolved,
       lpAgentAddress,
-      lpAgentSolBalance,
-      lpAgentUsdcBalance,
+      lpSolResolved,
+      lpUsdcResolved,
     ],
   );
+
+  useEffect(() => {
+    if (!isActive) return;
+    void refreshSolanaBalances();
+    if (!syraAuthenticated) return;
+    void refetchBalance();
+    void refetchLpBalance();
+  }, [isActive, syraAuthenticated, refreshSolanaBalances, refetchBalance, refetchLpBalance]);
   /** USDC vs native SOL. */
   const [depositMode, setDepositMode] = useState<"usdc" | "native">("usdc");
   const [customUsd, setCustomUsd] = useState("");
@@ -328,12 +370,24 @@ export function FuelAgentModal({
       onDepositComplete?.();
       return;
     }
+    await refreshSolanaBalances();
     if (activePurpose === "lp") {
       await refetchLpBalance();
+      await lpBalanceQ.refetch();
     } else {
       await refetchBalance();
+      await chatBalanceQ.refetch();
     }
-  }, [activePurpose, refetchBalance, refetchLpBalance, isLockedExternal, onDepositComplete]);
+  }, [
+    activePurpose,
+    chatBalanceQ,
+    isLockedExternal,
+    lpBalanceQ,
+    onDepositComplete,
+    refetchBalance,
+    refetchLpBalance,
+    refreshSolanaBalances,
+  ]);
 
   useEffect(() => {
     if (isActive) {
@@ -751,42 +805,62 @@ export function FuelAgentModal({
   const modalPadX = "px-4 min-[380px]:px-5 sm:px-6";
   const modalPadAfter =
     "after:left-4 after:right-4 min-[380px]:after:left-5 min-[380px]:after:right-5 sm:after:left-6 sm:after:right-6";
-  const shellClassName =
-    "flex min-h-0 w-full flex-col gap-0 overflow-x-hidden overflow-y-auto rounded-2xl border-border/50 bg-card p-0 shadow-2xl shadow-black/10 ring-1 ring-white/[0.08] sm:rounded-2xl dark:shadow-black/40";
+  const shellClassName = cn(
+    "flex min-h-0 w-full flex-col gap-0 overflow-x-hidden rounded-2xl border-border/50 bg-card p-0 sm:rounded-2xl",
+    isPage
+      ? "overflow-y-auto border border-border/50 shadow-sm"
+      : "min-h-0 flex-1 overflow-hidden shadow-2xl shadow-black/10 ring-1 ring-white/[0.08] dark:shadow-black/40",
+  );
+
+  const modalDialogClassName = cn(
+    "flex w-[calc(100vw-1.25rem)] max-w-[min(44rem,calc(100vw-1.25rem))] max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem))] flex-col gap-0 overflow-hidden border-0 p-0 shadow-2xl sm:rounded-2xl",
+  );
 
   const panel = (
-    <div
-      className={cn(
-        shellClassName,
-        isPage
-          ? "w-full border border-border/50 shadow-sm"
-          : "w-[calc(100vw-1rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px)))] max-w-[min(44rem,calc(100vw-1rem-(env(safe-area-inset-left,0px)+env(safe-area-inset-right,0px))))] max-h-[min(88dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1rem))]",
-      )}
-    >
+    <div className={cn(shellClassName, isPage ? "w-full" : "h-full min-h-0 w-full")}>
         <DialogHeader
           className={cn(
             "relative shrink-0 space-y-4 pb-4 text-left",
-            isPage ? "pt-4" : "pt-[max(1rem,env(safe-area-inset-top,0px))] pr-10 min-[380px]:pr-11 sm:pr-12",
+            isPageEmbed ? "pt-5" : isPage ? "pt-4" : "pt-[max(1rem,env(safe-area-inset-top,0px))] pr-10 min-[380px]:pr-11 sm:pr-12",
             modalPadX,
-            "after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border/60 after:to-transparent",
-            modalPadAfter,
+            !isPageEmbed &&
+              "after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-border/60 after:to-transparent",
+            !isPageEmbed && modalPadAfter,
           )}
         >
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
-              Treasury
-            </p>
-            <DialogTitle className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Move funds
-            </DialogTitle>
-            <DialogDescription className="max-w-md text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
-              {isExternalTarget
-                ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
-                : showWalletSwitcher
-                  ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
-                  : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
-            </DialogDescription>
-          </div>
+          {!isPageEmbed ? (
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
+                Treasury
+              </p>
+              {isPage ? (
+                <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                  Move funds
+                </h2>
+              ) : (
+                <DialogTitle className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                  Move funds
+                </DialogTitle>
+              )}
+              {isPage ? (
+                <p className="max-w-md text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+                  {isExternalTarget
+                    ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
+                    : showWalletSwitcher
+                      ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
+                      : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
+                </p>
+              ) : (
+                <DialogDescription className="max-w-md text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+                  {isExternalTarget
+                    ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
+                    : showWalletSwitcher
+                      ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
+                      : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
+                </DialogDescription>
+              )}
+            </div>
+          ) : null}
 
           {showWalletSwitcher ? (
             <AgentWalletSwitcher
@@ -840,7 +914,12 @@ export function FuelAgentModal({
           ) : null}
         </DialogHeader>
 
-        <div className="min-w-0 flex flex-col overflow-hidden">
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex flex-1 flex-col",
+            isPage ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden",
+          )}
+        >
           <div ref={fuelBodyShellRef} className="overflow-hidden will-change-[height]">
             <div ref={fuelBodyMeasureRef} className={cn("flex flex-col gap-4 pb-2", modalPadX)}>
             <AgentTreasuryBalanceRail
@@ -1327,7 +1406,7 @@ export function FuelAgentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(shellClassName, "border-0 p-0 shadow-none ring-0")}>{panel}</DialogContent>
+      <DialogContent className={modalDialogClassName}>{panel}</DialogContent>
     </Dialog>
   );
 }

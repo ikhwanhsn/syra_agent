@@ -1,5 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
-import { CONFIG } from "@/constants/config";
+import { STREAMFLOW_CONFIG } from "@/constants/streamflowConfig";
+import { ensureAccessTokenForWallet, syraFetch } from "@/lib/agentAuthApi";
 import { getApiBaseUrl } from "@/lib/env";
 
 export interface StakerRow {
@@ -27,29 +28,94 @@ export interface OperatorRegistryStats {
   }>;
 }
 
+export type OperatorStatsErrorCode = "api_unconfigured" | "auth_required" | "not_admin" | "api_error";
+
+export class OperatorStatsFetchError extends Error {
+  readonly code: OperatorStatsErrorCode;
+
+  constructor(code: OperatorStatsErrorCode, message: string) {
+    super(message);
+    this.name = "OperatorStatsFetchError";
+    this.code = code;
+  }
+}
+
 export async function fetchOperatorRegistryStats(args: {
   network: "mainnet" | "devnet";
   mint: string;
-  adminWallet: string;
-}): Promise<OperatorRegistryStats | null> {
+  /** Connected admin wallet — Syra session must match this address. */
+  sessionWallet: string;
+}): Promise<OperatorRegistryStats> {
   const base = getApiBaseUrl();
-  if (!base) return null;
+  if (!base) {
+    throw new OperatorStatsFetchError(
+      "api_unconfigured",
+      "Syra API URL is not configured. Set VITE_SYRA_API_URL or use local dev with the /api proxy.",
+    );
+  }
+
+  const sessionWallet = args.sessionWallet.trim();
+  const token = await ensureAccessTokenForWallet(sessionWallet);
+  if (!token) {
+    throw new OperatorStatsFetchError(
+      "auth_required",
+      "Sign in with your connected admin wallet to load stakers (approve the Syra signature prompt).",
+    );
+  }
+
   const root = base.replace(/\/$/, "");
   const qs = new URLSearchParams({
     network: args.network,
     mint: args.mint,
   });
-  const res = await fetch(`${root}/staking/dashboard/operator-stats?${qs}`, {
+
+  const res = await syraFetch(`${root}/staking/dashboard/operator-stats?${qs}`, {
     method: "GET",
-    headers: { "x-admin-wallet": args.adminWallet },
     cache: "no-store",
   });
-  const body = (await res.json()) as {
+
+  const body = (await res.json().catch(() => ({}))) as {
     success?: boolean;
     data?: OperatorRegistryStats;
     error?: string;
+    sessionWallet?: string;
+    allowedAdmins?: string[];
   };
-  if (!res.ok || !body.success || !body.data) return null;
+
+  if (res.status === 401 || body.error === "auth_required") {
+    throw new OperatorStatsFetchError(
+      "auth_required",
+      "Sign in with your admin wallet to load stakers (approve the Syra wallet signature prompt).",
+    );
+  }
+
+  if (res.status === 403 || body.error === "not_admin") {
+    const allowed = body.allowedAdmins?.length
+      ? body.allowedAdmins.join(", ")
+      : null;
+    const session = body.sessionWallet?.trim();
+    let message = "Your Syra sign-in wallet is not authorized for the stakers dashboard.";
+    if (session) {
+      message += ` Signed-in wallet: ${session}.`;
+    }
+    if (sessionWallet && session && session !== sessionWallet) {
+      message += ` Connected wallet: ${sessionWallet}. Use “Sign in with wallet” to refresh your session.`;
+    } else if (allowed) {
+      message += ` API allows: ${allowed}.`;
+    } else {
+      message +=
+        " Set ADMIN_DASHBOARD_WALLET in api/.env to match VITE_ADMIN_DASHBOARD_WALLET in web, then sign in again.";
+    }
+    throw new OperatorStatsFetchError("not_admin", message);
+  }
+
+  if (!res.ok || !body.success || !body.data) {
+    throw new OperatorStatsFetchError(
+      "api_error",
+      body.error || `Could not load stakers (${res.status}).`,
+    );
+  }
+
   const data = body.data;
   if (!Array.isArray(data.stakers)) {
     return { ...data, stakers: [] };
@@ -71,7 +137,12 @@ export function mintExplorerUrl(mint: PublicKey, isDevnet: boolean): string {
 }
 
 export function dashboardNetworkLabel(): "mainnet" | "devnet" {
-  return CONFIG.IS_DEVNET ? "devnet" : "mainnet";
+  return STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet";
 }
 
-export { CONFIG };
+/** Streamflow lock mint — must match locks page and protocol summary. */
+export function dashboardStreamflowMint(): string {
+  return STREAMFLOW_CONFIG.tokenMint.toBase58();
+}
+
+export { STREAMFLOW_CONFIG };

@@ -34,6 +34,11 @@ import {
   mergePumpfunChainExecutionIntoResponseBody,
 } from "@/lib/pumpfunPlaygroundChainSubmit";
 import { BRAND_NAME } from "@/lib/branding";
+import {
+  getPlaygroundSyraPathname,
+  isValidPlaygroundRequestUrl,
+  parsePlaygroundRequestUrl,
+} from "@/lib/playgroundUrl";
 
 function getApiBaseUrl(): string {
   return resolveApiBaseUrl();
@@ -105,15 +110,13 @@ function getNansenBaseUrl(): string {
 
 /** Syra API hosts the same Nansen shapes at /nansen/* (PAYER_KEYPAIR on server). POST body rules match direct Nansen. */
 function isSyraNansenGatewayUrl(url: string): boolean {
-  try {
-    const u = new URL(url.trim());
-    const b = new URL(getApiBaseUrl());
-    return (
-      u.origin === b.origin && u.pathname.toLowerCase().startsWith("/nansen/")
-    );
-  } catch {
-    return false;
-  }
+  const u = parsePlaygroundRequestUrl(url);
+  if (!u) return false;
+  const path = getPlaygroundSyraPathname(url);
+  if (!path.startsWith("/nansen/")) return false;
+  const b = parsePlaygroundRequestUrl(getApiBaseUrl());
+  if (!b) return url.trim().startsWith("/");
+  return u.origin === b.origin;
 }
 
 function getPurchVaultBaseUrl(): string {
@@ -2466,7 +2469,7 @@ export function getDefaultMethodForUrl(url: string): HttpMethod {
 /** Known Syra API GET query param names and API descriptions by path (for placeholder text) */
 function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
   try {
-    const path = new URL(baseUrl).pathname.toLowerCase();
+    const path = getPlaygroundSyraPathname(baseUrl);
     const known: Record<string, RequestParam[]> = {
       "/dashboard-summary": [
         {
@@ -3713,16 +3716,9 @@ export function getParamsForExampleFlow(
   return [];
 }
 
-// Allow any valid http(s) URL so the playground works with Syra and all other x402 APIs
+// Allow http(s) and same-origin `/api/...` paths (Vite dev proxy).
 function isValidApiUrl(url: string): boolean {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-  try {
-    const urlObj = new URL(trimmed);
-    return urlObj.protocol === "http:" || urlObj.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return isValidPlaygroundRequestUrl(url);
 }
 
 // localStorage keys for payment header (scoped by origin so we don't send one API's payment to another)
@@ -3731,13 +3727,8 @@ const PAYMENT_HEADER_VERSION_KEY = "x402_payment_version"; // 1 = X-PAYMENT only
 const PAYMENT_ORIGIN_KEY = "x402_payment_origin";
 
 function getRequestOrigin(urlStr: string): string | null {
-  try {
-    const u = urlStr.trim();
-    if (!u) return null;
-    return new URL(u).origin;
-  } catch {
-    return null;
-  }
+  const parsed = parsePlaygroundRequestUrl(urlStr);
+  return parsed?.origin ?? null;
 }
 
 // localStorage key for history
@@ -4367,6 +4358,7 @@ export function useApiPlayground() {
   // UI state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isResponsePanelOpen, setIsResponsePanelOpen] = useState(false);
   const [isUnsupportedApiModalOpen, setIsUnsupportedApiModalOpen] =
     useState(false);
   const [isV1UnsupportedModalOpen, setIsV1UnsupportedModalOpen] =
@@ -4516,7 +4508,7 @@ export function useApiPlayground() {
       // Client-side validation: GET to query-required endpoints must have non-empty query param
       const pathname = (() => {
         try {
-          return new URL(baseUrl).pathname.toLowerCase();
+          return getPlaygroundSyraPathname(baseUrl);
         } catch {
           return "";
         }
@@ -4566,7 +4558,7 @@ export function useApiPlayground() {
       if (effectiveMethod === "POST" && enabledParams.length > 0) {
         const pathname = (() => {
           try {
-            return new URL(baseUrl).pathname.toLowerCase();
+            return getPlaygroundSyraPathname(baseUrl);
           } catch {
             return "";
           }
@@ -5089,7 +5081,7 @@ export function useApiPlayground() {
           if (fetchResponse.status >= 200 && fetchResponse.status < 300) {
             let chainPathname = "";
             try {
-              chainPathname = new URL(finalUrl).pathname.toLowerCase();
+              chainPathname = getPlaygroundSyraPathname(finalUrl);
             } catch {
               chainPathname = "";
             }
@@ -5284,7 +5276,6 @@ export function useApiPlayground() {
   // Uses a tracked ID so sendRequest adds exactly one history entry (no double from batching or double-click).
   const runExampleFlowFromPreset = useCallback(
     (preset: ExampleFlowPreset, paramsOverride?: RequestParam[]) => {
-      if (status === "loading") return;
       const presetOrKnownParams =
         preset.params.length > 0
           ? preset.params
@@ -5313,7 +5304,7 @@ export function useApiPlayground() {
 
       const pathname = (() => {
         try {
-          return new URL(preset.url).pathname.toLowerCase();
+          return getPlaygroundSyraPathname(preset.url);
         } catch {
           return "";
         }
@@ -5371,7 +5362,7 @@ export function useApiPlayground() {
         }
       }
     },
-    [sendRequest, status, toast],
+    [sendRequest, toast],
   );
 
   const runExampleFlow = useCallback(
@@ -5783,12 +5774,9 @@ export function useApiPlayground() {
         const paidOrigin = getRequestOrigin(url);
         if (paidOrigin) localStorage.setItem(PAYMENT_ORIGIN_KEY, paidOrigin);
 
-        // Auto-retry: the signed tx is in the header; the API server will submit and verify it.
+        // Auto-retry with signed payment header; keep modal open until data arrives.
         const payVersion: 1 | 2 = x402Response?.x402Version === 1 ? 1 : 2;
-        setTimeout(async () => {
-          setIsPaymentModalOpen(false);
-          setTransactionStatus({ status: "idle" });
-
+        try {
           const retryStatus = await sendRequest(
             result.paymentHeader,
             undefined,
@@ -5799,13 +5787,30 @@ export function useApiPlayground() {
           localStorage.removeItem(PAYMENT_HEADER_VERSION_KEY);
           localStorage.removeItem(PAYMENT_ORIGIN_KEY);
 
-          if (retryStatus === 200) {
+          setIsResponsePanelOpen(true);
+
+          if (retryStatus !== undefined && retryStatus >= 200 && retryStatus < 300) {
             toast({
-              title: "Payment Successful",
-              description: "API data has been fetched successfully!",
+              title: "Payment successful",
+              description: "Your unlocked API response is ready to view.",
+            });
+          } else if (retryStatus === 402) {
+            toast({
+              title: "Payment not verified",
+              description:
+                "The API still returned payment required. Try paying again or check the response.",
+              variant: "destructive",
+            });
+          } else if (retryStatus !== undefined) {
+            toast({
+              title: "Request completed",
+              description: `The API returned status ${retryStatus}. See the response panel for details.`,
             });
           }
-        }, 1000);
+        } finally {
+          setIsPaymentModalOpen(false);
+          setTransactionStatus({ status: "idle" });
+        }
       } else {
         setTransactionStatus({
           status: "failed",
@@ -5863,7 +5868,7 @@ export function useApiPlayground() {
       storedOrigin === currentOrigin
     ) {
       setTransactionStatus({ status: "idle" });
-      await sendRequest(
+      const retryStatus = await sendRequest(
         paymentHeader,
         undefined,
         localStorage.getItem(PAYMENT_HEADER_VERSION_KEY) === "1" ? 1 : 2,
@@ -5871,6 +5876,13 @@ export function useApiPlayground() {
       localStorage.removeItem(PAYMENT_HEADER_KEY);
       localStorage.removeItem(PAYMENT_HEADER_VERSION_KEY);
       localStorage.removeItem(PAYMENT_ORIGIN_KEY);
+      setIsResponsePanelOpen(true);
+      if (retryStatus !== undefined && retryStatus >= 200 && retryStatus < 300) {
+        toast({
+          title: "Payment successful",
+          description: "Your unlocked API response is ready to view.",
+        });
+      }
     } else {
       // Stored payment was for a different API or has no origin (legacy); don't send it
       if (
@@ -5944,6 +5956,8 @@ export function useApiPlayground() {
     setIsSidebarOpen,
     isPaymentModalOpen,
     setIsPaymentModalOpen,
+    isResponsePanelOpen,
+    setIsResponsePanelOpen,
     isUnsupportedApiModalOpen,
     setIsUnsupportedApiModalOpen,
     isV1UnsupportedModalOpen,

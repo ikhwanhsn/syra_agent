@@ -6,9 +6,8 @@ import {
   getExampleFlowGroupsFromFlows,
   type ExampleFlowPreset,
 } from '@/hooks/useApiPlayground';
-import { TopBar } from '@/components/TopBar';
+import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
-import { useConnectModal } from '@/contexts/ConnectModalContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   resolveApiBaseUrl,
@@ -16,12 +15,8 @@ import {
   resolveSyraBrowserFetchUrl,
 } from '@/lib/resolveApiBaseUrl';
 import { buildFullMppExampleFlowList } from '@/lib/mppOpenApiToExampleFlows';
-import { MAIN_CONTENT_PT_CLASS, MAIN_CONTENT_PB_SAFE_CLASS } from '@/lib/branding';
-import { cn } from '@/lib/utils';
-
 const Examples = () => {
-  const { wallet, selectPaymentChain } = useApiPlayground();
-  const { openConnectModal } = useConnectModal();
+  const { selectPaymentChain } = useApiPlayground();
   const x402Groups = getExampleFlowGroups();
 
   const [mppFlows, setMppFlows] = useState<ExampleFlowPreset[]>([]);
@@ -59,21 +54,8 @@ const Examples = () => {
   const mppGroups = getExampleFlowGroupsFromFlows(mppFlows);
 
   return (
-    <div className="min-h-[100dvh] h-dvh bg-background flex flex-col w-full overflow-x-hidden max-w-[100vw] playground-ambient relative">
-      <TopBar
-        wallet={wallet}
-        onOpenConnectModal={() => openConnectModal()}
-        onToggleSidebar={() => {}}
-        isSidebarOpen={false}
-        flowStatus="idle"
-      />
-      <div
-        className={cn(
-          'flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden relative z-[1]',
-          MAIN_CONTENT_PT_CLASS,
-          MAIN_CONTENT_PB_SAFE_CLASS,
-        )}
-      >
+    <PlaygroundPageShell>
+      <PlaygroundScrollBody>
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-24">
           <div className="glass-panel rounded-2xl p-5 sm:p-6 mb-8 border border-border/50">
             <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
@@ -225,8 +207,8 @@ const Examples = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-    </div>
+      </PlaygroundScrollBody>
+    </PlaygroundPageShell>
   );
 };
 

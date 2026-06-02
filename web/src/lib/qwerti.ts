@@ -81,4 +81,6 @@ export function closeQwertiBuyWidget(): void {
 export function destroyQwertiEmbed(): void {
   closeQwertiBuyWidget();
   getSdk()?.destroy?.();
+  document.getElementById("qwerti-widget-root")?.remove();
+  findEmbedScript()?.remove();
 }

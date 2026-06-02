@@ -92,7 +92,7 @@ const NotFound = () => {
           </Link>
 
           <Link
-            to="/playground/examples"
+            to="/playground?view=examples"
             className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
           >
             <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
@@ -106,7 +106,7 @@ const NotFound = () => {
           </Link>
 
           <Link
-            to="/playground/explorer"
+            to="/playground?view=explorer"
             className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
           >
             <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
@@ -120,7 +120,7 @@ const NotFound = () => {
           </Link>
 
           <Link
-            to="/playground/batch-test"
+            to="/playground?view=batch"
             className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
           >
             <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
@@ -134,7 +134,7 @@ const NotFound = () => {
           </Link>
 
           <Link
-            to="/playground/format-test"
+            to="/playground?view=format"
             className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/30 border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
           >
             <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">

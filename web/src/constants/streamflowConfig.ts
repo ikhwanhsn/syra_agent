@@ -17,7 +17,7 @@ export const STREAMFLOW_CONFIG = {
   tokenSymbol: CONFIG.stakingTokenSymbol,
   tokenDecimals: CONFIG.stakingDecimals,
 
-  /** Fixed lock: wall-clock seconds from creation until full unlock (30 days). */
-  lockDurationSeconds: 30 * 24 * 60 * 60,
-  lockDurationLabel: "1 month",
+  /** Fixed lock: wall-clock seconds from creation until full unlock (90 days). */
+  lockDurationSeconds: 90 * 24 * 60 * 60,
+  lockDurationLabel: "3 months",
 } as const;

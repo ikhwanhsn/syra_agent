@@ -93,12 +93,7 @@ function signInResultFromSession(
 }
 
 export function SyraAuthProvider({ children }: { children: ReactNode }) {
-  const {
-    address: solanaAddress,
-    connected,
-    signMessage,
-    authenticated,
-  } = useWalletContext();
+  const { address: solanaAddress, connected, signMessage } = useWalletContext();
 
   const [syraAuthReady, setSyraAuthReady] = useState(false);
   const [syraAuthenticated, setSyraAuthenticated] = useState(false);
@@ -106,6 +101,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
   const signInFlightRef = useRef<Promise<SyraSignInResult | null> | null>(null);
   const lastSignedWalletRef = useRef<string | null>(null);
   const lastSignInRef = useRef<SyraSignInResult | null>(null);
+  const autoSignInAttemptedRef = useRef<string | null>(null);
 
   const activeWallet =
     connected && solanaAddress ? { address: solanaAddress, chain: "solana" as const } : null;
@@ -119,6 +115,15 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       const token = await refreshAccessToken();
       if (cancelled) return;
+      if (token) {
+        const session = getSyraSessionWallet();
+        if (session) {
+          lastSignedWalletRef.current = `solana:${session.address}`;
+          const restored = signInResultFromSession(token, { address: session.address });
+          lastSignInRef.current = restored;
+          setLastSignIn(restored);
+        }
+      }
       setSyraAuthenticated(!!token);
       setSyraAuthReady(true);
     })();
@@ -224,27 +229,50 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     [signInForWalletInteractive],
   );
 
+  /** Restore refresh cookie or prompt wallet sign-in once per connected Solana wallet (incl. Privy auto-reconnect). */
   useEffect(() => {
     if (!syraAuthReady) return;
-    if (!authenticated || !activeWallet) {
+    if (!connected || !activeWallet) {
       if (syraAuthenticated) {
         void signOutSyraSession();
       }
       setSyraAuthenticated(false);
       lastSignedWalletRef.current = null;
+      autoSignInAttemptedRef.current = null;
       return;
     }
+
     const walletKey = `solana:${activeWallet.address}`;
     if (lastSignedWalletRef.current === walletKey && syraAuthenticated) return;
-    void restoreSessionForWallet(activeWallet.address);
-  }, [syraAuthReady, authenticated, activeWallet, restoreSessionForWallet, syraAuthenticated]);
 
-  /** One Syra session sign-in after user clicks Connect wallet (skipped if refresh cookie exists). */
+    let cancelled = false;
+    void (async () => {
+      const restored = await restoreSessionForWallet(activeWallet.address);
+      if (cancelled || restored) return;
+      if (autoSignInAttemptedRef.current === walletKey) return;
+      autoSignInAttemptedRef.current = walletKey;
+      await signInForWalletInteractive(activeWallet.address, { notifyOnSuccess: false });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    syraAuthReady,
+    connected,
+    activeWallet,
+    restoreSessionForWallet,
+    signInForWalletInteractive,
+    syraAuthenticated,
+  ]);
+
+  /** Explicit Connect wallet — retry sign-in if auto path has not run yet. */
   useEffect(() => {
     if (!syraAuthReady || !activeWallet) return;
 
     const onWalletConnected = () => {
-      void signInForWalletInteractive(activeWallet.address, { notifyOnSuccess: false });
+      autoSignInAttemptedRef.current = null;
+      void signInForWalletInteractive(activeWallet.address, { notifyOnSuccess: true });
     };
 
     window.addEventListener("syra-wallet-connected", onWalletConnected);
@@ -252,14 +280,15 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
   }, [syraAuthReady, activeWallet, signInForWalletInteractive]);
 
   useEffect(() => {
-    if (!authenticated) {
+    if (!connected) {
       lastSignedWalletRef.current = null;
       lastSignInRef.current = null;
+      autoSignInAttemptedRef.current = null;
       setLastSignIn(null);
       clearSyraSession();
       setSyraAuthenticated(false);
     }
-  }, [authenticated]);
+  }, [connected]);
 
   const value: SyraAuthState = {
     syraAuthReady,
