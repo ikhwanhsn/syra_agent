@@ -681,6 +681,9 @@ app.use(
         isX402Route(p) ||
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/trend-scout/run") ||
+        p.startsWith("/internal/s3labs-news/run") ||
+        p.startsWith("/internal/s3labs-developer/run") ||
+        p.startsWith("/internal/s3labs-event/run") ||
         p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
@@ -738,6 +741,39 @@ app.use(
           req.get("x-syra-partnership-scout-cron-secret") || ""
         ).trim();
         if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/s3labs-news/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.S3LABS_NEWS_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-s3labs-news-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
+      (p === "/internal/s3labs-developer/run" ||
+        p === "/internal/s3labs-event/run") &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const shared = (process.env.S3LABS_AGENTS_CRON_SECRET || "").trim();
+      if (shared) {
+        const got = (req.get("x-s3labs-agents-cron-secret") || "").trim();
+        if (got === shared) return true;
+      }
+      if (p === "/internal/s3labs-developer/run") {
+        const secret = (process.env.S3LABS_DEVELOPER_CRON_SECRET || "").trim();
+        if (secret && (req.get("x-s3labs-developer-cron-secret") || "").trim() === secret) {
+          return true;
+        }
+      }
+      if (p === "/internal/s3labs-event/run") {
+        const secret = (process.env.S3LABS_EVENT_CRON_SECRET || "").trim();
+        if (secret && (req.get("x-s3labs-event-cron-secret") || "").trim() === secret) {
+          return true;
+        }
       }
     }
     if (
@@ -1616,6 +1652,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[syra-trend-scout] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/s3labs/s3labsScheduler.js")
+    .then(({ startS3labsAgentsScheduler }) => {
+      startS3labsAgentsScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[s3labs-agents] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

@@ -13,6 +13,15 @@ import {
 } from "../libs/syraTrendScoutPipeline.js";
 import { runCoingeckoAlphaPipeline } from "../libs/coingeckoAlphaPipeline.js";
 import { COINGECKO_ALPHA_DB_ID } from "../config/coingeckoAlphaConfig.js";
+import {
+  runS3labsNewsPipeline,
+  S3LABS_NEWS_DB_ID,
+} from "../libs/s3labsNewsPipeline.js";
+import { runS3labsDeveloperPipeline } from "../libs/s3labsDeveloperPipeline.js";
+import { runS3labsEventPipeline } from "../libs/s3labsEventPipeline.js";
+import {
+  getS3labsAgentDefinition,
+} from "../config/s3labsAgentsConfig.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
 const INTERNAL_RESEARCH_RESUME_MAX_TOKENS = 8192;
@@ -117,6 +126,98 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "Syra trend scout pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/s3labs-news/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: S3LABS_NEWS_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/s3labs-news/run", async (_req, res) => {
+    try {
+      const out = await runS3labsNewsPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "S3Labs news pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/s3labs-developer/latest", async (_req, res) => {
+    try {
+      const dbId = getS3labsAgentDefinition("developer").dbId;
+      const doc = await DashboardResearch.findOne({ id: dbId }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/s3labs-developer/run", async (_req, res) => {
+    try {
+      const out = await runS3labsDeveloperPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "S3Labs developer pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/s3labs-event/latest", async (_req, res) => {
+    try {
+      const dbId = getS3labsAgentDefinition("event").dbId;
+      const doc = await DashboardResearch.findOne({ id: dbId }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/s3labs-event/run", async (_req, res) => {
+    try {
+      const out = await runS3labsEventPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "S3Labs event pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }
