@@ -104,6 +104,12 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 
 **Hero product (what to demo):** [`api`](./api) + [`ai-agent`](./ai-agent) — Solana **x402** pay-per-call intelligence. Treat other packages (prediction-game, staking, terminal, internal dashboard) as **ecosystem**, not equal demo time.
 
+### Bitget Hackathon — Syra Alpha Arena
+
+- **Demo:** [agent.syraa.fun/arena](https://agent.syraa.fun/arena) — NL agents, Playbook backtest, on-chain overlay, leaderboard
+- **Docs:** [documentation/SYRA_ALPHA_ARENA.md](./documentation/SYRA_ALPHA_ARENA.md)
+- **API:** `POST /experiment/arena/agents` · `GET /experiment/arena/leaderboard`
+
 ### Golden path (live)
 
 1. Open **[agent.syraa.fun](https://agent.syraa.fun)** → connect wallet (**Phantom** recommended via Privy).

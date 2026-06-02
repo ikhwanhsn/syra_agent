@@ -44,6 +44,7 @@ import {
 } from "./libs/testerAgent/testerAgentConfig.js";
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
+import { createArenaRouter } from "./routes/arena.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import {
@@ -1130,6 +1131,10 @@ app.use("/experiment/trading-agent", createTradingExperimentRouter());
 const bitgetVibeRouter = createBitgetVibeRouter();
 app.use("/agent/bitget-vibe", bitgetVibeRouter);
 app.use("/experiment/bitget-vibe", bitgetVibeRouter);
+// Syra Alpha Arena (Bitget Hackathon — multi-agent leaderboard + Playbook)
+const arenaRouter = createArenaRouter();
+app.use("/arena", arenaRouter);
+app.use("/experiment/arena", arenaRouter);
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet

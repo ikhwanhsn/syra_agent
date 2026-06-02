@@ -25,6 +25,7 @@ function isDashboardRoute(pathname: string): boolean {
     "/agent-setup",
     "/trading-experiment",
     "/vibe-trading",
+    "/arena",
     "/arbitrage-experiment",
     "/lp-experiment",
     "/alpha",

@@ -31,6 +31,7 @@ import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
 import BitgetVibeTrader from "@/pages/BitgetVibeTrader";
+import AlphaArena from "@/pages/AlphaArena";
 import PlaygroundHub from "@/pages/playground/PlaygroundHub";
 import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
 import StreamflowPage from "@/pages/staking/StreamflowPage";
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/trading-experiment" element={<TradingAgentExperiment />} />
             <Route path="/trading-experiment/agent/:agentId" element={<TradingAgentExperimentAgentProfile />} />
             <Route path="/vibe-trading" element={<BitgetVibeTrader />} />
+            <Route path="/arena" element={<AlphaArena />} />
             <Route path="/internal-team-agents" element={<InternalTeamAgentsMonitor />} />
             <Route path="/internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
           </Route>

@@ -25,6 +25,7 @@
     "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js"
   },
   "dependencies": {
+    "@bitget-ai/getagent-skill": "^0.2.1",
     "@coral-xyz/anchor": "^0.31.1",
     "@didtools/siwx": "^2.0.0",
     "@faremeter/info": "^0.14.0",
@@ -66,6 +67,7 @@
     "pino": "^9.14.0",
     "prom-client": "^15.1.3",
     "random-avatar-generator": "^2.0.0",
+    "tar": "^7.5.16",
     "tweetnacl": "^1.0.3",
     "viem": "^2.46.3",
     "ws": "^8.20.0",

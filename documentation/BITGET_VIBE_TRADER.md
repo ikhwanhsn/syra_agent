@@ -1,6 +1,8 @@
 # Syra Bitget Vibe Trader — Hackathon Track 1
 
-**Demo:** `https://agent.syraa.fun/vibe-trading`  
+> **Grand-prize build:** See [SYRA_ALPHA_ARENA.md](./SYRA_ALPHA_ARENA.md) — multi-agent leaderboard, Playbook backtest, Alpha Overlay, publish/subscribe.
+
+**Demo:** `https://agent.syraa.fun/vibe-trading` · **Arena:** `https://agent.syraa.fun/arena`  
 **API:** `https://api.syraa.fun/experiment/bitget-vibe` (deploy latest `api/` first; until then use local API below)
 
 ## Project description (<200 words)
