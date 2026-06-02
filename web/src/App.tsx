@@ -36,6 +36,7 @@ import PlaygroundHub from "@/pages/playground/PlaygroundHub";
 import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
 import StreamflowPage from "@/pages/staking/StreamflowPage";
 import StakingAdminDashboardPage from "@/pages/staking/StakingAdminDashboardPage";
+import DeckPage from "@/pages/DeckPage";
 
 function DashboardLayoutRoute() {
   return (
@@ -45,12 +46,9 @@ function DashboardLayoutRoute() {
   );
 }
 
-const App = () => (
-  <AppProviders>
-    <BrowserRouter>
-      <AppShell>
-        <QwertiAgentIntegration />
-        <Routes>
+function AppRoutes() {
+  return (
+    <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<Index />} />
           <Route path="/settings" element={<Index />} />
@@ -105,8 +103,25 @@ const App = () => (
           <Route path="/playground/mpp" element={<Navigate to="/playground" replace />} />
 
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AppShell>
+    </Routes>
+  );
+}
+
+const App = () => (
+  <AppProviders>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/deck" element={<DeckPage />} />
+        <Route
+          path="*"
+          element={
+            <AppShell>
+              <QwertiAgentIntegration />
+              <AppRoutes />
+            </AppShell>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   </AppProviders>
 );

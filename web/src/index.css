@@ -941,3 +941,31 @@ body.syra-qwerti-active #qwerti-widget-root {
     );
   }
 }
+
+/* —— Investor pitch deck (/deck) —— */
+.deck-root {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.deck-ambient {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(0 0% 22% / 0.55), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, hsl(0 0% 18% / 0.4), transparent 50%),
+    radial-gradient(ellipse 50% 35% at 0% 80%, hsl(0 0% 14% / 0.35), transparent 45%);
+}
+
+.deck-grid {
+  background-image:
+    linear-gradient(hsl(0 0% 100% / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(0 0% 100% / 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 75%);
+}
+
+.deck-slide-active {
+  transform: translateY(0);
+}
+
+.deck-slide:not(.deck-slide-active) {
+  transform: translateY(12px);
+}
