@@ -387,19 +387,24 @@ const WalletContextInner: FC<{
             "message" in e
               ? String((e as { message: unknown }).message)
               : String(e);
-          const is403 =
+          const isOriginBlocked =
             msg.includes("403") ||
             msg.includes("not allowed") ||
+            msg.includes("invalid_origin") ||
+            msg.includes("Invalid origin") ||
             (e &&
               typeof e === "object" &&
               "status" in e &&
               (e as { status: number }).status === 403);
-          if (is403 && typeof window !== "undefined") {
+          if (isOriginBlocked && typeof window !== "undefined") {
             const currentOrigin = window.location.origin;
             setSiws403Origin(currentOrigin);
+            const clientHint = PRIVY_CLIENT_ID
+              ? "Configuration → Clients → your app client → Allowed origins"
+              : "Configuration → Domains → Allowed origins";
             notify.error(
-              "Solana login blocked (403)",
-              `Add "${currentOrigin}" in Privy Dashboard → Configuration → Clients → your client → Allowed origins. Or sign in with email first, then connect your Solana wallet.`,
+              "Solana login blocked",
+              `Add "${currentOrigin}" in Privy Dashboard → ${clientHint}. Or sign in with email first, then connect your Solana wallet.`,
             );
           } else {
             notify.error(

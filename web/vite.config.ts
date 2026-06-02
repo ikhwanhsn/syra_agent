@@ -68,6 +68,11 @@ function corsProxyPlugin(): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  if (mode === "production" && !env.VITE_PRIVY_APP_ID?.trim()) {
+    console.warn(
+      "[Syra] VITE_PRIVY_APP_ID is missing — wallet connect will be disabled in production builds.",
+    );
+  }
   const useLocalApiGateway = env.VITE_USE_LOCAL_API === "true";
   const syraApiProxyTarget = useLocalApiGateway
     ? "http://localhost:3000"

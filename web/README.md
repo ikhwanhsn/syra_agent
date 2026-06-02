@@ -28,7 +28,8 @@ npm run preview
 - **Root directory:** `web`
 - **Build command:** `npm run build`
 - **Output directory:** `dist`
-- Set environment variables with `VITE_*` prefix (see `.env.example`).
+- Set environment variables with `VITE_*` prefix (`VITE_PRIVY_APP_ID` required for wallet connect).
+- If wallet connect works locally but fails in production, see [PRIVY_SETUP.md](./PRIVY_SETUP.md).
 
 ## Migration notes
 
