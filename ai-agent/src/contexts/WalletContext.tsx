@@ -246,12 +246,12 @@ const WalletContextInner: FC<{
   const markUserInitiatedConnect = useCallback(() => {
     userRequestedWalletConnectRef.current = true;
     siwsAttemptedForRef.current = null;
+    setForceDisconnected(false);
   }, []);
 
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [forceDisconnected, setForceDisconnected] = useState(false);
-  const [noTokenOverriddenByConnect, setNoTokenOverriddenByConnect] = useState(false);
 
   const solanaWallet = solanaWallets?.[0] ?? null;
   const address = solanaWallet?.address ?? null;
@@ -267,11 +267,10 @@ const WalletContextInner: FC<{
   const didApplyDisconnectOnMountRef = useRef(false);
   useEffect(() => {
     if (!privyReady || didApplyDisconnectOnMountRef.current) return;
-    const shouldForceLogout = getDisconnectedByUserFlag() || noPrivyTokenOnLoad;
-    if (!shouldForceLogout) return;
+    if (!getDisconnectedByUserFlag()) return;
     didApplyDisconnectOnMountRef.current = true;
     setForceDisconnected(true);
-    if (getDisconnectedByUserFlag()) clearDisconnectedByUserFlag();
+    clearDisconnectedByUserFlag();
     logout()
       .then(() => {
         clearPrivySessionStorage();
@@ -279,7 +278,7 @@ const WalletContextInner: FC<{
         setTimeout(clearPrivySessionStorage, 200);
       })
       .catch(() => {});
-  }, [privyReady, logout, noPrivyTokenOnLoad]);
+  }, [privyReady, logout]);
 
   useEffect(() => {
     const noWallets = !solanaWallets || solanaWallets.length === 0;
@@ -287,7 +286,6 @@ const WalletContextInner: FC<{
       setForceDisconnected(false);
     } else if (authenticated && !noWallets) {
       setForceDisconnected(false);
-      setNoTokenOverriddenByConnect(true);
       clearDisconnectedByUserFlag();
     }
   }, [authenticated, solanaWallets]);
@@ -575,7 +573,7 @@ const WalletContextInner: FC<{
     [solanaWallet, privySignMessage]
   );
 
-  const effectivelyDisconnected = forceDisconnected || (noPrivyTokenOnLoad && !noTokenOverriddenByConnect);
+  const effectivelyDisconnected = forceDisconnected;
   const effectiveChain: "solana" | null =
     effectivelyDisconnected || !(authenticated && solanaWallets?.[0]) ? null : "solana";
 
@@ -605,8 +603,6 @@ const WalletContextInner: FC<{
     }),
     [
       forceDisconnected,
-      noPrivyTokenOnLoad,
-      noTokenOverriddenByConnect,
       effectivelyDisconnected,
       connection,
       connected,
@@ -637,7 +633,20 @@ const WalletContextInner: FC<{
 };
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || "";
-const PRIVY_CLIENT_ID = import.meta.env.VITE_PRIVY_CLIENT_ID || "";
+
+function getPrivyClientIdForProvider(): string | undefined {
+  const clientId = (import.meta.env.VITE_PRIVY_CLIENT_ID || "").trim();
+  if (!clientId) return undefined;
+  if (
+    import.meta.env.PROD &&
+    import.meta.env.VITE_PRIVY_USE_PRODUCTION_CLIENT !== "true"
+  ) {
+    return undefined;
+  }
+  return clientId;
+}
+
+const PRIVY_CLIENT_ID = getPrivyClientIdForProvider() ?? "";
 
 const FALLBACK_WALLET_STATE: WalletContextState = {
   connection,
@@ -716,6 +725,7 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
       appId={PRIVY_APP_ID}
       {...(PRIVY_CLIENT_ID ? { clientId: PRIVY_CLIENT_ID } : {})}
       config={{
+        loginMethods: ["email", "wallet"],
         appearance: {
           walletChainType: "solana-only",
           walletList: [...POPULAR_SOLANA_WALLET_LIST],

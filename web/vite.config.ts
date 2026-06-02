@@ -78,7 +78,8 @@ export default defineConfig(({ mode }) => {
     ? "http://localhost:3000"
     : "https://api.syraa.fun";
   /** Production gateway injects API key only for trusted Syra frontend origins. */
-  const syraTrustedDevOrigin = "https://agent.syraa.fun";
+  /** Matches production deploy (syraa.fun); API injects auth for this trusted origin. */
+  const syraTrustedDevOrigin = "https://syraa.fun";
 
   return {
   server: {

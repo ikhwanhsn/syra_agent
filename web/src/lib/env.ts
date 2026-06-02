@@ -70,6 +70,11 @@ export const env = {
 
   privyAppId: read("VITE_PRIVY_APP_ID"),
   privyClientId: read("VITE_PRIVY_CLIENT_ID"),
+  /**
+   * When true, `privyClientId` is passed to PrivyProvider in production.
+   * Leave false unless that app client's Allowed origins include every production domain.
+   */
+  privyUseProductionClient: read("VITE_PRIVY_USE_PRODUCTION_CLIENT") === "true",
 
   useProxy: read("VITE_USE_PROXY") === "true",
   nansenApiBaseUrl: read("VITE_NANSEN_API_BASE_URL"),
@@ -88,6 +93,17 @@ export const env = {
   streamflowStakingMint: read("VITE_STREAMFLOW_STAKING_MINT"),
   adminDashboardWallet: read("VITE_ADMIN_DASHBOARD_WALLET"),
 } as const;
+
+/**
+ * App-client IDs are for localhost/dev by default. In production, client Allowed origins
+ * override app domains — a dev-only client blocks the Privy iframe (frame-ancestors).
+ */
+export function getPrivyClientIdForProvider(): string | undefined {
+  const clientId = env.privyClientId;
+  if (!clientId) return undefined;
+  if (import.meta.env.PROD && !env.privyUseProductionClient) return undefined;
+  return clientId;
+}
 
 /** Runtime API base — never uses localhost when the site is served from production. */
 export function getApiBaseUrl(): string {

@@ -7,7 +7,7 @@ import { env, getApiBaseUrl as getApiBaseUrlFromEnv } from "@/lib/env";
 
 export const getApiBaseUrl = getApiBaseUrlFromEnv;
 
-/** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (agent.syraa.fun). */
+/** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (syraa.fun). */
 function getApiHeaders(): Record<string, string> {
   if (env.isDev) {
     const leaked = import.meta.env.VITE_API_KEY?.trim();

@@ -9,7 +9,7 @@ function apiBase(): string {
   return `${base}/8004`;
 }
 
-/** API injects auth for trusted origins (agent.syraa.fun); do not embed keys in client. */
+/** API injects auth for trusted origins (syraa.fun); do not embed keys in client. */
 function getHeaders(): Record<string, string> {
   return { "Content-Type": "application/json" };
 }

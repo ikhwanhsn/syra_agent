@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_SOLANA_RPC_URL?: string;
   readonly VITE_PRIVY_APP_ID?: string;
   readonly VITE_PRIVY_CLIENT_ID?: string;
+  readonly VITE_PRIVY_USE_PRODUCTION_CLIENT?: string;
   readonly VITE_USE_PROXY?: string;
   /** Dev only: proxy /api to localhost:3000 instead of calling api.syraa.fun */
   readonly VITE_USE_LOCAL_API?: string;

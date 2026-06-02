@@ -1,4 +1,4 @@
-# Privy setup (web / agent.syraa.fun)
+# Privy setup (web — production at syraa.fun)
 
 ## Production wallet connect fails but localhost works
 
@@ -13,7 +13,9 @@ SIWS / Phantom login returns **403** when the site origin is not allowlisted.
 1. Open [Privy Dashboard](https://dashboard.privy.io) → your app.
 2. **Without** `VITE_PRIVY_CLIENT_ID`: **Configuration → Domains → Allowed origins** — add:
    - `http://localhost:8080` (local dev port)
-   - `https://agent.syraa.fun`
+   - `https://syraa.fun` (main web app — former landing domain)
+   - `https://www.syraa.fun`
+   - `https://agent.syraa.fun` (if still used)
    - `https://www.agent.syraa.fun`
    - `https://dashboard.syraa.fun` (if used)
 3. **With** `VITE_PRIVY_CLIENT_ID` in Vercel: client settings **override** app domains. Also add the same origins under **Configuration → Clients → [your client] → Allowed origins**.
@@ -27,7 +29,10 @@ Set for the **web** project (build-time `VITE_*`):
 | Variable | Required |
 |----------|----------|
 | `VITE_PRIVY_APP_ID` | Yes |
-| `VITE_PRIVY_CLIENT_ID` | Only if you use an app client in the dashboard |
+| `VITE_PRIVY_CLIENT_ID` | Dev/local only (see below) |
+| `VITE_PRIVY_USE_PRODUCTION_CLIENT` | Set to `true` only if the app client’s Allowed origins include **every** production URL |
+
+**Important:** If `VITE_PRIVY_CLIENT_ID` is set in production without matching Allowed origins on that client, Privy’s iframe is blocked (`frame-ancestors` / “Could not log in with wallet”). The app now **ignores** the client ID in production unless `VITE_PRIVY_USE_PRODUCTION_CLIENT=true`. Remove `VITE_PRIVY_CLIENT_ID` from the production Vercel env if you do not maintain a production app client.
 
 Redeploy after changing env vars.
 
