@@ -21,21 +21,31 @@ export default function AgentGettingStarted() {
         <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
         <h1 className="text-4xl font-bold tracking-tight mb-4">Getting Started</h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          Welcome to the <strong className="text-foreground">Syra AI Agent</strong> at{" "}
+          Welcome to the <strong className="text-foreground">Syra Agent</strong> at{" "}
           <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             agent.syraa.fun
           </a>
-          . Chat with the agent to get market analysis, trading signals, and research-driven insights in one place.
+          — the primary interface to Syra&apos;s machine money stack: research, treasury workflows, onchain tools, and
+          agent-native payments in one chat.
         </p>
       </div>
 
       <section id="what-is-syra-agent" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">What is the Syra Agent?</h2>
         <p className="text-muted-foreground mb-4">
-          The Syra Agent is an AI-powered assistant built for traders, analysts, and builders. It combines natural-language chat with on-demand access to real-time data: trading signals, crypto news, market sentiment, deep research, X (Twitter) search, memecoin screens, and partner tools (e.g. Nansen—calling the real Nansen API with your agent wallet—DexScreener, Jupiter, Squid Router for cross-chain routes). It also integrates x402 providers <strong className="text-foreground">StableCrypto</strong> (market data), <strong className="text-foreground">StableSocial</strong> (TikTok, Instagram, Facebook, Reddit), and <strong className="text-foreground">StableEnrich</strong> (Exa, Firecrawl, Apollo, maps, enrichment). You ask in plain English; the agent chooses the right tool and returns structured, actionable insights.
+          The Syra Agent is an AI-powered surface for <strong className="text-foreground">operators and autonomous agents</strong> on
+          Solana. It combines natural-language chat with on-demand tools: market signals, crypto news, sentiment, deep
+          research, X (Twitter) search, memecoin screens, treasury-related flows, and partner integrations (e.g. Nansen
+          with your agent wallet, DexScreener, Jupiter, Squid Router). It also integrates x402 providers{" "}
+          <strong className="text-foreground">StableCrypto</strong> (market data), <strong className="text-foreground">StableSocial</strong>{" "}
+          (TikTok, Instagram, Facebook, Reddit), and <strong className="text-foreground">StableEnrich</strong> (Exa,
+          Firecrawl, Apollo, maps, enrichment). You ask in plain English; the agent selects tools and returns structured
+          output.
         </p>
         <p className="text-muted-foreground">
-          Syra is designed to <strong className="text-foreground">enhance your decision-making</strong>, not replace it. Use the agent to understand context, levels, and narratives—then apply your own strategy and risk management.
+          Syra builds <strong className="text-foreground">machine money infrastructure</strong> — not another generic
+          chatbot. Use the agent for context, coordination, and onchain-capable workflows; you remain responsible for
+          keys, compliance, and execution.
         </p>
       </section>
 

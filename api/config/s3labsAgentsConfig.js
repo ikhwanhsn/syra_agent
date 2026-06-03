@@ -10,9 +10,57 @@ export const S3LABS_AGENTS_SCHEDULER_ENABLED =
 
 /** Random jitter added to each scheduled post (minutes). */
 export const S3LABS_SCHEDULE_JITTER_MAX_MINUTES = Math.min(
-  30,
-  Math.max(5, Number.parseInt(process.env.S3LABS_SCHEDULE_JITTER_MAX_MINUTES || "18", 10)),
+  35,
+  Math.max(8, Number.parseInt(process.env.S3LABS_SCHEDULE_JITTER_MAX_MINUTES || "22", 10)),
 );
+
+/** Posts per agent per day (random count in inclusive range). */
+export const S3LABS_POSTS_PER_DAY_MIN = Math.min(
+  5,
+  Math.max(3, Number.parseInt(process.env.S3LABS_POSTS_PER_DAY_MIN || "3", 10)),
+);
+export const S3LABS_POSTS_PER_DAY_MAX = Math.min(
+  6,
+  Math.max(S3LABS_POSTS_PER_DAY_MIN, Number.parseInt(process.env.S3LABS_POSTS_PER_DAY_MAX || "5", 10)),
+);
+
+/** WIB posting window for random daily slots. */
+export const S3LABS_SCHEDULE_HOUR_START_WIB = Math.min(
+  12,
+  Math.max(6, Number.parseInt(process.env.S3LABS_SCHEDULE_HOUR_START_WIB || "7", 10)),
+);
+export const S3LABS_SCHEDULE_HOUR_END_WIB = Math.min(
+  23,
+  Math.max(S3LABS_SCHEDULE_HOUR_START_WIB + 4, Number.parseInt(process.env.S3LABS_SCHEDULE_HOUR_END_WIB || "23", 10)),
+);
+
+/** Minimum minutes between two posts for the same agent on the same day. */
+export const S3LABS_SCHEDULE_MIN_GAP_MINUTES = Math.min(
+  240,
+  Math.max(75, Number.parseInt(process.env.S3LABS_SCHEDULE_MIN_GAP_MINUTES || "90", 10)),
+);
+
+/** Interactive @mention Q&A in the S3Labs group. */
+export const S3LABS_TELEGRAM_QA_ENABLED =
+  String(process.env.S3LABS_TELEGRAM_QA_ENABLED || "true").trim().toLowerCase() !== "false";
+
+/** Secret path segment or header for Telegram webhook (required in production). */
+export const S3LABS_TELEGRAM_WEBHOOK_SECRET = String(
+  process.env.S3LABS_TELEGRAM_WEBHOOK_SECRET || "",
+).trim();
+
+/** Max @mention answers per Telegram user per hour. */
+export const S3LABS_TELEGRAM_QA_MAX_PER_USER_PER_HOUR = Math.min(
+  20,
+  Math.max(3, Number.parseInt(process.env.S3LABS_TELEGRAM_QA_MAX_PER_USER_PER_HOUR || "8", 10)),
+);
+
+/** Optional public URL for setWebhook on boot (e.g. https://api.example.com/internal/s3labs-telegram/webhook/SECRET). */
+export const S3LABS_TELEGRAM_WEBHOOK_URL = String(process.env.S3LABS_TELEGRAM_WEBHOOK_URL || "").trim();
+
+/** Long-polling fallback when webhook URL is not set (dev only). */
+export const S3LABS_TELEGRAM_POLLING_ENABLED =
+  String(process.env.S3LABS_TELEGRAM_POLLING_ENABLED || "false").trim().toLowerCase() === "true";
 
 /** Hours to skip re-sending the same URL. */
 export const S3LABS_SENT_HISTORY_HOURS = Math.min(
@@ -35,7 +83,6 @@ export const S3LABS_SENT_HISTORY_HOURS = Math.min(
  *   lookbackHours: number;
  *   articleLimit: number;
  *   candidateLimit: number;
- *   wibSlots: ReadonlyArray<readonly [number, number]>;
  *   bootDelayMinutes: number;
  * }} S3labsAgentDefinition
  */
@@ -57,13 +104,6 @@ export const S3LABS_AGENT_DEFINITIONS = Object.freeze([
     lookbackHours: 8,
     articleLimit: 40,
     candidateLimit: 15,
-    /** Spread away from developer/event slots */
-    wibSlots: Object.freeze([
-      [8, 7],
-      [13, 41],
-      [18, 22],
-      [22, 53],
-    ]),
     bootDelayMinutes: 8,
   },
   {
@@ -78,12 +118,6 @@ export const S3LABS_AGENT_DEFINITIONS = Object.freeze([
     lookbackHours: 12,
     articleLimit: 35,
     candidateLimit: 12,
-    wibSlots: Object.freeze([
-      [9, 23],
-      [14, 18],
-      [19, 47],
-      [23, 11],
-    ]),
     bootDelayMinutes: 22,
   },
   {
@@ -98,12 +132,6 @@ export const S3LABS_AGENT_DEFINITIONS = Object.freeze([
     lookbackHours: 72,
     articleLimit: 30,
     candidateLimit: 12,
-    wibSlots: Object.freeze([
-      [7, 52],
-      [12, 34],
-      [17, 6],
-      [21, 38],
-    ]),
     bootDelayMinutes: 38,
   },
 ]);

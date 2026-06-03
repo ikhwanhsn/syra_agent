@@ -1,13 +1,13 @@
 /**
- * S3Labs agents — staggered WIB schedules with jitter (natural posting rhythm).
- *
- * Each agent posts 4×/day at different clock times; boot delays desync first runs.
+ * S3Labs agents — random daily WIB schedules (3–5 posts/agent/day) with jitter.
  */
 
-import { getMsUntilNextWibWallClock } from "../wibDailyWallClock.js";
+import { getMsUntilNextWibWallClock, getWibWallClockUtcMsToday } from "../wibDailyWallClock.js";
 import {
   S3LABS_AGENT_DEFINITIONS,
   S3LABS_AGENTS_SCHEDULER_ENABLED,
+  S3LABS_POSTS_PER_DAY_MAX,
+  S3LABS_POSTS_PER_DAY_MIN,
   S3LABS_SCHEDULE_JITTER_MAX_MINUTES,
 } from "../../config/s3labsAgentsConfig.js";
 import { isS3labsTelegramConfigured, sendS3labsTelegram } from "../s3labsTelegramNotifier.js";
@@ -16,6 +16,7 @@ import {
   runS3labsDeveloperPipeline,
   runS3labsEventPipeline,
 } from "./s3labsPipeline.js";
+import { consumeNextDailySlot, getOrRefreshDailySchedule, hasMoreSlotsToday } from "./s3labsDailySchedule.js";
 
 /** @type {Record<string, () => Promise<unknown>>} */
 const PIPELINES = {
@@ -34,19 +35,43 @@ function randomJitterMs() {
 }
 
 /**
- * Schedule one agent's next run at its WIB slot + jitter.
+ * Schedule the next random slot for one agent (or roll to tomorrow).
  * @param {import("../../config/s3labsAgentsConfig.js").S3labsAgentDefinition} def
- * @param {number} slotIndex
  */
-function scheduleAgentSlot(def, slotIndex) {
-  const slots = def.wibSlots;
-  const [hour, minute] = slots[slotIndex % slots.length];
-  const jitterMs = randomJitterMs();
-  const delayMs = getMsUntilNextWibWallClock(new Date(), hour, minute) + jitterMs;
+function scheduleAgentNext(def) {
+  getOrRefreshDailySchedule(def.kind);
+
+  const now = Date.now();
+  let slot = null;
+  let delayMs = 0;
+
+  while (hasMoreSlotsToday(def.kind)) {
+    const candidate = consumeNextDailySlot(def.kind);
+    if (!candidate) break;
+    const [hour, minute] = candidate;
+    const targetMs = getWibWallClockUtcMsToday(new Date(), hour, minute);
+    if (targetMs > now) {
+      slot = candidate;
+      delayMs = targetMs - now + randomJitterMs();
+      break;
+    }
+  }
+
+  if (!slot) {
+    const waitMs = getMsUntilNextWibWallClock(new Date(), 0, 5) + randomJitterMs();
+    console.log(
+      `[s3labs-${def.kind}] all slots done for today; next window in ${Math.round(waitMs / 60000)} min`,
+    );
+    setTimeout(() => scheduleAgentNext(def), waitMs);
+    return;
+  }
+
+  const [hour, minute] = slot;
+  const jitterMs = delayMs - (getWibWallClockUtcMsToday(new Date(), hour, minute) - now);
   const nextAt = new Date(Date.now() + delayMs).toISOString();
 
   console.log(
-    `[s3labs-${def.kind}] next post in ${Math.round(delayMs / 60000)} min (~${nextAt}; WIB ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} + jitter) → topic ${def.threadId}`,
+    `[s3labs-${def.kind}] next post in ${Math.round(delayMs / 60000)} min (~${nextAt}; WIB ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} +${Math.round(jitterMs / 60000)}m jitter) → topic ${def.threadId}`,
   );
 
   setTimeout(async () => {
@@ -70,7 +95,13 @@ function scheduleAgentSlot(def, slotIndex) {
         });
       }
     }
-    scheduleAgentSlot(def, slotIndex + 1);
+
+    if (!hasMoreSlotsToday(def.kind)) {
+      const delayMs = getMsUntilNextWibWallClock(new Date(), 0, 10) + randomJitterMs();
+      setTimeout(() => scheduleAgentNext(def), delayMs);
+    } else {
+      scheduleAgentNext(def);
+    }
   }, delayMs);
 }
 
@@ -84,12 +115,12 @@ export function startS3labsAgentsScheduler() {
   for (const def of S3LABS_AGENT_DEFINITIONS) {
     const bootMs = def.bootDelayMinutes * 60 * 1000;
     setTimeout(() => {
-      scheduleAgentSlot(def, 0);
+      scheduleAgentNext(def);
     }, bootMs);
   }
 
   console.log(
-    `[s3labs-agents] scheduler on: ${S3LABS_AGENT_DEFINITIONS.length} agents × ${S3LABS_AGENT_DEFINITIONS[0].wibSlots.length} slots/day; jitter 0–${S3LABS_SCHEDULE_JITTER_MAX_MINUTES}m; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
+    `[s3labs-agents] scheduler on: ${S3LABS_AGENT_DEFINITIONS.length} agents × ${S3LABS_POSTS_PER_DAY_MIN}–${S3LABS_POSTS_PER_DAY_MAX} random posts/day; jitter 0–${S3LABS_SCHEDULE_JITTER_MAX_MINUTES}m; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
   );
 }
 

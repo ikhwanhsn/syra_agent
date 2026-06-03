@@ -10,7 +10,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Welcome
 
-- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: AI-powered trading and research for crypto/Solana; structured sections (market overview, technicals, action perspectives, risk, AI insights); where the product runs (x402, Telegram, API, data engine, reasoning layer).
+- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for AI agents on Solana (autonomous revenue, treasury, DeFi, x402 payments); where the product runs (web agent, API gateway, playground, x402 agent, Telegram, MCP).
 
 ---
 

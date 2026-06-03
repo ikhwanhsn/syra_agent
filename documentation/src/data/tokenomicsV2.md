@@ -1,6 +1,6 @@
 # ✨ Tokenomics
 
-The Syra token ($SYRA) powers the first x402-native **smart intelligence agent for traders** on Solana. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and routing x402 revenue into **SYRA buybacks reserved for community airdrops**.
+The Syra token ($SYRA) powers **machine money infrastructure for AI agents** on Solana. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and routing x402 revenue into **SYRA buybacks reserved for community airdrops**.
 
 ## Token Overview
 
@@ -39,7 +39,7 @@ Our distribution prioritizes community ownership and long-term sustainability.
 
 ## Token Utility (x402-Optimized)
 
-$SYRA is the native payment token for accessing Syra’s trader-facing APIs via the x402 protocol.
+$SYRA is the native payment token for accessing Syra’s agent-facing APIs via the x402 protocol.
 
 ### 1. **x402 API Access**
 
@@ -156,7 +156,7 @@ In any scenario, $SYRA holders and active users can benefit from buybacks routed
 
 | Aspect            | Old Model (B2C Trading Bot) | New Model (x402 Intelligence APIs)     |
 | ----------------- | --------------------------- | -------------------------------------- |
-| **Users**         | Retail traders              | Autonomous AI agents                   |
+| **Users**         | Human operators             | Autonomous AI agents                   |
 | **Revenue**       | $10-50/month subscriptions  | $0.01-10 per API call via x402 (USDC)  |
 | **Payments**      | $SYRA or fiat               | USDC/stablecoins via x402              |
 | **CAC**           | $500-2,000 per user         | $0 (agents discover via x402scan)      |

@@ -36,6 +36,7 @@ import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
+import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
@@ -685,6 +686,7 @@ app.use(
         p.startsWith("/internal/s3labs-news/run") ||
         p.startsWith("/internal/s3labs-developer/run") ||
         p.startsWith("/internal/s3labs-event/run") ||
+        p.startsWith("/internal/s3labs-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
@@ -743,6 +745,12 @@ app.use(
         ).trim();
         if (got === secret) return true;
       }
+    }
+    if (
+      p.startsWith("/internal/s3labs-telegram/webhook") &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      return true;
     }
     if (
       p === "/internal/s3labs-news/run" &&
@@ -1122,6 +1130,8 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Tester agent (cron smoke); mount before /internal so paths are not swallowed by research router
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
+// S3Labs Telegram @mention Q&A (webhook secret; no API key)
+app.use("/internal", createS3labsTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", await createInternalResearchRouter());
@@ -1668,6 +1678,15 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[s3labs-agents] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/s3labs/s3labsTelegramBootstrap.js")
+    .then(({ startS3labsTelegramQa }) => startS3labsTelegramQa())
+    .catch((e) =>
+      console.warn(
+        "[s3labs-telegram-qa] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

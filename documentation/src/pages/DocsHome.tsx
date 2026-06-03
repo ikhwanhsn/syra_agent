@@ -2,51 +2,60 @@ import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
 import { Button } from "@/components/ui/button";
 import {
+  SYRA_AGENT_CAPABILITIES,
+  SYRA_DOCS_BADGE,
+  SYRA_HIGHLIGHT,
+  SYRA_MISSION,
+  SYRA_TAGLINE,
+} from "@/content/syraBrand";
+import {
   ArrowRight,
   MessageCircle,
   Cpu,
-  BarChart3,
+  Coins,
   Bot,
   Zap,
   BookOpen,
   ExternalLink,
+  Wallet,
+  Layers,
 } from "lucide-react";
 
 const features = [
   {
-    icon: BarChart3,
-    title: "AI-Assisted Insights",
-    description: "Multiple indicators + reasoning → structured trade outlooks. Real-time market data and on-chain signals.",
+    icon: Coins,
+    title: "Autonomous revenue",
+    description: SYRA_AGENT_CAPABILITIES[0].description,
+    href: "/docs/welcome",
+  },
+  {
+    icon: Wallet,
+    title: "Treasury management",
+    description: SYRA_AGENT_CAPABILITIES[1].description,
     href: "/docs/welcome",
   },
   {
     icon: Bot,
     title: "Syra Agent",
-    description: "Chat with Syra at agent.syraa.fun—market analysis, signals, and research-driven insights for traders.",
+    description: "Chat and workflows at agent.syraa.fun — research, tools, and onchain actions for operators and agents.",
     href: "/docs/agent/getting-started",
+  },
+  {
+    icon: Zap,
+    title: "API & x402",
+    description: "Pay-per-call routes for news, signals, research, and partner tools. Try playground.syraa.fun.",
+    href: "/docs/api-reference",
   },
   {
     icon: MessageCircle,
     title: "x402 Autonomous Agent",
-    description: "Automated research, news & narrative monitoring, signal pipelines on x402scan.",
+    description: "Automated research and workflow pipelines on x402scan.",
     href: "/docs/x402-agent/getting-started",
   },
   {
-    icon: Zap,
-    title: "API & Workflows",
-    description: "x402 v2 API for news, sentiment, research, signals. Try the API Playground at playground.syraa.fun or integrate with n8n.",
-    href: "/docs/api-reference",
-  },
-  {
     icon: Cpu,
-    title: "Research-Driven Output",
-    description: "Focused on understanding — not blind execution. Every output includes explanations & indicators.",
-    href: "/docs/welcome",
-  },
-  {
-    icon: BookOpen,
-    title: "Educational Context",
-    description: "Market overview, technical indicators, action perspectives, risk context, and AI insights.",
+    title: "Agent-native stack",
+    description: SYRA_AGENT_CAPABILITIES[5].description,
     href: "/docs/agent/how-it-works",
   },
 ];
@@ -54,7 +63,6 @@ const features = [
 export default function DocsHome() {
   return (
     <DocsLayout>
-      {/* Full-bleed hero: cancel main padding so bg matches edge-to-edge (no side “stripes”) */}
       <div className="relative -mx-4 px-4 pb-12 mb-12 border-b border-border sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:-mx-10 xl:px-10 2xl:-mx-12 2xl:px-12">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-background" aria-hidden />
         <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-gradient" aria-hidden />
@@ -63,21 +71,23 @@ export default function DocsHome() {
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-              Smart intelligence agent • Solana
+              {SYRA_DOCS_BADGE}
             </span>
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 animate-fade-in">
-            Research-driven{" "}
-            <span className="gradient-text-primary">smart intelligence</span>{" "}
-            for traders on Solana
+            <span className="gradient-text-primary">{SYRA_TAGLINE}</span>
+            <span className="block text-foreground/90 text-3xl md:text-4xl mt-2 font-semibold">
+              on Solana
+            </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed animate-fade-in animation-delay-100">
-            Syra helps traders, analysts, and builders make smarter, data-based decisions
-            with real-time market data, on-chain signals, narrative & sentiment intelligence,
-            and structured AI-driven research. Try the{" "}
-            <strong className="text-foreground">Syra Agent</strong> at agent.syraa.fun, or use the API and x402 Agent on x402scan.
+          <p className="text-lg md:text-xl text-muted-foreground mb-4 sm:mb-5 leading-relaxed animate-fade-in animation-delay-100 max-w-3xl">
+            {SYRA_MISSION}
+          </p>
+
+          <p className="text-base text-muted-foreground/90 mb-6 sm:mb-8 leading-relaxed animate-fade-in animation-delay-100 max-w-3xl border-l-2 border-primary/30 pl-4">
+            {SYRA_HIGHLIGHT}
           </p>
 
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 animate-fade-in animation-delay-200">
@@ -121,11 +131,13 @@ export default function DocsHome() {
 
       <section className="mb-16">
         <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-semibold">Where Syra Runs</h2>
+          <Layers className="h-5 w-5 text-primary" />
+          <h2 className="text-2xl font-semibold">What Syra enables</h2>
         </div>
-        <p className="text-muted-foreground mb-6">
-          Syra is a trader-grade intelligence stack—not just a signal bot. Use the <strong className="text-foreground">Syra Agent</strong> at agent.syraa.fun, the x402 Agent, API workflows, and more.
+        <p className="text-muted-foreground mb-6 max-w-3xl">
+          Machine money infrastructure for autonomous agents — earn, manage treasuries, participate in DeFi, and
+          coordinate value on Solana. Use the <strong className="text-foreground">Syra Agent</strong>, x402 APIs, and
+          ecosystem integrations.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feature) => (
@@ -138,9 +150,7 @@ export default function DocsHome() {
               <h3 className="font-semibold mb-1.5 group-hover:text-primary transition-colors">
                 {feature.title}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
             </Link>
           ))}
         </div>
@@ -158,7 +168,7 @@ export default function DocsHome() {
             </div>
             <div>
               <div className="font-medium group-hover:text-primary transition-colors">Welcome</div>
-              <div className="text-sm text-muted-foreground">What is Syra, where it runs, quick start</div>
+              <div className="text-sm text-muted-foreground">What Syra is, machine economy, quick start</div>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </Link>
@@ -172,7 +182,7 @@ export default function DocsHome() {
             </div>
             <div>
               <div className="font-medium group-hover:text-primary transition-colors">Syra Agent</div>
-              <div className="text-sm text-muted-foreground">Chat at agent.syraa.fun — signals, tokens, insights</div>
+              <div className="text-sm text-muted-foreground">Chat at agent.syraa.fun — tools, treasury, onchain</div>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </Link>
@@ -186,7 +196,7 @@ export default function DocsHome() {
             </div>
             <div>
               <div className="font-medium group-hover:text-primary transition-colors">API Reference</div>
-              <div className="text-sm text-muted-foreground">x402 v2 API, endpoints, standards. Try playground.syraa.fun</div>
+              <div className="text-sm text-muted-foreground">x402 API, endpoints, standards · playground.syraa.fun</div>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </Link>
@@ -210,7 +220,7 @@ export default function DocsHome() {
       <footer className="pt-8 pb-8 sm:pb-0 border-t border-border text-sm text-muted-foreground safe-bottom">
         <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
           <div className="min-w-0 max-w-3xl text-balance">
-            Syra — smart intelligence agent for traders on Solana. Built for clarity and structured reasoning.
+            Syra — {SYRA_TAGLINE.toLowerCase()} on Solana. Documentation for operators, builders, and autonomous agents.
           </div>
           <div className="flex flex-wrap gap-4">
             <a href="https://agent.syraa.fun" className="hover:text-primary transition-colors">

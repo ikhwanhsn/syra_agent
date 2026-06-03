@@ -173,7 +173,7 @@ const roadmapByQuarter: {
        <section>
          <h2 className="text-2xl font-semibold mb-2">Roadmap</h2>
          <p className="text-muted-foreground mb-6">
-           2025–2027 Syra Roadmap — shipping the smart intelligence agent for traders with x402 payments.
+           2025–2027 Syra Roadmap — scaling machine money infrastructure for autonomous agents on Solana.
          </p>
          <div className="space-y-8">
            {roadmapByQuarter.map((q) => (

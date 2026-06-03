@@ -37,6 +37,8 @@ import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
 import StreamflowPage from "@/pages/staking/StreamflowPage";
 import StakingAdminDashboardPage from "@/pages/staking/StakingAdminDashboardPage";
 import DeckPage from "@/pages/DeckPage";
+import InfoPage from "@/pages/InfoPage";
+import PostPage from "@/pages/PostPage";
 
 function DashboardLayoutRoute() {
   return (
@@ -112,6 +114,8 @@ const App = () => (
     <BrowserRouter>
       <Routes>
         <Route path="/deck" element={<DeckPage />} />
+        <Route path="/info" element={<InfoPage />} />
+        <Route path="/post" element={<PostPage />} />
         <Route
           path="*"
           element={

@@ -28,7 +28,7 @@
    {
      icon: ExternalLink,
      title: "Website",
-     description: "Learn more about Syra and explore our products.",
+     description: "Machine money for AI agents on Solana — product overview and updates.",
      href: "https://syraa.fun",
      cta: "Visit syraa.fun",
    },

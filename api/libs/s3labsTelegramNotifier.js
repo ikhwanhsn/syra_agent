@@ -16,7 +16,8 @@ import { sendTelegramMessage } from "./telegramBot.js";
  * @typedef {{
  *   parseMode?: TelegramParseMode | null;
  *   disableWebPagePreview?: boolean;
- *   messageThreadId: number;
+ *   messageThreadId?: number;
+ *   replyToMessageId?: number;
  * }} SendS3labsTelegramOptions
  */
 
@@ -59,6 +60,32 @@ export async function sendS3labsTelegram(text, options) {
     parseMode: options.parseMode,
     disableWebPagePreview: options.disableWebPagePreview,
     messageThreadId: options.messageThreadId,
+    replyToMessageId: options.replyToMessageId,
+  });
+
+  return result.ok;
+}
+
+/**
+ * Reply in the S3Labs group (any topic). Used for @mention Q&A.
+ * @param {string} text
+ * @param {{ messageThreadId?: number; replyToMessageId?: number; disableWebPagePreview?: boolean }} options
+ * @returns {Promise<boolean>}
+ */
+export async function sendS3labsTelegramReply(text, options = {}) {
+  const { token, chatId } = getS3labsTelegramConfig();
+  if (!token || !chatId) return false;
+
+  const result = await sendTelegramMessage({
+    token,
+    chatId,
+    text,
+    disableWebPagePreview: options.disableWebPagePreview !== false,
+    messageThreadId:
+      options.messageThreadId != null && Number.isFinite(options.messageThreadId)
+        ? options.messageThreadId
+        : undefined,
+    replyToMessageId: options.replyToMessageId,
   });
 
   return result.ok;

@@ -1,15 +1,25 @@
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageCircle, Bot, Zap } from "lucide-react";
+import {
+  SYRA_AGENT_CAPABILITIES,
+  SYRA_FLOW_STEPS,
+  SYRA_HIGHLIGHT,
+  SYRA_MISSION,
+  SYRA_PILLARS,
+  SYRA_PLATFORMS,
+  SYRA_TAGLINE,
+  SYRA_VISION,
+} from "@/content/syraBrand";
+import { ArrowRight, MessageCircle, Bot } from "lucide-react";
 
 const tocItems = [
   { id: "what-is-syra", title: "What Is Syra?", level: 2 },
   { id: "where-syra-runs", title: "Where Syra Runs", level: 2 },
-  { id: "key-highlights", title: "Key Highlights", level: 2 },
+  { id: "key-pillars", title: "Core Pillars", level: 2 },
   { id: "how-syra-works", title: "How Syra Works", level: 2 },
   { id: "quick-start", title: "Quick Start Options", level: 2 },
-  { id: "why-choose-syra", title: "Why Choose Syra?", level: 2 },
+  { id: "why-syra", title: "Why Syra?", level: 2 },
 ];
 
 export default function Welcome() {
@@ -17,37 +27,46 @@ export default function Welcome() {
     <DocsLayout toc={tocItems}>
       <div className="mb-8">
         <div className="text-sm text-primary font-medium mb-2">Welcome</div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">👋 Welcome</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Welcome</h1>
         <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-          Welcome to <strong className="text-foreground">Syra</strong> — the smart intelligence agent for traders on Solana.
+          <strong className="text-foreground">Syra</strong> — {SYRA_TAGLINE.toLowerCase()} on Solana.
         </p>
       </div>
 
-      <p className="text-muted-foreground leading-relaxed mb-8">
-        Syra helps traders, analysts, and builders make smarter, data-based decisions by combining real-time market data, on-chain activity signals, narrative & sentiment intelligence, and structured AI-driven research insights. Use the <strong className="text-foreground">Syra Agent</strong> at <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, or integrate via API and autonomous agents such as <strong className="text-foreground">x402 Agent on x402scan</strong>.
-      </p>
+      <p className="text-muted-foreground leading-relaxed mb-4">{SYRA_MISSION}</p>
+      <p className="text-muted-foreground leading-relaxed mb-8">{SYRA_VISION}</p>
+
+      <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 mb-10">
+        <p className="text-foreground leading-relaxed">{SYRA_HIGHLIGHT}</p>
+      </div>
 
       <section id="what-is-syra" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">What Is Syra?</h2>
         <p className="text-muted-foreground mb-4">
-          Syra is an <strong className="text-foreground">AI-powered trading and research assistant</strong> designed to analyze markets in real time, process technical + contextual indicators, and summarize complex data into clear, usable insights. Instead of hype or speculation, Syra focuses on structured research, risk-aware trading perspectives, and learning-oriented explanations.
+          Syra provides <strong className="text-foreground">machine money infrastructure</strong> for autonomous AI
+          agents. Most agents can reason and automate tasks, but they lack native financial infrastructure to earn,
+          manage, invest, or spend capital onchain without humans in the loop.
         </p>
-        <p className="text-muted-foreground mb-4">Every analysis includes:</p>
+        <p className="text-muted-foreground mb-4">
+          Syra closes that gap on <strong className="text-foreground">Solana</strong> — the economic layer where agents
+          hold assets, run treasuries, participate in DeFi, distribute rewards, and coordinate value in real time.
+        </p>
+        <p className="text-muted-foreground mb-4">What agents can do with Syra:</p>
         <ul className="list-disc pl-6 space-y-1 text-muted-foreground mb-6">
-          <li><strong className="text-foreground">Market Overview</strong> — price, volume, volatility, trend strength</li>
-          <li><strong className="text-foreground">Technical Indicators</strong> — RSI, MACD, SMA, EMA, Bollinger Bands</li>
-          <li><strong className="text-foreground">Action Perspectives</strong> — key levels, momentum bias, scenario outlooks</li>
-          <li><strong className="text-foreground">Risk Context</strong> — R/R awareness and exposure considerations</li>
-          <li><strong className="text-foreground">AI Insights</strong> — confidence levels + sentiment interpretation</li>
+          {SYRA_AGENT_CAPABILITIES.map((cap) => (
+            <li key={cap.title}>
+              <strong className="text-foreground">{cap.title}</strong> — {cap.description}
+            </li>
+          ))}
         </ul>
       </section>
 
       <section id="where-syra-runs" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Where Syra Runs</h2>
         <p className="text-muted-foreground mb-4">
-          Syra is not limited to a single interface. It operates across multiple environments:
+          Syra ships across multiple surfaces — one stack for operators, builders, and autonomous agents:
         </p>
-        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto overflow-x-auto-touch">
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
           <table className="w-full text-sm min-w-[320px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
@@ -56,36 +75,45 @@ export default function Welcome() {
               </tr>
             </thead>
             <tbody className="text-muted-foreground">
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🤖 Syra Agent</td><td className="p-2 sm:p-3">Chat at <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a> for market analysis, signals & insights</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🔗 x402 Autonomous Agent</td><td className="p-2 sm:p-3">Executes research & insights workflows on x402scan</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🧩 API & Workflows</td><td className="p-2 sm:p-3">Integrates with tools like n8n & automation pipelines</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🛠️ API Playground</td><td className="p-2 sm:p-3">Try the API at <a href="https://playground.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">playground.syraa.fun</a></td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">💬 Telegram Bot</td><td className="p-2 sm:p-3">Commands and signals via <a href="https://t.me/syra_trading_bot" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">@syra_trading_bot</a></td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">🔌 MCP Server</td><td className="p-2 sm:p-3">Model Context Protocol tools in-repo under <code className="text-xs bg-muted px-1 rounded">mcp-server</code> (same capabilities as the paid API for supported tools)</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap">📡 Data & Signal Engine</td><td className="p-2 sm:p-3">Processes indicators, trends, & on-chain movements</td></tr>
-              <tr><td className="p-2 sm:p-3 whitespace-nowrap">🧠 AI Reasoning Layer</td><td className="p-2 sm:p-3">Synthesizes signals into structured interpretations</td></tr>
+              {SYRA_PLATFORMS.map((platform) => (
+                <tr key={platform.name} className="border-b border-border/50 last:border-0">
+                  <td className="p-2 sm:p-3 whitespace-nowrap font-medium text-foreground">{platform.name}</td>
+                  <td className="p-2 sm:p-3">
+                    {platform.description}
+                    {platform.href && platform.linkLabel ? (
+                      <>
+                        {" "}
+                        {platform.href.startsWith("http") ? (
+                          <a
+                            href={platform.href}
+                            className="text-primary hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {platform.linkLabel}
+                          </a>
+                        ) : (
+                          <Link to={platform.href} className="text-primary hover:underline">
+                            {platform.linkLabel}
+                          </Link>
+                        )}
+                      </>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-        <p className="text-muted-foreground mt-4">
-          Syra is designed as <strong className="text-foreground">a trader-grade intelligence stack—not just a signal bot</strong>.
-        </p>
       </section>
 
-      <section id="key-highlights" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Key Highlights</h2>
+      <section id="key-pillars" className="mb-12 scroll-mt-24">
+        <h2 className="text-2xl font-semibold mb-4">Core Pillars</h2>
         <div className="grid sm:grid-cols-2 gap-3">
-          {[
-            { title: "AI-Assisted Insights", desc: "Multiple indicators + reasoning → structured trade outlooks" },
-            { title: "Real-Time Market Data", desc: "Powered by live technical & contextual data sources" },
-            { title: "Research-Driven Output", desc: "Focused on understanding — not blind execution" },
-            { title: "Multi-Platform Access", desc: "Syra Agent (agent.syraa.fun), x402 Agent, API & automation" },
-            { title: "Educational Context", desc: "Every output includes explanations & indicators" },
-            { title: "Agentic Automation", desc: "Syra automates analysis pipelines across platforms" },
-          ].map((item) => (
+          {SYRA_PILLARS.map((item) => (
             <div key={item.title} className="p-4 rounded-lg border border-border bg-card">
               <div className="font-medium text-foreground mb-1">{item.title}</div>
-              <div className="text-sm text-muted-foreground">{item.desc}</div>
+              <div className="text-sm text-muted-foreground">{item.description}</div>
             </div>
           ))}
         </div>
@@ -93,12 +121,15 @@ export default function Welcome() {
 
       <section id="how-syra-works" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">How Syra Works (High-Level Flow)</h2>
-        <ol className="list-decimal pl-6 space-y-2 text-muted-foreground">
-          <li><strong className="text-foreground">User Request / Agent Trigger</strong> — Via Syra Agent (agent.syraa.fun), x402 Agent, or workflow automation.</li>
-          <li><strong className="text-foreground">Data Collection</strong> — Syra retrieves technical metrics, price action, and contextual signals.</li>
-          <li><strong className="text-foreground">Analysis Engine</strong> — Processes indicators (RSI, MACD, EMA, trend momentum, volume shifts, etc.).</li>
-          <li><strong className="text-foreground">AI Reasoning Layer</strong> — Interprets signals into structured scenarios, not simple buy/sell calls.</li>
-          <li><strong className="text-foreground">Insight Delivery</strong> — Output is formatted into a readable, actionable research summary.</li>
+        <ol className="list-decimal pl-6 space-y-3 text-muted-foreground">
+          {SYRA_FLOW_STEPS.map((step, index) => (
+            <li key={step.step}>
+              <strong className="text-foreground">
+                {index + 1}. {step.step}
+              </strong>{" "}
+              — {step.description}
+            </li>
+          ))}
         </ol>
       </section>
 
@@ -111,12 +142,19 @@ export default function Welcome() {
               Syra Agent
             </h3>
             <ol className="list-decimal pl-6 space-y-1 text-muted-foreground text-sm mb-4">
-              <li>Open <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a></li>
-              <li>Start a conversation in the chat</li>
-              <li>Ask for supported tokens or try <em>“Signal for Bitcoin”</em> for a live analysis</li>
+              <li>
+                Open{" "}
+                <a href="https://agent.syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                  agent.syraa.fun
+                </a>
+              </li>
+              <li>Connect a wallet when you need paid tools, treasury flows, or onchain actions</li>
+              <li>Ask in plain English — research, signals, DeFi context, or agent workflows</li>
             </ol>
             <Button size="sm" variant="outline" asChild>
-              <Link to="/docs/agent/getting-started">Syra Agent Docs <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+              <Link to="/docs/agent/getting-started">
+                Syra Agent Docs <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
             </Button>
           </div>
           <div className="p-5 rounded-xl border border-border bg-card">
@@ -125,35 +163,48 @@ export default function Welcome() {
               x402 Autonomous Agent
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Syra runs as an autonomous research agent on <strong className="text-foreground">x402scan</strong>. It is designed for automated research cycles, news & narrative monitoring, and signal interpretation pipelines.
+              Syra runs as an autonomous agent on <strong className="text-foreground">x402scan</strong> — automated
+              research cycles, narrative monitoring, and payment-native tool pipelines for machines.
             </p>
             <Button size="sm" variant="outline" asChild>
-              <Link to="/docs/x402-agent/getting-started">x402 Agent Docs <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+              <Link to="/docs/x402-agent/getting-started">
+                x402 Agent Docs <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
             </Button>
           </div>
         </div>
         <div className="mt-6 p-4 rounded-lg border border-primary/20 bg-primary/5">
-          <h4 className="font-medium text-foreground mb-2">Example (Syra Agent at agent.syraa.fun)</h4>
+          <h4 className="font-medium text-foreground mb-2">Example prompts (Syra Agent)</h4>
           <div className="grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-            <div><em>“What can you do?”</em> — See capabilities</div>
-            <div><em>“Signal for bitcoin”</em> — Get latest BTC analysis</div>
-            <div><em>“List supported tokens”</em> — Show supported tokens</div>
-            <div><em>“News for BTC”</em> — Get BTC-related news</div>
+            <div>
+              <em>&quot;What can you do?&quot;</em> — Capabilities overview
+            </div>
+            <div>
+              <em>&quot;Signal for bitcoin&quot;</em> — Market context and technicals
+            </div>
+            <div>
+              <em>&quot;List supported tokens&quot;</em> — Supported assets
+            </div>
+            <div>
+              <em>&quot;News for BTC&quot;</em> — Narrative and headline context
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="why-choose-syra" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Why Choose Syra?</h2>
+      <section id="why-syra" className="mb-12 scroll-mt-24">
+        <h2 className="text-2xl font-semibold mb-4">Why Syra?</h2>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-4">
-          <li>Designed for clarity, consistency, and structured reasoning</li>
-          <li>Blends AI insight + traditional market analysis</li>
-          <li>Built for automation and agent workflows</li>
-          <li>Expanding across multi-surface agent environments</li>
-          <li>Evolving through real-world usage & community feedback</li>
+          <li>Built for the machine economy — economic autonomy, not another chatbot</li>
+          <li>Solana-native: real-time settlement and composable DeFi for agents at scale</li>
+          <li>Live product: web agent, API gateway, and ecosystem integrations since 2025</li>
+          <li>x402-native payments so agents discover and pay for tools without human billing ops</li>
+          <li>Non-custodial by design — operators keep keys; Syra coordinates intelligence and flows</li>
         </ul>
         <p className="text-lg text-foreground">
-          Syra is not built to replace decision-making; it is built to <strong className="text-primary">enhance understanding</strong>.
+          The long-term winner in the agent market will be the stack that lets agents{" "}
+          <strong className="text-primary">generate, manage, and deploy capital efficiently</strong> — not the agent with
+          the slickest UI alone.
         </p>
       </section>
 

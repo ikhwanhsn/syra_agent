@@ -61,14 +61,15 @@ export default function AgentSystemPrompt() {
         <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
         <h1 className="text-4xl font-bold tracking-tight mb-4">System Prompt</h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          The default system prompt that defines the Syra Agent&apos;s behavior, scope, tone, and tool usage on the Syra Agent site (agent.syraa.fun).
+          The default system prompt for the Syra Agent at agent.syraa.fun — documented here for transparency. Syra&apos;s
+          brand is machine money for AI agents; the prompt below reflects current chat behavior on the web agent.
         </p>
       </div>
 
       <section id="what-is-it" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">What is the System Prompt?</h2>
         <p className="text-muted-foreground mb-4">
-          The <strong className="text-foreground">system prompt</strong> is the instruction set sent to the AI model at the start of each conversation. It defines the agent&apos;s identity (Syra—the smart intelligence agent for traders on Solana), scope (crypto, web3, blockchain), focus areas (Solana, DEX trading, on-chain analysis, token research, security), response format (markdown, no raw JSON), and how to use the v2 API tools (signals, news, sentiment, etc.). It also sets tone and personality so replies stay consistent, concise, and trader-oriented.
+          The <strong className="text-foreground">system prompt</strong> is the instruction set sent to the AI model at the start of each conversation. Syra&apos;s product positioning is <strong className="text-foreground">machine money for AI agents on Solana</strong>; the live prompt below still reflects the web agent&apos;s chat behavior (crypto/web3 scope, Solana focus, trading and research tooling, x402 tool usage, and response format). It defines scope, tool rules, tone, and $SYRA identity for transparency.
         </p>
         <p className="text-muted-foreground">
           On the live agent at <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, the backend injects the full list of available tools into the system message for each chat; the prompt below describes how the agent should use that list. The default prompt is currently fixed in the application and is not user-editable in the UI; this page documents it for transparency and reference.

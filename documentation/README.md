@@ -4,7 +4,7 @@
 
 # **Syra Documentation**
 
-### Official docs, API reference, and guides for the Syra ecosystem
+### Machine money for AI agents — docs, API reference, and guides
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -20,7 +20,7 @@
 
 The **documentation** package is the **Syra documentation site** built with **Vite**, **React**, and **React Router**. It provides:
 
-- **Welcome & overview** — what Syra is and where it runs.
+- **Welcome & overview** — machine money positioning, pillars, and where Syra runs.
 - **API reference** — x402 (and MPP discovery) endpoints, payment flow, preview routes.
 - **Syra Agent** — getting started, features, trading guidance, supported tokens, catalog, system prompt.
 - **x402 Agent** — autonomous agent on x402scan.

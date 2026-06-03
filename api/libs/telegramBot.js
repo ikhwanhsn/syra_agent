@@ -18,6 +18,7 @@ export const TELEGRAM_MESSAGE_MAX_LEN = 4096;
  *   parseMode?: TelegramParseMode | null;
  *   disableWebPagePreview?: boolean;
  *   messageThreadId?: number | null;
+ *   replyToMessageId?: number | null;
  * }} SendTelegramMessageOptions
  */
 
@@ -87,6 +88,13 @@ export async function sendTelegramMessage(options) {
     }
     if (parseMode != null && parseMode !== "") {
       body.parse_mode = parseMode;
+    }
+    if (
+      options.replyToMessageId != null &&
+      Number.isFinite(options.replyToMessageId) &&
+      options.replyToMessageId > 0
+    ) {
+      body.reply_to_message_id = options.replyToMessageId;
     }
 
     const res = await fetch(url, {

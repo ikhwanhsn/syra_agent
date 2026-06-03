@@ -72,3 +72,15 @@ export function getMsUntilNextWibWallClock(
   }
   return Math.max(0, targetUtc - now.getTime());
 }
+
+/**
+ * UTC ms for a WIB wall-clock time on the same calendar day as `now` (no rollover).
+ * @param {Date} [now]
+ * @param {number} hour
+ * @param {number} minute
+ * @returns {number}
+ */
+export function getWibWallClockUtcMsToday(now = new Date(), hour, minute) {
+  const { year, month, day } = getTimeZoneCalendarParts(now);
+  return jakartaWallClockToUtcMs(year, month, day, hour, minute);
+}

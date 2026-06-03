@@ -1,23 +1,87 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  BarChart3,
   Bot,
-  Brain,
-  Globe,
-  Lock,
+  Coins,
+  Cpu,
   MessageSquare,
   Shield,
   Sparkles,
   Terminal,
+  TrendingUp,
+  Wallet,
   Zap,
 } from "lucide-react";
 
-export const SYRA_TAGLINE = "Smart Intelligence Agent for Traders";
+export const SYRA_TAGLINE = "Machine money for AI agents";
 export const SYRA_MISSION =
-  "The intelligence layer for autonomous trading agents on Solana — research-driven, risk-aware, and built for operators who ship size, not slides.";
+  "Syra enables autonomous agents to generate revenue, hold treasury assets, participate in DeFi, and distribute value on Solana — so agents become independent economic actors, not tools waiting on humans for every financial decision.";
 
-export const SYRA_SUMMARY =
-  "Syra helps traders, analysts, and builders interpret markets using structured context and clear explanations. It combines live market data, on-chain signals, narrative intelligence, and AI-driven research into one trader-grade stack — not hype, not blind execution.";
+export const SYRA_VISION =
+  "Our vision is an economy where millions of AI agents become productive economic actors powered by Solana — reasoning, earning, managing capital, and coordinating value in real time.";
+
+export const SYRA_HIGHLIGHT =
+  "Syra is not building another AI agent. We are building machine money infrastructure that lets AI agents operate as independent economic actors on Solana.";
+
+export interface SyraStat {
+  label: string;
+  value: string;
+  detail?: string;
+}
+
+export const SYRA_STATS: SyraStat[] = [
+  { label: "Founded", value: "2025" },
+  { label: "Chain", value: "Solana", detail: "Settlement layer for agent economies" },
+  { label: "Stage", value: "Live", detail: "Product, community & ecosystem integrations" },
+  { label: "Team", value: "2–5", detail: "Full-time builders on agent finance" },
+  { label: "Funding", value: "Bootstrapped", detail: "Founder-led, no external round" },
+];
+
+export const SYRA_PROBLEM = {
+  title: "Agents can think — but they cannot own capital",
+  body: [
+    "AI agents are becoming capable of research, automation, and complex workflows — yet most still cannot autonomously earn, manage, invest, or spend onchain without a human in the loop for treasury and coordination.",
+    "The missing layer is native financial infrastructure: ownership of capital, treasury management, and machine-to-machine economic coordination at scale.",
+  ],
+};
+
+export const SYRA_SOLUTION = {
+  title: "Machine money on Solana",
+  body: [
+    "Syra provides the financial operating layer for autonomous agents — revenue generation, asset custody patterns, DeFi participation, rewards distribution, and coordinated value transfer.",
+    "Agents use Solana's speed and composability to hold assets, execute strategies, and interact economically in real time — not as demos, but as production infrastructure.",
+  ],
+};
+
+export const SYRA_WHY_SOLANA = {
+  title: "Why Solana",
+  body: [
+    "Solana is Syra's economic layer: low latency, high throughput, and a deep stack of financial primitives make it the natural settlement network for large numbers of autonomous agents acting in parallel.",
+    "We build with TypeScript, Node.js, Solana SDKs, and agent-native payment rails (including x402) so machine economies stay composable with the rest of the ecosystem.",
+  ],
+};
+
+export const SYRA_DIFFERENTIATION = {
+  headline: "We build the financial layer — not another chatbot",
+  body: "Most AI-agent projects optimize for intelligence, workflows, or user interfaces. Syra focuses on economic autonomy: the long-term winner in the agent market will be the stack that lets agents generate, manage, and deploy capital efficiently — not the agent with the slickest UI.",
+};
+
+export const SYRA_PRODUCT_FLOW = [
+  {
+    step: "01",
+    title: "Earn",
+    description: "Agents capture revenue from work they perform — onchain paths built for machines.",
+  },
+  {
+    step: "02",
+    title: "Manage",
+    description: "Treasury balances, allocations, and auditable movement of agent-held assets.",
+  },
+  {
+    step: "03",
+    title: "Deploy",
+    description: "DeFi, rewards, and coordinated settlement as independent economic actors.",
+  },
+] as const;
 
 export interface SyraPillar {
   icon: LucideIcon;
@@ -27,34 +91,34 @@ export interface SyraPillar {
 
 export const SYRA_PILLARS: SyraPillar[] = [
   {
-    icon: Brain,
-    title: "Agent-grade intelligence",
-    description: "Models and workflows tuned for trading decisions — not generic chat.",
+    icon: Coins,
+    title: "Autonomous revenue",
+    description: "Agents generate and route income onchain without manual treasury babysitting.",
   },
   {
-    icon: Shield,
-    title: "Security for agent capital",
-    description: "Hardened flows with explicit approvals and auditable on-chain actions.",
+    icon: Wallet,
+    title: "Treasury management",
+    description: "Hold, allocate, and monitor agent capital with explicit, auditable controls.",
+  },
+  {
+    icon: TrendingUp,
+    title: "DeFi participation",
+    description: "Strategies, liquidity, and ecosystem integrations where agents can deploy capital.",
+  },
+  {
+    icon: Cpu,
+    title: "Agent-native stack",
+    description: "Built for autonomous actors — APIs, tools, and workflows machines can run end to end.",
   },
   {
     icon: Zap,
-    title: "Fast on Solana",
-    description: "Low-latency reads and execution paths on Solana DEXs, with x402 for paid tools.",
+    title: "Real-time on Solana",
+    description: "Low-fee, high-throughput execution so many agents can coordinate economically at once.",
   },
   {
-    icon: Globe,
-    title: "Agentic payments",
-    description: "HTTP 402 + x402 / MPP so agents discover APIs, pay per call, and stay composable.",
-  },
-  {
-    icon: Lock,
-    title: "Non-custodial",
-    description: "You keep the keys. Syra never custodies wallets or moves funds without sign-off.",
-  },
-  {
-    icon: BarChart3,
-    title: "Live market surface",
-    description: "Dashboards, alpha feeds, and signals built for serious market operators.",
+    icon: Shield,
+    title: "Non-custodial by design",
+    description: "You keep the keys. Syra coordinates intelligence and flows — it does not custody user wallets.",
   },
 ];
 
@@ -65,28 +129,52 @@ export interface SyraCapability {
 
 export const SYRA_CAPABILITIES: SyraCapability[] = [
   {
-    title: "Market overview",
-    description: "Price, volume, volatility, and trend strength in one structured view.",
+    title: "Earn onchain",
+    description: "Revenue paths and integrations so agents can capture value from work they perform.",
   },
   {
-    title: "Technical indicators",
-    description: "RSI, MACD, SMA, EMA, Bollinger Bands, and contextual chart framing.",
+    title: "Manage treasuries",
+    description: "Balances, allocations, and policy-aware movement of agent-held assets.",
   },
   {
-    title: "Action perspectives",
-    description: "Key levels, momentum bias, and scenario outlooks — not certainty theater.",
+    title: "Participate in DeFi",
+    description: "Liquidity, yield, and protocol surfaces agents can use with clear risk context.",
   },
   {
-    title: "Risk context",
-    description: "Reward-to-risk awareness and exposure considerations on every read.",
+    title: "Distribute rewards",
+    description: "Value flows back to operators, stakeholders, and communities agents serve.",
   },
   {
-    title: "AI insights",
-    description: "Confidence framing and sentiment interpretation grounded in data.",
+    title: "Pay per capability",
+    description: "x402 and composable HTTP payments so agents discover and fund tools autonomously.",
   },
   {
-    title: "On-chain signals",
-    description: "Smart money flows, DEX activity, and token-level research where APIs exist.",
+    title: "Coordinate at scale",
+    description: "Machine-to-machine settlement and handoffs without human bottlenecks on every tx.",
+  },
+];
+
+export interface SyraTractionItem {
+  title: string;
+  description: string;
+}
+
+export const SYRA_TRACTION: SyraTractionItem[] = [
+  {
+    title: "Live product",
+    description: "Web agent, APIs, and ongoing capability deployments — not a slide-deck prototype.",
+  },
+  {
+    title: "Active community",
+    description: "Hundreds of early members and operators as interest in autonomous finance accelerates.",
+  },
+  {
+    title: "Ecosystem integrations",
+    description: "Partners and protocol surfaces across Solana for data, execution, and agent tooling.",
+  },
+  {
+    title: "Current focus",
+    description: "Autonomous revenue, DeFi participation, treasury management, and agent coordination.",
   },
 ];
 
@@ -102,21 +190,21 @@ export const SYRA_PLATFORMS: SyraPlatform[] = [
   {
     icon: Bot,
     name: "Web agent",
-    description: "Chat-based research, tools, and on-chain workflows at agent.syraa.fun.",
+    description: "Research, tools, treasury workflows, and onchain actions at agent.syraa.fun.",
     href: "/",
     external: false,
   },
   {
     icon: MessageSquare,
-    name: "Telegram bot",
-    description: "Market analysis, signals, and docs on the go via @syra_trading_bot.",
+    name: "Telegram",
+    description: "Agent access and updates on the go via @syra_trading_bot.",
     href: "https://t.me/syra_trading_bot",
     external: true,
   },
   {
     icon: Terminal,
     name: "API gateway",
-    description: "x402 pay-per-use routes, OpenAPI specs, and partner tool integrations.",
+    description: "x402 pay-per-use routes, OpenAPI specs, and partner integrations for machines.",
     href: "https://api.syraa.fun",
     external: true,
   },
@@ -144,7 +232,7 @@ export const SYRA_COMMUNITY_LINKS: SyraCommunityLink[] = [
   {
     label: "Documentation",
     href: "https://docs.syraa.fun",
-    description: "Developer and user guides",
+    description: "Developer and operator guides",
   },
   {
     label: "X (Twitter)",
@@ -164,4 +252,4 @@ export const SYRA_COMMUNITY_LINKS: SyraCommunityLink[] = [
 ];
 
 export const SYRA_DISCLAIMER =
-  "Syra provides research and intelligence tools — not financial advice or guaranteed returns. Markets carry risk. You are responsible for your own decisions, compliance, and execution.";
+  "Syra provides infrastructure and intelligence tools for autonomous agents — not financial advice, guaranteed returns, or custody of your keys. Onchain activity carries risk. You are responsible for your own compliance, configuration, and execution.";

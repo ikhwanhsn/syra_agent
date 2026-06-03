@@ -38,7 +38,7 @@ export function PitchDeck() {
   useEffect(() => {
     document.title = `Syra Pitch Deck · ${index + 1}/${DECK_SLIDE_COUNT}`;
     return () => {
-      document.title = "Syra | Smart Intelligence Agent for Traders";
+      document.title = "Syra | Machine money for AI agents";
     };
   }, [index]);
 
