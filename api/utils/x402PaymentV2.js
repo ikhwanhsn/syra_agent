@@ -28,6 +28,20 @@ import {
   getCorbitsPayToAddresses,
   getEnabledCorbitsNetworks,
 } from "../config/corbitsX402Networks.js";
+import {
+  BSC_CAIP2,
+  getActiveB402PaymentKind,
+  getB402PayTo,
+  getB402TokenById,
+  isB402Enabled,
+  isB402Network,
+  x402MicroToBscTokenAtomic,
+} from "../config/b402Networks.js";
+import {
+  verifyPayment as b402VerifyPayment,
+  settlePayment as b402SettlePayment,
+  normalizeResourceInfo,
+} from "../libs/b402FacilitatorClient.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
@@ -37,6 +51,34 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export { isTesterAgentInternalProbeRequest };
+
+function isX402Debug() {
+  const s = String(process.env.X402_DEBUG || process.env.B402_DEBUG || "").toLowerCase();
+  return s === "true" || s === "1";
+}
+
+function x402Log(event, detail) {
+  const always =
+    /payment_required|payment_retry|verify_ok|verify_failed|mismatch|decode_failed/i.test(event);
+  if (!always && !isX402Debug()) return;
+  const line = detail && typeof detail === "object" ? JSON.stringify(detail) : String(detail ?? "");
+  console.log(`[x402] ${event}${line ? ` ${line}` : ""}`);
+}
+
+let b402StartupLogged = false;
+function logB402StartupOnce() {
+  if (b402StartupLogged || !isB402Enabled()) return;
+  b402StartupLogged = true;
+  console.log(
+    "[b402] merchant inbound enabled",
+    JSON.stringify({
+      token: process.env.B402_TOKEN || "USD1",
+      payTo: getB402PayTo(),
+      baseUrl: process.env.B402_BASE_URL || "https://api.commonservice.io",
+      debug: isX402Debug() ? "X402_DEBUG=true" : "set X402_DEBUG=true for verbose x402 logs",
+    })
+  );
+}
 
 /** Cap slow facilitator HTTP calls so paid routes return in seconds, not ~90s. 0 = no timeout. */
 const X402_VERIFY_FACILITATOR_TIMEOUT_MS = Number.parseInt(
@@ -136,8 +178,11 @@ function ensureEvmEip712Domain(requirements) {
     if (!String(r.network || "").startsWith("eip155:")) return r;
     const existing = r.extra && typeof r.extra === "object" ? r.extra : {};
     const existingEip712 = existing?.eip712 && typeof existing.eip712 === "object" ? existing.eip712 : {};
-    const name = existingEip712?.name || existing?.name || "USD Coin";
-    const version = existingEip712?.version || existing?.version || "2";
+    const b402Token = isB402Network(r.network) ? getB402TokenById(process.env.B402_TOKEN) : null;
+    const defaultName = b402Token?.eip712Name ?? (isB402Network(r.network) ? "World Liberty Financial USD" : "USD Coin");
+    const defaultVersion = b402Token?.eip712Version ?? (isB402Network(r.network) ? "1" : "2");
+    const name = existingEip712?.name || existing?.name || defaultName;
+    const version = existingEip712?.version || existing?.version || defaultVersion;
     const nextExtra = {
       ...existing,
       name,
@@ -148,8 +193,132 @@ function ensureEvmEip712Domain(requirements) {
   });
 }
 
+/**
+ * PayAI/Corbits facilitators do not list BSC (eip155:56); append B402 accept when enabled.
+ * @param {object[]} requirements
+ * @param {string} microUnits
+ * @param {number} maxTimeoutSeconds
+ */
+async function ensureB402AcceptInRequirements(requirements, microUnits, maxTimeoutSeconds) {
+  if (!isB402Enabled()) return requirements;
+  const list = Array.isArray(requirements) ? [...requirements] : [];
+  if (list.some((r) => r && isB402Network(r.network))) return list;
+
+  const kind = await getActiveB402PaymentKind();
+  if (!kind) return list;
+
+  const { token, extra } = kind;
+  const payTo = getB402PayTo();
+  const mergedExtra = {
+    name: extra.name ?? token.eip712Name,
+    version: extra.version ?? token.eip712Version,
+    assetTransferMethod: extra.assetTransferMethod ?? token.assetTransferMethod,
+    signerAddress: extra.signerAddress ?? "",
+  };
+  if (extra.spenderAddress != null && extra.spenderAddress !== "") {
+    mergedExtra.spenderAddress = extra.spenderAddress;
+  } else if (token.eip3009) {
+    mergedExtra.spenderAddress = null;
+  }
+
+  const tokenAtomicAmount = x402MicroToBscTokenAtomic(microUnits);
+  list.push({
+    scheme: token.scheme,
+    network: BSC_CAIP2,
+    amount: tokenAtomicAmount,
+    asset: token.contract,
+    payTo,
+    maxTimeoutSeconds,
+    extra: mergedExtra,
+  });
+  return list;
+}
+
+/** Merge B402 /supported extra into BSC payment requirements for buyer signing. */
+async function enrichB402Requirements(requirements) {
+  const kind = await getActiveB402PaymentKind();
+  if (!kind) return requirements;
+  const { token, extra } = kind;
+  return requirements.map((r) => {
+    if (!r || !isB402Network(r.network)) return r;
+    const mergedExtra = {
+      ...(r.extra && typeof r.extra === "object" ? r.extra : {}),
+      name: extra.name ?? token.eip712Name,
+      version: extra.version ?? token.eip712Version,
+      assetTransferMethod: extra.assetTransferMethod ?? token.assetTransferMethod,
+      signerAddress: extra.signerAddress ?? "",
+    };
+    if (extra.spenderAddress != null && extra.spenderAddress !== "") {
+      mergedExtra.spenderAddress = extra.spenderAddress;
+    } else if (token.eip3009) {
+      mergedExtra.spenderAddress = null;
+    }
+    return {
+      ...r,
+      scheme: r.scheme ?? token.scheme,
+      extra: mergedExtra,
+    };
+  });
+}
+
 function normalizeEvmAddress(a) {
   return String(a || "").trim().toLowerCase();
+}
+
+/** @returns {{ token: { contract: string, scheme: string }, payTo: string } | null} */
+function getB402OfferConfig() {
+  if (!isB402Enabled()) return null;
+  const token = getB402TokenById(process.env.B402_TOKEN);
+  const payTo = getB402PayTo();
+  if (!token || !payTo) return null;
+  return { token, payTo };
+}
+
+/** Corbits/PayAI facilitators do not support BSC — never pass B402 options into @x402 resource server. */
+function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout) {
+  return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout).filter(
+    (o) => o && !isB402Network(o.network)
+  );
+}
+
+/** Route verify/settle to B402 when network or payTo+asset match merchant config. */
+function shouldUseB402Facilitator(acc, payload) {
+  if (!getB402OfferConfig()) return false;
+  if (acc && isB402Network(acc.network)) return true;
+  if (acc && paymentAcceptedMatchesB402(acc)) return true;
+  const nested = payload?.accepted;
+  if (nested && nested !== acc && paymentAcceptedMatchesB402(nested)) return true;
+  return false;
+}
+
+/** Append B402 accepted option for paid-request validation (must mirror 402 offers). */
+function appendB402AcceptedOption(acceptedOptions, expectedMicroUnits) {
+  if (acceptedOptions.some((o) => o && isB402Network(o.network))) return acceptedOptions;
+  const cfg = getB402OfferConfig();
+  if (!cfg) return acceptedOptions;
+  const { token, payTo } = cfg;
+  acceptedOptions.push({
+    network: BSC_CAIP2,
+    payTo,
+    asset: token.contract,
+    isEvm: true,
+    isB402: true,
+    amount: x402MicroToBscTokenAtomic(expectedMicroUnits),
+  });
+  return acceptedOptions;
+}
+
+/** True when payload.accepted matches configured B402 merchant offer (amount checked separately). */
+function paymentAcceptedMatchesB402(acc) {
+  if (!acc) return false;
+  if ((acc.scheme || "exact") !== "exact") return false;
+  const cfg = getB402OfferConfig();
+  if (!cfg) return false;
+  const { token, payTo } = cfg;
+  return (
+    normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(payTo) &&
+    normalizeEvmAddress(acc.asset) === normalizeEvmAddress(token.contract)
+  );
 }
 
 /**
@@ -205,6 +374,7 @@ function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
       maxTimeoutSeconds: maxTimeout,
     });
   }
+
   return paymentOptions;
 }
 
@@ -237,7 +407,8 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
         });
       }
     }
-    return out.map((o) => ({ ...o, amount: expectedMicroUnits }));
+    const withAmount = out.map((o) => ({ ...o, amount: expectedMicroUnits }));
+    return appendB402AcceptedOption(withAmount, expectedMicroUnits);
   }
 
   const acceptedOptions = [
@@ -258,13 +429,23 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
       amount: expectedMicroUnits,
     });
   }
-  return acceptedOptions;
+
+  return appendB402AcceptedOption(acceptedOptions, expectedMicroUnits);
 }
 
 /** @param {object} acc - payload.accepted */
 function paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits) {
-  if (acc.scheme !== "exact" || acc.network !== opt.network) return false;
-  if (String(acc.amount) !== expectedMicroUnits) return false;
+  if ((acc.scheme || "exact") !== "exact" || acc.network !== opt.network) return false;
+  const accAmt = String(acc.amount ?? "");
+  const expectedNative = opt.isB402
+    ? x402MicroToBscTokenAtomic(expectedMicroUnits)
+    : String(expectedMicroUnits);
+  const optAmt = String(opt.amount ?? expectedNative);
+  const amountOk =
+    accAmt === expectedNative ||
+    accAmt === optAmt ||
+    (opt.isB402 && paymentAcceptedMatchesB402(acc));
+  if (!amountOk) return false;
   if (opt.isEvm) {
     return (
       normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(opt.payTo) &&
@@ -355,7 +536,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const { resourceServer, config, assets } = bundle;
   const rawPrice = await resolveRawPriceUsdForRequest(options, req);
   const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
-  const microUnits = String(Math.round(priceUsd * 1_000_000));
+  const microUnits = usdToMicroUsdc(priceUsd);
   // Bind x402 `resource.url` to the URL this HTTP request actually used (ExpressAdapter).
   // Previously we used `${BASE_URL}${options.resource}` when `resource` was set; that breaks
   // server-to-self agent calls (resolveAgentBaseUrl → localhost) while BASE_URL is public:
@@ -364,7 +545,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const resourceUrl = adapter.getUrl();
   const maxTimeout = options.maxTimeoutSeconds ?? 60;
 
-  const paymentOptions = buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout);
+  const paymentOptions = paymentOptionsForFacilitator(bundle, microUnits, maxTimeout);
 
   const ctx = {
     adapter,
@@ -373,13 +554,19 @@ async function buildPaymentRequired(bundle, req, options, error) {
     paymentHeader: getPaymentSignatureHeaderFromReq(req),
   };
 
-  let requirements = await resourceServer.buildPaymentRequirementsFromOptions(paymentOptions, ctx);
-  requirements = requirements.map((r) => {
-    if (r && typeof r === "object" && String(r.network || "").startsWith("eip155:")) {
-      return ensureEvmEip712Domain([r])[0];
-    }
-    return r;
-  });
+  let requirements;
+  try {
+    requirements = await resourceServer.buildPaymentRequirementsFromOptions(paymentOptions, ctx);
+  } catch (e) {
+    console.warn(
+      "[x402] buildPaymentRequirementsFromOptions failed:",
+      e?.message || e
+    );
+    requirements = [];
+  }
+  requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
+  requirements = ensureEvmEip712Domain(requirements);
+  requirements = await enrichB402Requirements(requirements);
 
   const description = options.description || "x402 V2 endpoint";
   const resourceInfo = { url: resourceUrl, description, mimeType: options.mimeType || "application/json" };
@@ -399,6 +586,27 @@ async function buildPaymentRequired(bundle, req, options, error) {
 function json402(res, paymentRequired) {
   res.setHeader("Payment-Required", encodePaymentRequiredHeader(paymentRequired));
   res.status(402).type("application/json").send(paymentRequired);
+}
+
+/** Ensure B402 verify receives x402 v2 ResourceInfo on the payment payload root. */
+function enrichB402PayloadResource(payload, req, options) {
+  if (!payload || typeof payload !== "object") return payload;
+  if (normalizeResourceInfo(payload.resource)) return payload;
+  const legacy = normalizeResourceInfo(payload.accepted?.resource);
+  if (legacy) {
+    return { ...payload, resource: legacy };
+  }
+  const adapter = new ExpressAdapter(req);
+  const url = adapter.getUrl();
+  if (!url) return payload;
+  return {
+    ...payload,
+    resource: {
+      url,
+      description: options?.description,
+      mimeType: options?.mimeType || "application/json",
+    },
+  };
 }
 
 /**
@@ -486,9 +694,11 @@ export function requirePayment(options) {
       await ensureX402ForReq(req);
       const bundle = getX402BundleForReq(req);
       const { resourceServer, config, assets } = bundle;
+      logB402StartupOnce();
 
       const paymentHeader = getPaymentSignatureHeaderFromReq(req);
       if (!paymentHeader) {
+        x402Log("payment_required", { method: req.method, path: req.path });
         const pr = await buildPaymentRequired(bundle, req, options, "Payment required");
         json402(res, pr);
         return;
@@ -516,27 +726,71 @@ export function requirePayment(options) {
 
       const rawPrice = await resolveRawPriceUsdForRequest(options, req);
       const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
-      const expectedMicroUnits = String(Math.round(priceUsd * 1_000_000));
+      const expectedMicroUnits = usdToMicroUsdc(priceUsd);
       const acc = payload.accepted;
 
       const acceptedOptions = buildAcceptedOptionsForBundle(bundle, expectedMicroUnits);
-      const matchingOption = acceptedOptions.find((opt) =>
+      let matchingOption = acceptedOptions.find((opt) =>
         paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits)
       );
+      if (!matchingOption && paymentAcceptedMatchesB402(acc)) {
+        const cfg = getB402OfferConfig();
+        if (cfg) {
+          matchingOption = {
+            network: BSC_CAIP2,
+            payTo: cfg.payTo,
+            asset: cfg.token.contract,
+            isEvm: true,
+            isB402: true,
+            amount: String(acc.amount ?? x402MicroToBscTokenAtomic(expectedMicroUnits)),
+          };
+        }
+      }
 
       if (!matchingOption) {
+        x402Log("payment_mismatch", {
+          method: req.method,
+          path: req.path,
+          network: acc?.network,
+          payTo: acc?.payTo,
+          amount: acc?.amount,
+        });
         const pr = await buildPaymentRequired(bundle, req, options, "Payment requirements mismatch");
         json402(res, pr);
         return;
       }
 
       let verify;
+      const useB402Facilitator = shouldUseB402Facilitator(acc, payload);
+      const payloadForB402 =
+        useB402Facilitator && !normalizeResourceInfo(payload?.resource)
+          ? enrichB402PayloadResource(payload, req, options)
+          : payload;
+      x402Log("payment_retry", {
+        method: req.method,
+        path: req.path,
+        network: acc?.network,
+        amount: acc?.amount,
+        b402: useB402Facilitator,
+        resourceUrl:
+          normalizeResourceInfo(payloadForB402?.resource)?.url ??
+          normalizeResourceInfo(acc?.resource)?.url,
+        hasHeader: true,
+      });
       try {
-        verify = await withTimeout(
-          resourceServer.verifyPayment(payload, acc),
-          X402_VERIFY_FACILITATOR_TIMEOUT_MS,
-          "verify_timeout"
-        );
+        if (useB402Facilitator) {
+          verify = await withTimeout(
+            b402VerifyPayment(payloadForB402, acc),
+            X402_VERIFY_FACILITATOR_TIMEOUT_MS,
+            "verify_timeout"
+          );
+        } else {
+          verify = await withTimeout(
+            resourceServer.verifyPayment(payload, acc),
+            X402_VERIFY_FACILITATOR_TIMEOUT_MS,
+            "verify_timeout"
+          );
+        }
       } catch (e) {
         const msg = e?.message || "Payment verification failed";
         if (isFacilitatorError(msg) && isSolanaNetwork(acc)) {
@@ -565,6 +819,12 @@ export function requirePayment(options) {
       }
 
       if (!verify?.isValid) {
+        x402Log("verify_failed", {
+          method: req.method,
+          path: req.path,
+          b402: useB402Facilitator,
+          reason: verify?.invalidReason || "Payment verification failed",
+        });
         const pr = await buildPaymentRequired(
           bundle,
           req,
@@ -576,11 +836,18 @@ export function requirePayment(options) {
       }
 
       req.x402Payment = {
-        payload,
+        payload: useB402Facilitator ? payloadForB402 : payload,
         accepted: acc,
         priceUsd,
         resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "default",
+        useB402Facilitator,
       };
+      x402Log("verify_ok", {
+        method: req.method,
+        path: req.path,
+        b402: useB402Facilitator,
+        network: acc?.network,
+      });
       next();
     } catch (error) {
       res.status(500).json({
@@ -596,6 +863,27 @@ export function requirePayment(options) {
  * So the client always gets the resource when payment was already verified.
  */
 async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
+  if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
+    const settle = await withTimeout(
+      b402SettlePayment(payload, accepted),
+      X402_SETTLE_FACILITATOR_TIMEOUT_MS,
+      "settle_timeout"
+    );
+    if (settle?.success) {
+      return {
+        success: true,
+        payer: settle.payer,
+        transaction: settle.transaction,
+        network: settle.network ?? accepted?.network,
+      };
+    }
+    return {
+      success: false,
+      errorReason: settle?.errorReason || settle?.error || "B402 settlement failed",
+      error: settle?.errorReason || settle?.error || "B402 settlement failed",
+    };
+  }
+
   const profile = req?.x402Payment?.resourceServerProfile;
   const { resourceServer } =
     profile === "corbits" ? getX402ResourceServerCorbits() : getX402ResourceServer();
@@ -697,6 +985,14 @@ export async function settlePaymentAndSetResponse(res, req) {
       throw e;
     }
   }
+  if (!settle?.success) {
+    const reason = settle?.errorReason || settle?.error || "Settlement failed";
+    res.setHeader(
+      "Payment-Response",
+      encodePaymentResponseHeader({ success: false, error: reason })
+    );
+    return settle;
+  }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
   req._requestInsightPaid = true;
   runAfterResponse(() => recordPaidApiCall(req));
@@ -714,9 +1010,14 @@ export async function settlePaymentAndSetResponse(res, req) {
 
 export { encodePaymentResponseHeader };
 export { getX402ResourceServer };
+export { isB402Network };
 
 export function usdToMicroUsdc(usd) {
-  return Math.floor(usd * 1_000_000).toString();
+  const n = Number(usd);
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  const micro = Math.round(n * 1_000_000);
+  // Sub-micro local prices (e.g. /health) must still be >0 for B402 verify.
+  return String(micro > 0 ? micro : 1);
 }
 
 export function microUsdcToUsd(microUsdc) {
@@ -757,7 +1058,10 @@ export function runBuybackForRequest(req) {
 export function getX402Handler(req) {
   const { resourceServer } = getX402BundleForReq(req);
   return {
-    settlePayment(payload, accepted) {
+    async settlePayment(payload, accepted) {
+      if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
+        return b402SettlePayment(payload, accepted);
+      }
       return resourceServer.settlePayment(payload, accepted);
     },
   };

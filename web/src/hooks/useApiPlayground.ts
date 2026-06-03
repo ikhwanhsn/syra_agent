@@ -20,10 +20,20 @@ import {
   extractPaymentDetails,
   extractPaymentDetailsFromOption,
   executePayment,
+  executeBasePayment,
+  executeBscPayment,
   isBaseNetwork,
+  isBscNetwork,
+  isSolanaNetwork,
+  type PaymentChainId,
   X402Response,
   X402PaymentOption,
 } from "@/lib/x402Client";
+import { connectEvmWallet } from "@/lib/evmBscSigner";
+import {
+  executePermit2Payment,
+  isPermit2PaymentOption,
+} from "@/lib/permit2Client";
 import {
   resolveApiBaseUrl,
   resolvePurchVaultBaseUrl,
@@ -3955,10 +3965,10 @@ export function useApiPlayground() {
   const [paymentOptionsByChain, setPaymentOptionsByChain] = useState<{
     solana: X402PaymentOption | null;
     base: X402PaymentOption | null;
-  }>({ solana: null, base: null });
-  const [selectedPaymentChain, setSelectedPaymentChain] = useState<
-    "solana" | "base"
-  >("solana");
+    binance: X402PaymentOption | null;
+  }>({ solana: null, base: null, binance: null });
+  const [selectedPaymentChain, setSelectedPaymentChain] =
+    useState<PaymentChainId>("solana");
 
   // History state - load from localStorage on mount
   const [history, setHistory] = useState<HistoryItem[]>(() =>
@@ -4445,7 +4455,21 @@ export function useApiPlayground() {
   // Open Privy's login/connect modal; use chain-aware connect so Phantom is requested for Solana (not Ethereum), avoiding "Unsupported account" when Phantom has Solana selected
   /** Connect wallet for the given chain (or current selected chain). Use the chain the UI is showing so Phantom/multi-chain wallets connect for the right network. */
   const connectWallet = useCallback(
-    (_chain?: "solana") => {
+    async (chain?: PaymentChainId) => {
+      if (chain === "binance" || chain === "base") {
+        try {
+          await connectEvmWallet(chain);
+        } catch (err: unknown) {
+          toast({
+            title: "EVM wallet required",
+            description:
+              err instanceof Error ? err.message : "Connect MetaMask for EVM payments.",
+            variant: "destructive",
+          });
+          throw err;
+        }
+        return;
+      }
       walletContext.connectForChain("solana");
     },
     [walletContext],
@@ -4893,8 +4917,16 @@ export function useApiPlayground() {
                 setX402Response(parsed);
                 const byChain = getPaymentOptionsByChain(parsed);
                 setPaymentOptionsByChain(byChain);
-                setSelectedPaymentChain("solana");
-                const option = byChain.solana ?? getBestPaymentOption(parsed);
+                const defaultChain: PaymentChainId = byChain.binance
+                  ? "binance"
+                  : byChain.solana
+                    ? "solana"
+                    : byChain.base
+                      ? "base"
+                      : "solana";
+                setSelectedPaymentChain(defaultChain);
+                const option =
+                  byChain[defaultChain] ?? getBestPaymentOption(parsed, defaultChain);
                 setPaymentOption(option || undefined);
                 details = option
                   ? extractPaymentDetailsFromOption(option)
@@ -5663,10 +5695,9 @@ export function useApiPlayground() {
 
   // Switch selected payment chain and update option + details
   const selectPaymentChain = useCallback(
-    (chain: "solana" | "base") => {
-      if (chain !== "solana") return;
-      setSelectedPaymentChain("solana");
-      const option = paymentOptionsByChain.solana;
+    (chain: PaymentChainId) => {
+      setSelectedPaymentChain(chain);
+      const option = paymentOptionsByChain[chain];
       if (option) {
         setPaymentOption(option);
         setPaymentDetails(extractPaymentDetailsFromOption(option));
@@ -5690,20 +5721,24 @@ export function useApiPlayground() {
       return;
     }
 
-    if (isBaseNetwork(paymentOption)) {
+    const activeOption =
+      paymentOptionsByChain[selectedPaymentChain] ?? paymentOption;
+    if (!activeOption) {
       setTransactionStatus({
         status: "failed",
-        error: "Base payments are not supported — connect a Solana wallet.",
-      });
-      toast({
-        title: "Solana wallet required",
-        description: "This app only supports Solana x402 payments. Connect Phantom or another Solana wallet.",
-        variant: "destructive",
+        error: "No payment option for the selected chain.",
       });
       return;
     }
 
-    if (!walletContext.connected || !walletContext.publicKey) return;
+    const payOnBinance = isBscNetwork(activeOption);
+    const payOnBase = isBaseNetwork(activeOption);
+    const payOnSolana = isSolanaNetwork(activeOption);
+    const payOnEvm = payOnBinance || payOnBase;
+
+    if (payOnSolana && (!walletContext.connected || !walletContext.publicKey)) {
+      return;
+    }
 
     setTransactionStatus({ status: "pending" });
 
@@ -5712,14 +5747,14 @@ export function useApiPlayground() {
       if (
         x402Response?.x402Version !== 1 ||
         !x402Response._rawV1Accepts?.length ||
-        !paymentOption?.payTo
+        !activeOption?.payTo
       )
         return undefined;
       const raw = x402Response._rawV1Accepts as Record<string, any>[];
       const matchByPayTo = raw.find(
         (a: any) =>
           String(a.payTo || "").trim() ===
-          String(paymentOption.payTo || "").trim(),
+          String(activeOption.payTo || "").trim(),
       );
       if (matchByPayTo) return matchByPayTo;
       const solanaRaw = raw.find(
@@ -5747,17 +5782,47 @@ export function useApiPlayground() {
       resourceUrl += (url.includes("?") ? "&" : "?") + searchParams.toString();
     }
 
+    const resourceFrom402 = x402Response?.resource;
+
     try {
-      const result = await executePayment(
-        {
-          connection,
-          publicKey: walletContext.publicKey!,
-          signTransaction: walletContext.signTransaction,
-        },
-        paymentOption,
-        rawV1Accept,
-        resourceUrl,
-      );
+      let result;
+      if (payOnEvm) {
+        if (isPermit2PaymentOption(activeOption)) {
+          result = await executePermit2Payment(activeOption, resourceUrl);
+        } else if (payOnBinance) {
+          const { connectEvmWallet, getEvmSigner } = await import("@/lib/evmBscSigner");
+          await connectEvmWallet("binance");
+          const evmSigner = await getEvmSigner("binance");
+          result = await executeBscPayment(
+            evmSigner,
+            activeOption,
+            resourceUrl,
+            resourceFrom402
+          );
+        } else {
+          const { connectEvmWallet, getEvmSigner } = await import("@/lib/evmBscSigner");
+          await connectEvmWallet("base");
+          const evmSigner = await getEvmSigner("base");
+          result = await executeBasePayment(
+            evmSigner,
+            activeOption,
+            resourceUrl,
+            resourceFrom402
+          );
+        }
+      } else {
+        result = await executePayment(
+          {
+            connection,
+            publicKey: walletContext.publicKey!,
+            signTransaction: walletContext.signTransaction,
+          },
+          activeOption,
+          rawV1Accept,
+          resourceUrl,
+          resourceFrom402
+        );
+      }
 
       if (result.success && result.paymentHeader) {
         setTransactionStatus({

@@ -32,6 +32,13 @@ const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 const BASE_MAINNET_CAIP2 = 'eip155:8453';
 const BASE_USDC_MAINNET = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+export const BSC_MAINNET_CAIP2 = 'eip155:56';
+export const BSC_USD1_MAINNET = '0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d';
+export const BSC_USDC_MAINNET = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
+export const BSC_USDT_MAINNET = '0x55d398326f99059fF775485246999027B3197955';
+
+/** BSC stables (USD1, U, USDC, USDT) use 18 decimals on-chain. */
+export const BSC_TOKEN_DECIMALS = 18;
 
 // x402 protocol version
 const X402_VERSION = 2;
@@ -96,14 +103,17 @@ export interface X402PaymentOption {
   _raw?: Record<string, unknown>;
 }
 
+/** x402 v2 ResourceInfo (top-level on PaymentPayload, not a string in `accepted`). */
+export type X402ResourceInfo = {
+  url: string;
+  description?: string;
+  mimeType?: string;
+};
+
 export interface X402Response {
   x402Version: number;
   accepts: X402PaymentOption[];
-  resource?: {
-    url: string;
-    description?: string;
-    mimeType?: string;
-  };
+  resource?: X402ResourceInfo;
   error?: string;
   extensions?: {
     bazaar?: {
@@ -376,8 +386,20 @@ function normalizePaymentOption(raw: X402PaymentOption & { price?: { asset?: str
   };
 }
 
-/** True if option is Base (EVM) network. */
+/** True if option is BSC (Binance B402). */
+export function isBscNetwork(opt: X402PaymentOption): boolean {
+  const n = String(opt?.network || '').trim().toLowerCase();
+  return n === BSC_MAINNET_CAIP2 || n === 'eip155:56';
+}
+
+/** True if option is Base mainnet. */
 export function isBaseNetwork(opt: X402PaymentOption): boolean {
+  const n = String(opt?.network || '').trim().toLowerCase();
+  return n === BASE_MAINNET_CAIP2 || n === 'eip155:8453';
+}
+
+/** True if option is any EVM CAIP-2 network. */
+export function isEvmNetwork(opt: X402PaymentOption): boolean {
   return String(opt?.network || '').startsWith('eip155:');
 }
 
@@ -386,20 +408,36 @@ export function isSolanaNetwork(opt: X402PaymentOption): boolean {
   return /^solana:/i.test(String(opt?.network || ''));
 }
 
-/**
- * Get payment options grouped by chain (Solana and/or Base).
- * Use when the API offers both so the UI can show a chain selector.
- */
-export function getPaymentOptionsByChain(x402Response: X402Response): {
+/** Playground payment chain tabs: Solana, Base, Binance (B402 on BSC). */
+export type PaymentChainId = 'solana' | 'base' | 'binance';
+
+export type PaymentOptionsByChain = {
   solana: X402PaymentOption | null;
   base: X402PaymentOption | null;
-} {
+  binance: X402PaymentOption | null;
+};
+
+/** Fixed order for playground chain selector UI. */
+export const PLAYGROUND_PAYMENT_CHAINS: ReadonlyArray<{ id: PaymentChainId; label: string }> = [
+  { id: 'solana', label: 'Solana' },
+  { id: 'base', label: 'Base' },
+  { id: 'binance', label: 'Binance' },
+];
+
+/**
+ * Get payment options grouped by chain (Solana, Base, Binance/B402).
+ */
+export function getPaymentOptionsByChain(x402Response: X402Response): PaymentOptionsByChain {
+  const empty: PaymentOptionsByChain = { solana: null, base: null, binance: null };
   const { accepts } = x402Response ?? {};
-  if (!accepts?.length) return { solana: null, base: null };
-  const normalized = accepts.map((a) => normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } }));
+  if (!accepts?.length) return empty;
+  const normalized = accepts.map((a) =>
+    normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
+  );
   const solana = normalized.find((opt) => isSolanaNetwork(opt)) ?? null;
-  const base = normalized.find((opt) => isBaseNetwork(opt)) ?? null;
-  return { solana, base };
+  const binance = normalized.find((opt) => isBscNetwork(opt)) ?? null;
+  const base = normalized.find((opt) => isBaseNetwork(opt) && !isBscNetwork(opt)) ?? null;
+  return { solana, base, binance };
 }
 
 /**
@@ -408,7 +446,7 @@ export function getPaymentOptionsByChain(x402Response: X402Response): {
  */
 export function getBestPaymentOption(
   x402Response: X402Response,
-  preferredChain?: 'solana' | 'base' | 'auto'
+  preferredChain?: PaymentChainId | 'auto'
 ): X402PaymentOption | null {
   const { accepts } = x402Response;
 
@@ -419,6 +457,11 @@ export function getBestPaymentOption(
   const normalized = accepts.map((a) =>
     normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
   );
+
+  if (preferredChain === 'binance') {
+    const binanceOpt = normalized.find((opt) => isBscNetwork(opt));
+    if (binanceOpt) return binanceOpt;
+  }
 
   if (preferredChain === 'base') {
     const baseOpt = normalized.find((opt) => isBaseNetwork(opt));
@@ -434,6 +477,10 @@ export function getBestPaymentOption(
   // Any Solana network
   const solanaOption = normalized.find((opt) => isSolanaNetwork(opt) && opt.scheme === 'exact');
   if (solanaOption) return solanaOption;
+
+  // BSC B402
+  const bscOption = normalized.find((opt) => isBscNetwork(opt) && (opt.scheme === 'exact' || opt.scheme === 'upto'));
+  if (bscOption) return bscOption;
 
   // Base (eip155)
   const baseOption = normalized.find((opt) => isBaseNetwork(opt) && opt.scheme === 'exact');
@@ -458,6 +505,28 @@ export function formatPaymentAmount(amount: string, decimals: number = 6): strin
   
   const decStr = decPart.toString().padStart(decimals, '0').replace(/0+$/, '');
   return `${intPart}.${decStr}`;
+}
+
+/** Token decimals for display: BSC atomic amounts use 18, Solana/Base USDC micro use 6. */
+export function paymentAmountDecimals(option: X402PaymentOption): number {
+  return isBscNetwork(option) ? BSC_TOKEN_DECIMALS : 6;
+}
+
+export function tokenLabelFromAsset(asset?: string): string {
+  if (!asset) return 'USDC';
+  const a = String(asset).toLowerCase();
+  if (a === BSC_USD1_MAINNET.toLowerCase()) return 'USD1';
+  if (a === BSC_USDT_MAINNET.toLowerCase()) return 'USDT';
+  if (a === BSC_USDC_MAINNET.toLowerCase() || a === BASE_USDC_MAINNET.toLowerCase() || a === 'usdc') {
+    return 'USDC';
+  }
+  if (asset === USDC_MINT_STRING || asset === USDC_DEVNET_STRING) return 'USDC';
+  if (asset === 'SOL' || asset === 'So11111111111111111111111111111111111111112') return 'SOL';
+  return `${String(asset).slice(0, 4)}...${String(asset).slice(-4)}`;
+}
+
+export function formatPaymentAmountForOption(option: X402PaymentOption): string {
+  return formatPaymentAmount(String(option.amount ?? '0'), paymentAmountDecimals(option));
 }
 
 /**
@@ -626,13 +695,29 @@ export async function createPaymentTransaction(
 }
 
 /**
+ * Resolve x402 v2 ResourceInfo for PAYMENT-SIGNATURE (top-level `resource`, not inside `accepted`).
+ */
+function resolveResourceForPayload(
+  resourceUrl?: string,
+  resourceFrom402?: X402ResourceInfo
+): X402ResourceInfo | undefined {
+  // Must match the 402 body's resource.url (server canonical URL), not the browser fetch URL (/api/health).
+  const url = (resourceFrom402?.url?.trim() || resourceUrl?.trim()) || '';
+  if (!url) return undefined;
+  return {
+    url,
+    ...(resourceFrom402?.description ? { description: resourceFrom402.description } : {}),
+    ...(resourceFrom402?.mimeType ? { mimeType: resourceFrom402.mimeType } : {}),
+  };
+}
+
+/**
  * Build `accepted` for the PAYMENT-SIGNATURE header.
  * Start from the original server accept (_raw) so ALL fields the server expects are echoed back
- * (e.g. maxAmountRequired, description, mimeType, extensions). Then overlay normalized amount/asset.
+ * (e.g. maxAmountRequired, extensions). Resource context belongs on the payload root (v2 spec).
  */
 function normalizeAcceptedForHeader(
-  option: X402PaymentOption & { price?: { asset?: string; amount?: string } },
-  resourceUrl?: string
+  option: X402PaymentOption & { price?: { asset?: string; amount?: string } }
 ): Record<string, unknown> {
   const amount = String(option.price?.amount ?? option.amount ?? '0');
   const asset = option.price?.asset ?? option.asset ?? USDC_MINT_STRING;
@@ -648,10 +733,22 @@ function normalizeAcceptedForHeader(
     ...(option.extra && typeof option.extra === 'object' ? { extra: option.extra } : {}),
   };
   delete accepted._raw;
-  if (resourceUrl && typeof resourceUrl === 'string' && resourceUrl.trim()) {
-    accepted.resource = resourceUrl.trim();
-  }
+  delete accepted.resource;
   return accepted;
+}
+
+function buildV2PaymentPayload(
+  accepted: Record<string, unknown>,
+  payload: Record<string, unknown>,
+  resource?: X402ResourceInfo
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    x402Version: X402_VERSION,
+    accepted,
+    payload,
+  };
+  if (resource?.url) out.resource = resource;
+  return out;
 }
 
 /**
@@ -662,23 +759,20 @@ function normalizeAcceptedForHeader(
 export function createPaymentHeader(
   signedTransaction: VersionedTransaction,
   paymentOption: X402PaymentOption,
-  resourceUrl?: string
+  resourceUrl?: string,
+  resourceFrom402?: X402ResourceInfo
 ): string {
   const serialized = signedTransaction.serialize();
   const base64Tx = Buffer.from(serialized).toString('base64');
-  const accepted = normalizeAcceptedForHeader(paymentOption, resourceUrl);
+  const accepted = normalizeAcceptedForHeader(paymentOption);
+  const resource = resolveResourceForPayload(resourceUrl, resourceFrom402);
   const sig = signedTransaction.signatures[0];
   const signatureB58 = sig && sig.length === 64 ? bs58.encode(Buffer.from(sig)) : null;
 
-  const paymentPayload = {
-    x402Version: X402_VERSION,
-    scheme: accepted.scheme ?? 'exact',
-    accepted,
-    payload: {
-      transaction: base64Tx,
-      signature: signatureB58,
-    },
-  };
+  const paymentPayload = buildV2PaymentPayload(accepted, {
+    transaction: base64Tx,
+    signature: signatureB58,
+  }, resource);
 
   return base64EncodeUnicode(JSON.stringify(paymentPayload));
 }
@@ -743,20 +837,17 @@ export interface EvmSigner {
 /**
  * Build PAYMENT-SIGNATURE header for x402 V2 from EVM payload (no transaction, authorization + signature).
  */
-function createEvmPaymentHeader(
+export function createEvmPaymentHeader(
   payload: { authorization: Record<string, unknown>; signature: string },
   paymentOption: X402PaymentOption,
-  resourceUrl?: string
+  resourceUrl?: string,
+  resourceFrom402?: X402ResourceInfo
 ): string {
   const accepted = normalizeAcceptedForHeader(
-    paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } },
-    resourceUrl
+    paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } }
   );
-  const paymentPayload = {
-    x402Version: X402_VERSION,
-    accepted,
-    payload,
-  };
+  const resource = resolveResourceForPayload(resourceUrl, resourceFrom402);
+  const paymentPayload = buildV2PaymentPayload(accepted, payload, resource);
   return base64EncodeUnicode(JSON.stringify(paymentPayload));
 }
 
@@ -764,10 +855,22 @@ function createEvmPaymentHeader(
  * Execute Base (EVM) payment via EIP-3009 TransferWithAuthorization and return payment header.
  * Requires EVM signer (e.g. from viem createWalletClient) and payment option with extra.name/version for EIP-712.
  */
+/** BSC B402 EIP-3009 payment (United Stables / U — not Base USDC defaults). */
+export async function executeBscPayment(
+  evmSigner: EvmSigner,
+  paymentOption: X402PaymentOption,
+  resourceUrl?: string,
+  resourceFrom402?: X402ResourceInfo
+): Promise<PaymentResult> {
+  const { signB402Eip3009Payment } = await import('@/lib/b402Eip3009Signer');
+  return signB402Eip3009Payment(evmSigner, paymentOption, resourceUrl, resourceFrom402);
+}
+
 export async function executeBasePayment(
   evmSigner: EvmSigner,
   paymentOption: X402PaymentOption,
-  resourceUrl?: string
+  resourceUrl?: string,
+  resourceFrom402?: X402ResourceInfo
 ): Promise<PaymentResult> {
   const { ExactEvmScheme } = await import('@x402/evm/exact/client');
   const raw = paymentOption as X402PaymentOption & { extra?: { name?: string; version?: string; eip712?: { name?: string; version?: string } } };
@@ -785,7 +888,12 @@ export async function executeBasePayment(
   };
   const scheme = new ExactEvmScheme(evmSigner);
   const result = await scheme.createPaymentPayload(X402_VERSION, paymentRequirements);
-  const paymentHeader = createEvmPaymentHeader(result.payload, paymentOption, resourceUrl);
+  const paymentHeader = createEvmPaymentHeader(
+    result.payload,
+    paymentOption,
+    resourceUrl,
+    resourceFrom402
+  );
   return {
     success: true,
     paymentHeader,
@@ -816,7 +924,8 @@ export async function executePayment(
   config: X402ClientConfig,
   paymentOption: X402PaymentOption,
   rawV1Accept?: Record<string, any>,
-  resourceUrl?: string
+  resourceUrl?: string,
+  resourceFrom402?: X402ResourceInfo
 ): Promise<PaymentResult> {
   try {
     const { transaction } = await createPaymentTransaction(config, paymentOption);
@@ -827,7 +936,7 @@ export async function executePayment(
 
     const paymentHeader = rawV1Accept
       ? createV1PaymentHeader(signedTransaction, rawV1Accept)
-      : createPaymentHeader(signedTransaction, paymentOption, resourceUrl);
+      : createPaymentHeader(signedTransaction, paymentOption, resourceUrl, resourceFrom402);
 
     return {
       success: true,
@@ -879,7 +988,11 @@ export function extractPaymentDetails(x402Response: X402Response): {
   const asset = option.asset;
   
   if (asset) {
-    if (asset === USDC_MINT_STRING || asset === USDC_DEVNET_STRING || asset === 'USDC') {
+    const a = String(asset).toLowerCase();
+    if (a === BSC_USD1_MAINNET.toLowerCase()) token = 'USD1';
+    else if (a === BSC_USDC_MAINNET.toLowerCase() || a === BSC_USDT_MAINNET.toLowerCase()) {
+      token = a === BSC_USDT_MAINNET.toLowerCase() ? 'USDT' : 'USDC';
+    } else if (asset === USDC_MINT_STRING || asset === USDC_DEVNET_STRING || asset === 'USDC') {
       token = 'USDC';
     } else if (asset === 'SOL' || asset === 'So11111111111111111111111111111111111111112') {
       token = 'SOL';
@@ -892,10 +1005,12 @@ export function extractPaymentDetails(x402Response: X402Response): {
   // Format network name from CAIP-2 identifier
   let network = 'Solana';
   if (option.network) {
-    if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') {
+    if (isBscNetwork(option)) {
+      network = 'Binance (BSC)';
+    } else if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') {
       network = 'Base Mainnet';
     } else if (option.network.startsWith('eip155:')) {
-      network = 'Base';
+      network = 'EVM';
     } else if (option.network === SOLANA_MAINNET_CAIP2 || option.network.includes('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')) {
       network = 'Solana Mainnet';
     } else if (option.network === SOLANA_DEVNET_CAIP2 || option.network.includes('EtWTRABZaYq6iMfeYKouRu166VU2xqa1') || option.network.includes('devnet')) {
@@ -905,11 +1020,12 @@ export function extractPaymentDetails(x402Response: X402Response): {
     }
   }
   
-  // Format amount from micro-units (1,000,000 = $1.00)
-  const formattedAmount = formatPaymentAmount(option.amount);
-  
+  const formattedAmount = formatPaymentAmountForOption(option);
+
   const details = {
     amount: formattedAmount,
+    amountAtomic: String(option.amount ?? '0'),
+    asset: option.asset,
     token,
     recipient: option.payTo,
     network,
@@ -923,28 +1039,21 @@ export function extractPaymentDetails(x402Response: X402Response): {
  * Build payment details for display from a single payment option (e.g. when user selects Solana vs Base).
  */
 export function extractPaymentDetailsFromOption(option: X402PaymentOption): PaymentDetails {
-  const formattedAmount = formatPaymentAmount(option.amount);
-  let token = 'USDC';
-  const asset = option.asset;
-  if (asset) {
-    if (asset === USDC_MINT_STRING || asset === USDC_DEVNET_STRING || asset.toLowerCase() === BASE_USDC_MAINNET.toLowerCase() || asset === 'USDC') {
-      token = 'USDC';
-    } else if (asset === 'SOL' || asset === 'So11111111111111111111111111111111111111112') {
-      token = 'SOL';
-    } else {
-      token = `${String(asset).slice(0, 4)}...${String(asset).slice(-4)}`;
-    }
-  }
+  const formattedAmount = formatPaymentAmountForOption(option);
+  const token = tokenLabelFromAsset(option.asset);
   let network = 'Solana';
   if (option.network) {
-    if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') network = 'Base Mainnet';
-    else if (option.network.startsWith('eip155:')) network = 'Base';
+    if (isBscNetwork(option)) network = 'Binance (BSC)';
+    else if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') network = 'Base Mainnet';
+    else if (option.network.startsWith('eip155:')) network = 'EVM';
     else if (option.network === SOLANA_MAINNET_CAIP2 || String(option.network).includes('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')) network = 'Solana Mainnet';
     else if (option.network === SOLANA_DEVNET_CAIP2 || String(option.network).includes('devnet')) network = 'Solana Devnet';
     else if (option.network.startsWith('solana:')) network = 'Solana';
   }
   return {
     amount: formattedAmount,
+    amountAtomic: String(option.amount ?? '0'),
+    asset: option.asset,
     token,
     recipient: option.payTo ?? '',
     network,

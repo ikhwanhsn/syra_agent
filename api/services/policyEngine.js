@@ -148,6 +148,26 @@ export function evaluate(intent, walletConfig, history) {
     return { outcome: 'deny', reasons, riskScore };
   }
 
+  const isLinkedUserWithdraw =
+    intent.type === 'withdraw' &&
+    intent.toAddress &&
+    walletConfig.linkedUserWallet &&
+    walletConfig.linkedUserWallet === intent.toAddress;
+
+  // Withdraw to unknown address — hard deny unless it is the user's linked wallet.
+  if (intent.type === 'withdraw' && intent.toAddress && !isLinkedUserWithdraw) {
+    const allowList = Array.isArray(walletConfig.destinationAllowlist) ? walletConfig.destinationAllowlist : [];
+    if (!allowList.includes(intent.toAddress)) {
+      add('destination_not_allowlisted', intent.toAddress);
+      return { outcome: 'deny', reasons, riskScore };
+    }
+  }
+
+  // User-initiated withdraw to linked wallet: no caps, velocity limits, or staged confirmation.
+  if (isLinkedUserWithdraw) {
+    return { outcome: 'allow', reasons: [], riskScore: 0 };
+  }
+
   const isLpAuto = intent.toolId && LP_REAL_AUTO_TOOLS.has(intent.toolId);
 
   // Velocity (too many signs in a short window) — skipped for LP cron tools --
@@ -187,17 +207,6 @@ export function evaluate(intent, walletConfig, history) {
       add('anomaly_spike', `${(sumLast1h + amount).toFixed(2)}>${(median * ANOMALY_SPIKE_MULT).toFixed(2)}`);
     }
     if (amount > 100) add('large_amount', amount.toFixed(2));
-  }
-
-  // Destination allowlist — strict for withdrawals; advisory elsewhere
-  if (intent.type === 'withdraw' && intent.toAddress) {
-    const allowList = Array.isArray(walletConfig.destinationAllowlist) ? walletConfig.destinationAllowlist : [];
-    const isLinked = walletConfig.linkedUserWallet && walletConfig.linkedUserWallet === intent.toAddress;
-    if (!isLinked && !allowList.includes(intent.toAddress)) {
-      add('destination_not_allowlisted', intent.toAddress);
-      // Withdrawing to an unknown address is a hard deny; user must add to allowlist or it must match linked wallet.
-      return { outcome: 'deny', reasons, riskScore };
-    }
   }
 
   // Program / contract awareness (advisory)

@@ -910,6 +910,7 @@ body:not(.syra-qwerti-active) #qwerti-widget-root {
 
 .syra-sonner [data-sonner-toaster] {
   --width: auto;
+  z-index: 400 !important;
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 

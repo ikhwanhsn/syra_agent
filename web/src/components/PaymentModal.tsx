@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PLAYGROUND_MODAL_Z } from '@/components/playground/playgroundStyles';
 import {
@@ -22,8 +22,21 @@ import { PaymentDetails, TransactionStatus, WalletState } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { useUserWalletBalance } from '@/hooks/useUserWalletBalance';
+import { useToast } from '@/hooks/use-toast';
 import { formatUsdcAmount } from '@/lib/userWalletBalance';
-import type { X402PaymentOption } from '@/lib/x402Client';
+import {
+  PLAYGROUND_PAYMENT_CHAINS,
+  type PaymentChainId,
+  type PaymentOptionsByChain,
+  type X402PaymentOption,
+} from '@/lib/x402Client';
+import {
+  connectEvmWallet,
+  refreshMetaMaskWallet,
+  syncEvmWalletFromProvider,
+  useEvmWalletState,
+} from '@/lib/evmBscSigner';
+import { useBscErc20Balance } from '@/hooks/useBscErc20Balance';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -33,13 +46,13 @@ interface PaymentModalProps {
   transactionStatus: TransactionStatus;
   /** Connect for the given chain when called with arg; otherwise uses app's selected chain. Pass chain so modal connects for the correct network (Base vs Solana). */
   /** Open connect flow (chain picker, then Privy). */
-  onOpenConnectModal: () => void;
+  onOpenConnectModal: (chain?: PaymentChainId) => void | Promise<void>;
   onPay: () => void;
   onRetry: () => void;
   /** When API offers both Solana and Base, show chain selector */
-  paymentOptionsByChain?: { solana: X402PaymentOption | null; base: X402PaymentOption | null };
-  selectedPaymentChain?: 'solana' | 'base';
-  onSelectPaymentChain?: (chain: 'solana' | 'base') => void;
+  paymentOptionsByChain?: PaymentOptionsByChain;
+  selectedPaymentChain?: PaymentChainId;
+  onSelectPaymentChain?: (chain: PaymentChainId) => void;
 }
 
 // Step definitions for the payment flow
@@ -54,11 +67,30 @@ export function PaymentModal({
   onOpenConnectModal,
   onPay,
   onRetry,
-  paymentOptionsByChain: _paymentOptionsByChain,
-  selectedPaymentChain: _selectedPaymentChain = 'solana',
-  onSelectPaymentChain: _onSelectPaymentChain,
+  paymentOptionsByChain,
+  selectedPaymentChain = 'solana',
+  onSelectPaymentChain,
 }: PaymentModalProps) {
   const walletContext = useWalletContext();
+  const { toast } = useToast();
+  const isBinanceChain = selectedPaymentChain === 'binance';
+  const isBaseChain = selectedPaymentChain === 'base';
+  const isEvmChainSelected = isBinanceChain || isBaseChain;
+  const paymentNetwork = paymentDetails.network.toLowerCase();
+  const paymentIsOnBsc =
+    paymentNetwork.includes('binance') || paymentNetwork.includes('bsc');
+  const paymentIsOnBase = paymentNetwork.includes('base');
+  const usesEvmWallet = isEvmChainSelected || paymentIsOnBsc || paymentIsOnBase;
+  const bscWallet = useEvmWalletState(isOpen && usesEvmWallet);
+  const bscTokenBalanceQuery = useBscErc20Balance(
+    bscWallet.address,
+    paymentDetails.asset,
+    isOpen &&
+    (isBinanceChain || paymentIsOnBsc) &&
+    bscWallet.connected &&
+    Boolean(paymentDetails.asset),
+  );
+  const [evmConnecting, setEvmConnecting] = useState(false);
   const {
     userUsdcBalance,
     userSolBalance,
@@ -69,29 +101,87 @@ export function PaymentModal({
   const [copiedRecipient, setCopiedRecipient] = useState(false);
 
   useEffect(() => {
+    if (!isOpen || !onSelectPaymentChain) return;
+    if (paymentIsOnBsc && paymentOptionsByChain?.binance && !isBinanceChain) {
+      onSelectPaymentChain('binance');
+    } else if (paymentIsOnBase && paymentOptionsByChain?.base && !isBaseChain) {
+      onSelectPaymentChain('base');
+    }
+  }, [
+    isOpen,
+    paymentIsOnBsc,
+    paymentIsOnBase,
+    isBinanceChain,
+    isBaseChain,
+    onSelectPaymentChain,
+    paymentOptionsByChain?.binance,
+    paymentOptionsByChain?.base,
+  ]);
+
+  useEffect(() => {
     if (!isOpen) return;
     void walletContext.refreshSolanaBalances();
     void refetchUserBalance();
-  }, [isOpen, walletContext.refreshSolanaBalances, refetchUserBalance]);
-
-  if (!isOpen) return null;
+    if (usesEvmWallet) {
+      void syncEvmWalletFromProvider(true);
+    }
+  }, [isOpen, usesEvmWallet, selectedPaymentChain]);
 
   const usdcBalance = userUsdcBalance ?? walletContext.usdcBalance;
   const solBalance = userSolBalance ?? walletContext.solBalance;
   const balancePending = (balanceLoading || balanceFetching) && usdcBalance == null && solBalance == null;
+  const paymentAmount = parseFloat(paymentDetails.amount) || 0;
+  const requiredAtomic = paymentDetails.amountAtomic
+    ? BigInt(paymentDetails.amountAtomic)
+    : null;
+
+  const hasEnoughBalance = useMemo(() => {
+    if ((isBinanceChain || paymentIsOnBsc) && requiredAtomic != null) {
+      const bal = bscTokenBalanceQuery.data?.atomic;
+      if (bal == null) return true;
+      return bal >= requiredAtomic;
+    }
+    if (paymentDetails.token === 'USDC') {
+      return (usdcBalance ?? 0) >= paymentAmount - 1e-9;
+    }
+    return (solBalance ?? 0) >= paymentAmount - 1e-9;
+  }, [
+    isBinanceChain,
+    paymentIsOnBsc,
+    requiredAtomic,
+    bscTokenBalanceQuery.data?.atomic,
+    paymentDetails.token,
+    usdcBalance,
+    solBalance,
+    paymentAmount,
+  ]);
+
+  const bscBalancePending =
+    (isBinanceChain || paymentIsOnBsc) &&
+    bscWallet.connected &&
+    Boolean(paymentDetails.asset) &&
+    (bscTokenBalanceQuery.isLoading || bscTokenBalanceQuery.isFetching) &&
+    bscTokenBalanceQuery.data == null;
+
+  const balanceCheckPending = isBinanceChain
+    ? bscBalancePending
+    : !usesEvmWallet && balancePending;
+
+  if (!isOpen) return null;
 
   const isPending = transactionStatus.status === 'pending';
   const isConfirmed = transactionStatus.status === 'confirmed';
   const isFailed = transactionStatus.status === 'failed';
 
-  const isBase = false;
+  const isBinance = isBinanceChain;
+  const isBase = isBaseChain;
+  const isEvmChain = isEvmChainSelected;
 
-  const paymentAmount = parseFloat(paymentDetails.amount) || 0;
-  const hasEnoughBalance =
-    paymentDetails.token === 'USDC'
-      ? (usdcBalance ?? 0) >= paymentAmount - 1e-9
-      : (solBalance ?? 0) >= paymentAmount - 1e-9;
-  const walletConnectedForChain = walletContext.connected;
+  const chainAvailable = (id: PaymentChainId) => Boolean(paymentOptionsByChain?.[id]);
+  const showChainPicker = Boolean(onSelectPaymentChain);
+  const walletConnectedForChain = usesEvmWallet ? bscWallet.connected : walletContext.connected;
+  const solanaConnectedButEvmPayment =
+    usesEvmWallet && walletContext.connected && !bscWallet.connected;
   
   // Check if payment details are valid (has recipient address)
   const hasValidPaymentDetails = paymentDetails.recipient && 
@@ -122,9 +212,76 @@ export function PaymentModal({
     return 'pending';
   };
 
-  const displayWalletShort = walletContext.shortAddress ?? walletContext.address;
-  const displayUsdc = usdcBalance;
-  const displayNativeBalance = solBalance;
+  const displayWalletShort = usesEvmWallet
+    ? bscWallet.shortAddress
+    : walletContext.shortAddress ?? walletContext.address;
+  const displayWalletFull = usesEvmWallet ? bscWallet.address : walletContext.address;
+  const displayUsdc = usesEvmWallet ? null : usdcBalance;
+  const displayNativeBalance = usesEvmWallet ? null : solBalance;
+  const evmProviderLabel = bscWallet.providerLabel ?? 'MetaMask';
+  const displayBscTokenBalance = isBinance ? bscTokenBalanceQuery.data?.formatted : null;
+
+  const evmPaymentChain: PaymentChainId | null = paymentIsOnBsc
+    ? 'binance'
+    : paymentIsOnBase
+      ? 'base'
+      : isBinanceChain
+        ? 'binance'
+        : isBaseChain
+          ? 'base'
+          : null;
+
+  const handleSyncMetaMask = async () => {
+    if (!evmPaymentChain) return;
+    setEvmConnecting(true);
+    const previous = bscWallet.address;
+    try {
+      const address = await refreshMetaMaskWallet(evmPaymentChain);
+      await bscTokenBalanceQuery.refetch();
+      const changed =
+        !previous || previous.toLowerCase() !== address.toLowerCase();
+      toast({
+        title: changed ? 'MetaMask account updated' : 'MetaMask synced',
+        description: `${address.slice(0, 6)}…${address.slice(-4)} on BSC`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Could not sync MetaMask',
+        description:
+          err instanceof Error ? err.message : 'Check that MetaMask is unlocked.',
+        variant: 'destructive',
+      });
+    } finally {
+      setEvmConnecting(false);
+    }
+  };
+
+  const handleConnectWallet = async () => {
+    const chain = usesEvmWallet
+      ? paymentIsOnBsc
+        ? 'binance'
+        : paymentIsOnBase
+          ? 'base'
+          : selectedPaymentChain
+      : 'solana';
+    if (usesEvmWallet && (chain === 'binance' || chain === 'base')) {
+      setEvmConnecting(true);
+      try {
+        await connectEvmWallet(chain);
+      } catch (err) {
+        toast({
+          title: 'EVM wallet required',
+          description:
+            err instanceof Error ? err.message : 'Connect MetaMask for Binance or Base payments.',
+          variant: 'destructive',
+        });
+      } finally {
+        setEvmConnecting(false);
+      }
+      return;
+    }
+    onOpenConnectModal(chain);
+  };
 
   const copyRecipient = async () => {
     const addr = paymentDetails.recipient;
@@ -140,9 +297,11 @@ export function PaymentModal({
 
   const explorerTxHref =
     transactionStatus.hash &&
-    (isBase
-      ? `https://basescan.org/tx/${transactionStatus.hash}`
-      : `https://explorer.solana.com/tx/${transactionStatus.hash}`);
+    (isBinance
+      ? `https://bscscan.com/tx/${transactionStatus.hash}`
+      : isBase
+        ? `https://basescan.org/tx/${transactionStatus.hash}`
+        : `https://explorer.solana.com/tx/${transactionStatus.hash}`);
 
   return createPortal(
     <>
@@ -270,6 +429,33 @@ export function PaymentModal({
 
           {/* Content */}
           <div className="space-y-3.5 overflow-y-auto min-h-0 flex-1 px-5 py-4 sm:px-7 sm:py-5">
+            {showChainPicker && onSelectPaymentChain ? (
+              <div className="flex flex-wrap gap-2" role="tablist" aria-label="Payment network">
+                {PLAYGROUND_PAYMENT_CHAINS.map((c) => {
+                  const available = chainAvailable(c.id);
+                  return (
+                    <Button
+                      key={c.id}
+                      type="button"
+                      size="sm"
+                      role="tab"
+                      aria-selected={selectedPaymentChain === c.id}
+                      aria-disabled={!available}
+                      variant={selectedPaymentChain === c.id ? 'default' : 'outline'}
+                      className={cn(
+                        'rounded-full',
+                        !available && 'opacity-45 cursor-not-allowed',
+                      )}
+                      disabled={!available}
+                      onClick={() => available && onSelectPaymentChain(c.id)}
+                    >
+                      {c.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : null}
+
             {/* Amount */}
             <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-secondary/50 to-secondary/20 p-5 sm:p-6 shadow-[inset_0_1px_0_hsl(var(--border)/0.35)]">
               <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-gradient-to-br from-ring/12 to-transparent blur-2xl" />
@@ -391,7 +577,7 @@ export function PaymentModal({
                       rel="noopener noreferrer"
                       className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                      {isBase ? 'View on Basescan' : 'View on Solana Explorer'}
+                      {isBinance ? 'View on BscScan' : isBase ? 'View on Basescan' : 'View on Solana Explorer'}
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -403,6 +589,19 @@ export function PaymentModal({
             )}
 
             {/* Wallet Connection Notice */}
+            {solanaConnectedButEvmPayment && (
+              <div className="flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/10 p-4">
+                <AlertCircle className="h-5 w-5 shrink-0 text-warning" />
+                <div>
+                  <p className="text-sm font-medium text-warning">MetaMask required for this payment</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Your Solana wallet ({walletContext.shortAddress}) is connected separately. Binance/Base
+                    payments use MetaMask on BSC — connect below so the address matches what will sign.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {!walletConnectedForChain && (
               <div className="flex items-center gap-3.5 rounded-xl border border-border/60 bg-muted/30 p-4 sm:p-5 backdrop-blur-sm">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/50 bg-background/50">
@@ -411,7 +610,7 @@ export function PaymentModal({
                 <div>
                   <p className="text-sm font-semibold text-foreground">Connect a wallet</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Link your {isBase ? 'Base' : 'Solana'} wallet to review balances and send this payment.
+                    Link your {isBinance ? 'MetaMask on BNB Smart Chain' : isBase ? 'MetaMask on Base' : 'Solana'} wallet to review balances and send this payment.
                   </p>
                 </div>
               </div>
@@ -425,12 +624,51 @@ export function PaymentModal({
                     <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Wallet</p>
-                    <p className="mt-0.5 truncate font-mono text-xs text-foreground">{displayWalletShort}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {usesEvmWallet ? `${evmProviderLabel} · ${isBinance ? 'BSC' : isBase ? 'Base' : 'EVM'}` : 'Wallet'}
+                    </p>
+                    <p className="mt-0.5 truncate font-mono text-xs text-foreground" title={displayWalletFull ?? undefined}>
+                      {displayWalletShort}
+                    </p>
+                    {usesEvmWallet && displayWalletFull && (
+                      <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                        {displayWalletFull}
+                      </p>
+                    )}
+                    {usesEvmWallet && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                        disabled={evmConnecting}
+                        onClick={() => void handleSyncMetaMask()}
+                      >
+                        {evmConnecting ? (
+                          <>
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            Opening MetaMask…
+                          </>
+                        ) : (
+                          'Sync MetaMask account'
+                        )}
+                      </Button>
+                    )}
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="font-mono text-sm font-medium tabular-nums text-foreground">
-                      {balancePending ? (
+                      {isBinance ? (
+                        bscBalancePending ? (
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Loading…
+                          </span>
+                        ) : (
+                          <>
+                            {displayBscTokenBalance ?? '—'} {paymentDetails.token}
+                          </>
+                        )
+                      ) : balancePending ? (
                         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           Loading…
@@ -439,7 +677,7 @@ export function PaymentModal({
                         <>{formatUsdcAmount(displayUsdc)} USDC</>
                       )}
                     </p>
-                    {!isBase && displayNativeBalance != null && (
+                    {!usesEvmWallet && displayNativeBalance != null && (
                       <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
                         {displayNativeBalance.toFixed(4)} SOL
                       </p>
@@ -448,7 +686,7 @@ export function PaymentModal({
                 </div>
                 
                 {/* Insufficient Balance Warning */}
-                {!balancePending && !hasEnoughBalance && (
+                {!(isBinance ? bscBalancePending : balancePending) && !hasEnoughBalance && (
                   <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
                     <div>
@@ -469,11 +707,22 @@ export function PaymentModal({
               <Button
                 variant="neon"
                 className="glow-primary-hover h-12 w-full gap-2 rounded-xl text-[15px] font-semibold shadow-lg"
-                onClick={() => onOpenConnectModal()}
+                onClick={() => void handleConnectWallet()}
+                disabled={evmConnecting}
               >
-                <Wallet className="h-4 w-4" />
-                Connect wallet
-                <ArrowRight className="h-4 w-4 opacity-80" />
+                {evmConnecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wallet className="h-4 w-4" />
+                )}
+                {evmConnecting
+                  ? 'Opening wallet…'
+                  : isBinance
+                    ? 'Connect MetaMask (BSC)'
+                    : isBase
+                      ? 'Connect MetaMask (Base)'
+                      : 'Connect wallet'}
+                {!evmConnecting && <ArrowRight className="h-4 w-4 opacity-80" />}
               </Button>
             ) : isConfirmed ? (
               <Button
@@ -500,8 +749,8 @@ export function PaymentModal({
                 onClick={onPay}
                 disabled={
                   isPending ||
-                  balancePending ||
-                  !hasEnoughBalance ||
+                  balanceCheckPending ||
+                  ((isBinance || !usesEvmWallet) && !balanceCheckPending && !hasEnoughBalance) ||
                   !hasValidPaymentDetails ||
                   !walletConnectedForChain
                 }
@@ -511,7 +760,7 @@ export function PaymentModal({
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Processing Payment...
                   </>
-                ) : balancePending ? (
+                ) : balanceCheckPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Checking balance…
@@ -521,7 +770,7 @@ export function PaymentModal({
                     <AlertCircle className="h-4 w-4" />
                     Missing Payment Details
                   </>
-                ) : !hasEnoughBalance ? (
+                ) : (isBinance || !usesEvmWallet) && !hasEnoughBalance ? (
                   <>
                     <AlertCircle className="h-4 w-4" />
                     Insufficient {paymentDetails.token} Balance

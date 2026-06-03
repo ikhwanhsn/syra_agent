@@ -42,13 +42,35 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
     throw new Error('Invalid recipient address');
   }
 
-  const doc = await AgentWallet.findOne({ anonymousId: id }).lean();
+  let doc = await AgentWallet.findOne({ anonymousId: id }).lean();
   if (!doc?.agentAddress) {
     throw new Error('Agent wallet not found');
   }
   if (doc.chain === 'base') {
     throw new Error('Withdraw for Base is not supported yet. Use Solana or contact support.');
   }
+
+  // LP wallets created before link-in may lack walletAddress — inherit from chat sibling.
+  if (!doc.walletAddress && typeof doc.anonymousId === 'string' && doc.anonymousId.endsWith(':lp')) {
+    const chatId = doc.anonymousId.slice(0, -3);
+    const chatWallet = chatId
+      ? await AgentWallet.findOne({ anonymousId: chatId }).select('walletAddress chain').lean()
+      : null;
+    if (chatWallet?.walletAddress) {
+      await AgentWallet.updateOne(
+        { anonymousId: id },
+        {
+          $set: {
+            walletAddress: chatWallet.walletAddress,
+            chain: chatWallet.chain || 'solana',
+            destinationAllowlist: [chatWallet.walletAddress],
+          },
+        },
+      );
+      doc = { ...doc, walletAddress: chatWallet.walletAddress, chain: chatWallet.chain || 'solana' };
+    }
+  }
+
   if (!doc.walletAddress) {
     throw new Error('Connect your Solana wallet in Syra before withdrawing.');
   }
@@ -126,22 +148,37 @@ export async function withdrawSolanaAgentToRecipient(anonymousId, recipientBase5
     }
   }
 
-  const solAfterTx =
+  const solSweepMax =
     BigInt(lamportsBalance) > MIN_AGENT_LAMPORTS + TX_FEE_BUFFER_LAMPORTS
       ? BigInt(lamportsBalance) - MIN_AGENT_LAMPORTS - TX_FEE_BUFFER_LAMPORTS
       : 0n;
+  /** User-specified SOL amount: only reserve tx fee, not the operational min balance. */
+  const maxUserSolLamports =
+    BigInt(lamportsBalance) > TX_FEE_BUFFER_LAMPORTS
+      ? BigInt(lamportsBalance) - TX_FEE_BUFFER_LAMPORTS
+      : 0n;
 
-  if (includeSol && solAfterTx > 0n) {
-    const capLamports =
-      solCapHuman != null ? BigInt(Math.floor(solCapHuman * LAMPORTS_PER_SOL)) : null;
-    const solToSend =
-      capLamports != null ? (solAfterTx < capLamports ? solAfterTx : capLamports) : solAfterTx;
-    if (solToSend > 0n) {
+  if (includeSol) {
+    if (solCapHuman != null) {
+      const capLamports = BigInt(Math.floor(solCapHuman * LAMPORTS_PER_SOL));
+      if (capLamports > 0n && maxUserSolLamports > 0n) {
+        const solToSend = capLamports > maxUserSolLamports ? maxUserSolLamports : capLamports;
+        if (solToSend > 0n) {
+          instructions.push(
+            SystemProgram.transfer({
+              fromPubkey: agentPk,
+              toPubkey: recipient,
+              lamports: solToSend,
+            })
+          );
+        }
+      }
+    } else if (solSweepMax > 0n) {
       instructions.push(
         SystemProgram.transfer({
           fromPubkey: agentPk,
           toPubkey: recipient,
-          lamports: solToSend,
+          lamports: solSweepMax,
         })
       );
     }

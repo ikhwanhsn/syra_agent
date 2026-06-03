@@ -46,20 +46,32 @@ export async function createHealthRouter() {
   const payPost = requirePaymentSapEscrowOrExact(requirePayment, { ...paymentOptions, method: "POST" });
 
   router.get("/", payGet, async (req, res) => {
-    await settleSapEscrowOrFacilitator(
+    const settle = await settleSapEscrowOrFacilitator(
       res,
       req,
       JSON.stringify({ resource: "/health", method: "GET" })
     );
+    if (settle?.success === false) {
+      return res.status(502).json({
+        success: false,
+        error: settle.errorReason || settle.error || "Payment settlement failed",
+      });
+    }
     res.status(200).json(buildHealthPayload());
   });
 
   router.post("/", payPost, async (req, res) => {
-    await settleSapEscrowOrFacilitator(
+    const settle = await settleSapEscrowOrFacilitator(
       res,
       req,
       JSON.stringify({ resource: "/health", method: "POST" })
     );
+    if (settle?.success === false) {
+      return res.status(502).json({
+        success: false,
+        error: settle.errorReason || settle.error || "Payment settlement failed",
+      });
+    }
     res.status(200).json(buildHealthPayload());
   });
 

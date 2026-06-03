@@ -4,6 +4,7 @@ import { useWalletContext } from "@/contexts/WalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { resolveAgentTreasuryBalance } from "@/lib/agentWalletBalanceDisplay";
 import { agentWalletApi } from "@/lib/chatApi";
+import { getSyraSessionWallet, ensureAccessTokenForWallet } from "@/lib/agentAuthApi";
 import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -46,6 +47,14 @@ import {
 const LAMPORTS_PER_SOL = 1e9;
 const USDC_MINT_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const USDC_DECIMALS = 6;
+/** Matches api/libs/agentWalletWithdrawSol.js TX_FEE_BUFFER_LAMPORTS (80_000). */
+const AGENT_SOL_WITHDRAW_FEE_BUFFER = 80_000 / LAMPORTS_PER_SOL;
+/** Above Dialog (`z-[250]`) so asset pickers stay clickable inside the modal. */
+const MODAL_SELECT_CONTENT_CLASS = "z-[300] min-w-[10rem]";
+
+function isRadixSelectPortalTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("[data-radix-select-content]") != null;
+}
 
 /**
  * Parses amount strings for wallet inputs. Accepts `7.26` or `7,26` (decimal comma).
@@ -88,6 +97,12 @@ function getDepositAmountError(params: {
   return null;
 }
 
+function maxAgentSolWithdrawable(balance: number | null | undefined): number | null {
+  if (balance == null || !Number.isFinite(balance)) return null;
+  const max = balance - AGENT_SOL_WITHDRAW_FEE_BUFFER;
+  return max > 0 ? max : 0;
+}
+
 function getWithdrawAmountError(params: {
   flowTab: "deposit" | "withdraw";
   hasWithdrawAmount: boolean;
@@ -108,8 +123,10 @@ function getWithdrawAmountError(params: {
     return null;
   }
   if (params.agentSolBalance == null || !Number.isFinite(params.agentSolBalance)) return null;
-  if (params.withdrawNativeHuman > params.agentSolBalance + 1e-8) {
-    return `The agent only has about ${params.agentSolBalance.toFixed(4)} ${params.nativeLabel}.`;
+  const maxSol = maxAgentSolWithdrawable(params.agentSolBalance);
+  if (maxSol == null) return null;
+  if (params.withdrawNativeHuman > maxSol + 1e-8) {
+    return `The agent only has about ${params.agentSolBalance.toFixed(4)} ${params.nativeLabel} (max withdraw ~${maxSol.toFixed(4)} after fees).`;
   }
   return null;
 }
@@ -152,6 +169,7 @@ export function FuelAgentModal({
   const {
     connection,
     publicKey,
+    address: connectedAddress,
     sendTransaction,
     solBalance,
     usdcBalance,
@@ -171,7 +189,7 @@ export function FuelAgentModal({
     reportDebit,
     reportNativeDebit,
   } = useAgentWallet();
-  const { syraAuthReady, syraAuthenticated } = useSyraAuth();
+  const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
 
   const [selectedWallet, setSelectedWallet] = useState<AgentWalletPurpose>(initialAgentWallet);
   const isPage = variant === "page";
@@ -560,11 +578,53 @@ export function FuelAgentModal({
     solBalance,
   ]);
 
+  const linkedWithdrawAddress = useMemo(() => {
+    const session = getSyraSessionWallet();
+    if (session?.address) return session.address;
+    return connectedAddress ?? publicKey?.toBase58() ?? null;
+  }, [connectedAddress, publicKey]);
+
   const handleWithdrawToUserWallet = useCallback(async () => {
-    if (!targetAnonymousId || !publicKey) {
+    if (!targetAnonymousId) {
+      toast({
+        title: "Agent wallet unavailable",
+        description: "Could not resolve the agent treasury. Refresh the page and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!linkedWithdrawAddress) {
       toast({
         title: "Connect wallet",
         description: "Connect your Solana wallet to withdraw agent funds to it.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!syraAuthenticated) {
+      toast({
+        title: "Sign in required",
+        description: "Approve the wallet sign-in prompt to authorize withdrawals.",
+        variant: "destructive",
+      });
+      void requestSyraAuth();
+      return;
+    }
+    const token = await ensureAccessTokenForWallet(linkedWithdrawAddress);
+    if (!token) {
+      toast({
+        title: "Session expired",
+        description: "Sign in with your wallet again, then retry the withdrawal.",
+        variant: "destructive",
+      });
+      void requestSyraAuth();
+      return;
+    }
+    if (connectedAddress && connectedAddress !== linkedWithdrawAddress) {
+      toast({
+        title: "Wallet mismatch",
+        description:
+          "Your connected wallet does not match your Syra session. Disconnect and reconnect the same wallet you used to sign in.",
         variant: "destructive",
       });
       return;
@@ -601,7 +661,7 @@ export function FuelAgentModal({
     try {
       const { signature } = await agentWalletApi.withdrawToLinkedWallet(
         targetAnonymousId,
-        publicKey.toBase58(),
+        linkedWithdrawAddress,
         withdrawMode === "usdc"
           ? { asset: "usdc" as const, usdcAmount: withdrawUsdcHuman }
           : { asset: "sol" as const, solAmount: withdrawNativeHuman },
@@ -615,9 +675,21 @@ export function FuelAgentModal({
       setWithdrawCustomNative("");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      const friendly =
+        message === "user_confirmation_required"
+          ? "This withdrawal needs extra confirmation. Try a smaller amount or contact support."
+          : message === "Withdraw only to your linked wallet."
+            ? "Withdrawals must go to the wallet linked to your Syra account. Reconnect that wallet and try again."
+            : message === "Connect your Solana wallet in Syra before withdrawing."
+              ? "Sign in with your Solana wallet before withdrawing from this agent treasury."
+              : message === "Nothing to withdraw"
+                ? withdrawMode === "native"
+                  ? "The agent keeps a small SOL reserve for fees. Try withdrawing USDC or a lower SOL amount."
+                  : "The agent treasury has no withdrawable USDC for that amount."
+                : message;
       toast({
         title: "Withdraw failed",
-        description: message,
+        description: friendly,
         variant: "destructive",
       });
     } finally {
@@ -637,7 +709,10 @@ export function FuelAgentModal({
   }, [
     targetAnonymousId,
     activePurpose,
-    publicKey,
+    linkedWithdrawAddress,
+    connectedAddress,
+    syraAuthenticated,
+    requestSyraAuth,
     reportDebit,
     reportNativeDebit,
     refetchLpBalance,
@@ -720,7 +795,8 @@ export function FuelAgentModal({
   const fillWithdrawNativeFromAgentFraction = useCallback(
     (fraction: 0.5 | 1) => {
       const b = agentNativeBalance;
-      if (b == null || !Number.isFinite(b) || b <= 0) {
+      const max = maxAgentSolWithdrawable(b);
+      if (max == null || max <= 0) {
         toast({
           title: `No ${nativeLabel} on agent`,
           description: `The agent wallet has no ${nativeLabel} to withdraw.`,
@@ -728,7 +804,7 @@ export function FuelAgentModal({
         });
         return;
       }
-      const v = fraction === 1 ? b : b * 0.5;
+      const v = fraction === 1 ? max : max * 0.5;
       setWithdrawCustomNative(Number(v.toFixed(4)).toString());
     },
     [agentNativeBalance, nativeLabel, toast],
@@ -798,7 +874,9 @@ export function FuelAgentModal({
     !withdrawAmountError &&
     !!targetAnonymousId &&
     !!activeAddress &&
-    !!publicKey &&
+    !!linkedWithdrawAddress &&
+    syraAuthReady &&
+    syraAuthenticated &&
     !withdrawing &&
     !submitting;
 
@@ -999,6 +1077,7 @@ export function FuelAgentModal({
                     depositAmountError ? "border-destructive/55" : "border-border/60",
                   )}
                 >
+                  <div className="relative z-10 shrink-0">
                   <Select
                     value={depositMode}
                     onValueChange={(v) => {
@@ -1025,7 +1104,7 @@ export function FuelAgentModal({
                         </span>
                       </span>
                     </SelectTrigger>
-                    <SelectContent align="start" className="min-w-[10rem]">
+                    <SelectContent align="start" className={MODAL_SELECT_CONTENT_CLASS}>
                       <SelectItem value="usdc">
                         <span className="flex items-center gap-2">
                           <CoinLogo symbol="USDC" size="sm" />
@@ -1040,6 +1119,7 @@ export function FuelAgentModal({
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  </div>
                   {depositMode === "usdc" ? (
                     <>
                       <Input
@@ -1131,6 +1211,7 @@ export function FuelAgentModal({
                     withdrawAmountError ? "border-destructive/55" : "border-border/60",
                   )}
                 >
+                  <div className="relative z-10 shrink-0">
                   <Select
                     value={withdrawMode}
                     onValueChange={(v) => {
@@ -1157,7 +1238,7 @@ export function FuelAgentModal({
                         </span>
                       </span>
                     </SelectTrigger>
-                    <SelectContent align="start" className="min-w-[10rem]">
+                    <SelectContent align="start" className={MODAL_SELECT_CONTENT_CLASS}>
                       <SelectItem value="usdc">
                         <span className="flex items-center gap-2">
                           <CoinLogo symbol="USDC" size="sm" />
@@ -1172,6 +1253,7 @@ export function FuelAgentModal({
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  </div>
                   {withdrawMode === "usdc" ? (
                     <>
                       <Input
@@ -1406,7 +1488,17 @@ export function FuelAgentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={modalDialogClassName}>{panel}</DialogContent>
+      <DialogContent
+        className={modalDialogClassName}
+        onPointerDownOutside={(e) => {
+          if (isRadixSelectPortalTarget(e.target)) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (isRadixSelectPortalTarget(e.target)) e.preventDefault();
+        }}
+      >
+        {panel}
+      </DialogContent>
     </Dialog>
   );
 }

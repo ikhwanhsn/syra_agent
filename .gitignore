@@ -1,3 +1,6 @@
 .env*
 .agent-wallet.json
 node_modules
+# B402 keys — keep registered public key only
+api/.keys/*
+!api/.keys/b402_public.pem

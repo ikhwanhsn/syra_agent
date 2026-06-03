@@ -731,6 +731,9 @@ export const agentWalletApi = {
       },
     );
     const data = await res.json().catch(() => ({}));
+    if (res.status === 202 && (data as { confirmationRequired?: boolean }).confirmationRequired) {
+      throw new Error("user_confirmation_required");
+    }
     if (!res.ok) {
       throw new Error(
         (data as { error?: string })?.error || res.statusText || "Withdraw failed",

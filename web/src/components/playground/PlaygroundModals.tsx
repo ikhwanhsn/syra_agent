@@ -25,6 +25,7 @@ export function PlaygroundModals() {
     transactionStatus,
     pay,
     retryAfterPayment,
+    connectWallet,
     paymentOptionsByChain,
     selectedPaymentChain,
     selectPaymentChain,
@@ -49,7 +50,11 @@ export function PlaygroundModals() {
 
   const paymentOptionsByChainForLane = useMemo(() => {
     if (paymentLane !== "mpp") return paymentOptionsByChain;
-    return { solana: paymentOptionsByChain.solana, base: null };
+    return {
+      solana: paymentOptionsByChain.solana,
+      base: null,
+      binance: paymentOptionsByChain.binance,
+    };
   }, [paymentLane, paymentOptionsByChain]);
 
   const effectivePaymentDetails =
@@ -64,7 +69,13 @@ export function PlaygroundModals() {
           paymentDetails={effectivePaymentDetails}
           wallet={wallet}
           transactionStatus={transactionStatus}
-          onOpenConnectModal={() => openConnectModal()}
+          onOpenConnectModal={(chain) => {
+            if (chain === 'binance' || chain === 'base') {
+              void connectWallet(chain);
+            } else {
+              openConnectModal();
+            }
+          }}
           onPay={pay}
           onRetry={retryAfterPayment}
           paymentOptionsByChain={paymentOptionsByChainForLane}

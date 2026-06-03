@@ -88,6 +88,8 @@ export interface PaymentDetails {
   recipient: string;
   memo?: string;
   network: string;
+  amountAtomic?: string;
+  asset?: string;
 }
 
 export interface WalletState {

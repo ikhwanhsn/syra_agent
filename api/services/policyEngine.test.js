@@ -74,6 +74,32 @@ test('withdraw to linked wallet -> allow', () => {
   assert.equal(d.outcome, 'allow');
 });
 
+test('withdraw over per-tx cap to linked wallet -> allow (no user limits)', () => {
+  const d = evaluate(
+    baseIntent({ type: 'withdraw', toAddress: 'UserWalletAddr', estimatedUsd: 1500 }),
+    baseWallet,
+    []
+  );
+  assert.equal(d.outcome, 'allow');
+  assert.equal(d.reasons.length, 0);
+});
+
+test('linked withdraw ignores velocity limits', () => {
+  const now = Date.now();
+  const history = Array.from({ length: 11 }, (_, i) => ({
+    ts: new Date(now - i * 1000),
+    action: 'withdraw',
+    amountUsd: 100,
+    status: 'ok',
+  }));
+  const d = evaluate(
+    baseIntent({ type: 'withdraw', toAddress: 'UserWalletAddr', estimatedUsd: 1500 }),
+    baseWallet,
+    history
+  );
+  assert.equal(d.outcome, 'allow');
+});
+
 test('over per-tx cap -> require_confirm', () => {
   const d = evaluate(baseIntent({ estimatedUsd: 80 }), baseWallet, []);
   assert.equal(d.outcome, 'require_confirm');

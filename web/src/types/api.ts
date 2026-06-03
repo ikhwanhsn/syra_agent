@@ -83,11 +83,16 @@ export interface HistoryItem {
 }
 
 export interface PaymentDetails {
+  /** Human-readable amount for UI */
   amount: string;
   token: string;
   recipient: string;
   memo?: string;
   network: string;
+  /** Raw on-chain amount (wei for BSC 18-dec tokens; micro for Solana/Base USDC) */
+  amountAtomic?: string;
+  /** ERC-20 / mint address for balance checks */
+  asset?: string;
 }
 
 export interface WalletState {
